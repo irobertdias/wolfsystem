@@ -202,7 +202,7 @@ export default function CRM() {
                           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                           <XAxis dataKey="nome" stroke="#6b7280" fontSize={12} />
                           <YAxis stroke="#6b7280" fontSize={12} tickFormatter={(v) => `R$${v}`} />
-                          <Tooltip contentStyle={{ background: "#1f2937", border: "none", borderRadius: 8, color: "white" }} formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR")}`, "Receita"]} />
+                          <Tooltip contentStyle={{ background: "#1f2937", border: "none", borderRadius: 8, color: "white" }} formatter={(value: any) => [`R$ ${value.toLocaleString("pt-BR")}`, "Receita"]} />
                           <Bar dataKey="valor" fill="#16a34a" radius={[6, 6, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
