@@ -842,7 +842,19 @@ export default function Chatbot() {
 
         {aba === "empresas" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Empresas</h1></div>)}
         {aba === "filas" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Filas</h1></div>)}
-        {aba === "fluxos" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Chatbot / Fluxos</h1></div>)}
+        {aba === "fluxos" && (
+  <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center", justifyContent: "center", height: "100%" }}>
+    <span style={{ fontSize: 64 }}>🤖</span>
+    <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Chatbot / Fluxos</h1>
+    <p style={{ color: "#6b7280", fontSize: 14, margin: 0, textAlign: "center" }}>Crie fluxos de atendimento automático sem precisar de IA</p>
+    <button
+      onClick={() => router.push("/fluxos")}
+      style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 10, padding: "14px 32px", fontSize: 16, cursor: "pointer", fontWeight: "bold" }}
+    >
+      🤖 Abrir Editor de Fluxos →
+    </button>
+  </div>
+)}
         {aba === "usuarios" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Usuários</h1></div>)}
         {aba === "departamentos" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Departamentos</h1></div>)}
         {aba === "roleta" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Roleta de Distribuição</h1></div>)}
