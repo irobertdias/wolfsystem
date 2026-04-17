@@ -17,6 +17,33 @@ type Proposta = {
   workspace_id: string;
 };
 
+type Cadastro = {
+  id: number;
+  created_at: string;
+  nome: string;
+  empresa: string;
+  email: string;
+  whatsapp: string;
+  plano: string;
+  autorizado: boolean;
+  workspace_id: string;
+  usuarios?: number;
+  conexoes?: number;
+  ia?: string;
+  senha?: string;
+};
+
+type Atendimento = {
+  id: number;
+  created_at: string;
+  numero: string;
+  nome: string;
+  mensagem: string;
+  status: string;
+  fila: string;
+  atendente: string;
+};
+
 const statusColor: Record<string, string> = {
   PENDENTE: "#f59e0b",
   "AGUARDANDO AUDITORIA": "#3b82f6",
@@ -25,6 +52,8 @@ const statusColor: Record<string, string> = {
   GERADA: "#8b5cf6",
   REPROVADA: "#ef4444",
 };
+
+const ADMIN_EMAIL = "robertdias.ads@gmail.com";
 
 export default function CRM() {
   const router = useRouter();
@@ -35,6 +64,7 @@ export default function CRM() {
   const [userEmail, setUserEmail] = useState("");
   const [workspaceNome, setWorkspaceNome] = useState("");
   const [workspaceId, setWorkspaceId] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [showFormUsuario, setShowFormUsuario] = useState(false);
   const [showFormFila, setShowFormFila] = useState(false);
@@ -45,21 +75,33 @@ export default function CRM() {
   const [usuariosRoleta, setUsuariosRoleta] = useState<string[]>([]);
   const [showDropdownRoleta, setShowDropdownRoleta] = useState(false);
 
+  const [cadastros, setCadastros] = useState<Cadastro[]>([]);
+  const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
+  const [loadingCadastros, setLoadingCadastros] = useState(false);
+  const [buscaCliente, setBuscaCliente] = useState("");
+  const [buscaContato, setBuscaContato] = useState("");
+  const [showModalCliente, setShowModalCliente] = useState(false);
+  const [showModalDetalhe, setShowModalDetalhe] = useState(false);
+  const [cadastroSelecionado, setCadastroSelecionado] = useState<Cadastro | null>(null);
+  const [salvandoCliente, setSalvandoCliente] = useState(false);
+  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [formCadastro, setFormCadastro] = useState<Partial<Cadastro>>({
+    nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
+    usuarios: 1, conexoes: 1, ia: "gpt", autorizado: false, senha: "",
+  });
+
   const [usuarios, setUsuarios] = useState([
     { nome: "Ana Souza", email: "ana@empresa.com", perfil: "Atendente", fila: "Fila Principal", status: "online" },
     { nome: "Pedro Lima", email: "pedro@empresa.com", perfil: "Supervisor", fila: "Fila Suporte", status: "offline" },
   ]);
-
   const [filas, setFilas] = useState([
     { nome: "Fila Principal", conexao: "WhatsApp 01", usuarios: 2 },
     { nome: "Fila Suporte", conexao: "WhatsApp 02", usuarios: 1 },
   ]);
-
   const [grupos, setGrupos] = useState([
     { nome: "Grupo Vendas", descricao: "Acesso às vendas e propostas" },
     { nome: "Grupo Suporte", descricao: "Acesso apenas ao suporte" },
   ]);
-
   const [formUsuario, setFormUsuario] = useState({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "" });
   const [formFila, setFormFila] = useState({ nome: "", conexao: "" });
   const [formGrupo, setFormGrupo] = useState({ nome: "", descricao: "" });
@@ -69,9 +111,18 @@ export default function CRM() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/"); return; }
       setUserEmail(user.email || "");
+      if (user.email === ADMIN_EMAIL) setIsAdmin(true);
       const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).single();
-      if (ws) { setWorkspaceNome(ws.nome); setWorkspaceId(ws.id.toString()); fetchPropostas(ws.id.toString()); }
-      else { setWorkspaceNome("Administrador"); setLoading(false); }
+      if (ws) {
+        setWorkspaceNome(ws.nome);
+        setWorkspaceId(ws.id.toString());
+        fetchPropostas(ws.id.toString());
+        fetchAtendimentos(ws.id.toString());
+      } else {
+        setWorkspaceNome("Administrador");
+        setLoading(false);
+      }
+      fetchCadastros();
     };
     init();
   }, []);
@@ -83,6 +134,93 @@ export default function CRM() {
     const { data } = await supabase.from("proposta").select("*").eq("workspace_id", id).order("created_at", { ascending: false });
     setPropostas(data || []);
     setLoading(false);
+  };
+
+  const fetchCadastros = async () => {
+    setLoadingCadastros(true);
+    const { data } = await supabase.from("cadastros").select("*").order("created_at", { ascending: false });
+    setCadastros(data || []);
+    setLoadingCadastros(false);
+  };
+
+  const fetchAtendimentos = async (wsId?: string) => {
+    const id = wsId || workspaceId;
+    if (!id) return;
+    const { data } = await supabase.from("atendimentos").select("*").eq("workspace_id", id).order("created_at", { ascending: false });
+    setAtendimentos(data || []);
+  };
+
+  const autorizarCadastro = async (c: Cadastro) => {
+    try {
+      await supabase.from("cadastros").update({ autorizado: true }).eq("id", c.id);
+      await fetchCadastros();
+      alert(`✅ ${c.nome} autorizado!`);
+    } catch { alert("Erro ao autorizar!"); }
+  };
+
+  const desautorizarCadastro = async (c: Cadastro) => {
+    if (!confirm(`Desautorizar ${c.nome}?`)) return;
+    await supabase.from("cadastros").update({ autorizado: false }).eq("id", c.id);
+    await fetchCadastros();
+  };
+
+  const excluirCadastro = async (c: Cadastro) => {
+    if (!confirm(`Excluir ${c.nome} permanentemente?`)) return;
+    await supabase.from("cadastros").delete().eq("id", c.id);
+    await fetchCadastros();
+    setShowModalDetalhe(false);
+    alert("✅ Cliente excluído!");
+  };
+
+  const abrirNovo = () => {
+    setFormCadastro({ nome: "", empresa: "", email: "", whatsapp: "", plano: "basico", usuarios: 1, conexoes: 1, ia: "gpt", autorizado: false, senha: "" });
+    setCadastroSelecionado(null);
+    setShowModalCliente(true);
+  };
+
+  const abrirEditar = (c: Cadastro) => {
+    setFormCadastro({ ...c });
+    setCadastroSelecionado(c);
+    setShowModalCliente(true);
+    setShowModalDetalhe(false);
+  };
+
+  const salvarCadastro = async () => {
+    if (!formCadastro.nome || !formCadastro.email) { alert("Nome e email são obrigatórios!"); return; }
+    setSalvandoCliente(true);
+    try {
+      if (cadastroSelecionado) {
+        await supabase.from("cadastros").update({
+          nome: formCadastro.nome,
+          empresa: formCadastro.empresa,
+          email: formCadastro.email,
+          whatsapp: formCadastro.whatsapp,
+          plano: formCadastro.plano,
+          usuarios: formCadastro.usuarios,
+          conexoes: formCadastro.conexoes,
+          ia: formCadastro.ia,
+          autorizado: formCadastro.autorizado,
+        }).eq("id", cadastroSelecionado.id);
+        alert("✅ Cliente atualizado!");
+      } else {
+        await supabase.from("cadastros").insert([{
+          nome: formCadastro.nome,
+          empresa: formCadastro.empresa,
+          email: formCadastro.email,
+          whatsapp: formCadastro.whatsapp,
+          plano: formCadastro.plano,
+          usuarios: formCadastro.usuarios,
+          conexoes: formCadastro.conexoes,
+          ia: formCadastro.ia,
+          autorizado: formCadastro.autorizado || false,
+          senha: formCadastro.senha,
+        }]);
+        alert("✅ Cliente adicionado!");
+      }
+      await fetchCadastros();
+      setShowModalCliente(false);
+    } catch { alert("Erro ao salvar!"); }
+    setSalvandoCliente(false);
   };
 
   const signOut = async () => { await supabase.auth.signOut(); router.push("/"); };
@@ -106,12 +244,17 @@ export default function CRM() {
   const rankingVendedores = Object.entries(propostasFiltradas.reduce((acc: Record<string, number>, p) => { if (p.vendedor) acc[p.vendedor] = (acc[p.vendedor] || 0) + (p.valor_plano || 0); return acc; }, {})).map(([nome, valor]) => ({ nome, valor })).sort((a, b) => b.valor - a.valor);
   const funilVendedores = Object.entries(propostasFiltradas.reduce((acc: Record<string, Record<string, number>>, p) => { if (!p.vendedor) return acc; if (!acc[p.vendedor]) acc[p.vendedor] = { INSTALADA: 0, GERADA: 0, CANCELADA: 0, PENDENTE: 0 }; if (acc[p.vendedor][p.status_venda] !== undefined) acc[p.vendedor][p.status_venda]++; return acc; }, {})).map(([vendedor, status]) => ({ vendedor, ...status }));
 
+  const cadastrosFiltrados = cadastros
+    .filter(c => filtroStatus === "todos" || (filtroStatus === "ativos" ? c.autorizado : !c.autorizado))
+    .filter(c => !buscaCliente || c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.email?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.empresa?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.whatsapp?.includes(buscaCliente));
+
+  const contatosFiltrados = atendimentos.filter(a => !buscaContato || a.nome?.toLowerCase().includes(buscaContato.toLowerCase()) || a.numero?.includes(buscaContato));
+
   const filtroLabel: Record<string, string> = { diario: "Hoje", semanal: "Esta Semana", mensal: "Este Mês" };
   const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 14, boxSizing: "border-box" as const };
+  const inputSm = { ...inputStyle, padding: "8px 12px", fontSize: 13 };
 
-  const toggleUsuarioRoleta = (nome: string) => {
-    setUsuariosRoleta(prev => prev.includes(nome) ? prev.filter(u => u !== nome) : [...prev, nome]);
-  };
+  const toggleUsuarioRoleta = (nome: string) => setUsuariosRoleta(prev => prev.includes(nome) ? prev.filter(u => u !== nome) : [...prev, nome]);
 
   const FiltroBotoes = () => (
     <div style={{ display: "flex", gap: 8 }}>
@@ -125,7 +268,7 @@ export default function CRM() {
     { key: "dashboard", icon: "📊", label: "Dashboard" },
     { key: "funil", icon: "🎯", label: "Funil de Vendas" },
     { key: "vendas", icon: "💰", label: "Vendas" },
-    { key: "clientes", icon: "👥", label: "Clientes" },
+    ...(isAdmin ? [{ key: "clientes", icon: "👥", label: "Clientes Wolf" }] : [{ key: "contatos", icon: "👥", label: "Contatos" }]),
     { key: "configuracoes", icon: "⚙️", label: "Configurações" },
   ];
 
@@ -148,6 +291,8 @@ export default function CRM() {
         {menuItems.map((item) => (
           <button key={item.key} onClick={() => setAba(item.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: aba === item.key ? "#16a34a22" : "none", border: "none", borderRadius: 8, cursor: "pointer", color: aba === item.key ? "#16a34a" : "#9ca3af", fontSize: 13, fontWeight: aba === item.key ? "bold" : "normal", textAlign: "left" }}>
             <span>{item.icon}</span> {item.label}
+            {item.key === "clientes" && cadastros.length > 0 && <span style={{ background: "#16a34a", color: "white", borderRadius: 10, padding: "1px 6px", fontSize: 10, marginLeft: "auto" }}>{cadastros.length}</span>}
+            {item.key === "contatos" && atendimentos.length > 0 && <span style={{ background: "#3b82f6", color: "white", borderRadius: 10, padding: "1px 6px", fontSize: 10, marginLeft: "auto" }}>{atendimentos.length}</span>}
           </button>
         ))}
         <div style={{ borderTop: "1px solid #1f2937", marginTop: 8, paddingTop: 8 }}>
@@ -202,7 +347,7 @@ export default function CRM() {
                           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                           <XAxis dataKey="nome" stroke="#6b7280" fontSize={12} />
                           <YAxis stroke="#6b7280" fontSize={12} tickFormatter={(v) => `R$${v}`} />
-                          <Tooltip contentStyle={{ background: "#1f2937", border: "none", borderRadius: 8, color: "white" }} formatter={(value: any)=> [`R$ ${value.toLocaleString("pt-BR")}`, "Receita"]} />
+                          <Tooltip contentStyle={{ background: "#1f2937", border: "none", borderRadius: 8, color: "white" }} formatter={(value: any) => [`R$ ${value.toLocaleString("pt-BR")}`, "Receita"]} />
                           <Bar dataKey="valor" fill="#16a34a" radius={[6, 6, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
@@ -268,24 +413,271 @@ export default function CRM() {
           </div>
         )}
 
-        {/* CLIENTES */}
-        {aba === "clientes" && (
+        {/* CLIENTES WOLF - Só Admin */}
+        {aba === "clientes" && isAdmin && (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Clientes</h1>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-              {[...new Set(propostas.map(v => v.nome))].map((cliente) => {
-                const vendasCliente = propostas.filter(v => v.nome === cliente);
-                const total = vendasCliente.reduce((acc, v) => acc + (v.valor_plano || 0), 0);
-                return (
-                  <div key={cliente} style={{ background: "#111", borderRadius: 12, padding: 20, border: "1px solid #1f2937", width: 200 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#16a34a22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 12 }}>👤</div>
-                    <p style={{ color: "white", fontWeight: "bold", fontSize: 14, margin: "0 0 4px 0" }}>{cliente}</p>
-                    <p style={{ color: "#9ca3af", fontSize: 12, margin: "0 0 8px 0" }}>{vendasCliente.length} proposta(s)</p>
-                    <p style={{ color: "#16a34a", fontSize: 13, fontWeight: "bold", margin: 0 }}>R$ {total.toLocaleString("pt-BR")}</p>
+
+            {/* Modal Adicionar/Editar */}
+            {showModalCliente && (
+              <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+                <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 620, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>
+                      {cadastroSelecionado ? "✏️ Editar Cliente" : "➕ Novo Cliente Wolf"}
+                    </h2>
+                    <button onClick={() => setShowModalCliente(false)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
                   </div>
-                );
-              })}
+
+                  <div>
+                    <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>👤 Dados Pessoais</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label><input placeholder="Nome completo" value={formCadastro.nome || ""} onChange={(e) => setFormCadastro({ ...formCadastro, nome: e.target.value })} style={inputSm} /></div>
+                      <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Empresa</label><input placeholder="Nome da empresa" value={formCadastro.empresa || ""} onChange={(e) => setFormCadastro({ ...formCadastro, empresa: e.target.value })} style={inputSm} /></div>
+                      <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Email *</label><input placeholder="email@empresa.com" value={formCadastro.email || ""} onChange={(e) => setFormCadastro({ ...formCadastro, email: e.target.value })} style={inputSm} /></div>
+                      <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>WhatsApp</label><input placeholder="(62) 99999-9999" value={formCadastro.whatsapp || ""} onChange={(e) => setFormCadastro({ ...formCadastro, whatsapp: e.target.value })} style={inputSm} /></div>
+                      {!cadastroSelecionado && (
+                        <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Senha</label><input type="password" placeholder="Senha de acesso" value={formCadastro.senha || ""} onChange={(e) => setFormCadastro({ ...formCadastro, senha: e.target.value })} style={inputSm} /></div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p style={{ color: "#3b82f6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>📦 Plano e Limites</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                      <div>
+                        <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Plano</label>
+                        <select value={formCadastro.plano || "basico"} onChange={(e) => setFormCadastro({ ...formCadastro, plano: e.target.value })} style={inputSm}>
+                          <option value="basico">Básico</option>
+                          <option value="profissional">Profissional</option>
+                          <option value="enterprise">Enterprise</option>
+                        </select>
+                      </div>
+                      <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Usuários</label><input type="number" min={1} value={formCadastro.usuarios || 1} onChange={(e) => setFormCadastro({ ...formCadastro, usuarios: Number(e.target.value) })} style={inputSm} /></div>
+                      <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Conexões</label><input type="number" min={1} value={formCadastro.conexoes || 1} onChange={(e) => setFormCadastro({ ...formCadastro, conexoes: Number(e.target.value) })} style={inputSm} /></div>
+                      <div>
+                        <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>IA</label>
+                        <select value={formCadastro.ia || "gpt"} onChange={(e) => setFormCadastro({ ...formCadastro, ia: e.target.value })} style={inputSm}>
+                          <option value="gpt">ChatGPT</option>
+                          <option value="claude">Claude</option>
+                          <option value="gemini">Gemini</option>
+                          <option value="nenhum">Nenhuma</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#1f2937", borderRadius: 8, padding: "14px 20px" }}>
+                    <div>
+                      <p style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>Autorizado</p>
+                      <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0 0" }}>Permitir acesso ao sistema</p>
+                    </div>
+                    <button onClick={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} style={{ width: 48, height: 26, background: formCadastro.autorizado ? "#16a34a" : "#374151", borderRadius: 13, cursor: "pointer", border: "none", position: "relative" }}>
+                      <div style={{ width: 20, height: 20, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: formCadastro.autorizado ? 25 : 3, transition: "left 0.2s" }} />
+                    </button>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+                    <button onClick={() => setShowModalCliente(false)} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
+                    <button onClick={salvarCadastro} disabled={salvandoCliente} style={{ background: salvandoCliente ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
+                      {salvandoCliente ? "Salvando..." : "💾 Salvar"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Detalhe */}
+            {showModalDetalhe && cadastroSelecionado && (
+              <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+                <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 580, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                      <div style={{ width: 56, height: 56, borderRadius: "50%", background: cadastroSelecionado.autorizado ? "#16a34a22" : "#f59e0b22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🏢</div>
+                      <div>
+                        <h2 style={{ color: "white", fontSize: 20, fontWeight: "bold", margin: 0 }}>{cadastroSelecionado.nome}</h2>
+                        <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0 0" }}>{cadastroSelecionado.empresa || "Sem empresa"}</p>
+                        <span style={{ background: cadastroSelecionado.autorizado ? "#16a34a22" : "#f59e0b22", color: cadastroSelecionado.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>
+                          {cadastroSelecionado.autorizado ? "✅ Ativo" : "⏳ Pendente"}
+                        </span>
+                      </div>
+                    </div>
+                    <button onClick={() => setShowModalDetalhe(false)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    {[
+                      { label: "Email", value: cadastroSelecionado.email, icon: "✉️" },
+                      { label: "WhatsApp", value: cadastroSelecionado.whatsapp, icon: "📱" },
+                      { label: "Plano", value: cadastroSelecionado.plano, icon: "📦" },
+                      { label: "IA", value: cadastroSelecionado.ia, icon: "🤖" },
+                      { label: "Usuários", value: String(cadastroSelecionado.usuarios || 1), icon: "👥" },
+                      { label: "Conexões", value: String(cadastroSelecionado.conexoes || 1), icon: "📱" },
+                    ].filter(i => i.value).map((info) => (
+                      <div key={info.label} style={{ background: "#1f2937", borderRadius: 8, padding: 12 }}>
+                        <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", margin: "0 0 4px 0" }}>{info.icon} {info.label}</p>
+                        <p style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>{info.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {!cadastroSelecionado.autorizado ? (
+                      <button onClick={() => { autorizarCadastro(cadastroSelecionado); setShowModalDetalhe(false); }} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Autorizar Acesso</button>
+                    ) : (
+                      <button onClick={() => { desautorizarCadastro(cadastroSelecionado); setShowModalDetalhe(false); }} style={{ flex: 1, background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 8, padding: "10px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>🚫 Desautorizar</button>
+                    )}
+                    <button onClick={() => abrirEditar(cadastroSelecionado)} style={{ flex: 1, background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "10px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✏️ Editar</button>
+                    <button onClick={() => excluirCadastro(cadastroSelecionado)} style={{ flex: 1, background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "10px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>🗑️ Excluir</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>🏢 Clientes Wolf System</h1>
+                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0 0" }}>
+                  {cadastros.filter(c => c.autorizado).length} ativos • {cadastros.filter(c => !c.autorizado).length} pendentes • {cadastros.length} total
+                </p>
+              </div>
+              <button onClick={abrirNovo} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Cliente</button>
             </div>
+
+            {/* Cards de stats */}
+            <div style={{ display: "flex", gap: 16 }}>
+              {[
+                { label: "Total", value: cadastros.length, color: "#8b5cf6", icon: "📊" },
+                { label: "Ativos", value: cadastros.filter(c => c.autorizado).length, color: "#16a34a", icon: "✅" },
+                { label: "Pendentes", value: cadastros.filter(c => !c.autorizado).length, color: "#f59e0b", icon: "⏳" },
+              ].map((card) => (
+                <div key={card.label} style={{ flex: 1, background: "#111", borderRadius: 12, padding: 20, border: `1px solid ${card.color}33` }}>
+                  <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 8px 0", textTransform: "uppercase" }}>{card.icon} {card.label}</p>
+                  <p style={{ color: card.color, fontSize: 28, fontWeight: "bold", margin: 0 }}>{card.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Filtros e busca */}
+            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <input placeholder="🔍 Buscar por nome, email, empresa, WhatsApp..." value={buscaCliente} onChange={(e) => setBuscaCliente(e.target.value)} style={{ ...inputStyle, maxWidth: 380, padding: "8px 14px", fontSize: 13 }} />
+              <div style={{ display: "flex", gap: 8 }}>
+                {[
+                  { key: "todos", label: "Todos", color: "#8b5cf6" },
+                  { key: "ativos", label: "✅ Ativos", color: "#16a34a" },
+                  { key: "pendentes", label: "⏳ Pendentes", color: "#f59e0b" },
+                ].map((f) => (
+                  <button key={f.key} onClick={() => setFiltroStatus(f.key)} style={{ padding: "7px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: "bold", background: filtroStatus === f.key ? f.color : "#1f2937", color: filtroStatus === f.key ? "white" : "#9ca3af" }}>{f.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tabela */}
+            {loadingCadastros ? <p style={{ color: "#6b7280" }}>Carregando...</p> : cadastrosFiltrados.length === 0 ? (
+              <div style={{ background: "#111", borderRadius: 12, padding: 48, textAlign: "center", border: "1px solid #1f2937" }}>
+                <p style={{ fontSize: 48, margin: "0 0 16px 0" }}>🏢</p>
+                <h3 style={{ color: "white", fontSize: 16, fontWeight: "bold", margin: "0 0 8px 0" }}>Nenhum cliente encontrado</h3>
+                <button onClick={abrirNovo} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold", marginTop: 12 }}>+ Novo Cliente</button>
+              </div>
+            ) : (
+              <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: "#0d0d0d" }}>
+                      {["Cliente", "Email", "WhatsApp", "Plano", "IA", "Usuários", "Conexões", "Status", "Ações"].map((h) => (
+                        <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cadastrosFiltrados.map((c, i) => (
+                      <tr key={c.id} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
+                        <td style={{ padding: "14px 16px" }}>
+                          <div>
+                            <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{c.nome}</p>
+                            {c.empresa && <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{c.empresa}</p>}
+                          </div>
+                        </td>
+                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.email}</td>
+                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.whatsapp || "—"}</td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <span style={{ background: "#8b5cf622", color: "#8b5cf6", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.plano || "—"}</span>
+                        </td>
+                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.ia || "—"}</td>
+                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12, textAlign: "center" }}>{c.usuarios || 1}</td>
+                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12, textAlign: "center" }}>{c.conexoes || 1}</td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <span style={{ background: c.autorizado ? "#16a34a22" : "#f59e0b22", color: c.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>
+                            {c.autorizado ? "✅ Ativo" : "⏳ Pendente"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button onClick={() => { setCadastroSelecionado(c); setShowModalDetalhe(true); }} style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }} title="Ver detalhes">👁️</button>
+                            {!c.autorizado ? (
+                              <button onClick={() => autorizarCadastro(c)} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold" }} title="Autorizar">✅</button>
+                            ) : (
+                              <button onClick={() => desautorizarCadastro(c)} style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }} title="Desautorizar">🚫</button>
+                            )}
+                            <button onClick={() => abrirEditar(c)} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }} title="Editar">✏️</button>
+                            <button onClick={() => excluirCadastro(c)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }} title="Excluir">🗑️</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CONTATOS - Para clientes do Wolf System */}
+        {aba === "contatos" && !isAdmin && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>👥 Meus Contatos</h1>
+                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0 0" }}>Leads que chegaram pelo WhatsApp — {atendimentos.length} contato(s)</p>
+              </div>
+            </div>
+            <input placeholder="🔍 Buscar por nome ou número..." value={buscaContato} onChange={(e) => setBuscaContato(e.target.value)} style={{ ...inputStyle, maxWidth: 380, padding: "8px 14px", fontSize: 13 }} />
+            {atendimentos.length === 0 ? (
+              <div style={{ background: "#111", borderRadius: 12, padding: 48, textAlign: "center", border: "1px solid #1f2937" }}>
+                <p style={{ fontSize: 48, margin: "0 0 16px 0" }}>👥</p>
+                <h3 style={{ color: "white", fontSize: 16, fontWeight: "bold", margin: "0 0 8px 0" }}>Nenhum contato ainda</h3>
+                <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Os leads que chegarem pelo WhatsApp aparecerão aqui automaticamente!</p>
+              </div>
+            ) : (
+              <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: "#0d0d0d" }}>
+                      {["Contato", "Número", "Última Mensagem", "Fila", "Atendente", "Status"].map((h) => (
+                        <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contatosFiltrados.map((a, i) => (
+                      <tr key={a.id} onClick={() => router.push("/chatbot")} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d", cursor: "pointer" }}>
+                        <td style={{ padding: "14px 16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#3b82f622", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>👤</div>
+                            <span style={{ color: "white", fontSize: 13, fontWeight: "bold" }}>{a.nome}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>📱 {a.numero}</td>
+                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.mensagem}</td>
+                        <td style={{ padding: "14px 16px" }}><span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 11, padding: "3px 8px", borderRadius: 10 }}>{a.fila}</span></td>
+                        <td style={{ padding: "14px 16px" }}><span style={{ background: a.atendente === "BOT" ? "#8b5cf622" : "#16a34a22", color: a.atendente === "BOT" ? "#8b5cf6" : "#16a34a", fontSize: 11, padding: "3px 8px", borderRadius: 10 }}>{a.atendente === "BOT" ? "🤖 BOT" : "👤 " + a.atendente}</span></td>
+                        <td style={{ padding: "14px 16px" }}><span style={{ background: a.status === "resolvido" ? "#16a34a22" : a.status === "em_atendimento" ? "#f59e0b22" : "#3b82f622", color: a.status === "resolvido" ? "#16a34a" : a.status === "em_atendimento" ? "#f59e0b" : "#3b82f6", fontSize: 11, padding: "3px 8px", borderRadius: 10, fontWeight: "bold" }}>{a.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -293,8 +685,6 @@ export default function CRM() {
         {aba === "configuracoes" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
             <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>⚙️ Configurações do Workspace</h1>
-
-            {/* USUÁRIOS */}
             <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
               <div style={{ padding: "16px 24px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h2 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>👥 Usuários</h2>
@@ -322,7 +712,6 @@ export default function CRM() {
               </table>
             </div>
 
-            {/* FILAS */}
             <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
               <div style={{ padding: "16px 24px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h2 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>📋 Filas</h2>
@@ -341,7 +730,6 @@ export default function CRM() {
               </table>
             </div>
 
-            {/* GRUPOS DE PERMISSÃO */}
             <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
               <div style={{ padding: "16px 24px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h2 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>🔒 Grupos de Permissão</h2>
@@ -367,12 +755,9 @@ export default function CRM() {
               </div>
             </div>
 
-            {/* ROLETA DE DISTRIBUIÇÃO */}
             <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", padding: 24 }}>
               <h2 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: "0 0 20px 0" }}>🎯 Roleta de Distribuição</h2>
               <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 500 }}>
-
-                {/* Tipo */}
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 8 }}>Tipo de Distribuição</label>
                   <div style={{ display: "flex", gap: 12 }}>
@@ -384,8 +769,6 @@ export default function CRM() {
                     ))}
                   </div>
                 </div>
-
-                {/* Toggle ativar */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#1f2937", borderRadius: 8, padding: "14px 20px" }}>
                   <div>
                     <p style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>Ativar Roleta</p>
@@ -395,15 +778,11 @@ export default function CRM() {
                     <div style={{ width: 20, height: 20, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: roletaAtiva ? 25 : 3, transition: "left 0.2s" }} />
                   </button>
                 </div>
-
-                {/* Dropdown usuários */}
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 8 }}>Usuários na Roleta</label>
                   <div style={{ position: "relative" }}>
                     <button onClick={() => setShowDropdownRoleta(!showDropdownRoleta)} style={{ ...inputStyle, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ color: usuariosRoleta.length > 0 ? "white" : "#6b7280" }}>
-                        {usuariosRoleta.length > 0 ? `${usuariosRoleta.length} usuário(s) selecionado(s)` : "Selecione os usuários..."}
-                      </span>
+                      <span style={{ color: usuariosRoleta.length > 0 ? "white" : "#6b7280" }}>{usuariosRoleta.length > 0 ? `${usuariosRoleta.length} usuário(s) selecionado(s)` : "Selecione os usuários..."}</span>
                       <span style={{ color: "#6b7280" }}>▼</span>
                     </button>
                     {showDropdownRoleta && (
@@ -425,20 +804,15 @@ export default function CRM() {
                   </div>
                   {usuariosRoleta.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                      {usuariosRoleta.map((u) => (
-                        <span key={u} style={{ background: "#16a34a22", color: "#16a34a", fontSize: 11, padding: "3px 10px", borderRadius: 20, border: "1px solid #16a34a33" }}>✓ {u}</span>
-                      ))}
+                      {usuariosRoleta.map((u) => (<span key={u} style={{ background: "#16a34a22", color: "#16a34a", fontSize: 11, padding: "3px 10px", borderRadius: 20, border: "1px solid #16a34a33" }}>✓ {u}</span>))}
                     </div>
                   )}
                 </div>
-
                 <button style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "12px", fontSize: 14, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar Configurações</button>
               </div>
             </div>
-
           </div>
         )}
-
       </div>
     </div>
   );
