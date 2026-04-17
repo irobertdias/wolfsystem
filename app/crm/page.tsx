@@ -27,8 +27,11 @@ type Cadastro = {
   plano: string;
   autorizado: boolean;
   workspace_id: string;
-  usuarios?: number;
-  conexoes?: number;
+  usuarios_liberados?: number;
+  conexoes_liberadas?: number;
+  permite_webjs?: boolean;
+  permite_waba?: boolean;
+  permite_instagram?: boolean;
   ia?: string;
   senha?: string;
 };
@@ -54,6 +57,12 @@ const statusColor: Record<string, string> = {
 };
 
 const ADMIN_EMAIL = "robertdias.ads@gmail.com";
+
+const planoPresets: Record<string, { usuarios: number; conexoes: number; webjs: boolean; waba: boolean; instagram: boolean }> = {
+  basico:         { usuarios: 7,  conexoes: 1, webjs: true,  waba: false, instagram: false },
+  intermediario:  { usuarios: 15, conexoes: 3, webjs: true,  waba: true,  instagram: false },
+  ultra:          { usuarios: 50, conexoes: 10, webjs: true,  waba: true,  instagram: true  },
+};
 
 export default function CRM() {
   const router = useRouter();
@@ -87,7 +96,9 @@ export default function CRM() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [formCadastro, setFormCadastro] = useState<Partial<Cadastro>>({
     nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
-    usuarios: 1, conexoes: 1, ia: "gpt", autorizado: false, senha: "",
+    usuarios_liberados: 7, conexoes_liberadas: 1,
+    permite_webjs: true, permite_waba: false, permite_instagram: false,
+    ia: "gpt", autorizado: false, senha: "",
   });
 
   const [usuarios, setUsuarios] = useState([
@@ -173,7 +184,12 @@ export default function CRM() {
   };
 
   const abrirNovo = () => {
-    setFormCadastro({ nome: "", empresa: "", email: "", whatsapp: "", plano: "basico", usuarios: 1, conexoes: 1, ia: "gpt", autorizado: false, senha: "" });
+    setFormCadastro({
+      nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
+      usuarios_liberados: 7, conexoes_liberadas: 1,
+      permite_webjs: true, permite_waba: false, permite_instagram: false,
+      ia: "gpt", autorizado: false, senha: "",
+    });
     setCadastroSelecionado(null);
     setShowModalCliente(true);
   };
@@ -185,36 +201,46 @@ export default function CRM() {
     setShowModalDetalhe(false);
   };
 
+  const aplicarPresetPlano = (plano: string) => {
+    const preset = planoPresets[plano];
+    if (preset) {
+      setFormCadastro(prev => ({
+        ...prev,
+        plano,
+        usuarios_liberados: preset.usuarios,
+        conexoes_liberadas: preset.conexoes,
+        permite_webjs: preset.webjs,
+        permite_waba: preset.waba,
+        permite_instagram: preset.instagram,
+      }));
+    } else {
+      setFormCadastro(prev => ({ ...prev, plano }));
+    }
+  };
+
   const salvarCadastro = async () => {
     if (!formCadastro.nome || !formCadastro.email) { alert("Nome e email são obrigatórios!"); return; }
     setSalvandoCliente(true);
     try {
+      const dadosSalvar = {
+        nome: formCadastro.nome,
+        empresa: formCadastro.empresa,
+        email: formCadastro.email,
+        whatsapp: formCadastro.whatsapp,
+        plano: formCadastro.plano,
+        usuarios_liberados: formCadastro.usuarios_liberados,
+        conexoes_liberadas: formCadastro.conexoes_liberadas,
+        permite_webjs: formCadastro.permite_webjs,
+        permite_waba: formCadastro.permite_waba,
+        permite_instagram: formCadastro.permite_instagram,
+        ia: formCadastro.ia,
+        autorizado: formCadastro.autorizado,
+      };
       if (cadastroSelecionado) {
-        await supabase.from("cadastros").update({
-          nome: formCadastro.nome,
-          empresa: formCadastro.empresa,
-          email: formCadastro.email,
-          whatsapp: formCadastro.whatsapp,
-          plano: formCadastro.plano,
-          usuarios: formCadastro.usuarios,
-          conexoes: formCadastro.conexoes,
-          ia: formCadastro.ia,
-          autorizado: formCadastro.autorizado,
-        }).eq("id", cadastroSelecionado.id);
+        await supabase.from("cadastros").update(dadosSalvar).eq("id", cadastroSelecionado.id);
         alert("✅ Cliente atualizado!");
       } else {
-        await supabase.from("cadastros").insert([{
-          nome: formCadastro.nome,
-          empresa: formCadastro.empresa,
-          email: formCadastro.email,
-          whatsapp: formCadastro.whatsapp,
-          plano: formCadastro.plano,
-          usuarios: formCadastro.usuarios,
-          conexoes: formCadastro.conexoes,
-          ia: formCadastro.ia,
-          autorizado: formCadastro.autorizado || false,
-          senha: formCadastro.senha,
-        }]);
+        await supabase.from("cadastros").insert([{ ...dadosSalvar, senha: formCadastro.senha }]);
         alert("✅ Cliente adicionado!");
       }
       await fetchCadastros();
@@ -261,6 +287,18 @@ export default function CRM() {
       {["diario", "semanal", "mensal"].map((f) => (
         <button key={f} onClick={() => setFiltro(f)} style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: "bold", background: filtro === f ? "#16a34a" : "#1f2937", color: filtro === f ? "white" : "#9ca3af" }}>{filtroLabel[f]}</button>
       ))}
+    </div>
+  );
+
+  const Toggle = ({ value, onChange, label, desc, color = "#16a34a" }: { value: boolean; onChange: () => void; label: string; desc?: string; color?: string }) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#111", borderRadius: 8, padding: "12px 16px", border: "1px solid #374151" }}>
+      <div>
+        <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{label}</p>
+        {desc && <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0 0" }}>{desc}</p>}
+      </div>
+      <button onClick={onChange} style={{ width: 44, height: 24, background: value ? color : "#374151", borderRadius: 12, cursor: "pointer", border: "none", position: "relative", flexShrink: 0 }}>
+        <div style={{ width: 18, height: 18, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s" }} />
+      </button>
     </div>
   );
 
@@ -420,7 +458,7 @@ export default function CRM() {
             {/* Modal Adicionar/Editar */}
             {showModalCliente && (
               <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-                <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 620, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
+                <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 680, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>
                       {cadastroSelecionado ? "✏️ Editar Cliente" : "➕ Novo Cliente Wolf"}
@@ -428,6 +466,7 @@ export default function CRM() {
                     <button onClick={() => setShowModalCliente(false)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
                   </div>
 
+                  {/* Dados pessoais */}
                   <div>
                     <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>👤 Dados Pessoais</p>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -441,40 +480,58 @@ export default function CRM() {
                     </div>
                   </div>
 
+                  {/* Plano */}
                   <div>
-                    <p style={{ color: "#3b82f6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>📦 Plano e Limites</p>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                    <p style={{ color: "#3b82f6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>📦 Plano</p>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      {[
+                        { key: "basico", label: "Básico", color: "#16a34a", usuarios: 7, conexoes: 1 },
+                        { key: "intermediario", label: "Intermediário", color: "#3b82f6", usuarios: 15, conexoes: 3 },
+                        { key: "ultra", label: "Ultra", color: "#8b5cf6", usuarios: 50, conexoes: 10 },
+                      ].map((p) => (
+                        <button key={p.key} onClick={() => aplicarPresetPlano(p.key)} style={{ flex: 1, background: formCadastro.plano === p.key ? `${p.color}22` : "#1f2937", border: `2px solid ${formCadastro.plano === p.key ? p.color : "#374151"}`, borderRadius: 10, padding: "12px 8px", cursor: "pointer", textAlign: "center" }}>
+                          <p style={{ color: formCadastro.plano === p.key ? p.color : "white", fontSize: 13, fontWeight: "bold", margin: "0 0 4px 0" }}>{p.label}</p>
+                          <p style={{ color: "#6b7280", fontSize: 10, margin: 0 }}>{p.usuarios} usuários • {p.conexoes} conexões</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Limites personalizados */}
+                  <div>
+                    <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>⚙️ Limites Personalizados</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                       <div>
-                        <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Plano</label>
-                        <select value={formCadastro.plano || "basico"} onChange={(e) => setFormCadastro({ ...formCadastro, plano: e.target.value })} style={inputSm}>
-                          <option value="basico">Básico</option>
-                          <option value="profissional">Profissional</option>
-                          <option value="enterprise">Enterprise</option>
-                        </select>
+                        <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>👥 Usuários Liberados</label>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {[1, 3, 5, 7, 10, 15, 20, 50].map(n => (
+                            <button key={n} onClick={() => setFormCadastro({ ...formCadastro, usuarios_liberados: n })} style={{ background: formCadastro.usuarios_liberados === n ? "#f59e0b" : "#1f2937", color: formCadastro.usuarios_liberados === n ? "white" : "#9ca3af", border: "1px solid #374151", borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>{n}</button>
+                          ))}
+                        </div>
                       </div>
-                      <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Usuários</label><input type="number" min={1} value={formCadastro.usuarios || 1} onChange={(e) => setFormCadastro({ ...formCadastro, usuarios: Number(e.target.value) })} style={inputSm} /></div>
-                      <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Conexões</label><input type="number" min={1} value={formCadastro.conexoes || 1} onChange={(e) => setFormCadastro({ ...formCadastro, conexoes: Number(e.target.value) })} style={inputSm} /></div>
                       <div>
-                        <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>IA</label>
-                        <select value={formCadastro.ia || "gpt"} onChange={(e) => setFormCadastro({ ...formCadastro, ia: e.target.value })} style={inputSm}>
-                          <option value="gpt">ChatGPT</option>
-                          <option value="claude">Claude</option>
-                          <option value="gemini">Gemini</option>
-                          <option value="nenhum">Nenhuma</option>
-                        </select>
+                        <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>📱 Conexões Liberadas</label>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {[1, 2, 3, 5, 10, 15, 20].map(n => (
+                            <button key={n} onClick={() => setFormCadastro({ ...formCadastro, conexoes_liberadas: n })} style={{ background: formCadastro.conexoes_liberadas === n ? "#3b82f6" : "#1f2937", color: formCadastro.conexoes_liberadas === n ? "white" : "#9ca3af", border: "1px solid #374151", borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>{n}</button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#1f2937", borderRadius: 8, padding: "14px 20px" }}>
-                    <div>
-                      <p style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>Autorizado</p>
-                      <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0 0" }}>Permitir acesso ao sistema</p>
+                  {/* Tipos de conexão permitidos */}
+                  <div>
+                    <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>🔗 Tipos de Conexão Permitidos</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <Toggle value={!!formCadastro.permite_webjs} onChange={() => setFormCadastro({ ...formCadastro, permite_webjs: !formCadastro.permite_webjs })} label="📱 WhatsApp Web (QR Code)" desc="Conexão via QR Code — gratuita" color="#16a34a" />
+                      <Toggle value={!!formCadastro.permite_waba} onChange={() => setFormCadastro({ ...formCadastro, permite_waba: !formCadastro.permite_waba })} label="🔗 API Meta (WABA)" desc="API oficial do WhatsApp Business" color="#3b82f6" />
+                      <Toggle value={!!formCadastro.permite_instagram} onChange={() => setFormCadastro({ ...formCadastro, permite_instagram: !formCadastro.permite_instagram })} label="📸 Instagram Direct" desc="Mensagens do Instagram Direct" color="#e1306c" />
                     </div>
-                    <button onClick={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} style={{ width: 48, height: 26, background: formCadastro.autorizado ? "#16a34a" : "#374151", borderRadius: 13, cursor: "pointer", border: "none", position: "relative" }}>
-                      <div style={{ width: 20, height: 20, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: formCadastro.autorizado ? 25 : 3, transition: "left 0.2s" }} />
-                    </button>
                   </div>
+
+                  {/* Autorizado */}
+                  <Toggle value={!!formCadastro.autorizado} onChange={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} label="✅ Autorizado — Permitir acesso ao sistema" color="#16a34a" />
 
                   <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
                     <button onClick={() => setShowModalCliente(false)} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
@@ -489,7 +546,7 @@ export default function CRM() {
             {/* Modal Detalhe */}
             {showModalDetalhe && cadastroSelecionado && (
               <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-                <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 580, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
+                <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 620, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                       <div style={{ width: 56, height: 56, borderRadius: "50%", background: cadastroSelecionado.autorizado ? "#16a34a22" : "#f59e0b22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🏢</div>
@@ -504,20 +561,49 @@ export default function CRM() {
                     <button onClick={() => setShowModalDetalhe(false)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     {[
                       { label: "Email", value: cadastroSelecionado.email, icon: "✉️" },
                       { label: "WhatsApp", value: cadastroSelecionado.whatsapp, icon: "📱" },
                       { label: "Plano", value: cadastroSelecionado.plano, icon: "📦" },
                       { label: "IA", value: cadastroSelecionado.ia, icon: "🤖" },
-                      { label: "Usuários", value: String(cadastroSelecionado.usuarios || 1), icon: "👥" },
-                      { label: "Conexões", value: String(cadastroSelecionado.conexoes || 1), icon: "📱" },
                     ].filter(i => i.value).map((info) => (
                       <div key={info.label} style={{ background: "#1f2937", borderRadius: 8, padding: 12 }}>
                         <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", margin: "0 0 4px 0" }}>{info.icon} {info.label}</p>
                         <p style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>{info.value}</p>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Limites */}
+                  <div style={{ background: "#1f2937", borderRadius: 10, padding: 16 }}>
+                    <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>⚙️ Limites do Plano</p>
+                    <div style={{ display: "flex", gap: 16 }}>
+                      <div style={{ flex: 1, textAlign: "center", background: "#111", borderRadius: 8, padding: 12 }}>
+                        <p style={{ color: "#f59e0b", fontSize: 28, fontWeight: "bold", margin: 0 }}>{cadastroSelecionado.usuarios_liberados || 1}</p>
+                        <p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>👥 Usuários</p>
+                      </div>
+                      <div style={{ flex: 1, textAlign: "center", background: "#111", borderRadius: 8, padding: 12 }}>
+                        <p style={{ color: "#3b82f6", fontSize: 28, fontWeight: "bold", margin: 0 }}>{cadastroSelecionado.conexoes_liberadas || 1}</p>
+                        <p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>📱 Conexões</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Conexões permitidas */}
+                  <div style={{ background: "#1f2937", borderRadius: 10, padding: 16 }}>
+                    <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>🔗 Conexões Permitidas</p>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      {[
+                        { key: "permite_webjs", label: "📱 WhatsApp Web", color: "#16a34a" },
+                        { key: "permite_waba", label: "🔗 API Meta", color: "#3b82f6" },
+                        { key: "permite_instagram", label: "📸 Instagram", color: "#e1306c" },
+                      ].map((item) => (
+                        <span key={item.key} style={{ background: (cadastroSelecionado as any)[item.key] ? `${item.color}22` : "#11111133", color: (cadastroSelecionado as any)[item.key] ? item.color : "#6b7280", border: `1px solid ${(cadastroSelecionado as any)[item.key] ? item.color + "44" : "#374151"}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: "bold" }}>
+                          {(cadastroSelecionado as any)[item.key] ? "✓" : "✗"} {item.label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
 
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -544,7 +630,7 @@ export default function CRM() {
               <button onClick={abrirNovo} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Cliente</button>
             </div>
 
-            {/* Cards de stats */}
+            {/* Stats */}
             <div style={{ display: "flex", gap: 16 }}>
               {[
                 { label: "Total", value: cadastros.length, color: "#8b5cf6", icon: "📊" },
@@ -558,7 +644,7 @@ export default function CRM() {
               ))}
             </div>
 
-            {/* Filtros e busca */}
+            {/* Filtros */}
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               <input placeholder="🔍 Buscar por nome, email, empresa, WhatsApp..." value={buscaCliente} onChange={(e) => setBuscaCliente(e.target.value)} style={{ ...inputStyle, maxWidth: 380, padding: "8px 14px", fontSize: 13 }} />
               <div style={{ display: "flex", gap: 8 }}>
@@ -584,7 +670,7 @@ export default function CRM() {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "#0d0d0d" }}>
-                      {["Cliente", "Email", "WhatsApp", "Plano", "IA", "Usuários", "Conexões", "Status", "Ações"].map((h) => (
+                      {["Cliente", "Email", "Plano", "👥 Usuários", "📱 Conexões", "Permite", "Status", "Ações"].map((h) => (
                         <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
                       ))}
                     </tr>
@@ -599,13 +685,24 @@ export default function CRM() {
                           </div>
                         </td>
                         <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.email}</td>
-                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.whatsapp || "—"}</td>
                         <td style={{ padding: "14px 16px" }}>
-                          <span style={{ background: "#8b5cf622", color: "#8b5cf6", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.plano || "—"}</span>
+                          <span style={{ background: c.plano === "ultra" ? "#8b5cf622" : c.plano === "intermediario" ? "#3b82f622" : "#16a34a22", color: c.plano === "ultra" ? "#8b5cf6" : c.plano === "intermediario" ? "#3b82f6" : "#16a34a", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>
+                            {c.plano === "intermediario" ? "Intermediário" : c.plano === "ultra" ? "Ultra" : "Básico"}
+                          </span>
                         </td>
-                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.ia || "—"}</td>
-                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12, textAlign: "center" }}>{c.usuarios || 1}</td>
-                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12, textAlign: "center" }}>{c.conexoes || 1}</td>
+                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                          <span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.usuarios_liberados || 1}</span>
+                        </td>
+                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                          <span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.conexoes_liberadas || 1}</span>
+                        </td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <div style={{ display: "flex", gap: 4 }}>
+                            {c.permite_webjs && <span style={{ fontSize: 14 }} title="WhatsApp Web">📱</span>}
+                            {c.permite_waba && <span style={{ fontSize: 14 }} title="API Meta">🔗</span>}
+                            {c.permite_instagram && <span style={{ fontSize: 14 }} title="Instagram">📸</span>}
+                          </div>
+                        </td>
                         <td style={{ padding: "14px 16px" }}>
                           <span style={{ background: c.autorizado ? "#16a34a22" : "#f59e0b22", color: c.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>
                             {c.autorizado ? "✅ Ativo" : "⏳ Pendente"}
@@ -632,7 +729,7 @@ export default function CRM() {
           </div>
         )}
 
-        {/* CONTATOS - Para clientes do Wolf System */}
+        {/* CONTATOS */}
         {aba === "contatos" && !isAdmin && (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
