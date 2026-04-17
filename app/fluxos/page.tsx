@@ -296,18 +296,25 @@ export default function FluxosPage() {
   };
 
   const adicionarNo = (tipo: TipoNo) => {
-    const cfg = BLOCOS[tipo];
-    // Posiciona no centro visível do canvas
-    const cx = (window.innerWidth / 2 - canvasOffset.x) / canvasScale - 100;
-    const cy = (window.innerHeight / 2 - canvasOffset.y) / canvasScale - 50;
-    // Offset para não empilhar
-    const offset = nos.length * 20;
-    const novoNo: No = {
-      id: gerarId(), tipo, x: cx + offset, y: cy + offset,
-      dados: getDadosPadrao(tipo), saidas: [...cfg.saidas],
-    };
-    setNos(prev => [...prev, novoNo]);
+  const cfg = BLOCOS[tipo];
+  const rect = canvasRef.current?.getBoundingClientRect();
+  const canvasW = rect?.width || window.innerWidth - 480;
+  const canvasH = rect?.height || window.innerHeight;
+  // Posiciona no centro visível do canvas
+  const cx = (canvasW / 2 - canvasOffset.x) / canvasScale - 110;
+  const cy = (canvasH / 2 - canvasOffset.y) / canvasScale - 50;
+  const offset = (nos.length % 8) * 25;
+  const novoNo: No = {
+    id: gerarId(), tipo,
+    x: cx + offset,
+    y: cy + offset,
+    dados: getDadosPadrao(tipo),
+    saidas: [...cfg.saidas],
   };
+  setNos(prev => [...prev, novoNo]);
+  // Seleciona o nó recém criado para já abrir propriedades
+  setTimeout(() => setNoSelecionado(novoNo), 50);
+};
 
   const excluirNo = (id: string) => {
     if (nos.find(n => n.id === id)?.tipo === "inicio") { alert("Não é possível excluir o nó de início!"); return; }
@@ -373,11 +380,35 @@ export default function FluxosPage() {
     setIsPanning(false);
   }, []);
 
-  const handleCanvasMouseDown = (e: React.MouseEvent) => {
-    if (draggingNo) return;
-    if (conectando) { setConectando(null); return; }
-    if (e.button === 0) setIsPanning(true);
+  const adicionarNo = (tipo: TipoNo) => {
+  const cfg = BLOCOS[tipo];
+  const rect = canvasRef.current?.getBoundingClientRect();
+  const canvasW = rect?.width || window.innerWidth - 480;
+  const canvasH = rect?.height || window.innerHeight;
+  // Posiciona no centro visível do canvas
+  const cx = (canvasW / 2 - canvasOffset.x) / canvasScale - 110;
+  const cy = (canvasH / 2 - canvasOffset.y) / canvasScale - 50;
+  const offset = (nos.length % 8) * 25;
+  const novoNo: No = {
+    id: gerarId(), tipo,
+    x: cx + offset,
+    y: cy + offset,
+    dados: getDadosPadrao(tipo),
+    saidas: [...cfg.saidas],
   };
+  setNos(prev => [...prev, novoNo]);
+  // Seleciona o nó recém criado para já abrir propriedades
+  setTimeout(() => setNoSelecionado(novoNo), 50);
+};
+
+const handleCanvasMouseDown = (e: React.MouseEvent) => {
+  // Só ativa panning se o clique foi diretamente no canvas (não em botões)
+  const target = e.target as HTMLElement;
+  if (target.tagName === "BUTTON" || target.closest("button")) return;
+  if (draggingNo) return;
+  if (conectando) { setConectando(null); return; }
+  if (e.button === 0) setIsPanning(true);
+};
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
