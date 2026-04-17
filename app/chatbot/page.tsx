@@ -843,7 +843,7 @@ export default function Chatbot() {
         {aba === "empresas" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Empresas</h1></div>)}
         {aba === "filas" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Filas</h1></div>)}
         {aba === "fluxos" && (
-  <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center", justifyContent: "center", height: "100%" }}>
+  <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center", justifyContent: "center", flex: 1 }}>
     <span style={{ fontSize: 64 }}>🤖</span>
     <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Chatbot / Fluxos</h1>
     <p style={{ color: "#6b7280", fontSize: 14, margin: 0, textAlign: "center" }}>Crie fluxos de atendimento automático sem precisar de IA</p>
