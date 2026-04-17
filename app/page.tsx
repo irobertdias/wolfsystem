@@ -118,9 +118,20 @@ export default function Home() {
             </button>
           </div>
 
-          <p className="text-xs text-center text-gray-500 cursor-pointer hover:text-green-600">
-            Esqueceu a senha?
-          </p>
+          <p
+  className="text-xs text-center text-gray-500 cursor-pointer hover:text-green-600"
+  onClick={async () => {
+    if (!email) { setErro("Digite seu e-mail primeiro!"); return; }
+    setErro("");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://app.wolfgyn.com.br/nova-senha",
+    });
+    if (error) { setErro("Erro ao enviar e-mail!"); }
+    else { alert("✅ E-mail de redefinição enviado! Verifique sua caixa de entrada."); }
+  }}
+>
+  Esqueceu a senha?
+</p>
 
           <button
             onClick={handleLogin}
