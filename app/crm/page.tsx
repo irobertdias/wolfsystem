@@ -59,9 +59,9 @@ const statusColor: Record<string, string> = {
 const ADMIN_EMAIL = "robertdias.ads@gmail.com";
 
 const planoPresets: Record<string, { usuarios: number; conexoes: number; webjs: boolean; waba: boolean; instagram: boolean }> = {
-  basico:         { usuarios: 7,  conexoes: 1, webjs: true,  waba: false, instagram: false },
-  intermediario:  { usuarios: 15, conexoes: 3, webjs: true,  waba: true,  instagram: false },
-  ultra:          { usuarios: 50, conexoes: 10, webjs: true,  waba: true,  instagram: true  },
+  basico:        { usuarios: 7,  conexoes: 1,  webjs: true,  waba: false, instagram: false },
+  intermediario: { usuarios: 15, conexoes: 3,  webjs: true,  waba: true,  instagram: false },
+  ultra:         { usuarios: 50, conexoes: 10, webjs: true,  waba: true,  instagram: true  },
 };
 
 export default function CRM() {
@@ -74,6 +74,15 @@ export default function CRM() {
   const [workspaceNome, setWorkspaceNome] = useState("");
   const [workspaceId, setWorkspaceId] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Limites do cliente logado
+  const [limites, setLimites] = useState({
+    usuarios_liberados: 9999,
+    conexoes_liberadas: 9999,
+    permite_webjs: true,
+    permite_waba: true,
+    permite_instagram: true,
+  });
 
   const [showFormUsuario, setShowFormUsuario] = useState(false);
   const [showFormFila, setShowFormFila] = useState(false);
@@ -101,10 +110,7 @@ export default function CRM() {
     ia: "gpt", autorizado: false, senha: "",
   });
 
-  const [usuarios, setUsuarios] = useState([
-    { nome: "Ana Souza", email: "ana@empresa.com", perfil: "Atendente", fila: "Fila Principal", status: "online" },
-    { nome: "Pedro Lima", email: "pedro@empresa.com", perfil: "Supervisor", fila: "Fila Suporte", status: "offline" },
-  ]);
+  const [usuarios, setUsuarios] = useState<{ nome: string; email: string; perfil: string; fila: string; status: string }[]>([]);
   const [filas, setFilas] = useState([
     { nome: "Fila Principal", conexao: "WhatsApp 01", usuarios: 2 },
     { nome: "Fila Suporte", conexao: "WhatsApp 02", usuarios: 1 },
@@ -122,13 +128,34 @@ export default function CRM() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/"); return; }
       setUserEmail(user.email || "");
-      if (user.email === ADMIN_EMAIL) setIsAdmin(true);
+      const admin = user.email === ADMIN_EMAIL;
+      if (admin) setIsAdmin(true);
+
+      // Busca limites do cliente logado
+      if (!admin) {
+        const { data: cadastro } = await supabase
+          .from("cadastros")
+          .select("usuarios_liberados, conexoes_liberadas, permite_webjs, permite_waba, permite_instagram")
+          .eq("email", user.email)
+          .single();
+        if (cadastro) {
+          setLimites({
+            usuarios_liberados: cadastro.usuarios_liberados || 1,
+            conexoes_liberadas: cadastro.conexoes_liberadas || 1,
+            permite_webjs: cadastro.permite_webjs ?? true,
+            permite_waba: cadastro.permite_waba ?? false,
+            permite_instagram: cadastro.permite_instagram ?? false,
+          });
+        }
+      }
+
       const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).single();
       if (ws) {
         setWorkspaceNome(ws.nome);
         setWorkspaceId(ws.id.toString());
         fetchPropostas(ws.id.toString());
         fetchAtendimentos(ws.id.toString());
+        fetchUsuarios(ws.id.toString());
       } else {
         setWorkspaceNome("Administrador");
         setLoading(false);
@@ -159,6 +186,49 @@ export default function CRM() {
     if (!id) return;
     const { data } = await supabase.from("atendimentos").select("*").eq("workspace_id", id).order("created_at", { ascending: false });
     setAtendimentos(data || []);
+  };
+
+  const fetchUsuarios = async (wsId?: string) => {
+    const id = wsId || workspaceId;
+    if (!id) return;
+    const { data } = await supabase.from("usuarios_workspace").select("*").eq("workspace_id", id).order("created_at", { ascending: false });
+    if (data && data.length > 0) setUsuarios(data);
+  };
+
+  const adicionarUsuario = async () => {
+    if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; }
+
+    // Verifica limite
+    if (!isAdmin && usuarios.length >= limites.usuarios_liberados) {
+      alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!\n\nEntre em contato com o suporte para aumentar seu limite.`);
+      return;
+    }
+
+    try {
+      const novoUsuario = {
+        nome: formUsuario.nome,
+        email: formUsuario.email,
+        perfil: formUsuario.perfil,
+        fila: formUsuario.fila,
+        status: "offline",
+        workspace_id: workspaceId,
+      };
+
+      // Tenta salvar no banco se a tabela existir
+      const { error } = await supabase.from("usuarios_workspace").insert([novoUsuario]);
+      if (!error) {
+        setUsuarios([...usuarios, novoUsuario]);
+      } else {
+        // Fallback local se tabela não existir
+        setUsuarios([...usuarios, novoUsuario]);
+      }
+    } catch {
+      setUsuarios([...usuarios, { nome: formUsuario.nome, email: formUsuario.email, perfil: formUsuario.perfil, fila: formUsuario.fila, status: "offline" }]);
+    }
+
+    setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "" });
+    setShowFormUsuario(false);
+    alert("✅ Usuário adicionado!");
   };
 
   const autorizarCadastro = async (c: Cadastro) => {
@@ -205,8 +275,7 @@ export default function CRM() {
     const preset = planoPresets[plano];
     if (preset) {
       setFormCadastro(prev => ({
-        ...prev,
-        plano,
+        ...prev, plano,
         usuarios_liberados: preset.usuarios,
         conexoes_liberadas: preset.conexoes,
         permite_webjs: preset.webjs,
@@ -223,18 +292,15 @@ export default function CRM() {
     setSalvandoCliente(true);
     try {
       const dadosSalvar = {
-        nome: formCadastro.nome,
-        empresa: formCadastro.empresa,
-        email: formCadastro.email,
-        whatsapp: formCadastro.whatsapp,
+        nome: formCadastro.nome, empresa: formCadastro.empresa,
+        email: formCadastro.email, whatsapp: formCadastro.whatsapp,
         plano: formCadastro.plano,
         usuarios_liberados: formCadastro.usuarios_liberados,
         conexoes_liberadas: formCadastro.conexoes_liberadas,
         permite_webjs: formCadastro.permite_webjs,
         permite_waba: formCadastro.permite_waba,
         permite_instagram: formCadastro.permite_instagram,
-        ia: formCadastro.ia,
-        autorizado: formCadastro.autorizado,
+        ia: formCadastro.ia, autorizado: formCadastro.autorizado,
       };
       if (cadastroSelecionado) {
         await supabase.from("cadastros").update(dadosSalvar).eq("id", cadastroSelecionado.id);
@@ -275,6 +341,8 @@ export default function CRM() {
     .filter(c => !buscaCliente || c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.email?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.empresa?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.whatsapp?.includes(buscaCliente));
 
   const contatosFiltrados = atendimentos.filter(a => !buscaContato || a.nome?.toLowerCase().includes(buscaContato.toLowerCase()) || a.numero?.includes(buscaContato));
+
+  const limiteAtingido = !isAdmin && usuarios.length >= limites.usuarios_liberados;
 
   const filtroLabel: Record<string, string> = { diario: "Hoje", semanal: "Esta Semana", mensal: "Este Mês" };
   const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 14, boxSizing: "border-box" as const };
@@ -326,6 +394,14 @@ export default function CRM() {
           <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 2px 0" }}>Logado como</p>
           <p style={{ color: "white", fontSize: 11, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userEmail}</p>
         </div>
+        {!isAdmin && (
+          <div style={{ background: "#1f293788", borderRadius: 8, padding: "8px 12px", marginBottom: 4 }}>
+            <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 2px 0" }}>Plano</p>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold" }}>👥 {usuarios.length}/{limites.usuarios_liberados} usuários</span>
+            </div>
+          </div>
+        )}
         {menuItems.map((item) => (
           <button key={item.key} onClick={() => setAba(item.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: aba === item.key ? "#16a34a22" : "none", border: "none", borderRadius: 8, cursor: "pointer", color: aba === item.key ? "#16a34a" : "#9ca3af", fontSize: 13, fontWeight: aba === item.key ? "bold" : "normal", textAlign: "left" }}>
             <span>{item.icon}</span> {item.label}
@@ -454,19 +530,13 @@ export default function CRM() {
         {/* CLIENTES WOLF - Só Admin */}
         {aba === "clientes" && isAdmin && (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-
-            {/* Modal Adicionar/Editar */}
             {showModalCliente && (
               <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
                 <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 680, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>
-                      {cadastroSelecionado ? "✏️ Editar Cliente" : "➕ Novo Cliente Wolf"}
-                    </h2>
+                    <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>{cadastroSelecionado ? "✏️ Editar Cliente" : "➕ Novo Cliente Wolf"}</h2>
                     <button onClick={() => setShowModalCliente(false)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
                   </div>
-
-                  {/* Dados pessoais */}
                   <div>
                     <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>👤 Dados Pessoais</p>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -474,21 +544,13 @@ export default function CRM() {
                       <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Empresa</label><input placeholder="Nome da empresa" value={formCadastro.empresa || ""} onChange={(e) => setFormCadastro({ ...formCadastro, empresa: e.target.value })} style={inputSm} /></div>
                       <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Email *</label><input placeholder="email@empresa.com" value={formCadastro.email || ""} onChange={(e) => setFormCadastro({ ...formCadastro, email: e.target.value })} style={inputSm} /></div>
                       <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>WhatsApp</label><input placeholder="(62) 99999-9999" value={formCadastro.whatsapp || ""} onChange={(e) => setFormCadastro({ ...formCadastro, whatsapp: e.target.value })} style={inputSm} /></div>
-                      {!cadastroSelecionado && (
-                        <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Senha</label><input type="password" placeholder="Senha de acesso" value={formCadastro.senha || ""} onChange={(e) => setFormCadastro({ ...formCadastro, senha: e.target.value })} style={inputSm} /></div>
-                      )}
+                      {!cadastroSelecionado && (<div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Senha</label><input type="password" placeholder="Senha de acesso" value={formCadastro.senha || ""} onChange={(e) => setFormCadastro({ ...formCadastro, senha: e.target.value })} style={inputSm} /></div>)}
                     </div>
                   </div>
-
-                  {/* Plano */}
                   <div>
                     <p style={{ color: "#3b82f6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>📦 Plano</p>
                     <div style={{ display: "flex", gap: 10 }}>
-                      {[
-                        { key: "basico", label: "Básico", color: "#16a34a", usuarios: 7, conexoes: 1 },
-                        { key: "intermediario", label: "Intermediário", color: "#3b82f6", usuarios: 15, conexoes: 3 },
-                        { key: "ultra", label: "Ultra", color: "#8b5cf6", usuarios: 50, conexoes: 10 },
-                      ].map((p) => (
+                      {[{ key: "basico", label: "Básico", color: "#16a34a", usuarios: 7, conexoes: 1 }, { key: "intermediario", label: "Intermediário", color: "#3b82f6", usuarios: 15, conexoes: 3 }, { key: "ultra", label: "Ultra", color: "#8b5cf6", usuarios: 50, conexoes: 10 }].map((p) => (
                         <button key={p.key} onClick={() => aplicarPresetPlano(p.key)} style={{ flex: 1, background: formCadastro.plano === p.key ? `${p.color}22` : "#1f2937", border: `2px solid ${formCadastro.plano === p.key ? p.color : "#374151"}`, borderRadius: 10, padding: "12px 8px", cursor: "pointer", textAlign: "center" }}>
                           <p style={{ color: formCadastro.plano === p.key ? p.color : "white", fontSize: 13, fontWeight: "bold", margin: "0 0 4px 0" }}>{p.label}</p>
                           <p style={{ color: "#6b7280", fontSize: 10, margin: 0 }}>{p.usuarios} usuários • {p.conexoes} conexões</p>
@@ -496,8 +558,6 @@ export default function CRM() {
                       ))}
                     </div>
                   </div>
-
-                  {/* Limites personalizados */}
                   <div>
                     <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>⚙️ Limites Personalizados</p>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -519,8 +579,6 @@ export default function CRM() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Tipos de conexão permitidos */}
                   <div>
                     <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>🔗 Tipos de Conexão Permitidos</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -529,21 +587,15 @@ export default function CRM() {
                       <Toggle value={!!formCadastro.permite_instagram} onChange={() => setFormCadastro({ ...formCadastro, permite_instagram: !formCadastro.permite_instagram })} label="📸 Instagram Direct" desc="Mensagens do Instagram Direct" color="#e1306c" />
                     </div>
                   </div>
-
-                  {/* Autorizado */}
                   <Toggle value={!!formCadastro.autorizado} onChange={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} label="✅ Autorizado — Permitir acesso ao sistema" color="#16a34a" />
-
                   <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
                     <button onClick={() => setShowModalCliente(false)} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
-                    <button onClick={salvarCadastro} disabled={salvandoCliente} style={{ background: salvandoCliente ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
-                      {salvandoCliente ? "Salvando..." : "💾 Salvar"}
-                    </button>
+                    <button onClick={salvarCadastro} disabled={salvandoCliente} style={{ background: salvandoCliente ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{salvandoCliente ? "Salvando..." : "💾 Salvar"}</button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Modal Detalhe */}
             {showModalDetalhe && cadastroSelecionado && (
               <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
                 <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 620, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
@@ -553,29 +605,19 @@ export default function CRM() {
                       <div>
                         <h2 style={{ color: "white", fontSize: 20, fontWeight: "bold", margin: 0 }}>{cadastroSelecionado.nome}</h2>
                         <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0 0" }}>{cadastroSelecionado.empresa || "Sem empresa"}</p>
-                        <span style={{ background: cadastroSelecionado.autorizado ? "#16a34a22" : "#f59e0b22", color: cadastroSelecionado.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>
-                          {cadastroSelecionado.autorizado ? "✅ Ativo" : "⏳ Pendente"}
-                        </span>
+                        <span style={{ background: cadastroSelecionado.autorizado ? "#16a34a22" : "#f59e0b22", color: cadastroSelecionado.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{cadastroSelecionado.autorizado ? "✅ Ativo" : "⏳ Pendente"}</span>
                       </div>
                     </div>
                     <button onClick={() => setShowModalDetalhe(false)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
                   </div>
-
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    {[
-                      { label: "Email", value: cadastroSelecionado.email, icon: "✉️" },
-                      { label: "WhatsApp", value: cadastroSelecionado.whatsapp, icon: "📱" },
-                      { label: "Plano", value: cadastroSelecionado.plano, icon: "📦" },
-                      { label: "IA", value: cadastroSelecionado.ia, icon: "🤖" },
-                    ].filter(i => i.value).map((info) => (
+                    {[{ label: "Email", value: cadastroSelecionado.email, icon: "✉️" }, { label: "WhatsApp", value: cadastroSelecionado.whatsapp, icon: "📱" }, { label: "Plano", value: cadastroSelecionado.plano, icon: "📦" }, { label: "IA", value: cadastroSelecionado.ia, icon: "🤖" }].filter(i => i.value).map((info) => (
                       <div key={info.label} style={{ background: "#1f2937", borderRadius: 8, padding: 12 }}>
                         <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", margin: "0 0 4px 0" }}>{info.icon} {info.label}</p>
                         <p style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>{info.value}</p>
                       </div>
                     ))}
                   </div>
-
-                  {/* Limites */}
                   <div style={{ background: "#1f2937", borderRadius: 10, padding: 16 }}>
                     <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>⚙️ Limites do Plano</p>
                     <div style={{ display: "flex", gap: 16 }}>
@@ -589,23 +631,16 @@ export default function CRM() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Conexões permitidas */}
                   <div style={{ background: "#1f2937", borderRadius: 10, padding: 16 }}>
                     <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>🔗 Conexões Permitidas</p>
                     <div style={{ display: "flex", gap: 10 }}>
-                      {[
-                        { key: "permite_webjs", label: "📱 WhatsApp Web", color: "#16a34a" },
-                        { key: "permite_waba", label: "🔗 API Meta", color: "#3b82f6" },
-                        { key: "permite_instagram", label: "📸 Instagram", color: "#e1306c" },
-                      ].map((item) => (
+                      {[{ key: "permite_webjs", label: "📱 WhatsApp Web", color: "#16a34a" }, { key: "permite_waba", label: "🔗 API Meta", color: "#3b82f6" }, { key: "permite_instagram", label: "📸 Instagram", color: "#e1306c" }].map((item) => (
                         <span key={item.key} style={{ background: (cadastroSelecionado as any)[item.key] ? `${item.color}22` : "#11111133", color: (cadastroSelecionado as any)[item.key] ? item.color : "#6b7280", border: `1px solid ${(cadastroSelecionado as any)[item.key] ? item.color + "44" : "#374151"}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: "bold" }}>
                           {(cadastroSelecionado as any)[item.key] ? "✓" : "✗"} {item.label}
                         </span>
                       ))}
                     </div>
                   </div>
-
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     {!cadastroSelecionado.autorizado ? (
                       <button onClick={() => { autorizarCadastro(cadastroSelecionado); setShowModalDetalhe(false); }} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Autorizar Acesso</button>
@@ -619,46 +654,29 @@ export default function CRM() {
               </div>
             )}
 
-            {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>🏢 Clientes Wolf System</h1>
-                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0 0" }}>
-                  {cadastros.filter(c => c.autorizado).length} ativos • {cadastros.filter(c => !c.autorizado).length} pendentes • {cadastros.length} total
-                </p>
+                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0 0" }}>{cadastros.filter(c => c.autorizado).length} ativos • {cadastros.filter(c => !c.autorizado).length} pendentes • {cadastros.length} total</p>
               </div>
               <button onClick={abrirNovo} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Cliente</button>
             </div>
-
-            {/* Stats */}
             <div style={{ display: "flex", gap: 16 }}>
-              {[
-                { label: "Total", value: cadastros.length, color: "#8b5cf6", icon: "📊" },
-                { label: "Ativos", value: cadastros.filter(c => c.autorizado).length, color: "#16a34a", icon: "✅" },
-                { label: "Pendentes", value: cadastros.filter(c => !c.autorizado).length, color: "#f59e0b", icon: "⏳" },
-              ].map((card) => (
+              {[{ label: "Total", value: cadastros.length, color: "#8b5cf6", icon: "📊" }, { label: "Ativos", value: cadastros.filter(c => c.autorizado).length, color: "#16a34a", icon: "✅" }, { label: "Pendentes", value: cadastros.filter(c => !c.autorizado).length, color: "#f59e0b", icon: "⏳" }].map((card) => (
                 <div key={card.label} style={{ flex: 1, background: "#111", borderRadius: 12, padding: 20, border: `1px solid ${card.color}33` }}>
                   <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 8px 0", textTransform: "uppercase" }}>{card.icon} {card.label}</p>
                   <p style={{ color: card.color, fontSize: 28, fontWeight: "bold", margin: 0 }}>{card.value}</p>
                 </div>
               ))}
             </div>
-
-            {/* Filtros */}
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               <input placeholder="🔍 Buscar por nome, email, empresa, WhatsApp..." value={buscaCliente} onChange={(e) => setBuscaCliente(e.target.value)} style={{ ...inputStyle, maxWidth: 380, padding: "8px 14px", fontSize: 13 }} />
               <div style={{ display: "flex", gap: 8 }}>
-                {[
-                  { key: "todos", label: "Todos", color: "#8b5cf6" },
-                  { key: "ativos", label: "✅ Ativos", color: "#16a34a" },
-                  { key: "pendentes", label: "⏳ Pendentes", color: "#f59e0b" },
-                ].map((f) => (
+                {[{ key: "todos", label: "Todos", color: "#8b5cf6" }, { key: "ativos", label: "✅ Ativos", color: "#16a34a" }, { key: "pendentes", label: "⏳ Pendentes", color: "#f59e0b" }].map((f) => (
                   <button key={f.key} onClick={() => setFiltroStatus(f.key)} style={{ padding: "7px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: "bold", background: filtroStatus === f.key ? f.color : "#1f2937", color: filtroStatus === f.key ? "white" : "#9ca3af" }}>{f.label}</button>
                 ))}
               </div>
             </div>
-
-            {/* Tabela */}
             {loadingCadastros ? <p style={{ color: "#6b7280" }}>Carregando...</p> : cadastrosFiltrados.length === 0 ? (
               <div style={{ background: "#111", borderRadius: 12, padding: 48, textAlign: "center", border: "1px solid #1f2937" }}>
                 <p style={{ fontSize: 48, margin: "0 0 16px 0" }}>🏢</p>
@@ -678,44 +696,17 @@ export default function CRM() {
                   <tbody>
                     {cadastrosFiltrados.map((c, i) => (
                       <tr key={c.id} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
-                        <td style={{ padding: "14px 16px" }}>
-                          <div>
-                            <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{c.nome}</p>
-                            {c.empresa && <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{c.empresa}</p>}
-                          </div>
-                        </td>
+                        <td style={{ padding: "14px 16px" }}><div><p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{c.nome}</p>{c.empresa && <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{c.empresa}</p>}</div></td>
                         <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.email}</td>
-                        <td style={{ padding: "14px 16px" }}>
-                          <span style={{ background: c.plano === "ultra" ? "#8b5cf622" : c.plano === "intermediario" ? "#3b82f622" : "#16a34a22", color: c.plano === "ultra" ? "#8b5cf6" : c.plano === "intermediario" ? "#3b82f6" : "#16a34a", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>
-                            {c.plano === "intermediario" ? "Intermediário" : c.plano === "ultra" ? "Ultra" : "Básico"}
-                          </span>
-                        </td>
-                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                          <span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.usuarios_liberados || 1}</span>
-                        </td>
-                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                          <span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.conexoes_liberadas || 1}</span>
-                        </td>
-                        <td style={{ padding: "14px 16px" }}>
-                          <div style={{ display: "flex", gap: 4 }}>
-                            {c.permite_webjs && <span style={{ fontSize: 14 }} title="WhatsApp Web">📱</span>}
-                            {c.permite_waba && <span style={{ fontSize: 14 }} title="API Meta">🔗</span>}
-                            {c.permite_instagram && <span style={{ fontSize: 14 }} title="Instagram">📸</span>}
-                          </div>
-                        </td>
-                        <td style={{ padding: "14px 16px" }}>
-                          <span style={{ background: c.autorizado ? "#16a34a22" : "#f59e0b22", color: c.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>
-                            {c.autorizado ? "✅ Ativo" : "⏳ Pendente"}
-                          </span>
-                        </td>
+                        <td style={{ padding: "14px 16px" }}><span style={{ background: c.plano === "ultra" ? "#8b5cf622" : c.plano === "intermediario" ? "#3b82f622" : "#16a34a22", color: c.plano === "ultra" ? "#8b5cf6" : c.plano === "intermediario" ? "#3b82f6" : "#16a34a", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.plano === "intermediario" ? "Intermediário" : c.plano === "ultra" ? "Ultra" : "Básico"}</span></td>
+                        <td style={{ padding: "14px 16px", textAlign: "center" }}><span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.usuarios_liberados || 1}</span></td>
+                        <td style={{ padding: "14px 16px", textAlign: "center" }}><span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.conexoes_liberadas || 1}</span></td>
+                        <td style={{ padding: "14px 16px" }}><div style={{ display: "flex", gap: 4 }}>{c.permite_webjs && <span style={{ fontSize: 14 }} title="WhatsApp Web">📱</span>}{c.permite_waba && <span style={{ fontSize: 14 }} title="API Meta">🔗</span>}{c.permite_instagram && <span style={{ fontSize: 14 }} title="Instagram">📸</span>}</div></td>
+                        <td style={{ padding: "14px 16px" }}><span style={{ background: c.autorizado ? "#16a34a22" : "#f59e0b22", color: c.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.autorizado ? "✅ Ativo" : "⏳ Pendente"}</span></td>
                         <td style={{ padding: "14px 16px" }}>
                           <div style={{ display: "flex", gap: 6 }}>
                             <button onClick={() => { setCadastroSelecionado(c); setShowModalDetalhe(true); }} style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }} title="Ver detalhes">👁️</button>
-                            {!c.autorizado ? (
-                              <button onClick={() => autorizarCadastro(c)} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold" }} title="Autorizar">✅</button>
-                            ) : (
-                              <button onClick={() => desautorizarCadastro(c)} style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }} title="Desautorizar">🚫</button>
-                            )}
+                            {!c.autorizado ? <button onClick={() => autorizarCadastro(c)} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold" }} title="Autorizar">✅</button> : <button onClick={() => desautorizarCadastro(c)} style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }} title="Desautorizar">🚫</button>}
                             <button onClick={() => abrirEditar(c)} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }} title="Editar">✏️</button>
                             <button onClick={() => excluirCadastro(c)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }} title="Excluir">🗑️</button>
                           </div>
@@ -748,30 +739,8 @@ export default function CRM() {
             ) : (
               <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "#0d0d0d" }}>
-                      {["Contato", "Número", "Última Mensagem", "Fila", "Atendente", "Status"].map((h) => (
-                        <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {contatosFiltrados.map((a, i) => (
-                      <tr key={a.id} onClick={() => router.push("/chatbot")} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d", cursor: "pointer" }}>
-                        <td style={{ padding: "14px 16px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#3b82f622", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>👤</div>
-                            <span style={{ color: "white", fontSize: 13, fontWeight: "bold" }}>{a.nome}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>📱 {a.numero}</td>
-                        <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.mensagem}</td>
-                        <td style={{ padding: "14px 16px" }}><span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 11, padding: "3px 8px", borderRadius: 10 }}>{a.fila}</span></td>
-                        <td style={{ padding: "14px 16px" }}><span style={{ background: a.atendente === "BOT" ? "#8b5cf622" : "#16a34a22", color: a.atendente === "BOT" ? "#8b5cf6" : "#16a34a", fontSize: 11, padding: "3px 8px", borderRadius: 10 }}>{a.atendente === "BOT" ? "🤖 BOT" : "👤 " + a.atendente}</span></td>
-                        <td style={{ padding: "14px 16px" }}><span style={{ background: a.status === "resolvido" ? "#16a34a22" : a.status === "em_atendimento" ? "#f59e0b22" : "#3b82f622", color: a.status === "resolvido" ? "#16a34a" : a.status === "em_atendimento" ? "#f59e0b" : "#3b82f6", fontSize: 11, padding: "3px 8px", borderRadius: 10, fontWeight: "bold" }}>{a.status}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
+                  <thead><tr style={{ background: "#0d0d0d" }}>{["Contato", "Número", "Última Mensagem", "Fila", "Atendente", "Status"].map((h) => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
+                  <tbody>{contatosFiltrados.map((a, i) => (<tr key={a.id} onClick={() => router.push("/chatbot")} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d", cursor: "pointer" }}><td style={{ padding: "14px 16px" }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ width: 32, height: 32, borderRadius: "50%", background: "#3b82f622", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>👤</div><span style={{ color: "white", fontSize: 13, fontWeight: "bold" }}>{a.nome}</span></div></td><td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>📱 {a.numero}</td><td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.mensagem}</td><td style={{ padding: "14px 16px" }}><span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 11, padding: "3px 8px", borderRadius: 10 }}>{a.fila}</span></td><td style={{ padding: "14px 16px" }}><span style={{ background: a.atendente === "BOT" ? "#8b5cf622" : "#16a34a22", color: a.atendente === "BOT" ? "#8b5cf6" : "#16a34a", fontSize: 11, padding: "3px 8px", borderRadius: 10 }}>{a.atendente === "BOT" ? "🤖 BOT" : "👤 " + a.atendente}</span></td><td style={{ padding: "14px 16px" }}><span style={{ background: a.status === "resolvido" ? "#16a34a22" : a.status === "em_atendimento" ? "#f59e0b22" : "#3b82f622", color: a.status === "resolvido" ? "#16a34a" : a.status === "em_atendimento" ? "#f59e0b" : "#3b82f6", fontSize: 11, padding: "3px 8px", borderRadius: 10, fontWeight: "bold" }}>{a.status}</span></td></tr>))}</tbody>
                 </table>
               </div>
             )}
@@ -782,12 +751,54 @@ export default function CRM() {
         {aba === "configuracoes" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
             <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>⚙️ Configurações do Workspace</h1>
+
+            {/* USUÁRIOS COM TRAVA */}
             <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
               <div style={{ padding: "16px 24px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h2 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>👥 Usuários</h2>
-                <button onClick={() => setShowFormUsuario(!showFormUsuario)} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>+ Adicionar Usuário</button>
+                <div>
+                  <h2 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>👥 Usuários</h2>
+                  {!isAdmin && (
+                    <p style={{ color: limiteAtingido ? "#dc2626" : "#6b7280", fontSize: 12, margin: "4px 0 0 0" }}>
+                      {usuarios.length}/{limites.usuarios_liberados} usuários utilizados
+                      {limiteAtingido && " — Limite atingido!"}
+                    </p>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  {limiteAtingido && (
+                    <span style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: "bold" }}>
+                      🔒 Limite atingido
+                    </span>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (limiteAtingido) {
+                        alert(`❌ Você atingiu o limite de ${limites.usuarios_liberados} usuário(s) do seu plano.\n\nEntre em contato com o suporte para aumentar seu limite:\n📱 WhatsApp: (62) 99999-9999`);
+                        return;
+                      }
+                      setShowFormUsuario(!showFormUsuario);
+                    }}
+                    style={{ background: limiteAtingido ? "#374151" : "#3b82f6", color: limiteAtingido ? "#6b7280" : "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: limiteAtingido ? "not-allowed" : "pointer", fontWeight: "bold" }}
+                  >
+                    {limiteAtingido ? "🔒 Limite Atingido" : "+ Adicionar Usuário"}
+                  </button>
+                </div>
               </div>
-              {showFormUsuario && (
+
+              {/* Barra de progresso */}
+              {!isAdmin && (
+                <div style={{ padding: "8px 24px", background: "#0d0d0d", borderBottom: "1px solid #1f2937" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ color: "#9ca3af", fontSize: 11 }}>Usuários cadastrados</span>
+                    <span style={{ color: limiteAtingido ? "#dc2626" : "#16a34a", fontSize: 11, fontWeight: "bold" }}>{usuarios.length}/{limites.usuarios_liberados}</span>
+                  </div>
+                  <div style={{ background: "#1f2937", borderRadius: 4, height: 6, overflow: "hidden" }}>
+                    <div style={{ background: limiteAtingido ? "#dc2626" : "#16a34a", height: "100%", width: `${Math.min((usuarios.length / limites.usuarios_liberados) * 100, 100)}%`, transition: "width 0.3s", borderRadius: 4 }} />
+                  </div>
+                </div>
+              )}
+
+              {showFormUsuario && !limiteAtingido && (
                 <div style={{ padding: 20, borderBottom: "1px solid #1f2937", background: "#0d0d0d" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
                     <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label><input placeholder="Nome completo" value={formUsuario.nome} onChange={(e) => setFormUsuario({ ...formUsuario, nome: e.target.value })} style={inputStyle} /></div>
@@ -799,14 +810,21 @@ export default function CRM() {
                   </div>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     <button onClick={() => setShowFormUsuario(false)} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer" }}>Cancelar</button>
-                    <button onClick={() => { if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; } setUsuarios([...usuarios, { nome: formUsuario.nome, email: formUsuario.email, perfil: formUsuario.perfil, fila: formUsuario.fila, status: "offline" }]); setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "" }); setShowFormUsuario(false); alert("✅ Usuário adicionado!"); }} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar</button>
+                    <button onClick={adicionarUsuario} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar</button>
                   </div>
                 </div>
               )}
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr style={{ background: "#0d0d0d" }}>{["Nome", "E-mail", "Perfil", "Fila/Grupo", "Status"].map((h) => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
-                <tbody>{usuarios.map((u, i) => (<tr key={i} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}><td style={{ padding: "14px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{u.nome}</td><td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{u.email}</td><td style={{ padding: "14px 16px" }}><span style={{ background: u.perfil === "Administrador" ? "#f59e0b22" : u.perfil === "Supervisor" ? "#8b5cf622" : "#3b82f622", color: u.perfil === "Administrador" ? "#f59e0b" : u.perfil === "Supervisor" ? "#8b5cf6" : "#3b82f6", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "bold" }}>{u.perfil}</span></td><td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{u.fila || "—"}</td><td style={{ padding: "14px 16px" }}><span style={{ background: u.status === "online" ? "#16a34a22" : "#6b728022", color: u.status === "online" ? "#16a34a" : "#6b7280", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "bold" }}>{u.status === "online" ? "🟢 Online" : "⚫ Offline"}</span></td></tr>))}</tbody>
-              </table>
+
+              {usuarios.length === 0 ? (
+                <div style={{ padding: 32, textAlign: "center" }}>
+                  <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum usuário cadastrado ainda</p>
+                </div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr style={{ background: "#0d0d0d" }}>{["Nome", "E-mail", "Perfil", "Fila/Grupo", "Status"].map((h) => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
+                  <tbody>{usuarios.map((u, i) => (<tr key={i} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}><td style={{ padding: "14px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{u.nome}</td><td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{u.email}</td><td style={{ padding: "14px 16px" }}><span style={{ background: u.perfil === "Administrador" ? "#f59e0b22" : u.perfil === "Supervisor" ? "#8b5cf622" : "#3b82f622", color: u.perfil === "Administrador" ? "#f59e0b" : u.perfil === "Supervisor" ? "#8b5cf6" : "#3b82f6", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "bold" }}>{u.perfil}</span></td><td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{u.fila || "—"}</td><td style={{ padding: "14px 16px" }}><span style={{ background: u.status === "online" ? "#16a34a22" : "#6b728022", color: u.status === "online" ? "#16a34a" : "#6b7280", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "bold" }}>{u.status === "online" ? "🟢 Online" : "⚫ Offline"}</span></td></tr>))}</tbody>
+                </table>
+              )}
             </div>
 
             <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
