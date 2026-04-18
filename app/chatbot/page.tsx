@@ -6,7 +6,7 @@ import { useWorkspace } from "../hooks/useWorkspace";
 
 type Atendimento = { id: number; created_at: string; numero: string; nome: string; mensagem: string; status: string; fila: string; atendente: string; workspace_id: string; };
 type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; };
-type Conexao = { id: number; nome: string; tipo: string; status: string; numero: string; modo: string; ia: string; fluxoId: string; fluxoNome: string; fila: string; apiKey: string; prompt: string; pararSeAtendente: boolean; wabToken?: string; wabPhoneId?: string; wabaId?: string; webhookToken?: string; };
+type Conexao = { id: number; nome: string; tipo: string; status: string; numero: string; modo: string; ia: string; fluxo_id: string; fluxo_nome: string; fila: string; api_key: string; prompt: string; parar_se_atendente: boolean; wab_token?: string; wab_phone_id?: string; waba_id?: string; webhook_token?: string; workspace_id: string; };
 type FluxoItem = { id: number; nome: string; ativo: boolean; };
 
 export default function Chatbot() {
@@ -32,10 +32,10 @@ export default function Chatbot() {
   const [qrConexaoId, setQrConexaoId] = useState<number | null>(null);
   const [enviandoMsg, setEnviandoMsg] = useState(false);
   const [resetando, setResetando] = useState(false);
-  const [statusWhatsapp, setStatusWhatsapp] = useState("desconectado");
-  const [numeroWhatsapp, setNumeroWhatsapp] = useState("");
   const [qrImageUrl, setQrImageUrl] = useState("");
   const [qrPolling, setQrPolling] = useState(false);
+  const [qrConectado, setQrConectado] = useState(false);
+  const [qrNumero, setQrNumero] = useState("");
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
   const [fluxos, setFluxos] = useState<FluxoItem[]>([]);
   const [showModalNovoCanal, setShowModalNovoCanal] = useState(false);
@@ -45,8 +45,6 @@ export default function Chatbot() {
 
   const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "Fila Principal", pararSeAtendente: true };
   const [form, setForm] = useState(formInicial);
-
-  const WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_URL || "http://localhost:3001";
 
   const wa = async (rota: string, body?: object) => {
     if (body !== undefined) {
@@ -80,11 +78,15 @@ export default function Chatbot() {
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
   const TA = { ...IS, height: 90, resize: "vertical" as const };
 
+  // ── INIT ──
   useEffect(() => {
+    if (!workspace?.id) return;
     fetchAtendimentos();
-    consultarStatus();
-    if (workspace?.id) fetchFluxos();
-    const ch = supabase.channel("atendimentos_rt").on("postgres_changes", { event: "*", schema: "public", table: "atendimentos" }, () => fetchAtendimentos()).subscribe();
+    fetchConexoes();
+    fetchFluxos();
+    const ch = supabase.channel("atendimentos_rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos" }, () => fetchAtendimentos())
+      .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [workspace]);
 
@@ -93,16 +95,17 @@ export default function Chatbot() {
     setHistorico([]);
     fetchHistorico(atendimentoAtivo.numero);
     const num = atendimentoAtivo.numero;
-    const ch = supabase.channel(`msgs_${num}_${Date.now()}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens" }, (payload) => {
-      const m = payload.new as Mensagem;
-      if (m.numero === num) { setHistorico(p => [...p, m]); setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }
-    }).subscribe();
+    const ch = supabase.channel(`msgs_${num}_${Date.now()}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens" }, (payload) => {
+        const m = payload.new as Mensagem;
+        if (m.numero === num) { setHistorico(p => [...p, m]); setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }
+      }).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [atendimentoAtivo?.numero]);
 
   useEffect(() => { setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }, [historico]);
 
-  // Polling do QR
+  // ── POLLING QR ──
   useEffect(() => {
     if (!qrPolling || !showModalQR) return;
     const wsId = workspace?.id?.toString() || "1";
@@ -112,31 +115,32 @@ export default function Chatbot() {
         const data = await resp.json();
         if (data.qr) setQrImageUrl(data.qr);
         if (data.status === "conectado") {
-          setStatusWhatsapp("conectado");
-          setNumeroWhatsapp(data.numero || "");
+          setQrConectado(true);
+          setQrNumero(data.numero || "");
           setQrPolling(false);
-          if (qrConexaoId) setConexoes(p => p.map(c => c.id === qrConexaoId ? { ...c, status: "conectado", numero: data.numero || "Conectado" } : c));
+          // Atualiza conexão no Supabase
+          if (qrConexaoId) {
+            await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrConexaoId);
+            fetchConexoes();
+          }
           setTimeout(() => setShowModalQR(false), 2000);
         }
       } catch (e) {}
     }, 3000);
     return () => clearInterval(interval);
-  }, [qrPolling, showModalQR, workspace]);
+  }, [qrPolling, showModalQR, workspace, qrConexaoId]);
 
-  const consultarStatus = async () => {
-    try {
-      const wsId = workspace?.id?.toString() || "1";
-      const data = await wa(`whatsapp-status&workspaceId=${wsId}`);
-      setStatusWhatsapp(data.status || "desconectado");
-      setNumeroWhatsapp(data.numero || "");
-      return { status: data.status || "desconectado", numero: data.numero || "" };
-    } catch { return { status: "desconectado", numero: "" }; }
-  };
-
+  // ── FUNÇÕES ──
   const fetchAtendimentos = async () => {
     if (!workspace?.id) return;
     const { data } = await supabase.from("atendimentos").select("*").eq("workspace_id", workspace.id.toString()).order("created_at", { ascending: false });
     setAtendimentos(data || []);
+  };
+
+  const fetchConexoes = async () => {
+    if (!workspace?.id) return;
+    const { data } = await supabase.from("conexoes").select("*").eq("workspace_id", workspace.id.toString()).order("created_at", { ascending: false });
+    setConexoes(data || []);
   };
 
   const fetchFluxos = async () => {
@@ -194,42 +198,82 @@ export default function Chatbot() {
     setSalvandoCanal(true);
     try {
       const wsId = workspace?.id?.toString() || "1";
+
+      // Configura IA no VPS
       if (form.modo === "ia" && form.apiKey) {
         await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey, prompt: form.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: form.fila });
       }
+
+      const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
+
       if (form.tipo === "waba") {
         const webhookToken = form.webhookToken || `wolf_${wsId}_${Date.now()}`;
+        // Salva WABA no VPS
         const resp = await fetch(`/api/whatsapp?rota=waba/salvar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: wsId, nome: form.nome, phoneNumberId: form.phoneNumberId, wabaId: form.wabaId, token: form.token, webhookToken }) });
-        const data = await resp.json();
-        if (!data.success) throw new Error(data.error);
-        const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
-        setConexoes(p => [...p, { id: p.length + 1, nome: form.nome, tipo: "waba", status: "conectado", numero: wabaTeste?.nome || form.phoneNumberId, modo: form.modo, ia: form.ia, fluxoId: form.fluxoId, fluxoNome: fluxoSel?.nome || "", fila: form.fila, apiKey: form.apiKey, prompt: form.prompt, pararSeAtendente: form.pararSeAtendente, wabToken: form.token, wabPhoneId: form.phoneNumberId, wabaId: form.wabaId, webhookToken }]);
+        const vpsData = await resp.json();
+        if (!vpsData.success) throw new Error(vpsData.error);
+
+        // Salva no Supabase
+        await supabase.from("conexoes").insert([{
+          workspace_id: wsId, nome: form.nome, tipo: "waba", status: "conectado",
+          numero: wabaTeste?.nome || form.phoneNumberId, modo: form.modo,
+          ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
+          fila: form.fila, api_key: form.apiKey, prompt: form.prompt,
+          parar_se_atendente: form.pararSeAtendente, wab_token: form.token,
+          wab_phone_id: form.phoneNumberId, waba_id: form.wabaId, webhook_token: webhookToken,
+        }]);
       } else {
-        const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
-        setConexoes(p => [...p, { id: p.length + 1, nome: form.nome, tipo: "webjs", status: "desconectado", numero: "Aguardando...", modo: form.modo, ia: form.ia, fluxoId: form.fluxoId, fluxoNome: fluxoSel?.nome || "", fila: form.fila, apiKey: form.apiKey, prompt: form.prompt, pararSeAtendente: form.pararSeAtendente }]);
+        // Salva WebJS no Supabase
+        await supabase.from("conexoes").insert([{
+          workspace_id: wsId, nome: form.nome, tipo: "webjs", status: "desconectado",
+          numero: "", modo: form.modo, ia: form.ia,
+          fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
+          fila: form.fila, api_key: form.apiKey, prompt: form.prompt,
+          parar_se_atendente: form.pararSeAtendente,
+        }]);
       }
-      setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null);
-      alert("✅ Canal configurado!");
+
+      await fetchConexoes();
+      setShowModalNovoCanal(false);
+      setForm(formInicial);
+      setWabaTeste(null);
+      alert("✅ Canal criado com sucesso!");
     } catch (e: any) { alert("Erro: " + e.message); }
     setSalvandoCanal(false);
   };
 
   const abrirQR = async (id: number) => {
-    setQrConexaoId(id); setResetando(true); setShowModalQR(true);
-    setStatusWhatsapp("desconectado"); setNumeroWhatsapp(""); setQrImageUrl("");
+    setQrConexaoId(id);
+    setResetando(true);
+    setShowModalQR(true);
+    setQrImageUrl("");
+    setQrConectado(false);
+    setQrNumero("");
+
     const canal = conexoes.find(c => c.id === id);
     const wsId = workspace?.id?.toString() || "1";
-    if (canal?.modo === "ia" && canal.apiKey) {
-      try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.apiKey, prompt: canal.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: canal.fila }); } catch (e) {}
+
+    // Configura IA no VPS se tiver
+    if (canal?.modo === "ia" && canal.api_key) {
+      try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.api_key, prompt: canal.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: canal.fila }); } catch (e) {}
     }
+
+    // Reseta sessão para gerar novo QR
     try { await wa("resetar", { workspaceId: wsId }); } catch (e) {}
-    setConexoes(p => p.map(c => c.id === id ? { ...c, status: "desconectado", numero: "Aguardando QR..." } : c));
+
+    // Atualiza status no Supabase
+    await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", id);
+    await fetchConexoes();
+
     setResetando(false);
     setQrPolling(true);
   };
 
-  const excluirCanal = (id: number) => {
-    if (confirm("Excluir esse canal?")) { setConexoes(p => p.filter(c => c.id !== id)); setShowMenuEngrenagem(null); }
+  const excluirCanal = async (id: number) => {
+    if (!confirm("Excluir esse canal?")) return;
+    await supabase.from("conexoes").delete().eq("id", id);
+    await fetchConexoes();
+    setShowMenuEngrenagem(null);
   };
 
   const tempoRelativo = (data: string) => { const d = Math.floor((Date.now() - new Date(data).getTime()) / 60000); return d < 1 ? "agora" : d < 60 ? `${d}min` : d < 1440 ? `${Math.floor(d/60)}h` : `${Math.floor(d/1440)}d`; };
@@ -280,7 +324,6 @@ export default function Chatbot() {
         {/* ── CHAT ── */}
         {aba === "chat" && (
           <div style={{ display: "flex", flex: 1, height: "100vh" }}>
-            {/* Lista */}
             <div style={{ width: 310, background: "#111", borderRight: "1px solid #1f2937", display: "flex", flexDirection: "column" }}>
               <div style={{ padding: "10px 12px", borderBottom: "1px solid #1f2937" }}>
                 <input placeholder="Buscar..." value={busca} onChange={e => setBusca(e.target.value)} style={{ ...IS, padding: "8px 12px", fontSize: 12 }} />
@@ -339,7 +382,6 @@ export default function Chatbot() {
               )}
             </div>
 
-            {/* Chat area */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
               {atendimentoAtivo ? (
                 <>
@@ -363,19 +405,20 @@ export default function Chatbot() {
                     </div>
                   </div>
                   <div style={{ flex: 1, overflowY: "auto", padding: 20, background: "#0d0d0d", display: "flex", flexDirection: "column", gap: 10 }}>
-                    {historico.length === 0 ? <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#374151", fontSize: 13 }}>Nenhuma mensagem ainda</p></div>
+                    {historico.length === 0
+                      ? <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#374151", fontSize: 13 }}>Nenhuma mensagem ainda</p></div>
                       : historico.map((msg, i) => {
-                        const isCliente = msg.de === "cliente"; const isBot = msg.de === "bot";
-                        return (
-                          <div key={i} style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end" }}>
-                            <div style={{ maxWidth: "65%", padding: "10px 14px", borderRadius: isCliente ? "12px 12px 12px 2px" : "12px 12px 2px 12px", background: isCliente ? "#1f2937" : isBot ? "#1e3a2f" : "#1e2a4a" }}>
-                              {!isCliente && <p style={{ color: isBot ? "#16a34a" : "#3b82f6", fontSize: 10, margin: "0 0 4px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>}
-                              <p style={{ color: "white", fontSize: 13, margin: 0, lineHeight: 1.5 }}>{msg.mensagem}</p>
-                              {msg.created_at && <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", textAlign: "right" }}>{horaMsg(msg.created_at)}</p>}
+                          const isCliente = msg.de === "cliente"; const isBot = msg.de === "bot";
+                          return (
+                            <div key={i} style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end" }}>
+                              <div style={{ maxWidth: "65%", padding: "10px 14px", borderRadius: isCliente ? "12px 12px 12px 2px" : "12px 12px 2px 12px", background: isCliente ? "#1f2937" : isBot ? "#1e3a2f" : "#1e2a4a" }}>
+                                {!isCliente && <p style={{ color: isBot ? "#16a34a" : "#3b82f6", fontSize: 10, margin: "0 0 4px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>}
+                                <p style={{ color: "white", fontSize: 13, margin: 0, lineHeight: 1.5 }}>{msg.mensagem}</p>
+                                {msg.created_at && <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", textAlign: "right" }}>{horaMsg(msg.created_at)}</p>}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     <div ref={chatBottomRef} />
                   </div>
                   {showRespostas && (
@@ -413,22 +456,29 @@ export default function Chatbot() {
               <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ background: "#111", borderRadius: 16, padding: 32, width: 400, border: "1px solid #1f2937", textAlign: "center" }}>
                   <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: "0 0 8px" }}>📱 Conectar WhatsApp</h2>
-                  <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Escaneie com seu WhatsApp</p>
+                  <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Escaneie o QR Code com seu WhatsApp</p>
                   <div style={{ background: "#0a0a0a", borderRadius: 12, padding: 16, minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
                     {resetando ? (
                       <p style={{ color: "#f59e0b", fontSize: 14 }}>⏳ Iniciando sessão...</p>
-                    ) : statusWhatsapp === "conectado" ? (
-                      <div><p style={{ fontSize: 48, margin: "0 0 8px" }}>✅</p><p style={{ color: "#16a34a", fontSize: 16, fontWeight: "bold", margin: 0 }}>WhatsApp Conectado!</p></div>
+                    ) : qrConectado ? (
+                      <div><p style={{ fontSize: 48, margin: "0 0 8px" }}>✅</p><p style={{ color: "#16a34a", fontSize: 16, fontWeight: "bold", margin: 0 }}>WhatsApp Conectado!</p>{qrNumero && <p style={{ color: "#9ca3af", fontSize: 13, margin: "8px 0 0" }}>{qrNumero}</p>}</div>
                     ) : qrImageUrl ? (
                       <img src={qrImageUrl} alt="QR Code" style={{ width: 220, height: 220, borderRadius: 8 }} />
                     ) : (
                       <div><p style={{ color: "#9ca3af", fontSize: 14, margin: "0 0 8px" }}>⏳ Gerando QR Code...</p><p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>
                     )}
                   </div>
-                  {statusWhatsapp === "conectado" && numeroWhatsapp && <p style={{ color: "#9ca3af", fontSize: 12, margin: "0 0 12px" }}>Número: {numeroWhatsapp}</p>}
                   <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
                     <button onClick={() => { setShowModalQR(false); setQrPolling(false); setQrImageUrl(""); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Fechar</button>
-                    {statusWhatsapp !== "conectado" && <button onClick={() => { setConexoes(p => p.map(c => c.id === qrConexaoId ? { ...c, status: "conectado", numero: numeroWhatsapp || "Conectado" } : c)); setShowModalQR(false); setQrPolling(false); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>}
+                    {!qrConectado && (
+                      <button onClick={async () => {
+                        if (qrConexaoId) {
+                          await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrConexaoId);
+                          await fetchConexoes();
+                        }
+                        setShowModalQR(false); setQrPolling(false);
+                      }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -476,7 +526,7 @@ export default function Chatbot() {
                           {wabaTeste && <div style={{ background: wabaTeste.success ? "#16a34a22" : "#dc262622", border: `1px solid ${wabaTeste.success ? "#16a34a33" : "#dc262633"}`, borderRadius: 8, padding: 10 }}><p style={{ color: wabaTeste.success ? "#16a34a" : "#dc2626", fontSize: 13, margin: 0, fontWeight: "bold" }}>{wabaTeste.success ? `✅ ${wabaTeste.nome}` : `❌ ${wabaTeste.error}`}</p></div>}
                           <div style={{ background: "#111", borderRadius: 8, padding: 12 }}>
                             <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 4px", textTransform: "uppercase" }}>URL do Webhook (cole na Meta)</p>
-                            <p style={{ color: "#16a34a", fontSize: 12, fontWeight: "bold", margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/api/webhook/meta</p>
+                            <p style={{ color: "#16a34a", fontSize: 12, fontWeight: "bold", margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/webhook/meta</p>
                           </div>
                           <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token de Verificação</label><input placeholder="meu_token_secreto" value={form.webhookToken} onChange={e => setForm(p => ({ ...p, webhookToken: e.target.value }))} style={IS} /></div>
                         </div>
@@ -591,15 +641,15 @@ export default function Chatbot() {
                       <span style={{ background: c.status === "conectado" ? "#16a34a22" : "#dc262622", color: c.status === "conectado" ? "#16a34a" : "#dc2626", fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.status === "conectado" ? "🟢 Conectado" : "🔴 Desconectado"}</span>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: "bold" }}>{c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxoNome}` : "🚫 Sem automação"}</span></div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: "bold" }}>{c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxo_nome}` : "🚫 Sem automação"}</span></div>
                       <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Fila:</span><span style={{ color: "#3b82f6", fontSize: 12 }}>{c.fila}</span></div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Para se assumir:</span><span style={{ color: c.pararSeAtendente ? "#16a34a" : "#6b7280", fontSize: 12 }}>{c.pararSeAtendente ? "✅ Sim" : "❌ Não"}</span></div>
-                      {c.numero && c.numero !== "Aguardando..." && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Número:</span><span style={{ color: "white", fontSize: 12 }}>{c.numero}</span></div>}
+                      <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Para se assumir:</span><span style={{ color: c.parar_se_atendente ? "#16a34a" : "#6b7280", fontSize: 12 }}>{c.parar_se_atendente ? "✅ Sim" : "❌ Não"}</span></div>
+                      {c.numero && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Número:</span><span style={{ color: "white", fontSize: 12 }}>{c.numero}</span></div>}
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       {c.tipo === "webjs" && (c.status === "desconectado"
                         ? <button onClick={() => abrirQR(c.id)} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📷 Escanear QR</button>
-                        : <><button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>✅ Conectado</button><button onClick={() => setConexoes(p => p.map(con => con.id === c.id ? { ...con, status: "desconectado", numero: "Aguardando..." } : con))} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "9px 14px", fontSize: 12, cursor: "pointer" }}>Desconectar</button></>
+                        : <><button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>✅ Conectado</button><button onClick={async () => { await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", c.id); fetchConexoes(); }} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "9px 14px", fontSize: 12, cursor: "pointer" }}>Desconectar</button></>
                       )}
                       {c.tipo === "waba" && <button disabled style={{ flex: 1, background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>🔗 API Ativa</button>}
                       <div style={{ position: "relative" }}>
