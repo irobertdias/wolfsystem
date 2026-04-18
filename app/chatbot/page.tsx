@@ -108,7 +108,8 @@ export default function Chatbot() {
   // ── POLLING QR ──
   useEffect(() => {
     if (!qrPolling || !showModalQR) return;
-    const wsId = workspace?.id?.toString() || "1";
+    const wsId = workspace?.id?.toString();
+if (!wsId) return;
     const interval = setInterval(async () => {
       try {
         const resp = await fetch(`/api/whatsapp?rota=qr-data&workspaceId=${wsId}`);
