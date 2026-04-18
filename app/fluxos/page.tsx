@@ -63,6 +63,9 @@ const B: Record<TipoNo, BC> = {
 const GRUPOS = ["Bubbles","Inputs","Lógica","Integrações","Eventos"];
 const uid = () => Math.random().toString(36).slice(2,10);
 
+const IS: React.CSSProperties = {width:"100%",background:"#0a0a0a",border:"1px solid #374151",borderRadius:6,padding:"8px 10px",color:"white",fontSize:12,boxSizing:"border-box"};
+const LS: React.CSSProperties = {color:"#9ca3af",fontSize:10,textTransform:"uppercase",display:"block",marginBottom:4,letterSpacing:1};
+
 async function getWsId(): Promise<string|null> {
   const {data:{user}} = await supabase.auth.getUser();
   if (!user) return null;
@@ -107,7 +110,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
   return m[tipo]||{};
 }
 
-function prev(no: No): string {
+function getPreview(no: No): string {
   const d=no.dados;
   switch(no.tipo){
     case "texto": return d.texto||"Vazio";
@@ -142,24 +145,194 @@ function prev(no: No): string {
   }
 }
 
-// ─────────────────────────────────────────────
-// NÓ INDIVIDUAL — componente separado com pointer events próprios
-// ─────────────────────────────────────────────
-function NoCard({no, sel, scale, offset, onSelect, onDelete, onConectarSaida, onConectarEntrada}: {
-  no: No; sel: boolean; scale: number; offset: {x:number;y:number};
-  onSelect: (id:string)=>void;
-  onDelete: (id:string)=>void;
-  onConectarSaida: (noId:string, idx:number)=>void;
-  onConectarEntrada: (noId:string)=>void;
-  onMove: (id:string, x:number, y:number)=>void;
+// ═══════════════════════════════════════════════════════
+// PAINEL PROPRIEDADES — FORA do FluxosPage para não recriar
+// ═══════════════════════════════════════════════════════
+function PainelProps({ noSel, updateNo, excluirNo, setNos }: {
+  noSel: No;
+  updateNo: (id: string, d: Record<string,any>) => void;
+  excluirNo: (id: string) => void;
+  setNos: React.Dispatch<React.SetStateAction<No[]>>;
+}) {
+  const d = noSel.dados;
+  const id = noSel.id;
+  const u = (o: Record<string,any>) => updateNo(id, o);
+
+  const F = (lbl: string, key: string, type = "text", ph = "") => (
+    <div key={`${id}-${key}`}>
+      <label style={LS}>{lbl}</label>
+      <input type={type} value={d[key]||""} onChange={e => u({[key]: e.target.value})} style={IS} placeholder={ph} />
+    </div>
+  );
+
+  const T = (lbl: string, key: string, ph = "", h = 80) => (
+    <div key={`${id}-${key}`}>
+      <label style={LS}>{lbl}</label>
+      <textarea value={d[key]||""} onChange={e => u({[key]: e.target.value})} style={{...IS, height:h, resize:"vertical"}} placeholder={ph} />
+    </div>
+  );
+
+  const S = (lbl: string, key: string, opts: {value:string;label:string}[]) => (
+    <div key={`${id}-${key}`}>
+      <label style={LS}>{lbl}</label>
+      <select value={d[key]||opts[0]?.value} onChange={e => u({[key]: e.target.value})} style={IS}>
+        {opts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  );
+
+  switch (noSel.tipo) {
+    case "texto": return <>{T("Mensagem","texto","Digite...",120)}</>;
+    case "imagem": return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
+    case "video":  return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
+    case "audio":  return <>{F("URL do Áudio","url","url","https://...")}</>;
+    case "embed":  return <>{F("URL","url","url","https://...")}</>;
+    case "input_texto": case "input_email": case "input_website": case "input_numero":
+    case "input_telefone": case "input_arquivo": case "input_data": case "input_hora":
+      return <>{T("Pergunta","pergunta","Qual...?",80)}{F("Variável","variavel","text","nome")}</>;
+    case "input_avaliacao":
+      return <>{T("Pergunta","pergunta","Como avalia?",80)}{F("Máximo","max","number","5")}{F("Variável","variavel","text","avaliacao")}</>;
+    case "input_pagamento":
+      return <>{F("Valor (R$)","valor","number","0")}{F("Descrição","descricao")}</>;
+    case "input_botao":
+      return <>
+        {T("Texto","texto","Escolha:",60)}
+        <div>
+          <label style={LS}>Botões (máx 3, um por linha)</label>
+          <textarea
+            value={(d.botoes||[]).join("\n")}
+            onChange={e => {
+              const b = e.target.value.split("\n").filter(Boolean).slice(0,3);
+              u({botoes: b});
+              setNos(p => p.map(n => n.id===id ? {...n, saidas: b.length ? b : ["Botão 1"]} : n));
+            }}
+            style={{...IS, height:80, resize:"vertical"}}
+            placeholder={"Sim\nNão\nTalvez"}
+          />
+        </div>
+      </>;
+    case "input_cards":
+      return <div>
+        <label style={LS}>Cards (Título|Descrição, um por linha)</label>
+        <textarea
+          value={(d.cards||[]).map((c:any) => `${c.titulo}|${c.descricao}`).join("\n")}
+          onChange={e => {
+            const cards = e.target.value.split("\n").filter(Boolean).map((l:string) => {
+              const [t,ds] = l.split("|");
+              return {titulo: t?.trim()||"", descricao: ds?.trim()||""};
+            });
+            u({cards});
+          }}
+          style={{...IS, height:100, resize:"vertical"}}
+          placeholder={"Produto 1|Descrição\nProduto 2|Outra"}
+        />
+      </div>;
+    case "condicao":
+      return <>
+        {F("Variável","variavel","text","resposta")}
+        {S("Operador","operador",[
+          {value:"igual",label:"É igual a"},{value:"diferente",label:"É diferente de"},
+          {value:"contem",label:"Contém"},{value:"nao_contem",label:"Não contém"},
+          {value:"comeca",label:"Começa com"},{value:"termina",label:"Termina com"},
+          {value:"vazio",label:"Está vazio"},{value:"nao_vazio",label:"Não está vazio"},
+          {value:"maior",label:"Maior que"},{value:"menor",label:"Menor que"},
+        ])}
+        {F("Valor","valor","text","Comparar com")}
+      </>;
+    case "variavel":
+      return <>
+        {F("Nome da Variável","nome","text","minhaVar")}
+        {S("Tipo","tipo",[{value:"texto",label:"Texto"},{value:"numero",label:"Número"},{value:"booleano",label:"Booleano"},{value:"lista",label:"Lista"}])}
+        {F("Valor","valor","text","{{outra_variavel}}")}
+      </>;
+    case "redirecionar": return <>{F("URL","url","url","https://...")}</>;
+    case "script":        return <>{T("Código JavaScript","codigo","// return true;",150)}</>;
+    case "espera":        return <>{F("Aguardar (segundos)","segundos","number","3")}</>;
+    case "teste_ab":
+      return <div>
+        <label style={LS}>Percentual para A (%)</label>
+        <input type="number" min={1} max={99} value={d.percentual_a||50} onChange={e => u({percentual_a: Number(e.target.value)})} style={IS} />
+        <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0"}}>B recebe {100-(d.percentual_a||50)}%</p>
+      </div>;
+    case "webhook":
+      return <>
+        {F("URL","url","url","https://...")}
+        {S("Método","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}
+        {T("Headers JSON","headers",'{"Authorization":"Bearer token"}',60)}
+        {T("Body JSON","body",'{"chave":"valor"}',60)}
+      </>;
+    case "pular": case "retornar":
+      return <>{F("ID do nó alvo","alvo","text","ID do bloco destino")}</>;
+    case "google_sheets":
+      return <>
+        {F("ID da Planilha","spreadsheet_id","text","ID do Google Sheets")}
+        {F("Aba","aba","text","Sheet1")}
+        {S("Ação","acao",[{value:"append",label:"Adicionar linha"},{value:"update",label:"Atualizar"},{value:"get",label:"Buscar"}])}
+        {T("Dados ({{var1}},{{var2}})","dados","{{nome}},{{email}}",60)}
+      </>;
+    case "http_request":
+      return <>
+        {F("URL","url","url","https://api.exemplo.com")}
+        {S("Método","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}
+        {T("Headers JSON","headers",'{"Content-Type":"application/json"}',60)}
+        {T("Body JSON","body",'{"chave":"{{variavel}}"}',60)}
+        {F("Salvar resposta em","variavel","text","resposta_api")}
+      </>;
+    case "openai":
+      return <>
+        {F("API Key","apiKey","password","sk-...")}
+        {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"},{value:"gpt-3.5-turbo",label:"GPT-3.5"}])}
+        {T("Prompt do sistema","prompt","Você é um assistente...",100)}
+        {F("Salvar resposta em","variavel","text","resposta_ia")}
+      </>;
+    case "claude_ai":
+      return <>
+        {F("API Key","apiKey","password","sk-ant-...")}
+        {S("Modelo","modelo",[{value:"claude-opus-4-6",label:"Claude Opus 4"},{value:"claude-sonnet-4-6",label:"Claude Sonnet 4"},{value:"claude-haiku-4-5-20251001",label:"Claude Haiku"}])}
+        {T("Prompt do sistema","prompt","Você é um assistente...",100)}
+        {F("Salvar resposta em","variavel","text","resposta_ia")}
+      </>;
+    case "gmail":
+      return <>
+        {F("Para","para","email","email@exemplo.com")}
+        {F("Assunto","assunto","text","Assunto do email")}
+        {T("Corpo do email","corpo","Olá {{nome}}...",120)}
+      </>;
+    case "inicio":    return <>{T("Mensagem de boas-vindas","mensagem","Olá! Como posso ajudar?",100)}</>;
+    case "comando":   return <>{F("Comando","comando","text","/start")}</>;
+    case "reply":
+      return <div>
+        <label style={LS}>Palavras-chave (separadas por vírgula)</label>
+        <input value={d.palavras||""} onChange={e => u({palavras: e.target.value})} style={IS} placeholder="oi, olá, bom dia" />
+      </div>;
+    case "invalido":  return <>{T("Mensagem para inválido","mensagem","Não entendi...",80)}</>;
+    case "transferir":
+      return <>
+        {S("Fila de destino","fila",[{value:"Fila Principal",label:"Fila Principal"},{value:"Fila Suporte",label:"Fila Suporte"},{value:"Fila Vendas",label:"Fila Vendas"}])}
+        {T("Mensagem ao transferir","mensagem","Transferindo...",80)}
+      </>;
+    case "finalizar": return <>{T("Mensagem de encerramento","mensagem","Obrigado pelo contato!",80)}</>;
+    default: return <p style={{color:"#6b7280",fontSize:12}}>Sem propriedades.</p>;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// NÓ INDIVIDUAL — componente separado com pointer capture
+// ═══════════════════════════════════════════════════════
+function NoCard({ no, sel, scale, onSelect, onDelete, onConectarSaida, onConectarEntrada }: {
+  no: No; sel: boolean; scale: number;
+  onSelect: (id:string) => void;
+  onDelete: (id:string) => void;
+  onConectarSaida: (noId:string, idx:number) => void;
+  onConectarEntrada: (noId:string) => void;
+  onMove: (id:string, x:number, y:number) => void;
 }) {
   const cfg = B[no.tipo];
   const divRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
-  const startPtr = useRef({px:0,py:0,nx:0,ny:0});
+  const startPtr = useRef({px:0, py:0, nx:0, ny:0});
 
   function onPointerDown(e: React.PointerEvent) {
-    // Ignora se foi em botão, input, etc
     const t = e.target as HTMLElement;
     if (t.tagName==="BUTTON"||t.tagName==="INPUT"||t.tagName==="SELECT"||t.tagName==="TEXTAREA") return;
     if (t.closest("button")||t.closest("input")||t.closest("select")||t.closest("textarea")) return;
@@ -187,7 +360,6 @@ function NoCard({no, sel, scale, offset, onSelect, onDelete, onConectarSaida, on
     divRef.current?.releasePointerCapture(e.pointerId);
     const dx = (e.clientX - startPtr.current.px) / scale;
     const dy = (e.clientY - startPtr.current.py) / scale;
-    // Atualiza estado global via callback
     (window as any).__wolfMoveNo?.(no.id, startPtr.current.nx+dx, startPtr.current.ny+dy);
   }
 
@@ -202,49 +374,42 @@ function NoCard({no, sel, scale, offset, onSelect, onDelete, onConectarSaida, on
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onClick={e=>{e.stopPropagation(); onSelect(no.id);}}
-      onMouseUp={e=>{e.stopPropagation(); onConectarEntrada(no.id);}}
+      onClick={e => {e.stopPropagation(); onSelect(no.id);}}
+      onMouseUp={e => {e.stopPropagation(); onConectarEntrada(no.id);}}
     >
-      {/* header */}
-      <div style={{background:cfg.cor,borderRadius:"8px 8px 0 0",padding:"8px 10px",
-        display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"grab"}}>
-        <div style={{display:"flex",alignItems:"center",gap:6,pointerEvents:"none"}}>
+      <div style={{background:cfg.cor, borderRadius:"8px 8px 0 0", padding:"8px 10px",
+        display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"grab"}}>
+        <div style={{display:"flex", alignItems:"center", gap:6, pointerEvents:"none"}}>
           <span style={{fontSize:13}}>{cfg.icone}</span>
-          <span style={{color:"white",fontSize:11,fontWeight:"bold"}}>{cfg.label}</span>
-          <span style={{background:"rgba(0,0,0,.2)",color:"rgba(255,255,255,.6)",fontSize:9,padding:"1px 6px",borderRadius:10}}>{cfg.grupo}</span>
+          <span style={{color:"white", fontSize:11, fontWeight:"bold"}}>{cfg.label}</span>
+          <span style={{background:"rgba(0,0,0,.2)", color:"rgba(255,255,255,.6)", fontSize:9, padding:"1px 6px", borderRadius:10}}>{cfg.grupo}</span>
         </div>
-        {no.tipo!=="inicio"&&(
+        {no.tipo!=="inicio" && (
           <button
-            onPointerDown={e=>e.stopPropagation()}
-            onClick={e=>{e.stopPropagation();onDelete(no.id);}}
-            style={{background:"none",border:"none",color:"rgba(255,255,255,.7)",cursor:"pointer",fontSize:13,padding:0,lineHeight:1}}>✕</button>
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => {e.stopPropagation(); onDelete(no.id);}}
+            style={{background:"none", border:"none", color:"rgba(255,255,255,.7)", cursor:"pointer", fontSize:13, padding:0, lineHeight:1}}>✕</button>
         )}
       </div>
-
-      {/* preview */}
-      <div style={{padding:"7px 10px",borderBottom:cfg.saidas.length?"1px solid #1f2937":"none",pointerEvents:"none"}}>
-        <p style={{color:"#9ca3af",fontSize:10,margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prev(no)}</p>
+      <div style={{padding:"7px 10px", borderBottom:cfg.saidas.length?"1px solid #1f2937":"none", pointerEvents:"none"}}>
+        <p style={{color:"#9ca3af", fontSize:10, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{getPreview(no)}</p>
       </div>
-
-      {/* entrada */}
-      {no.tipo!=="inicio"&&(
+      {no.tipo!=="inicio" && (
         <div
-          style={{position:"absolute",left:-7,top:48+18-7,width:14,height:14,borderRadius:"50%",
-            background:"#1f2937",border:`2px solid ${cfg.cor}`,cursor:"crosshair",zIndex:5}}
-          onPointerDown={e=>e.stopPropagation()}
-          onMouseUp={e=>{e.stopPropagation();onConectarEntrada(no.id);}}
+          style={{position:"absolute", left:-7, top:48+18-7, width:14, height:14, borderRadius:"50%",
+            background:"#1f2937", border:`2px solid ${cfg.cor}`, cursor:"crosshair", zIndex:5}}
+          onPointerDown={e => e.stopPropagation()}
+          onMouseUp={e => {e.stopPropagation(); onConectarEntrada(no.id);}}
         />
       )}
-
-      {/* saídas */}
-      {no.saidas.map((saida,idx)=>(
-        <div key={idx} style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-          padding:"0 10px",height:36,borderTop:idx>0?"1px solid #1a1a1a":"none"}}>
-          <span style={{color:"#6b7280",fontSize:10,pointerEvents:"none"}}>{saida}</span>
+      {no.saidas.map((saida,idx) => (
+        <div key={idx} style={{display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"0 10px", height:36, borderTop:idx>0?"1px solid #1a1a1a":"none"}}>
+          <span style={{color:"#6b7280", fontSize:10, pointerEvents:"none"}}>{saida}</span>
           <div
-            style={{width:14,height:14,borderRadius:"50%",background:cfg.cor,cursor:"crosshair",
-              flexShrink:0,position:"relative",right:-18,border:"2px solid #111"}}
-            onPointerDown={e=>{e.stopPropagation();onConectarSaida(no.id,idx);}}
+            style={{width:14, height:14, borderRadius:"50%", background:cfg.cor, cursor:"crosshair",
+              flexShrink:0, position:"relative", right:-18, border:"2px solid #111"}}
+            onPointerDown={e => {e.stopPropagation(); onConectarSaida(no.id,idx);}}
           />
         </div>
       ))}
@@ -252,233 +417,167 @@ function NoCard({no, sel, scale, offset, onSelect, onDelete, onConectarSaida, on
   );
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 // PÁGINA PRINCIPAL
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 export default function FluxosPage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  const [wsId,setWsId]       = useState<string|null>(null);
-  const [fluxos,setFluxos]   = useState<Fluxo[]>([]);
-  const [view,setView]        = useState<"lista"|"editor">("lista");
+  const [wsId,setWsId]             = useState<string|null>(null);
+  const [fluxos,setFluxos]         = useState<Fluxo[]>([]);
+  const [view,setView]             = useState<"lista"|"editor">("lista");
   const [fluxoAtivo,setFluxoAtivo] = useState<Fluxo|null>(null);
-  const [nos,setNos]          = useState<No[]>([]);
-  const [arestas,setArestas]  = useState<Aresta[]>([]);
-  const [noSel,setNoSel]      = useState<No|null>(null);
-  const [salvando,setSalvando]= useState(false);
+  const [nos,setNos]               = useState<No[]>([]);
+  const [arestas,setArestas]       = useState<Aresta[]>([]);
+  const [noSel,setNoSel]           = useState<No|null>(null);
+  const [salvando,setSalvando]     = useState(false);
   const [grupoAberto,setGrupoAberto] = useState("Bubbles");
   const [conectando,setConectando]   = useState<{noId:string;saidaIndex:number}|null>(null);
   const [mousePos,setMousePos]       = useState({x:0,y:0});
-  const [showNovo,setShowNovo]= useState(false);
-  const [criando,setCriando]  = useState(false);
-  const [form,setForm]        = useState({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:""});
-  const [scale,setScale]      = useState(1);
-  const [offset,setOffset]    = useState({x:80,y:80});
+  const [showNovo,setShowNovo]     = useState(false);
+  const [criando,setCriando]       = useState(false);
+  const [form,setForm]             = useState({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:""});
+  const [scale,setScale]           = useState(1);
+  const [offset,setOffset]         = useState({x:80,y:80});
   const scaleRef  = useRef(1);
   const offsetRef = useRef({x:80,y:80});
-
-  // Pan state
   const panning   = useRef(false);
   const panStart  = useRef({x:0,y:0,ox:0,oy:0});
 
-  // Registra callback global para NoCard atualizar posição
-  useEffect(()=>{
-    (window as any).__wolfMoveNo = (id:string,x:number,y:number)=>{
-      setNos(p=>p.map(n=>n.id===id?{...n,x,y}:n));
+  useEffect(() => {
+    (window as any).__wolfMoveNo = (id:string, x:number, y:number) => {
+      setNos(p => p.map(n => n.id===id ? {...n,x,y} : n));
     };
-    return ()=>{ delete (window as any).__wolfMoveNo; };
-  },[]);
+    return () => { delete (window as any).__wolfMoveNo; };
+  }, []);
 
-  useEffect(()=>{
-    getWsId().then(id=>{setWsId(id);if(id)load(id);});
-  },[]);
+  useEffect(() => {
+    getWsId().then(id => { setWsId(id); if(id) load(id); });
+  }, []);
 
-  async function load(id?:string){
-    const wid=id||wsId; if(!wid) return;
-    const {data}=await supabase.from("fluxos").select("*").eq("workspace_id",wid).order("created_at",{ascending:false});
-    setFluxos((data||[]).map(f=>({...f,nos:f.nos||[],conexoes:f.conexoes||[]})));
+  async function load(id?:string) {
+    const wid = id||wsId; if(!wid) return;
+    const {data} = await supabase.from("fluxos").select("*").eq("workspace_id",wid).order("created_at",{ascending:false});
+    setFluxos((data||[]).map(f => ({...f, nos:f.nos||[], conexoes:f.conexoes||})));
   }
 
-  async function criarFluxo(){
+  async function criarFluxo() {
     if(!form.nome.trim()){alert("Digite o nome!");return;}
     setCriando(true);
-    try{
-      const id=wsId||await getWsId();
+    try {
+      const id = wsId||await getWsId();
       if(!id){alert("Workspace não encontrado!");return;}
-      const ini:No={id:uid(),tipo:"inicio",x:200,y:200,dados:defaultD("inicio"),saidas:[...B.inicio.saidas]};
-      const payload={nome:form.nome.trim(),descricao:form.descricao,ativo:false,
+      const ini:No = {id:uid(),tipo:"inicio",x:200,y:200,dados:defaultD("inicio"),saidas:[...B.inicio.saidas]};
+      const payload = {nome:form.nome.trim(),descricao:form.descricao,ativo:false,
         trigger_tipo:form.trigger_tipo,trigger_valor:form.trigger_valor,
         nos:[ini],conexoes:[],workspace_id:id};
-      const {data,error}=await supabase.from("fluxos").insert([payload]).select().single();
+      const {data,error} = await supabase.from("fluxos").insert([payload]).select().single();
       if(error){alert("Erro: "+error.message);return;}
-      setWsId(id);await load(id);
-      abrirEditor({...payload,id:data.id} as Fluxo);
-      setShowNovo(false);setForm({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:""});
-    }finally{setCriando(false);}
+      setWsId(id); await load(id);
+      abrirEditor({...payload, id:data.id} as Fluxo);
+      setShowNovo(false);
+      setForm({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:""});
+    } finally { setCriando(false); }
   }
 
-  function abrirEditor(f:Fluxo){
-    setFluxoAtivo(f);setNos(f.nos||[]);setArestas(f.conexoes||[]);setNoSel(null);setView("editor");
+  function abrirEditor(f:Fluxo) {
+    setFluxoAtivo(f); setNos(f.nos||[]); setArestas(f.conexoes||[]); setNoSel(null); setView("editor");
   }
 
-  async function salvar(){
-    if(!fluxoAtivo?.id)return;
+  async function salvar() {
+    if(!fluxoAtivo?.id) return;
     setSalvando(true);
     await supabase.from("fluxos").update({nos,conexoes:arestas,nome:fluxoAtivo.nome,
       descricao:fluxoAtivo.descricao,ativo:fluxoAtivo.ativo,
       trigger_tipo:fluxoAtivo.trigger_tipo,trigger_valor:fluxoAtivo.trigger_valor}).eq("id",fluxoAtivo.id);
-    await load();setSalvando(false);alert("✅ Fluxo salvo!");
+    await load(); setSalvando(false); alert("✅ Fluxo salvo!");
   }
 
-  async function toggleAtivo(){
-    if(!fluxoAtivo?.id)return;
-    const v=!fluxoAtivo.ativo;
+  async function toggleAtivo() {
+    if(!fluxoAtivo?.id) return;
+    const v = !fluxoAtivo.ativo;
     await supabase.from("fluxos").update({ativo:v}).eq("id",fluxoAtivo.id);
-    setFluxoAtivo(p=>p?{...p,ativo:v}:null);await load();
+    setFluxoAtivo(p => p?{...p,ativo:v}:null); await load();
   }
 
-  async function excluirFluxo(id:number){
-    if(!confirm("Excluir?"))return;
-    await supabase.from("fluxos").delete().eq("id",id);await load();
+  async function excluirFluxo(id:number) {
+    if(!confirm("Excluir?")) return;
+    await supabase.from("fluxos").delete().eq("id",id); await load();
   }
 
-  function adicionarNo(tipo:TipoNo){
-    const cfg=B[tipo];
-    const rect=canvasRef.current?.getBoundingClientRect();
-    const cw=rect?.width||800,ch=rect?.height||600;
-    const s=scaleRef.current,o=offsetRef.current;
-    const cx=(cw/2-o.x)/s-110, cy=(ch/2-o.y)/s-40;
-    const sp=(nos.length%8)*28;
-    const n:No={id:uid(),tipo,x:cx+sp,y:cy+sp,dados:defaultD(tipo),saidas:[...cfg.saidas]};
-    setNos(p=>[...p,n]);setNoSel(n);
+  function adicionarNo(tipo:TipoNo) {
+    const cfg = B[tipo];
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const cw = rect?.width||800, ch = rect?.height||600;
+    const s = scaleRef.current, o = offsetRef.current;
+    const cx = (cw/2-o.x)/s-110, cy = (ch/2-o.y)/s-40;
+    const sp = (nos.length%8)*28;
+    const n:No = {id:uid(),tipo,x:cx+sp,y:cy+sp,dados:defaultD(tipo),saidas:[...cfg.saidas]};
+    setNos(p => [...p,n]); setNoSel(n);
   }
 
-  function excluirNo(id:string){
+  function excluirNo(id:string) {
     if(nos.find(n=>n.id===id)?.tipo==="inicio"){alert("Não pode excluir o início!");return;}
-    setNos(p=>p.filter(n=>n.id!==id));
-    setArestas(p=>p.filter(a=>a.de!==id&&a.para!==id));
-    if(noSel?.id===id)setNoSel(null);
+    setNos(p => p.filter(n=>n.id!==id));
+    setArestas(p => p.filter(a=>a.de!==id&&a.para!==id));
+    if(noSel?.id===id) setNoSel(null);
   }
 
-  function updateNo(id:string,d:Record<string,any>){
-    setNos(p=>p.map(n=>n.id===id?{...n,dados:{...n.dados,...d}}:n));
-    setNoSel(p=>p?.id===id?{...p,dados:{...p.dados,...d}}:p);
+  function updateNo(id:string, d:Record<string,any>) {
+    setNos(p => p.map(n => n.id===id ? {...n,dados:{...n.dados,...d}} : n));
+    setNoSel(p => p?.id===id ? {...p,dados:{...p.dados,...d}} : p);
   }
 
-  // Pan do canvas
-  function onCanvasPointerDown(e:React.PointerEvent){
-    const t=e.target as HTMLElement;
-    if(t.closest("button")||t.closest("input")||t.closest("select")||t.closest("textarea"))return;
+  function onCanvasPointerDown(e:React.PointerEvent) {
+    const t = e.target as HTMLElement;
+    if(t.closest("button")||t.closest("input")||t.closest("select")||t.closest("textarea")) return;
     if(conectando){setConectando(null);return;}
-    panning.current=true;
-    panStart.current={x:e.clientX,y:e.clientY,ox:offsetRef.current.x,oy:offsetRef.current.y};
+    panning.current = true;
+    panStart.current = {x:e.clientX,y:e.clientY,ox:offsetRef.current.x,oy:offsetRef.current.y};
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }
-  function onCanvasPointerMove(e:React.PointerEvent){
-    const rect=canvasRef.current?.getBoundingClientRect();
-    if(rect) setMousePos({x:e.clientX-rect.left,y:e.clientY-rect.top});
-    if(!panning.current)return;
-    const nx=panStart.current.ox+(e.clientX-panStart.current.x);
-    const ny=panStart.current.oy+(e.clientY-panStart.current.y);
-    offsetRef.current={x:nx,y:ny};setOffset({x:nx,y:ny});
-  }
-  function onCanvasPointerUp(e:React.PointerEvent){
-    panning.current=false;
-    try{(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);}catch{}
-  }
-  function onWheel(e:React.WheelEvent){
-    e.preventDefault();
-    const rect=canvasRef.current?.getBoundingClientRect();if(!rect)return;
-    const f=e.deltaY>0?0.9:1.1;
-    const ns=Math.min(Math.max(scaleRef.current*f,0.2),2.5);
-    const mx=e.clientX-rect.left,my=e.clientY-rect.top;
-    const no={x:mx-(mx-offsetRef.current.x)*(ns/scaleRef.current),y:my-(my-offsetRef.current.y)*(ns/scaleRef.current)};
-    scaleRef.current=ns;offsetRef.current=no;setScale(ns);setOffset({...no});
+
+  function onCanvasPointerMove(e:React.PointerEvent) {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if(rect) setMousePos({x:e.clientX-rect.left, y:e.clientY-rect.top});
+    if(!panning.current) return;
+    const nx = panStart.current.ox+(e.clientX-panStart.current.x);
+    const ny = panStart.current.oy+(e.clientY-panStart.current.y);
+    offsetRef.current = {x:nx,y:ny}; setOffset({x:nx,y:ny});
   }
 
-  function iniciarConexao(noId:string,saidaIndex:number){setConectando({noId,saidaIndex});}
-  function finalizarConexao(noId:string){
+  function onCanvasPointerUp(e:React.PointerEvent) {
+    panning.current = false;
+    try{(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);}catch{}
+  }
+
+  function onWheel(e:React.WheelEvent) {
+    e.preventDefault();
+    const rect = canvasRef.current?.getBoundingClientRect(); if(!rect) return;
+    const f = e.deltaY>0?0.9:1.1;
+    const ns = Math.min(Math.max(scaleRef.current*f,0.2),2.5);
+    const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+    const no = {x:mx-(mx-offsetRef.current.x)*(ns/scaleRef.current), y:my-(my-offsetRef.current.y)*(ns/scaleRef.current)};
+    scaleRef.current=ns; offsetRef.current=no; setScale(ns); setOffset({...no});
+  }
+
+  function iniciarConexao(noId:string, saidaIndex:number) { setConectando({noId,saidaIndex}); }
+
+  function finalizarConexao(noId:string) {
     if(!conectando||conectando.noId===noId){setConectando(null);return;}
-    setArestas(p=>{
-      const f=p.filter(a=>!(a.de===conectando.noId&&a.saidaIndex===conectando.saidaIndex));
+    setArestas(p => {
+      const f = p.filter(a=>!(a.de===conectando.noId&&a.saidaIndex===conectando.saidaIndex));
       return [...f,{id:uid(),de:conectando.noId,saidaIndex:conectando.saidaIndex,para:noId}];
     });
     setConectando(null);
   }
 
-  function posC(no:No,idx:number){return{x:no.x+220,y:no.y+48+36*idx+18};}
-  function posE(no:No){return{x:no.x,y:no.y+48+18};}
+  function posC(no:No, idx:number) { return {x:no.x+220, y:no.y+48+36*idx+18}; }
+  function posE(no:No)              { return {x:no.x,     y:no.y+48+18};        }
 
-  const IS:React.CSSProperties={width:"100%",background:"#0a0a0a",border:"1px solid #374151",borderRadius:6,padding:"8px 10px",color:"white",fontSize:12,boxSizing:"border-box"};
-  const LS:React.CSSProperties={color:"#9ca3af",fontSize:10,textTransform:"uppercase",display:"block",marginBottom:4,letterSpacing:1};
-
-  function Props(){
-    if(!noSel)return null;
-    const d=noSel.dados,id=noSel.id,u=(o:Record<string,any>)=>updateNo(id,o);
-    const F=(lbl:string,key:string,type="text",ph="")=>(
-      <div key={key}><label style={LS}>{lbl}</label>
-        <input type={type} value={d[key]||""} onChange={e=>u({[key]:e.target.value})} style={IS} placeholder={ph}/>
-      </div>
-    );
-    const T=(lbl:string,key:string,ph="",h=80)=>(
-      <div key={key}><label style={LS}>{lbl}</label>
-        <textarea value={d[key]||""} onChange={e=>u({[key]:e.target.value})} style={{...IS,height:h,resize:"vertical"}} placeholder={ph}/>
-      </div>
-    );
-    const S=(lbl:string,key:string,opts:{value:string;label:string}[])=>(
-      <div key={key}><label style={LS}>{lbl}</label>
-        <select value={d[key]||opts[0]?.value} onChange={e=>u({[key]:e.target.value})} style={IS}>
-          {opts.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      </div>
-    );
-    switch(noSel.tipo){
-      case"texto":return T("Mensagem","texto","Digite...",120);
-      case"imagem":return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
-      case"video":return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
-      case"audio":return F("URL","url","url","https://...");
-      case"embed":return F("URL","url","url","https://...");
-      case"input_texto":case"input_email":case"input_website":case"input_numero":
-      case"input_telefone":case"input_arquivo":case"input_data":case"input_hora":
-        return <>{T("Pergunta","pergunta","Qual...?",80)}{F("Variável","variavel","text","nome")}</>;
-      case"input_avaliacao":return <>{T("Pergunta","pergunta","Como avalia?",80)}{F("Máximo","max","number","5")}{F("Variável","variavel","text","avaliacao")}</>;
-      case"input_pagamento":return <>{F("Valor (R$)","valor","number","0")}{F("Descrição","descricao")}</>;
-      case"input_botao":return <>
-        {T("Texto","texto","Escolha:",60)}
-        <div><label style={LS}>Botões (máx 3, um por linha)</label>
-          <textarea value={(d.botoes||[]).join("\n")} onChange={e=>{const b=e.target.value.split("\n").filter(Boolean).slice(0,3);u({botoes:b});setNos(p=>p.map(n=>n.id===id?{...n,saidas:b.length?b:["Botão 1"]}:n));}} style={{...IS,height:80,resize:"vertical"}} placeholder={"Sim\nNão\nTalvez"}/>
-        </div></>;
-      case"input_cards":return <div><label style={LS}>Cards (Título|Descrição)</label>
-        <textarea value={(d.cards||[]).map((c:any)=>`${c.titulo}|${c.descricao}`).join("\n")} onChange={e=>{const cards=e.target.value.split("\n").filter(Boolean).map((l:string)=>{const[t,ds]=l.split("|");return{titulo:t?.trim()||"",descricao:ds?.trim()||""};});u({cards});}} style={{...IS,height:100,resize:"vertical"}} placeholder={"P1|Desc\nP2|Desc"}/>
-      </div>;
-      case"condicao":return <>{F("Variável","variavel","text","resposta")}{S("Operador","operador",[{value:"igual",label:"É igual a"},{value:"diferente",label:"Diferente"},{value:"contem",label:"Contém"},{value:"nao_contem",label:"Não contém"},{value:"comeca",label:"Começa com"},{value:"termina",label:"Termina com"},{value:"vazio",label:"Está vazio"},{value:"nao_vazio",label:"Não está vazio"},{value:"maior",label:"Maior que"},{value:"menor",label:"Menor que"}])}{F("Valor","valor","text","Comparar com")}</>;
-      case"variavel":return <>{F("Nome","nome","text","minhaVar")}{S("Tipo","tipo",[{value:"texto",label:"Texto"},{value:"numero",label:"Número"},{value:"booleano",label:"Booleano"},{value:"lista",label:"Lista"}])}{F("Valor","valor","text","{{outra}}")}</>;
-      case"redirecionar":return F("URL","url","url","https://...");
-      case"script":return T("Código JS","codigo","// return true;",150);
-      case"espera":return F("Segundos","segundos","number","3");
-      case"teste_ab":return <div><label style={LS}>% para A</label><input type="number" min={1} max={99} value={d.percentual_a||50} onChange={e=>u({percentual_a:Number(e.target.value)})} style={IS}/><p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0"}}>B: {100-(d.percentual_a||50)}%</p></div>;
-      case"webhook":return <>{F("URL","url","url","https://...")}{S("Método","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}{T("Headers JSON","headers",'{}',60)}{T("Body JSON","body",'{}',60)}</>;
-      case"pular":case"retornar":return F("ID do nó alvo","alvo","text","ID bloco");
-      case"google_sheets":return <>{F("ID Planilha","spreadsheet_id","text","ID")}{F("Aba","aba","text","Sheet1")}{S("Ação","acao",[{value:"append",label:"Adicionar"},{value:"update",label:"Atualizar"},{value:"get",label:"Buscar"}])}{T("Dados","dados","{{nome}},{{email}}",60)}</>;
-      case"http_request":return <>{F("URL","url","url","https://...")}{S("Método","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}{T("Headers","headers",'{}',60)}{T("Body","body",'{}',60)}{F("Salvar em","variavel","text","resposta")}</>;
-      case"openai":return <>{F("API Key","apiKey","password","sk-...")}{S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"},{value:"gpt-3.5-turbo",label:"GPT-3.5"}])}{T("Prompt","prompt","Você é...",100)}{F("Salvar em","variavel","text","resposta_ia")}</>;
-      case"claude_ai":return <>{F("API Key","apiKey","password","sk-ant-...")}{S("Modelo","modelo",[{value:"claude-opus-4-6",label:"Claude Opus 4"},{value:"claude-sonnet-4-6",label:"Claude Sonnet 4"},{value:"claude-haiku-4-5-20251001",label:"Claude Haiku"}])}{T("Prompt","prompt","Você é...",100)}{F("Salvar em","variavel","text","resposta_ia")}</>;
-      case"gmail":return <>{F("Para","para","email","email@...")}{F("Assunto","assunto")}{T("Corpo","corpo","Olá {{nome}}...",120)}</>;
-      case"inicio":return T("Mensagem de boas-vindas","mensagem","Olá!",100);
-      case"comando":return F("Comando","comando","text","/start");
-      case"reply":return <div><label style={LS}>Palavras-chave (vírgula)</label><input value={d.palavras||""} onChange={e=>u({palavras:e.target.value})} style={IS} placeholder="oi, olá"/></div>;
-      case"invalido":return T("Mensagem","mensagem","Não entendi...",80);
-      case"transferir":return <>{S("Fila","fila",[{value:"Fila Principal",label:"Fila Principal"},{value:"Fila Suporte",label:"Fila Suporte"},{value:"Fila Vendas",label:"Fila Vendas"}])}{T("Mensagem","mensagem","Transferindo...",80)}</>;
-      case"finalizar":return T("Mensagem","mensagem","Obrigado!",80);
-      default:return <p style={{color:"#6b7280",fontSize:12}}>Sem propriedades.</p>;
-    }
-  }
-
-  // ══════════════════════════════════════════
-  // VIEW LISTA
-  // ══════════════════════════════════════════
-  if(view==="lista") return(
+  // ══════ VIEW LISTA ══════
+  if(view==="lista") return (
     <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#0a0a0a",color:"white"}}>
       <div style={{width:220,background:"#111",borderRight:"1px solid #1f2937",display:"flex",flexDirection:"column",padding:16,gap:8}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
@@ -490,7 +589,7 @@ export default function FluxosPage() {
         <button onClick={()=>router.push("/crm")} style={{background:"none",border:"none",borderRadius:8,padding:"10px 14px",color:"#6b7280",fontSize:13,cursor:"pointer",textAlign:"left",marginTop:"auto"}}>← CRM</button>
       </div>
       <div style={{flex:1,padding:32,overflowY:"auto"}}>
-        {showNovo&&(
+        {showNovo && (
           <div style={{position:"fixed",inset:0,background:"#000c",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
             <div style={{background:"#111",borderRadius:16,padding:32,width:500,border:"1px solid #1f2937",display:"flex",flexDirection:"column",gap:16}}>
               <div style={{display:"flex",justifyContent:"space-between"}}>
@@ -514,7 +613,7 @@ export default function FluxosPage() {
                   <option value="fora_horario">Fora do horário</option>
                 </select>
               </div>
-              {form.trigger_tipo==="palavra_chave"&&(
+              {form.trigger_tipo==="palavra_chave" && (
                 <div><label style={{...LS,fontSize:11}}>Palavra-chave</label>
                   <input placeholder="oi, olá" value={form.trigger_valor} onChange={e=>setForm({...form,trigger_valor:e.target.value})} style={{...IS,background:"#1f2937"}}/>
                 </div>
@@ -535,16 +634,16 @@ export default function FluxosPage() {
           </div>
           <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"white",border:"none",borderRadius:8,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"bold"}}>+ Novo Fluxo</button>
         </div>
-        {fluxos.length===0?(
+        {fluxos.length===0 ? (
           <div style={{background:"#111",borderRadius:12,padding:64,textAlign:"center",border:"1px solid #1f2937"}}>
             <p style={{fontSize:64,margin:"0 0 16px"}}>🤖</p>
             <h3 style={{color:"white",fontSize:18,fontWeight:"bold",margin:"0 0 8px"}}>Nenhum fluxo criado</h3>
             <p style={{color:"#6b7280",fontSize:14,margin:"0 0 24px"}}>Crie fluxos de atendimento automático</p>
             <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"white",border:"none",borderRadius:8,padding:"12px 28px",fontSize:14,cursor:"pointer",fontWeight:"bold"}}>+ Criar Primeiro Fluxo</button>
           </div>
-        ):(
+        ) : (
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:16}}>
-            {fluxos.map(f=>(
+            {fluxos.map(f => (
               <div key={f.id} style={{background:"#111",borderRadius:12,padding:24,border:`1px solid ${f.ativo?"#8b5cf644":"#1f2937"}`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
                   <div>
@@ -573,10 +672,8 @@ export default function FluxosPage() {
     </div>
   );
 
-  // ══════════════════════════════════════════
-  // VIEW EDITOR
-  // ══════════════════════════════════════════
-  return(
+  // ══════ VIEW EDITOR ══════
+  return (
     <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#0a0a0a",color:"white",overflow:"hidden"}}>
 
       {/* PAINEL ESQUERDO */}
@@ -586,18 +683,18 @@ export default function FluxosPage() {
           <h3 style={{color:"white",fontSize:12,fontWeight:"bold",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{fluxoAtivo?.nome}</h3>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"8px 0"}}>
-          {GRUPOS.map(grupo=>{
-            const tipos=(Object.entries(B) as [TipoNo,BC][]).filter(([,c])=>c.grupo===grupo);
-            const ab=grupoAberto===grupo;
-            return(
+          {GRUPOS.map(grupo => {
+            const tipos = (Object.entries(B) as [TipoNo,BC][]).filter(([,c])=>c.grupo===grupo);
+            const ab = grupoAberto===grupo;
+            return (
               <div key={grupo}>
                 <button onClick={()=>setGrupoAberto(ab?"":grupo)}
                   style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"7px 14px",background:"none",border:"none",cursor:"pointer",color:ab?"#8b5cf6":"#9ca3af",fontSize:11,fontWeight:"bold",textTransform:"uppercase",letterSpacing:1}}>
                   <span>{grupo}</span><span style={{fontSize:9}}>{ab?"▼":"▶"}</span>
                 </button>
-                {ab&&(
+                {ab && (
                   <div style={{padding:"2px 8px 8px"}}>
-                    {tipos.map(([tipo,cfg])=>(
+                    {tipos.map(([tipo,cfg]) => (
                       <button key={tipo} onClick={()=>adicionarNo(tipo)}
                         style={{display:"flex",alignItems:"center",gap:8,width:"100%",background:"#1a1a1a",border:"1px solid #1f2937",borderRadius:6,padding:"6px 10px",color:"white",fontSize:11,cursor:"pointer",marginBottom:3,textAlign:"left"}}
                         onMouseEnter={e=>(e.currentTarget.style.background="#1f2937")}
@@ -635,7 +732,6 @@ export default function FluxosPage() {
         onWheel={onWheel}
         onClick={()=>setNoSel(null)}
       >
-        {/* grade */}
         <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}>
           <defs>
             <pattern id="dots" width={24*scale} height={24*scale} patternUnits="userSpaceOnUse" x={offset.x%(24*scale)} y={offset.y%(24*scale)}>
@@ -645,16 +741,15 @@ export default function FluxosPage() {
           <rect width="100%" height="100%" fill="url(#dots)"/>
         </svg>
 
-        {/* conexões */}
         <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",overflow:"visible"}}>
-          {arestas.map(a=>{
-            const nO=nos.find(n=>n.id===a.de),nD=nos.find(n=>n.id===a.para);
-            if(!nO||!nD)return null;
-            const o=posC(nO,a.saidaIndex),d2=posE(nD);
-            const ox=o.x*scale+offset.x,oy=o.y*scale+offset.y;
-            const dx=d2.x*scale+offset.x,dy=d2.y*scale+offset.y;
+          {arestas.map(a => {
+            const nO=nos.find(n=>n.id===a.de), nD=nos.find(n=>n.id===a.para);
+            if(!nO||!nD) return null;
+            const o=posC(nO,a.saidaIndex), d2=posE(nD);
+            const ox=o.x*scale+offset.x, oy=o.y*scale+offset.y;
+            const dx=d2.x*scale+offset.x, dy=d2.y*scale+offset.y;
             const cor=B[nO.tipo]?.cor||"#4b5563";
-            return(
+            return (
               <g key={a.id} style={{pointerEvents:"all",cursor:"pointer"}} onClick={()=>setArestas(p=>p.filter(x=>x.id!==a.id))}>
                 <path d={`M${ox} ${oy} C${ox+80*scale} ${oy} ${dx-80*scale} ${dy} ${dx} ${dy}`} stroke={cor} strokeWidth={2} fill="none" opacity={0.7}/>
                 <path d={`M${ox} ${oy} C${ox+80*scale} ${oy} ${dx-80*scale} ${dy} ${dx} ${dy}`} stroke="transparent" strokeWidth={14} fill="none"/>
@@ -662,30 +757,28 @@ export default function FluxosPage() {
               </g>
             );
           })}
-          {conectando&&(()=>{
-            const no=nos.find(n=>n.id===conectando.noId);if(!no)return null;
+          {conectando && (() => {
+            const no=nos.find(n=>n.id===conectando.noId); if(!no) return null;
             const o=posC(no,conectando.saidaIndex);
-            const ox=o.x*scale+offset.x,oy=o.y*scale+offset.y;
+            const ox=o.x*scale+offset.x, oy=o.y*scale+offset.y;
             const cor=B[no.tipo]?.cor||"#8b5cf6";
-            return<path d={`M${ox} ${oy} C${ox+80} ${oy} ${mousePos.x-80} ${mousePos.y} ${mousePos.x} ${mousePos.y}`} stroke={cor} strokeWidth={2} strokeDasharray="6 3" fill="none"/>;
+            return <path d={`M${ox} ${oy} C${ox+80} ${oy} ${mousePos.x-80} ${mousePos.y} ${mousePos.x} ${mousePos.y}`} stroke={cor} strokeWidth={2} strokeDasharray="6 3" fill="none"/>;
           })()}
         </svg>
 
-        {/* nós */}
         <div style={{position:"absolute",inset:0,transform:`translate(${offset.x}px,${offset.y}px) scale(${scale})`,transformOrigin:"0 0"}}>
-          {nos.map(no=>(
+          {nos.map(no => (
             <NoCard key={no.id} no={no} sel={noSel?.id===no.id}
-              scale={scale} offset={offset}
-              onSelect={id=>setNoSel(nos.find(n=>n.id===id)||null)}
+              scale={scale}
+              onSelect={id => setNoSel(nos.find(n=>n.id===id)||null)}
               onDelete={excluirNo}
               onConectarSaida={iniciarConexao}
               onConectarEntrada={finalizarConexao}
-              onMove={(id,x,y)=>setNos(p=>p.map(n=>n.id===id?{...n,x,y}:n))}
+              onMove={(id,x,y) => setNos(p=>p.map(n=>n.id===id?{...n,x,y}:n))}
             />
           ))}
         </div>
 
-        {/* controles */}
         <div style={{position:"absolute",bottom:16,left:16,display:"flex",gap:8}}>
           <div style={{background:"#111",border:"1px solid #1f2937",borderRadius:8,padding:"6px 12px"}}>
             <p style={{color:"#6b7280",fontSize:10,margin:0}}>🖱️ Arraste blocos • Scroll zoom • ● conectar • Clique na linha para excluir</p>
@@ -703,7 +796,7 @@ export default function FluxosPage() {
       </div>
 
       {/* PAINEL DIREITO */}
-      {noSel&&(
+      {noSel && (
         <div style={{width:270,background:"#111",borderLeft:"1px solid #1f2937",display:"flex",flexDirection:"column",flexShrink:0}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid #1f2937",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -718,8 +811,13 @@ export default function FluxosPage() {
             <button onClick={()=>setNoSel(null)} style={{background:"none",border:"none",color:"#6b7280",fontSize:18,cursor:"pointer"}}>✕</button>
           </div>
           <div style={{padding:14,overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:12}}>
-            <Props/>
-            {noSel.tipo!=="inicio"&&(
+            <PainelProps
+              noSel={noSel}
+              updateNo={updateNo}
+              excluirNo={excluirNo}
+              setNos={setNos}
+            />
+            {noSel.tipo!=="inicio" && (
               <button onClick={()=>excluirNo(noSel.id)} style={{background:"#dc262611",color:"#dc2626",border:"1px solid #dc262633",borderRadius:8,padding:"8px",fontSize:12,cursor:"pointer",fontWeight:"bold",marginTop:"auto"}}>
                 🗑️ Excluir Bloco
               </button>
