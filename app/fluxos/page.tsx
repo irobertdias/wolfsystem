@@ -459,7 +459,7 @@ export default function FluxosPage() {
   async function load(id?:string) {
     const wid = id||wsId; if(!wid) return;
     const {data} = await supabase.from("fluxos").select("*").eq("workspace_id",wid).order("created_at",{ascending:false});
-    setFluxos((data||[]).map(f => ({...f, nos:f.nos||[], conexoes:f.conexoes||})));
+    setFluxos((data||[]).map(f=>({...f,nos:f.nos||[],conexoes:f.conexoes||[]})));
   }
 
   async function criarFluxo() {
