@@ -108,7 +108,7 @@ export default function Chatbot() {
     const wsId = workspace?.id?.toString() || "1";
     const interval = setInterval(async () => {
       try {
-        const resp = await fetch(`/api/whatsapp?rota=qr-data%26workspaceId=${wsId}`);
+        const resp = await fetch(`/api/whatsapp?rota=qr-data&workspaceId=${wsId}`);
         const data = await resp.json();
         if (data.qr) setQrImageUrl(data.qr);
         if (data.status === "conectado") {
