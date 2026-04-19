@@ -110,7 +110,7 @@ export default function Chatbot() {
     if (!qrPolling || !showModalQR) return;
     const interval = setInterval(async () => {
       try {
-        const resp = await fetch(`/api/whatsapp?rota=qr-data&workspaceId=${qrWsId}`);
+        const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?workspaceId=${qrWsId}`);
         const data = await resp.json();
         if (data.qr) setQrImageUrl(data.qr);
         if (data.status === "conectado") {
