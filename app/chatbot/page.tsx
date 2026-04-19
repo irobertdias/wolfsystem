@@ -91,7 +91,20 @@ export default function Chatbot() {
     const ch2 = supabase.channel("conexoes_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchConexoes())
       .subscribe();
-    return () => { supabase.removeChannel(ch); supabase.removeChannel(ch2); };
+    const pollingConexoes = setInterval(async () => {
+      try {
+        const resp = await fetch(`https://api.wolfgyn.com.br/status`);
+        const data = await resp.json();
+        const sessoes = data.sessoes || [];
+        const wsIdStr = workspace?.id?.toString();
+        const sessao = sessoes.find((s: any) => s.workspaceId === wsIdStr);
+        if (sessao?.status === "desconectado" || !sessao) {
+          await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("workspace_id", wsIdStr).eq("status", "conectado");
+          fetchConexoes();
+        }
+      } catch (e) {}
+    }, 30000);
+    return () => { supabase.removeChannel(ch); supabase.removeChannel(ch2); clearInterval(pollingConexoes); };
   }, [workspace]);
 
   useEffect(() => {
@@ -415,7 +428,7 @@ export default function Chatbot() {
                     <div style={{ display: "flex", gap: 8 }}>
                       {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") && <button onClick={() => assumirChat(atendimentoAtivo.numero)} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>👤 Assumir</button>}
                       {atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && <button onClick={() => devolverBot(atendimentoAtivo.numero)} style={{ background: "#8b5cf622", color: "#8b5cf6", border: "1px solid #8b5cf633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🤖 Devolver ao Bot</button>}
-{atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && <button onClick={() => window.open(`/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(atendimentoAtivo.numero)}`, "_blank")} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💰 Finalizar Venda</button>}
+{atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && <button onClick={() => window.open(`/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(atendimentoAtivo.numero.replace(/\D/g, ""))}`, "_blank")} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💰 Finalizar Venda</button>}
                       <div style={{ position: "relative" }}>
                         <button onClick={() => setShowTransferir(!showTransferir)} style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>↗️ Transferir</button>
                         {showTransferir && (
