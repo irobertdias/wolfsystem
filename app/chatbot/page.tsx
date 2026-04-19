@@ -106,6 +106,7 @@ export default function Chatbot() {
 
   useEffect(() => { setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }, [historico]);
 
+  // ── POLLING QR ──
   useEffect(() => {
     if (!qrPolling || !showModalQR) return;
     const interval = setInterval(async () => {
@@ -153,7 +154,6 @@ export default function Chatbot() {
     setHistorico(data || []);
   };
 
-  // ✅ CORRIGIDO: Pendentes = status "pendente", Abertos = status "aberto"
   const atendimentosFiltrados = atendimentos
     .filter(a => abaConversa === "abertos" ? a.status === "aberto" : abaConversa === "pendentes" ? a.status === "pendente" : abaConversa === "resolvidos" ? a.status === "resolvido" : true)
     .filter(a => !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.numero?.includes(busca));
@@ -193,7 +193,21 @@ export default function Chatbot() {
 
   const abrirEditar = (c: Conexao) => {
     setEditandoId(c.id);
-    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.wab_phone_id || "", wabaId: c.waba_id || "", token: c.wab_token || "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: c.api_key || "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila, pararSeAtendente: c.parar_se_atendente });
+    setForm({
+      nome: c.nome,
+      tipo: c.tipo,
+      phoneNumberId: c.wab_phone_id || "",
+      wabaId: c.waba_id || "",
+      token: c.wab_token || "",
+      webhookToken: c.webhook_token || "",
+      modo: c.modo,
+      ia: c.ia,
+      apiKey: c.api_key || "",
+      prompt: c.prompt || "",
+      fluxoId: c.fluxo_id || "",
+      fila: c.fila,
+      pararSeAtendente: c.parar_se_atendente,
+    });
     fetchFluxos();
     setShowModalNovoCanal(true);
     setShowMenuEngrenagem(null);
@@ -207,26 +221,47 @@ export default function Chatbot() {
     try {
       const wsId = workspace?.id?.toString() || "1";
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
+
+      // Configura IA no VPS
       if (form.modo === "ia" && form.apiKey) {
         await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey, prompt: form.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: form.fila });
       }
-      const payload = { nome: form.nome, modo: form.modo, ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "", fila: form.fila, api_key: form.apiKey, prompt: form.prompt, parar_se_atendente: form.pararSeAtendente };
+
+      const payload = {
+        nome: form.nome, modo: form.modo, ia: form.ia,
+        fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
+        fila: form.fila, api_key: form.apiKey, prompt: form.prompt,
+        parar_se_atendente: form.pararSeAtendente,
+      };
+
       if (editandoId) {
+        // EDITAR
         await supabase.from("conexoes").update(payload).eq("id", editandoId);
         setEditandoId(null);
         alert("✅ Canal atualizado!");
       } else {
+        // CRIAR
         if (form.tipo === "waba") {
           const webhookToken = form.webhookToken || `wolf_${wsId}_${Date.now()}`;
           const resp = await fetch(`/api/whatsapp?rota=waba/salvar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: wsId, nome: form.nome, phoneNumberId: form.phoneNumberId, wabaId: form.wabaId, token: form.token, webhookToken }) });
           const vpsData = await resp.json();
           if (!vpsData.success) throw new Error(vpsData.error);
-          await supabase.from("conexoes").insert([{ workspace_id: wsId, tipo: "waba", status: "conectado", numero: wabaTeste?.nome || form.phoneNumberId, wab_token: form.token, wab_phone_id: form.phoneNumberId, waba_id: form.wabaId, webhook_token: webhookToken, ...payload }]);
+          await supabase.from("conexoes").insert([{
+            workspace_id: wsId, tipo: "waba", status: "conectado",
+            numero: wabaTeste?.nome || form.phoneNumberId,
+            wab_token: form.token, wab_phone_id: form.phoneNumberId,
+            waba_id: form.wabaId, webhook_token: webhookToken,
+            ...payload,
+          }]);
         } else {
-          await supabase.from("conexoes").insert([{ workspace_id: wsId, tipo: "webjs", status: "desconectado", numero: "", ...payload }]);
+          await supabase.from("conexoes").insert([{
+            workspace_id: wsId, tipo: "webjs", status: "desconectado", numero: "",
+            ...payload,
+          }]);
         }
         alert("✅ Canal criado com sucesso!");
       }
+
       await fetchConexoes();
       setShowModalNovoCanal(false);
       setForm(formInicial);
@@ -237,7 +272,13 @@ export default function Chatbot() {
 
   const abrirQR = async (id: number) => {
     const wsIdAtual = workspace?.id?.toString() || "1";
-    setQrWsId(wsIdAtual); setQrConexaoId(id); setResetando(true); setShowModalQR(true); setQrImageUrl(""); setQrConectado(false); setQrNumero("");
+    setQrWsId(wsIdAtual);
+    setQrConexaoId(id);
+    setResetando(true);
+    setShowModalQR(true);
+    setQrImageUrl("");
+    setQrConectado(false);
+    setQrNumero("");
     const canal = conexoes.find(c => c.id === id);
     if (canal?.modo === "ia" && canal.api_key) {
       try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.api_key, prompt: canal.prompt || "Você é um atendente virtual.", workspaceId: wsIdAtual, fila: canal.fila }); } catch (e) {}
@@ -258,6 +299,7 @@ export default function Chatbot() {
 
   const tempoRelativo = (data: string) => { const d = Math.floor((Date.now() - new Date(data).getTime()) / 60000); return d < 1 ? "agora" : d < 60 ? `${d}min` : d < 1440 ? `${Math.floor(d/60)}h` : `${Math.floor(d/1440)}d`; };
   const horaMsg = (data: string) => new Date(data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const wsId = workspace?.id?.toString() || "1";
   const modoColor: Record<string,string> = { nenhum: "#6b7280", ia: "#10b981", fluxo: "#8b5cf6" };
   const iaLabel: Record<string,string> = { gpt: "ChatGPT", claude: "Claude AI", gemini: "Gemini", deepseek: "DeepSeek" };
 
@@ -266,8 +308,11 @@ export default function Chatbot() {
       <div style={{ width: 18, height: 18, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s" }} />
     </button>
   );
+
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#0a0a0a" }}>
+
+      {/* SIDEBAR */}
       <div style={{ width: 240, background: "#111", borderRight: "1px solid #1f2937", display: "flex", flexDirection: "column", overflowY: "auto" }}>
         <div style={{ padding: 16, borderBottom: "1px solid #1f2937", display: "flex", alignItems: "center", gap: 10 }}>
           <img src="/logo1.png" alt="Wolf" style={{ width: 32, filter: "brightness(0) invert(1)" }} />
@@ -296,6 +341,8 @@ export default function Chatbot() {
       </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+        {/* CHAT */}
         {aba === "chat" && (
           <div style={{ display: "flex", flex: 1, height: "100vh" }}>
             <div style={{ width: 310, background: "#111", borderRight: "1px solid #1f2937", display: "flex", flexDirection: "column" }}>
@@ -366,7 +413,7 @@ export default function Chatbot() {
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") && <button onClick={() => assumirChat(atendimentoAtivo.numero)} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>👤 Assumir</button>}
-                      {atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && <button onClick={() => devolverBot(atendimentoAtivo.numero)} style={{ background: "#8b5cf622", color: "#8b5cf6", border: "1px solid #8b5cf633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🤖 Devolver ao Bot</button>}
+                      {atendimentoAtivo.atendente !== "BOT" && <button onClick={() => devolverBot(atendimentoAtivo.numero)} style={{ background: "#8b5cf622", color: "#8b5cf6", border: "1px solid #8b5cf633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🤖 Devolver ao Bot</button>}
                       <div style={{ position: "relative" }}>
                         <button onClick={() => setShowTransferir(!showTransferir)} style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>↗️ Transferir</button>
                         {showTransferir && (
@@ -421,27 +468,44 @@ export default function Chatbot() {
           </div>
         )}
 
+        {/* CONEXÕES */}
         {aba === "conexoes" && (
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto" }}>
+
+            {/* Modal QR */}
             {showModalQR && (
               <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ background: "#111", borderRadius: 16, padding: 32, width: 400, border: "1px solid #1f2937", textAlign: "center" }}>
                   <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: "0 0 8px" }}>📱 Conectar WhatsApp</h2>
                   <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Escaneie o QR Code com seu WhatsApp</p>
                   <div style={{ background: "#0a0a0a", borderRadius: 12, padding: 16, minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                    {resetando ? <p style={{ color: "#f59e0b", fontSize: 14 }}>⏳ Iniciando sessão...</p>
-                      : qrConectado ? <div><p style={{ fontSize: 48, margin: "0 0 8px" }}>✅</p><p style={{ color: "#16a34a", fontSize: 16, fontWeight: "bold", margin: 0 }}>WhatsApp Conectado!</p>{qrNumero && <p style={{ color: "#9ca3af", fontSize: 13, margin: "8px 0 0" }}>{qrNumero}</p>}</div>
-                      : qrImageUrl ? <img src={qrImageUrl} alt="QR Code" style={{ width: 220, height: 220, borderRadius: 8 }} />
-                      : <div><p style={{ color: "#9ca3af", fontSize: 14, margin: "0 0 8px" }}>⏳ Gerando QR Code...</p><p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>}
+                    {resetando ? (
+                      <p style={{ color: "#f59e0b", fontSize: 14 }}>⏳ Iniciando sessão...</p>
+                    ) : qrConectado ? (
+                      <div><p style={{ fontSize: 48, margin: "0 0 8px" }}>✅</p><p style={{ color: "#16a34a", fontSize: 16, fontWeight: "bold", margin: 0 }}>WhatsApp Conectado!</p>{qrNumero && <p style={{ color: "#9ca3af", fontSize: 13, margin: "8px 0 0" }}>{qrNumero}</p>}</div>
+                    ) : qrImageUrl ? (
+                      <img src={qrImageUrl} alt="QR Code" style={{ width: 220, height: 220, borderRadius: 8 }} />
+                    ) : (
+                      <div><p style={{ color: "#9ca3af", fontSize: 14, margin: "0 0 8px" }}>⏳ Gerando QR Code...</p><p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>
+                    )}
                   </div>
                   <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
                     <button onClick={() => { setShowModalQR(false); setQrPolling(false); setQrImageUrl(""); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Fechar</button>
-                    {!qrConectado && <button onClick={async () => { if (qrConexaoId) { await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrConexaoId); await fetchConexoes(); } setShowModalQR(false); setQrPolling(false); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>}
+                    {!qrConectado && (
+                      <button onClick={async () => {
+                        if (qrConexaoId) {
+                          await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrConexaoId);
+                          await fetchConexoes();
+                        }
+                        setShowModalQR(false); setQrPolling(false);
+                      }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
+            {/* Modal Novo Canal / Editar */}
             {showModalNovoCanal && (
               <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
                 <div style={{ background: "#111", borderRadius: 16, width: "100%", maxWidth: 640, border: "1px solid #1f2937", display: "flex", flexDirection: "column", maxHeight: "92vh", overflow: "hidden" }}>
@@ -453,6 +517,8 @@ export default function Chatbot() {
                     <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
                   </div>
                   <div style={{ overflowY: "auto", padding: "24px 28px", display: "flex", flexDirection: "column", gap: 24 }}>
+
+                    {/* Tipo — só mostra se for novo */}
                     {!editandoId && (
                       <div>
                         <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>1. Tipo de Canal</p>
@@ -467,13 +533,17 @@ export default function Chatbot() {
                         </div>
                       </div>
                     )}
+
+                    {/* Nome */}
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>Nome do Canal</p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>{editandoId ? "1" : form.tipo === "waba" ? "2" : "2"}. Nome do Canal</p>
                       <input placeholder="Ex: WhatsApp Vendas..." value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} style={IS} />
                     </div>
+
+                    {/* Credenciais WABA — só se for novo */}
                     {!editandoId && form.tipo === "waba" && (
                       <div>
-                        <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>Credenciais da API Meta</p>
+                        <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>3. Credenciais da API Meta</p>
                         <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
                           <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Phone Number ID *</label><input placeholder="123456789012345" value={form.phoneNumberId} onChange={e => setForm(p => ({ ...p, phoneNumberId: e.target.value }))} style={IS} /></div>
                           <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>WABA ID</label><input placeholder="123456789012345" value={form.wabaId} onChange={e => setForm(p => ({ ...p, wabaId: e.target.value }))} style={IS} /></div>
@@ -481,15 +551,19 @@ export default function Chatbot() {
                           <button onClick={testarWABA} disabled={testandoWABA} style={{ background: testandoWABA ? "#1d4ed8" : "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{testandoWABA ? "⏳ Testando..." : "🔍 Testar Conexão"}</button>
                           {wabaTeste && <div style={{ background: wabaTeste.success ? "#16a34a22" : "#dc262622", border: `1px solid ${wabaTeste.success ? "#16a34a33" : "#dc262633"}`, borderRadius: 8, padding: 10 }}><p style={{ color: wabaTeste.success ? "#16a34a" : "#dc2626", fontSize: 13, margin: 0, fontWeight: "bold" }}>{wabaTeste.success ? `✅ ${wabaTeste.nome}` : `❌ ${wabaTeste.error}`}</p></div>}
                           <div style={{ background: "#111", borderRadius: 8, padding: 12 }}>
-                            <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 4px", textTransform: "uppercase" }}>URL do Webhook</p>
+                            <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 4px", textTransform: "uppercase" }}>URL do Webhook (cole na Meta)</p>
                             <p style={{ color: "#16a34a", fontSize: 12, fontWeight: "bold", margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/webhook/meta</p>
                           </div>
                           <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token de Verificação</label><input placeholder="meu_token_secreto" value={form.webhookToken} onChange={e => setForm(p => ({ ...p, webhookToken: e.target.value }))} style={IS} /></div>
                         </div>
                       </div>
                     )}
+
+                    {/* Automação */}
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>Automação</p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>
+                        {editandoId ? "2" : form.tipo === "waba" ? "4" : "3"}. Automação
+                      </p>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
                         {[{ key: "nenhum", icon: "🚫", label: "Sem automação", desc: "Só humano" }, { key: "ia", icon: "🤖", label: "Usar IA", desc: "Claude, GPT..." }, { key: "fluxo", icon: "🔀", label: "Usar Fluxo", desc: "Chatbot visual" }].map(m => (
                           <button key={m.key} onClick={() => setForm(p => ({ ...p, modo: m.key }))} style={{ background: form.modo === m.key ? "#8b5cf622" : "#1f2937", border: `2px solid ${form.modo === m.key ? "#8b5cf6" : "#374151"}`, borderRadius: 10, padding: "12px 10px", cursor: "pointer", textAlign: "center" }}>
@@ -537,8 +611,12 @@ export default function Chatbot() {
                         </div>
                       )}
                     </div>
+
+                    {/* Fila */}
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>Fila / Departamento</p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>
+                        {editandoId ? "3" : form.tipo === "waba" ? "5" : "4"}. Fila / Departamento
+                      </p>
                       <select value={form.fila} onChange={e => setForm(p => ({ ...p, fila: e.target.value }))} style={IS}>
                         <option value="Fila Principal">Fila Principal</option>
                         <option value="Fila Suporte">Fila Suporte</option>
@@ -546,8 +624,12 @@ export default function Chatbot() {
                         <option value="Fila Técnico">Fila Técnico</option>
                       </select>
                     </div>
+
+                    {/* Comportamento */}
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>Comportamento</p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>
+                        {editandoId ? "4" : form.tipo === "waba" ? "6" : "5"}. Comportamento
+                      </p>
                       <div style={{ background: "#1f2937", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div>
                           <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>🛑 Parar automação quando atendente assumir</p>
@@ -569,6 +651,7 @@ export default function Chatbot() {
               <div><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>📱 Conexões</h1><p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>Workspace: {workspace?.nome || "Carregando..."}</p></div>
               <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
             </div>
+
             {conexoes.length === 0 ? (
               <div style={{ background: "#111", borderRadius: 12, padding: 48, textAlign: "center", border: "1px solid #1f2937" }}>
                 <p style={{ fontSize: 48, margin: "0 0 16px" }}>📱</p>
@@ -621,11 +704,7 @@ export default function Chatbot() {
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
             <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Dashboard</h1>
             <div style={{ display: "flex", gap: 16 }}>
-              {[{ label: "Abertos", value: atendimentos.filter(a => a.status === "aberto").length, color: "#3b82f6", icon: "💬" },
-                { label: "Pendentes", value: atendimentos.filter(a => a.status === "pendente").length, color: "#f59e0b", icon: "⏳" },
-                { label: "Resolvidos", value: atendimentos.filter(a => a.status === "resolvido").length, color: "#16a34a", icon: "✅" },
-                { label: "Total", value: atendimentos.length, color: "#8b5cf6", icon: "📊" }
-              ].map(card => (
+              {[{ label: "Abertos", value: atendimentos.filter(a => a.status === "aberto").length, color: "#3b82f6", icon: "💬" }, { label: "Em Atendimento", value: atendimentos.filter(a => a.status === "em_atendimento").length, color: "#f59e0b", icon: "👤" }, { label: "Resolvidos", value: atendimentos.filter(a => a.status === "resolvido").length, color: "#16a34a", icon: "✅" }, { label: "Total", value: atendimentos.length, color: "#8b5cf6", icon: "📊" }].map(card => (
                 <div key={card.label} style={{ flex: 1, background: "#111", borderRadius: 12, padding: 20, border: `1px solid ${card.color}33` }}>
                   <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 8px", textTransform: "uppercase" }}>{card.icon} {card.label}</p>
                   <p style={{ color: card.color, fontSize: 28, fontWeight: "bold", margin: 0 }}>{card.value}</p>
@@ -642,6 +721,7 @@ export default function Chatbot() {
         {aba === "departamentos" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Departamentos</h1></div>)}
         {aba === "roleta" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Roleta</h1></div>)}
         {aba === "relatorios" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Relatórios</h1></div>)}
+
         {aba === "etiquetas" && (
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -658,6 +738,7 @@ export default function Chatbot() {
             </div>
           </div>
         )}
+
         {(aba === "claude" || aba === "gpt") && (
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
             <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>{aba === "claude" ? "🤖 Claude AI" : "💬 ChatGPT"}</h1>
@@ -668,6 +749,7 @@ export default function Chatbot() {
             </div>
           </div>
         )}
+
         {aba === "respostas_rapidas" && (
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
