@@ -40,6 +40,7 @@ export default function Chatbot() {
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
   const [fluxos, setFluxos] = useState<FluxoItem[]>([]);
   const [showModalNovoCanal, setShowModalNovoCanal] = useState(false);
+  const [editandoId, setEditandoId] = useState<number | null>(null);
   const [salvandoCanal, setSalvandoCanal] = useState(false);
   const [testandoWABA, setTestandoWABA] = useState(false);
   const [wabaTeste, setWabaTeste] = useState<{ success: boolean; nome?: string; error?: string } | null>(null);
@@ -121,7 +122,9 @@ export default function Chatbot() {
             await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrConexaoId);
             fetchConexoes();
           }
-          setTimeout(() => setShowModalQR(false), 2000);
+          setShowModalQR(false);
+          setQrPolling(false);
+          await fetchConexoes();
         }
       } catch (e) {}
     }, 3000);
@@ -188,6 +191,28 @@ export default function Chatbot() {
     setTestandoWABA(false);
   };
 
+  const abrirEditar = (c: Conexao) => {
+    setEditandoId(c.id);
+    setForm({
+      nome: c.nome,
+      tipo: c.tipo,
+      phoneNumberId: c.wab_phone_id || "",
+      wabaId: c.waba_id || "",
+      token: c.wab_token || "",
+      webhookToken: c.webhook_token || "",
+      modo: c.modo,
+      ia: c.ia,
+      apiKey: c.api_key || "",
+      prompt: c.prompt || "",
+      fluxoId: c.fluxo_id || "",
+      fila: c.fila,
+      pararSeAtendente: c.parar_se_atendente,
+    });
+    fetchFluxos();
+    setShowModalNovoCanal(true);
+    setShowMenuEngrenagem(null);
+  };
+
   const salvarCanal = async () => {
     if (!form.nome.trim()) { alert("Digite o nome do canal!"); return; }
     if (form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { alert("Preencha Phone Number ID e Token!"); return; }
@@ -195,37 +220,52 @@ export default function Chatbot() {
     setSalvandoCanal(true);
     try {
       const wsId = workspace?.id?.toString() || "1";
+      const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
+
+      // Configura IA no VPS
       if (form.modo === "ia" && form.apiKey) {
         await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey, prompt: form.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: form.fila });
       }
-      const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
-      if (form.tipo === "waba") {
-        const webhookToken = form.webhookToken || `wolf_${wsId}_${Date.now()}`;
-        const resp = await fetch(`/api/whatsapp?rota=waba/salvar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: wsId, nome: form.nome, phoneNumberId: form.phoneNumberId, wabaId: form.wabaId, token: form.token, webhookToken }) });
-        const vpsData = await resp.json();
-        if (!vpsData.success) throw new Error(vpsData.error);
-        await supabase.from("conexoes").insert([{
-          workspace_id: wsId, nome: form.nome, tipo: "waba", status: "conectado",
-          numero: wabaTeste?.nome || form.phoneNumberId, modo: form.modo,
-          ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
-          fila: form.fila, api_key: form.apiKey, prompt: form.prompt,
-          parar_se_atendente: form.pararSeAtendente, wab_token: form.token,
-          wab_phone_id: form.phoneNumberId, waba_id: form.wabaId, webhook_token: webhookToken,
-        }]);
+
+      const payload = {
+        nome: form.nome, modo: form.modo, ia: form.ia,
+        fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
+        fila: form.fila, api_key: form.apiKey, prompt: form.prompt,
+        parar_se_atendente: form.pararSeAtendente,
+      };
+
+      if (editandoId) {
+        // EDITAR
+        await supabase.from("conexoes").update(payload).eq("id", editandoId);
+        setEditandoId(null);
+        alert("✅ Canal atualizado!");
       } else {
-        await supabase.from("conexoes").insert([{
-          workspace_id: wsId, nome: form.nome, tipo: "webjs", status: "desconectado",
-          numero: "", modo: form.modo, ia: form.ia,
-          fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
-          fila: form.fila, api_key: form.apiKey, prompt: form.prompt,
-          parar_se_atendente: form.pararSeAtendente,
-        }]);
+        // CRIAR
+        if (form.tipo === "waba") {
+          const webhookToken = form.webhookToken || `wolf_${wsId}_${Date.now()}`;
+          const resp = await fetch(`/api/whatsapp?rota=waba/salvar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: wsId, nome: form.nome, phoneNumberId: form.phoneNumberId, wabaId: form.wabaId, token: form.token, webhookToken }) });
+          const vpsData = await resp.json();
+          if (!vpsData.success) throw new Error(vpsData.error);
+          await supabase.from("conexoes").insert([{
+            workspace_id: wsId, tipo: "waba", status: "conectado",
+            numero: wabaTeste?.nome || form.phoneNumberId,
+            wab_token: form.token, wab_phone_id: form.phoneNumberId,
+            waba_id: form.wabaId, webhook_token: webhookToken,
+            ...payload,
+          }]);
+        } else {
+          await supabase.from("conexoes").insert([{
+            workspace_id: wsId, tipo: "webjs", status: "desconectado", numero: "",
+            ...payload,
+          }]);
+        }
+        alert("✅ Canal criado com sucesso!");
       }
+
       await fetchConexoes();
       setShowModalNovoCanal(false);
       setForm(formInicial);
       setWabaTeste(null);
-      alert("✅ Canal criado com sucesso!");
     } catch (e: any) { alert("Erro: " + e.message); }
     setSalvandoCanal(false);
   };
@@ -465,35 +505,43 @@ export default function Chatbot() {
               </div>
             )}
 
-            {/* Modal Novo Canal */}
+            {/* Modal Novo Canal / Editar */}
             {showModalNovoCanal && (
               <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
                 <div style={{ background: "#111", borderRadius: 16, width: "100%", maxWidth: 640, border: "1px solid #1f2937", display: "flex", flexDirection: "column", maxHeight: "92vh", overflow: "hidden" }}>
                   <div style={{ padding: "20px 28px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div><h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>➕ Novo Canal</h2><p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>Configure o canal e como ele vai atender seus leads</p></div>
-                    <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
+                    <div>
+                      <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>{editandoId ? "✏️ Editar Canal" : "➕ Novo Canal"}</h2>
+                      <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{editandoId ? "Altere as configurações do canal" : "Configure o canal e como ele vai atender seus leads"}</p>
+                    </div>
+                    <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
                   </div>
                   <div style={{ overflowY: "auto", padding: "24px 28px", display: "flex", flexDirection: "column", gap: 24 }}>
 
-                    <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>1. Tipo de Canal</p>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                        {[{ key: "webjs", icon: "📱", label: "WhatsApp Web", desc: "Conexão via QR Code — gratuita" }, { key: "waba", icon: "🔗", label: "API Meta (WABA)", desc: "API oficial do WhatsApp Business" }].map(t => (
-                          <button key={t.key} onClick={() => setForm(p => ({ ...p, tipo: t.key }))} style={{ background: form.tipo === t.key ? "#16a34a22" : "#1f2937", border: `2px solid ${form.tipo === t.key ? "#16a34a" : "#374151"}`, borderRadius: 10, padding: "14px 16px", cursor: "pointer", textAlign: "left" }}>
-                            <p style={{ color: "white", fontSize: 20, margin: "0 0 4px" }}>{t.icon}</p>
-                            <p style={{ color: form.tipo === t.key ? "#16a34a" : "white", fontSize: 13, fontWeight: "bold", margin: "0 0 2px" }}>{t.label}</p>
-                            <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{t.desc}</p>
-                          </button>
-                        ))}
+                    {/* Tipo — só mostra se for novo */}
+                    {!editandoId && (
+                      <div>
+                        <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>1. Tipo de Canal</p>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                          {[{ key: "webjs", icon: "📱", label: "WhatsApp Web", desc: "Conexão via QR Code — gratuita" }, { key: "waba", icon: "🔗", label: "API Meta (WABA)", desc: "API oficial do WhatsApp Business" }].map(t => (
+                            <button key={t.key} onClick={() => setForm(p => ({ ...p, tipo: t.key }))} style={{ background: form.tipo === t.key ? "#16a34a22" : "#1f2937", border: `2px solid ${form.tipo === t.key ? "#16a34a" : "#374151"}`, borderRadius: 10, padding: "14px 16px", cursor: "pointer", textAlign: "left" }}>
+                              <p style={{ color: "white", fontSize: 20, margin: "0 0 4px" }}>{t.icon}</p>
+                              <p style={{ color: form.tipo === t.key ? "#16a34a" : "white", fontSize: 13, fontWeight: "bold", margin: "0 0 2px" }}>{t.label}</p>
+                              <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{t.desc}</p>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
+                    {/* Nome */}
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>2. Nome do Canal</p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>{editandoId ? "1" : form.tipo === "waba" ? "2" : "2"}. Nome do Canal</p>
                       <input placeholder="Ex: WhatsApp Vendas..." value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} style={IS} />
                     </div>
 
-                    {form.tipo === "waba" && (
+                    {/* Credenciais WABA — só se for novo */}
+                    {!editandoId && form.tipo === "waba" && (
                       <div>
                         <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>3. Credenciais da API Meta</p>
                         <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -511,8 +559,11 @@ export default function Chatbot() {
                       </div>
                     )}
 
+                    {/* Automação */}
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>{form.tipo === "waba" ? "4" : "3"}. Automação</p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>
+                        {editandoId ? "2" : form.tipo === "waba" ? "4" : "3"}. Automação
+                      </p>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
                         {[{ key: "nenhum", icon: "🚫", label: "Sem automação", desc: "Só humano" }, { key: "ia", icon: "🤖", label: "Usar IA", desc: "Claude, GPT..." }, { key: "fluxo", icon: "🔀", label: "Usar Fluxo", desc: "Chatbot visual" }].map(m => (
                           <button key={m.key} onClick={() => setForm(p => ({ ...p, modo: m.key }))} style={{ background: form.modo === m.key ? "#8b5cf622" : "#1f2937", border: `2px solid ${form.modo === m.key ? "#8b5cf6" : "#374151"}`, borderRadius: 10, padding: "12px 10px", cursor: "pointer", textAlign: "center" }}>
@@ -561,8 +612,11 @@ export default function Chatbot() {
                       )}
                     </div>
 
+                    {/* Fila */}
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>{form.tipo === "waba" ? "5" : "4"}. Fila / Departamento</p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>
+                        {editandoId ? "3" : form.tipo === "waba" ? "5" : "4"}. Fila / Departamento
+                      </p>
                       <select value={form.fila} onChange={e => setForm(p => ({ ...p, fila: e.target.value }))} style={IS}>
                         <option value="Fila Principal">Fila Principal</option>
                         <option value="Fila Suporte">Fila Suporte</option>
@@ -571,8 +625,11 @@ export default function Chatbot() {
                       </select>
                     </div>
 
+                    {/* Comportamento */}
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>{form.tipo === "waba" ? "6" : "5"}. Comportamento</p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>
+                        {editandoId ? "4" : form.tipo === "waba" ? "6" : "5"}. Comportamento
+                      </p>
                       <div style={{ background: "#1f2937", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div>
                           <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>🛑 Parar automação quando atendente assumir</p>
@@ -583,8 +640,8 @@ export default function Chatbot() {
                     </div>
                   </div>
                   <div style={{ padding: "16px 28px", borderTop: "1px solid #1f2937", display: "flex", gap: 12, justifyContent: "flex-end" }}>
-                    <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
-                    <button onClick={salvarCanal} disabled={salvandoCanal} style={{ background: salvandoCanal ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{salvandoCanal ? "⏳ Salvando..." : "✅ Criar Canal"}</button>
+                    <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
+                    <button onClick={salvarCanal} disabled={salvandoCanal} style={{ background: salvandoCanal ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{salvandoCanal ? "⏳ Salvando..." : editandoId ? "💾 Salvar Alterações" : "✅ Criar Canal"}</button>
                   </div>
                 </div>
               </div>
@@ -592,7 +649,7 @@ export default function Chatbot() {
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>📱 Conexões</h1><p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>Workspace: {workspace?.nome || "Carregando..."}</p></div>
-              <button onClick={() => { setShowModalNovoCanal(true); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
+              <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
             </div>
 
             {conexoes.length === 0 ? (
@@ -600,7 +657,7 @@ export default function Chatbot() {
                 <p style={{ fontSize: 48, margin: "0 0 16px" }}>📱</p>
                 <h3 style={{ color: "white", fontSize: 16, fontWeight: "bold", margin: "0 0 8px" }}>Nenhum canal conectado</h3>
                 <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Crie seu primeiro canal para começar a atender</p>
-                <button onClick={() => { setShowModalNovoCanal(true); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
+                <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
@@ -629,6 +686,7 @@ export default function Chatbot() {
                         <button onClick={() => setShowMenuEngrenagem(showMenuEngrenagem === c.id ? null : c.id)} style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", fontSize: 14, cursor: "pointer" }}>⚙️</button>
                         {showMenuEngrenagem === c.id && (
                           <div style={{ position: "absolute", bottom: 44, right: 0, background: "#1f2937", border: "1px solid #374151", borderRadius: 10, overflow: "hidden", zIndex: 100, minWidth: 160 }}>
+                            <button onClick={() => abrirEditar(c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>✏️ Editar Canal</button>
                             {c.tipo === "webjs" && <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>📷 Novo QR Code</button>}
                             <button onClick={() => excluirCanal(c.id)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#dc2626", fontSize: 13, cursor: "pointer", textAlign: "left" }}>🗑️ Excluir Canal</button>
                           </div>
