@@ -29,6 +29,7 @@ export default function Register() {
       alert("Preencha todos os campos obrigatórios!"); return;
     }
     if (usernameError) { alert("Corrija o nome de usuário!"); return; }
+    if (form.senha.length < 6) { alert("A senha deve ter pelo menos 6 caracteres!"); return; }
 
     setLoading(true);
 
@@ -40,22 +41,49 @@ export default function Register() {
       return;
     }
 
+    // 1. Cria o usuário no Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.senha,
+      options: {
+        data: { nome: form.nome, username: form.username },
+        emailRedirectTo: undefined,
+      }
+    });
+
+    if (authError) {
+      setLoading(false);
+      if (authError.message.includes("already registered")) {
+        alert("Este e-mail já está cadastrado!");
+      } else {
+        alert("Erro ao criar conta: " + authError.message);
+      }
+      return;
+    }
+
+    // 2. Salva na tabela cadastros
     const { error } = await supabase.from("cadastros").insert([{
       nome: form.nome, empresa: form.empresa, cnpj: form.cnpj, cpf: form.cpf,
       email: form.email, whatsapp: form.whatsapp, senha: form.senha,
       username: form.username, plano: form.plano, autorizado: false,
+      user_id: authData.user?.id,
     }]);
 
-    if (error) { setLoading(false); alert("Erro ao cadastrar: " + error.message); return; }
+    if (error) {
+      setLoading(false);
+      alert("Erro ao salvar cadastro: " + error.message);
+      return;
+    }
 
+    // 3. Notifica o admin
     await fetch("/api/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nome: form.nome, empresa: form.empresa, whatsapp: form.whatsapp, email: form.email, plano: form.plano, username: form.username }),
-    });
+    }).catch(() => {});
 
     setLoading(false);
-    alert("Cadastro enviado! Aguarde a autorização do administrador.");
+    alert("✅ Cadastro enviado! Aguarde a autorização do administrador. Você receberá um e-mail quando seu acesso for liberado.");
     router.push("/");
   };
 
