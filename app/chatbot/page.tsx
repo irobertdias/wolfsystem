@@ -88,7 +88,10 @@ export default function Chatbot() {
     const ch = supabase.channel("atendimentos_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos" }, () => fetchAtendimentos())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const ch2 = supabase.channel("conexoes_rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchConexoes())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); supabase.removeChannel(ch2); };
   }, [workspace]);
 
   useEffect(() => {
