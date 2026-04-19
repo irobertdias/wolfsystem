@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabase";
 
 export default function Register() {
   const router = useRouter();
@@ -33,58 +32,37 @@ export default function Register() {
 
     setLoading(true);
 
-    // Verifica se username já existe
-    const { data: existente } = await supabase.from("cadastros").select("id").eq("username", form.username).single();
-    if (existente) {
-      alert("Este nome de usuário já está em uso. Escolha outro!");
-      setLoading(false);
-      return;
-    }
+    try {
+      const resp = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const result = await resp.json();
 
-    // 1. Cria o usuário no Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.senha,
-      options: {
-        data: { nome: form.nome, username: form.username },
-        emailRedirectTo: undefined,
+      if (!result.success) {
+        if (result.error === "email_exists") {
+          alert("Este e-mail já está cadastrado!");
+        } else {
+          alert("Erro ao cadastrar: " + result.error);
+        }
+        setLoading(false);
+        return;
       }
-    });
 
-    if (authError) {
+      await fetch("/api/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: form.nome, empresa: form.empresa, whatsapp: form.whatsapp, email: form.email, plano: form.plano, username: form.username }),
+      }).catch(() => {});
+
       setLoading(false);
-      if (authError.message.includes("already registered")) {
-        alert("Este e-mail já está cadastrado!");
-      } else {
-        alert("Erro ao criar conta: " + authError.message);
-      }
-      return;
-    }
-
-    // 2. Salva na tabela cadastros
-    const { error } = await supabase.from("cadastros").insert([{
-      nome: form.nome, empresa: form.empresa, cnpj: form.cnpj, cpf: form.cpf,
-      email: form.email, whatsapp: form.whatsapp, senha: form.senha,
-      username: form.username, plano: form.plano, autorizado: false,
-      user_id: authData.user?.id,
-    }]);
-
-    if (error) {
+      alert("✅ Cadastro enviado! Aguarde a autorização do administrador.");
+      router.push("/");
+    } catch (e) {
       setLoading(false);
-      alert("Erro ao salvar cadastro: " + error.message);
-      return;
+      alert("Erro ao enviar cadastro. Tente novamente!");
     }
-
-    // 3. Notifica o admin
-    await fetch("/api/notify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome: form.nome, empresa: form.empresa, whatsapp: form.whatsapp, email: form.email, plano: form.plano, username: form.username }),
-    }).catch(() => {});
-
-    setLoading(false);
-    alert("✅ Cadastro enviado! Aguarde a autorização do administrador. Você receberá um e-mail quando seu acesso for liberado.");
-    router.push("/");
   };
 
   const inputStyle = {
@@ -166,7 +144,6 @@ export default function Register() {
             </div>
           </div>
 
-          {/* USERNAME */}
           <div>
             <div style={{ position: "relative" }}>
               <span style={{ position: "absolute", left: 14, top: 13, color: "#9ca3af", fontSize: 14, pointerEvents: "none" }}>@</span>
@@ -182,7 +159,6 @@ export default function Register() {
             <p style={{ color: "#9ca3af", fontSize: 11, margin: "4px 0 0 4px" }}>Apenas letras minúsculas, números e _ (underline)</p>
           </div>
 
-          {/* PLANO */}
           <select
             value={form.plano}
             onChange={(e) => setForm({ ...form, plano: e.target.value })}
