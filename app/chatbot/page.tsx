@@ -223,9 +223,7 @@ export default function Chatbot() {
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
 
       // Configura IA no VPS
-      if (form.modo === "ia" && form.apiKey) {
-        await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey, prompt: form.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: form.fila });
-      }
+      await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey || "", prompt: form.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: form.fila, modo: form.modo });
 
       const payload = {
         nome: form.nome, modo: form.modo, ia: form.ia,
