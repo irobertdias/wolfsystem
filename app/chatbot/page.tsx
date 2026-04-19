@@ -97,11 +97,13 @@ export default function Chatbot() {
         const data = await resp.json();
         const sessoes = data.sessoes || [];
         const wsIdStr = workspace?.id?.toString();
-        const sessao = sessoes.find((s: any) => s.workspaceId === wsIdStr);
-        if (sessao?.status === "desconectado" || !sessao) {
-          await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("workspace_id", wsIdStr).eq("status", "conectado");
-          fetchConexoes();
+        for (const conexao of conexoes) {
+          const sessao = sessoes.find((s: any) => s.workspaceId === conexao.workspace_id);
+          if (!sessao || sessao.status === "desconectado") {
+            await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", conexao.id);
+          }
         }
+        fetchConexoes();
       } catch (e) {}
     }, 30000);
     return () => { supabase.removeChannel(ch); supabase.removeChannel(ch2); clearInterval(pollingConexoes); };
