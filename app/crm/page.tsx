@@ -56,7 +56,7 @@ const statusColor: Record<string, string> = {
   REPROVADA: "#ef4444",
 };
 
-const ADMIN_EMAIL = "robertdias.ads@gmail.com";
+const ADMIN_EMAIL = "robert.dias@live.com";
 
 const planoPresets: Record<string, { usuarios: number; conexoes: number; webjs: boolean; waba: boolean; instagram: boolean }> = {
   basico:        { usuarios: 7,  conexoes: 1,  webjs: true,  waba: false, instagram: false },
