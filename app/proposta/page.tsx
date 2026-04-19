@@ -1,16 +1,17 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
 
 export default function NovaProposta() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { workspace } = useWorkspace();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     dataProposta: "",
-    nome: "",
+    nome: searchParams.get("nome") || "",
     cpf: "",
     dataNascimento: "",
     nomeMae: "",
@@ -20,7 +21,7 @@ export default function NovaProposta() {
     cep: "",
     cidade: "",
     estado: "",
-    telefone1: "",
+    telefone1: searchParams.get("numero") || "",
     telefone2: "",
     telefone3: "",
     vencimento: "",
