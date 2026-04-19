@@ -73,6 +73,7 @@ export default function Admin() {
           ia: cadastro.ia,
           usuarios: cadastro.usuarios,
           conexoes: cadastro.conexoes,
+          username: (cadastro as any).username,
         }),
       });
       const result = await response.json();

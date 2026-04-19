@@ -8,15 +8,14 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { id, email, senha, nome, empresa, plano, ia, usuarios, conexoes } = body;
+  const { id, email, senha, nome, empresa, plano, ia, usuarios, conexoes, username } = body;
 
   try {
-    // 1. Cria o usuário no Supabase Auth
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: senha,
       email_confirm: true,
-      user_metadata: { nome, empresa },
+      user_metadata: { nome, empresa, username },
     });
 
     if (authError && !authError.message.includes("already been registered")) {
@@ -29,7 +28,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Usuário não encontrado" }, { status: 400 });
     }
 
-    // 2. Cria o workspace do cliente
+    // Verifica se já existe workspace para esse usuário
+    const { data: wsExistente } = await supabaseAdmin
+      .from("workspaces")
+      .select("id")
+      .eq("owner_id", userId)
+      .single();
+
+    if (wsExistente) {
+      await supabaseAdmin.from("cadastros").update({ autorizado: true }).eq("id", id);
+      return NextResponse.json({ success: true, workspace_id: wsExistente.id });
+    }
+
     const { data: workspace, error: wsError } = await supabaseAdmin
       .from("workspaces")
       .insert([{
@@ -41,6 +51,7 @@ export async function POST(request: Request) {
         conexoes_limite: conexoes || "1",
         ia: ia || "",
         ativo: true,
+        username: username || email.split("@")[0],
       }])
       .select()
       .single();
@@ -49,7 +60,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: wsError.message }, { status: 400 });
     }
 
-    // 3. Atualiza o cadastro com workspace_id e autorizado
     await supabaseAdmin
       .from("cadastros")
       .update({ autorizado: true, workspace_id: workspace.id.toString() })
