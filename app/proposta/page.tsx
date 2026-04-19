@@ -1,10 +1,10 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
 
-export default function NovaProposta() {
+function PropostaForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { workspace } = useWorkspace();
@@ -251,5 +251,12 @@ export default function NovaProposta() {
 
       </div>
     </div>
+  );
+}
+export default function NovaProposta() {
+  return (
+    <Suspense fallback={<div style={{ background: "#0a0a0a", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "white" }}>Carregando...</p></div>}>
+      <PropostaForm />
+    </Suspense>
   );
 }
