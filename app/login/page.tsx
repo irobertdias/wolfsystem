@@ -31,7 +31,7 @@ export default function Login() {
     if (!email) { setErro("Digite seu e-mail primeiro!"); return; }
     setErro("");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://www.wolfgyn.com.br/nova-senha",
+      redirectTo: "https://app.wolfgyn.com.br/login/nova-senha",
     });
     if (error) { setErro("Erro ao enviar e-mail!"); }
     else { alert("✅ E-mail de redefinição enviado! Verifique sua caixa de entrada."); }
@@ -64,7 +64,7 @@ export default function Login() {
           </button>
         </div>
         <p className="text-xs text-gray-500">Não tem uma conta?</p>
-        <button onClick={() => router.push("/register")} className="w-full border-2 border-green-500 text-green-600 rounded-lg py-3 text-sm font-semibold hover:bg-green-50 transition-colors uppercase tracking-wide">
+        <button onClick={() => router.push("/login/register")} className="w-full border-2 border-green-500 text-green-600 rounded-lg py-3 text-sm font-semibold hover:bg-green-50 transition-colors uppercase tracking-wide">
           Crie seu teste grátis
         </button>
       </div>
