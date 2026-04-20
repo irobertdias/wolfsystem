@@ -1,7 +1,6 @@
 "use client";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { usePermissao } from "../hooks/usePermissao";
 import { ChatSection } from "./_sections/ChatSection";
@@ -11,17 +10,13 @@ import { EtiquetasSection } from "./_sections/EtiquetasSection";
 import { RelatoriosSection } from "./_sections/RelatoriosSection";
 import { RespostasRapidasSection } from "./_sections/RespostasRapidasSection";
 
-type Atendimento = { id: number; created_at: string; numero: string; nome: string; mensagem: string; status: string; fila: string; atendente: string; workspace_id: string; };
-
 function ChatbotInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const aba = searchParams.get("aba") || "chat";
   const { workspace } = useWorkspace();
   const { permissoes, isDono } = usePermissao();
-
   const [menuAberto, setMenuAberto] = useState<string | null>("atendimentos");
-  const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
 
   const menus = [
     ...((permissoes.chat_proprio || permissoes.chat_todos || permissoes.dashboard) ? [{
@@ -54,19 +49,6 @@ function ChatbotInner() {
       ]
     }] : []),
   ];
-
-  useEffect(() => {
-    if (!workspace?.id) return;
-    const fetchAtendimentos = async () => {
-      const { data } = await supabase.from("atendimentos").select("*").eq("workspace_id", workspace.username || workspace.id.toString()).order("created_at", { ascending: false });
-      setAtendimentos(data || []);
-    };
-    fetchAtendimentos();
-    const ch = supabase.channel("atendimentos_rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos" }, fetchAtendimentos)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [workspace]);
 
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#0a0a0a" }}>
@@ -109,7 +91,7 @@ function ChatbotInner() {
       {/* CONTEÚDO */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {aba === "chat" && <ChatSection />}
-        {aba === "dashboard_atendimentos" && permissoes.dashboard && <DashboardSection atendimentos={atendimentos} />}
+        {aba === "dashboard_atendimentos" && permissoes.dashboard && <DashboardSection />}
         {aba === "conexoes" && !permissoes.conexoes && (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
             <span style={{ fontSize: 48 }}>🔒</span>
