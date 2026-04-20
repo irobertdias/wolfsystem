@@ -15,7 +15,7 @@ export default function Dashboard() {
   const [filtro, setFiltro] = useState("diario");
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [loading, setLoading] = useState(true);
-  const [workspaceId, setWorkspaceId] = useState("");
+  const [workspaceNome, setWorkspaceNome] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -23,8 +23,8 @@ export default function Dashboard() {
       if (!user) { router.push("/"); return; }
       const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).single();
       if (ws) {
+        setWorkspaceNome(ws.nome);
         const wsId = ws.username || ws.id.toString();
-        setWorkspaceId(wsId);
         const { data } = await supabase.from("proposta").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false });
         setPropostas(data || []);
       }
@@ -34,6 +34,8 @@ export default function Dashboard() {
   }, []);
 
   const hoje = new Date();
+  const filtroLabel: Record<string, string> = { diario: "Hoje", semanal: "Esta Semana", mensal: "Este Mês" };
+
   const filtrarPorPeriodo = (lista: Proposta[]) => lista.filter(p => {
     const data = new Date(p.created_at);
     if (filtro === "diario") return data.toDateString() === hoje.toDateString();
@@ -48,22 +50,24 @@ export default function Dashboard() {
   const totalCanceladas = pf.filter(p => p.status_venda === "CANCELADA").length;
   const totalPendentes = pf.filter(p => p.status_venda === "PENDENTE").length;
   const totalAuditoria = pf.filter(p => p.status_venda === "AGUARDANDO AUDITORIA").length;
-  const filtroLabel: Record<string, string> = { diario: "Hoje", semanal: "Esta Semana", mensal: "Este Mês" };
   const rankingVendedores = Object.entries(pf.reduce((acc: Record<string, number>, p) => { if (p.vendedor) acc[p.vendedor] = (acc[p.vendedor] || 0) + (p.valor_plano || 0); return acc; }, {})).map(([nome, valor]) => ({ nome, valor })).sort((a, b) => b.valor - a.valor);
   const funilVendedores = Object.entries(pf.reduce((acc: Record<string, Record<string, number>>, p) => { if (!p.vendedor) return acc; if (!acc[p.vendedor]) acc[p.vendedor] = { INSTALADA: 0, GERADA: 0, CANCELADA: 0, PENDENTE: 0 }; if (acc[p.vendedor][p.status_venda] !== undefined) acc[p.vendedor][p.status_venda]++; return acc; }, {})).map(([vendedor, status]) => ({ vendedor, ...status }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <button onClick={() => router.push("/crm")} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 13, cursor: "pointer", textAlign: "left", padding: 0, marginBottom: 8 }}>← Voltar ao CRM</button>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Dashboard</h1>
+        <div>
+          <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Dashboard</h1>
+          <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0 0" }}>Workspace: {workspaceNome}</p>
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
           {["diario", "semanal", "mensal"].map(f => (
             <button key={f} onClick={() => setFiltro(f)} style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: "bold", background: filtro === f ? "#16a34a" : "#1f2937", color: filtro === f ? "white" : "#9ca3af" }}>{filtroLabel[f]}</button>
           ))}
         </div>
       </div>
-      {loading ? <p style={{ color: "#6b7280" }}>Carregando...</p> : (
+
+      {loading ? <p style={{ color: "#6b7280" }}>Carregando dados...</p> : (
         <>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             {[
@@ -75,14 +79,15 @@ export default function Dashboard() {
               { label: "Canceladas", value: totalCanceladas, color: "#dc2626", icon: "❌" },
             ].map(card => (
               <div key={card.label} style={{ flex: "1 1 140px", background: "#111", borderRadius: 12, padding: 20, border: `1px solid ${card.color}33` }}>
-                <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 8px", textTransform: "uppercase" }}>{card.icon} {card.label}</p>
+                <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 8px 0", textTransform: "uppercase" }}>{card.icon} {card.label}</p>
                 <p style={{ color: card.color, fontSize: 26, fontWeight: "bold", margin: 0 }}>{card.value}</p>
-                <p style={{ color: "#6b7280", fontSize: 11, margin: "4px 0 0" }}>{filtroLabel[filtro]}</p>
+                <p style={{ color: "#6b7280", fontSize: 11, margin: "4px 0 0 0" }}>{filtroLabel[filtro]}</p>
               </div>
             ))}
           </div>
+
           <div style={{ background: "#111", borderRadius: 12, padding: 24, border: "1px solid #1f2937" }}>
-            <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: "0 0 20px" }}>🏆 Ranking de Receita por Vendedor</h3>
+            <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: "0 0 20px 0" }}>🏆 Ranking de Receita por Vendedor — {filtroLabel[filtro]}</h3>
             {rankingVendedores.length === 0 ? <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma proposta neste período.</p> : (
               <>
                 <ResponsiveContainer width="100%" height={220}>
@@ -108,8 +113,9 @@ export default function Dashboard() {
               </>
             )}
           </div>
+
           <div style={{ background: "#111", borderRadius: 12, padding: 24, border: "1px solid #1f2937" }}>
-            <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: "0 0 20px" }}>🎯 Funil por Vendedor</h3>
+            <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: "0 0 20px 0" }}>🎯 Funil por Vendedor — {filtroLabel[filtro]}</h3>
             {funilVendedores.length === 0 ? <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma proposta neste período.</p> : (
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr style={{ background: "#0d0d0d" }}>{["Vendedor", "✅ Instaladas", "📄 Geradas", "⏳ Pendentes", "❌ Canceladas"].map(h => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>

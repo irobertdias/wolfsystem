@@ -11,8 +11,7 @@ type Atendimento = {
 export default function Contatos() {
   const router = useRouter();
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busca, setBusca] = useState("");
+  const [buscaContato, setBuscaContato] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -24,13 +23,12 @@ export default function Contatos() {
         const { data } = await supabase.from("atendimentos").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false });
         setAtendimentos(data || []);
       }
-      setLoading(false);
     };
     init();
   }, []);
 
-  const filtrados = atendimentos.filter(a =>
-    !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.numero?.includes(busca)
+  const contatosFiltrados = atendimentos.filter(a =>
+    !buscaContato || a.nome?.toLowerCase().includes(buscaContato.toLowerCase()) || a.numero?.includes(buscaContato)
   );
 
   return (
@@ -38,18 +36,15 @@ export default function Contatos() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>👥 Meus Contatos</h1>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>Leads que chegaram pelo WhatsApp — {atendimentos.length} contato(s)</p>
+          <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0 0" }}>Leads que chegaram pelo WhatsApp — {atendimentos.length} contato(s)</p>
         </div>
-        <button onClick={() => router.push("/chatbot")} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>💬 Ir para Chatbot</button>
       </div>
-
-      <input placeholder="🔍 Buscar por nome ou número..." value={busca} onChange={e => setBusca(e.target.value)} style={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, maxWidth: 380 }} />
-
-      {loading ? <p style={{ color: "#6b7280" }}>Carregando...</p> : filtrados.length === 0 ? (
+      <input placeholder="🔍 Buscar por nome ou número..." value={buscaContato} onChange={e => setBuscaContato(e.target.value)} style={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "8px 14px", color: "white", fontSize: 13, maxWidth: 380 }} />
+      {atendimentos.length === 0 ? (
         <div style={{ background: "#111", borderRadius: 12, padding: 48, textAlign: "center", border: "1px solid #1f2937" }}>
-          <p style={{ fontSize: 48, margin: "0 0 16px" }}>👥</p>
-          <h3 style={{ color: "white", fontSize: 16, fontWeight: "bold", margin: "0 0 8px" }}>Nenhum contato ainda</h3>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Os leads que chegarem pelo WhatsApp aparecerão aqui!</p>
+          <p style={{ fontSize: 48, margin: "0 0 16px 0" }}>👥</p>
+          <h3 style={{ color: "white", fontSize: 16, fontWeight: "bold", margin: "0 0 8px 0" }}>Nenhum contato ainda</h3>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Os leads que chegarem pelo WhatsApp aparecerão aqui automaticamente!</p>
         </div>
       ) : (
         <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
@@ -62,7 +57,7 @@ export default function Contatos() {
               </tr>
             </thead>
             <tbody>
-              {filtrados.map((a, i) => (
+              {contatosFiltrados.map((a, i) => (
                 <tr key={a.id} onClick={() => router.push("/chatbot")} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d", cursor: "pointer" }}>
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
