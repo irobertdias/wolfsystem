@@ -98,7 +98,7 @@ export function RelatoriosSection() {
         m.numero,
         new Date(m.created_at).toLocaleString("pt-BR"),
         m.de,
-        `"${(m.mensagem || "").replace(/"/g, "'").replace(/\n/g, " ")}"`,
+        '"' + (m.mensagem || "").replace(/"/g, "'").replace(/\n/g, " ") + '"',
       ]);
 
       const csv = [
