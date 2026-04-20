@@ -26,15 +26,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: authError.message });
     }
 
+    const userId = authData.user?.id;
+
     // 2. Salva na tabela cadastros
     const { error: dbError } = await supabase.from("cadastros").insert([{
       nome, empresa, cnpj, cpf, email, whatsapp, senha,
       username, plano, autorizado: false,
-      user_id: authData.user?.id,
+      user_id: userId,
     }]);
 
     if (dbError) {
       return NextResponse.json({ success: false, error: dbError.message });
+    }
+
+    // 3. Cria workspace para o cliente
+    // username: usa o digitado, ou gera a partir do email
+    const wsUsername = username || email.split("@")[0].replace(/[^a-z0-9_]/gi, "_").toLowerCase();
+
+    const { error: wsError } = await supabase.from("workspaces").insert([{
+      nome: empresa || nome,
+      owner_id: userId,
+      owner_email: email,
+      username: wsUsername,
+      plano: plano || "basico",
+      ativo: true,
+    }]);
+
+    if (wsError) {
+      return NextResponse.json({ success: false, error: "Cadastro criado mas workspace falhou: " + wsError.message });
     }
 
     return NextResponse.json({ success: true });
