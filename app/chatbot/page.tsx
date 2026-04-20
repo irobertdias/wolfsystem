@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "../admin/lib/supabase";
-import { useWorkspace } from "../admin/hooks/useWorkspace";
+import { supabase } from "../lib/supabase";
+import { useWorkspace } from "../hooks/useWorkspace";
 
 type Atendimento = { id: number; created_at: string; numero: string; nome: string; mensagem: string; status: string; fila: string; atendente: string; workspace_id: string; };
 type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; };

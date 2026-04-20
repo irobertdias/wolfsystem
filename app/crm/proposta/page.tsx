@@ -1,8 +1,8 @@
 "use client";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "../../admin/lib/supabase";
-import { useWorkspace } from "../../admin/hooks/useWorkspace";
+import { supabase } from "../../lib/supabase";
+import { useWorkspace } from "../../hooks/useWorkspace";
 
 function PropostaForm() {
   const router = useRouter();
