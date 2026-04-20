@@ -20,9 +20,13 @@ export default function Login() {
     if (error) { setErro("E-mail ou senha incorretos!"); return; }
     if (data.user) {
       const { data: workspace } = await supabase.from("workspaces").select("id, ativo").eq("owner_id", data.user.id).single();
-      if (workspace && workspace.ativo) { router.push("/crm"); return; }
+      if (workspace) { router.push("/crm"); return; }
       const { data: cadastro } = await supabase.from("cadastros").select("autorizado").eq("email", email).single();
-      if (cadastro && !cadastro.autorizado) { setErro("Seu acesso ainda não foi autorizado pelo administrador!"); await supabase.auth.signOut(); return; }
+      if (cadastro && !cadastro.autorizado) {
+        setErro("Seu acesso ainda não foi autorizado pelo administrador!");
+        await supabase.auth.signOut();
+        return;
+      }
       router.push("/crm");
     }
   };
