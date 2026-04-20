@@ -12,24 +12,32 @@ export default function Login() {
   const [erro, setErro] = useState("");
 
   const handleLogin = async () => {
-    if (!email || !password) { setErro("Preencha e-mail e senha!"); return; }
-    setLoading(true);
-    setErro("");
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) { setErro("E-mail ou senha incorretos!"); return; }
-    if (data.user) {
-      const { data: workspace } = await supabase.from("workspaces").select("id, ativo").eq("owner_id", data.user.id).single();
-      if (workspace) { router.push("/crm"); return; }
-      const { data: cadastro } = await supabase.from("cadastros").select("autorizado").eq("email", email).single();
-      if (cadastro && !cadastro.autorizado) {
-        setErro("Seu acesso ainda não foi autorizado pelo administrador!");
-        await supabase.auth.signOut();
-        return;
-      }
-      router.push("/crm");
+  if (!email || !password) { setErro("Preencha e-mail e senha!"); return; }
+  setLoading(true);
+  setErro("");
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  setLoading(false);
+  if (error) { setErro("E-mail ou senha incorretos!"); return; }
+  if (data.user) {
+    // 1. Verifica se é dono de workspace
+    const { data: workspace } = await supabase.from("workspaces").select("id, ativo").eq("owner_id", data.user.id).single();
+    if (workspace) { router.push("/crm"); return; }
+
+    // 2. Verifica se é usuário de algum workspace
+    const { data: usuarioWs } = await supabase.from("usuarios_workspace").select("workspace_id").eq("email", email).single();
+    if (usuarioWs) { router.push("/crm"); return; }
+
+    // 3. Verifica se está autorizado no cadastro
+    const { data: cadastro } = await supabase.from("cadastros").select("autorizado").eq("email", email).single();
+    if (cadastro && !cadastro.autorizado) {
+      setErro("Seu acesso ainda não foi autorizado pelo administrador!");
+      await supabase.auth.signOut();
+      return;
     }
-  };
+
+    router.push("/crm");
+  }
+};
 
   const handleEsqueciSenha = async () => {
     if (!email) { setErro("Digite seu e-mail primeiro!"); return; }

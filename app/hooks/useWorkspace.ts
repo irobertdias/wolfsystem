@@ -30,8 +30,19 @@ export function useWorkspace() {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) { setLoading(false); return; }
       setUser({ id: authUser.id, email: authUser.email || "" });
+
+      // 1. Verifica se é dono do workspace
       const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", authUser.id).single();
-      setWorkspace(ws || null);
+      if (ws) { setWorkspace(ws); setLoading(false); return; }
+
+      // 2. Verifica se é sub-usuário de algum workspace
+      const { data: usuarioWs } = await supabase.from("usuarios_workspace").select("workspace_id").eq("email", authUser.email).single();
+      if (usuarioWs) {
+        const { data: wsDoono } = await supabase.from("workspaces").select("*").or(`username.eq.${usuarioWs.workspace_id},id.eq.${usuarioWs.workspace_id}`).single();
+        if (wsDoono) { setWorkspace(wsDoono); setLoading(false); return; }
+      }
+
+      setWorkspace(null);
       setLoading(false);
     };
     fetchWorkspace();
@@ -42,8 +53,7 @@ export function useWorkspace() {
     window.location.href = "/";
   };
 
-  // wsId retorna username se existir, senão id numérico como fallback
-  const wsId = workspace?.username || workspace?.id?.toString() || "1";
+  const wsId = workspace?.username || workspace?.id?.toString() || "";
 
   return { workspace, user, loading, signOut, wsId };
 }
