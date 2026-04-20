@@ -74,7 +74,7 @@ function PropostaForm() {
       data_instalacao: form.dataInstalacao,
       data_cancelamento: form.dataCancelamento,
       operadora: form.operadora,
-      workspace_id: workspace.id.toString(),
+      workspace_id: workspace.username || workspace.id.toString(),
     }]);
 
     setLoading(false);
