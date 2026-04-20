@@ -26,12 +26,9 @@ function ChatbotInner() {
         ...(permissoes.dashboard ? [{ key: "dashboard_atendimentos", label: "Dashboard" }] : []),
       ]
     }] : []),
-    ...((isDono || permissoes.conexoes) ? [{
-      key: "empresa_filas", icon: "🏢", label: "Empresas & Filas",
-      subitens: [
-        ...(isDono ? [{ key: "empresas", label: "Empresas" }] : []),
-        ...(permissoes.conexoes ? [{ key: "conexoes", label: "Conexões" }] : []),
-      ]
+    ...(permissoes.conexoes ? [{
+      key: "conexoes_menu", icon: "📱", label: "Conexões",
+      subitens: [{ key: "conexoes", label: "Conexões" }]
     }] : []),
     ...(isDono ? [{
       key: "automacao", icon: "🤖", label: "Automação",
@@ -108,7 +105,6 @@ function ChatbotInner() {
             <button onClick={() => router.push("/chatbot/fluxos")} style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 10, padding: "14px 32px", fontSize: 16, cursor: "pointer", fontWeight: "bold" }}>🤖 Abrir Editor de Fluxos →</button>
           </div>
         )}
-        {aba === "empresas" && isDono && <div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>🏢 Empresas</h1></div>}
         {aba === "etiquetas" && isDono && <EtiquetasSection />}
         {aba === "relatorios" && permissoes.relatorios && <RelatoriosSection />}
         {aba === "respostas_rapidas" && permissoes.respostas_rapidas && <RespostasRapidasSection />}
