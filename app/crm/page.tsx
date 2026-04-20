@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../admin/lib/supabase";
 
 type Proposta = {
   id: number;

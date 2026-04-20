@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../admin/lib/supabase";
 
 export default function NovaSenha() {
   const router = useRouter();

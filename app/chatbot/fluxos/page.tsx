@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../admin/lib/supabase";
 
 type TipoNo =
   | "texto" | "imagem" | "video" | "audio" | "embed"
