@@ -15,6 +15,7 @@ function ChatbotInner() {
   const aba = searchParams.get("aba") || "chat";
   const setAba = (novaAba: string) => router.push(`/chatbot?aba=${novaAba}`);
   const { workspace } = useWorkspace();
+const wsId = workspace?.username || workspace?.id?.toString() || "1";
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const [menuAberto, setMenuAberto] = useState<string | null>("atendimentos");
