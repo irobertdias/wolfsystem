@@ -54,6 +54,7 @@ export default function Dashboard() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <button onClick={() => router.push("/crm")} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 13, cursor: "pointer", textAlign: "left", padding: 0, marginBottom: 8 }}>← Voltar ao CRM</button>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Dashboard</h1>
         <div style={{ display: "flex", gap: 8 }}>
