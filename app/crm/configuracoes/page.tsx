@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { usePermissao } from "../../hooks/usePermissao";
 
 const ADMIN_EMAIL = "robert.dias@live.com";
 
@@ -32,8 +33,10 @@ const PERMISSOES_PADRAO = {
 
 export default function Configuracoes() {
   const router = useRouter();
+  const { isDono } = usePermissao();
   const [workspaceId, setWorkspaceId] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [autorizado, setAutorizado] = useState(false);
   const [limites, setLimites] = useState({ usuarios_liberados: 9999 });
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [gruposPermissao, setGruposPermissao] = useState<GrupoPermissao[]>([]);
@@ -71,22 +74,44 @@ export default function Configuracoes() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/"); return; }
+
       const admin = user.email === ADMIN_EMAIL;
       setIsAdmin(admin);
+
+      // Verifica se é dono do workspace
       const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).single();
       if (ws) {
+        // É dono — acesso total
+        setAutorizado(true);
         const wsId = ws.username || ws.id.toString();
         setWorkspaceId(wsId);
         fetchUsuarios(wsId);
         fetchGrupos(wsId);
+        if (!admin) {
+          const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).single();
+          if (cadastro) setLimites({ usuarios_liberados: cadastro.usuarios_liberados || 1 });
+        }
+        return;
       }
-      if (!admin) {
-        const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).single();
-        if (cadastro) setLimites({ usuarios_liberados: cadastro.usuarios_liberados || 1 });
+
+      // É sub-usuário — verifica permissão de configurações
+      const { data: usuarioWs } = await supabase.from("usuarios_workspace").select("grupo_id").eq("email", user.email).single();
+      if (usuarioWs?.grupo_id) {
+        const { data: grupo } = await supabase.from("grupos_permissao").select("permissoes").eq("id", usuarioWs.grupo_id).single();
+        if (grupo?.permissoes?.configuracoes_workspace) {
+          setAutorizado(true);
+          return;
+        }
       }
+
+      // Sem permissão — redireciona
+      router.push("/crm/dashboard");
     };
     init();
   }, []);
+
+  // Enquanto verifica autorização, não renderiza nada
+  if (!autorizado) return null;
 
   const limiteAtingido = !isAdmin && usuarios.length >= limites.usuarios_liberados;
   const toggleUsuarioRoleta = (nome: string) => setUsuariosRoleta(prev => prev.includes(nome) ? prev.filter(u => u !== nome) : [...prev, nome]);
@@ -99,7 +124,13 @@ export default function Configuracoes() {
 
   const excluirUsuario = async (u: Usuario) => {
     if (!confirm(`Excluir ${u.nome}?`)) return;
-    await supabase.from("usuarios_workspace").delete().eq("email", u.email).eq("workspace_id", workspaceId);
+    const resp = await fetch("/api/deletar-usuario", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: u.email, workspace_id: workspaceId }),
+    });
+    const data = await resp.json();
+    if (!data.success) { alert("Erro ao excluir: " + data.error); return; }
     await fetchUsuarios(workspaceId);
     alert("✅ Usuário excluído!");
   };
