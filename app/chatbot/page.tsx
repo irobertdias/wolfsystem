@@ -152,19 +152,19 @@ function ChatbotInner() {
 
   const fetchAtendimentos = async () => {
     if (!workspace?.id) return;
-    const { data } = await supabase.from("atendimentos").select("*").eq("workspace_id", workspace.id.toString()).order("created_at", { ascending: false });
+    const { data } = await supabase.from("atendimentos").select("*").eq("workspace_id", workspace.username || workspace.id.toString()).order("created_at", { ascending: false });
     setAtendimentos(data || []);
   };
 
   const fetchConexoes = async () => {
     if (!workspace?.id) return;
-    const { data } = await supabase.from("conexoes").select("*").eq("workspace_id", workspace.id.toString()).order("created_at", { ascending: false });
+    const { data } = await supabase.from("conexoes").select("*").eq("workspace_id", workspace.username || workspace.id.toString()).order("created_at", { ascending: false });
     setConexoes(data || []);
   };
 
   const fetchFluxos = async () => {
     if (!workspace?.id) return;
-    const { data } = await supabase.from("fluxos").select("id, nome, ativo").eq("workspace_id", workspace.id.toString()).order("created_at", { ascending: false });
+    const { data } = await supabase.from("fluxos").select("id, nome, ativo").eq("workspace_id", workspace.username || workspace.id.toString()).order("created_at", { ascending: false });
     setFluxos(data || []);
   };
 
@@ -180,23 +180,23 @@ function ChatbotInner() {
   const enviarMensagem = async () => {
     if (!mensagem || !atendimentoAtivo) return;
     setEnviandoMsg(true);
-    try { await wa("enviar", { numero: atendimentoAtivo.numero, mensagem, workspaceId: workspace?.id?.toString() || "1" }); setMensagem(""); }
+    try { await wa("enviar", { numero: atendimentoAtivo.numero, mensagem, workspaceId: wsId }); setMensagem(""); }
     catch { alert("Erro ao enviar!"); }
     setEnviandoMsg(false);
   };
 
   const assumirChat = async (numero: string) => {
-    await wa("assumir", { numero, workspaceId: workspace?.id?.toString() || "1" });
+    await wa("assumir", { numero, workspaceId: wsId });
     fetchAtendimentos();
   };
 
   const finalizarChat = async (numero: string) => {
-    await wa("finalizar", { numero, workspaceId: workspace?.id?.toString() || "1" });
+    await wa("finalizar", { numero, workspaceId: wsId });
     fetchAtendimentos(); setAtendimentoAtivo(null); setHistorico([]);
   };
 
   const devolverBot = async (numero: string) => {
-    await wa("devolver", { numero, workspaceId: workspace?.id?.toString() || "1" });
+    await wa("devolver", { numero, workspaceId: wsId });
     fetchAtendimentos();
   };
 
@@ -229,7 +229,7 @@ function ChatbotInner() {
     if (form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
     setSalvandoCanal(true);
     try {
-      const wsId = workspace?.id?.toString() || "1";
+      const { workspace, wsId } = useWorkspace();
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
       await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey || "", prompt: form.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: form.fila, modo: form.modo });
       const payload = {
@@ -263,7 +263,7 @@ function ChatbotInner() {
   };
 
   const abrirQR = async (id: number) => {
-    const wsIdAtual = workspace?.id?.toString() || "1";
+    const wsIdAtual = wsId;
     setQrWsId(wsIdAtual);
     setQrConexaoId(id);
     setResetando(true);
@@ -665,7 +665,7 @@ function ChatbotInner() {
                     <div style={{ display: "flex", gap: 8 }}>
                       {c.tipo === "webjs" && (c.status === "desconectado"
                         ? <button onClick={() => abrirQR(c.id)} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📷 Escanear QR</button>
-                        : <><button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>✅ Conectado</button><button onClick={async () => { await wa("desconectar", { workspaceId: workspace?.id?.toString() || "1" }); await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", c.id); fetchConexoes(); }} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "9px 14px", fontSize: 12, cursor: "pointer" }}>Desconectar</button></>
+                        : <><button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>✅ Conectado</button><button onClick={async () => { await wa("desconectar", { workspaceId: wsId }); await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", c.id); fetchConexoes(); }} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "9px 14px", fontSize: 12, cursor: "pointer" }}>Desconectar</button></>
                       )}
                       {c.tipo === "waba" && <button disabled style={{ flex: 1, background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>🔗 API Ativa</button>}
                       <div style={{ position: "relative" }}>
