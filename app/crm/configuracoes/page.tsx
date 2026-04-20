@@ -5,12 +5,14 @@ import { supabase } from "../../lib/supabase";
 
 const ADMIN_EMAIL = "robert.dias@live.com";
 
+type Usuario = { id?: number; nome: string; email: string; perfil: string; fila: string; status: string; };
+
 export default function Configuracoes() {
   const router = useRouter();
   const [workspaceId, setWorkspaceId] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [limites, setLimites] = useState({ usuarios_liberados: 9999 });
-  const [usuarios, setUsuarios] = useState<{ nome: string; email: string; perfil: string; fila: string; status: string }[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [filas, setFilas] = useState([
     { nome: "Fila Principal", conexao: "WhatsApp 01", usuarios: 2 },
     { nome: "Fila Suporte", conexao: "WhatsApp 02", usuarios: 1 },
@@ -27,11 +29,17 @@ export default function Configuracoes() {
   const [roletaAtiva, setRoletaAtiva] = useState(false);
   const [usuariosRoleta, setUsuariosRoleta] = useState<string[]>([]);
   const [showDropdownRoleta, setShowDropdownRoleta] = useState(false);
+  const [editandoUsuario, setEditandoUsuario] = useState<Usuario | null>(null);
   const [formUsuario, setFormUsuario] = useState({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "" });
   const [formFila, setFormFila] = useState({ nome: "", conexao: "" });
   const [formGrupo, setFormGrupo] = useState({ nome: "", descricao: "" });
 
   const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 14, boxSizing: "border-box" as const };
+
+  const fetchUsuarios = async (wsId: string) => {
+    const { data } = await supabase.from("usuarios_workspace").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false });
+    if (data) setUsuarios(data);
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -43,8 +51,7 @@ export default function Configuracoes() {
       if (ws) {
         const wsId = ws.username || ws.id.toString();
         setWorkspaceId(wsId);
-        const { data: u } = await supabase.from("usuarios_workspace").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false });
-        if (u && u.length > 0) setUsuarios(u);
+        fetchUsuarios(wsId);
       }
       if (!admin) {
         const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).single();
@@ -57,11 +64,41 @@ export default function Configuracoes() {
   const limiteAtingido = !isAdmin && usuarios.length >= limites.usuarios_liberados;
   const toggleUsuarioRoleta = (nome: string) => setUsuariosRoleta(prev => prev.includes(nome) ? prev.filter(u => u !== nome) : [...prev, nome]);
 
-  const adicionarUsuario = async () => {
-    if (!formUsuario.nome || !formUsuario.email || !formUsuario.senha) { alert("Preencha Nome, E-mail e Senha!"); return; }
+  const abrirEditar = (u: Usuario) => {
+    setEditandoUsuario(u);
+    setFormUsuario({ nome: u.nome, email: u.email, telefone: "", senha: "", perfil: u.perfil, fila: u.fila || "" });
+    setShowFormUsuario(true);
+  };
+
+  const excluirUsuario = async (u: Usuario) => {
+    if (!confirm(`Excluir ${u.nome}?`)) return;
+    await supabase.from("usuarios_workspace").delete().eq("email", u.email).eq("workspace_id", workspaceId);
+    await fetchUsuarios(workspaceId);
+    alert("✅ Usuário excluído!");
+  };
+
+  const salvarUsuario = async () => {
+    if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; }
+
+    if (editandoUsuario) {
+      // Editar usuário existente
+      await supabase.from("usuarios_workspace")
+        .update({ nome: formUsuario.nome, perfil: formUsuario.perfil, fila: formUsuario.fila })
+        .eq("email", editandoUsuario.email)
+        .eq("workspace_id", workspaceId);
+      await fetchUsuarios(workspaceId);
+      setEditandoUsuario(null);
+      setShowFormUsuario(false);
+      setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "" });
+      alert("✅ Usuário atualizado!");
+      return;
+    }
+
+    // Criar novo usuário
+    if (!formUsuario.senha) { alert("Preencha a Senha!"); return; }
     if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); return; }
+
     try {
-      // 1. Cria no Supabase Auth via API
       const resp = await fetch("/api/criar-usuario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,8 +135,12 @@ export default function Configuracoes() {
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             {limiteAtingido && <span style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: "bold" }}>🔒 Limite atingido</span>}
-            <button onClick={() => { if (limiteAtingido) { alert(`❌ Você atingiu o limite de ${limites.usuarios_liberados} usuário(s) do seu plano.\n\nEntre em contato com o suporte para aumentar seu limite:\n📱 WhatsApp: (62) 99999-9999`); return; } setShowFormUsuario(!showFormUsuario); }}
-              style={{ background: limiteAtingido ? "#374151" : "#3b82f6", color: limiteAtingido ? "#6b7280" : "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: limiteAtingido ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+            <button onClick={() => {
+              if (limiteAtingido) { alert(`❌ Você atingiu o limite de ${limites.usuarios_liberados} usuário(s).`); return; }
+              setEditandoUsuario(null);
+              setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "" });
+              setShowFormUsuario(!showFormUsuario);
+            }} style={{ background: limiteAtingido ? "#374151" : "#3b82f6", color: limiteAtingido ? "#6b7280" : "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: limiteAtingido ? "not-allowed" : "pointer", fontWeight: "bold" }}>
               {limiteAtingido ? "🔒 Limite Atingido" : "+ Adicionar Usuário"}
             </button>
           </div>
@@ -117,19 +158,39 @@ export default function Configuracoes() {
           </div>
         )}
 
-        {showFormUsuario && !limiteAtingido && (
+        {showFormUsuario && (
           <div style={{ padding: 20, borderBottom: "1px solid #1f2937", background: "#0d0d0d" }}>
+            <p style={{ color: "#3b82f6", fontSize: 12, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px" }}>
+              {editandoUsuario ? "✏️ Editar Usuário" : "➕ Novo Usuário"}
+            </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label><input placeholder="Nome completo" value={formUsuario.nome} onChange={e => setFormUsuario({ ...formUsuario, nome: e.target.value })} style={inputStyle} /></div>
-              <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>E-mail *</label><input type="email" placeholder="email@exemplo.com" value={formUsuario.email} onChange={e => setFormUsuario({ ...formUsuario, email: e.target.value })} style={inputStyle} /></div>
-              <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Telefone</label><input placeholder="+55 (62) 99999-9999" value={formUsuario.telefone} onChange={e => setFormUsuario({ ...formUsuario, telefone: e.target.value })} style={inputStyle} /></div>
-              <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Perfil</label><select value={formUsuario.perfil} onChange={e => setFormUsuario({ ...formUsuario, perfil: e.target.value })} style={inputStyle}><option value="Administrador">Administrador</option><option value="Supervisor">Supervisor</option><option value="Atendente">Atendente</option></select></div>
-              <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Fila / Grupo</label><select value={formUsuario.fila} onChange={e => setFormUsuario({ ...formUsuario, fila: e.target.value })} style={inputStyle}><option value="">Selecione...</option>{filas.map(f => <option key={f.nome} value={f.nome}>{f.nome}</option>)}{grupos.map(g => <option key={g.nome} value={g.nome}>{g.nome}</option>)}</select></div>
-              <div style={{ position: "relative" }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Senha *</label><input type={showSenha ? "text" : "password"} placeholder="Senha" value={formUsuario.senha} onChange={e => setFormUsuario({ ...formUsuario, senha: e.target.value })} style={{ ...inputStyle, paddingRight: 40 }} /><button onClick={() => setShowSenha(!showSenha)} style={{ position: "absolute", right: 12, top: 34, background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 14 }}>{showSenha ? "🙈" : "👁️"}</button></div>
+              <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>E-mail *</label><input type="email" placeholder="email@exemplo.com" value={formUsuario.email} onChange={e => setFormUsuario({ ...formUsuario, email: e.target.value })} disabled={!!editandoUsuario} style={{ ...inputStyle, opacity: editandoUsuario ? 0.5 : 1 }} /></div>
+              <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Perfil</label>
+                <select value={formUsuario.perfil} onChange={e => setFormUsuario({ ...formUsuario, perfil: e.target.value })} style={inputStyle}>
+                  <option value="Administrador">Administrador</option>
+                  <option value="Supervisor">Supervisor</option>
+                  <option value="Atendente">Atendente</option>
+                </select>
+              </div>
+              <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Fila / Grupo</label>
+                <select value={formUsuario.fila} onChange={e => setFormUsuario({ ...formUsuario, fila: e.target.value })} style={inputStyle}>
+                  <option value="">Selecione...</option>
+                  {filas.map(f => <option key={f.nome} value={f.nome}>{f.nome}</option>)}
+                  {grupos.map(g => <option key={g.nome} value={g.nome}>{g.nome}</option>)}
+                </select>
+              </div>
+              {!editandoUsuario && (
+                <div style={{ position: "relative" }}>
+                  <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Senha *</label>
+                  <input type={showSenha ? "text" : "password"} placeholder="Senha" value={formUsuario.senha} onChange={e => setFormUsuario({ ...formUsuario, senha: e.target.value })} style={{ ...inputStyle, paddingRight: 40 }} />
+                  <button onClick={() => setShowSenha(!showSenha)} style={{ position: "absolute", right: 12, top: 34, background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 14 }}>{showSenha ? "🙈" : "👁️"}</button>
+                </div>
+              )}
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowFormUsuario(false)} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={adicionarUsuario} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar</button>
+              <button onClick={() => { setShowFormUsuario(false); setEditandoUsuario(null); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer" }}>Cancelar</button>
+              <button onClick={salvarUsuario} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar</button>
             </div>
           </div>
         )}
@@ -138,8 +199,34 @@ export default function Configuracoes() {
           <div style={{ padding: 32, textAlign: "center" }}><p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum usuário cadastrado ainda</p></div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead><tr style={{ background: "#0d0d0d" }}>{["Nome", "E-mail", "Perfil", "Fila/Grupo", "Status"].map(h => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
-            <tbody>{usuarios.map((u, i) => (<tr key={i} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}><td style={{ padding: "14px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{u.nome}</td><td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{u.email}</td><td style={{ padding: "14px 16px" }}><span style={{ background: u.perfil === "Administrador" ? "#f59e0b22" : u.perfil === "Supervisor" ? "#8b5cf622" : "#3b82f622", color: u.perfil === "Administrador" ? "#f59e0b" : u.perfil === "Supervisor" ? "#8b5cf6" : "#3b82f6", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "bold" }}>{u.perfil}</span></td><td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{u.fila || "—"}</td><td style={{ padding: "14px 16px" }}><span style={{ background: u.status === "online" ? "#16a34a22" : "#6b728022", color: u.status === "online" ? "#16a34a" : "#6b7280", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "bold" }}>{u.status === "online" ? "🟢 Online" : "⚫ Offline"}</span></td></tr>))}</tbody>
+            <thead>
+              <tr style={{ background: "#0d0d0d" }}>
+                {["Nome", "E-mail", "Perfil", "Fila/Grupo", "Status", "Ações"].map(h => (
+                  <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.map((u, i) => (
+                <tr key={i} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
+                  <td style={{ padding: "14px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{u.nome}</td>
+                  <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{u.email}</td>
+                  <td style={{ padding: "14px 16px" }}>
+                    <span style={{ background: u.perfil === "Administrador" ? "#f59e0b22" : u.perfil === "Supervisor" ? "#8b5cf622" : "#3b82f622", color: u.perfil === "Administrador" ? "#f59e0b" : u.perfil === "Supervisor" ? "#8b5cf6" : "#3b82f6", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "bold" }}>{u.perfil}</span>
+                  </td>
+                  <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{u.fila || "—"}</td>
+                  <td style={{ padding: "14px 16px" }}>
+                    <span style={{ background: u.status === "online" ? "#16a34a22" : "#6b728022", color: u.status === "online" ? "#16a34a" : "#6b7280", padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: "bold" }}>{u.status === "online" ? "🟢 Online" : "⚫ Offline"}</span>
+                  </td>
+                  <td style={{ padding: "14px 16px" }}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => abrirEditar(u)} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>✏️</button>
+                      <button onClick={() => excluirUsuario(u)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         )}
       </div>
@@ -152,14 +239,23 @@ export default function Configuracoes() {
         </div>
         {showFormFila && (
           <div style={{ padding: 20, borderBottom: "1px solid #1f2937", background: "#0d0d0d", display: "flex", gap: 12, alignItems: "flex-end" }}>
-            <div style={{ flex: 1 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome da Fila</label><input placeholder="Ex: Fila Claro" value={formFila.nome} onChange={e => setFormFila({ ...formFila, nome: e.target.value })} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome da Fila</label><input placeholder="Ex: Fila Vendas" value={formFila.nome} onChange={e => setFormFila({ ...formFila, nome: e.target.value })} style={inputStyle} /></div>
             <div style={{ flex: 1 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Conexão WhatsApp</label><input placeholder="Ex: WhatsApp 01" value={formFila.conexao} onChange={e => setFormFila({ ...formFila, conexao: e.target.value })} style={inputStyle} /></div>
-            <button onClick={() => { if (!formFila.nome) { alert("Digite o nome da fila!"); return; } setFilas([...filas, { nome: formFila.nome, conexao: formFila.conexao, usuarios: 0 }]); setFormFila({ nome: "", conexao: "" }); setShowFormFila(false); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar</button>
+            <button onClick={() => { if (!formFila.nome) { alert("Digite o nome!"); return; } setFilas([...filas, { nome: formFila.nome, conexao: formFila.conexao, usuarios: 0 }]); setFormFila({ nome: "", conexao: "" }); setShowFormFila(false); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar</button>
           </div>
         )}
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr style={{ background: "#0d0d0d" }}>{["Fila", "Conexão", "Usuários"].map(h => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
-          <tbody>{filas.map((f, i) => (<tr key={i} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}><td style={{ padding: "14px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{f.nome}</td><td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{f.conexao || "—"}</td><td style={{ padding: "14px 16px", color: "#8b5cf6", fontSize: 13, fontWeight: "bold" }}>{f.usuarios}</td></tr>))}</tbody>
+          <thead><tr style={{ background: "#0d0d0d" }}>{["Fila", "Conexão", "Usuários", "Ações"].map(h => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
+          <tbody>{filas.map((f, i) => (
+            <tr key={i} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
+              <td style={{ padding: "14px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{f.nome}</td>
+              <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{f.conexao || "—"}</td>
+              <td style={{ padding: "14px 16px", color: "#8b5cf6", fontSize: 13, fontWeight: "bold" }}>{f.usuarios}</td>
+              <td style={{ padding: "14px 16px" }}>
+                <button onClick={() => { if (confirm(`Excluir fila "${f.nome}"?`)) setFilas(filas.filter((_, idx) => idx !== i)); }} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>🗑️</button>
+              </td>
+            </tr>
+          ))}</tbody>
         </table>
       </div>
 
@@ -171,9 +267,9 @@ export default function Configuracoes() {
         </div>
         {showFormGrupo && (
           <div style={{ padding: 20, borderBottom: "1px solid #1f2937", background: "#0d0d0d", display: "flex", gap: 12, alignItems: "flex-end" }}>
-            <div style={{ flex: 1 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome do Grupo</label><input placeholder="Ex: Grupo Claro" value={formGrupo.nome} onChange={e => setFormGrupo({ ...formGrupo, nome: e.target.value })} style={inputStyle} /></div>
-            <div style={{ flex: 2 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Descrição</label><input placeholder="Ex: Acesso apenas aos leads da Claro" value={formGrupo.descricao} onChange={e => setFormGrupo({ ...formGrupo, descricao: e.target.value })} style={inputStyle} /></div>
-            <button onClick={() => { if (!formGrupo.nome) { alert("Digite o nome do grupo!"); return; } setGrupos([...grupos, { nome: formGrupo.nome, descricao: formGrupo.descricao }]); setFormGrupo({ nome: "", descricao: "" }); setShowFormGrupo(false); }} style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar</button>
+            <div style={{ flex: 1 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome do Grupo</label><input placeholder="Ex: Grupo Vendas" value={formGrupo.nome} onChange={e => setFormGrupo({ ...formGrupo, nome: e.target.value })} style={inputStyle} /></div>
+            <div style={{ flex: 2 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Descrição</label><input placeholder="Ex: Acesso às vendas" value={formGrupo.descricao} onChange={e => setFormGrupo({ ...formGrupo, descricao: e.target.value })} style={inputStyle} /></div>
+            <button onClick={() => { if (!formGrupo.nome) { alert("Digite o nome!"); return; } setGrupos([...grupos, { nome: formGrupo.nome, descricao: formGrupo.descricao }]); setFormGrupo({ nome: "", descricao: "" }); setShowFormGrupo(false); }} style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar</button>
           </div>
         )}
         <div style={{ padding: 16, display: "flex", flexWrap: "wrap", gap: 12 }}>
@@ -184,6 +280,7 @@ export default function Configuracoes() {
                 <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{g.nome}</p>
                 <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{g.descricao}</p>
               </div>
+              <button onClick={() => { if (confirm(`Excluir grupo "${g.nome}"?`)) setGrupos(grupos.filter((_, idx) => idx !== i)); }} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "4px 8px", fontSize: 11, cursor: "pointer", marginLeft: 8 }}>🗑️</button>
             </div>
           ))}
         </div>
