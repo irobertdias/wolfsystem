@@ -229,7 +229,6 @@ function ChatbotInner() {
     if (form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
     setSalvandoCanal(true);
     try {
-      const { workspace, wsId } = useWorkspace();
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
       await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey || "", prompt: form.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: form.fila, modo: form.modo });
       const payload = {
