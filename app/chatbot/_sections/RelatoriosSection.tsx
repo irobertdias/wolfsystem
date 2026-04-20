@@ -90,7 +90,7 @@ export function RelatoriosSection() {
         a.fila,
         a.atendente,
         a.status,
-        `"${(a.mensagem || "").replace(/"/g, "'')}"`,
+        '"' + (a.mensagem || "").replace(/"/g, "'") + '"',
       ]);
 
       const headerMensagens = ["Número", "Data", "De", "Mensagem"];
@@ -101,16 +101,18 @@ export function RelatoriosSection() {
         '"' + (m.mensagem || "").replace(/"/g, "'").replace(/\n/g, " ") + '"',
       ]);
 
+      const dataExport = new Date().toLocaleString("pt-BR");
+      const totalExport = resultado.length;
       const csv = [
-        "RELATÓRIO DE ATENDIMENTOS - WOLF SYSTEM",
-        `Exportado em: ${new Date().toLocaleString("pt-BR")}`,
-        `Total: ${resultado.length} atendimentos`,
+        "RELATORIO DE ATENDIMENTOS - WOLF SYSTEM",
+        "Exportado em: " + dataExport,
+        "Total: " + totalExport + " atendimentos",
         "",
         headerAtendimentos.join(";"),
         ...rowsAtendimentos.map(r => r.join(";")),
         "",
         "",
-        "HISTÓRICO DE MENSAGENS",
+        "HISTORICO DE MENSAGENS",
         headerMensagens.join(";"),
         ...rowsMensagens.map(r => r.join(";")),
       ].join("\n");
