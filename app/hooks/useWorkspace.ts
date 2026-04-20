@@ -11,6 +11,7 @@ type Workspace = {
   conexoes_limite: string;
   ia: string;
   ativo: boolean;
+  username: string;
 };
 
 type User = {
@@ -26,28 +27,13 @@ export function useWorkspace() {
   useEffect(() => {
     const fetchWorkspace = async () => {
       setLoading(true);
-
-      // Pega o usuário logado
       const { data: { user: authUser } } = await supabase.auth.getUser();
-
-      if (!authUser) {
-        setLoading(false);
-        return;
-      }
-
+      if (!authUser) { setLoading(false); return; }
       setUser({ id: authUser.id, email: authUser.email || "" });
-
-      // Busca o workspace do usuário
-      const { data: ws } = await supabase
-        .from("workspaces")
-        .select("*")
-        .eq("owner_id", authUser.id)
-        .single();
-
+      const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", authUser.id).single();
       setWorkspace(ws || null);
       setLoading(false);
     };
-
     fetchWorkspace();
   }, []);
 
@@ -56,5 +42,8 @@ export function useWorkspace() {
     window.location.href = "/";
   };
 
-  return { workspace, user, loading, signOut };
+  // wsId retorna username se existir, senão id numérico como fallback
+  const wsId = workspace?.username || workspace?.id?.toString() || "1";
+
+  return { workspace, user, loading, signOut, wsId };
 }
