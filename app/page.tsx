@@ -72,6 +72,9 @@ export default function Site() {
     },
   ];
 
+  const irParaCadastro = () => window.location.href = "https://app.wolfgyn.com.br/login/register";
+  const irParaLogin = () => window.location.href = "https://app.wolfgyn.com.br/login";
+
   return (
     <div style={{ fontFamily: "Arial, sans-serif", background: "#0a0a0a", minHeight: "100vh", color: "white" }}>
 
@@ -84,7 +87,7 @@ export default function Site() {
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <a href="#planos" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>Planos</a>
           <a href="#recursos" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>Recursos</a>
-          <button onClick={() => router.push("/login")} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 14, cursor: "pointer", fontWeight: "bold" }}>
+          <button onClick={irParaLogin} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 14, cursor: "pointer", fontWeight: "bold" }}>
             Acessar Sistema
           </button>
         </div>
@@ -103,7 +106,7 @@ export default function Site() {
           Automatize seu atendimento, gerencie seus leads e aumente suas vendas com o poder da Inteligência Artificial.
         </p>
         <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => router.push("/register")} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 10, padding: "14px 32px", fontSize: 16, cursor: "pointer", fontWeight: "bold" }}>
+          <button onClick={irParaCadastro} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 10, padding: "14px 32px", fontSize: 16, cursor: "pointer", fontWeight: "bold" }}>
             Começar Teste Grátis →
           </button>
           <a href="#planos" style={{ background: "none", color: "white", border: "1px solid #374151", borderRadius: 10, padding: "14px 32px", fontSize: 16, cursor: "pointer", fontWeight: "bold", textDecoration: "none", display: "inline-block" }}>
@@ -180,7 +183,7 @@ export default function Site() {
                   </div>
                 ))}
               </div>
-              <button onClick={() => router.push("/register")} style={{ width: "100%", background: plano.destaque ? plano.cor : "none", color: plano.destaque ? "white" : plano.cor, border: `2px solid ${plano.cor}`, borderRadius: 10, padding: "12px", fontSize: 15, cursor: "pointer", fontWeight: "bold" }}>
+              <button onClick={irParaCadastro} style={{ width: "100%", background: plano.destaque ? plano.cor : "none", color: plano.destaque ? "white" : plano.cor, border: `2px solid ${plano.cor}`, borderRadius: 10, padding: "12px", fontSize: 15, cursor: "pointer", fontWeight: "bold" }}>
                 Começar Agora →
               </button>
             </div>
@@ -192,7 +195,7 @@ export default function Site() {
       <section style={{ padding: "80px 32px", textAlign: "center", background: "#111", borderTop: "1px solid #1f2937" }}>
         <h2 style={{ fontSize: 36, fontWeight: "bold", margin: "0 0 16px 0" }}>Pronto para <span style={{ color: "#16a34a" }}>transformar</span> seu atendimento?</h2>
         <p style={{ color: "#9ca3af", fontSize: 16, marginBottom: 32 }}>Comece hoje mesmo. Sem burocracia, sem fidelidade.</p>
-        <button onClick={() => router.push("/register")} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 10, padding: "16px 40px", fontSize: 18, cursor: "pointer", fontWeight: "bold" }}>
+        <button onClick={irParaCadastro} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 10, padding: "16px 40px", fontSize: 18, cursor: "pointer", fontWeight: "bold" }}>
           Criar Conta Grátis 🐺
         </button>
       </section>
