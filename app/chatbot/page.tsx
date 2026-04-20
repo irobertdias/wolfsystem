@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
+import { usePermissao } from "../hooks/usePermissao";
 
 type Atendimento = { id: number; created_at: string; numero: string; nome: string; mensagem: string; status: string; fila: string; atendente: string; workspace_id: string; };
 type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; };
@@ -13,8 +14,8 @@ function ChatbotInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const aba = searchParams.get("aba") || "chat";
-  const setAba = (novaAba: string) => router.push(`/chatbot?aba=${novaAba}`);
   const { workspace, wsId, loading: loadingWorkspace } = useWorkspace();
+  const { permissoes, isDono } = usePermissao();
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const [menuAberto, setMenuAberto] = useState<string | null>("atendimentos");
@@ -32,7 +33,7 @@ function ChatbotInner() {
   const [showModalQR, setShowModalQR] = useState(false);
   const [showMenuEngrenagem, setShowMenuEngrenagem] = useState<number | null>(null);
   const [qrConexaoId, setQrConexaoId] = useState<number | null>(null);
-  const [qrWsId, setQrWsId] = useState("1");
+  const [qrWsId, setQrWsId] = useState("");
   const [enviandoMsg, setEnviandoMsg] = useState(false);
   const [resetando, setResetando] = useState(false);
   const [qrImageUrl, setQrImageUrl] = useState("");
@@ -71,12 +72,39 @@ function ChatbotInner() {
     { de: "Você", texto: "Pode oferecer 10% para ele!", hora: "10:06" },
   ];
 
+  // Menus filtrados por permissão
   const menus = [
-    { key: "atendimentos", icon: "💬", label: "Atendimentos", subitens: [{ key: "chat", label: "Conversas" }, { key: "dashboard_atendimentos", label: "Dashboard" }] },
-    { key: "empresa_filas", icon: "🏢", label: "Empresas & Filas", subitens: [{ key: "empresas", label: "Empresas" }, { key: "filas", label: "Filas" }, { key: "conexoes", label: "Conexões" }] },
-    { key: "automacao", icon: "🤖", label: "Automação", subitens: [{ key: "fluxos", label: "Chatbot / Fluxos" }, { key: "claude", label: "Claude AI" }, { key: "gpt", label: "ChatGPT" }] },
-    { key: "cadastro", icon: "📋", label: "Cadastro", subitens: [{ key: "usuarios", label: "Usuários" }, { key: "departamentos", label: "Departamentos" }, { key: "etiquetas", label: "Etiquetas" }] },
-    { key: "configuracoes", icon: "⚙️", label: "Configurações", subitens: [{ key: "roleta", label: "Roleta" }, { key: "relatorios", label: "Relatórios" }, { key: "respostas_rapidas", label: "Respostas Rápidas" }] },
+    ...((permissoes.chat_proprio || permissoes.chat_todos || permissoes.dashboard) ? [{
+      key: "atendimentos", icon: "💬", label: "Atendimentos",
+      subitens: [
+        ...((permissoes.chat_proprio || permissoes.chat_todos) ? [{ key: "chat", label: "Conversas" }] : []),
+        ...(permissoes.dashboard ? [{ key: "dashboard_atendimentos", label: "Dashboard" }] : []),
+      ]
+    }] : []),
+    ...((isDono || permissoes.filas || permissoes.conexoes) ? [{
+      key: "empresa_filas", icon: "🏢", label: "Empresas & Filas",
+      subitens: [
+        ...(isDono ? [{ key: "empresas", label: "Empresas" }] : []),
+        ...(permissoes.filas ? [{ key: "filas", label: "Filas" }] : []),
+        ...(permissoes.conexoes ? [{ key: "conexoes", label: "Conexões" }] : []),
+      ]
+    }] : []),
+    ...(isDono ? [{
+      key: "automacao", icon: "🤖", label: "Automação",
+      subitens: [{ key: "fluxos", label: "Chatbot / Fluxos" }, { key: "claude", label: "Claude AI" }, { key: "gpt", label: "ChatGPT" }]
+    }] : []),
+    ...(isDono ? [{
+      key: "cadastro", icon: "📋", label: "Cadastro",
+      subitens: [{ key: "usuarios", label: "Usuários" }, { key: "departamentos", label: "Departamentos" }, { key: "etiquetas", label: "Etiquetas" }]
+    }] : []),
+    ...((isDono || permissoes.relatorios || permissoes.respostas_rapidas) ? [{
+      key: "configuracoes", icon: "⚙️", label: "Configurações",
+      subitens: [
+        ...(isDono ? [{ key: "roleta", label: "Roleta" }] : []),
+        ...(permissoes.relatorios ? [{ key: "relatorios", label: "Relatórios" }] : []),
+        ...(permissoes.respostas_rapidas ? [{ key: "respostas_rapidas", label: "Respostas Rápidas" }] : []),
+      ]
+    }] : []),
   ];
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
@@ -125,7 +153,6 @@ function ChatbotInner() {
 
   useEffect(() => { setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }, [historico]);
 
-  // ── POLLING QR ──
   useEffect(() => {
     if (!qrPolling || !showModalQR) return;
     const interval = setInterval(async () => {
@@ -142,7 +169,6 @@ function ChatbotInner() {
             fetchConexoes();
           }
           setShowModalQR(false);
-          setQrPolling(false);
           await fetchConexoes();
         }
       } catch (e) {}
@@ -174,7 +200,12 @@ function ChatbotInner() {
   };
 
   const atendimentosFiltrados = atendimentos
-    .filter(a => abaConversa === "abertos" ? a.status === "aberto" : abaConversa === "pendentes" ? a.status === "pendente" : abaConversa === "resolvidos" ? a.status === "resolvido" : true)
+    .filter(a => {
+      if (abaConversa === "abertos") return a.status === "aberto";
+      if (abaConversa === "pendentes") return a.status === "pendente";
+      if (abaConversa === "resolvidos") return a.status === "resolvido";
+      return true;
+    })
     .filter(a => !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.numero?.includes(busca));
 
   const enviarMensagem = async () => {
@@ -185,20 +216,9 @@ function ChatbotInner() {
     setEnviandoMsg(false);
   };
 
-  const assumirChat = async (numero: string) => {
-    await wa("assumir", { numero, workspaceId: wsId });
-    fetchAtendimentos();
-  };
-
-  const finalizarChat = async (numero: string) => {
-    await wa("finalizar", { numero, workspaceId: wsId });
-    fetchAtendimentos(); setAtendimentoAtivo(null); setHistorico([]);
-  };
-
-  const devolverBot = async (numero: string) => {
-    await wa("devolver", { numero, workspaceId: wsId });
-    fetchAtendimentos();
-  };
+  const assumirChat = async (numero: string) => { await wa("assumir", { numero, workspaceId: wsId }); fetchAtendimentos(); };
+  const finalizarChat = async (numero: string) => { await wa("finalizar", { numero, workspaceId: wsId }); fetchAtendimentos(); setAtendimentoAtivo(null); setHistorico([]); };
+  const devolverBot = async (numero: string) => { await wa("devolver", { numero, workspaceId: wsId }); fetchAtendimentos(); };
 
   const testarWABA = async () => {
     if (!form.phoneNumberId || !form.token) { alert("Preencha Phone Number ID e Token!"); return; }
@@ -212,18 +232,12 @@ function ChatbotInner() {
 
   const abrirEditar = (c: Conexao) => {
     setEditandoId(c.id);
-    setForm({
-      nome: c.nome, tipo: c.tipo, phoneNumberId: c.wab_phone_id || "", wabaId: c.waba_id || "",
-      token: c.wab_token || "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia,
-      apiKey: c.api_key || "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "",
-      fila: c.fila, pararSeAtendente: c.parar_se_atendente,
-    });
-    fetchFluxos();
-    setShowModalNovoCanal(true);
-    setShowMenuEngrenagem(null);
+    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.wab_phone_id || "", wabaId: c.waba_id || "", token: c.wab_token || "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: c.api_key || "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila, pararSeAtendente: c.parar_se_atendente });
+    fetchFluxos(); setShowModalNovoCanal(true); setShowMenuEngrenagem(null);
   };
 
   const salvarCanal = async () => {
+    if (!wsId) { alert("Aguarde o workspace carregar!"); return; }
     if (!form.nome.trim()) { alert("Digite o nome do canal!"); return; }
     if (form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { alert("Preencha Phone Number ID e Token!"); return; }
     if (form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
@@ -231,16 +245,10 @@ function ChatbotInner() {
     try {
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
       await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey || "", prompt: form.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: form.fila, modo: form.modo });
-      const payload = {
-        nome: form.nome, modo: form.modo, ia: form.ia,
-        fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
-        fila: form.fila, api_key: form.apiKey, prompt: form.prompt,
-        parar_se_atendente: form.pararSeAtendente,
-      };
+      const payload = { nome: form.nome, modo: form.modo, ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "", fila: form.fila, api_key: form.apiKey, prompt: form.prompt, parar_se_atendente: form.pararSeAtendente };
       if (editandoId) {
         await supabase.from("conexoes").update(payload).eq("id", editandoId);
-        setEditandoId(null);
-        alert("✅ Canal atualizado!");
+        setEditandoId(null); alert("✅ Canal atualizado!");
       } else {
         if (form.tipo === "waba") {
           const webhookToken = form.webhookToken || `wolf_${wsId}_${Date.now()}`;
@@ -253,39 +261,27 @@ function ChatbotInner() {
         }
         alert("✅ Canal criado com sucesso!");
       }
-      await fetchConexoes();
-      setShowModalNovoCanal(false);
-      setForm(formInicial);
-      setWabaTeste(null);
+      await fetchConexoes(); setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null);
     } catch (e: any) { alert("Erro: " + e.message); }
     setSalvandoCanal(false);
   };
 
   const abrirQR = async (id: number) => {
-    const wsIdAtual = wsId;
-    setQrWsId(wsIdAtual);
-    setQrConexaoId(id);
-    setResetando(true);
-    setShowModalQR(true);
-    setQrImageUrl("");
-    setQrConectado(false);
-    setQrNumero("");
+    setQrWsId(wsId); setQrConexaoId(id); setResetando(true); setShowModalQR(true);
+    setQrImageUrl(""); setQrConectado(false); setQrNumero("");
     const canal = conexoes.find(c => c.id === id);
     if (canal?.modo === "ia" && canal.api_key) {
-      try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.api_key, prompt: canal.prompt || "Você é um atendente virtual.", workspaceId: wsIdAtual, fila: canal.fila }); } catch (e) {}
+      try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.api_key, prompt: canal.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: canal.fila }); } catch (e) {}
     }
-    try { await wa("resetar", { workspaceId: wsIdAtual }); } catch (e) {}
+    try { await wa("resetar", { workspaceId: wsId }); } catch (e) {}
     await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", id);
-    await fetchConexoes();
-    setResetando(false);
-    setQrPolling(true);
+    await fetchConexoes(); setResetando(false); setQrPolling(true);
   };
 
   const excluirCanal = async (id: number) => {
     if (!confirm("Excluir esse canal?")) return;
     await supabase.from("conexoes").delete().eq("id", id);
-    await fetchConexoes();
-    setShowMenuEngrenagem(null);
+    await fetchConexoes(); setShowMenuEngrenagem(null);
   };
 
   const tempoRelativo = (data: string) => { const d = Math.floor((Date.now() - new Date(data).getTime()) / 60000); return d < 1 ? "agora" : d < 60 ? `${d}min` : d < 1440 ? `${Math.floor(d/60)}h` : `${Math.floor(d/1440)}d`; };
@@ -306,19 +302,26 @@ function ChatbotInner() {
       <div style={{ width: 240, background: "#111", borderRight: "1px solid #1f2937", display: "flex", flexDirection: "column", overflowY: "auto" }}>
         <div style={{ padding: 16, borderBottom: "1px solid #1f2937", display: "flex", alignItems: "center", gap: 10 }}>
           <img src="/logo1.png" alt="Wolf" style={{ width: 32, filter: "brightness(0) invert(1)" }} />
-          <span style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>Wolf Chatbot</span>
+          <div>
+            <span style={{ color: "white", fontWeight: "bold", fontSize: 14, display: "block" }}>Wolf Chatbot</span>
+            <span style={{ color: "#16a34a", fontSize: 10 }}>{workspace?.nome || "Carregando..."}</span>
+          </div>
         </div>
         <div style={{ padding: 8, flex: 1 }}>
           {menus.map(menu => (
             <div key={menu.key}>
-              <button onClick={() => setMenuAberto(menuAberto === menu.key ? null : menu.key)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "10px 12px", background: "none", border: "none", borderRadius: 8, cursor: "pointer", color: menuAberto === menu.key ? "#3b82f6" : "#9ca3af", fontSize: 13, fontWeight: "bold", textAlign: "left" }}>
+              <button onClick={() => setMenuAberto(menuAberto === menu.key ? null : menu.key)}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "10px 12px", background: "none", border: "none", borderRadius: 8, cursor: "pointer", color: menuAberto === menu.key ? "#3b82f6" : "#9ca3af", fontSize: 13, fontWeight: "bold", textAlign: "left" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>{menu.icon} {menu.label}</span>
                 <span style={{ fontSize: 10 }}>{menuAberto === menu.key ? "▼" : "▶"}</span>
               </button>
               {menuAberto === menu.key && (
                 <div style={{ paddingLeft: 12, marginBottom: 4 }}>
                   {menu.subitens.map(sub => (
-                    <button key={sub.key} onClick={() => router.push(`/chatbot?aba=${sub.key}`)} style={{ display: "block", width: "100%", padding: "8px 12px", background: aba === sub.key ? "#3b82f622" : "none", border: "none", borderRadius: 8, cursor: "pointer", color: aba === sub.key ? "#3b82f6" : "#6b7280", fontSize: 12, textAlign: "left", fontWeight: aba === sub.key ? "bold" : "normal" }}>{sub.label}</button>
+                    <button key={sub.key} onClick={() => router.push(`/chatbot?aba=${sub.key}`)}
+                      style={{ display: "block", width: "100%", padding: "8px 12px", background: aba === sub.key ? "#3b82f622" : "none", border: "none", borderRadius: 8, cursor: "pointer", color: aba === sub.key ? "#3b82f6" : "#6b7280", fontSize: 12, textAlign: "left", fontWeight: aba === sub.key ? "bold" : "normal" }}>
+                      {sub.label}
+                    </button>
                   ))}
                 </div>
               )}
@@ -341,7 +344,7 @@ function ChatbotInner() {
               </div>
               <div style={{ padding: "6px 12px", borderBottom: "1px solid #1f2937", display: "flex", gap: 6 }}>
                 <button onClick={fetchAtendimentos} style={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 6, padding: "5px 9px", color: "#9ca3af", cursor: "pointer", fontSize: 14 }}>🔄</button>
-                <button onClick={() => setShowChatInterno(!showChatInterno)} style={{ background: showChatInterno ? "#8b5cf622" : "#1f2937", border: "1px solid #374151", borderRadius: 6, padding: "5px 9px", color: showChatInterno ? "#8b5cf6" : "#9ca3af", cursor: "pointer", fontSize: 14 }}>💭</button>
+                {permissoes.chat_interno && <button onClick={() => setShowChatInterno(!showChatInterno)} style={{ background: showChatInterno ? "#8b5cf622" : "#1f2937", border: "1px solid #374151", borderRadius: 6, padding: "5px 9px", color: showChatInterno ? "#8b5cf6" : "#9ca3af", cursor: "pointer", fontSize: 14 }}>💭</button>}
               </div>
               <div style={{ display: "flex", borderBottom: "1px solid #1f2937" }}>
                 {[{ key: "abertos", label: "Abertos", color: "#3b82f6", count: atendimentos.filter(a => a.status === "aberto").length },
@@ -353,7 +356,7 @@ function ChatbotInner() {
                   </button>
                 ))}
               </div>
-              {showChatInterno ? (
+              {showChatInterno && permissoes.chat_interno ? (
                 <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                   <div style={{ padding: "8px 12px", borderBottom: "1px solid #1f2937" }}><span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: "bold" }}>💭 Chat Interno</span></div>
                   <div style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -404,7 +407,7 @@ function ChatbotInner() {
                     <div style={{ display: "flex", gap: 8 }}>
                       {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") && <button onClick={() => assumirChat(atendimentoAtivo.numero)} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>👤 Assumir</button>}
                       {atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && <button onClick={() => devolverBot(atendimentoAtivo.numero)} style={{ background: "#8b5cf622", color: "#8b5cf6", border: "1px solid #8b5cf633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🤖 Devolver ao Bot</button>}
-                      {atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && <button onClick={() => window.open(`/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(atendimentoAtivo.numero.replace(/\D/g, ""))}`, "_blank")} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💰 Finalizar Venda</button>}
+                      {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && <button onClick={() => window.open(`/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(atendimentoAtivo.numero.replace(/\D/g, ""))}`, "_blank")} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💰 Finalizar Venda</button>}
                       <div style={{ position: "relative" }}>
                         <button onClick={() => setShowTransferir(!showTransferir)} style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>↗️ Transferir</button>
                         {showTransferir && (
@@ -433,15 +436,15 @@ function ChatbotInner() {
                         })}
                     <div ref={chatBottomRef} />
                   </div>
-                  {showRespostas && (
+                  {showRespostas && permissoes.respostas_rapidas && (
                     <div style={{ background: "#1f2937", borderTop: "1px solid #374151", padding: 12, maxHeight: 180, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
                       {respostasRapidas.map((r, i) => <button key={i} onClick={() => { setMensagem(r.mensagem); setShowRespostas(false); }} style={{ background: "#111", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 12, cursor: "pointer", textAlign: "left", display: "flex", gap: 10 }}><span style={{ color: "#3b82f6", fontWeight: "bold", minWidth: 60 }}>{r.atalho}</span><span style={{ color: "#9ca3af" }}>{r.mensagem}</span></button>)}
                     </div>
                   )}
                   <div style={{ borderTop: "1px solid #1f2937", background: "#111", padding: "10px 16px", display: "flex", gap: 10, alignItems: "center" }}>
-                    <button onClick={() => setShowRespostas(!showRespostas)} style={{ background: showRespostas ? "#3b82f622" : "#1f2937", color: showRespostas ? "#3b82f6" : "#6b7280", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", fontSize: 18, cursor: "pointer" }}>⚡</button>
-                    <input placeholder="Digite uma mensagem ou / para respostas rápidas..." value={mensagem}
-                      onChange={e => { setMensagem(e.target.value); if (e.target.value === "/") setShowRespostas(true); else if (!e.target.value) setShowRespostas(false); }}
+                    {permissoes.respostas_rapidas && <button onClick={() => setShowRespostas(!showRespostas)} style={{ background: showRespostas ? "#3b82f622" : "#1f2937", color: showRespostas ? "#3b82f6" : "#6b7280", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", fontSize: 18, cursor: "pointer" }}>⚡</button>}
+                    <input placeholder="Digite uma mensagem..." value={mensagem}
+                      onChange={e => { setMensagem(e.target.value); if (e.target.value === "/" && permissoes.respostas_rapidas) setShowRespostas(true); else if (!e.target.value) setShowRespostas(false); }}
                       onKeyDown={e => e.key === "Enter" && enviarMensagem()}
                       style={{ flex: 1, background: "#1f2937", border: "1px solid #374151", borderRadius: 10, padding: "10px 16px", color: "white", fontSize: 14 }} />
                     <button onClick={() => setGravando(!gravando)} style={{ background: gravando ? "#dc262622" : "#1f2937", color: gravando ? "#dc2626" : "#6b7280", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", fontSize: 18, cursor: "pointer" }}>{gravando ? "⏹" : "🎤"}</button>
@@ -459,56 +462,47 @@ function ChatbotInner() {
           </div>
         )}
 
-        {/* CONEXÕES */}
-        {aba === "conexoes" && (
-          <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto" }}>
+        {/* CONEXÕES — só para quem tem permissão */}
+        {aba === "conexoes" && !permissoes.conexoes && (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+            <span style={{ fontSize: 48 }}>🔒</span>
+            <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>Sem permissão</h2>
+            <p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Você não tem acesso a esta área</p>
+          </div>
+        )}
 
-            {/* Modal QR */}
+        {aba === "conexoes" && permissoes.conexoes && (
+          <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto" }}>
             {showModalQR && (
               <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ background: "#111", borderRadius: 16, padding: 32, width: 400, border: "1px solid #1f2937", textAlign: "center" }}>
                   <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: "0 0 8px" }}>📱 Conectar WhatsApp</h2>
                   <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Escaneie o QR Code com seu WhatsApp</p>
                   <div style={{ background: "#0a0a0a", borderRadius: 12, padding: 16, minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                    {resetando ? (
-                      <p style={{ color: "#f59e0b", fontSize: 14 }}>⏳ Iniciando sessão...</p>
-                    ) : qrConectado ? (
-                      <div><p style={{ fontSize: 48, margin: "0 0 8px" }}>✅</p><p style={{ color: "#16a34a", fontSize: 16, fontWeight: "bold", margin: 0 }}>WhatsApp Conectado!</p>{qrNumero && <p style={{ color: "#9ca3af", fontSize: 13, margin: "8px 0 0" }}>{qrNumero}</p>}</div>
-                    ) : qrImageUrl ? (
-                      <img src={qrImageUrl} alt="QR Code" style={{ width: 220, height: 220, borderRadius: 8 }} />
-                    ) : (
-                      <div><p style={{ color: "#9ca3af", fontSize: 14, margin: "0 0 8px" }}>⏳ Gerando QR Code...</p><p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>
-                    )}
+                    {resetando ? <p style={{ color: "#f59e0b", fontSize: 14 }}>⏳ Iniciando sessão...</p>
+                      : qrConectado ? <div><p style={{ fontSize: 48, margin: "0 0 8px" }}>✅</p><p style={{ color: "#16a34a", fontSize: 16, fontWeight: "bold", margin: 0 }}>WhatsApp Conectado!</p>{qrNumero && <p style={{ color: "#9ca3af", fontSize: 13, margin: "8px 0 0" }}>{qrNumero}</p>}</div>
+                      : qrImageUrl ? <img src={qrImageUrl} alt="QR Code" style={{ width: 220, height: 220, borderRadius: 8 }} />
+                      : <div><p style={{ color: "#9ca3af", fontSize: 14, margin: "0 0 8px" }}>⏳ Gerando QR Code...</p><p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>}
                   </div>
                   <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
                     <button onClick={() => { setShowModalQR(false); setQrPolling(false); setQrImageUrl(""); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Fechar</button>
-                    {!qrConectado && (
-                      <button onClick={async () => {
-                        if (qrConexaoId) {
-                          await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrConexaoId);
-                          await fetchConexoes();
-                        }
-                        setShowModalQR(false); setQrPolling(false);
-                      }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>
-                    )}
+                    {!qrConectado && <button onClick={async () => { if (qrConexaoId) { await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrConexaoId); await fetchConexoes(); } setShowModalQR(false); setQrPolling(false); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Modal Novo Canal / Editar */}
             {showModalNovoCanal && (
               <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
                 <div style={{ background: "#111", borderRadius: 16, width: "100%", maxWidth: 640, border: "1px solid #1f2937", display: "flex", flexDirection: "column", maxHeight: "92vh", overflow: "hidden" }}>
                   <div style={{ padding: "20px 28px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                       <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>{editandoId ? "✏️ Editar Canal" : "➕ Novo Canal"}</h2>
-                      <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{editandoId ? "Altere as configurações do canal" : "Configure o canal e como ele vai atender seus leads"}</p>
+                      <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{editandoId ? "Altere as configurações do canal" : "Configure o canal"}</p>
                     </div>
                     <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
                   </div>
                   <div style={{ overflowY: "auto", padding: "24px 28px", display: "flex", flexDirection: "column", gap: 24 }}>
-
                     {!editandoId && (
                       <div>
                         <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>1. Tipo de Canal</p>
@@ -523,12 +517,10 @@ function ChatbotInner() {
                         </div>
                       </div>
                     )}
-
                     <div>
                       <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>{editandoId ? "1" : "2"}. Nome do Canal</p>
                       <input placeholder="Ex: WhatsApp Vendas..." value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} style={IS} />
                     </div>
-
                     {!editandoId && form.tipo === "waba" && (
                       <div>
                         <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>3. Credenciais da API Meta</p>
@@ -539,18 +531,15 @@ function ChatbotInner() {
                           <button onClick={testarWABA} disabled={testandoWABA} style={{ background: testandoWABA ? "#1d4ed8" : "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{testandoWABA ? "⏳ Testando..." : "🔍 Testar Conexão"}</button>
                           {wabaTeste && <div style={{ background: wabaTeste.success ? "#16a34a22" : "#dc262622", border: `1px solid ${wabaTeste.success ? "#16a34a33" : "#dc262633"}`, borderRadius: 8, padding: 10 }}><p style={{ color: wabaTeste.success ? "#16a34a" : "#dc2626", fontSize: 13, margin: 0, fontWeight: "bold" }}>{wabaTeste.success ? `✅ ${wabaTeste.nome}` : `❌ ${wabaTeste.error}`}</p></div>}
                           <div style={{ background: "#111", borderRadius: 8, padding: 12 }}>
-                            <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 4px", textTransform: "uppercase" }}>URL do Webhook (cole na Meta)</p>
+                            <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 4px", textTransform: "uppercase" }}>URL do Webhook</p>
                             <p style={{ color: "#16a34a", fontSize: 12, fontWeight: "bold", margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/webhook/meta</p>
                           </div>
                           <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token de Verificação</label><input placeholder="meu_token_secreto" value={form.webhookToken} onChange={e => setForm(p => ({ ...p, webhookToken: e.target.value }))} style={IS} /></div>
                         </div>
                       </div>
                     )}
-
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>
-                        {editandoId ? "2" : form.tipo === "waba" ? "4" : "3"}. Automação
-                      </p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>{editandoId ? "2" : form.tipo === "waba" ? "4" : "3"}. Automação</p>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
                         {[{ key: "nenhum", icon: "🚫", label: "Sem automação", desc: "Só humano" }, { key: "ia", icon: "🤖", label: "Usar IA", desc: "Claude, GPT..." }, { key: "fluxo", icon: "🔀", label: "Usar Fluxo", desc: "Chatbot visual" }].map(m => (
                           <button key={m.key} onClick={() => setForm(p => ({ ...p, modo: m.key }))} style={{ background: form.modo === m.key ? "#8b5cf622" : "#1f2937", border: `2px solid ${form.modo === m.key ? "#8b5cf6" : "#374151"}`, borderRadius: 10, padding: "12px 10px", cursor: "pointer", textAlign: "center" }}>
@@ -581,7 +570,7 @@ function ChatbotInner() {
                           {fluxos.length === 0 ? (
                             <div style={{ background: "#111", borderRadius: 8, padding: 16, textAlign: "center" }}>
                               <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 10px" }}>Nenhum fluxo criado ainda</p>
-                              <button onClick={() => { router.push("/fluxos"); setShowModalNovoCanal(false); }} style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🔀 Criar Fluxo agora</button>
+                              <button onClick={() => { router.push("/chatbot/fluxos"); setShowModalNovoCanal(false); }} style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🔀 Criar Fluxo agora</button>
                             </div>
                           ) : fluxos.map(f => (
                             <button key={f.id} onClick={() => setForm(p => ({ ...p, fluxoId: f.id.toString() }))} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: form.fluxoId === f.id.toString() ? "#8b5cf622" : "#111", border: `2px solid ${form.fluxoId === f.id.toString() ? "#8b5cf6" : "#374151"}`, borderRadius: 8, padding: "12px 16px", cursor: "pointer", textAlign: "left" }}>
@@ -598,11 +587,8 @@ function ChatbotInner() {
                         </div>
                       )}
                     </div>
-
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>
-                        {editandoId ? "3" : form.tipo === "waba" ? "5" : "4"}. Fila / Departamento
-                      </p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>{editandoId ? "3" : form.tipo === "waba" ? "5" : "4"}. Fila / Departamento</p>
                       <select value={form.fila} onChange={e => setForm(p => ({ ...p, fila: e.target.value }))} style={IS}>
                         <option value="Fila Principal">Fila Principal</option>
                         <option value="Fila Suporte">Fila Suporte</option>
@@ -610,11 +596,8 @@ function ChatbotInner() {
                         <option value="Fila Técnico">Fila Técnico</option>
                       </select>
                     </div>
-
                     <div>
-                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>
-                        {editandoId ? "4" : form.tipo === "waba" ? "6" : "5"}. Comportamento
-                      </p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>{editandoId ? "4" : form.tipo === "waba" ? "6" : "5"}. Comportamento</p>
                       <div style={{ background: "#1f2937", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div>
                           <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>🛑 Parar automação quando atendente assumir</p>
@@ -636,7 +619,6 @@ function ChatbotInner() {
               <div><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>📱 Conexões</h1><p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>Workspace: {workspace?.nome || "Carregando..."}</p></div>
               <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
             </div>
-
             {conexoes.length === 0 ? (
               <div style={{ background: "#111", borderRadius: 12, padding: 48, textAlign: "center", border: "1px solid #1f2937" }}>
                 <p style={{ fontSize: 48, margin: "0 0 16px" }}>📱</p>
@@ -658,7 +640,6 @@ function ChatbotInner() {
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: "bold" }}>{c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxo_nome}` : "🚫 Sem automação"}</span></div>
                       <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Fila:</span><span style={{ color: "#3b82f6", fontSize: 12 }}>{c.fila}</span></div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Para se assumir:</span><span style={{ color: c.parar_se_atendente ? "#16a34a" : "#6b7280", fontSize: 12 }}>{c.parar_se_atendente ? "✅ Sim" : "❌ Não"}</span></div>
                       {c.numero && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Número:</span><span style={{ color: "white", fontSize: 12 }}>{c.numero}</span></div>}
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
@@ -685,7 +666,7 @@ function ChatbotInner() {
           </div>
         )}
 
-        {aba === "dashboard_atendimentos" && (
+        {aba === "dashboard_atendimentos" && permissoes.dashboard && (
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
             <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Dashboard</h1>
             <div style={{ display: "flex", gap: 16 }}>
@@ -699,15 +680,15 @@ function ChatbotInner() {
           </div>
         )}
 
-        {aba === "fluxos" && (<div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center", justifyContent: "center", flex: 1 }}><span style={{ fontSize: 64 }}>🤖</span><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Chatbot / Fluxos</h1><p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Crie fluxos de atendimento automático</p><button onClick={() => router.push("/fluxos")} style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 10, padding: "14px 32px", fontSize: 16, cursor: "pointer", fontWeight: "bold" }}>🤖 Abrir Editor de Fluxos →</button></div>)}
-        {aba === "empresas" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Empresas</h1></div>)}
-        {aba === "filas" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Filas</h1></div>)}
-        {aba === "usuarios" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Usuários</h1></div>)}
-        {aba === "departamentos" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Departamentos</h1></div>)}
-        {aba === "roleta" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Roleta</h1></div>)}
-        {aba === "relatorios" && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Relatórios</h1></div>)}
+        {aba === "fluxos" && isDono && (<div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center", justifyContent: "center", flex: 1 }}><span style={{ fontSize: 64 }}>🤖</span><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Chatbot / Fluxos</h1><p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Crie fluxos de atendimento automático</p><button onClick={() => router.push("/chatbot/fluxos")} style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 10, padding: "14px 32px", fontSize: 16, cursor: "pointer", fontWeight: "bold" }}>🤖 Abrir Editor de Fluxos →</button></div>)}
+        {aba === "empresas" && isDono && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Empresas</h1></div>)}
+        {aba === "filas" && permissoes.filas && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Filas</h1></div>)}
+        {aba === "usuarios" && isDono && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Usuários</h1></div>)}
+        {aba === "departamentos" && isDono && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Departamentos</h1></div>)}
+        {aba === "roleta" && isDono && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Roleta</h1></div>)}
+        {aba === "relatorios" && permissoes.relatorios && (<div style={{ padding: 32 }}><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>Relatórios</h1></div>)}
 
-        {aba === "etiquetas" && (
+        {aba === "etiquetas" && isDono && (
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Etiquetas</h1>
@@ -724,7 +705,7 @@ function ChatbotInner() {
           </div>
         )}
 
-        {(aba === "claude" || aba === "gpt") && (
+        {(aba === "claude" || aba === "gpt") && isDono && (
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
             <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>{aba === "claude" ? "🤖 Claude AI" : "💬 ChatGPT"}</h1>
             <div style={{ background: "#111", borderRadius: 12, padding: 32, border: "1px solid #1f2937", maxWidth: 600, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -735,7 +716,7 @@ function ChatbotInner() {
           </div>
         )}
 
-        {aba === "respostas_rapidas" && (
+        {aba === "respostas_rapidas" && permissoes.respostas_rapidas && (
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Respostas Rápidas</h1><p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>Digite / no chat para usar</p></div>
