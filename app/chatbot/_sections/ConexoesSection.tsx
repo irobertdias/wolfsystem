@@ -7,7 +7,7 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 type Conexao = { id: number; nome: string; tipo: string; status: string; numero: string; modo: string; ia: string; fluxo_id: string; fluxo_nome: string; fila: string; api_key: string; prompt: string; parar_se_atendente: boolean; wab_token?: string; wab_phone_id?: string; waba_id?: string; webhook_token?: string; workspace_id: string; };
 type FluxoItem = { id: number; nome: string; ativo: boolean; };
 
-export default function ConecoesPage() {
+export function ConexoesSection() {
   const router = useRouter();
   const { workspace, wsId } = useWorkspace();
 
@@ -146,8 +146,8 @@ export default function ConecoesPage() {
     await fetchConexoes(); setShowMenuEngrenagem(null);
   };
 
-  const modoColor: Record<string,string> = { nenhum: "#6b7280", ia: "#10b981", fluxo: "#8b5cf6" };
-  const iaLabel: Record<string,string> = { gpt: "ChatGPT", claude: "Claude AI", gemini: "Gemini", deepseek: "DeepSeek" };
+  const modoColor: Record<string, string> = { nenhum: "#6b7280", ia: "#10b981", fluxo: "#8b5cf6" };
+  const iaLabel: Record<string, string> = { gpt: "ChatGPT", claude: "Claude AI", gemini: "Gemini", deepseek: "DeepSeek" };
 
   const Toggle = ({ value, onChange }: { value: boolean; onChange: () => void }) => (
     <button onClick={onChange} style={{ width: 44, height: 24, background: value ? "#16a34a" : "#374151", borderRadius: 12, cursor: "pointer", border: "none", position: "relative", flexShrink: 0 }}>

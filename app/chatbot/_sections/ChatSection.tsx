@@ -8,7 +8,7 @@ import { usePermissao } from "../../hooks/usePermissao";
 type Atendimento = { id: number; created_at: string; numero: string; nome: string; mensagem: string; status: string; fila: string; atendente: string; workspace_id: string; };
 type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; };
 
-export default function ChatPage() {
+export function ChatSection() {
   const router = useRouter();
   const { workspace, wsId } = useWorkspace();
   const { permissoes } = usePermissao();
@@ -106,7 +106,7 @@ export default function ChatPage() {
 
   return (
     <div style={{ display: "flex", flex: 1, height: "100vh" }}>
-      {/* LISTA DE ATENDIMENTOS */}
+      {/* LISTA */}
       <div style={{ width: 310, background: "#111", borderRight: "1px solid #1f2937", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "10px 12px", borderBottom: "1px solid #1f2937" }}>
           <input placeholder="Buscar..." value={busca} onChange={e => setBusca(e.target.value)} style={{ ...IS, padding: "8px 12px", fontSize: 12 }} />

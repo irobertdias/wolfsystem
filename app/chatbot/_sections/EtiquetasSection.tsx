@@ -1,5 +1,6 @@
 "use client";
-export default function EtiquetasPage() {
+
+export function EtiquetasSection() {
   const etiquetas = [
     { nome: "Lead Quente", cor: "#dc2626" },
     { nome: "Lead Frio", cor: "#3b82f6" },
@@ -11,7 +12,7 @@ export default function EtiquetasPage() {
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>🏷️ Etiquetas</h1>
+        <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Etiquetas</h1>
         <button style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Nova Etiqueta</button>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
