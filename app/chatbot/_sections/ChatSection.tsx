@@ -333,6 +333,11 @@ export function ChatSection() {
     setTimeout(() => janela.print(), 500);
   };
 
+  // ✅ URL pública dos áudios servidos pelo VPS
+  const WA_BASE = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
+  const isAudioMsg = (txt: string) => typeof txt === "string" && txt.startsWith("[audio:") && txt.endsWith("]");
+  const audioFilename = (txt: string) => txt.replace(/^\[audio:/, "").replace(/\]$/, "");
+  const audioUrl = (filename: string) => `${WA_BASE}/audios/${filename}`;
   const numeroSanitizado = (num: string) => (num || "").replace(/\D/g, "");
   const etiquetasAplicadas = etiquetasWorkspace.filter(e => etiquetasAtendimento.includes(e.id));
 
@@ -451,7 +456,7 @@ export function ChatSection() {
                     <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       📱 {numeroSanitizado(a.numero)}
                     </p>
-                    <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.mensagem}</p>
+                    <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isAudioMsg(a.mensagem) ? "🎤 Mensagem de áudio" : a.mensagem}</p>
                     <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                         {a.fila && <span style={{ background: "#00a88422", color: "#00a884", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>{a.fila}</span>}
@@ -611,7 +616,14 @@ export function ChatSection() {
                               {isBot ? "🤖 BOT" : "👤 Você"}
                             </p>
                           )}
-                          <p style={{ color: "#e9edef", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.mensagem}</p>
+                          {isAudioMsg(msg.mensagem) ? (
+                            <audio controls src={audioUrl(audioFilename(msg.mensagem))}
+                              style={{ height: 38, width: "100%", maxWidth: 280, display: "block" }}>
+                              Seu navegador não suporta áudio.
+                            </audio>
+                          ) : (
+                            <p style={{ color: "#e9edef", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.mensagem}</p>
+                          )}
                           {msg.created_at && (
                             <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 10, margin: "2px 0 0", textAlign: "right" }}>
                               {horaMsg(msg.created_at)}{!isCliente && " ✓✓"}
