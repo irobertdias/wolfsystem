@@ -14,7 +14,6 @@ type Atendimento = {
 type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; };
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
 
-// ═══ Background doodle WhatsApp-style (SVG inline) ═══
 const WA_BG_DARK = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200' opacity='0.04'><g fill='%23ffffff'><path d='M40 40 l10 0 l0 10 l-10 0 z'/><circle cx='70' cy='75' r='4'/><path d='M110 35 l15 -5 l5 15 l-15 5 z' opacity='0.6'/><circle cx='150' cy='55' r='3'/><path d='M30 110 l8 8 l-8 8 l-8 -8 z'/><circle cx='80' cy='135' r='5'/><path d='M130 115 l10 0 l-5 10 z' opacity='0.7'/><circle cx='165' cy='150' r='4'/><path d='M50 170 l12 0 l-6 12 z'/><circle cx='100' cy='180' r='3'/></g></svg>")`;
 
 export function ChatSection() {
@@ -30,8 +29,7 @@ export function ChatSection() {
   const [showChatInterno, setShowChatInterno] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
   const [showMenuTresPontos, setShowMenuTresPontos] = useState(false);
-  // ✅ Aba nova: automatico | aguardando | abertos | finalizados
-  const [abaConversa, setAbaConversa] = useState<"automatico" | "aguardando" | "abertos" | "finalizados">("abertos");
+  const [abaConversa, setAbaConversa] = useState<"automatico" | "aguardando" | "abertos" | "finalizados">("aguardando");
   const [busca, setBusca] = useState("");
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [atendimentoAtivo, setAtendimentoAtivo] = useState<Atendimento | null>(null);
@@ -86,17 +84,12 @@ export function ChatSection() {
 
   const fetchEtiquetasWorkspace = async () => {
     if (!wsId) return;
-    const { data } = await supabase.from("etiquetas")
-      .select("*")
-      .eq("workspace_id", wsId)
-      .order("nome", { ascending: true });
+    const { data } = await supabase.from("etiquetas").select("*").eq("workspace_id", wsId).order("nome", { ascending: true });
     setEtiquetasWorkspace(data || []);
   };
 
   const fetchEtiquetasAtendimento = async (atendimentoId: number) => {
-    const { data } = await supabase.from("atendimento_etiquetas")
-      .select("etiqueta_id")
-      .eq("atendimento_id", atendimentoId);
+    const { data } = await supabase.from("atendimento_etiquetas").select("etiqueta_id").eq("atendimento_id", atendimentoId);
     setEtiquetasAtendimento((data || []).map(d => d.etiqueta_id));
   };
 
@@ -106,16 +99,11 @@ export function ChatSection() {
     setSalvandoContato(true);
     try {
       if (jaTem) {
-        await supabase.from("atendimento_etiquetas")
-          .delete()
-          .eq("atendimento_id", atendimentoAtivo.id)
-          .eq("etiqueta_id", etiquetaId);
+        await supabase.from("atendimento_etiquetas").delete()
+          .eq("atendimento_id", atendimentoAtivo.id).eq("etiqueta_id", etiquetaId);
         setEtiquetasAtendimento(prev => prev.filter(id => id !== etiquetaId));
       } else {
-        await supabase.from("atendimento_etiquetas").insert([{
-          atendimento_id: atendimentoAtivo.id,
-          etiqueta_id: etiquetaId,
-        }]);
+        await supabase.from("atendimento_etiquetas").insert([{ atendimento_id: atendimentoAtivo.id, etiqueta_id: etiquetaId }]);
         setEtiquetasAtendimento(prev => [...prev, etiquetaId]);
       }
     } catch (e: any) { alert("Erro: " + e.message); }
@@ -155,7 +143,6 @@ export function ChatSection() {
   const atendentes = [...new Set(atendimentos.map(a => a.atendente))].filter(Boolean);
   const podeVerTudo = isDono || permissoes.chat_todos;
 
-  // ═══ Classificação das 4 abas ═══
   const classificarAba = (a: Atendimento): "automatico" | "aguardando" | "abertos" | "finalizados" => {
     if (a.status === "resolvido") return "finalizados";
     if (a.atendente === "BOT") return "automatico";
@@ -163,12 +150,8 @@ export function ChatSection() {
     return "abertos";
   };
 
-  // Contadores por aba
-  const contadoresAbas = {
-    automatico: 0, aguardando: 0, abertos: 0, finalizados: 0,
-  };
+  const contadoresAbas = { automatico: 0, aguardando: 0, abertos: 0, finalizados: 0 };
   atendimentos.forEach(a => {
-    // Aplica regra de permissão: atendente só vê os seus próprios em "abertos"
     const aba = classificarAba(a);
     if (aba === "abertos" && !podeVerTudo) {
       if (a.atendente !== user?.email) return;
@@ -179,7 +162,6 @@ export function ChatSection() {
   const atendimentosFiltrados = atendimentos
     .filter(a => classificarAba(a) === abaConversa)
     .filter(a => {
-      // Abertos: atendente vê só os dele (admin/supervisor/dono veem todos)
       if (abaConversa === "abertos" && !podeVerTudo) {
         return a.atendente === user?.email;
       }
@@ -187,11 +169,7 @@ export function ChatSection() {
     })
     .filter(a => !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.numero?.includes(busca))
     .filter(a => filtroFila === "todas" || a.fila === filtroFila)
-    .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente)
-    .filter(a => {
-      if (filtroEtiqueta === "todas") return true;
-      return false; // simplificado: não filtra por etiqueta aqui — pode virar async depois
-    });
+    .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente);
 
   const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas";
 
@@ -201,6 +179,29 @@ export function ChatSection() {
     try { await wa("enviar", { numero: atendimentoAtivo.numero, mensagem, workspaceId: wsId }); setMensagem(""); }
     catch { alert("Erro ao enviar!"); }
     setEnviandoMsg(false);
+  };
+
+  // ═══ Ações dos cards da lista ═══
+  const assumirChatDaLista = async (e: React.MouseEvent, a: Atendimento) => {
+    e.stopPropagation();
+    await wa("assumir", { numero: a.numero, workspaceId: wsId });
+    await fetchAtendimentos();
+  };
+
+  const pararBotDaLista = async (e: React.MouseEvent, a: Atendimento) => {
+    e.stopPropagation();
+    if (!confirm(`Parar o BOT para ${a.nome}?\n\nO BOT vai parar de responder automaticamente. Você assume o atendimento.`)) return;
+    // Bloqueia IA + Fluxo + TypeBot de uma vez pra interromper loops, e atribui o atendimento ao usuário
+    try {
+      await supabase.from("atendimentos").update({
+        bloqueado_ia: true,
+        bloqueado_fluxo: true,
+        bloqueado_typebot: true,
+      }).eq("id", a.id);
+      await wa("assumir", { numero: a.numero, workspaceId: wsId });
+      await fetchAtendimentos();
+      alert("✅ BOT parado. Você assumiu o atendimento.");
+    } catch (err: any) { alert("Erro: " + err.message); }
   };
 
   const assumirChat = async (numero: string) => { await wa("assumir", { numero, workspaceId: wsId }); fetchAtendimentos(); };
@@ -247,7 +248,6 @@ export function ChatSection() {
   const numeroSanitizado = (num: string) => (num || "").replace(/\D/g, "");
   const etiquetasAplicadas = etiquetasWorkspace.filter(e => etiquetasAtendimento.includes(e.id));
 
-  // Configuração das abas
   const abas = [
     { key: "automatico", label: "Automático", icon: "🤖", color: "#8b5cf6", count: contadoresAbas.automatico },
     { key: "aguardando", label: "Aguardando", icon: "⏳", color: "#f59e0b", count: contadoresAbas.aguardando },
@@ -255,15 +255,50 @@ export function ChatSection() {
     { key: "finalizados", label: "Finalizados", icon: "✅", color: "#16a34a", count: contadoresAbas.finalizados },
   ];
 
+  // ═══ Renderiza o botão de ação em cada card da lista conforme a aba ═══
+  const renderBotaoAcaoLista = (a: Atendimento) => {
+    const aba = classificarAba(a);
+    if (aba === "automatico") {
+      return (
+        <button onClick={(e) => pararBotDaLista(e, a)} title="Parar BOT e assumir"
+          style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>
+          ⏹ Parar BOT
+        </button>
+      );
+    }
+    if (aba === "aguardando") {
+      return (
+        <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir atendimento"
+          style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>
+          Atender
+        </button>
+      );
+    }
+    if (aba === "abertos") {
+      // Só mostra "Assumir" se NÃO for o atendente logado (ou seja, assumir de outro)
+      if (a.atendente !== user?.email && podeVerTudo) {
+        return (
+          <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir esse atendimento"
+            style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>
+            Assumir
+          </button>
+        );
+      }
+      return null;
+    }
+    // Finalizados — sem botão
+    return null;
+  };
+
   return (
     <div style={{ display: "flex", flex: 1, height: "100vh" }}>
 
       {/* LISTA ESQUERDA */}
-      <div style={{ width: 320, background: "#111b21", borderRight: "1px solid #222d34", display: "flex", flexDirection: "column" }}>
+      <div style={{ width: 340, background: "#111b21", borderRight: "1px solid #222d34", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "12px 14px", background: "#202c33", borderBottom: "1px solid #222d34", display: "flex", gap: 8, alignItems: "center" }}>
           <input placeholder="🔍 Buscar conversa..." value={busca} onChange={e => setBusca(e.target.value)}
             style={{ flex: 1, background: "#111b21", border: "none", borderRadius: 20, padding: "8px 14px", color: "white", fontSize: 13 }} />
-          <button onClick={fetchAtendimentos} title="Atualizar"
+          <button onClick={fetchAtendimentos} title="Atualizar lista"
             style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 16, padding: 4 }}>🔄</button>
           <button onClick={() => setShowFiltros(!showFiltros)} title="Filtros"
             style={{ background: "none", border: "none", color: temFiltroAtivo ? "#00a884" : "#aebac1", cursor: "pointer", fontSize: 16, padding: 4, position: "relative" }}>
@@ -334,21 +369,27 @@ export function ChatSection() {
                 background: atendimentoAtivo?.id === a.id ? "#2a3942" : "transparent",
                 transition: "background 0.1s",
               }}>
-              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 14 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 14 }}>
                   {a.nome?.charAt(0).toUpperCase() || "?"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                    <span style={{ color: "#e9edef", fontSize: 14, fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nome}</span>
-                    <span style={{ color: "#8696a0", fontSize: 11, flexShrink: 0, marginLeft: 8 }}>{tempoRelativo(a.created_at)}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2, gap: 8 }}>
+                    <span style={{ color: "#e9edef", fontSize: 14, fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{a.nome}</span>
+                    <span style={{ color: "#8696a0", fontSize: 11, flexShrink: 0 }}>{tempoRelativo(a.created_at)}</span>
                   </div>
-                  <p style={{ color: "#8696a0", fontSize: 13, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.mensagem}</p>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    {a.fila && <span style={{ background: "#00a88422", color: "#00a884", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>{a.fila}</span>}
-                    <span style={{ background: a.atendente === "BOT" ? "#8b5cf622" : "#3b82f622", color: a.atendente === "BOT" ? "#8b5cf6" : "#3b82f6", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>
-                      {a.atendente === "BOT" ? "🤖" : "👤 " + (a.atendente?.split("@")[0] || "—")}
-                    </span>
+                  <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    📱 {numeroSanitizado(a.numero)}
+                  </p>
+                  <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.mensagem}</p>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {a.fila && <span style={{ background: "#00a88422", color: "#00a884", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>{a.fila}</span>}
+                      <span style={{ background: a.atendente === "BOT" ? "#8b5cf622" : "#3b82f622", color: a.atendente === "BOT" ? "#8b5cf6" : "#3b82f6", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>
+                        {a.atendente === "BOT" ? "🤖 BOT" : "👤 " + (a.atendente?.split("@")[0] || "—")}
+                      </span>
+                    </div>
+                    {renderBotaoAcaoLista(a)}
                   </div>
                 </div>
               </div>
@@ -384,10 +425,19 @@ export function ChatSection() {
                   )}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 6, alignItems: "center", position: "relative" }}>
+              <div style={{ display: "flex", gap: 4, alignItems: "center", position: "relative" }}>
+                {/* ✅ BOTÕES VISÍVEIS */}
+                <button onClick={() => fetchHistorico(atendimentoAtivo.numero)} title="Atualizar mensagens"
+                  style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 16, padding: 8, borderRadius: 6 }}>
+                  🔄
+                </button>
+                <button onClick={() => setShowTransferir(!showTransferir)} title="Encaminhar para outro atendente/fila"
+                  style={{ background: showTransferir ? "#00a88422" : "none", border: "none", color: showTransferir ? "#00a884" : "#aebac1", cursor: "pointer", fontSize: 16, padding: 8, borderRadius: 6 }}>
+                  ↗️
+                </button>
                 {permissoes.chat_interno && (
                   <button onClick={() => setShowChatInterno(!showChatInterno)} title="Chat Interno"
-                    style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 18, padding: 6 }}>💭</button>
+                    style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 16, padding: 8, borderRadius: 6 }}>💭</button>
                 )}
                 {/* BOTÃO 3 PONTINHOS */}
                 <button onClick={() => setShowMenuTresPontos(!showMenuTresPontos)} title="Mais opções"
@@ -399,6 +449,10 @@ export function ChatSection() {
                     <button onClick={() => { setShowPainelContato(true); setShowMenuTresPontos(false); }}
                       style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
                       <span>👤</span> Dados do Contato
+                    </button>
+                    <button onClick={() => { fetchHistorico(atendimentoAtivo.numero); setShowMenuTresPontos(false); }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                      <span>🔄</span> Atualizar mensagens
                     </button>
                     {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") && (
                       <button onClick={() => { assumirChat(atendimentoAtivo.numero); setShowMenuTresPontos(false); }}
@@ -412,9 +466,9 @@ export function ChatSection() {
                         <span>🤖</span> Devolver ao Bot
                       </button>
                     )}
-                    <button onClick={() => { setShowTransferir(!showTransferir); setShowMenuTresPontos(false); }}
+                    <button onClick={() => { setShowTransferir(true); setShowMenuTresPontos(false); }}
                       style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                      <span>↗️</span> Transferir
+                      <span>↗️</span> Encaminhar
                     </button>
                     {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
                       <button onClick={() => { window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank"); setShowMenuTresPontos(false); }}
@@ -432,7 +486,7 @@ export function ChatSection() {
                 {/* POPUP TRANSFERIR */}
                 {showTransferir && (
                   <div style={{ position: "absolute", top: 44, right: 0, background: "#233138", border: "1px solid #2a3942", borderRadius: 8, padding: 12, zIndex: 110, width: 240 }}>
-                    <p style={{ color: "#8696a0", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>Transferir para fila:</p>
+                    <p style={{ color: "#8696a0", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>Encaminhar para fila:</p>
                     {(filas.length > 0 ? filas : ["—"]).map(f => (
                       <button key={f} onClick={() => { alert(`Transferido para ${f}`); setShowTransferir(false); }}
                         style={{ display: "block", width: "100%", background: "#111b21", border: "1px solid #2a3942", borderRadius: 6, padding: "8px 12px", color: "#e9edef", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 4 }}>📋 {f}</button>
@@ -454,12 +508,11 @@ export function ChatSection() {
                         <div style={{
                           maxWidth: "65%", padding: "6px 10px 8px",
                           borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px",
-                          background: isCliente ? "#202c33" : isBot ? "#005c4b" : "#005c4b",
+                          background: isCliente ? "#202c33" : "#005c4b",
                           boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)",
-                          position: "relative",
                         }}>
                           {!isCliente && (
-                            <p style={{ color: isBot ? "#8edfc3" : "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>
+                            <p style={{ color: "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>
                           )}
                           <p style={{ color: "#e9edef", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.mensagem}</p>
                           {msg.created_at && (
@@ -486,7 +539,6 @@ export function ChatSection() {
               </div>
             )}
 
-            {/* BARRA DE INPUT */}
             <div style={{ background: "#202c33", padding: "8px 12px", display: "flex", gap: 8, alignItems: "center" }}>
               {permissoes.respostas_rapidas && (
                 <button onClick={() => setShowRespostas(!showRespostas)} title="Respostas rápidas"
@@ -518,7 +570,7 @@ export function ChatSection() {
         )}
       </div>
 
-      {/* PAINEL DADOS DO CONTATO (toggle via 3 pontinhos) */}
+      {/* PAINEL DADOS DO CONTATO */}
       {atendimentoAtivo && showPainelContato && (
         <div style={{ width: 340, background: "#111b21", borderLeft: "1px solid #222d34", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ padding: "14px 16px", borderBottom: "1px solid #222d34", background: "#202c33", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -551,7 +603,6 @@ export function ChatSection() {
           </div>
 
           <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
-
             {abaPainel === "perfil" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ textAlign: "center", padding: "10px 0" }}>
@@ -719,7 +770,6 @@ export function ChatSection() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <button onClick={exportarPDF} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "12px", fontSize: 13, cursor: "pointer", fontWeight: "bold", textAlign: "left" }}>
                   📄 Exportar Histórico em PDF
-                  <p style={{ color: "#8696a0", fontSize: 10, margin: "4px 0 0", fontWeight: "normal" }}>Abre uma janela de impressão com toda a conversa</p>
                 </button>
                 <div style={{ background: "#202c33", borderRadius: 8, padding: 14 }}>
                   <p style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", fontWeight: "bold", margin: "0 0 8px" }}>🆔 LID do WhatsApp</p>
