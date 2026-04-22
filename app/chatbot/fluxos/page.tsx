@@ -66,11 +66,20 @@ const uid = () => Math.random().toString(36).slice(2,10);
 const IS: React.CSSProperties = {width:"100%",background:"#0a0a0a",border:"1px solid #374151",borderRadius:6,padding:"8px 10px",color:"white",fontSize:12,boxSizing:"border-box"};
 const LS: React.CSSProperties = {color:"#9ca3af",fontSize:10,textTransform:"uppercase",display:"block",marginBottom:4,letterSpacing:1};
 
-async function getWsId(): Promise<string|null> {
+// ✅ ATUALIZADO — pega username do workspace (nunca o id numérico)
+async function getWsUsername(): Promise<string|null> {
   const {data:{user}} = await supabase.auth.getUser();
   if (!user) return null;
-  const {data} = await supabase.from("workspaces").select("id").eq("owner_id",user.id).single();
-  return data ? String(data.id) : null;
+  // 1. Dono do workspace
+  const {data: wsDono} = await supabase.from("workspaces").select("username").eq("owner_id", user.id).maybeSingle();
+  if (wsDono?.username) return wsDono.username;
+  // 2. Sub-usuário
+  const {data: uw} = await supabase.from("usuarios_workspace").select("workspace_id").eq("email", user.email).maybeSingle();
+  if (uw) {
+    const {data: wsSub} = await supabase.from("workspaces").select("username").or(`username.eq.${uw.workspace_id},id.eq.${uw.workspace_id}`).maybeSingle();
+    if (wsSub?.username) return wsSub.username;
+  }
+  return null;
 }
 
 function defaultD(tipo: TipoNo): Record<string,any> {
@@ -99,7 +108,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     google_sheets:{spreadsheet_id:"",aba:"Sheet1",acao:"append",dados:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
-    claude_ai:{apiKey:"",modelo:"claude-sonnet-4-6",prompt:"",variavel:"resposta_ia"},
+    claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{para:"",assunto:"",corpo:""},
     inicio:{mensagem:"Olá! Como posso te ajudar?"},
     comando:{comando:"/start"},reply:{palavras:""},
@@ -145,9 +154,6 @@ function getPreview(no: No): string {
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// PAINEL PROPRIEDADES — FORA do FluxosPage para não recriar
-// ═══════════════════════════════════════════════════════
 function PainelProps({ noSel, updateNo, excluirNo, setNos }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
@@ -288,7 +294,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos }: {
     case "claude_ai":
       return <>
         {F("API Key","apiKey","password","sk-ant-...")}
-        {S("Modelo","modelo",[{value:"claude-opus-4-6",label:"Claude Opus 4"},{value:"claude-sonnet-4-6",label:"Claude Sonnet 4"},{value:"claude-haiku-4-5-20251001",label:"Claude Haiku"}])}
+        {S("Modelo","modelo",[{value:"claude-opus-4-5",label:"Claude Opus 4.5"},{value:"claude-sonnet-4-20250514",label:"Claude Sonnet 4"},{value:"claude-haiku-4-5",label:"Claude Haiku"}])}
         {T("Prompt do sistema","prompt","Você é um assistente...",100)}
         {F("Salvar resposta em","variavel","text","resposta_ia")}
       </>;
@@ -316,9 +322,6 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos }: {
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// NÓ INDIVIDUAL — componente separado com pointer capture
-// ═══════════════════════════════════════════════════════
 function NoCard({ no, sel, scale, onSelect, onDelete, onConectarSaida, onConectarEntrada }: {
   no: No; sel: boolean; scale: number;
   onSelect: (id:string) => void;
@@ -417,13 +420,11 @@ function NoCard({ no, sel, scale, onSelect, onDelete, onConectarSaida, onConecta
   );
 }
 
-// ═══════════════════════════════════════════════════════
-// PÁGINA PRINCIPAL
-// ═══════════════════════════════════════════════════════
 export default function FluxosPage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  // ✅ Agora é username (string como "wolf_admin"), nunca id numérico
   const [wsId,setWsId]             = useState<string|null>(null);
   const [fluxos,setFluxos]         = useState<Fluxo[]>([]);
   const [view,setView]             = useState<"lista"|"editor">("lista");
@@ -452,13 +453,38 @@ export default function FluxosPage() {
     return () => { delete (window as any).__wolfMoveNo; };
   }, []);
 
+  // ✅ Carrega username + fluxos iniciais + Realtime + polling 5s
   useEffect(() => {
-    getWsId().then(id => { setWsId(id); if(id) load(id); });
+    let cancelled = false;
+    getWsUsername().then(username => {
+      if (cancelled || !username) return;
+      setWsId(username);
+      load(username);
+    });
+
+    // Realtime — quando criar/editar/apagar fluxo em qualquer aba, atualiza aqui
+    const ch = supabase.channel("fluxos_editor_rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "fluxos" }, () => {
+        if (!cancelled) {
+          getWsUsername().then(u => { if (u && !cancelled) load(u); });
+        }
+      })
+      .subscribe();
+
+    // Polling 5s fallback
+    const interval = setInterval(() => {
+      if (cancelled) return;
+      getWsUsername().then(u => { if (u && !cancelled) load(u); });
+    }, 5000);
+
+    return () => { cancelled = true; supabase.removeChannel(ch); clearInterval(interval); };
   }, []);
 
-  async function load(id?:string) {
-    const wid = id||wsId; if(!wid) return;
-    const {data} = await supabase.from("fluxos").select("*").eq("workspace_id",wid).order("created_at",{ascending:false});
+  // ✅ Busca fluxos filtrando por username
+  async function load(username?: string) {
+    const u = username || wsId;
+    if (!u) return;
+    const {data} = await supabase.from("fluxos").select("*").eq("workspace_id", u).order("created_at",{ascending:false});
     setFluxos((data||[]).map(f=>({...f,nos:f.nos||[],conexoes:f.conexoes||[]})));
   }
 
@@ -466,15 +492,15 @@ export default function FluxosPage() {
     if(!form.nome.trim()){alert("Digite o nome!");return;}
     setCriando(true);
     try {
-      const id = wsId||await getWsId();
-      if(!id){alert("Workspace não encontrado!");return;}
+      const username = wsId || await getWsUsername();
+      if(!username){alert("Workspace não encontrado! Faça login novamente.");return;}
       const ini:No = {id:uid(),tipo:"inicio",x:200,y:200,dados:defaultD("inicio"),saidas:[...B.inicio.saidas]};
       const payload = {nome:form.nome.trim(),descricao:form.descricao,ativo:false,
         trigger_tipo:form.trigger_tipo,trigger_valor:form.trigger_valor,
-        nos:[ini],conexoes:[],workspace_id:id};
+        nos:[ini],conexoes:[],workspace_id:username};
       const {data,error} = await supabase.from("fluxos").insert([payload]).select().single();
       if(error){alert("Erro: "+error.message);return;}
-      setWsId(id); await load(id);
+      setWsId(username); await load(username);
       abrirEditor({...payload, id:data.id} as Fluxo);
       setShowNovo(false);
       setForm({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:""});
@@ -501,9 +527,21 @@ export default function FluxosPage() {
     setFluxoAtivo(p => p?{...p,ativo:v}:null); await load();
   }
 
-  async function excluirFluxo(id:number) {
-    if(!confirm("Excluir?")) return;
-    await supabase.from("fluxos").delete().eq("id",id); await load();
+  // ✅ Exclusão real — verifica se deu certo e limpa sessão se estava aberta
+  async function excluirFluxo(id:number, nome:string) {
+    if(!confirm(`Excluir o fluxo "${nome}" permanentemente?\nIsso não pode ser desfeito.`)) return;
+
+    // Também apaga as sessões em execução desse fluxo (pra não ficar lixo)
+    await supabase.from("fluxo_sessoes").delete().eq("fluxo_id", id);
+
+    const { error } = await supabase.from("fluxos").delete().eq("id",id);
+    if (error) { alert("Erro ao excluir: " + error.message); return; }
+
+    // Se era o fluxo aberto, volta pra lista
+    if (fluxoAtivo?.id === id) {
+      setFluxoAtivo(null); setNos([]); setArestas([]); setView("lista");
+    }
+    await load();
   }
 
   function adicionarNo(tipo:TipoNo) {
@@ -576,7 +614,6 @@ export default function FluxosPage() {
   function posC(no:No, idx:number) { return {x:no.x+220, y:no.y+48+36*idx+18}; }
   function posE(no:No)              { return {x:no.x,     y:no.y+48+18};        }
 
-  // ══════ VIEW LISTA ══════
   if(view==="lista") return (
     <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#0a0a0a",color:"white"}}>
       <div style={{width:220,background:"#111",borderRight:"1px solid #1f2937",display:"flex",flexDirection:"column",padding:16,gap:8}}>
@@ -662,7 +699,7 @@ export default function FluxosPage() {
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>abrirEditor(f)} style={{flex:1,background:"#8b5cf622",color:"#8b5cf6",border:"1px solid #8b5cf633",borderRadius:8,padding:"8px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>✏️ Editar</button>
-                  <button onClick={()=>excluirFluxo(f.id!)} style={{background:"#dc262622",color:"#dc2626",border:"1px solid #dc262633",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>🗑️</button>
+                  <button onClick={()=>excluirFluxo(f.id!, f.nome)} style={{background:"#dc262622",color:"#dc2626",border:"1px solid #dc262633",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>🗑️</button>
                 </div>
               </div>
             ))}
@@ -672,11 +709,9 @@ export default function FluxosPage() {
     </div>
   );
 
-  // ══════ VIEW EDITOR ══════
   return (
     <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#0a0a0a",color:"white",overflow:"hidden"}}>
 
-      {/* PAINEL ESQUERDO */}
       <div style={{width:210,background:"#111",borderRight:"1px solid #1f2937",display:"flex",flexDirection:"column",flexShrink:0}}>
         <div style={{padding:"10px 14px",borderBottom:"1px solid #1f2937",display:"flex",alignItems:"center",gap:8}}>
           <button onClick={()=>setView("lista")} style={{background:"none",border:"none",color:"#9ca3af",fontSize:11,cursor:"pointer",padding:0}}>←</button>
@@ -723,7 +758,6 @@ export default function FluxosPage() {
         </div>
       </div>
 
-      {/* CANVAS */}
       <div ref={canvasRef}
         style={{flex:1,position:"relative",overflow:"hidden",cursor:panning.current?"grabbing":conectando?"crosshair":"default",touchAction:"none"}}
         onPointerDown={onCanvasPointerDown}
@@ -795,7 +829,6 @@ export default function FluxosPage() {
         </div>
       </div>
 
-      {/* PAINEL DIREITO */}
       {noSel && (
         <div style={{width:270,background:"#111",borderLeft:"1px solid #1f2937",display:"flex",flexDirection:"column",flexShrink:0}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid #1f2937",display:"flex",justifyContent:"space-between",alignItems:"center"}}>

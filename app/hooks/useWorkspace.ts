@@ -53,7 +53,13 @@ export function useWorkspace() {
     window.location.href = "/";
   };
 
-  const wsId = workspace?.username || workspace?.id?.toString() || "";
+  // ✅ MULTI-TENANT: wsId é SEMPRE o username do workspace.
+  // Se o workspace não tiver username, retorna string vazia (trava o sistema).
+  // Isso garante isolamento entre clientes e bate com o RLS do Supabase.
+  const wsId = workspace?.username || "";
 
-  return { workspace, user, loading, signOut, wsId };
+  // ✅ Flag pra o frontend saber quando já pode começar a buscar dados
+  const wsPronto = !loading && !!wsId;
+
+  return { workspace, user, loading, signOut, wsId, wsPronto };
 }
