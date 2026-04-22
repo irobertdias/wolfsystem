@@ -17,8 +17,132 @@ type UsuarioWs = { email: string; nome: string; };
 
 const WA_BG_DARK = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200' opacity='0.04'><g fill='%23ffffff'><path d='M40 40 l10 0 l0 10 l-10 0 z'/><circle cx='70' cy='75' r='4'/><path d='M110 35 l15 -5 l5 15 l-15 5 z' opacity='0.6'/><circle cx='150' cy='55' r='3'/><path d='M30 110 l8 8 l-8 8 l-8 -8 z'/><circle cx='80' cy='135' r='5'/><path d='M130 115 l10 0 l-5 10 z' opacity='0.7'/><circle cx='165' cy='150' r='4'/><path d='M50 170 l12 0 l-6 12 z'/><circle cx='100' cy='180' r='3'/></g></svg>")`;
 
-// ═══ Player de áudio custom (estilo WhatsApp) ═══
+// ═══ Player de áudio estilo WhatsApp (com waveform real) ═══
 function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [waveform, setWaveform] = useState<number[]>(Array(40).fill(0.3));
+  const [loaded, setLoaded] = useState(false);
+
+  // Gera waveform a partir do áudio (uma vez só)
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const resp = await fetch(src);
+        const buf = await resp.arrayBuffer();
+        // @ts-ignore
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        const ctx = new AudioCtx();
+        const audioBuffer = await ctx.decodeAudioData(buf);
+        const raw = audioBuffer.getChannelData(0);
+        const samples = 40;
+        const blockSize = Math.floor(raw.length / samples);
+        const peaks: number[] = [];
+        for (let i = 0; i < samples; i++) {
+          let sum = 0;
+          for (let j = 0; j < blockSize; j++) sum += Math.abs(raw[i * blockSize + j] || 0);
+          peaks.push(sum / blockSize);
+        }
+        const max = Math.max(...peaks, 0.01);
+        const normalized = peaks.map(p => Math.max(0.15, p / max));
+        if (!cancel) setWaveform(normalized);
+        try { ctx.close(); } catch {}
+      } catch (err) {
+        // Se falhar (CORS, formato), mantém as barras padrão
+        console.warn("Falha ao gerar waveform:", err);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [src]);
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const onMeta = () => { setDuration(a.duration || 0); setLoaded(true); };
+    const onTime = () => setCurrent(a.currentTime || 0);
+    const onEnd = () => { setPlaying(false); setCurrent(0); };
+    a.addEventListener("loadedmetadata", onMeta);
+    a.addEventListener("timeupdate", onTime);
+    a.addEventListener("ended", onEnd);
+    return () => {
+      a.removeEventListener("loadedmetadata", onMeta);
+      a.removeEventListener("timeupdate", onTime);
+      a.removeEventListener("ended", onEnd);
+    };
+  }, []);
+
+  const toggle = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (playing) { a.pause(); setPlaying(false); }
+    else { a.play().catch(() => {}); setPlaying(true); }
+  };
+
+  const seekFromBar = (e: React.MouseEvent<HTMLDivElement>) => {
+    const a = audioRef.current;
+    if (!a || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    const newTime = Math.max(0, Math.min(duration, pct * duration));
+    a.currentTime = newTime;
+    setCurrent(newTime);
+  };
+
+  const format = (s: number) => {
+    if (!isFinite(s) || isNaN(s)) return "0:00";
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, "0")}`;
+  };
+
+  const corAtiva = isOwn ? "#ffffff" : "#00a884";
+  const corInativa = isOwn ? "#0d7a5f" : "#5d7a80";
+  const progress = duration ? current / duration : 0;
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 260, padding: "4px 2px" }}>
+      <audio ref={audioRef} src={src} preload="metadata" style={{ display: "none" }} />
+
+      {/* Botão play/pause */}
+      <button onClick={toggle}
+        style={{ width: 36, height: 36, borderRadius: "50%", background: isOwn ? "#ffffff22" : "#00a88422", border: "none", color: isOwn ? "#ffffff" : "#00a884", fontSize: 16, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+        {playing ? "⏸" : "▶"}
+      </button>
+
+      {/* Waveform + duração */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+        <div onClick={seekFromBar}
+          style={{ display: "flex", alignItems: "center", gap: 2, height: 28, cursor: "pointer", userSelect: "none" }}>
+          {waveform.map((h, i) => {
+            const isPast = (i / waveform.length) < progress;
+            return (
+              <div key={i}
+                style={{
+                  flex: 1,
+                  height: `${Math.max(15, h * 100)}%`,
+                  minHeight: 4,
+                  background: isPast ? corAtiva : corInativa,
+                  borderRadius: 2,
+                  transition: "background 0.1s",
+                }} />
+            );
+          })}
+        </div>
+        <span style={{ fontSize: 11, color: isOwn ? "#a3e4d0" : "#8696a0", fontVariantNumeric: "tabular-nums" }}>
+          {loaded ? format(playing || current > 0 ? current : duration) : "carregando…"}
+        </span>
+      </div>
+
+      {/* Avatar */}
+      <div style={{ width: 36, height: 36, borderRadius: "50%", background: isOwn ? "#ffffff22" : "#8696a033", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 }}>
+        {isOwn ? "👤" : "🧑"}
+      </div>
+    </div>
+  );
+}
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
