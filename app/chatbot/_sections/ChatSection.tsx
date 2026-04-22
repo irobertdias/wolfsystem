@@ -12,6 +12,7 @@ type Atendimento = {
   funil_etapa?: string; kanban_coluna?: string; demanda?: string; valor?: number;
 };
 type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; };
+type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
 
 export function ChatSection() {
   const { workspace, wsId } = useWorkspace();
@@ -32,10 +33,14 @@ export function ChatSection() {
   const [historico, setHistorico] = useState<Mensagem[]>([]);
   const [enviandoMsg, setEnviandoMsg] = useState(false);
 
-  // ✅ Painel Dados do Contato
+  // Painel Dados do Contato
   const [showPainelContato, setShowPainelContato] = useState(false);
-  const [abaPainel, setAbaPainel] = useState<"perfil" | "protocolo" | "funil" | "ia" | "utils">("perfil");
+  const [abaPainel, setAbaPainel] = useState<"perfil" | "protocolo" | "funil" | "ia" | "utils" | "etiquetas">("perfil");
   const [salvandoContato, setSalvandoContato] = useState(false);
+
+  // ✅ Etiquetas
+  const [etiquetasWorkspace, setEtiquetasWorkspace] = useState<Etiqueta[]>([]);
+  const [etiquetasAtendimento, setEtiquetasAtendimento] = useState<number[]>([]); // ids das etiquetas aplicadas
 
   // Filtros
   const [visualizarTickets, setVisualizarTickets] = useState(false);
@@ -69,7 +74,6 @@ export function ChatSection() {
     return resp.json();
   };
 
-  // ✅ Usa apenas wsId (username) — sem fallback pra id numérico
   const fetchAtendimentos = async () => {
     if (!wsId) return;
     const { data } = await supabase.from("atendimentos").select("*")
@@ -83,20 +87,64 @@ export function ChatSection() {
     setHistorico(data || []);
   };
 
+  // ✅ Busca etiquetas do workspace
+  const fetchEtiquetasWorkspace = async () => {
+    if (!wsId) return;
+    const { data } = await supabase.from("etiquetas")
+      .select("*")
+      .eq("workspace_id", wsId)
+      .order("nome", { ascending: true });
+    setEtiquetasWorkspace(data || []);
+  };
+
+  // ✅ Busca etiquetas aplicadas ao atendimento
+  const fetchEtiquetasAtendimento = async (atendimentoId: number) => {
+    const { data } = await supabase.from("atendimento_etiquetas")
+      .select("etiqueta_id")
+      .eq("atendimento_id", atendimentoId);
+    setEtiquetasAtendimento((data || []).map(d => d.etiqueta_id));
+  };
+
+  // ✅ Marca/desmarca etiqueta
+  const toggleEtiqueta = async (etiquetaId: number) => {
+    if (!atendimentoAtivo) return;
+    const jaTem = etiquetasAtendimento.includes(etiquetaId);
+    setSalvandoContato(true);
+    try {
+      if (jaTem) {
+        await supabase.from("atendimento_etiquetas")
+          .delete()
+          .eq("atendimento_id", atendimentoAtivo.id)
+          .eq("etiqueta_id", etiquetaId);
+        setEtiquetasAtendimento(prev => prev.filter(id => id !== etiquetaId));
+      } else {
+        await supabase.from("atendimento_etiquetas").insert([{
+          atendimento_id: atendimentoAtivo.id,
+          etiqueta_id: etiquetaId,
+        }]);
+        setEtiquetasAtendimento(prev => [...prev, etiquetaId]);
+      }
+    } catch (e: any) { alert("Erro: " + e.message); }
+    setSalvandoContato(false);
+  };
+
   useEffect(() => {
     if (!wsId) return;
     fetchAtendimentos();
+    fetchEtiquetasWorkspace();
     const ch = supabase.channel("atendimentos_chat_rt_" + wsId)
       .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos", filter: `workspace_id=eq.${wsId}` }, () => fetchAtendimentos())
+      .on("postgres_changes", { event: "*", schema: "public", table: "etiquetas", filter: `workspace_id=eq.${wsId}` }, () => fetchEtiquetasWorkspace())
       .subscribe();
     const polling = setInterval(() => fetchAtendimentos(), 5000);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
   }, [wsId]);
 
   useEffect(() => {
-    if (!atendimentoAtivo) return;
+    if (!atendimentoAtivo) { setEtiquetasAtendimento([]); return; }
     setHistorico([]);
     fetchHistorico(atendimentoAtivo.numero);
+    fetchEtiquetasAtendimento(atendimentoAtivo.id);
     const num = atendimentoAtivo.numero;
     const ch = supabase.channel(`msgs_${num}_${Date.now()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens" }, (payload) => {
@@ -105,7 +153,7 @@ export function ChatSection() {
       }).subscribe();
     const polling = setInterval(() => fetchHistorico(num), 3000);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
-  }, [atendimentoAtivo?.numero]);
+  }, [atendimentoAtivo?.numero, atendimentoAtivo?.id]);
 
   useEffect(() => { setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }, [historico]);
 
@@ -150,23 +198,18 @@ export function ChatSection() {
   const horaMsg = (data: string) => new Date(data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const toggleStatus = (s: string) => setFiltrosStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
-  // ═══ Salva um campo do painel no banco ═══
   const salvarCampoContato = async (campo: string, valor: any) => {
     if (!atendimentoAtivo) return;
     setSalvandoContato(true);
     try {
-      const { error } = await supabase.from("atendimentos")
-        .update({ [campo]: valor })
-        .eq("id", atendimentoAtivo.id);
+      const { error } = await supabase.from("atendimentos").update({ [campo]: valor }).eq("id", atendimentoAtivo.id);
       if (error) { alert("Erro ao salvar: " + error.message); setSalvandoContato(false); return; }
-      // Atualiza local
       setAtendimentoAtivo({ ...atendimentoAtivo, [campo]: valor });
       setAtendimentos(prev => prev.map(a => a.id === atendimentoAtivo.id ? { ...a, [campo]: valor } : a));
     } catch (e: any) { alert("Erro: " + e.message); }
     setSalvandoContato(false);
   };
 
-  // ═══ Exportar histórico como PDF (print do navegador) ═══
   const exportarPDF = () => {
     if (!atendimentoAtivo) return;
     const janela = window.open("", "_blank", "width=800,height=600");
@@ -188,8 +231,10 @@ export function ChatSection() {
     setTimeout(() => janela.print(), 500);
   };
 
-  // Sanitizar número — só dígitos, DDI/DDD, sem @c.us ou @lid
   const numeroSanitizado = (num: string) => (num || "").replace(/\D/g, "");
+
+  // Etiquetas do atendimento ativo (resolvidas — com nome/cor/icone)
+  const etiquetasAplicadas = etiquetasWorkspace.filter(e => etiquetasAtendimento.includes(e.id));
 
   return (
     <div style={{ display: "flex", flex: 1, height: "100vh" }}>
@@ -251,11 +296,7 @@ export function ChatSection() {
               <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Etiquetas</label>
               <select value={filtroEtiqueta} onChange={e => setFiltroEtiqueta(e.target.value)} style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
                 <option value="todas">Todas as etiquetas</option>
-                <option value="lead_quente">🔴 Lead Quente</option>
-                <option value="lead_frio">🔵 Lead Frio</option>
-                <option value="agendado">🟡 Agendado</option>
-                <option value="fechado">🟢 Fechado</option>
-                <option value="retornar">🟣 Retornar</option>
+                {etiquetasWorkspace.map(et => <option key={et.id} value={et.id.toString()}>{et.icone} {et.nome}</option>)}
               </select>
             </div>
             <div>
@@ -345,6 +386,16 @@ export function ChatSection() {
               <div>
                 <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>{atendimentoAtivo.nome}</h3>
                 <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>{atendimentoAtivo.fila} • {atendimentoAtivo.numero}</p>
+                {/* ✅ Etiquetas aplicadas aparecem no header */}
+                {etiquetasAplicadas.length > 0 && (
+                  <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
+                    {etiquetasAplicadas.map(et => (
+                      <span key={et.id} style={{ background: et.cor + "22", border: `1px solid ${et.cor}`, color: et.cor, fontSize: 10, padding: "2px 8px", borderRadius: 10, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                        <span>{et.icone}</span> {et.nome}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") && (
@@ -367,7 +418,6 @@ export function ChatSection() {
                   )}
                 </div>
                 <button onClick={() => finalizarChat(atendimentoAtivo.numero)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>✓ Finalizar</button>
-                {/* ✅ Botão abrir painel */}
                 <button onClick={() => setShowPainelContato(!showPainelContato)} title="Dados do Contato"
                   style={{ background: showPainelContato ? "#8b5cf622" : "#1f2937", color: showPainelContato ? "#8b5cf6" : "#9ca3af", border: `1px solid ${showPainelContato ? "#8b5cf633" : "#374151"}`, borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
                   👤 {showPainelContato ? "Ocultar" : "Dados"}
@@ -422,10 +472,9 @@ export function ChatSection() {
         )}
       </div>
 
-      {/* ═══════════════ PAINEL DADOS DO CONTATO ═══════════════ */}
+      {/* ═══ PAINEL DADOS DO CONTATO ═══ */}
       {atendimentoAtivo && showPainelContato && (
         <div style={{ width: 340, background: "#111", borderLeft: "1px solid #1f2937", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          {/* Header */}
           <div style={{ padding: "14px 16px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <h3 style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>👤 Dados do Contato</h3>
@@ -434,26 +483,29 @@ export function ChatSection() {
             <button onClick={() => setShowPainelContato(false)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 18, cursor: "pointer" }}>✕</button>
           </div>
 
-          {/* Abas */}
           <div style={{ display: "flex", borderBottom: "1px solid #1f2937", background: "#0d0d0d" }}>
             {[
               { key: "perfil", icon: "👤", title: "Perfil" },
               { key: "protocolo", icon: "📋", title: "Protocolo" },
               { key: "funil", icon: "🎯", title: "Funil" },
+              { key: "etiquetas", icon: "🏷️", title: "Etiquetas" },
               { key: "ia", icon: "🤖", title: "IA" },
               { key: "utils", icon: "🔧", title: "Utilitários" },
             ].map(a => (
               <button key={a.key} onClick={() => setAbaPainel(a.key as any)} title={a.title}
-                style={{ flex: 1, padding: "10px 4px", background: abaPainel === a.key ? "#1f2937" : "none", border: "none", borderBottom: abaPainel === a.key ? "2px solid #8b5cf6" : "2px solid transparent", color: abaPainel === a.key ? "#8b5cf6" : "#6b7280", fontSize: 16, cursor: "pointer" }}>
+                style={{ flex: 1, padding: "10px 4px", background: abaPainel === a.key ? "#1f2937" : "none", border: "none", borderBottom: abaPainel === a.key ? "2px solid #8b5cf6" : "2px solid transparent", color: abaPainel === a.key ? "#8b5cf6" : "#6b7280", fontSize: 15, cursor: "pointer", position: "relative" }}>
                 {a.icon}
+                {a.key === "etiquetas" && etiquetasAtendimento.length > 0 && (
+                  <span style={{ position: "absolute", top: 4, right: 4, background: "#dc2626", color: "white", borderRadius: "50%", width: 14, height: 14, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                    {etiquetasAtendimento.length}
+                  </span>
+                )}
               </button>
             ))}
           </div>
 
-          {/* Conteúdo das abas */}
           <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
 
-            {/* ═══ ABA 1 — PERFIL ═══ */}
             {abaPainel === "perfil" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ textAlign: "center", padding: "10px 0" }}>
@@ -463,10 +515,7 @@ export function ChatSection() {
                 </div>
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label>
-                  <input value={atendimentoAtivo.nome || ""}
-                    onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, nome: e.target.value })}
-                    onBlur={e => salvarCampoContato("nome", e.target.value)}
-                    style={inputSm} />
+                  <input value={atendimentoAtivo.nome || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, nome: e.target.value })} onBlur={e => salvarCampoContato("nome", e.target.value)} style={inputSm} />
                 </div>
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Telefone</label>
@@ -475,10 +524,7 @@ export function ChatSection() {
                 </div>
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>E-mail</label>
-                  <input type="email" placeholder="contato@email.com" value={atendimentoAtivo.email || ""}
-                    onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, email: e.target.value })}
-                    onBlur={e => salvarCampoContato("email", e.target.value)}
-                    style={inputSm} />
+                  <input type="email" placeholder="contato@email.com" value={atendimentoAtivo.email || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, email: e.target.value })} onBlur={e => salvarCampoContato("email", e.target.value)} style={inputSm} />
                 </div>
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Fila</label>
@@ -491,7 +537,6 @@ export function ChatSection() {
               </div>
             )}
 
-            {/* ═══ ABA 2 — PROTOCOLO / AVALIAÇÃO / NOTAS ═══ */}
             {abaPainel === "protocolo" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ background: "#1f2937", borderRadius: 8, padding: 12 }}>
@@ -502,8 +547,7 @@ export function ChatSection() {
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Avaliação do Atendimento</label>
                   <div style={{ display: "flex", gap: 6 }}>
                     {[1, 2, 3, 4, 5].map(n => (
-                      <button key={n} onClick={() => salvarCampoContato("avaliacao", n)}
-                        style={{ background: (atendimentoAtivo.avaliacao || 0) >= n ? "#f59e0b" : "#1f2937", border: "1px solid #374151", borderRadius: 6, padding: "8px 12px", fontSize: 16, cursor: "pointer", color: (atendimentoAtivo.avaliacao || 0) >= n ? "white" : "#6b7280" }}>⭐</button>
+                      <button key={n} onClick={() => salvarCampoContato("avaliacao", n)} style={{ background: (atendimentoAtivo.avaliacao || 0) >= n ? "#f59e0b" : "#1f2937", border: "1px solid #374151", borderRadius: 6, padding: "8px 12px", fontSize: 16, cursor: "pointer", color: (atendimentoAtivo.avaliacao || 0) >= n ? "white" : "#6b7280" }}>⭐</button>
                     ))}
                     {(atendimentoAtivo.avaliacao || 0) > 0 && (
                       <button onClick={() => salvarCampoContato("avaliacao", 0)} style={{ background: "none", border: "1px solid #374151", borderRadius: 6, padding: "8px 10px", color: "#dc2626", cursor: "pointer", fontSize: 11 }}>✕</button>
@@ -512,18 +556,12 @@ export function ChatSection() {
                 </div>
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Notas/Observações</label>
-                  <textarea placeholder="Anotações internas sobre este contato..."
-                    value={atendimentoAtivo.notas || ""}
-                    onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, notas: e.target.value })}
-                    onBlur={e => salvarCampoContato("notas", e.target.value)}
-                    rows={8}
-                    style={{ ...inputSm, resize: "vertical", fontFamily: "inherit", minHeight: 100 }} />
+                  <textarea placeholder="Anotações internas sobre este contato..." value={atendimentoAtivo.notas || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, notas: e.target.value })} onBlur={e => salvarCampoContato("notas", e.target.value)} rows={8} style={{ ...inputSm, resize: "vertical", fontFamily: "inherit", minHeight: 100 }} />
                   <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0" }}>Salva ao sair do campo</p>
                 </div>
               </div>
             )}
 
-            {/* ═══ ABA 3 — FUNIL / KANBAN / VALOR / BLOQUEIOS ═══ */}
             {abaPainel === "funil" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
@@ -541,29 +579,16 @@ export function ChatSection() {
                 </div>
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Coluna Kanban</label>
-                  <input placeholder="Ex: Em andamento" value={atendimentoAtivo.kanban_coluna || ""}
-                    onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, kanban_coluna: e.target.value })}
-                    onBlur={e => salvarCampoContato("kanban_coluna", e.target.value)}
-                    style={inputSm} />
+                  <input placeholder="Ex: Em andamento" value={atendimentoAtivo.kanban_coluna || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, kanban_coluna: e.target.value })} onBlur={e => salvarCampoContato("kanban_coluna", e.target.value)} style={inputSm} />
                 </div>
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Demanda do Cliente</label>
-                  <textarea placeholder="O que o cliente precisa..."
-                    value={atendimentoAtivo.demanda || ""}
-                    onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, demanda: e.target.value })}
-                    onBlur={e => salvarCampoContato("demanda", e.target.value)}
-                    rows={3}
-                    style={{ ...inputSm, resize: "vertical", fontFamily: "inherit", minHeight: 60 }} />
+                  <textarea placeholder="O que o cliente precisa..." value={atendimentoAtivo.demanda || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, demanda: e.target.value })} onBlur={e => salvarCampoContato("demanda", e.target.value)} rows={3} style={{ ...inputSm, resize: "vertical", fontFamily: "inherit", minHeight: 60 }} />
                 </div>
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Valor do Negócio (R$)</label>
-                  <input type="number" step="0.01" placeholder="0,00"
-                    value={atendimentoAtivo.valor || 0}
-                    onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, valor: parseFloat(e.target.value) || 0 })}
-                    onBlur={e => salvarCampoContato("valor", parseFloat(e.target.value) || 0)}
-                    style={inputSm} />
+                  <input type="number" step="0.01" placeholder="0,00" value={atendimentoAtivo.valor || 0} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, valor: parseFloat(e.target.value) || 0 })} onBlur={e => salvarCampoContato("valor", parseFloat(e.target.value) || 0)} style={inputSm} />
                 </div>
-
                 <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 12, marginTop: 6 }}>
                   <p style={{ color: "#dc2626", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>🚫 Bloqueios</p>
                   {[
@@ -577,8 +602,7 @@ export function ChatSection() {
                           <p style={{ color: "white", fontSize: 12, fontWeight: "bold", margin: 0 }}>{b.label}</p>
                           <p style={{ color: "#6b7280", fontSize: 10, margin: 0 }}>{b.desc}</p>
                         </div>
-                        <button onClick={() => salvarCampoContato(b.key, !ativo)}
-                          style={{ width: 40, height: 22, background: ativo ? "#dc2626" : "#374151", borderRadius: 11, cursor: "pointer", border: "none", position: "relative", flexShrink: 0 }}>
+                        <button onClick={() => salvarCampoContato(b.key, !ativo)} style={{ width: 40, height: 22, background: ativo ? "#dc2626" : "#374151", borderRadius: 11, cursor: "pointer", border: "none", position: "relative", flexShrink: 0 }}>
                           <div style={{ width: 16, height: 16, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: ativo ? 21 : 3, transition: "left 0.2s" }} />
                         </button>
                       </div>
@@ -588,7 +612,66 @@ export function ChatSection() {
               </div>
             )}
 
-            {/* ═══ ABA 4 — IA (ChatGPT/TypeBot) ═══ */}
+            {/* ═══ ABA ETIQUETAS ═══ */}
+            {abaPainel === "etiquetas" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div>
+                  <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 6px" }}>
+                    🏷️ Etiquetas deste atendimento
+                  </p>
+                  <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
+                    {etiquetasAtendimento.length === 0
+                      ? "Nenhuma etiqueta aplicada. Clique nas etiquetas abaixo para marcar."
+                      : `${etiquetasAtendimento.length} etiqueta(s) aplicada(s). Clique para desmarcar.`}
+                  </p>
+                </div>
+
+                {etiquetasWorkspace.length === 0 ? (
+                  <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 24, textAlign: "center" }}>
+                    <p style={{ fontSize: 32, margin: "0 0 8px" }}>🏷️</p>
+                    <p style={{ color: "#9ca3af", fontSize: 12, margin: "0 0 8px" }}>
+                      Nenhuma etiqueta criada no workspace ainda
+                    </p>
+                    <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
+                      Vá em <b>Cadastros → Etiquetas</b> pra criar etiquetas.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {etiquetasWorkspace.map(et => {
+                      const marcada = etiquetasAtendimento.includes(et.id);
+                      return (
+                        <button key={et.id} onClick={() => toggleEtiqueta(et.id)}
+                          style={{
+                            background: marcada ? et.cor + "22" : "#1f2937",
+                            border: `2px solid ${marcada ? et.cor : "#374151"}`,
+                            borderRadius: 10,
+                            padding: "10px 14px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            cursor: "pointer",
+                            opacity: marcada ? 1 : 0.6,
+                            transition: "all 0.15s",
+                            textAlign: "left",
+                          }}>
+                          <div style={{ background: et.cor + "33", borderRadius: 6, padding: "4px 8px", fontSize: 16 }}>
+                            {et.icone || "🏷️"}
+                          </div>
+                          <span style={{ flex: 1, color: marcada ? et.cor : "white", fontSize: 13, fontWeight: "bold" }}>
+                            {et.nome}
+                          </span>
+                          {marcada && (
+                            <span style={{ background: et.cor, color: "white", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>✓</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {abaPainel === "ia" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>Controla se a IA e o TypeBOT atuam neste contato específico.</p>
@@ -601,14 +684,11 @@ export function ChatSection() {
                     <div key={item.key} style={{ background: "#0d0d0d", borderRadius: 10, padding: 14, border: `1px solid ${bloqueado ? "#dc262633" : "#1f2937"}` }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                         <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{item.label}</p>
-                        <button onClick={() => salvarCampoContato(item.key, !bloqueado)}
-                          style={{ width: 44, height: 24, background: bloqueado ? "#dc2626" : item.cor, borderRadius: 12, cursor: "pointer", border: "none", position: "relative" }}>
+                        <button onClick={() => salvarCampoContato(item.key, !bloqueado)} style={{ width: 44, height: 24, background: bloqueado ? "#dc2626" : item.cor, borderRadius: 12, cursor: "pointer", border: "none", position: "relative" }}>
                           <div style={{ width: 18, height: 18, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: bloqueado ? 23 : 3, transition: "left 0.2s" }} />
                         </button>
                       </div>
-                      <p style={{ color: bloqueado ? "#dc2626" : "#6b7280", fontSize: 11, margin: 0 }}>
-                        Status: <b>{bloqueado ? "🚫 BLOQUEADO" : "✅ Ativo"}</b>
-                      </p>
+                      <p style={{ color: bloqueado ? "#dc2626" : "#6b7280", fontSize: 11, margin: 0 }}>Status: <b>{bloqueado ? "🚫 BLOQUEADO" : "✅ Ativo"}</b></p>
                       <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0" }}>{item.desc}</p>
                     </div>
                   );
@@ -616,15 +696,12 @@ export function ChatSection() {
               </div>
             )}
 
-            {/* ═══ ABA 5 — UTILITÁRIOS (PDF/LID/Sanitizar) ═══ */}
             {abaPainel === "utils" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <button onClick={exportarPDF}
-                  style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "12px", fontSize: 13, cursor: "pointer", fontWeight: "bold", textAlign: "left" }}>
+                <button onClick={exportarPDF} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "12px", fontSize: 13, cursor: "pointer", fontWeight: "bold", textAlign: "left" }}>
                   📄 Exportar Histórico em PDF
                   <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", fontWeight: "normal" }}>Abre uma janela de impressão com toda a conversa</p>
                 </button>
-
                 <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14 }}>
                   <p style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", fontWeight: "bold", margin: "0 0 8px" }}>🆔 LID do WhatsApp</p>
                   <div style={{ background: "#111", borderRadius: 6, padding: "8px 10px", fontFamily: "monospace", fontSize: 12, color: "white", wordBreak: "break-all" }}>
@@ -632,7 +709,6 @@ export function ChatSection() {
                   </div>
                   <p style={{ color: "#6b7280", fontSize: 10, margin: "6px 0 0" }}>Identificador único do WhatsApp</p>
                 </div>
-
                 <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14 }}>
                   <p style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", fontWeight: "bold", margin: "0 0 8px" }}>📱 Número Sanitizado</p>
                   <div style={{ background: "#111", borderRadius: 6, padding: "8px 10px", fontFamily: "monospace", fontSize: 12, color: "#16a34a", wordBreak: "break-all" }}>
@@ -640,14 +716,10 @@ export function ChatSection() {
                   </div>
                   <p style={{ color: "#6b7280", fontSize: 10, margin: "6px 0 0" }}>Só dígitos — pronto pra APIs externas</p>
                 </div>
-
-                <button onClick={() => { navigator.clipboard.writeText(numeroSanitizado(atendimentoAtivo.numero)); alert("Copiado!"); }}
-                  style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
+                <button onClick={() => { navigator.clipboard.writeText(numeroSanitizado(atendimentoAtivo.numero)); alert("Copiado!"); }} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
                   📋 Copiar número sanitizado
                 </button>
-
-                <button onClick={() => window.open(`https://wa.me/${numeroSanitizado(atendimentoAtivo.numero)}`, "_blank")}
-                  style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
+                <button onClick={() => window.open(`https://wa.me/${numeroSanitizado(atendimentoAtivo.numero)}`, "_blank")} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
                   📞 Abrir no WhatsApp Web
                 </button>
               </div>
