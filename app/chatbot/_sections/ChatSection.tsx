@@ -26,7 +26,7 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
   const [waveform, setWaveform] = useState<number[]>(Array(40).fill(0.3));
   const [loaded, setLoaded] = useState(false);
 
-  // Gera waveform a partir do áudio (uma vez só)
+  // Gera waveform a partir do áudio
   useEffect(() => {
     let cancel = false;
     (async () => {
@@ -51,7 +51,6 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
         if (!cancel) setWaveform(normalized);
         try { ctx.close(); } catch {}
       } catch (err) {
-        // Se falhar (CORS, formato), mantém as barras padrão
         console.warn("Falha ao gerar waveform:", err);
       }
     })();
@@ -143,80 +142,6 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
     </div>
   );
 }
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [current, setCurrent] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    const onMeta = () => { setDuration(a.duration || 0); setLoaded(true); };
-    const onTime = () => setCurrent(a.currentTime || 0);
-    const onEnd = () => { setPlaying(false); setCurrent(0); };
-    a.addEventListener("loadedmetadata", onMeta);
-    a.addEventListener("timeupdate", onTime);
-    a.addEventListener("ended", onEnd);
-    return () => {
-      a.removeEventListener("loadedmetadata", onMeta);
-      a.removeEventListener("timeupdate", onTime);
-      a.removeEventListener("ended", onEnd);
-    };
-  }, []);
-
-  const toggle = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    if (playing) { a.pause(); setPlaying(false); }
-    else { a.play().catch(() => {}); setPlaying(true); }
-  };
-
-  const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const a = audioRef.current;
-    if (!a) return;
-    const v = parseFloat(e.target.value);
-    a.currentTime = v;
-    setCurrent(v);
-  };
-
-  const format = (s: number) => {
-    if (!isFinite(s) || isNaN(s)) return "0:00";
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${String(sec).padStart(2, "0")}`;
-  };
-
-  const cor = isOwn ? "#a3e4d0" : "#00a884";
-  const fundoTrilha = isOwn ? "#134e3a" : "#2a3942";
-
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 240, padding: "2px 0" }}>
-      <audio ref={audioRef} src={src} preload="metadata" style={{ display: "none" }} />
-      {/* Avatar redondo */}
-      <div style={{ width: 36, height: 36, borderRadius: "50%", background: isOwn ? "#00a88433" : "#8696a033", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 }}>
-        {isOwn ? "👤" : "🧑"}
-      </div>
-      {/* Botão play/pause */}
-      <button onClick={toggle}
-        style={{ width: 32, height: 32, borderRadius: "50%", background: "transparent", border: "none", color: cor, fontSize: 18, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {playing ? "⏸" : "▶"}
-      </button>
-      {/* Barra de progresso */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-        <input type="range" min={0} max={duration || 0.01} step={0.01} value={current}
-          onChange={seek}
-          style={{
-            width: "100%", height: 3, appearance: "none", background: `linear-gradient(to right, ${cor} 0%, ${cor} ${duration ? (current / duration) * 100 : 0}%, ${fundoTrilha} ${duration ? (current / duration) * 100 : 0}%, ${fundoTrilha} 100%)`,
-            borderRadius: 2, outline: "none", cursor: "pointer",
-          }} />
-        <span style={{ fontSize: 10, color: isOwn ? "#a3e4d0" : "#8696a0" }}>
-          {loaded ? format(duration - current) : "carregando…"}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export function ChatSection() {
   const { workspace, wsId, user } = useWorkspace();
@@ -237,9 +162,9 @@ export function ChatSection() {
   const [historico, setHistorico] = useState<Mensagem[]>([]);
   const [enviandoMsg, setEnviandoMsg] = useState(false);
 
-  // ═══ Gravação de áudio ═══
+  // Gravação de áudio
   const [gravando, setGravando] = useState(false);
-  const [tempoGravacao, setTempoGravacao] = useState(0); // segundos
+  const [tempoGravacao, setTempoGravacao] = useState(0);
   const [enviandoAudio, setEnviandoAudio] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -250,7 +175,7 @@ export function ChatSection() {
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
   const [meuNome, setMeuNome] = useState("");
 
-  // Painel Dados do Contato
+  // Painel
   const [showPainelContato, setShowPainelContato] = useState(false);
   const [abaPainel, setAbaPainel] = useState<"perfil" | "protocolo" | "funil" | "ia" | "utils" | "etiquetas">("perfil");
   const [salvandoContato, setSalvandoContato] = useState(false);
@@ -259,7 +184,7 @@ export function ChatSection() {
   const [etiquetasWorkspace, setEtiquetasWorkspace] = useState<Etiqueta[]>([]);
   const [etiquetasAtendimento, setEtiquetasAtendimento] = useState<number[]>([]);
 
-  // Filtros avançados
+  // Filtros
   const [filtroFila, setFiltroFila] = useState("todas");
   const [filtroAtendente, setFiltroAtendente] = useState("todos");
   const [filtroEtiqueta, setFiltroEtiqueta] = useState("todas");
@@ -441,7 +366,6 @@ export function ChatSection() {
     setEnviandoMsg(false);
   };
 
-  // ═══ GRAVAÇÃO DE ÁUDIO ═══
   const iniciarGravacao = async () => {
     if (!atendimentoAtivo) return;
     try {
@@ -485,7 +409,6 @@ export function ChatSection() {
     const recorder = mediaRecorderRef.current;
     setEnviandoAudio(true);
 
-    // Aguarda o recorder finalizar e disparar onstop
     await new Promise<void>((resolve) => {
       recorder.onstop = () => resolve();
       try { recorder.stop(); } catch { resolve(); }
@@ -513,7 +436,6 @@ export function ChatSection() {
     setTempoGravacao(0);
   };
 
-  // Ações
   const assumirChatDaLista = async (e: React.MouseEvent, a: Atendimento) => {
     e.stopPropagation();
     await wa("assumir", { numero: a.numero, workspaceId: wsId });
@@ -851,7 +773,7 @@ export function ChatSection() {
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end" }}>
                         <div style={{
-                          maxWidth: ehAudio ? 320 : "65%", padding: "6px 10px 8px",
+                          maxWidth: ehAudio ? 340 : "65%", padding: "6px 10px 8px",
                           borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px",
                           background: isCliente ? "#202c33" : "#005c4b",
                           boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)",
@@ -890,7 +812,7 @@ export function ChatSection() {
               </div>
             )}
 
-            {/* BARRA DE INPUT — se gravando, mostra barra de gravação */}
+            {/* BARRA DE INPUT OU GRAVAÇÃO */}
             {gravando ? (
               <div style={{ background: "#202c33", padding: "10px 16px", display: "flex", gap: 12, alignItems: "center" }}>
                 <button onClick={cancelarGravacao} disabled={enviandoAudio} title="Cancelar gravação"
