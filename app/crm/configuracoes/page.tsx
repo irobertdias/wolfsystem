@@ -57,8 +57,15 @@ export default function Configuracoes() {
   const [formUsuario, setFormUsuario] = useState({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "" });
   const [formFila, setFormFila] = useState({ nome: "", conexao: "" });
   const [formGrupo, setFormGrupo] = useState({ nome: "", descricao: "", permissoes: { ...PERMISSOES_PADRAO } });
+  const [salvandoUsuario, setSalvandoUsuario] = useState(false);
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 14, boxSizing: "border-box" as const };
+
+  // ✅ Helper pra pegar o token Bearer pra chamar APIs protegidas
+  const getToken = async (): Promise<string | null> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  };
 
   const fetchUsuarios = async (wsId: string) => {
     const { data } = await supabase.from("usuarios_workspace").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false });
@@ -83,7 +90,12 @@ export default function Configuracoes() {
       if (ws) {
         // É dono — acesso total
         setAutorizado(true);
-        const wsId = ws.username || ws.id.toString();
+        // ✅ MULTI-TENANT: usa SEMPRE o username (não o id numérico)
+        const wsId = ws.username;
+        if (!wsId) {
+          alert("Erro: workspace sem username. Contate o administrador.");
+          return;
+        }
         setWorkspaceId(wsId);
         fetchUsuarios(wsId);
         fetchGrupos(wsId);
@@ -110,6 +122,15 @@ export default function Configuracoes() {
     init();
   }, []);
 
+  // ✅ Realtime — atualiza lista de usuários quando criar/excluir
+  useEffect(() => {
+    if (!workspaceId) return;
+    const ch = supabase.channel("usuarios_ws_rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${workspaceId}` }, () => fetchUsuarios(workspaceId))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [workspaceId]);
+
   // Enquanto verifica autorização, não renderiza nada
   if (!autorizado) return null;
 
@@ -122,47 +143,99 @@ export default function Configuracoes() {
     setShowFormUsuario(true);
   };
 
+  // ✅ EXCLUIR — envia token Bearer
   const excluirUsuario = async (u: Usuario) => {
-    if (!confirm(`Excluir ${u.nome}?`)) return;
-    const resp = await fetch("/api/deletar-usuario", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: u.email, workspace_id: workspaceId }),
-    });
-    const data = await resp.json();
-    if (!data.success) { alert("Erro ao excluir: " + data.error); return; }
-    await fetchUsuarios(workspaceId);
-    alert("✅ Usuário excluído!");
-  };
+    if (!confirm(`Excluir ${u.nome}? Isso vai apagar o login dele também.`)) return;
 
-  const salvarUsuario = async () => {
-    if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; }
-    if (editandoUsuario) {
-      await supabase.from("usuarios_workspace")
-        .update({ nome: formUsuario.nome, perfil: formUsuario.perfil, fila: formUsuario.fila, grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null })
-        .eq("email", editandoUsuario.email).eq("workspace_id", workspaceId);
-      await fetchUsuarios(workspaceId);
-      setEditandoUsuario(null);
-      setShowFormUsuario(false);
-      setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "" });
-      alert("✅ Usuário atualizado!");
-      return;
-    }
-    if (!formUsuario.senha) { alert("Preencha a Senha!"); return; }
-    if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); return; }
+    const token = await getToken();
+    if (!token) { alert("Sessão expirou. Faça login novamente."); return; }
+
     try {
-      const resp = await fetch("/api/criar-usuario", {
+      const resp = await fetch("/api/deletar-usuario", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formUsuario.email, senha: formUsuario.senha, nome: formUsuario.nome, workspace_id: workspaceId, perfil: formUsuario.perfil, fila: formUsuario.fila, grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email: u.email, workspace_id: workspaceId }),
       });
       const data = await resp.json();
-      if (!data.success) { alert("Erro ao criar usuário: " + data.error); return; }
+      if (!data.success) { alert("Erro ao excluir: " + data.error); return; }
+      await fetchUsuarios(workspaceId);
+      alert("✅ Usuário excluído!");
+    } catch (e: any) {
+      alert("Erro: " + e.message);
+    }
+  };
+
+  // ✅ SALVAR — envia token Bearer + trata erro de limite atingido
+  const salvarUsuario = async () => {
+    if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; }
+
+    setSalvandoUsuario(true);
+
+    try {
+      if (editandoUsuario) {
+        // Edição — direto no banco (Supabase faz a validação)
+        await supabase.from("usuarios_workspace")
+          .update({ nome: formUsuario.nome, perfil: formUsuario.perfil, fila: formUsuario.fila, grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null })
+          .eq("email", editandoUsuario.email).eq("workspace_id", workspaceId);
+        await fetchUsuarios(workspaceId);
+        setEditandoUsuario(null);
+        setShowFormUsuario(false);
+        setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "" });
+        alert("✅ Usuário atualizado!");
+        setSalvandoUsuario(false);
+        return;
+      }
+
+      if (!formUsuario.senha) { alert("Preencha a Senha!"); setSalvandoUsuario(false); return; }
+      if (formUsuario.senha.length < 6) { alert("Senha deve ter no mínimo 6 caracteres!"); setSalvandoUsuario(false); return; }
+
+      // Checagem de limite (frontend — servidor também checa)
+      if (limiteAtingido) {
+        alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido! Faça upgrade do plano.`);
+        setSalvandoUsuario(false);
+        return;
+      }
+
+      const token = await getToken();
+      if (!token) { alert("Sessão expirou. Faça login novamente."); setSalvandoUsuario(false); return; }
+
+      const resp = await fetch("/api/criar-usuario", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          email: formUsuario.email, senha: formUsuario.senha, nome: formUsuario.nome,
+          workspace_id: workspaceId, perfil: formUsuario.perfil, fila: formUsuario.fila,
+          grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
+        }),
+      });
+      const data = await resp.json();
+
+      if (!data.success) {
+        // Trata mensagens específicas
+        if (data.error === "email_exists") {
+          alert("❌ Este e-mail já está cadastrado no sistema!");
+        } else if (data.error === "limite_atingido") {
+          alert("❌ " + (data.detalhes || `Limite de ${limites.usuarios_liberados} usuários atingido!`));
+        } else {
+          alert("Erro ao criar usuário: " + data.error);
+        }
+        setSalvandoUsuario(false);
+        return;
+      }
+
       await fetchUsuarios(workspaceId);
       setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "" });
       setShowFormUsuario(false);
-      alert("✅ Usuário adicionado!");
+      alert("✅ Usuário adicionado! Ele já pode fazer login.");
     } catch (e: any) { alert("Erro: " + e.message); }
+
+    setSalvandoUsuario(false);
   };
 
   const salvarGrupo = async () => {
@@ -205,7 +278,7 @@ export default function Configuracoes() {
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             {limiteAtingido && <span style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: "bold" }}>🔒 Limite atingido</span>}
             <button onClick={() => {
-              if (limiteAtingido) { alert(`❌ Você atingiu o limite de ${limites.usuarios_liberados} usuário(s).`); return; }
+              if (limiteAtingido) { alert(`❌ Você atingiu o limite de ${limites.usuarios_liberados} usuário(s). Para adicionar mais, faça upgrade do plano.`); return; }
               setEditandoUsuario(null);
               setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "" });
               setShowFormUsuario(!showFormUsuario);
@@ -255,14 +328,14 @@ export default function Configuracoes() {
               {!editandoUsuario && (
                 <div style={{ position: "relative" }}>
                   <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Senha *</label>
-                  <input type={showSenha ? "text" : "password"} placeholder="Senha" value={formUsuario.senha} onChange={e => setFormUsuario({ ...formUsuario, senha: e.target.value })} style={{ ...IS, paddingRight: 40 }} />
+                  <input type={showSenha ? "text" : "password"} placeholder="Senha (mín 6)" value={formUsuario.senha} onChange={e => setFormUsuario({ ...formUsuario, senha: e.target.value })} style={{ ...IS, paddingRight: 40 }} />
                   <button onClick={() => setShowSenha(!showSenha)} style={{ position: "absolute", right: 12, top: 34, background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 14 }}>{showSenha ? "🙈" : "👁️"}</button>
                 </div>
               )}
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button onClick={() => { setShowFormUsuario(false); setEditandoUsuario(null); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={salvarUsuario} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar</button>
+              <button onClick={salvarUsuario} disabled={salvandoUsuario} style={{ background: salvandoUsuario ? "#1d4ed8" : "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>{salvandoUsuario ? "Salvando..." : "💾 Salvar"}</button>
             </div>
           </div>
         )}
