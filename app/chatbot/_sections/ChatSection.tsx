@@ -27,9 +27,12 @@ export function ChatSection() {
   const [enviandoMsg, setEnviandoMsg] = useState(false);
 
   // Filtros
+  const [visualizarTickets, setVisualizarTickets] = useState(false);
   const [filtroFila, setFiltroFila] = useState("todas");
   const [filtroAtendente, setFiltroAtendente] = useState("todos");
   const [filtroConexao, setFiltroConexao] = useState("todas");
+  const [filtroEtiqueta, setFiltroEtiqueta] = useState("todas");
+  const [filtrosStatus, setFiltrosStatus] = useState<string[]>(["aberto", "pendente"]);
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
 
@@ -73,7 +76,8 @@ export function ChatSection() {
     const ch = supabase.channel("atendimentos_chat_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos" }, () => fetchAtendimentos())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const polling = setInterval(() => fetchAtendimentos(), 5000);
+    return () => { supabase.removeChannel(ch); clearInterval(polling); };
   }, [workspace]);
 
   useEffect(() => {
@@ -91,31 +95,29 @@ export function ChatSection() {
 
   useEffect(() => { setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }, [historico]);
 
-  // Listas para filtros avançados
   const filas = [...new Set(atendimentos.map(a => a.fila))].filter(Boolean);
   const atendentes = [...new Set(atendimentos.map(a => a.atendente))].filter(Boolean);
+  const podeVerFiltrosAvancados = isDono || permissoes.chat_todos;
 
-  // Lógica de filtro — atendente só vê os próprios, admin vê tudo
   const atendimentosFiltrados = atendimentos
     .filter(a => {
+      if (showFiltros && filtrosStatus.length > 0) return filtrosStatus.includes(a.status);
       if (abaConversa === "abertos") return a.status === "aberto";
       if (abaConversa === "pendentes") return a.status === "pendente";
       if (abaConversa === "resolvidos") return a.status === "resolvido";
       return true;
     })
     .filter(a => {
-      // Atendente sem chat_todos só vê os próprios
       if (!isDono && !permissoes.chat_todos && permissoes.chat_proprio) {
-        return a.atendente === "BOT" || a.atendente === "Humano" || a.status === "pendente" || a.atendente === wsId;
+        return a.atendente === "BOT" || a.status === "pendente" || a.atendente === wsId;
       }
       return true;
     })
     .filter(a => !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.numero?.includes(busca))
     .filter(a => filtroFila === "todas" || a.fila === filtroFila)
-    .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente)
-    .filter(a => filtroConexao === "todas" || a.fila === filtroConexao);
+    .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente);
 
-  const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroConexao !== "todas";
+  const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas";
 
   const enviarMensagem = async () => {
     if (!mensagem || !atendimentoAtivo) return;
@@ -128,24 +130,22 @@ export function ChatSection() {
   const assumirChat = async (numero: string) => { await wa("assumir", { numero, workspaceId: wsId }); fetchAtendimentos(); };
   const finalizarChat = async (numero: string) => { await wa("finalizar", { numero, workspaceId: wsId }); fetchAtendimentos(); setAtendimentoAtivo(null); setHistorico([]); };
   const devolverBot = async (numero: string) => { await wa("devolver", { numero, workspaceId: wsId }); fetchAtendimentos(); };
-
-  const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroConexao("todas"); };
+  const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroConexao("todas"); setFiltroEtiqueta("todas"); setFiltrosStatus(["aberto", "pendente"]); };
 
   const tempoRelativo = (data: string) => { const d = Math.floor((Date.now() - new Date(data).getTime()) / 60000); return d < 1 ? "agora" : d < 60 ? `${d}min` : d < 1440 ? `${Math.floor(d/60)}h` : `${Math.floor(d/1440)}d`; };
   const horaMsg = (data: string) => new Date(data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-  const podeVerFiltrosAvancados = isDono || permissoes.chat_todos;
+  const toggleStatus = (s: string) => setFiltrosStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
   return (
     <div style={{ display: "flex", flex: 1, height: "100vh" }}>
 
-      {/* LISTA DE ATENDIMENTOS */}
+      {/* LISTA */}
       <div style={{ width: 310, background: "#111", borderRight: "1px solid #1f2937", display: "flex", flexDirection: "column" }}>
 
         {/* BUSCA */}
         <div style={{ padding: "10px 12px", borderBottom: "1px solid #1f2937" }}>
-          <input placeholder="Buscar por nome ou número..." value={busca} onChange={e => setBusca(e.target.value)}
-            style={{ ...IS, padding: "8px 12px", fontSize: 12 }} />
+          <input placeholder="Buscar por nome ou número..." value={busca} onChange={e => setBusca(e.target.value)} style={{ ...IS, padding: "8px 12px", fontSize: 12 }} />
         </div>
 
         {/* BOTÕES */}
@@ -156,45 +156,92 @@ export function ChatSection() {
             <button onClick={() => setShowChatInterno(!showChatInterno)} title="Chat Interno"
               style={{ background: showChatInterno ? "#8b5cf622" : "#1f2937", border: "1px solid #374151", borderRadius: 6, padding: "5px 9px", color: showChatInterno ? "#8b5cf6" : "#9ca3af", cursor: "pointer", fontSize: 14 }}>💭</button>
           )}
-          <button onClick={() => setShowFiltros(!showFiltros)} title="Filtros"
-            style={{ background: showFiltros || temFiltroAtivo ? "#3b82f622" : "#1f2937", border: `1px solid ${temFiltroAtivo ? "#3b82f6" : "#374151"}`, borderRadius: 6, padding: "5px 9px", color: temFiltroAtivo ? "#3b82f6" : "#9ca3af", cursor: "pointer", fontSize: 14, position: "relative" }}>
+          <button onClick={() => setShowFiltros(!showFiltros)} title="Filtros Avançados"
+            style={{ position: "relative", background: showFiltros || temFiltroAtivo ? "#3b82f622" : "#1f2937", border: `1px solid ${temFiltroAtivo ? "#3b82f6" : "#374151"}`, borderRadius: 6, padding: "5px 9px", color: temFiltroAtivo ? "#3b82f6" : "#9ca3af", cursor: "pointer", fontSize: 14 }}>
             🔽{temFiltroAtivo && <span style={{ position: "absolute", top: 2, right: 2, width: 6, height: 6, background: "#3b82f6", borderRadius: "50%" }} />}
           </button>
         </div>
 
-        {/* PAINEL DE FILTROS */}
+        {/* PAINEL FILTROS AVANÇADOS */}
         {showFiltros && (
-          <div style={{ background: "#0d0d0d", borderBottom: "1px solid #1f2937", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ background: "#0d0d0d", borderBottom: "1px solid #1f2937", padding: 14, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", maxHeight: 420 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase" }}>🔍 Filtros</span>
-              {temFiltroAtivo && (
-                <button onClick={limparFiltros} style={{ background: "none", border: "none", color: "#dc2626", fontSize: 11, cursor: "pointer" }}>✕ Limpar</button>
-              )}
+              <span style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase" }}>Filtro Avançado</span>
+              {temFiltroAtivo && <button onClick={limparFiltros} style={{ background: "none", border: "none", color: "#dc2626", fontSize: 11, cursor: "pointer" }}>✕ Limpar</button>}
             </div>
 
-            {/* Filtro por Fila — todos podem ver */}
+            {/* Visualizar Tickets */}
+            <div style={{ background: "#1f2937", borderRadius: 8, padding: "10px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ color: "white", fontSize: 12 }}>Visualizar Tickets</span>
+              <button onClick={() => setVisualizarTickets(!visualizarTickets)}
+                style={{ width: 36, height: 20, background: visualizarTickets ? "#3b82f6" : "#374151", borderRadius: 10, cursor: "pointer", border: "none", position: "relative", flexShrink: 0 }}>
+                <div style={{ width: 14, height: 14, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: visualizarTickets ? 19 : 3, transition: "left 0.2s" }} />
+              </button>
+            </div>
+
+            {/* Filas */}
             <div>
-              <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4 }}>Fila</label>
-              <select value={filtroFila} onChange={e => setFiltroFila(e.target.value)}
-                style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
+              <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Filas</label>
+              <select value={filtroFila} onChange={e => setFiltroFila(e.target.value)} style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
                 <option value="todas">Todas as filas</option>
                 {filas.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             </div>
 
-            {/* Filtros avançados — só admin/supervisor */}
+            {/* Conexão — admin/supervisor */}
             {podeVerFiltrosAvancados && (
-              <>
-                <div>
-                  <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4 }}>Atendente</label>
-                  <select value={filtroAtendente} onChange={e => setFiltroAtendente(e.target.value)}
-                    style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
-                    <option value="todos">Todos os atendentes</option>
-                    {atendentes.map(a => <option key={a} value={a}>{a === "BOT" ? "🤖 BOT" : "👤 " + a}</option>)}
-                  </select>
-                </div>
-              </>
+              <div>
+                <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Conexão</label>
+                <select value={filtroConexao} onChange={e => setFiltroConexao(e.target.value)} style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
+                  <option value="todas">Todas as conexões</option>
+                  {filas.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </div>
             )}
+
+            {/* Usuário — admin/supervisor */}
+            {podeVerFiltrosAvancados && (
+              <div>
+                <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Usuário</label>
+                <select value={filtroAtendente} onChange={e => setFiltroAtendente(e.target.value)} style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
+                  <option value="todos">Todos os usuários</option>
+                  {atendentes.map(a => <option key={a} value={a}>{a === "BOT" ? "🤖 BOT" : "👤 " + a}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Etiquetas */}
+            <div>
+              <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Etiquetas</label>
+              <select value={filtroEtiqueta} onChange={e => setFiltroEtiqueta(e.target.value)} style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
+                <option value="todas">Todas as etiquetas</option>
+                <option value="lead_quente">🔴 Lead Quente</option>
+                <option value="lead_frio">🔵 Lead Frio</option>
+                <option value="agendado">🟡 Agendado</option>
+                <option value="fechado">🟢 Fechado</option>
+                <option value="retornar">🟣 Retornar</option>
+              </select>
+            </div>
+
+            {/* Status checkboxes */}
+            <div>
+              <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 8, textTransform: "uppercase" }}>Status</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  { key: "aberto", label: "Abertos", color: "#3b82f6" },
+                  { key: "pendente", label: "Pendentes", color: "#dc2626" },
+                  { key: "resolvido", label: "Resolvidos", color: "#16a34a" },
+                ].map(s => (
+                  <label key={s.key} onClick={() => toggleStatus(s.key)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                    <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${filtrosStatus.includes(s.key) ? s.color : "#374151"}`, background: filtrosStatus.includes(s.key) ? s.color : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {filtrosStatus.includes(s.key) && <span style={{ color: "white", fontSize: 11, fontWeight: "bold" }}>✓</span>}
+                    </div>
+                    <span style={{ color: "white", fontSize: 13 }}>{s.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
 
             <div style={{ background: "#1f2937", borderRadius: 8, padding: "8px 12px", display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "#6b7280", fontSize: 11 }}>Resultados</span>
@@ -204,20 +251,22 @@ export function ChatSection() {
         )}
 
         {/* ABAS STATUS */}
-        <div style={{ display: "flex", borderBottom: "1px solid #1f2937" }}>
-          {[
-            { key: "abertos", label: "Abertos", color: "#3b82f6", count: atendimentos.filter(a => a.status === "aberto").length },
-            { key: "pendentes", label: "Pendentes", color: "#f59e0b", count: atendimentos.filter(a => a.status === "pendente").length },
-            { key: "resolvidos", label: "Resolvidos", color: "#16a34a", count: atendimentos.filter(a => a.status === "resolvido").length },
-          ].map(t => (
-            <button key={t.key} onClick={() => setAbaConversa(t.key)}
-              style={{ flex: 1, padding: "10px 4px", background: "none", border: "none", color: abaConversa === t.key ? t.color : "#6b7280", fontSize: 11, fontWeight: "bold", cursor: "pointer", borderBottom: abaConversa === t.key ? `2px solid ${t.color}` : "2px solid transparent" }}>
-              {t.label}{t.count > 0 && <span style={{ background: t.color, color: "white", borderRadius: 8, padding: "0 5px", fontSize: 9, marginLeft: 3 }}>{t.count}</span>}
-            </button>
-          ))}
-        </div>
+        {!showFiltros && (
+          <div style={{ display: "flex", borderBottom: "1px solid #1f2937" }}>
+            {[
+              { key: "abertos", label: "Abertos", color: "#3b82f6", count: atendimentos.filter(a => a.status === "aberto").length },
+              { key: "pendentes", label: "Pendentes", color: "#f59e0b", count: atendimentos.filter(a => a.status === "pendente").length },
+              { key: "resolvidos", label: "Resolvidos", color: "#16a34a", count: atendimentos.filter(a => a.status === "resolvido").length },
+            ].map(t => (
+              <button key={t.key} onClick={() => setAbaConversa(t.key)}
+                style={{ flex: 1, padding: "10px 4px", background: "none", border: "none", color: abaConversa === t.key ? t.color : "#6b7280", fontSize: 11, fontWeight: "bold", cursor: "pointer", borderBottom: abaConversa === t.key ? `2px solid ${t.color}` : "2px solid transparent" }}>
+                {t.label}{t.count > 0 && <span style={{ background: t.color, color: "white", borderRadius: 8, padding: "0 5px", fontSize: 9, marginLeft: 3 }}>{t.count}</span>}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {/* CHAT INTERNO */}
+        {/* CHAT INTERNO ou LISTA */}
         {showChatInterno && permissoes.chat_interno ? (
           <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "8px 12px", borderBottom: "1px solid #1f2937" }}>
@@ -245,12 +294,8 @@ export function ChatSection() {
             {atendimentosFiltrados.length === 0 ? (
               <div style={{ padding: 32, textAlign: "center" }}>
                 <p style={{ fontSize: 32, margin: "0 0 8px" }}>💬</p>
-                <p style={{ color: "#6b7280", fontSize: 13 }}>
-                  {temFiltroAtivo ? "Nenhum resultado para os filtros" : "Nenhum atendimento"}
-                </p>
-                {temFiltroAtivo && (
-                  <button onClick={limparFiltros} style={{ background: "none", border: "1px solid #374151", borderRadius: 8, padding: "6px 12px", color: "#9ca3af", fontSize: 12, cursor: "pointer", marginTop: 8 }}>Limpar filtros</button>
-                )}
+                <p style={{ color: "#6b7280", fontSize: 13 }}>{temFiltroAtivo ? "Nenhum resultado para os filtros" : "Nenhum atendimento"}</p>
+                {temFiltroAtivo && <button onClick={limparFiltros} style={{ background: "none", border: "1px solid #374151", borderRadius: 8, padding: "6px 12px", color: "#9ca3af", fontSize: 12, cursor: "pointer", marginTop: 8 }}>Limpar filtros</button>}
               </div>
             ) : atendimentosFiltrados.map(a => (
               <div key={a.id} onClick={() => { setAtendimentoAtivo(a); setHistorico([]); fetchHistorico(a.numero); }}
@@ -299,15 +344,10 @@ export function ChatSection() {
                     style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>↗️ Transferir</button>
                   {showTransferir && (
                     <div style={{ position: "absolute", top: 40, right: 0, background: "#1f2937", border: "1px solid #374151", borderRadius: 12, padding: 16, zIndex: 100, width: 220 }}>
-                      {filas.length > 0
-                        ? filas.map(f => (
-                            <button key={f} onClick={() => { alert(`Transferido para ${f}`); setShowTransferir(false); }}
-                              style={{ display: "block", width: "100%", background: "#111", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 6 }}>📋 {f}</button>
-                          ))
-                        : ["Fila Principal", "Fila Suporte", "Fila Vendas"].map(f => (
-                            <button key={f} onClick={() => { alert(`Transferido para ${f}`); setShowTransferir(false); }}
-                              style={{ display: "block", width: "100%", background: "#111", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 6 }}>📋 {f}</button>
-                          ))}
+                      {(filas.length > 0 ? filas : ["Fila Principal", "Fila Suporte", "Fila Vendas"]).map(f => (
+                        <button key={f} onClick={() => { alert(`Transferido para ${f}`); setShowTransferir(false); }}
+                          style={{ display: "block", width: "100%", background: "#111", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 6 }}>📋 {f}</button>
+                      ))}
                     </div>
                   )}
                 </div>
