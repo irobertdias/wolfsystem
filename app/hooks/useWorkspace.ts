@@ -31,17 +31,61 @@ export function useWorkspace() {
       if (!authUser) { setLoading(false); return; }
       setUser({ id: authUser.id, email: authUser.email || "" });
 
-      // 1. Verifica se é dono do workspace
-      const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", authUser.id).single();
-      if (ws) { setWorkspace(ws); setLoading(false); return; }
+      // ═══ 1. É dono do workspace? ═══
+      const { data: wsDono } = await supabase
+        .from("workspaces")
+        .select("*")
+        .eq("owner_id", authUser.id)
+        .maybeSingle();
 
-      // 2. Verifica se é sub-usuário de algum workspace
-      const { data: usuarioWs } = await supabase.from("usuarios_workspace").select("workspace_id").eq("email", authUser.email).single();
-      if (usuarioWs) {
-        const { data: wsDoono } = await supabase.from("workspaces").select("*").or(`username.eq.${usuarioWs.workspace_id},id.eq.${usuarioWs.workspace_id}`).single();
-        if (wsDoono) { setWorkspace(wsDoono); setLoading(false); return; }
+      if (wsDono) {
+        setWorkspace(wsDono);
+        setLoading(false);
+        return;
       }
 
+      // ═══ 2. É sub-usuário de algum workspace? ═══
+      // Busca a linha MAIS RECENTE (desempata duplicatas ficando com a última criada)
+      const { data: usuarioWs } = await supabase
+        .from("usuarios_workspace")
+        .select("workspace_id")
+        .eq("email", authUser.email)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (usuarioWs?.workspace_id) {
+        // ✅ Busca o workspace pelo username (workspace_id sempre guarda o username)
+        const { data: wsSub } = await supabase
+          .from("workspaces")
+          .select("*")
+          .eq("username", usuarioWs.workspace_id)
+          .maybeSingle();
+
+        if (wsSub) {
+          setWorkspace(wsSub);
+          setLoading(false);
+          return;
+        }
+
+        // ⚠️ Fallback: se workspace_id for numérico (dados legados),
+        // busca por id. Só converte se for só dígitos (evita erro de cast).
+        if (/^\d+$/.test(usuarioWs.workspace_id)) {
+          const { data: wsLegado } = await supabase
+            .from("workspaces")
+            .select("*")
+            .eq("id", parseInt(usuarioWs.workspace_id))
+            .maybeSingle();
+
+          if (wsLegado) {
+            setWorkspace(wsLegado);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      // Não encontrou
       setWorkspace(null);
       setLoading(false);
     };
@@ -53,12 +97,8 @@ export function useWorkspace() {
     window.location.href = "/";
   };
 
-  // ✅ MULTI-TENANT: wsId é SEMPRE o username do workspace.
-  // Se o workspace não tiver username, retorna string vazia (trava o sistema).
-  // Isso garante isolamento entre clientes e bate com o RLS do Supabase.
+  // ✅ MULTI-TENANT: wsId é SEMPRE o username do workspace
   const wsId = workspace?.username || "";
-
-  // ✅ Flag pra o frontend saber quando já pode começar a buscar dados
   const wsPronto = !loading && !!wsId;
 
   return { workspace, user, loading, signOut, wsId, wsPronto };
