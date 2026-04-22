@@ -28,8 +28,8 @@ export function ConexoesSection() {
   const [testandoWABA, setTestandoWABA] = useState(false);
   const [wabaTeste, setWabaTeste] = useState<{ success: boolean; nome?: string; error?: string } | null>(null);
 
-  // Estados das operações em massa
   const [encerrandoMassa, setEncerrandoMassa] = useState(false);
+  const [registrandoWaba, setRegistrandoWaba] = useState(false);
 
   const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "Fila Principal", pararSeAtendente: true };
   const [form, setForm] = useState(formInicial);
@@ -124,13 +124,66 @@ export function ConexoesSection() {
     return () => clearInterval(interval);
   }, [qrPolling, showModalQR, qrWsId, qrConexaoId]);
 
-  // ═══ NOVO: Encerrar atendimentos em massa ═══
+  // ═══ NOVO: Registrar número WABA na Meta ═══
+  const registrarNumeroWaba = async (c: Conexao) => {
+    // Pergunta se quer um PIN customizado ou se usa "000000"
+    const usarPinPadrao = confirm(
+      `🟢 Ativar o número na Meta?\n\n` +
+      `Canal: ${c.nome}\n` +
+      `Número: ${c.numero}\n\n` +
+      `Isso registra seu número na API da Meta e faz ele ficar ONLINE, permitindo receber mensagens.\n\n` +
+      `Clique OK pra usar o PIN padrão (000000).\n` +
+      `Clique CANCELAR se você configurou um PIN personalizado (2FA).`
+    );
+
+    let pin = "000000";
+    if (!usarPinPadrao) {
+      const pinCustom = prompt("Digite seu PIN de 6 dígitos (2FA):", "");
+      if (!pinCustom) return;
+      if (!/^\d{6}$/.test(pinCustom)) { alert("❌ PIN deve ter exatamente 6 dígitos!"); return; }
+      pin = pinCustom;
+    }
+
+    setRegistrandoWaba(true);
+    setShowMenuEngrenagem(null);
+
+    try {
+      const resp = await fetch(`/api/whatsapp?rota=waba/registrar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId: c.workspace_id, pin }),
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        alert(`✅ Número ativado com sucesso na Meta!\n\nAgora ele está ONLINE e pode receber mensagens.\n\nTeste enviando uma mensagem pro número pra confirmar.`);
+      } else {
+        // Tratamento de erros comuns
+        const codigo = data.codigo;
+        let mensagemErro = data.error || "Erro desconhecido";
+        let dica = "";
+
+        if (codigo === 131000 || mensagemErro.includes("PIN")) {
+          dica = "\n\n💡 Dica: o número tem 2FA ativado. Digite seu PIN personalizado na próxima tentativa (clique Cancelar no primeiro popup).";
+        } else if (mensagemErro.toLowerCase().includes("too many")) {
+          dica = "\n\n💡 Aguarde alguns minutos antes de tentar novamente.";
+        } else if (codigo === 133010) {
+          dica = "\n\n💡 Número já está registrado na Meta! Tente recarregar a página.";
+        }
+
+        alert(`❌ ${mensagemErro}${dica}\n\nCódigo: ${codigo || "—"}`);
+      }
+    } catch (e: any) {
+      alert("❌ Erro de conexão: " + e.message);
+    }
+    setRegistrandoWaba(false);
+  };
+
   const encerrarAtendimentosEmMassa = async (tipo: "aguardando" | "abertos", c: Conexao) => {
     const wsIdCanal = c.workspace_id;
     const statusAlvo = tipo === "aguardando" ? ["pendente"] : ["aberto", "em_atendimento"];
     const labelTipo = tipo === "aguardando" ? "aguardando" : "abertos";
 
-    // 1. Busca quantos atendimentos vão ser afetados
     const { data: atendimentos, error: errBusca } = await supabase
       .from("atendimentos")
       .select("id, numero, nome")
@@ -146,7 +199,6 @@ export function ConexoesSection() {
       return;
     }
 
-    // 2. Confirmação
     const confirmacao = confirm(
       `⚠️ ATENÇÃO — Canal: ${c.nome}\n\n` +
       `Você está prestes a ENCERRAR ${total} atendimento(s) ${labelTipo}.\n\n` +
@@ -162,7 +214,6 @@ export function ConexoesSection() {
     try {
       const meuNome = user?.email ? user.email.split("@")[0] : "Sistema";
 
-      // 3. Atualiza todos no banco
       const { error: errUpdate } = await supabase
         .from("atendimentos")
         .update({ status: "resolvido" })
@@ -171,7 +222,6 @@ export function ConexoesSection() {
 
       if (errUpdate) throw errUpdate;
 
-      // 4. Insere mensagem de sistema em cada atendimento encerrado
       const mensagensSistema = (atendimentos || []).map(a => ({
         numero: a.numero,
         mensagem: `Chat encerrado em massa (${labelTipo}) por: ${meuNome}`,
@@ -180,20 +230,18 @@ export function ConexoesSection() {
       }));
 
       if (mensagensSistema.length > 0) {
-        // Insere em lotes de 100 pra não estourar o limite do Supabase
         for (let i = 0; i < mensagensSistema.length; i += 100) {
           const lote = mensagensSistema.slice(i, i + 100);
           await supabase.from("mensagens").insert(lote);
         }
       }
 
-      // 5. Finaliza sessões de fluxo ativas (se houver)
       try {
         await supabase.from("fluxo_sessoes")
           .update({ status: "finalizado" })
           .eq("workspace_id", wsIdCanal)
           .eq("status", "ativo");
-      } catch (e) { /* silent - tabela pode não existir */ }
+      } catch (e) { /* silent */ }
 
       alert(`✅ ${total} atendimento(s) ${labelTipo} encerrado(s) com sucesso!`);
     } catch (e: any) {
@@ -373,6 +421,10 @@ export function ConexoesSection() {
                       <p style={{ color: "#16a34a", fontSize: 12, fontWeight: "bold", margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/webhook/meta</p>
                     </div>
                     <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token de Verificação</label><input placeholder="meu_token_secreto" value={form.webhookToken} onChange={e => setForm(p => ({ ...p, webhookToken: e.target.value }))} style={IS} /></div>
+                    <div style={{ background: "#16a34a22", borderRadius: 8, padding: 12, border: "1px solid #16a34a33" }}>
+                      <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", margin: "0 0 4px", textTransform: "uppercase" }}>💡 Importante</p>
+                      <p style={{ color: "#86efac", fontSize: 11, margin: 0, lineHeight: 1.5 }}>Depois de criar o canal, use o botão <b>🟢 Ativar Número na Meta</b> no menu ⚙️ pra deixar seu número online e pronto pra receber mensagens.</p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -493,12 +545,12 @@ export function ConexoesSection() {
                 )}
                 {c.tipo === "waba" && <button disabled style={{ flex: 1, background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>🔗 API Ativa</button>}
                 <div style={{ position: "relative" }}>
-                  <button onClick={() => setShowMenuEngrenagem(showMenuEngrenagem === c.id ? null : c.id)} disabled={encerrandoMassa}
-                    style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", fontSize: 14, cursor: encerrandoMassa ? "wait" : "pointer" }}>
-                    {encerrandoMassa ? "⏳" : "⚙️"}
+                  <button onClick={() => setShowMenuEngrenagem(showMenuEngrenagem === c.id ? null : c.id)} disabled={encerrandoMassa || registrandoWaba}
+                    style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", fontSize: 14, cursor: (encerrandoMassa || registrandoWaba) ? "wait" : "pointer" }}>
+                    {(encerrandoMassa || registrandoWaba) ? "⏳" : "⚙️"}
                   </button>
                   {showMenuEngrenagem === c.id && (
-                    <div style={{ position: "absolute", bottom: 44, right: 0, background: "#1f2937", border: "1px solid #374151", borderRadius: 10, overflow: "hidden", zIndex: 100, minWidth: 220 }}>
+                    <div style={{ position: "absolute", bottom: 44, right: 0, background: "#1f2937", border: "1px solid #374151", borderRadius: 10, overflow: "hidden", zIndex: 100, minWidth: 240 }}>
                       <button onClick={() => abrirEditar(c)}
                         style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
                         ✏️ Editar Canal
@@ -509,7 +561,13 @@ export function ConexoesSection() {
                           📷 Novo QR Code
                         </button>
                       )}
-                      {/* ═══ NOVOS BOTÕES DE ENCERRAR EM MASSA ═══ */}
+                      {/* ═══ NOVO: Ativar número WABA na Meta ═══ */}
+                      {c.tipo === "waba" && (
+                        <button onClick={() => registrarNumeroWaba(c)}
+                          style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: "bold" }}>
+                          🟢 Ativar Número na Meta
+                        </button>
+                      )}
                       <button onClick={() => encerrarAtendimentosEmMassa("aguardando", c)}
                         style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#f59e0b", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
                         ⏳ Encerrar todos Aguardando
