@@ -9,7 +9,7 @@ type FluxoItem = { id: number; nome: string; ativo: boolean; };
 
 export function ConexoesSection() {
   const router = useRouter();
-  const { workspace, wsId } = useWorkspace();
+  const { workspace, wsId, user } = useWorkspace();
 
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
   const [fluxos, setFluxos] = useState<FluxoItem[]>([]);
@@ -28,13 +28,15 @@ export function ConexoesSection() {
   const [testandoWABA, setTestandoWABA] = useState(false);
   const [wabaTeste, setWabaTeste] = useState<{ success: boolean; nome?: string; error?: string } | null>(null);
 
+  // Estados das operações em massa
+  const [encerrandoMassa, setEncerrandoMassa] = useState(false);
+
   const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "Fila Principal", pararSeAtendente: true };
   const [form, setForm] = useState(formInicial);
 
   const [apiKeyTocada, setApiKeyTocada] = useState(false);
   const [tokenTocado, setTokenTocado] = useState(false);
 
-  // ✅ Refs — guarda OS DOIS workspace_ids (numérico + username) pra buscar em ambos
   const wsIdsRef = useRef<string[]>([]);
   useEffect(() => {
     const ids: string[] = [];
@@ -55,7 +57,6 @@ export function ConexoesSection() {
     return resp.json();
   };
 
-  // ✅ Busca conexões DE TODOS os workspace_ids do usuário (novo + legados)
   const fetchConexoes = async () => {
     const ids = wsIdsRef.current;
     if (ids.length === 0) return;
@@ -63,7 +64,6 @@ export function ConexoesSection() {
     setConexoes(data || []);
   };
 
-  // ✅ Busca fluxos DE TODOS os workspace_ids do usuário (novo + legados)
   const fetchFluxos = async () => {
     const ids = wsIdsRef.current;
     if (ids.length === 0) return;
@@ -80,7 +80,6 @@ export function ConexoesSection() {
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchConexoes())
       .subscribe();
 
-    // Polling 5s — sincroniza com VPS e força fetch
     const interval = setInterval(async () => {
       try {
         const resp = await fetch(`https://api.wolfgyn.com.br/status`);
@@ -124,6 +123,84 @@ export function ConexoesSection() {
     }, 3000);
     return () => clearInterval(interval);
   }, [qrPolling, showModalQR, qrWsId, qrConexaoId]);
+
+  // ═══ NOVO: Encerrar atendimentos em massa ═══
+  const encerrarAtendimentosEmMassa = async (tipo: "aguardando" | "abertos", c: Conexao) => {
+    const wsIdCanal = c.workspace_id;
+    const statusAlvo = tipo === "aguardando" ? ["pendente"] : ["aberto", "em_atendimento"];
+    const labelTipo = tipo === "aguardando" ? "aguardando" : "abertos";
+
+    // 1. Busca quantos atendimentos vão ser afetados
+    const { data: atendimentos, error: errBusca } = await supabase
+      .from("atendimentos")
+      .select("id, numero, nome")
+      .eq("workspace_id", wsIdCanal)
+      .in("status", statusAlvo);
+
+    if (errBusca) { alert("Erro ao buscar atendimentos: " + errBusca.message); return; }
+
+    const total = atendimentos?.length || 0;
+    if (total === 0) {
+      alert(`✅ Não há atendimentos ${labelTipo} em "${c.nome}".`);
+      setShowMenuEngrenagem(null);
+      return;
+    }
+
+    // 2. Confirmação
+    const confirmacao = confirm(
+      `⚠️ ATENÇÃO — Canal: ${c.nome}\n\n` +
+      `Você está prestes a ENCERRAR ${total} atendimento(s) ${labelTipo}.\n\n` +
+      `Todos os ${total} chats serão marcados como RESOLVIDOS e vão pra aba "Finalizados".\n` +
+      `O histórico será mantido.\n\n` +
+      `Deseja continuar?`
+    );
+    if (!confirmacao) return;
+
+    setEncerrandoMassa(true);
+    setShowMenuEngrenagem(null);
+
+    try {
+      const meuNome = user?.email ? user.email.split("@")[0] : "Sistema";
+
+      // 3. Atualiza todos no banco
+      const { error: errUpdate } = await supabase
+        .from("atendimentos")
+        .update({ status: "resolvido" })
+        .eq("workspace_id", wsIdCanal)
+        .in("status", statusAlvo);
+
+      if (errUpdate) throw errUpdate;
+
+      // 4. Insere mensagem de sistema em cada atendimento encerrado
+      const mensagensSistema = (atendimentos || []).map(a => ({
+        numero: a.numero,
+        mensagem: `Chat encerrado em massa (${labelTipo}) por: ${meuNome}`,
+        de: "sistema",
+        workspace_id: wsIdCanal,
+      }));
+
+      if (mensagensSistema.length > 0) {
+        // Insere em lotes de 100 pra não estourar o limite do Supabase
+        for (let i = 0; i < mensagensSistema.length; i += 100) {
+          const lote = mensagensSistema.slice(i, i + 100);
+          await supabase.from("mensagens").insert(lote);
+        }
+      }
+
+      // 5. Finaliza sessões de fluxo ativas (se houver)
+      try {
+        await supabase.from("fluxo_sessoes")
+          .update({ status: "finalizado" })
+          .eq("workspace_id", wsIdCanal)
+          .eq("status", "ativo");
+      } catch (e) { /* silent - tabela pode não existir */ }
+
+      alert(`✅ ${total} atendimento(s) ${labelTipo} encerrado(s) com sucesso!`);
+    } catch (e: any) {
+      alert("❌ Erro ao encerrar em massa: " + e.message);
+    }
+    setEncerrandoMassa(false);
+  };
 
   const testarWABA = async () => {
     if (!form.phoneNumberId || !form.token) { alert("Preencha Phone Number ID e Token!"); return; }
@@ -189,7 +266,6 @@ export function ConexoesSection() {
   const abrirQR = async (id: number) => {
     const canal = conexoes.find(c => c.id === id);
     if (!canal) return;
-    // Usa o workspace_id salvo na conexão — assim respeita canais legados
     const wsIdCanal = canal.workspace_id || wsId;
     setQrWsId(wsIdCanal); setQrConexaoId(id); setResetando(true); setShowModalQR(true);
     setQrImageUrl(""); setQrConectado(false); setQrNumero("");
@@ -417,12 +493,35 @@ export function ConexoesSection() {
                 )}
                 {c.tipo === "waba" && <button disabled style={{ flex: 1, background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>🔗 API Ativa</button>}
                 <div style={{ position: "relative" }}>
-                  <button onClick={() => setShowMenuEngrenagem(showMenuEngrenagem === c.id ? null : c.id)} style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", fontSize: 14, cursor: "pointer" }}>⚙️</button>
+                  <button onClick={() => setShowMenuEngrenagem(showMenuEngrenagem === c.id ? null : c.id)} disabled={encerrandoMassa}
+                    style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", fontSize: 14, cursor: encerrandoMassa ? "wait" : "pointer" }}>
+                    {encerrandoMassa ? "⏳" : "⚙️"}
+                  </button>
                   {showMenuEngrenagem === c.id && (
-                    <div style={{ position: "absolute", bottom: 44, right: 0, background: "#1f2937", border: "1px solid #374151", borderRadius: 10, overflow: "hidden", zIndex: 100, minWidth: 160 }}>
-                      <button onClick={() => abrirEditar(c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>✏️ Editar Canal</button>
-                      {c.tipo === "webjs" && <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>📷 Novo QR Code</button>}
-                      <button onClick={() => excluirCanal(c.id)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#dc2626", fontSize: 13, cursor: "pointer", textAlign: "left" }}>🗑️ Excluir Canal</button>
+                    <div style={{ position: "absolute", bottom: 44, right: 0, background: "#1f2937", border: "1px solid #374151", borderRadius: 10, overflow: "hidden", zIndex: 100, minWidth: 220 }}>
+                      <button onClick={() => abrirEditar(c)}
+                        style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                        ✏️ Editar Canal
+                      </button>
+                      {c.tipo === "webjs" && (
+                        <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }}
+                          style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                          📷 Novo QR Code
+                        </button>
+                      )}
+                      {/* ═══ NOVOS BOTÕES DE ENCERRAR EM MASSA ═══ */}
+                      <button onClick={() => encerrarAtendimentosEmMassa("aguardando", c)}
+                        style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#f59e0b", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                        ⏳ Encerrar todos Aguardando
+                      </button>
+                      <button onClick={() => encerrarAtendimentosEmMassa("abertos", c)}
+                        style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#3b82f6", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                        💬 Encerrar todos Abertos
+                      </button>
+                      <button onClick={() => excluirCanal(c.id)}
+                        style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#dc2626", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                        🗑️ Excluir Canal
+                      </button>
                     </div>
                   )}
                 </div>
