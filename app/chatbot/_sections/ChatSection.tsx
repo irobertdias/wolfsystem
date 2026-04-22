@@ -275,15 +275,7 @@ export function ChatSection() {
       );
     }
     if (aba === "abertos") {
-      // Só mostra "Assumir" se NÃO for o atendente logado (ou seja, assumir de outro)
-      if (a.atendente !== user?.email && podeVerTudo) {
-        return (
-          <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir esse atendimento"
-            style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>
-            Assumir
-          </button>
-        );
-      }
+      // Sem botão em Abertos — cada atendente já trata seu próprio lead
       return null;
     }
     // Finalizados — sem botão
@@ -385,9 +377,14 @@ export function ChatSection() {
                   <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                       {a.fila && <span style={{ background: "#00a88422", color: "#00a884", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>{a.fila}</span>}
-                      <span style={{ background: a.atendente === "BOT" ? "#8b5cf622" : "#3b82f622", color: a.atendente === "BOT" ? "#8b5cf6" : "#3b82f6", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>
-                        {a.atendente === "BOT" ? "🤖 BOT" : "👤 " + (a.atendente?.split("@")[0] || "—")}
-                      </span>
+                      {a.atendente === "BOT" ? (
+                        <span style={{ background: "#8b5cf622", color: "#8b5cf6", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>🤖 BOT</span>
+                      ) : a.atendente ? (
+                        <>
+                          <span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>👤 Humano</span>
+                          <span style={{ background: "#16a34a22", color: "#16a34a", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>👨‍💼 {a.atendente.split("@")[0]}</span>
+                        </>
+                      ) : null}
                     </div>
                     {renderBotaoAcaoLista(a)}
                   </div>
