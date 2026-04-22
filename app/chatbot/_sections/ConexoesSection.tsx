@@ -71,6 +71,17 @@ export function ConexoesSection() {
     setFluxos(data || []);
   };
 
+  // 🆕 Verifica status do número WABA na Meta
+  const verificarStatusWaba = async (wsIdCanal: string) => {
+    try {
+      const resp = await fetch(`https://api.wolfgyn.com.br/waba/verificar-status?workspaceId=${wsIdCanal}`);
+      const data = await resp.json();
+      return data;
+    } catch (e) {
+      return { success: false, status: "desconectado" };
+    }
+  };
+
   useEffect(() => {
     if (!workspace?.id) return;
     fetchConexoes();
@@ -82,6 +93,7 @@ export function ConexoesSection() {
 
     const interval = setInterval(async () => {
       try {
+        // Verifica WebJS
         const resp = await fetch(`https://api.wolfgyn.com.br/status`);
         const data = await resp.json();
         if (data.sessoes && Array.isArray(data.sessoes)) {
@@ -90,13 +102,24 @@ export function ConexoesSection() {
           const { data: conexoesBanco } = await supabase.from("conexoes").select("*").in("workspace_id", ids);
           if (!conexoesBanco) return;
           for (const c of conexoesBanco) {
-            if (c.tipo !== "webjs") continue;
-            const sessaoVPS = data.sessoes.find((s: any) => s.workspaceId === c.workspace_id);
-            if (!sessaoVPS) continue;
-            const statusReal = sessaoVPS.status === "conectado" ? "conectado" : "desconectado";
-            const numeroReal = sessaoVPS.numero || "";
-            if (c.status !== statusReal || (statusReal === "conectado" && c.numero !== numeroReal)) {
-              await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal }).eq("id", c.id);
+            if (c.tipo === "webjs") {
+              const sessaoVPS = data.sessoes.find((s: any) => s.workspaceId === c.workspace_id);
+              if (!sessaoVPS) continue;
+              const statusReal = sessaoVPS.status === "conectado" ? "conectado" : "desconectado";
+              const numeroReal = sessaoVPS.numero || "";
+              if (c.status !== statusReal || (statusReal === "conectado" && c.numero !== numeroReal)) {
+                await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal }).eq("id", c.id);
+              }
+            } else if (c.tipo === "waba") {
+              // 🆕 Verifica status WABA na Meta
+              const wabaStatus = await verificarStatusWaba(c.workspace_id);
+              if (wabaStatus.success) {
+                const statusReal = wabaStatus.status;
+                const numeroReal = wabaStatus.numero || c.numero;
+                if (c.status !== statusReal || c.numero !== numeroReal) {
+                  await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal }).eq("id", c.id);
+                }
+              }
             }
           }
         }
@@ -124,9 +147,7 @@ export function ConexoesSection() {
     return () => clearInterval(interval);
   }, [qrPolling, showModalQR, qrWsId, qrConexaoId]);
 
-  // ═══ NOVO: Registrar número WABA na Meta ═══
   const registrarNumeroWaba = async (c: Conexao) => {
-    // Pergunta se quer um PIN customizado ou se usa "000000"
     const usarPinPadrao = confirm(
       `🟢 Ativar o número na Meta?\n\n` +
       `Canal: ${c.nome}\n` +
@@ -135,7 +156,6 @@ export function ConexoesSection() {
       `Clique OK pra usar o PIN padrão (000000).\n` +
       `Clique CANCELAR se você configurou um PIN personalizado (2FA).`
     );
-
     let pin = "000000";
     if (!usarPinPadrao) {
       const pinCustom = prompt("Digite seu PIN de 6 dígitos (2FA):", "");
@@ -143,39 +163,26 @@ export function ConexoesSection() {
       if (!/^\d{6}$/.test(pinCustom)) { alert("❌ PIN deve ter exatamente 6 dígitos!"); return; }
       pin = pinCustom;
     }
-
-    setRegistrandoWaba(true);
-    setShowMenuEngrenagem(null);
-
+    setRegistrandoWaba(true); setShowMenuEngrenagem(null);
     try {
       const resp = await fetch(`/api/whatsapp?rota=waba/registrar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ workspaceId: c.workspace_id, pin }),
       });
       const data = await resp.json();
-
       if (data.success) {
-        alert(`✅ Número ativado com sucesso na Meta!\n\nAgora ele está ONLINE e pode receber mensagens.\n\nTeste enviando uma mensagem pro número pra confirmar.`);
+        alert(`✅ Número ativado com sucesso na Meta!\n\nAgora ele está ONLINE e pode receber mensagens.`);
+        await fetchConexoes();
       } else {
-        // Tratamento de erros comuns
         const codigo = data.codigo;
         let mensagemErro = data.error || "Erro desconhecido";
         let dica = "";
-
-        if (codigo === 131000 || mensagemErro.includes("PIN")) {
-          dica = "\n\n💡 Dica: o número tem 2FA ativado. Digite seu PIN personalizado na próxima tentativa (clique Cancelar no primeiro popup).";
-        } else if (mensagemErro.toLowerCase().includes("too many")) {
-          dica = "\n\n💡 Aguarde alguns minutos antes de tentar novamente.";
-        } else if (codigo === 133010) {
-          dica = "\n\n💡 Número já está registrado na Meta! Tente recarregar a página.";
-        }
-
+        if (codigo === 131000 || mensagemErro.includes("PIN")) dica = "\n\n💡 Dica: o número tem 2FA. Clique Cancelar no primeiro popup pra digitar PIN.";
+        else if (mensagemErro.toLowerCase().includes("too many")) dica = "\n\n💡 Aguarde uns minutos antes de tentar de novo.";
+        else if (codigo === 133010) dica = "\n\n💡 Número já está registrado! Tente recarregar a página.";
         alert(`❌ ${mensagemErro}${dica}\n\nCódigo: ${codigo || "—"}`);
       }
-    } catch (e: any) {
-      alert("❌ Erro de conexão: " + e.message);
-    }
+    } catch (e: any) { alert("❌ Erro de conexão: " + e.message); }
     setRegistrandoWaba(false);
   };
 
@@ -183,70 +190,22 @@ export function ConexoesSection() {
     const wsIdCanal = c.workspace_id;
     const statusAlvo = tipo === "aguardando" ? ["pendente"] : ["aberto", "em_atendimento"];
     const labelTipo = tipo === "aguardando" ? "aguardando" : "abertos";
-
-    const { data: atendimentos, error: errBusca } = await supabase
-      .from("atendimentos")
-      .select("id, numero, nome")
-      .eq("workspace_id", wsIdCanal)
-      .in("status", statusAlvo);
-
+    const { data: atendimentos, error: errBusca } = await supabase.from("atendimentos").select("id, numero, nome").eq("workspace_id", wsIdCanal).in("status", statusAlvo);
     if (errBusca) { alert("Erro ao buscar atendimentos: " + errBusca.message); return; }
-
     const total = atendimentos?.length || 0;
-    if (total === 0) {
-      alert(`✅ Não há atendimentos ${labelTipo} em "${c.nome}".`);
-      setShowMenuEngrenagem(null);
-      return;
-    }
-
-    const confirmacao = confirm(
-      `⚠️ ATENÇÃO — Canal: ${c.nome}\n\n` +
-      `Você está prestes a ENCERRAR ${total} atendimento(s) ${labelTipo}.\n\n` +
-      `Todos os ${total} chats serão marcados como RESOLVIDOS e vão pra aba "Finalizados".\n` +
-      `O histórico será mantido.\n\n` +
-      `Deseja continuar?`
-    );
+    if (total === 0) { alert(`✅ Não há atendimentos ${labelTipo} em "${c.nome}".`); setShowMenuEngrenagem(null); return; }
+    const confirmacao = confirm(`⚠️ ATENÇÃO — Canal: ${c.nome}\n\nVocê está prestes a ENCERRAR ${total} atendimento(s) ${labelTipo}.\n\nTodos os ${total} chats serão marcados como RESOLVIDOS e vão pra aba "Finalizados".\nO histórico será mantido.\n\nDeseja continuar?`);
     if (!confirmacao) return;
-
-    setEncerrandoMassa(true);
-    setShowMenuEngrenagem(null);
-
+    setEncerrandoMassa(true); setShowMenuEngrenagem(null);
     try {
       const meuNome = user?.email ? user.email.split("@")[0] : "Sistema";
-
-      const { error: errUpdate } = await supabase
-        .from("atendimentos")
-        .update({ status: "resolvido" })
-        .eq("workspace_id", wsIdCanal)
-        .in("status", statusAlvo);
-
+      const { error: errUpdate } = await supabase.from("atendimentos").update({ status: "resolvido" }).eq("workspace_id", wsIdCanal).in("status", statusAlvo);
       if (errUpdate) throw errUpdate;
-
-      const mensagensSistema = (atendimentos || []).map(a => ({
-        numero: a.numero,
-        mensagem: `Chat encerrado em massa (${labelTipo}) por: ${meuNome}`,
-        de: "sistema",
-        workspace_id: wsIdCanal,
-      }));
-
-      if (mensagensSistema.length > 0) {
-        for (let i = 0; i < mensagensSistema.length; i += 100) {
-          const lote = mensagensSistema.slice(i, i + 100);
-          await supabase.from("mensagens").insert(lote);
-        }
-      }
-
-      try {
-        await supabase.from("fluxo_sessoes")
-          .update({ status: "finalizado" })
-          .eq("workspace_id", wsIdCanal)
-          .eq("status", "ativo");
-      } catch (e) { /* silent */ }
-
+      const mensagensSistema = (atendimentos || []).map(a => ({ numero: a.numero, mensagem: `Chat encerrado em massa (${labelTipo}) por: ${meuNome}`, de: "sistema", workspace_id: wsIdCanal }));
+      if (mensagensSistema.length > 0) { for (let i = 0; i < mensagensSistema.length; i += 100) { const lote = mensagensSistema.slice(i, i + 100); await supabase.from("mensagens").insert(lote); } }
+      try { await supabase.from("fluxo_sessoes").update({ status: "finalizado" }).eq("workspace_id", wsIdCanal).eq("status", "ativo"); } catch (e) {}
       alert(`✅ ${total} atendimento(s) ${labelTipo} encerrado(s) com sucesso!`);
-    } catch (e: any) {
-      alert("❌ Erro ao encerrar em massa: " + e.message);
-    }
+    } catch (e: any) { alert("❌ Erro ao encerrar em massa: " + e.message); }
     setEncerrandoMassa(false);
   };
 
@@ -263,11 +222,7 @@ export function ConexoesSection() {
   const abrirEditar = (c: Conexao) => {
     setEditandoId(c.id);
     setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.wab_phone_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila, pararSeAtendente: c.parar_se_atendente });
-    setApiKeyTocada(false);
-    setTokenTocado(false);
-    setShowModalNovoCanal(true);
-    setShowMenuEngrenagem(null);
-    fetchFluxos();
+    setApiKeyTocada(false); setTokenTocado(false); setShowModalNovoCanal(true); setShowMenuEngrenagem(null); fetchFluxos();
   };
 
   const salvarCanal = async () => {
@@ -278,32 +233,19 @@ export function ConexoesSection() {
     setSalvandoCanal(true);
     try {
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
-
-      if (form.modo === "ia" && (apiKeyTocada || !editandoId) && form.apiKey) {
-        await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey, prompt: form.prompt || "", workspaceId: wsId, fila: form.fila, modo: form.modo });
-      } else if (form.modo !== "ia") {
-        await wa("configurar-ia", { ia: form.ia, apiKey: "", prompt: "", workspaceId: wsId, fila: form.fila, modo: form.modo });
-      }
-
-      const payload: any = {
-        nome: form.nome, modo: form.modo, ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
-        fila: form.fila, prompt: form.prompt, parar_se_atendente: form.pararSeAtendente
-      };
+      if (form.modo === "ia" && (apiKeyTocada || !editandoId) && form.apiKey) await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey, prompt: form.prompt || "", workspaceId: wsId, fila: form.fila, modo: form.modo });
+      else if (form.modo !== "ia") await wa("configurar-ia", { ia: form.ia, apiKey: "", prompt: "", workspaceId: wsId, fila: form.fila, modo: form.modo });
+      const payload: any = { nome: form.nome, modo: form.modo, ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "", fila: form.fila, prompt: form.prompt, parar_se_atendente: form.pararSeAtendente };
       if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
-
-      if (editandoId) {
-        await supabase.from("conexoes").update(payload).eq("id", editandoId);
-        setEditandoId(null); alert("✅ Canal atualizado!");
-      } else {
+      if (editandoId) { await supabase.from("conexoes").update(payload).eq("id", editandoId); setEditandoId(null); alert("✅ Canal atualizado!"); }
+      else {
         if (form.tipo === "waba") {
           const webhookToken = form.webhookToken || `wolf_${wsId}_${Date.now()}`;
           const resp = await fetch(`/api/whatsapp?rota=waba/salvar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: wsId, nome: form.nome, phoneNumberId: form.phoneNumberId, wabaId: form.wabaId, token: form.token, webhookToken }) });
           const vpsData = await resp.json();
           if (!vpsData.success) throw new Error(vpsData.error);
-          await supabase.from("conexoes").insert([{ workspace_id: wsId, tipo: "waba", status: "conectado", numero: wabaTeste?.nome || form.phoneNumberId, wab_token: form.token, wab_phone_id: form.phoneNumberId, waba_id: form.wabaId, webhook_token: webhookToken, ...payload }]);
-        } else {
-          await supabase.from("conexoes").insert([{ workspace_id: wsId, tipo: "webjs", status: "desconectado", numero: "", ...payload }]);
-        }
+          await supabase.from("conexoes").insert([{ workspace_id: wsId, tipo: "waba", status: "desconectado", numero: wabaTeste?.nome || form.phoneNumberId, wab_token: form.token, wab_phone_id: form.phoneNumberId, waba_id: form.wabaId, webhook_token: webhookToken, ...payload }]);
+        } else await supabase.from("conexoes").insert([{ workspace_id: wsId, tipo: "webjs", status: "desconectado", numero: "", ...payload }]);
         alert("✅ Canal criado com sucesso!");
       }
       await fetchConexoes(); setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setApiKeyTocada(false); setTokenTocado(false);
@@ -317,9 +259,7 @@ export function ConexoesSection() {
     const wsIdCanal = canal.workspace_id || wsId;
     setQrWsId(wsIdCanal); setQrConexaoId(id); setResetando(true); setShowModalQR(true);
     setQrImageUrl(""); setQrConectado(false); setQrNumero("");
-    if (canal?.modo === "ia" && canal.api_key) {
-      try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.api_key, prompt: canal.prompt || "", workspaceId: wsIdCanal, fila: canal.fila, modo: canal.modo }); } catch (e) {}
-    }
+    if (canal?.modo === "ia" && canal.api_key) { try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.api_key, prompt: canal.prompt || "", workspaceId: wsIdCanal, fila: canal.fila, modo: canal.modo }); } catch (e) {} }
     try { await wa("resetar", { workspaceId: wsIdCanal }); } catch (e) {}
     await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", id);
     await fetchConexoes(); setResetando(false); setQrPolling(true);
@@ -332,17 +272,13 @@ export function ConexoesSection() {
       await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", c.id);
       await fetchConexoes();
       alert("✅ Desconectado!");
-    } catch (e: any) {
-      alert("Erro ao desconectar: " + e.message);
-    }
+    } catch (e: any) { alert("Erro ao desconectar: " + e.message); }
   };
 
   const excluirCanal = async (id: number) => {
     if (!confirm("Excluir esse canal?")) return;
     const canal = conexoes.find(c => c.id === id);
-    if (canal?.tipo === "webjs") {
-      try { await wa("desconectar", { workspaceId: canal.workspace_id }); } catch (e) {}
-    }
+    if (canal?.tipo === "webjs") { try { await wa("desconectar", { workspaceId: canal.workspace_id }); } catch (e) {} }
     await supabase.from("conexoes").delete().eq("id", id);
     await fetchConexoes(); setShowMenuEngrenagem(null);
   };
@@ -543,7 +479,10 @@ export function ConexoesSection() {
                   ? <button onClick={() => abrirQR(c.id)} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📷 Escanear QR</button>
                   : <><button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>✅ Conectado</button><button onClick={() => desconectarCanal(c)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "9px 14px", fontSize: 12, cursor: "pointer" }}>Desconectar</button></>
                 )}
-                {c.tipo === "waba" && <button disabled style={{ flex: 1, background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>🔗 API Ativa</button>}
+                {c.tipo === "waba" && (c.status === "conectado"
+                  ? <button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>🔗 API Conectada</button>
+                  : <button onClick={() => registrarNumeroWaba(c)} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🟢 Ativar Número na Meta</button>
+                )}
                 <div style={{ position: "relative" }}>
                   <button onClick={() => setShowMenuEngrenagem(showMenuEngrenagem === c.id ? null : c.id)} disabled={encerrandoMassa || registrandoWaba}
                     style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", fontSize: 14, cursor: (encerrandoMassa || registrandoWaba) ? "wait" : "pointer" }}>
@@ -551,35 +490,12 @@ export function ConexoesSection() {
                   </button>
                   {showMenuEngrenagem === c.id && (
                     <div style={{ position: "absolute", bottom: 44, right: 0, background: "#1f2937", border: "1px solid #374151", borderRadius: 10, overflow: "hidden", zIndex: 100, minWidth: 240 }}>
-                      <button onClick={() => abrirEditar(c)}
-                        style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                        ✏️ Editar Canal
-                      </button>
-                      {c.tipo === "webjs" && (
-                        <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }}
-                          style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                          📷 Novo QR Code
-                        </button>
-                      )}
-                      {/* ═══ NOVO: Ativar número WABA na Meta ═══ */}
-                      {c.tipo === "waba" && (
-                        <button onClick={() => registrarNumeroWaba(c)}
-                          style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: "bold" }}>
-                          🟢 Ativar Número na Meta
-                        </button>
-                      )}
-                      <button onClick={() => encerrarAtendimentosEmMassa("aguardando", c)}
-                        style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#f59e0b", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                        ⏳ Encerrar todos Aguardando
-                      </button>
-                      <button onClick={() => encerrarAtendimentosEmMassa("abertos", c)}
-                        style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#3b82f6", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                        💬 Encerrar todos Abertos
-                      </button>
-                      <button onClick={() => excluirCanal(c.id)}
-                        style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#dc2626", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                        🗑️ Excluir Canal
-                      </button>
+                      <button onClick={() => abrirEditar(c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>✏️ Editar Canal</button>
+                      {c.tipo === "webjs" && <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>📷 Novo QR Code</button>}
+                      {c.tipo === "waba" && <button onClick={() => registrarNumeroWaba(c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: "bold" }}>🟢 Ativar Número na Meta</button>}
+                      <button onClick={() => encerrarAtendimentosEmMassa("aguardando", c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#f59e0b", fontSize: 13, cursor: "pointer", textAlign: "left" }}>⏳ Encerrar todos Aguardando</button>
+                      <button onClick={() => encerrarAtendimentosEmMassa("abertos", c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#3b82f6", fontSize: 13, cursor: "pointer", textAlign: "left" }}>💬 Encerrar todos Abertos</button>
+                      <button onClick={() => excluirCanal(c.id)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#dc2626", fontSize: 13, cursor: "pointer", textAlign: "left" }}>🗑️ Excluir Canal</button>
                     </div>
                   )}
                 </div>
