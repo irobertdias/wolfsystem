@@ -31,6 +31,10 @@ export function ConexoesSection() {
   const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "Fila Principal", pararSeAtendente: true };
   const [form, setForm] = useState(formInicial);
 
+  // ✅ Guarda se o usuário tocou no campo de senha — se não tocou, não mandamos pro banco
+  const [apiKeyTocada, setApiKeyTocada] = useState(false);
+  const [tokenTocado, setTokenTocado] = useState(false);
+
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
   const TA = { ...IS, height: 90, resize: "vertical" as const };
 
@@ -52,9 +56,26 @@ export function ConexoesSection() {
   const fetchFluxos = async () => {
     if (!workspace?.id) return;
     const wsIdBusca = workspace.username || workspace.id.toString();
-    const { data, error } = await supabase.from("fluxos").select("id, nome, ativo").eq("workspace_id", wsIdBusca).order("created_at", { ascending: false });
-    console.log("Fluxos carregados:", data, "wsId:", wsIdBusca, "erro:", error);
+    const { data } = await supabase.from("fluxos").select("id, nome, ativo").eq("workspace_id", wsIdBusca).order("created_at", { ascending: false });
     setFluxos(data || []);
+  };
+
+  // ✅ Polling da VPS a cada 10s — sincroniza status real com banco
+  const sincronizarStatusVPS = async () => {
+    try {
+      const resp = await fetch(`https://api.wolfgyn.com.br/status`);
+      const data = await resp.json();
+      if (!data.sessoes) return;
+      for (const s of data.sessoes) {
+        const conexao = conexoes.find(c => c.workspace_id === s.workspaceId && c.tipo === "webjs");
+        if (!conexao) continue;
+        const statusReal = s.status === "conectado" ? "conectado" : "desconectado";
+        if (conexao.status !== statusReal) {
+          await supabase.from("conexoes").update({ status: statusReal, numero: s.numero || "" }).eq("id", conexao.id);
+          fetchConexoes();
+        }
+      }
+    } catch (e) {}
   };
 
   useEffect(() => {
@@ -64,8 +85,10 @@ export function ConexoesSection() {
     const ch = supabase.channel("conexoes_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchConexoes())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [workspace]);
+    // Polling status VPS a cada 10s
+    const interval = setInterval(sincronizarStatusVPS, 10000);
+    return () => { supabase.removeChannel(ch); clearInterval(interval); };
+  }, [workspace, conexoes.length]);
 
   useEffect(() => {
     if (!qrPolling || !showModalQR) return;
@@ -96,22 +119,45 @@ export function ConexoesSection() {
 
   const abrirEditar = (c: Conexao) => {
     setEditandoId(c.id);
-    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.wab_phone_id || "", wabaId: c.waba_id || "", token: c.wab_token || "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: c.api_key || "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila, pararSeAtendente: c.parar_se_atendente });
+    // ✅ Deixa os campos de senha em branco na UI, mas marca como "não tocados"
+    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.wab_phone_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila, pararSeAtendente: c.parar_se_atendente });
+    setApiKeyTocada(false);
+    setTokenTocado(false);
     setShowModalNovoCanal(true);
     setShowMenuEngrenagem(null);
-    fetchFluxos(); // chama depois de abrir o modal
+    fetchFluxos();
   };
 
   const salvarCanal = async () => {
     if (!wsId) { alert("Aguarde o workspace carregar!"); return; }
     if (!form.nome.trim()) { alert("Digite o nome do canal!"); return; }
-    if (form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { alert("Preencha Phone Number ID e Token!"); return; }
-    if (form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
+    if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { alert("Preencha Phone Number ID e Token!"); return; }
+    if (!editandoId && form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
     setSalvandoCanal(true);
     try {
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
-      await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey || "", prompt: form.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: form.fila, modo: form.modo });
-      const payload = { nome: form.nome, modo: form.modo, ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "", fila: form.fila, api_key: form.apiKey, prompt: form.prompt, parar_se_atendente: form.pararSeAtendente };
+
+      // ✅ Se modo IA e apiKey foi tocada (ou novo), configura VPS
+      if (form.modo === "ia" && (apiKeyTocada || !editandoId) && form.apiKey) {
+        await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey, prompt: form.prompt || "", workspaceId: wsId, fila: form.fila, modo: form.modo });
+      } else if (form.modo !== "ia") {
+        // Modo mudou pra fluxo ou nenhum — atualiza na VPS
+        await wa("configurar-ia", { ia: form.ia, apiKey: "", prompt: "", workspaceId: wsId, fila: form.fila, modo: form.modo });
+      }
+
+      // ✅ Payload base — api_key e wab_token só entram se foram TOCADOS
+      const payload: any = {
+        nome: form.nome,
+        modo: form.modo,
+        ia: form.ia,
+        fluxo_id: form.fluxoId,
+        fluxo_nome: fluxoSel?.nome || "",
+        fila: form.fila,
+        prompt: form.prompt,
+        parar_se_atendente: form.pararSeAtendente
+      };
+      if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
+
       if (editandoId) {
         await supabase.from("conexoes").update(payload).eq("id", editandoId);
         setEditandoId(null); alert("✅ Canal atualizado!");
@@ -127,7 +173,7 @@ export function ConexoesSection() {
         }
         alert("✅ Canal criado com sucesso!");
       }
-      await fetchConexoes(); setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null);
+      await fetchConexoes(); setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setApiKeyTocada(false); setTokenTocado(false);
     } catch (e: any) { alert("Erro: " + e.message); }
     setSalvandoCanal(false);
   };
@@ -137,15 +183,32 @@ export function ConexoesSection() {
     setQrImageUrl(""); setQrConectado(false); setQrNumero("");
     const canal = conexoes.find(c => c.id === id);
     if (canal?.modo === "ia" && canal.api_key) {
-      try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.api_key, prompt: canal.prompt || "Você é um atendente virtual.", workspaceId: wsId, fila: canal.fila }); } catch (e) {}
+      try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.api_key, prompt: canal.prompt || "", workspaceId: wsId, fila: canal.fila, modo: canal.modo }); } catch (e) {}
     }
     try { await wa("resetar", { workspaceId: wsId }); } catch (e) {}
     await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", id);
     await fetchConexoes(); setResetando(false); setQrPolling(true);
   };
 
+  // ✅ Desconectar agora chama VPS, aguarda resposta, e atualiza banco — feedback imediato
+  const desconectarCanal = async (c: Conexao) => {
+    if (!confirm(`Desconectar ${c.nome}? Isso vai desconectar o WhatsApp.`)) return;
+    try {
+      await wa("desconectar", { workspaceId: c.workspace_id });
+      await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", c.id);
+      await fetchConexoes();
+      alert("✅ Desconectado!");
+    } catch (e: any) {
+      alert("Erro ao desconectar: " + e.message);
+    }
+  };
+
   const excluirCanal = async (id: number) => {
     if (!confirm("Excluir esse canal?")) return;
+    const canal = conexoes.find(c => c.id === id);
+    if (canal?.tipo === "webjs") {
+      try { await wa("desconectar", { workspaceId: canal.workspace_id }); } catch (e) {}
+    }
     await supabase.from("conexoes").delete().eq("id", id);
     await fetchConexoes(); setShowMenuEngrenagem(null);
   };
@@ -191,7 +254,7 @@ export function ConexoesSection() {
                 <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>{editandoId ? "✏️ Editar Canal" : "➕ Novo Canal"}</h2>
                 <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{editandoId ? "Altere as configurações do canal" : "Configure o canal"}</p>
               </div>
-              <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
+              <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
             </div>
             <div style={{ overflowY: "auto", padding: "24px 28px", display: "flex", flexDirection: "column", gap: 24 }}>
               {!editandoId && (
@@ -218,7 +281,7 @@ export function ConexoesSection() {
                   <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
                     <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Phone Number ID *</label><input placeholder="123456789012345" value={form.phoneNumberId} onChange={e => setForm(p => ({ ...p, phoneNumberId: e.target.value }))} style={IS} /></div>
                     <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>WABA ID</label><input placeholder="123456789012345" value={form.wabaId} onChange={e => setForm(p => ({ ...p, wabaId: e.target.value }))} style={IS} /></div>
-                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token Permanente *</label><input type="password" placeholder="EAAxxxxx..." value={form.token} onChange={e => setForm(p => ({ ...p, token: e.target.value }))} style={IS} /></div>
+                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token Permanente *</label><input type="password" placeholder="EAAxxxxx..." value={form.token} onChange={e => { setForm(p => ({ ...p, token: e.target.value })); setTokenTocado(true); }} style={IS} /></div>
                     <button onClick={testarWABA} disabled={testandoWABA} style={{ background: testandoWABA ? "#1d4ed8" : "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{testandoWABA ? "⏳ Testando..." : "🔍 Testar Conexão"}</button>
                     {wabaTeste && <div style={{ background: wabaTeste.success ? "#16a34a22" : "#dc262622", border: `1px solid ${wabaTeste.success ? "#16a34a33" : "#dc262633"}`, borderRadius: 8, padding: 10 }}><p style={{ color: wabaTeste.success ? "#16a34a" : "#dc2626", fontSize: 13, margin: 0, fontWeight: "bold" }}>{wabaTeste.success ? `✅ ${wabaTeste.nome}` : `❌ ${wabaTeste.error}`}</p></div>}
                     <div style={{ background: "#111", borderRadius: 8, padding: 12 }}>
@@ -245,14 +308,19 @@ export function ConexoesSection() {
                     <p style={{ color: "#10b981", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>🤖 Configurar IA</p>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                       {[{ key: "gpt", label: "💬 ChatGPT", sub: "OpenAI", cor: "#10b981" }, { key: "claude", label: "🧠 Claude AI", sub: "Anthropic", cor: "#8b5cf6" }, { key: "gemini", label: "✨ Gemini", sub: "Google", cor: "#f59e0b" }, { key: "deepseek", label: "🔍 DeepSeek", sub: "DeepSeek AI", cor: "#3b82f6" }].map(ia => (
-                        <button key={ia.key} onClick={() => setForm(p => ({ ...p, ia: ia.key, apiKey: "" }))} style={{ background: form.ia === ia.key ? `${ia.cor}22` : "#111", border: `2px solid ${form.ia === ia.key ? ia.cor : "#374151"}`, borderRadius: 8, padding: "10px 12px", cursor: "pointer", textAlign: "left" }}>
+                        <button key={ia.key} onClick={() => { setForm(p => ({ ...p, ia: ia.key, apiKey: "" })); setApiKeyTocada(true); }} style={{ background: form.ia === ia.key ? `${ia.cor}22` : "#111", border: `2px solid ${form.ia === ia.key ? ia.cor : "#374151"}`, borderRadius: 8, padding: "10px 12px", cursor: "pointer", textAlign: "left" }}>
                           <p style={{ color: form.ia === ia.key ? ia.cor : "white", fontSize: 13, fontWeight: "bold", margin: "0 0 2px" }}>{ia.label}</p>
                           <p style={{ color: "#6b7280", fontSize: 10, margin: 0 }}>{ia.sub}</p>
                         </button>
                       ))}
                     </div>
-                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>API Key</label><input type="password" placeholder="Cole sua API Key aqui" value={form.apiKey} onChange={e => setForm(p => ({ ...p, apiKey: e.target.value }))} style={IS} /></div>
-                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Prompt do sistema</label><textarea placeholder="Você é um atendente virtual da empresa X..." value={form.prompt} onChange={e => setForm(p => ({ ...p, prompt: e.target.value }))} style={TA} /></div>
+                    <div>
+                      <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>
+                        API Key {editandoId && !apiKeyTocada && <span style={{ color: "#10b981", fontSize: 10 }}>(já salva — só preencha se quiser trocar)</span>}
+                      </label>
+                      <input type="password" placeholder={editandoId ? "Deixe vazio pra manter a atual" : "Cole sua API Key aqui"} value={form.apiKey} onChange={e => { setForm(p => ({ ...p, apiKey: e.target.value })); setApiKeyTocada(true); }} style={IS} />
+                    </div>
+                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Prompt do sistema</label><textarea placeholder="Ex: Você é um atendente virtual da empresa X..." value={form.prompt} onChange={e => setForm(p => ({ ...p, prompt: e.target.value }))} style={TA} /></div>
                   </div>
                 )}
                 {form.modo === "fluxo" && (
@@ -299,7 +367,7 @@ export function ConexoesSection() {
               </div>
             </div>
             <div style={{ padding: "16px 28px", borderTop: "1px solid #1f2937", display: "flex", gap: 12, justifyContent: "flex-end" }}>
-              <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
+              <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
               <button onClick={salvarCanal} disabled={salvandoCanal} style={{ background: salvandoCanal ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{salvandoCanal ? "⏳ Salvando..." : editandoId ? "💾 Salvar Alterações" : "✅ Criar Canal"}</button>
             </div>
           </div>
@@ -308,7 +376,7 @@ export function ConexoesSection() {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div><h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>📱 Conexões</h1><p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>Workspace: {workspace?.nome || "Carregando..."}</p></div>
-        <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
+        <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
       </div>
 
       {conexoes.length === 0 ? (
@@ -316,7 +384,7 @@ export function ConexoesSection() {
           <p style={{ fontSize: 48, margin: "0 0 16px" }}>📱</p>
           <h3 style={{ color: "white", fontSize: 16, fontWeight: "bold", margin: "0 0 8px" }}>Nenhum canal conectado</h3>
           <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Crie seu primeiro canal para começar a atender</p>
-          <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
+          <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
@@ -337,7 +405,7 @@ export function ConexoesSection() {
               <div style={{ display: "flex", gap: 8 }}>
                 {c.tipo === "webjs" && (c.status === "desconectado"
                   ? <button onClick={() => abrirQR(c.id)} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📷 Escanear QR</button>
-                  : <><button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>✅ Conectado</button><button onClick={async () => { await wa("desconectar", { workspaceId: wsId }); await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", c.id); fetchConexoes(); }} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "9px 14px", fontSize: 12, cursor: "pointer" }}>Desconectar</button></>
+                  : <><button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>✅ Conectado</button><button onClick={() => desconectarCanal(c)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "9px 14px", fontSize: 12, cursor: "pointer" }}>Desconectar</button></>
                 )}
                 {c.tipo === "waba" && <button disabled style={{ flex: 1, background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>🔗 API Ativa</button>}
                 <div style={{ position: "relative" }}>
