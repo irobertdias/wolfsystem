@@ -25,7 +25,7 @@ export default function Vendas() {
       if (!user) { router.push("/"); return; }
       const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).single();
       if (ws) {
-        const wsId = ws.username || ws.id.toString();
+        const wsId = ws.username;
         const { data } = await supabase.from("proposta").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false });
         setPropostas(data || []);
       }
