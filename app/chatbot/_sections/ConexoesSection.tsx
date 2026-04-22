@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
@@ -31,9 +31,11 @@ export function ConexoesSection() {
   const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "Fila Principal", pararSeAtendente: true };
   const [form, setForm] = useState(formInicial);
 
-  // ✅ Guarda se o usuário tocou no campo de senha — se não tocou, não mandamos pro banco
   const [apiKeyTocada, setApiKeyTocada] = useState(false);
   const [tokenTocado, setTokenTocado] = useState(false);
+
+  const wsIdRef = useRef<string>("");
+  useEffect(() => { wsIdRef.current = workspace?.username || workspace?.id?.toString() || ""; }, [workspace]);
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
   const TA = { ...IS, height: 90, resize: "vertical" as const };
@@ -48,47 +50,55 @@ export function ConexoesSection() {
   };
 
   const fetchConexoes = async () => {
-    if (!workspace?.id) return;
-    const { data } = await supabase.from("conexoes").select("*").eq("workspace_id", workspace.username || workspace.id.toString()).order("created_at", { ascending: false });
+    const wsIdBusca = wsIdRef.current;
+    if (!wsIdBusca) return;
+    const { data } = await supabase.from("conexoes").select("*").eq("workspace_id", wsIdBusca).order("created_at", { ascending: false });
     setConexoes(data || []);
   };
 
   const fetchFluxos = async () => {
-    if (!workspace?.id) return;
-    const wsIdBusca = workspace.username || workspace.id.toString();
+    const wsIdBusca = wsIdRef.current;
+    if (!wsIdBusca) return;
     const { data } = await supabase.from("fluxos").select("id, nome, ativo").eq("workspace_id", wsIdBusca).order("created_at", { ascending: false });
     setFluxos(data || []);
-  };
-
-  // ✅ Polling da VPS a cada 10s — sincroniza status real com banco
-  const sincronizarStatusVPS = async () => {
-    try {
-      const resp = await fetch(`https://api.wolfgyn.com.br/status`);
-      const data = await resp.json();
-      if (!data.sessoes) return;
-      for (const s of data.sessoes) {
-        const conexao = conexoes.find(c => c.workspace_id === s.workspaceId && c.tipo === "webjs");
-        if (!conexao) continue;
-        const statusReal = s.status === "conectado" ? "conectado" : "desconectado";
-        if (conexao.status !== statusReal) {
-          await supabase.from("conexoes").update({ status: statusReal, numero: s.numero || "" }).eq("id", conexao.id);
-          fetchConexoes();
-        }
-      }
-    } catch (e) {}
   };
 
   useEffect(() => {
     if (!workspace?.id) return;
     fetchConexoes();
     fetchFluxos();
+
     const ch = supabase.channel("conexoes_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchConexoes())
       .subscribe();
-    // Polling status VPS a cada 10s
-    const interval = setInterval(sincronizarStatusVPS, 10000);
+
+    // ✅ POLLING DE 5s — sincroniza status direto da VPS e refaz fetch do banco sempre
+    const interval = setInterval(async () => {
+      try {
+        const resp = await fetch(`https://api.wolfgyn.com.br/status`);
+        const data = await resp.json();
+        if (data.sessoes && Array.isArray(data.sessoes)) {
+          const wsIdBusca = wsIdRef.current;
+          if (!wsIdBusca) return;
+          const { data: conexoesBanco } = await supabase.from("conexoes").select("*").eq("workspace_id", wsIdBusca);
+          if (!conexoesBanco) return;
+          for (const c of conexoesBanco) {
+            if (c.tipo !== "webjs") continue;
+            const sessaoVPS = data.sessoes.find((s: any) => s.workspaceId === c.workspace_id);
+            if (!sessaoVPS) continue;
+            const statusReal = sessaoVPS.status === "conectado" ? "conectado" : "desconectado";
+            const numeroReal = sessaoVPS.numero || "";
+            if (c.status !== statusReal || (statusReal === "conectado" && c.numero !== numeroReal)) {
+              await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal }).eq("id", c.id);
+            }
+          }
+        }
+      } catch (e) {}
+      fetchConexoes();
+    }, 5000);
+
     return () => { supabase.removeChannel(ch); clearInterval(interval); };
-  }, [workspace, conexoes.length]);
+  }, [workspace]);
 
   useEffect(() => {
     if (!qrPolling || !showModalQR) return;
@@ -119,7 +129,6 @@ export function ConexoesSection() {
 
   const abrirEditar = (c: Conexao) => {
     setEditandoId(c.id);
-    // ✅ Deixa os campos de senha em branco na UI, mas marca como "não tocados"
     setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.wab_phone_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila, pararSeAtendente: c.parar_se_atendente });
     setApiKeyTocada(false);
     setTokenTocado(false);
@@ -137,24 +146,15 @@ export function ConexoesSection() {
     try {
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
 
-      // ✅ Se modo IA e apiKey foi tocada (ou novo), configura VPS
       if (form.modo === "ia" && (apiKeyTocada || !editandoId) && form.apiKey) {
         await wa("configurar-ia", { ia: form.ia, apiKey: form.apiKey, prompt: form.prompt || "", workspaceId: wsId, fila: form.fila, modo: form.modo });
       } else if (form.modo !== "ia") {
-        // Modo mudou pra fluxo ou nenhum — atualiza na VPS
         await wa("configurar-ia", { ia: form.ia, apiKey: "", prompt: "", workspaceId: wsId, fila: form.fila, modo: form.modo });
       }
 
-      // ✅ Payload base — api_key e wab_token só entram se foram TOCADOS
       const payload: any = {
-        nome: form.nome,
-        modo: form.modo,
-        ia: form.ia,
-        fluxo_id: form.fluxoId,
-        fluxo_nome: fluxoSel?.nome || "",
-        fila: form.fila,
-        prompt: form.prompt,
-        parar_se_atendente: form.pararSeAtendente
+        nome: form.nome, modo: form.modo, ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
+        fila: form.fila, prompt: form.prompt, parar_se_atendente: form.pararSeAtendente
       };
       if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
 
@@ -190,7 +190,6 @@ export function ConexoesSection() {
     await fetchConexoes(); setResetando(false); setQrPolling(true);
   };
 
-  // ✅ Desconectar agora chama VPS, aguarda resposta, e atualiza banco — feedback imediato
   const desconectarCanal = async (c: Conexao) => {
     if (!confirm(`Desconectar ${c.nome}? Isso vai desconectar o WhatsApp.`)) return;
     try {
@@ -225,7 +224,6 @@ export function ConexoesSection() {
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto", height: "100vh" }}>
 
-      {/* MODAL QR */}
       {showModalQR && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ background: "#111", borderRadius: 16, padding: 32, width: 400, border: "1px solid #1f2937", textAlign: "center" }}>
@@ -245,7 +243,6 @@ export function ConexoesSection() {
         </div>
       )}
 
-      {/* MODAL NOVO CANAL */}
       {showModalNovoCanal && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ background: "#111", borderRadius: 16, width: "100%", maxWidth: 640, border: "1px solid #1f2937", display: "flex", flexDirection: "column", maxHeight: "92vh", overflow: "hidden" }}>
