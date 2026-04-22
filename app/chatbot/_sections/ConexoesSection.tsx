@@ -34,8 +34,14 @@ export function ConexoesSection() {
   const [apiKeyTocada, setApiKeyTocada] = useState(false);
   const [tokenTocado, setTokenTocado] = useState(false);
 
-  const wsIdRef = useRef<string>("");
-  useEffect(() => { wsIdRef.current = workspace?.username || workspace?.id?.toString() || ""; }, [workspace]);
+  // ✅ Refs — guarda OS DOIS workspace_ids (numérico + username) pra buscar em ambos
+  const wsIdsRef = useRef<string[]>([]);
+  useEffect(() => {
+    const ids: string[] = [];
+    if (workspace?.username) ids.push(workspace.username);
+    if (workspace?.id) ids.push(workspace.id.toString());
+    wsIdsRef.current = ids;
+  }, [workspace]);
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
   const TA = { ...IS, height: 90, resize: "vertical" as const };
@@ -49,17 +55,19 @@ export function ConexoesSection() {
     return resp.json();
   };
 
+  // ✅ Busca conexões DE TODOS os workspace_ids do usuário (novo + legados)
   const fetchConexoes = async () => {
-    const wsIdBusca = wsIdRef.current;
-    if (!wsIdBusca) return;
-    const { data } = await supabase.from("conexoes").select("*").eq("workspace_id", wsIdBusca).order("created_at", { ascending: false });
+    const ids = wsIdsRef.current;
+    if (ids.length === 0) return;
+    const { data } = await supabase.from("conexoes").select("*").in("workspace_id", ids).order("created_at", { ascending: false });
     setConexoes(data || []);
   };
 
+  // ✅ Busca fluxos DE TODOS os workspace_ids do usuário (novo + legados)
   const fetchFluxos = async () => {
-    const wsIdBusca = wsIdRef.current;
-    if (!wsIdBusca) return;
-    const { data } = await supabase.from("fluxos").select("id, nome, ativo").eq("workspace_id", wsIdBusca).order("created_at", { ascending: false });
+    const ids = wsIdsRef.current;
+    if (ids.length === 0) return;
+    const { data } = await supabase.from("fluxos").select("id, nome, ativo").in("workspace_id", ids).order("created_at", { ascending: false });
     setFluxos(data || []);
   };
 
@@ -72,15 +80,15 @@ export function ConexoesSection() {
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchConexoes())
       .subscribe();
 
-    // ✅ POLLING DE 5s — sincroniza status direto da VPS e refaz fetch do banco sempre
+    // Polling 5s — sincroniza com VPS e força fetch
     const interval = setInterval(async () => {
       try {
         const resp = await fetch(`https://api.wolfgyn.com.br/status`);
         const data = await resp.json();
         if (data.sessoes && Array.isArray(data.sessoes)) {
-          const wsIdBusca = wsIdRef.current;
-          if (!wsIdBusca) return;
-          const { data: conexoesBanco } = await supabase.from("conexoes").select("*").eq("workspace_id", wsIdBusca);
+          const ids = wsIdsRef.current;
+          if (ids.length === 0) return;
+          const { data: conexoesBanco } = await supabase.from("conexoes").select("*").in("workspace_id", ids);
           if (!conexoesBanco) return;
           for (const c of conexoesBanco) {
             if (c.tipo !== "webjs") continue;
@@ -179,13 +187,16 @@ export function ConexoesSection() {
   };
 
   const abrirQR = async (id: number) => {
-    setQrWsId(wsId); setQrConexaoId(id); setResetando(true); setShowModalQR(true);
-    setQrImageUrl(""); setQrConectado(false); setQrNumero("");
     const canal = conexoes.find(c => c.id === id);
+    if (!canal) return;
+    // Usa o workspace_id salvo na conexão — assim respeita canais legados
+    const wsIdCanal = canal.workspace_id || wsId;
+    setQrWsId(wsIdCanal); setQrConexaoId(id); setResetando(true); setShowModalQR(true);
+    setQrImageUrl(""); setQrConectado(false); setQrNumero("");
     if (canal?.modo === "ia" && canal.api_key) {
-      try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.api_key, prompt: canal.prompt || "", workspaceId: wsId, fila: canal.fila, modo: canal.modo }); } catch (e) {}
+      try { await wa("configurar-ia", { ia: canal.ia, apiKey: canal.api_key, prompt: canal.prompt || "", workspaceId: wsIdCanal, fila: canal.fila, modo: canal.modo }); } catch (e) {}
     }
-    try { await wa("resetar", { workspaceId: wsId }); } catch (e) {}
+    try { await wa("resetar", { workspaceId: wsIdCanal }); } catch (e) {}
     await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", id);
     await fetchConexoes(); setResetando(false); setQrPolling(true);
   };
