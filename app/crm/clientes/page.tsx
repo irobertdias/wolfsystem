@@ -3,12 +3,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
+// ⚠️ Só este email tem acesso à tela de clientes
+const ADMIN_EMAIL = "robert.dias@live.com";
+
 type Cadastro = {
   id: number; created_at: string; nome: string; empresa: string;
   email: string; whatsapp: string; plano: string; autorizado: boolean;
-  workspace_id: string; usuarios_liberados?: number; conexoes_liberadas?: number;
+  username: string; workspace_id?: string;
+  usuarios_liberados?: number; conexoes_liberadas?: number;
   permite_webjs?: boolean; permite_waba?: boolean; permite_instagram?: boolean;
-  ia?: string; senha?: string;
+  ia?: string; senha?: string; user_id?: string;
 };
 
 const planoPresets: Record<string, { usuarios: number; conexoes: number; webjs: boolean; waba: boolean; instagram: boolean }> = {
@@ -27,8 +31,15 @@ export default function Clientes() {
   const [cadastroSelecionado, setCadastroSelecionado] = useState<Cadastro | null>(null);
   const [salvandoCliente, setSalvandoCliente] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState("todos");
+
+  // 🔒 Controle de acesso
+  const [permissaoLoading, setPermissaoLoading] = useState(true);
+  const [temAcesso, setTemAcesso] = useState(false);
+  const [emailUsuario, setEmailUsuario] = useState("");
+
   const [formCadastro, setFormCadastro] = useState<Partial<Cadastro>>({
     nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
+    username: "",
     usuarios_liberados: 7, conexoes_liberadas: 1,
     permite_webjs: true, permite_waba: false, permite_instagram: false,
     ia: "gpt", autorizado: false, senha: "",
@@ -37,6 +48,27 @@ export default function Clientes() {
   const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 14, boxSizing: "border-box" as const };
   const inputSm = { ...inputStyle, padding: "8px 12px", fontSize: 13 };
 
+  // ═══ Controle de acesso ═══
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/");
+        return;
+      }
+      setEmailUsuario(user.email || "");
+      const admin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      setTemAcesso(!!admin);
+      setPermissaoLoading(false);
+    })();
+  }, []);
+
+  // ═══ Token Bearer pra chamar as APIs admin ═══
+  const getToken = async (): Promise<string | null> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  };
+
   const fetchCadastros = async () => {
     setLoadingCadastros(true);
     const { data } = await supabase.from("cadastros").select("*").order("created_at", { ascending: false });
@@ -44,13 +76,21 @@ export default function Clientes() {
     setLoadingCadastros(false);
   };
 
-  useEffect(() => { fetchCadastros(); }, []);
+  // ═══ Carrega cadastros + Realtime ═══
+  useEffect(() => {
+    if (!temAcesso) return;
+    fetchCadastros();
+    const ch = supabase.channel("cadastros_rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "cadastros" }, () => fetchCadastros())
+      .on("postgres_changes", { event: "*", schema: "public", table: "workspaces" }, () => fetchCadastros())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [temAcesso]);
 
   const autorizarCadastro = async (c: Cadastro) => {
     try {
       await supabase.from("cadastros").update({ autorizado: true }).eq("id", c.id);
       await fetchCadastros();
-      alert(`✅ ${c.nome} autorizado!`);
     } catch { alert("Erro ao autorizar!"); }
   };
 
@@ -60,16 +100,45 @@ export default function Clientes() {
     await fetchCadastros();
   };
 
+  // ═══ EXCLUIR COMPLETO — chama API que apaga auth + workspace + dados ═══
   const excluirCadastro = async (c: Cadastro) => {
-    if (!confirm(`Excluir ${c.nome} permanentemente?`)) return;
-    await supabase.from("cadastros").delete().eq("id", c.id);
-    await fetchCadastros();
-    setShowModalDetalhe(false);
-    alert("✅ Cliente excluído!");
+    if (!confirm(`⚠️ ATENÇÃO: Isso vai apagar PERMANENTEMENTE:\n\n• A conta de login de ${c.email}\n• O workspace "${c.empresa || c.nome}"\n• Todas as conexões, fluxos, atendimentos e mensagens\n\nEsta ação NÃO pode ser desfeita.\n\nTem certeza?`)) return;
+
+    const token = await getToken();
+    if (!token) { alert("Sessão expirou. Faça login novamente."); return; }
+
+    try {
+      const resp = await fetch("/api/admin/cliente", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email: c.email }),
+      });
+      const result = await resp.json();
+
+      if (!result.success) {
+        alert("Erro ao excluir: " + (result.error || "desconhecido"));
+        return;
+      }
+
+      await fetchCadastros();
+      setShowModalDetalhe(false);
+      alert("✅ Cliente excluído completamente!");
+    } catch (e: any) {
+      alert("Erro ao excluir: " + e.message);
+    }
   };
 
   const abrirNovo = () => {
-    setFormCadastro({ nome: "", empresa: "", email: "", whatsapp: "", plano: "basico", usuarios_liberados: 7, conexoes_liberadas: 1, permite_webjs: true, permite_waba: false, permite_instagram: false, ia: "gpt", autorizado: false, senha: "" });
+    setFormCadastro({
+      nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
+      username: "",
+      usuarios_liberados: 7, conexoes_liberadas: 1,
+      permite_webjs: true, permite_waba: false, permite_instagram: false,
+      ia: "gpt", autorizado: false, senha: "",
+    });
     setCadastroSelecionado(null);
     setShowModalCliente(true);
   };
@@ -87,21 +156,65 @@ export default function Clientes() {
     else setFormCadastro(prev => ({ ...prev, plano }));
   };
 
+  // ═══ SALVAR — novo cadastro chama API, edição usa direto no banco ═══
   const salvarCadastro = async () => {
     if (!formCadastro.nome || !formCadastro.email) { alert("Nome e email são obrigatórios!"); return; }
+
     setSalvandoCliente(true);
     try {
-      const dadosSalvar = { nome: formCadastro.nome, empresa: formCadastro.empresa, email: formCadastro.email, whatsapp: formCadastro.whatsapp, plano: formCadastro.plano, usuarios_liberados: formCadastro.usuarios_liberados, conexoes_liberadas: formCadastro.conexoes_liberadas, permite_webjs: formCadastro.permite_webjs, permite_waba: formCadastro.permite_waba, permite_instagram: formCadastro.permite_instagram, ia: formCadastro.ia, autorizado: formCadastro.autorizado };
       if (cadastroSelecionado) {
-        await supabase.from("cadastros").update(dadosSalvar).eq("id", cadastroSelecionado.id);
+        // ═══ EDIÇÃO — só atualiza campos do cadastro ═══
+        const { error } = await supabase.from("cadastros").update({
+          nome: formCadastro.nome,
+          empresa: formCadastro.empresa,
+          whatsapp: formCadastro.whatsapp,
+          plano: formCadastro.plano,
+          usuarios_liberados: formCadastro.usuarios_liberados,
+          conexoes_liberadas: formCadastro.conexoes_liberadas,
+          permite_webjs: formCadastro.permite_webjs,
+          permite_waba: formCadastro.permite_waba,
+          permite_instagram: formCadastro.permite_instagram,
+          ia: formCadastro.ia,
+          autorizado: formCadastro.autorizado,
+        }).eq("id", cadastroSelecionado.id);
+
+        if (error) { alert("Erro ao salvar: " + error.message); setSalvandoCliente(false); return; }
         alert("✅ Cliente atualizado!");
       } else {
-        await supabase.from("cadastros").insert([{ ...dadosSalvar, senha: formCadastro.senha }]);
-        alert("✅ Cliente adicionado!");
+        // ═══ NOVO — chama API que cria auth + workspace + cadastro ═══
+        if (!formCadastro.senha || formCadastro.senha.length < 6) { alert("Senha obrigatória (mínimo 6 caracteres)"); setSalvandoCliente(false); return; }
+        if (!formCadastro.username || !/^[a-z0-9_]{3,30}$/.test(formCadastro.username)) {
+          alert("Username inválido. Use letras minúsculas, números e _ (3 a 30 caracteres)");
+          setSalvandoCliente(false); return;
+        }
+
+        const token = await getToken();
+        if (!token) { alert("Sessão expirou. Faça login novamente."); setSalvandoCliente(false); return; }
+
+        const resp = await fetch("/api/admin/cliente", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify(formCadastro),
+        });
+        const result = await resp.json();
+
+        if (!result.success) {
+          if (result.error === "email_exists") alert("❌ Este e-mail já está cadastrado!");
+          else if (result.error === "username_exists") alert("❌ Este username já está em uso!");
+          else alert("Erro: " + result.error);
+          setSalvandoCliente(false);
+          return;
+        }
+
+        alert("✅ Cliente criado! O cliente já pode fazer login com o email e senha.");
       }
+
       await fetchCadastros();
       setShowModalCliente(false);
-    } catch { alert("Erro ao salvar!"); }
+    } catch (e: any) { alert("Erro: " + e.message); }
     setSalvandoCliente(false);
   };
 
@@ -121,6 +234,24 @@ export default function Clientes() {
     .filter(c => filtroStatus === "todos" || (filtroStatus === "ativos" ? c.autorizado : !c.autorizado))
     .filter(c => !buscaCliente || c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.email?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.empresa?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.whatsapp?.includes(buscaCliente));
 
+  // ═══ Tela de carregamento enquanto checa permissão ═══
+  if (permissaoLoading) {
+    return <div style={{ padding: 48, textAlign: "center", color: "#6b7280" }}>Carregando...</div>;
+  }
+
+  // ═══ Tela de bloqueio se não for admin master ═══
+  if (!temAcesso) {
+    return (
+      <div style={{ padding: 48, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+        <span style={{ fontSize: 64 }}>🔒</span>
+        <h2 style={{ color: "white", fontSize: 20, fontWeight: "bold", margin: 0 }}>Acesso Restrito</h2>
+        <p style={{ color: "#9ca3af", fontSize: 14, margin: 0 }}>Esta área é exclusiva do administrador master do sistema.</p>
+        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>Logado como: {emailUsuario}</p>
+        <button onClick={() => router.push("/crm")} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold", marginTop: 12 }}>← Voltar ao CRM</button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
@@ -137,9 +268,29 @@ export default function Clientes() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label><input placeholder="Nome completo" value={formCadastro.nome || ""} onChange={e => setFormCadastro({ ...formCadastro, nome: e.target.value })} style={inputSm} /></div>
                 <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Empresa</label><input placeholder="Nome da empresa" value={formCadastro.empresa || ""} onChange={e => setFormCadastro({ ...formCadastro, empresa: e.target.value })} style={inputSm} /></div>
-                <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Email *</label><input placeholder="email@empresa.com" value={formCadastro.email || ""} onChange={e => setFormCadastro({ ...formCadastro, email: e.target.value })} style={inputSm} /></div>
+                <div>
+                  <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                    Email * {cadastroSelecionado && <span style={{ color: "#6b7280", textTransform: "none" }}>(não pode mudar)</span>}
+                  </label>
+                  <input placeholder="email@empresa.com" value={formCadastro.email || ""} onChange={e => setFormCadastro({ ...formCadastro, email: e.target.value })} style={inputSm} disabled={!!cadastroSelecionado} />
+                </div>
                 <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>WhatsApp</label><input placeholder="(62) 99999-9999" value={formCadastro.whatsapp || ""} onChange={e => setFormCadastro({ ...formCadastro, whatsapp: e.target.value })} style={inputSm} /></div>
-                {!cadastroSelecionado && <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Senha</label><input type="password" placeholder="Senha de acesso" value={formCadastro.senha || ""} onChange={e => setFormCadastro({ ...formCadastro, senha: e.target.value })} style={inputSm} /></div>}
+
+                {!cadastroSelecionado && (
+                  <>
+                    <div>
+                      <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Username *</label>
+                      <input placeholder="ex: abc_company" value={formCadastro.username || ""}
+                        onChange={e => setFormCadastro({ ...formCadastro, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
+                        style={inputSm} maxLength={30} />
+                      <p style={{ color: "#6b7280", fontSize: 10, margin: "2px 0 0" }}>a-z, 0-9, _ — 3 a 30 chars</p>
+                    </div>
+                    <div>
+                      <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Senha *</label>
+                      <input type="password" placeholder="Senha de acesso (mín 6)" value={formCadastro.senha || ""} onChange={e => setFormCadastro({ ...formCadastro, senha: e.target.value })} style={inputSm} />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             <div>
@@ -178,7 +329,7 @@ export default function Clientes() {
             <Toggle value={!!formCadastro.autorizado} onChange={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} label="✅ Autorizado — Permitir acesso ao sistema" color="#16a34a" />
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
               <button onClick={() => setShowModalCliente(false)} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={salvarCadastro} disabled={salvandoCliente} style={{ background: salvandoCliente ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{salvandoCliente ? "Salvando..." : "💾 Salvar"}</button>
+              <button onClick={salvarCadastro} disabled={salvandoCliente} style={{ background: salvandoCliente ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{salvandoCliente ? "Salvando..." : cadastroSelecionado ? "💾 Salvar" : "➕ Criar Cliente"}</button>
             </div>
           </div>
         </div>
@@ -193,7 +344,7 @@ export default function Clientes() {
                 <div style={{ width: 56, height: 56, borderRadius: "50%", background: cadastroSelecionado.autorizado ? "#16a34a22" : "#f59e0b22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🏢</div>
                 <div>
                   <h2 style={{ color: "white", fontSize: 20, fontWeight: "bold", margin: 0 }}>{cadastroSelecionado.nome}</h2>
-                  <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0 0" }}>{cadastroSelecionado.empresa || "Sem empresa"}</p>
+                  <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0 0" }}>{cadastroSelecionado.empresa || "Sem empresa"}{cadastroSelecionado.username && ` • @${cadastroSelecionado.username}`}</p>
                   <span style={{ background: cadastroSelecionado.autorizado ? "#16a34a22" : "#f59e0b22", color: cadastroSelecionado.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{cadastroSelecionado.autorizado ? "✅ Ativo" : "⏳ Pendente"}</span>
                 </div>
               </div>
@@ -287,7 +438,7 @@ export default function Clientes() {
             <tbody>
               {cadastrosFiltrados.map((c, i) => (
                 <tr key={c.id} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
-                  <td style={{ padding: "14px 16px" }}><div><p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{c.nome}</p>{c.empresa && <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{c.empresa}</p>}</div></td>
+                  <td style={{ padding: "14px 16px" }}><div><p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{c.nome}</p>{c.empresa && <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{c.empresa}{c.username && ` • @${c.username}`}</p>}</div></td>
                   <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.email}</td>
                   <td style={{ padding: "14px 16px" }}><span style={{ background: c.plano === "ultra" ? "#8b5cf622" : c.plano === "intermediario" ? "#3b82f622" : "#16a34a22", color: c.plano === "ultra" ? "#8b5cf6" : c.plano === "intermediario" ? "#3b82f6" : "#16a34a", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.plano === "intermediario" ? "Intermediário" : c.plano === "ultra" ? "Ultra" : "Básico"}</span></td>
                   <td style={{ padding: "14px 16px", textAlign: "center" }}><span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.usuarios_liberados || 1}</span></td>
