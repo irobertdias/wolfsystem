@@ -61,7 +61,6 @@ export default function Configuracoes() {
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 14, boxSizing: "border-box" as const };
 
-  // ✅ Helper pra pegar o token Bearer pra chamar APIs protegidas
   const getToken = async (): Promise<string | null> => {
     const { data: { session } } = await supabase.auth.getSession();
     return session?.access_token || null;
@@ -85,53 +84,94 @@ export default function Configuracoes() {
       const admin = user.email === ADMIN_EMAIL;
       setIsAdmin(admin);
 
-      // Verifica se é dono do workspace
-      const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).single();
-      if (ws) {
-        // É dono — acesso total
+      // ═══ CAMINHO 1: é dono do workspace? ═══
+      const { data: wsDono } = await supabase.from("workspaces")
+        .select("*")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+      if (wsDono) {
         setAutorizado(true);
-        // ✅ MULTI-TENANT: usa SEMPRE o username (não o id numérico)
-        const wsId = ws.username;
-        if (!wsId) {
-          alert("Erro: workspace sem username. Contate o administrador.");
-          return;
-        }
+        const wsId = wsDono.username;
+        if (!wsId) { alert("Erro: workspace sem username. Contate o administrador."); return; }
         setWorkspaceId(wsId);
         fetchUsuarios(wsId);
         fetchGrupos(wsId);
         if (!admin) {
-          const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).single();
+          const { data: cadastro } = await supabase.from("cadastros")
+            .select("usuarios_liberados")
+            .eq("email", user.email)
+            .maybeSingle();
           if (cadastro) setLimites({ usuarios_liberados: cadastro.usuarios_liberados || 1 });
         }
         return;
       }
 
-      // É sub-usuário — verifica permissão de configurações
-      const { data: usuarioWs } = await supabase.from("usuarios_workspace").select("grupo_id").eq("email", user.email).single();
-      if (usuarioWs?.grupo_id) {
-        const { data: grupo } = await supabase.from("grupos_permissao").select("permissoes").eq("id", usuarioWs.grupo_id).single();
-        if (grupo?.permissoes?.configuracoes_workspace) {
-          setAutorizado(true);
-          return;
-        }
+      // ═══ CAMINHO 2: é sub-usuário — precisa ter permissão + ACHAR o workspace ═══
+      const { data: usuarioWs } = await supabase.from("usuarios_workspace")
+        .select("workspace_id, grupo_id, perfil")
+        .eq("email", user.email)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!usuarioWs) {
+        router.push("/crm/dashboard");
+        return;
       }
 
-      // Sem permissão — redireciona
-      router.push("/crm/dashboard");
+      // Verifica permissão: tem grupo com configuracoes_workspace? OU é Administrador?
+      let temPermissao = false;
+      if (usuarioWs.grupo_id) {
+        const { data: grupo } = await supabase.from("grupos_permissao")
+          .select("permissoes")
+          .eq("id", usuarioWs.grupo_id)
+          .maybeSingle();
+        if (grupo?.permissoes?.configuracoes_workspace) temPermissao = true;
+      }
+      // Administrador sem grupo também tem acesso (por perfil)
+      if (usuarioWs.perfil === "Administrador") temPermissao = true;
+
+      if (!temPermissao) {
+        router.push("/crm/dashboard");
+        return;
+      }
+
+      // ✅ Encontrou workspace do sub-usuário
+      const wsId = usuarioWs.workspace_id;
+      setWorkspaceId(wsId);
+      fetchUsuarios(wsId);
+      fetchGrupos(wsId);
+
+      // ✅ Busca limite pelo EMAIL DO DONO do workspace, não do logado
+      const { data: wsSub } = await supabase.from("workspaces")
+        .select("owner_email")
+        .eq("username", wsId)
+        .maybeSingle();
+
+      if (wsSub?.owner_email) {
+        const { data: cadastroDono } = await supabase.from("cadastros")
+          .select("usuarios_liberados")
+          .eq("email", wsSub.owner_email)
+          .maybeSingle();
+        if (cadastroDono) setLimites({ usuarios_liberados: cadastroDono.usuarios_liberados || 1 });
+      }
+
+      setAutorizado(true);
     };
     init();
   }, []);
 
-  // ✅ Realtime — atualiza lista de usuários quando criar/excluir
+  // Realtime
   useEffect(() => {
     if (!workspaceId) return;
-    const ch = supabase.channel("usuarios_ws_rt")
+    const ch = supabase.channel("usuarios_ws_rt_" + workspaceId)
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${workspaceId}` }, () => fetchUsuarios(workspaceId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "grupos_permissao", filter: `workspace_id=eq.${workspaceId}` }, () => fetchGrupos(workspaceId))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [workspaceId]);
 
-  // Enquanto verifica autorização, não renderiza nada
   if (!autorizado) return null;
 
   const limiteAtingido = !isAdmin && usuarios.length >= limites.usuarios_liberados;
@@ -143,20 +183,14 @@ export default function Configuracoes() {
     setShowFormUsuario(true);
   };
 
-  // ✅ EXCLUIR — envia token Bearer
   const excluirUsuario = async (u: Usuario) => {
     if (!confirm(`Excluir ${u.nome}? Isso vai apagar o login dele também.`)) return;
-
     const token = await getToken();
     if (!token) { alert("Sessão expirou. Faça login novamente."); return; }
-
     try {
       const resp = await fetch("/api/deletar-usuario", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ email: u.email, workspace_id: workspaceId }),
       });
       const data = await resp.json();
@@ -168,15 +202,12 @@ export default function Configuracoes() {
     }
   };
 
-  // ✅ SALVAR — envia token Bearer + trata erro de limite atingido
   const salvarUsuario = async () => {
     if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; }
-
     setSalvandoUsuario(true);
 
     try {
       if (editandoUsuario) {
-        // Edição — direto no banco (Supabase faz a validação)
         await supabase.from("usuarios_workspace")
           .update({ nome: formUsuario.nome, perfil: formUsuario.perfil, fila: formUsuario.fila, grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null })
           .eq("email", editandoUsuario.email).eq("workspace_id", workspaceId);
@@ -192,7 +223,6 @@ export default function Configuracoes() {
       if (!formUsuario.senha) { alert("Preencha a Senha!"); setSalvandoUsuario(false); return; }
       if (formUsuario.senha.length < 6) { alert("Senha deve ter no mínimo 6 caracteres!"); setSalvandoUsuario(false); return; }
 
-      // Checagem de limite (frontend — servidor também checa)
       if (limiteAtingido) {
         alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido! Faça upgrade do plano.`);
         setSalvandoUsuario(false);
@@ -204,10 +234,7 @@ export default function Configuracoes() {
 
       const resp = await fetch("/api/criar-usuario", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
           email: formUsuario.email, senha: formUsuario.senha, nome: formUsuario.nome,
           workspace_id: workspaceId, perfil: formUsuario.perfil, fila: formUsuario.fila,
@@ -217,14 +244,9 @@ export default function Configuracoes() {
       const data = await resp.json();
 
       if (!data.success) {
-        // Trata mensagens específicas
-        if (data.error === "email_exists") {
-          alert("❌ Este e-mail já está cadastrado no sistema!");
-        } else if (data.error === "limite_atingido") {
-          alert("❌ " + (data.detalhes || `Limite de ${limites.usuarios_liberados} usuários atingido!`));
-        } else {
-          alert("Erro ao criar usuário: " + data.error);
-        }
+        if (data.error === "email_exists") alert("❌ Este e-mail já está cadastrado no sistema!");
+        else if (data.error === "limite_atingido") alert("❌ " + (data.detalhes || `Limite de ${limites.usuarios_liberados} usuários atingido!`));
+        else alert("Erro ao criar usuário: " + data.error);
         setSalvandoUsuario(false);
         return;
       }
@@ -234,7 +256,6 @@ export default function Configuracoes() {
       setShowFormUsuario(false);
       alert("✅ Usuário adicionado! Ele já pode fazer login.");
     } catch (e: any) { alert("Erro: " + e.message); }
-
     setSalvandoUsuario(false);
   };
 
@@ -268,7 +289,6 @@ export default function Configuracoes() {
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
       <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>⚙️ Configurações do Workspace</h1>
 
-      {/* USUÁRIOS */}
       <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
         <div style={{ padding: "16px 24px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
