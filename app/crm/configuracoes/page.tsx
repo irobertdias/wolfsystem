@@ -8,6 +8,7 @@ const ADMIN_EMAIL = "robert.dias@live.com";
 
 type Usuario = { id?: number; nome: string; email: string; perfil: string; fila: string; status: string; grupo_id?: number; };
 type GrupoPermissao = { id: number; nome: string; descricao: string; permissoes: Record<string, boolean>; };
+type Fila = { id: number; nome: string; conexao: string; workspace_id: string; };
 
 const PERMISSOES_LABELS = [
   { key: "chat_proprio", label: "💬 Ver próprios atendimentos" },
@@ -40,10 +41,7 @@ export default function Configuracoes() {
   const [limites, setLimites] = useState({ usuarios_liberados: 9999 });
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [gruposPermissao, setGruposPermissao] = useState<GrupoPermissao[]>([]);
-  const [filas, setFilas] = useState([
-    { nome: "Fila Principal", conexao: "WhatsApp 01", usuarios: 2 },
-    { nome: "Fila Suporte", conexao: "WhatsApp 02", usuarios: 1 },
-  ]);
+  const [filas, setFilas] = useState<Fila[]>([]); // ✅ agora tipado e vem do banco
   const [showFormUsuario, setShowFormUsuario] = useState(false);
   const [showFormFila, setShowFormFila] = useState(false);
   const [showFormGrupo, setShowFormGrupo] = useState(false);
@@ -58,6 +56,7 @@ export default function Configuracoes() {
   const [formFila, setFormFila] = useState({ nome: "", conexao: "" });
   const [formGrupo, setFormGrupo] = useState({ nome: "", descricao: "", permissoes: { ...PERMISSOES_PADRAO } });
   const [salvandoUsuario, setSalvandoUsuario] = useState(false);
+  const [salvandoFila, setSalvandoFila] = useState(false);
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 14, boxSizing: "border-box" as const };
 
@@ -76,6 +75,12 @@ export default function Configuracoes() {
     if (data) setGruposPermissao(data);
   };
 
+  // ✅ Busca filas do banco, filtradas pelo workspace
+  const fetchFilas = async (wsId: string) => {
+    const { data } = await supabase.from("filas").select("*").eq("workspace_id", wsId).order("created_at", { ascending: true });
+    if (data) setFilas(data);
+  };
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -84,30 +89,24 @@ export default function Configuracoes() {
       const admin = user.email === ADMIN_EMAIL;
       setIsAdmin(admin);
 
-      // ═══ CAMINHO 1: é dono do workspace? ═══
-      const { data: wsDono } = await supabase.from("workspaces")
-        .select("*")
-        .eq("owner_id", user.id)
-        .maybeSingle();
-
+      // Caminho 1: é dono?
+      const { data: wsDono } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).maybeSingle();
       if (wsDono) {
         setAutorizado(true);
         const wsId = wsDono.username;
-        if (!wsId) { alert("Erro: workspace sem username. Contate o administrador."); return; }
+        if (!wsId) { alert("Erro: workspace sem username."); return; }
         setWorkspaceId(wsId);
         fetchUsuarios(wsId);
         fetchGrupos(wsId);
+        fetchFilas(wsId);
         if (!admin) {
-          const { data: cadastro } = await supabase.from("cadastros")
-            .select("usuarios_liberados")
-            .eq("email", user.email)
-            .maybeSingle();
+          const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).maybeSingle();
           if (cadastro) setLimites({ usuarios_liberados: cadastro.usuarios_liberados || 1 });
         }
         return;
       }
 
-      // ═══ CAMINHO 2: é sub-usuário — precisa ter permissão + ACHAR o workspace ═══
+      // Caminho 2: sub-usuário
       const { data: usuarioWs } = await supabase.from("usuarios_workspace")
         .select("workspace_id, grupo_id, perfil")
         .eq("email", user.email)
@@ -115,45 +114,26 @@ export default function Configuracoes() {
         .limit(1)
         .maybeSingle();
 
-      if (!usuarioWs) {
-        router.push("/crm/dashboard");
-        return;
-      }
+      if (!usuarioWs) { router.push("/crm/dashboard"); return; }
 
-      // Verifica permissão: tem grupo com configuracoes_workspace? OU é Administrador?
       let temPermissao = false;
       if (usuarioWs.grupo_id) {
-        const { data: grupo } = await supabase.from("grupos_permissao")
-          .select("permissoes")
-          .eq("id", usuarioWs.grupo_id)
-          .maybeSingle();
+        const { data: grupo } = await supabase.from("grupos_permissao").select("permissoes").eq("id", usuarioWs.grupo_id).maybeSingle();
         if (grupo?.permissoes?.configuracoes_workspace) temPermissao = true;
       }
-      // Administrador sem grupo também tem acesso (por perfil)
       if (usuarioWs.perfil === "Administrador") temPermissao = true;
 
-      if (!temPermissao) {
-        router.push("/crm/dashboard");
-        return;
-      }
+      if (!temPermissao) { router.push("/crm/dashboard"); return; }
 
-      // ✅ Encontrou workspace do sub-usuário
       const wsId = usuarioWs.workspace_id;
       setWorkspaceId(wsId);
       fetchUsuarios(wsId);
       fetchGrupos(wsId);
+      fetchFilas(wsId);
 
-      // ✅ Busca limite pelo EMAIL DO DONO do workspace, não do logado
-      const { data: wsSub } = await supabase.from("workspaces")
-        .select("owner_email")
-        .eq("username", wsId)
-        .maybeSingle();
-
+      const { data: wsSub } = await supabase.from("workspaces").select("owner_email").eq("username", wsId).maybeSingle();
       if (wsSub?.owner_email) {
-        const { data: cadastroDono } = await supabase.from("cadastros")
-          .select("usuarios_liberados")
-          .eq("email", wsSub.owner_email)
-          .maybeSingle();
+        const { data: cadastroDono } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", wsSub.owner_email).maybeSingle();
         if (cadastroDono) setLimites({ usuarios_liberados: cadastroDono.usuarios_liberados || 1 });
       }
 
@@ -162,12 +142,13 @@ export default function Configuracoes() {
     init();
   }, []);
 
-  // Realtime
+  // Realtime — usuários + grupos + filas
   useEffect(() => {
     if (!workspaceId) return;
-    const ch = supabase.channel("usuarios_ws_rt_" + workspaceId)
+    const ch = supabase.channel("ws_rt_" + workspaceId)
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${workspaceId}` }, () => fetchUsuarios(workspaceId))
       .on("postgres_changes", { event: "*", schema: "public", table: "grupos_permissao", filter: `workspace_id=eq.${workspaceId}` }, () => fetchGrupos(workspaceId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "filas", filter: `workspace_id=eq.${workspaceId}` }, () => fetchFilas(workspaceId))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [workspaceId]);
@@ -186,7 +167,7 @@ export default function Configuracoes() {
   const excluirUsuario = async (u: Usuario) => {
     if (!confirm(`Excluir ${u.nome}? Isso vai apagar o login dele também.`)) return;
     const token = await getToken();
-    if (!token) { alert("Sessão expirou. Faça login novamente."); return; }
+    if (!token) { alert("Sessão expirou."); return; }
     try {
       const resp = await fetch("/api/deletar-usuario", {
         method: "POST",
@@ -194,18 +175,15 @@ export default function Configuracoes() {
         body: JSON.stringify({ email: u.email, workspace_id: workspaceId }),
       });
       const data = await resp.json();
-      if (!data.success) { alert("Erro ao excluir: " + data.error); return; }
+      if (!data.success) { alert("Erro: " + data.error); return; }
       await fetchUsuarios(workspaceId);
       alert("✅ Usuário excluído!");
-    } catch (e: any) {
-      alert("Erro: " + e.message);
-    }
+    } catch (e: any) { alert("Erro: " + e.message); }
   };
 
   const salvarUsuario = async () => {
     if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; }
     setSalvandoUsuario(true);
-
     try {
       if (editandoUsuario) {
         await supabase.from("usuarios_workspace")
@@ -219,18 +197,12 @@ export default function Configuracoes() {
         setSalvandoUsuario(false);
         return;
       }
-
       if (!formUsuario.senha) { alert("Preencha a Senha!"); setSalvandoUsuario(false); return; }
       if (formUsuario.senha.length < 6) { alert("Senha deve ter no mínimo 6 caracteres!"); setSalvandoUsuario(false); return; }
-
-      if (limiteAtingido) {
-        alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido! Faça upgrade do plano.`);
-        setSalvandoUsuario(false);
-        return;
-      }
+      if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); setSalvandoUsuario(false); return; }
 
       const token = await getToken();
-      if (!token) { alert("Sessão expirou. Faça login novamente."); setSalvandoUsuario(false); return; }
+      if (!token) { alert("Sessão expirou."); setSalvandoUsuario(false); return; }
 
       const resp = await fetch("/api/criar-usuario", {
         method: "POST",
@@ -242,21 +214,50 @@ export default function Configuracoes() {
         }),
       });
       const data = await resp.json();
-
       if (!data.success) {
-        if (data.error === "email_exists") alert("❌ Este e-mail já está cadastrado no sistema!");
-        else if (data.error === "limite_atingido") alert("❌ " + (data.detalhes || `Limite de ${limites.usuarios_liberados} usuários atingido!`));
-        else alert("Erro ao criar usuário: " + data.error);
+        if (data.error === "email_exists") alert("❌ E-mail já cadastrado!");
+        else if (data.error === "limite_atingido") alert("❌ " + (data.detalhes || "Limite atingido!"));
+        else alert("Erro: " + data.error);
         setSalvandoUsuario(false);
         return;
       }
-
       await fetchUsuarios(workspaceId);
       setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "" });
       setShowFormUsuario(false);
-      alert("✅ Usuário adicionado! Ele já pode fazer login.");
+      alert("✅ Usuário adicionado!");
     } catch (e: any) { alert("Erro: " + e.message); }
     setSalvandoUsuario(false);
+  };
+
+  // ✅ SALVA FILA NO BANCO
+  const salvarFila = async () => {
+    if (!formFila.nome.trim()) { alert("Digite o nome da fila!"); return; }
+    setSalvandoFila(true);
+    try {
+      const { error } = await supabase.from("filas").insert([{
+        nome: formFila.nome.trim(),
+        conexao: formFila.conexao.trim() || null,
+        workspace_id: workspaceId,
+      }]);
+      if (error) {
+        if (error.code === "23505") alert("❌ Já existe uma fila com esse nome neste workspace!");
+        else alert("Erro ao criar fila: " + error.message);
+        setSalvandoFila(false);
+        return;
+      }
+      await fetchFilas(workspaceId);
+      setFormFila({ nome: "", conexao: "" });
+      setShowFormFila(false);
+    } catch (e: any) { alert("Erro: " + e.message); }
+    setSalvandoFila(false);
+  };
+
+  // ✅ EXCLUI FILA DO BANCO
+  const excluirFila = async (f: Fila) => {
+    if (!confirm(`Excluir a fila "${f.nome}"?`)) return;
+    const { error } = await supabase.from("filas").delete().eq("id", f.id);
+    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    await fetchFilas(workspaceId);
   };
 
   const salvarGrupo = async () => {
@@ -285,10 +286,14 @@ export default function Configuracoes() {
     await fetchGrupos(workspaceId);
   };
 
+  // Conta quantos usuários estão em cada fila
+  const contarUsuariosPorFila = (nomeFila: string) => usuarios.filter(u => u.fila === nomeFila).length;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
       <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>⚙️ Configurações do Workspace</h1>
 
+      {/* USUÁRIOS */}
       <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
         <div style={{ padding: "16px 24px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
@@ -298,7 +303,7 @@ export default function Configuracoes() {
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             {limiteAtingido && <span style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: "bold" }}>🔒 Limite atingido</span>}
             <button onClick={() => {
-              if (limiteAtingido) { alert(`❌ Você atingiu o limite de ${limites.usuarios_liberados} usuário(s). Para adicionar mais, faça upgrade do plano.`); return; }
+              if (limiteAtingido) { alert(`❌ Você atingiu o limite de ${limites.usuarios_liberados} usuário(s).`); return; }
               setEditandoUsuario(null);
               setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "" });
               setShowFormUsuario(!showFormUsuario);
@@ -336,7 +341,7 @@ export default function Configuracoes() {
               <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Fila</label>
                 <select value={formUsuario.fila} onChange={e => setFormUsuario({ ...formUsuario, fila: e.target.value })} style={IS}>
                   <option value="">Selecione...</option>
-                  {filas.map(f => <option key={f.nome} value={f.nome}>{f.nome}</option>)}
+                  {filas.map(f => <option key={f.id} value={f.nome}>{f.nome}</option>)}
                 </select>
               </div>
               <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Grupo de Permissão</label>
@@ -403,32 +408,44 @@ export default function Configuracoes() {
         )}
       </div>
 
-      {/* FILAS */}
+      {/* FILAS — AGORA DO BANCO */}
       <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
         <div style={{ padding: "16px 24px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>📋 Filas</h2>
-          <button onClick={() => setShowFormFila(!showFormFila)} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>+ Nova Fila</button>
+          <div>
+            <h2 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>📋 Filas</h2>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{filas.length} fila(s) cadastrada(s)</p>
+          </div>
+          <button onClick={() => { setFormFila({ nome: "", conexao: "" }); setShowFormFila(!showFormFila); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>+ Nova Fila</button>
         </div>
         {showFormFila && (
           <div style={{ padding: 20, borderBottom: "1px solid #1f2937", background: "#0d0d0d", display: "flex", gap: 12, alignItems: "flex-end" }}>
-            <div style={{ flex: 1 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome da Fila</label><input placeholder="Ex: Fila Vendas" value={formFila.nome} onChange={e => setFormFila({ ...formFila, nome: e.target.value })} style={IS} /></div>
-            <div style={{ flex: 1 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Conexão WhatsApp</label><input placeholder="Ex: WhatsApp 01" value={formFila.conexao} onChange={e => setFormFila({ ...formFila, conexao: e.target.value })} style={IS} /></div>
-            <button onClick={() => { if (!formFila.nome) { alert("Digite o nome!"); return; } setFilas([...filas, { nome: formFila.nome, conexao: formFila.conexao, usuarios: 0 }]); setFormFila({ nome: "", conexao: "" }); setShowFormFila(false); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💾 Salvar</button>
+            <div style={{ flex: 1 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome da Fila *</label><input placeholder="Ex: Fila Vendas" value={formFila.nome} onChange={e => setFormFila({ ...formFila, nome: e.target.value })} style={IS} /></div>
+            <div style={{ flex: 1 }}><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Conexão (opcional)</label><input placeholder="Ex: WhatsApp 01" value={formFila.conexao} onChange={e => setFormFila({ ...formFila, conexao: e.target.value })} style={IS} /></div>
+            <button onClick={() => { setShowFormFila(false); setFormFila({ nome: "", conexao: "" }); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 16px", fontSize: 12, cursor: "pointer" }}>Cancelar</button>
+            <button onClick={salvarFila} disabled={salvandoFila} style={{ background: salvandoFila ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>{salvandoFila ? "Salvando..." : "💾 Salvar"}</button>
           </div>
         )}
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr style={{ background: "#0d0d0d" }}>{["Fila", "Conexão", "Usuários", "Ações"].map(h => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
-          <tbody>{filas.map((f, i) => (
-            <tr key={i} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
-              <td style={{ padding: "14px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{f.nome}</td>
-              <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{f.conexao || "—"}</td>
-              <td style={{ padding: "14px 16px", color: "#8b5cf6", fontSize: 13, fontWeight: "bold" }}>{f.usuarios}</td>
-              <td style={{ padding: "14px 16px" }}>
-                <button onClick={() => { if (confirm(`Excluir fila "${f.nome}"?`)) setFilas(filas.filter((_, idx) => idx !== i)); }} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>🗑️</button>
-              </td>
-            </tr>
-          ))}</tbody>
-        </table>
+        {filas.length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center" }}>
+            <p style={{ fontSize: 32, margin: "0 0 8px" }}>📋</p>
+            <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Nenhuma fila cadastrada ainda</p>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>Clique em "+ Nova Fila" pra criar a primeira</p>
+          </div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr style={{ background: "#0d0d0d" }}>{["Fila", "Conexão", "Usuários", "Ações"].map(h => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
+            <tbody>{filas.map((f, i) => (
+              <tr key={f.id} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
+                <td style={{ padding: "14px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{f.nome}</td>
+                <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 13 }}>{f.conexao || "—"}</td>
+                <td style={{ padding: "14px 16px", color: "#8b5cf6", fontSize: 13, fontWeight: "bold" }}>{contarUsuariosPorFila(f.nome)}</td>
+                <td style={{ padding: "14px 16px" }}>
+                  <button onClick={() => excluirFila(f)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>🗑️</button>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        )}
       </div>
 
       {/* GRUPOS DE PERMISSÃO */}
@@ -440,7 +457,6 @@ export default function Configuracoes() {
           </div>
           <button onClick={() => { setEditandoGrupo(null); setFormGrupo({ nome: "", descricao: "", permissoes: { ...PERMISSOES_PADRAO } }); setShowFormGrupo(!showFormGrupo); }} style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>+ Novo Grupo</button>
         </div>
-
         {showFormGrupo && (
           <div style={{ padding: 24, borderBottom: "1px solid #1f2937", background: "#0d0d0d", display: "flex", flexDirection: "column", gap: 16 }}>
             <p style={{ color: "#8b5cf6", fontSize: 12, fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>{editandoGrupo ? "✏️ Editar Grupo" : "➕ Novo Grupo"}</p>
@@ -465,7 +481,6 @@ export default function Configuracoes() {
             </div>
           </div>
         )}
-
         {gruposPermissao.length === 0 ? (
           <div style={{ padding: 32, textAlign: "center" }}><p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum grupo criado ainda</p></div>
         ) : (
