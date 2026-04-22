@@ -14,8 +14,11 @@ type Atendimento = {
 type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; };
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
 
+// ═══ Background doodle WhatsApp-style (SVG inline) ═══
+const WA_BG_DARK = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200' opacity='0.04'><g fill='%23ffffff'><path d='M40 40 l10 0 l0 10 l-10 0 z'/><circle cx='70' cy='75' r='4'/><path d='M110 35 l15 -5 l5 15 l-15 5 z' opacity='0.6'/><circle cx='150' cy='55' r='3'/><path d='M30 110 l8 8 l-8 8 l-8 -8 z'/><circle cx='80' cy='135' r='5'/><path d='M130 115 l10 0 l-5 10 z' opacity='0.7'/><circle cx='165' cy='150' r='4'/><path d='M50 170 l12 0 l-6 12 z'/><circle cx='100' cy='180' r='3'/></g></svg>")`;
+
 export function ChatSection() {
-  const { workspace, wsId } = useWorkspace();
+  const { workspace, wsId, user } = useWorkspace();
   const { permissoes, isDono } = usePermissao();
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
@@ -26,7 +29,9 @@ export function ChatSection() {
   const [showTransferir, setShowTransferir] = useState(false);
   const [showChatInterno, setShowChatInterno] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
-  const [abaConversa, setAbaConversa] = useState("abertos");
+  const [showMenuTresPontos, setShowMenuTresPontos] = useState(false);
+  // ✅ Aba nova: automatico | aguardando | abertos | finalizados
+  const [abaConversa, setAbaConversa] = useState<"automatico" | "aguardando" | "abertos" | "finalizados">("abertos");
   const [busca, setBusca] = useState("");
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [atendimentoAtivo, setAtendimentoAtivo] = useState<Atendimento | null>(null);
@@ -38,17 +43,14 @@ export function ChatSection() {
   const [abaPainel, setAbaPainel] = useState<"perfil" | "protocolo" | "funil" | "ia" | "utils" | "etiquetas">("perfil");
   const [salvandoContato, setSalvandoContato] = useState(false);
 
-  // ✅ Etiquetas
+  // Etiquetas
   const [etiquetasWorkspace, setEtiquetasWorkspace] = useState<Etiqueta[]>([]);
-  const [etiquetasAtendimento, setEtiquetasAtendimento] = useState<number[]>([]); // ids das etiquetas aplicadas
+  const [etiquetasAtendimento, setEtiquetasAtendimento] = useState<number[]>([]);
 
-  // Filtros
-  const [visualizarTickets, setVisualizarTickets] = useState(false);
+  // Filtros avançados
   const [filtroFila, setFiltroFila] = useState("todas");
   const [filtroAtendente, setFiltroAtendente] = useState("todos");
-  const [filtroConexao, setFiltroConexao] = useState("todas");
   const [filtroEtiqueta, setFiltroEtiqueta] = useState("todas");
-  const [filtrosStatus, setFiltrosStatus] = useState<string[]>(["aberto", "pendente"]);
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
   const inputSm = { ...IS, padding: "7px 10px", fontSize: 12 };
@@ -58,11 +60,6 @@ export function ChatSection() {
     { atalho: "/planos", mensagem: "Temos planos a partir de R$ 89,90. Posso te passar mais detalhes!" },
     { atalho: "/aguarda", mensagem: "Por favor, aguarde um momento que já vou te atender!" },
     { atalho: "/encerrar", mensagem: "Obrigado pelo contato! Tenha um ótimo dia!" },
-  ];
-
-  const mensagensInternas = [
-    { de: "Pedro Lima", texto: "Robert, o cliente está perguntando sobre desconto", hora: "10:05" },
-    { de: "Você", texto: "Pode oferecer 10% para ele!", hora: "10:06" },
   ];
 
   const wa = async (rota: string, body?: object) => {
@@ -87,7 +84,6 @@ export function ChatSection() {
     setHistorico(data || []);
   };
 
-  // ✅ Busca etiquetas do workspace
   const fetchEtiquetasWorkspace = async () => {
     if (!wsId) return;
     const { data } = await supabase.from("etiquetas")
@@ -97,7 +93,6 @@ export function ChatSection() {
     setEtiquetasWorkspace(data || []);
   };
 
-  // ✅ Busca etiquetas aplicadas ao atendimento
   const fetchEtiquetasAtendimento = async (atendimentoId: number) => {
     const { data } = await supabase.from("atendimento_etiquetas")
       .select("etiqueta_id")
@@ -105,7 +100,6 @@ export function ChatSection() {
     setEtiquetasAtendimento((data || []).map(d => d.etiqueta_id));
   };
 
-  // ✅ Marca/desmarca etiqueta
   const toggleEtiqueta = async (etiquetaId: number) => {
     if (!atendimentoAtivo) return;
     const jaTem = etiquetasAtendimento.includes(etiquetaId);
@@ -159,25 +153,45 @@ export function ChatSection() {
 
   const filas = [...new Set(atendimentos.map(a => a.fila))].filter(Boolean);
   const atendentes = [...new Set(atendimentos.map(a => a.atendente))].filter(Boolean);
-  const podeVerFiltrosAvancados = isDono || permissoes.chat_todos;
+  const podeVerTudo = isDono || permissoes.chat_todos;
+
+  // ═══ Classificação das 4 abas ═══
+  const classificarAba = (a: Atendimento): "automatico" | "aguardando" | "abertos" | "finalizados" => {
+    if (a.status === "resolvido") return "finalizados";
+    if (a.atendente === "BOT") return "automatico";
+    if (a.status === "pendente") return "aguardando";
+    return "abertos";
+  };
+
+  // Contadores por aba
+  const contadoresAbas = {
+    automatico: 0, aguardando: 0, abertos: 0, finalizados: 0,
+  };
+  atendimentos.forEach(a => {
+    // Aplica regra de permissão: atendente só vê os seus próprios em "abertos"
+    const aba = classificarAba(a);
+    if (aba === "abertos" && !podeVerTudo) {
+      if (a.atendente !== user?.email) return;
+    }
+    contadoresAbas[aba]++;
+  });
 
   const atendimentosFiltrados = atendimentos
+    .filter(a => classificarAba(a) === abaConversa)
     .filter(a => {
-      if (showFiltros && filtrosStatus.length > 0) return filtrosStatus.includes(a.status);
-      if (abaConversa === "abertos") return a.status === "aberto";
-      if (abaConversa === "pendentes") return a.status === "pendente";
-      if (abaConversa === "resolvidos") return a.status === "resolvido";
-      return true;
-    })
-    .filter(a => {
-      if (!isDono && !permissoes.chat_todos && permissoes.chat_proprio) {
-        return a.atendente === "BOT" || a.status === "pendente" || a.atendente === wsId;
+      // Abertos: atendente vê só os dele (admin/supervisor/dono veem todos)
+      if (abaConversa === "abertos" && !podeVerTudo) {
+        return a.atendente === user?.email;
       }
       return true;
     })
     .filter(a => !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.numero?.includes(busca))
     .filter(a => filtroFila === "todas" || a.fila === filtroFila)
-    .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente);
+    .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente)
+    .filter(a => {
+      if (filtroEtiqueta === "todas") return true;
+      return false; // simplificado: não filtra por etiqueta aqui — pode virar async depois
+    });
 
   const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas";
 
@@ -192,11 +206,10 @@ export function ChatSection() {
   const assumirChat = async (numero: string) => { await wa("assumir", { numero, workspaceId: wsId }); fetchAtendimentos(); };
   const finalizarChat = async (numero: string) => { await wa("finalizar", { numero, workspaceId: wsId }); fetchAtendimentos(); setAtendimentoAtivo(null); setHistorico([]); };
   const devolverBot = async (numero: string) => { await wa("devolver", { numero, workspaceId: wsId }); fetchAtendimentos(); };
-  const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroConexao("todas"); setFiltroEtiqueta("todas"); setFiltrosStatus(["aberto", "pendente"]); };
+  const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroEtiqueta("todas"); };
 
   const tempoRelativo = (data: string) => { const d = Math.floor((Date.now() - new Date(data).getTime()) / 60000); return d < 1 ? "agora" : d < 60 ? `${d}min` : d < 1440 ? `${Math.floor(d/60)}h` : `${Math.floor(d/1440)}d`; };
   const horaMsg = (data: string) => new Date(data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  const toggleStatus = (s: string) => setFiltrosStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
   const salvarCampoContato = async (campo: string, valor: any) => {
     if (!atendimentoAtivo) return;
@@ -213,7 +226,7 @@ export function ChatSection() {
   const exportarPDF = () => {
     if (!atendimentoAtivo) return;
     const janela = window.open("", "_blank", "width=800,height=600");
-    if (!janela) { alert("Popup bloqueado! Libere popups neste site."); return; }
+    if (!janela) { alert("Popup bloqueado!"); return; }
     const html = `
       <html><head><title>Histórico ${atendimentoAtivo.nome}</title>
       <style>body{font-family:Arial;padding:20px}h1{color:#16a34a}.msg{padding:10px;margin:5px 0;border-radius:8px;max-width:60%}.cliente{background:#e5e7eb;margin-right:auto}.atendente{background:#dbeafe;margin-left:auto;text-align:right}.bot{background:#dcfce7;margin-left:auto;text-align:right}.meta{font-size:10px;color:#6b7280}</style>
@@ -232,210 +245,228 @@ export function ChatSection() {
   };
 
   const numeroSanitizado = (num: string) => (num || "").replace(/\D/g, "");
-
-  // Etiquetas do atendimento ativo (resolvidas — com nome/cor/icone)
   const etiquetasAplicadas = etiquetasWorkspace.filter(e => etiquetasAtendimento.includes(e.id));
+
+  // Configuração das abas
+  const abas = [
+    { key: "automatico", label: "Automático", icon: "🤖", color: "#8b5cf6", count: contadoresAbas.automatico },
+    { key: "aguardando", label: "Aguardando", icon: "⏳", color: "#f59e0b", count: contadoresAbas.aguardando },
+    { key: "abertos", label: "Abertos", icon: "💬", color: "#3b82f6", count: contadoresAbas.abertos },
+    { key: "finalizados", label: "Finalizados", icon: "✅", color: "#16a34a", count: contadoresAbas.finalizados },
+  ];
 
   return (
     <div style={{ display: "flex", flex: 1, height: "100vh" }}>
 
-      {/* LISTA */}
-      <div style={{ width: 310, background: "#111", borderRight: "1px solid #1f2937", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "10px 12px", borderBottom: "1px solid #1f2937" }}>
-          <input placeholder="Buscar por nome ou número..." value={busca} onChange={e => setBusca(e.target.value)} style={{ ...IS, padding: "8px 12px", fontSize: 12 }} />
-        </div>
-
-        <div style={{ padding: "6px 12px", borderBottom: "1px solid #1f2937", display: "flex", gap: 6 }}>
-          <button onClick={fetchAtendimentos} title="Atualizar" style={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 6, padding: "5px 9px", color: "#9ca3af", cursor: "pointer", fontSize: 14 }}>🔄</button>
-          {permissoes.chat_interno && (
-            <button onClick={() => setShowChatInterno(!showChatInterno)} title="Chat Interno" style={{ background: showChatInterno ? "#8b5cf622" : "#1f2937", border: "1px solid #374151", borderRadius: 6, padding: "5px 9px", color: showChatInterno ? "#8b5cf6" : "#9ca3af", cursor: "pointer", fontSize: 14 }}>💭</button>
-          )}
-          <button onClick={() => setShowFiltros(!showFiltros)} title="Filtros Avançados" style={{ position: "relative", background: showFiltros || temFiltroAtivo ? "#3b82f622" : "#1f2937", border: `1px solid ${temFiltroAtivo ? "#3b82f6" : "#374151"}`, borderRadius: 6, padding: "5px 9px", color: temFiltroAtivo ? "#3b82f6" : "#9ca3af", cursor: "pointer", fontSize: 14 }}>
-            🔽{temFiltroAtivo && <span style={{ position: "absolute", top: 2, right: 2, width: 6, height: 6, background: "#3b82f6", borderRadius: "50%" }} />}
+      {/* LISTA ESQUERDA */}
+      <div style={{ width: 320, background: "#111b21", borderRight: "1px solid #222d34", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "12px 14px", background: "#202c33", borderBottom: "1px solid #222d34", display: "flex", gap: 8, alignItems: "center" }}>
+          <input placeholder="🔍 Buscar conversa..." value={busca} onChange={e => setBusca(e.target.value)}
+            style={{ flex: 1, background: "#111b21", border: "none", borderRadius: 20, padding: "8px 14px", color: "white", fontSize: 13 }} />
+          <button onClick={fetchAtendimentos} title="Atualizar"
+            style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 16, padding: 4 }}>🔄</button>
+          <button onClick={() => setShowFiltros(!showFiltros)} title="Filtros"
+            style={{ background: "none", border: "none", color: temFiltroAtivo ? "#00a884" : "#aebac1", cursor: "pointer", fontSize: 16, padding: 4, position: "relative" }}>
+            🔽
+            {temFiltroAtivo && <span style={{ position: "absolute", top: 0, right: 0, width: 6, height: 6, background: "#00a884", borderRadius: "50%" }} />}
           </button>
         </div>
 
         {showFiltros && (
-          <div style={{ background: "#0d0d0d", borderBottom: "1px solid #1f2937", padding: 14, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", maxHeight: 420 }}>
+          <div style={{ background: "#111b21", borderBottom: "1px solid #222d34", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase" }}>Filtro Avançado</span>
+              <span style={{ color: "#8696a0", fontSize: 11, fontWeight: "bold", textTransform: "uppercase" }}>Filtros</span>
               {temFiltroAtivo && <button onClick={limparFiltros} style={{ background: "none", border: "none", color: "#dc2626", fontSize: 11, cursor: "pointer" }}>✕ Limpar</button>}
             </div>
-            <div style={{ background: "#1f2937", borderRadius: 8, padding: "10px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ color: "white", fontSize: 12 }}>Visualizar Tickets</span>
-              <button onClick={() => setVisualizarTickets(!visualizarTickets)} style={{ width: 36, height: 20, background: visualizarTickets ? "#3b82f6" : "#374151", borderRadius: 10, cursor: "pointer", border: "none", position: "relative", flexShrink: 0 }}>
-                <div style={{ width: 14, height: 14, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: visualizarTickets ? 19 : 3, transition: "left 0.2s" }} />
-              </button>
-            </div>
-            <div>
-              <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Filas</label>
-              <select value={filtroFila} onChange={e => setFiltroFila(e.target.value)} style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
-                <option value="todas">Todas as filas</option>
-                {filas.map(f => <option key={f} value={f}>{f}</option>)}
+            <select value={filtroFila} onChange={e => setFiltroFila(e.target.value)} style={{ ...inputSm, background: "#202c33", border: "none" }}>
+              <option value="todas">Todas as filas</option>
+              {filas.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+            {podeVerTudo && (
+              <select value={filtroAtendente} onChange={e => setFiltroAtendente(e.target.value)} style={{ ...inputSm, background: "#202c33", border: "none" }}>
+                <option value="todos">Todos os atendentes</option>
+                {atendentes.map(a => <option key={a} value={a}>{a === "BOT" ? "🤖 BOT" : "👤 " + a}</option>)}
               </select>
-            </div>
-            {podeVerFiltrosAvancados && (
-              <div>
-                <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Conexão</label>
-                <select value={filtroConexao} onChange={e => setFiltroConexao(e.target.value)} style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
-                  <option value="todas">Todas as conexões</option>
-                  {filas.map(f => <option key={f} value={f}>{f}</option>)}
-                </select>
-              </div>
             )}
-            {podeVerFiltrosAvancados && (
-              <div>
-                <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Usuário</label>
-                <select value={filtroAtendente} onChange={e => setFiltroAtendente(e.target.value)} style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
-                  <option value="todos">Todos os usuários</option>
-                  {atendentes.map(a => <option key={a} value={a}>{a === "BOT" ? "🤖 BOT" : "👤 " + a}</option>)}
-                </select>
-              </div>
-            )}
-            <div>
-              <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Etiquetas</label>
-              <select value={filtroEtiqueta} onChange={e => setFiltroEtiqueta(e.target.value)} style={{ ...IS, padding: "7px 10px", fontSize: 12 }}>
-                <option value="todas">Todas as etiquetas</option>
-                {etiquetasWorkspace.map(et => <option key={et.id} value={et.id.toString()}>{et.icone} {et.nome}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ color: "#6b7280", fontSize: 10, display: "block", marginBottom: 8, textTransform: "uppercase" }}>Status</label>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[{ key: "aberto", label: "Abertos", color: "#3b82f6" }, { key: "pendente", label: "Pendentes", color: "#dc2626" }, { key: "resolvido", label: "Resolvidos", color: "#16a34a" }].map(s => (
-                  <label key={s.key} onClick={() => toggleStatus(s.key)} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                    <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${filtrosStatus.includes(s.key) ? s.color : "#374151"}`, background: filtrosStatus.includes(s.key) ? s.color : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {filtrosStatus.includes(s.key) && <span style={{ color: "white", fontSize: 11, fontWeight: "bold" }}>✓</span>}
-                    </div>
-                    <span style={{ color: "white", fontSize: 13 }}>{s.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div style={{ background: "#1f2937", borderRadius: 8, padding: "8px 12px", display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#6b7280", fontSize: 11 }}>Resultados</span>
-              <span style={{ color: "white", fontSize: 11, fontWeight: "bold" }}>{atendimentosFiltrados.length} atendimentos</span>
-            </div>
+            <select value={filtroEtiqueta} onChange={e => setFiltroEtiqueta(e.target.value)} style={{ ...inputSm, background: "#202c33", border: "none" }}>
+              <option value="todas">Todas as etiquetas</option>
+              {etiquetasWorkspace.map(et => <option key={et.id} value={et.id.toString()}>{et.icone} {et.nome}</option>)}
+            </select>
           </div>
         )}
 
-        {!showFiltros && (
-          <div style={{ display: "flex", borderBottom: "1px solid #1f2937" }}>
-            {[{ key: "abertos", label: "Abertos", color: "#3b82f6", count: atendimentos.filter(a => a.status === "aberto").length }, { key: "pendentes", label: "Pendentes", color: "#f59e0b", count: atendimentos.filter(a => a.status === "pendente").length }, { key: "resolvidos", label: "Resolvidos", color: "#16a34a", count: atendimentos.filter(a => a.status === "resolvido").length }].map(t => (
-              <button key={t.key} onClick={() => setAbaConversa(t.key)} style={{ flex: 1, padding: "10px 4px", background: "none", border: "none", color: abaConversa === t.key ? t.color : "#6b7280", fontSize: 11, fontWeight: "bold", cursor: "pointer", borderBottom: abaConversa === t.key ? `2px solid ${t.color}` : "2px solid transparent" }}>
-                {t.label}{t.count > 0 && <span style={{ background: t.color, color: "white", borderRadius: 8, padding: "0 5px", fontSize: 9, marginLeft: 3 }}>{t.count}</span>}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* ABAS 4 */}
+        <div style={{ display: "flex", borderBottom: "1px solid #222d34", background: "#111b21" }}>
+          {abas.map(t => (
+            <button key={t.key} onClick={() => setAbaConversa(t.key as any)}
+              style={{
+                flex: 1, padding: "10px 2px", background: "none", border: "none",
+                color: abaConversa === t.key ? t.color : "#8696a0",
+                fontSize: 10, fontWeight: "bold", cursor: "pointer",
+                borderBottom: abaConversa === t.key ? `3px solid ${t.color}` : "3px solid transparent",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+              }}>
+              <span style={{ fontSize: 14 }}>{t.icon}</span>
+              <span>{t.label}</span>
+              {t.count > 0 && (
+                <span style={{ background: t.color, color: "white", borderRadius: 10, padding: "0 6px", fontSize: 9, minWidth: 16 }}>{t.count}</span>
+              )}
+            </button>
+          ))}
+        </div>
 
-        {showChatInterno && permissoes.chat_interno ? (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: "8px 12px", borderBottom: "1px solid #1f2937" }}>
-              <span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: "bold" }}>💭 Chat Interno</span>
+        {/* LISTA DE ATENDIMENTOS */}
+        <div style={{ overflowY: "auto", flex: 1, background: "#111b21" }}>
+          {atendimentosFiltrados.length === 0 ? (
+            <div style={{ padding: 32, textAlign: "center" }}>
+              <p style={{ fontSize: 32, margin: "0 0 8px" }}>{abas.find(a => a.key === abaConversa)?.icon}</p>
+              <p style={{ color: "#8696a0", fontSize: 13 }}>
+                {temFiltroAtivo ? "Nenhum resultado para os filtros" : `Nenhum atendimento em ${abas.find(a => a.key === abaConversa)?.label.toLowerCase()}`}
+              </p>
+              {temFiltroAtivo && <button onClick={limparFiltros} style={{ background: "none", border: "1px solid #374151", borderRadius: 8, padding: "6px 12px", color: "#aebac1", fontSize: 12, cursor: "pointer", marginTop: 8 }}>Limpar filtros</button>}
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-              {mensagensInternas.map((msg, i) => (
-                <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: msg.de === "Você" ? "flex-end" : "flex-start" }}>
-                  {msg.de !== "Você" && <span style={{ color: "#8b5cf6", fontSize: 10, marginBottom: 2, fontWeight: "bold" }}>{msg.de}</span>}
-                  <div style={{ background: msg.de === "Você" ? "#8b5cf6" : "#1f2937", borderRadius: 10, padding: "8px 12px", maxWidth: "85%" }}>
-                    <p style={{ color: "white", fontSize: 12, margin: 0 }}>{msg.texto}</p>
-                    <p style={{ color: "#ddd6fe", fontSize: 10, margin: "3px 0 0 0", textAlign: "right" }}>{msg.hora}</p>
+          ) : atendimentosFiltrados.map(a => (
+            <div key={a.id} onClick={() => { setAtendimentoAtivo(a); setHistorico([]); fetchHistorico(a.numero); }}
+              style={{
+                padding: "12px 14px",
+                borderBottom: "1px solid #1f2c33",
+                cursor: "pointer",
+                background: atendimentoAtivo?.id === a.id ? "#2a3942" : "transparent",
+                transition: "background 0.1s",
+              }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 14 }}>
+                  {a.nome?.charAt(0).toUpperCase() || "?"}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                    <span style={{ color: "#e9edef", fontSize: 14, fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nome}</span>
+                    <span style={{ color: "#8696a0", fontSize: 11, flexShrink: 0, marginLeft: 8 }}>{tempoRelativo(a.created_at)}</span>
+                  </div>
+                  <p style={{ color: "#8696a0", fontSize: 13, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.mensagem}</p>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {a.fila && <span style={{ background: "#00a88422", color: "#00a884", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>{a.fila}</span>}
+                    <span style={{ background: a.atendente === "BOT" ? "#8b5cf622" : "#3b82f622", color: a.atendente === "BOT" ? "#8b5cf6" : "#3b82f6", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>
+                      {a.atendente === "BOT" ? "🤖" : "👤 " + (a.atendente?.split("@")[0] || "—")}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-            <div style={{ padding: 10, borderTop: "1px solid #1f2937", display: "flex", gap: 8 }}>
-              <input placeholder="Mensagem interna..." value={mensagemInterna} onChange={e => setMensagemInterna(e.target.value)} style={{ flex: 1, background: "#1f2937", border: "none", borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 12 }} />
-              <button style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer" }}>➤</button>
-            </div>
-          </div>
-        ) : (
-          <div style={{ overflowY: "auto", flex: 1 }}>
-            {atendimentosFiltrados.length === 0 ? (
-              <div style={{ padding: 32, textAlign: "center" }}>
-                <p style={{ fontSize: 32, margin: "0 0 8px" }}>💬</p>
-                <p style={{ color: "#6b7280", fontSize: 13 }}>{temFiltroAtivo ? "Nenhum resultado para os filtros" : "Nenhum atendimento"}</p>
-                {temFiltroAtivo && <button onClick={limparFiltros} style={{ background: "none", border: "1px solid #374151", borderRadius: 8, padding: "6px 12px", color: "#9ca3af", fontSize: 12, cursor: "pointer", marginTop: 8 }}>Limpar filtros</button>}
               </div>
-            ) : atendimentosFiltrados.map(a => (
-              <div key={a.id} onClick={() => { setAtendimentoAtivo(a); setHistorico([]); fetchHistorico(a.numero); }}
-                style={{ padding: "12px 16px", borderBottom: "1px solid #1f2937", cursor: "pointer", background: atendimentoAtivo?.id === a.id ? "#1f2937" : "transparent" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ color: "white", fontSize: 13, fontWeight: "bold" }}>{a.nome}</span>
-                  <span style={{ color: "#6b7280", fontSize: 11 }}>{tempoRelativo(a.created_at)}</span>
-                </div>
-                <p style={{ color: "#9ca3af", fontSize: 12, margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.mensagem}</p>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 10, padding: "2px 8px", borderRadius: 10 }}>{a.fila}</span>
-                  <span style={{ background: a.atendente === "BOT" ? "#8b5cf622" : "#16a34a22", color: a.atendente === "BOT" ? "#8b5cf6" : "#16a34a", fontSize: 10, padding: "2px 8px", borderRadius: 10 }}>
-                    {a.atendente === "BOT" ? "🤖 BOT" : "👤 " + a.atendente}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ÁREA DO CHAT */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#0b141a", backgroundImage: WA_BG_DARK, backgroundRepeat: "repeat" }}>
         {atendimentoAtivo ? (
           <>
-            <div style={{ padding: "12px 20px", borderBottom: "1px solid #1f2937", background: "#111", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>{atendimentoAtivo.nome}</h3>
-                <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>{atendimentoAtivo.fila} • {atendimentoAtivo.numero}</p>
-                {/* ✅ Etiquetas aplicadas aparecem no header */}
-                {etiquetasAplicadas.length > 0 && (
-                  <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
-                    {etiquetasAplicadas.map(et => (
-                      <span key={et.id} style={{ background: et.cor + "22", border: `1px solid ${et.cor}`, color: et.cor, fontSize: 10, padding: "2px 8px", borderRadius: 10, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                        <span>{et.icone}</span> {et.nome}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") && (
-                  <button onClick={() => assumirChat(atendimentoAtivo.numero)} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>👤 Assumir</button>
-                )}
-                {atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
-                  <button onClick={() => devolverBot(atendimentoAtivo.numero)} style={{ background: "#8b5cf622", color: "#8b5cf6", border: "1px solid #8b5cf633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🤖 Devolver ao Bot</button>
-                )}
-                {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
-                  <button onClick={() => window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank")} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>💰 Finalizar Venda</button>
-                )}
-                <div style={{ position: "relative" }}>
-                  <button onClick={() => setShowTransferir(!showTransferir)} style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>↗️ Transferir</button>
-                  {showTransferir && (
-                    <div style={{ position: "absolute", top: 40, right: 0, background: "#1f2937", border: "1px solid #374151", borderRadius: 12, padding: 16, zIndex: 100, width: 220 }}>
-                      {(filas.length > 0 ? filas : ["Fila Principal", "Fila Suporte", "Fila Vendas"]).map(f => (
-                        <button key={f} onClick={() => { alert(`Transferido para ${f}`); setShowTransferir(false); }} style={{ display: "block", width: "100%", background: "#111", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 6 }}>📋 {f}</button>
+            {/* HEADER DO CHAT */}
+            <div style={{ padding: "10px 16px", borderBottom: "1px solid #222d34", background: "#202c33", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 14 }}>
+                  {atendimentoAtivo.nome?.charAt(0).toUpperCase() || "?"}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ color: "#e9edef", fontSize: 15, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{atendimentoAtivo.nome}</h3>
+                  <p style={{ color: "#8696a0", fontSize: 11, margin: 0 }}>{atendimentoAtivo.fila || "—"} • {atendimentoAtivo.numero}</p>
+                  {etiquetasAplicadas.length > 0 && (
+                    <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+                      {etiquetasAplicadas.slice(0, 3).map(et => (
+                        <span key={et.id} style={{ background: et.cor + "22", border: `1px solid ${et.cor}`, color: et.cor, fontSize: 10, padding: "1px 7px", borderRadius: 10, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          <span>{et.icone}</span> {et.nome}
+                        </span>
                       ))}
+                      {etiquetasAplicadas.length > 3 && (
+                        <span style={{ color: "#8696a0", fontSize: 10 }}>+{etiquetasAplicadas.length - 3}</span>
+                      )}
                     </div>
                   )}
                 </div>
-                <button onClick={() => finalizarChat(atendimentoAtivo.numero)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>✓ Finalizar</button>
-                <button onClick={() => setShowPainelContato(!showPainelContato)} title="Dados do Contato"
-                  style={{ background: showPainelContato ? "#8b5cf622" : "#1f2937", color: showPainelContato ? "#8b5cf6" : "#9ca3af", border: `1px solid ${showPainelContato ? "#8b5cf633" : "#374151"}`, borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
-                  👤 {showPainelContato ? "Ocultar" : "Dados"}
-                </button>
+              </div>
+              <div style={{ display: "flex", gap: 6, alignItems: "center", position: "relative" }}>
+                {permissoes.chat_interno && (
+                  <button onClick={() => setShowChatInterno(!showChatInterno)} title="Chat Interno"
+                    style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 18, padding: 6 }}>💭</button>
+                )}
+                {/* BOTÃO 3 PONTINHOS */}
+                <button onClick={() => setShowMenuTresPontos(!showMenuTresPontos)} title="Mais opções"
+                  style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 20, padding: 6 }}>⋮</button>
+
+                {/* MENU DOS 3 PONTINHOS */}
+                {showMenuTresPontos && (
+                  <div style={{ position: "absolute", top: 44, right: 0, background: "#233138", border: "1px solid #2a3942", borderRadius: 8, minWidth: 240, zIndex: 100, boxShadow: "0 8px 24px rgba(0,0,0,0.5)", overflow: "hidden" }}>
+                    <button onClick={() => { setShowPainelContato(true); setShowMenuTresPontos(false); }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                      <span>👤</span> Dados do Contato
+                    </button>
+                    {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") && (
+                      <button onClick={() => { assumirChat(atendimentoAtivo.numero); setShowMenuTresPontos(false); }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                        <span>👤</span> Assumir atendimento
+                      </button>
+                    )}
+                    {atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
+                      <button onClick={() => { devolverBot(atendimentoAtivo.numero); setShowMenuTresPontos(false); }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                        <span>🤖</span> Devolver ao Bot
+                      </button>
+                    )}
+                    <button onClick={() => { setShowTransferir(!showTransferir); setShowMenuTresPontos(false); }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                      <span>↗️</span> Transferir
+                    </button>
+                    {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
+                      <button onClick={() => { window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank"); setShowMenuTresPontos(false); }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#16a34a", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                        <span>💰</span> Finalizar Venda
+                      </button>
+                    )}
+                    <button onClick={() => { finalizarChat(atendimentoAtivo.numero); setShowMenuTresPontos(false); }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#dc2626", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left", borderTop: "1px solid #2a3942" }}>
+                      <span>✓</span> Finalizar atendimento
+                    </button>
+                  </div>
+                )}
+
+                {/* POPUP TRANSFERIR */}
+                {showTransferir && (
+                  <div style={{ position: "absolute", top: 44, right: 0, background: "#233138", border: "1px solid #2a3942", borderRadius: 8, padding: 12, zIndex: 110, width: 240 }}>
+                    <p style={{ color: "#8696a0", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>Transferir para fila:</p>
+                    {(filas.length > 0 ? filas : ["—"]).map(f => (
+                      <button key={f} onClick={() => { alert(`Transferido para ${f}`); setShowTransferir(false); }}
+                        style={{ display: "block", width: "100%", background: "#111b21", border: "1px solid #2a3942", borderRadius: 6, padding: "8px 12px", color: "#e9edef", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 4 }}>📋 {f}</button>
+                    ))}
+                    <button onClick={() => setShowTransferir(false)} style={{ background: "none", color: "#8696a0", border: "none", padding: "6px", fontSize: 11, cursor: "pointer", width: "100%" }}>Cancelar</button>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto", padding: 20, background: "#0d0d0d", display: "flex", flexDirection: "column", gap: 10 }}>
+            {/* MENSAGENS */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 8%", display: "flex", flexDirection: "column", gap: 6 }}>
               {historico.length === 0
-                ? <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#374151", fontSize: 13 }}>Nenhuma mensagem ainda</p></div>
+                ? <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#8696a0", fontSize: 13 }}>Nenhuma mensagem ainda</p></div>
                 : historico.map((msg, i) => {
                     const isCliente = msg.de === "cliente"; const isBot = msg.de === "bot";
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end" }}>
-                        <div style={{ maxWidth: "65%", padding: "10px 14px", borderRadius: isCliente ? "12px 12px 12px 2px" : "12px 12px 2px 12px", background: isCliente ? "#1f2937" : isBot ? "#1e3a2f" : "#1e2a4a" }}>
-                          {!isCliente && <p style={{ color: isBot ? "#16a34a" : "#3b82f6", fontSize: 10, margin: "0 0 4px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>}
-                          <p style={{ color: "white", fontSize: 13, margin: 0, lineHeight: 1.5 }}>{msg.mensagem}</p>
-                          {msg.created_at && <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", textAlign: "right" }}>{horaMsg(msg.created_at)}</p>}
+                        <div style={{
+                          maxWidth: "65%", padding: "6px 10px 8px",
+                          borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px",
+                          background: isCliente ? "#202c33" : isBot ? "#005c4b" : "#005c4b",
+                          boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)",
+                          position: "relative",
+                        }}>
+                          {!isCliente && (
+                            <p style={{ color: isBot ? "#8edfc3" : "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>
+                          )}
+                          <p style={{ color: "#e9edef", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.mensagem}</p>
+                          {msg.created_at && (
+                            <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 10, margin: "2px 0 0", textAlign: "right" }}>
+                              {horaMsg(msg.created_at)}{!isCliente && " ✓✓"}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
@@ -444,46 +475,61 @@ export function ChatSection() {
             </div>
 
             {showRespostas && permissoes.respostas_rapidas && (
-              <div style={{ background: "#1f2937", borderTop: "1px solid #374151", padding: 12, maxHeight: 180, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ background: "#202c33", borderTop: "1px solid #2a3942", padding: 10, maxHeight: 180, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
                 {respostasRapidas.map((r, i) => (
-                  <button key={i} onClick={() => { setMensagem(r.mensagem); setShowRespostas(false); }} style={{ background: "#111", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 12, cursor: "pointer", textAlign: "left", display: "flex", gap: 10 }}>
-                    <span style={{ color: "#3b82f6", fontWeight: "bold", minWidth: 60 }}>{r.atalho}</span>
-                    <span style={{ color: "#9ca3af" }}>{r.mensagem}</span>
+                  <button key={i} onClick={() => { setMensagem(r.mensagem); setShowRespostas(false); }}
+                    style={{ background: "#111b21", border: "1px solid #2a3942", borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 12, cursor: "pointer", textAlign: "left", display: "flex", gap: 10 }}>
+                    <span style={{ color: "#00a884", fontWeight: "bold", minWidth: 60 }}>{r.atalho}</span>
+                    <span style={{ color: "#aebac1" }}>{r.mensagem}</span>
                   </button>
                 ))}
               </div>
             )}
 
-            <div style={{ borderTop: "1px solid #1f2937", background: "#111", padding: "10px 16px", display: "flex", gap: 10, alignItems: "center" }}>
+            {/* BARRA DE INPUT */}
+            <div style={{ background: "#202c33", padding: "8px 12px", display: "flex", gap: 8, alignItems: "center" }}>
               {permissoes.respostas_rapidas && (
-                <button onClick={() => setShowRespostas(!showRespostas)} style={{ background: showRespostas ? "#3b82f622" : "#1f2937", color: showRespostas ? "#3b82f6" : "#6b7280", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", fontSize: 18, cursor: "pointer" }}>⚡</button>
+                <button onClick={() => setShowRespostas(!showRespostas)} title="Respostas rápidas"
+                  style={{ background: showRespostas ? "#00a88422" : "none", color: showRespostas ? "#00a884" : "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 18, cursor: "pointer" }}>⚡</button>
               )}
-              <input placeholder="Digite uma mensagem..." value={mensagem} onChange={e => { setMensagem(e.target.value); if (e.target.value === "/" && permissoes.respostas_rapidas) setShowRespostas(true); else if (!e.target.value) setShowRespostas(false); }} onKeyDown={e => e.key === "Enter" && enviarMensagem()} style={{ flex: 1, background: "#1f2937", border: "1px solid #374151", borderRadius: 10, padding: "10px 16px", color: "white", fontSize: 14 }} />
-              <button onClick={() => setGravando(!gravando)} style={{ background: gravando ? "#dc262622" : "#1f2937", color: gravando ? "#dc2626" : "#6b7280", border: "1px solid #374151", borderRadius: 8, padding: "8px 12px", fontSize: 18, cursor: "pointer" }}>{gravando ? "⏹" : "🎤"}</button>
-              <button onClick={enviarMensagem} disabled={enviandoMsg} style={{ background: enviandoMsg ? "#1d4ed8" : "#3b82f6", color: "white", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontWeight: "bold" }}>{enviandoMsg ? "..." : "➤"}</button>
+              <button title="Emoji" style={{ background: "none", color: "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 20, cursor: "pointer" }}>😊</button>
+              <button title="Anexar" style={{ background: "none", color: "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 18, cursor: "pointer" }}>📎</button>
+              <input placeholder="Mensagem" value={mensagem}
+                onChange={e => { setMensagem(e.target.value); if (e.target.value === "/" && permissoes.respostas_rapidas) setShowRespostas(true); else if (!e.target.value) setShowRespostas(false); }}
+                onKeyDown={e => e.key === "Enter" && enviarMensagem()}
+                style={{ flex: 1, background: "#2a3942", border: "none", borderRadius: 20, padding: "10px 16px", color: "#e9edef", fontSize: 14 }} />
+              {mensagem ? (
+                <button onClick={enviarMensagem} disabled={enviandoMsg} title="Enviar"
+                  style={{ background: "#00a884", color: "white", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer", fontWeight: "bold" }}>{enviandoMsg ? "…" : "➤"}</button>
+              ) : (
+                <button onClick={() => setGravando(!gravando)} title="Áudio"
+                  style={{ background: gravando ? "#dc2626" : "none", color: gravando ? "white" : "#8696a0", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer" }}>{gravando ? "⏹" : "🎤"}</button>
+              )}
             </div>
           </>
         ) : (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
-            <span style={{ fontSize: 64 }}>💬</span>
-            <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>Selecione um atendimento</h2>
-            <p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Clique em uma conversa para começar</p>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, background: "#222e35" }}>
+            <span style={{ fontSize: 80, opacity: 0.5 }}>💬</span>
+            <h2 style={{ color: "#e9edef", fontSize: 28, fontWeight: "300", margin: 0 }}>Wolf Chatbot</h2>
+            <p style={{ color: "#8696a0", fontSize: 14, margin: 0, maxWidth: 400, textAlign: "center" }}>
+              Selecione uma conversa à esquerda pra começar a atender
+            </p>
           </div>
         )}
       </div>
 
-      {/* ═══ PAINEL DADOS DO CONTATO ═══ */}
+      {/* PAINEL DADOS DO CONTATO (toggle via 3 pontinhos) */}
       {atendimentoAtivo && showPainelContato && (
-        <div style={{ width: 340, background: "#111", borderLeft: "1px solid #1f2937", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <div style={{ padding: "14px 16px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ width: 340, background: "#111b21", borderLeft: "1px solid #222d34", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ padding: "14px 16px", borderBottom: "1px solid #222d34", background: "#202c33", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <h3 style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>👤 Dados do Contato</h3>
-              <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>{salvandoContato ? "💾 Salvando..." : "Auto-salvo"}</p>
+              <h3 style={{ color: "#e9edef", fontSize: 14, fontWeight: "bold", margin: 0 }}>👤 Dados do Contato</h3>
+              <p style={{ color: "#8696a0", fontSize: 11, margin: "2px 0 0" }}>{salvandoContato ? "💾 Salvando..." : "Auto-salvo"}</p>
             </div>
-            <button onClick={() => setShowPainelContato(false)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 18, cursor: "pointer" }}>✕</button>
+            <button onClick={() => setShowPainelContato(false)} style={{ background: "none", border: "none", color: "#8696a0", fontSize: 20, cursor: "pointer" }}>✕</button>
           </div>
 
-          <div style={{ display: "flex", borderBottom: "1px solid #1f2937", background: "#0d0d0d" }}>
+          <div style={{ display: "flex", borderBottom: "1px solid #222d34", background: "#111b21" }}>
             {[
               { key: "perfil", icon: "👤", title: "Perfil" },
               { key: "protocolo", icon: "📋", title: "Protocolo" },
@@ -493,7 +539,7 @@ export function ChatSection() {
               { key: "utils", icon: "🔧", title: "Utilitários" },
             ].map(a => (
               <button key={a.key} onClick={() => setAbaPainel(a.key as any)} title={a.title}
-                style={{ flex: 1, padding: "10px 4px", background: abaPainel === a.key ? "#1f2937" : "none", border: "none", borderBottom: abaPainel === a.key ? "2px solid #8b5cf6" : "2px solid transparent", color: abaPainel === a.key ? "#8b5cf6" : "#6b7280", fontSize: 15, cursor: "pointer", position: "relative" }}>
+                style={{ flex: 1, padding: "10px 4px", background: abaPainel === a.key ? "#2a3942" : "none", border: "none", borderBottom: abaPainel === a.key ? "2px solid #00a884" : "2px solid transparent", color: abaPainel === a.key ? "#00a884" : "#8696a0", fontSize: 15, cursor: "pointer", position: "relative" }}>
                 {a.icon}
                 {a.key === "etiquetas" && etiquetasAtendimento.length > 0 && (
                   <span style={{ position: "absolute", top: 4, right: 4, background: "#dc2626", color: "white", borderRadius: "50%", width: 14, height: 14, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
@@ -509,29 +555,29 @@ export function ChatSection() {
             {abaPainel === "perfil" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ textAlign: "center", padding: "10px 0" }}>
-                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#3b82f622", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 10px" }}>👤</div>
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#00a88422", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 10px" }}>👤</div>
                   <p style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>{atendimentoAtivo.nome}</p>
-                  <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>Criado em {new Date(atendimentoAtivo.created_at).toLocaleDateString("pt-BR")}</p>
+                  <p style={{ color: "#8696a0", fontSize: 11, margin: "2px 0 0" }}>Criado em {new Date(atendimentoAtivo.created_at).toLocaleDateString("pt-BR")}</p>
                 </div>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label>
                   <input value={atendimentoAtivo.nome || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, nome: e.target.value })} onBlur={e => salvarCampoContato("nome", e.target.value)} style={inputSm} />
                 </div>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Telefone</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Telefone</label>
                   <input value={atendimentoAtivo.numero || ""} disabled style={{ ...inputSm, opacity: 0.6 }} />
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0" }}>Sanitizado: {numeroSanitizado(atendimentoAtivo.numero)}</p>
+                  <p style={{ color: "#8696a0", fontSize: 10, margin: "4px 0 0" }}>Sanitizado: {numeroSanitizado(atendimentoAtivo.numero)}</p>
                 </div>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>E-mail</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>E-mail</label>
                   <input type="email" placeholder="contato@email.com" value={atendimentoAtivo.email || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, email: e.target.value })} onBlur={e => salvarCampoContato("email", e.target.value)} style={inputSm} />
                 </div>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Fila</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Fila</label>
                   <input value={atendimentoAtivo.fila || ""} disabled style={{ ...inputSm, opacity: 0.6 }} />
                 </div>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Atendente</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Atendente</label>
                   <input value={atendimentoAtivo.atendente || "—"} disabled style={{ ...inputSm, opacity: 0.6 }} />
                 </div>
               </div>
@@ -539,12 +585,12 @@ export function ChatSection() {
 
             {abaPainel === "protocolo" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ background: "#1f2937", borderRadius: 8, padding: 12 }}>
-                  <label style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase" }}>Número do Protocolo</label>
-                  <p style={{ color: "#16a34a", fontSize: 16, fontWeight: "bold", margin: "4px 0 0", fontFamily: "monospace" }}>#{String(atendimentoAtivo.id).padStart(6, "0")}</p>
+                <div style={{ background: "#202c33", borderRadius: 8, padding: 12 }}>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase" }}>Número do Protocolo</label>
+                  <p style={{ color: "#00a884", fontSize: 16, fontWeight: "bold", margin: "4px 0 0", fontFamily: "monospace" }}>#{String(atendimentoAtivo.id).padStart(6, "0")}</p>
                 </div>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Avaliação do Atendimento</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Avaliação do Atendimento</label>
                   <div style={{ display: "flex", gap: 6 }}>
                     {[1, 2, 3, 4, 5].map(n => (
                       <button key={n} onClick={() => salvarCampoContato("avaliacao", n)} style={{ background: (atendimentoAtivo.avaliacao || 0) >= n ? "#f59e0b" : "#1f2937", border: "1px solid #374151", borderRadius: 6, padding: "8px 12px", fontSize: 16, cursor: "pointer", color: (atendimentoAtivo.avaliacao || 0) >= n ? "white" : "#6b7280" }}>⭐</button>
@@ -555,9 +601,8 @@ export function ChatSection() {
                   </div>
                 </div>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Notas/Observações</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Notas/Observações</label>
                   <textarea placeholder="Anotações internas sobre este contato..." value={atendimentoAtivo.notas || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, notas: e.target.value })} onBlur={e => salvarCampoContato("notas", e.target.value)} rows={8} style={{ ...inputSm, resize: "vertical", fontFamily: "inherit", minHeight: 100 }} />
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0" }}>Salva ao sair do campo</p>
                 </div>
               </div>
             )}
@@ -565,7 +610,7 @@ export function ChatSection() {
             {abaPainel === "funil" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Etapa do Funil</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Etapa do Funil</label>
                   <select value={atendimentoAtivo.funil_etapa || ""} onChange={e => salvarCampoContato("funil_etapa", e.target.value)} style={inputSm}>
                     <option value="">Sem etapa</option>
                     <option value="novo">🆕 Novo Lead</option>
@@ -578,18 +623,18 @@ export function ChatSection() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Coluna Kanban</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Coluna Kanban</label>
                   <input placeholder="Ex: Em andamento" value={atendimentoAtivo.kanban_coluna || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, kanban_coluna: e.target.value })} onBlur={e => salvarCampoContato("kanban_coluna", e.target.value)} style={inputSm} />
                 </div>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Demanda do Cliente</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Demanda do Cliente</label>
                   <textarea placeholder="O que o cliente precisa..." value={atendimentoAtivo.demanda || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, demanda: e.target.value })} onBlur={e => salvarCampoContato("demanda", e.target.value)} rows={3} style={{ ...inputSm, resize: "vertical", fontFamily: "inherit", minHeight: 60 }} />
                 </div>
                 <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Valor do Negócio (R$)</label>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Valor do Negócio (R$)</label>
                   <input type="number" step="0.01" placeholder="0,00" value={atendimentoAtivo.valor || 0} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, valor: parseFloat(e.target.value) || 0 })} onBlur={e => salvarCampoContato("valor", parseFloat(e.target.value) || 0)} style={inputSm} />
                 </div>
-                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 12, marginTop: 6 }}>
+                <div style={{ background: "#202c33", borderRadius: 8, padding: 12, marginTop: 6 }}>
                   <p style={{ color: "#dc2626", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>🚫 Bloqueios</p>
                   {[
                     { key: "bloqueado_contato", label: "Bloquear Contato", desc: "Ignora todas as mensagens deste número" },
@@ -600,7 +645,7 @@ export function ChatSection() {
                       <div key={b.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                         <div>
                           <p style={{ color: "white", fontSize: 12, fontWeight: "bold", margin: 0 }}>{b.label}</p>
-                          <p style={{ color: "#6b7280", fontSize: 10, margin: 0 }}>{b.desc}</p>
+                          <p style={{ color: "#8696a0", fontSize: 10, margin: 0 }}>{b.desc}</p>
                         </div>
                         <button onClick={() => salvarCampoContato(b.key, !ativo)} style={{ width: 40, height: 22, background: ativo ? "#dc2626" : "#374151", borderRadius: 11, cursor: "pointer", border: "none", position: "relative", flexShrink: 0 }}>
                           <div style={{ width: 16, height: 16, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: ativo ? 21 : 3, transition: "left 0.2s" }} />
@@ -612,29 +657,21 @@ export function ChatSection() {
               </div>
             )}
 
-            {/* ═══ ABA ETIQUETAS ═══ */}
             {abaPainel === "etiquetas" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
-                  <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 6px" }}>
-                    🏷️ Etiquetas deste atendimento
-                  </p>
-                  <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
+                  <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 6px" }}>🏷️ Etiquetas deste atendimento</p>
+                  <p style={{ color: "#8696a0", fontSize: 11, margin: 0 }}>
                     {etiquetasAtendimento.length === 0
                       ? "Nenhuma etiqueta aplicada. Clique nas etiquetas abaixo para marcar."
                       : `${etiquetasAtendimento.length} etiqueta(s) aplicada(s). Clique para desmarcar.`}
                   </p>
                 </div>
-
                 {etiquetasWorkspace.length === 0 ? (
-                  <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 24, textAlign: "center" }}>
+                  <div style={{ background: "#202c33", borderRadius: 8, padding: 24, textAlign: "center" }}>
                     <p style={{ fontSize: 32, margin: "0 0 8px" }}>🏷️</p>
-                    <p style={{ color: "#9ca3af", fontSize: 12, margin: "0 0 8px" }}>
-                      Nenhuma etiqueta criada no workspace ainda
-                    </p>
-                    <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
-                      Vá em <b>Cadastros → Etiquetas</b> pra criar etiquetas.
-                    </p>
+                    <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 8px" }}>Nenhuma etiqueta criada no workspace ainda</p>
+                    <p style={{ color: "#8696a0", fontSize: 11, margin: 0 }}>Vá em <b>Cadastros → Etiquetas</b> pra criar etiquetas.</p>
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -642,28 +679,10 @@ export function ChatSection() {
                       const marcada = etiquetasAtendimento.includes(et.id);
                       return (
                         <button key={et.id} onClick={() => toggleEtiqueta(et.id)}
-                          style={{
-                            background: marcada ? et.cor + "22" : "#1f2937",
-                            border: `2px solid ${marcada ? et.cor : "#374151"}`,
-                            borderRadius: 10,
-                            padding: "10px 14px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            cursor: "pointer",
-                            opacity: marcada ? 1 : 0.6,
-                            transition: "all 0.15s",
-                            textAlign: "left",
-                          }}>
-                          <div style={{ background: et.cor + "33", borderRadius: 6, padding: "4px 8px", fontSize: 16 }}>
-                            {et.icone || "🏷️"}
-                          </div>
-                          <span style={{ flex: 1, color: marcada ? et.cor : "white", fontSize: 13, fontWeight: "bold" }}>
-                            {et.nome}
-                          </span>
-                          {marcada && (
-                            <span style={{ background: et.cor, color: "white", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>✓</span>
-                          )}
+                          style={{ background: marcada ? et.cor + "22" : "#202c33", border: `2px solid ${marcada ? et.cor : "#374151"}`, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", opacity: marcada ? 1 : 0.6, transition: "all 0.15s", textAlign: "left" }}>
+                          <div style={{ background: et.cor + "33", borderRadius: 6, padding: "4px 8px", fontSize: 16 }}>{et.icone || "🏷️"}</div>
+                          <span style={{ flex: 1, color: marcada ? et.cor : "white", fontSize: 13, fontWeight: "bold" }}>{et.nome}</span>
+                          {marcada && <span style={{ background: et.cor, color: "white", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>✓</span>}
                         </button>
                       );
                     })}
@@ -674,22 +693,22 @@ export function ChatSection() {
 
             {abaPainel === "ia" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>Controla se a IA e o TypeBOT atuam neste contato específico.</p>
+                <p style={{ color: "#8696a0", fontSize: 11, margin: 0 }}>Controla se a IA e o TypeBOT atuam neste contato específico.</p>
                 {[
                   { key: "bloqueado_ia", label: "🤖 ChatGPT / IA", desc: "Se ligado, a IA NÃO responde este contato", cor: "#16a34a" },
                   { key: "bloqueado_typebot", label: "🔀 TypeBOT", desc: "Se ligado, o TypeBOT NÃO atua neste contato", cor: "#3b82f6" },
                 ].map(item => {
                   const bloqueado = !!(atendimentoAtivo as any)[item.key];
                   return (
-                    <div key={item.key} style={{ background: "#0d0d0d", borderRadius: 10, padding: 14, border: `1px solid ${bloqueado ? "#dc262633" : "#1f2937"}` }}>
+                    <div key={item.key} style={{ background: "#202c33", borderRadius: 10, padding: 14, border: `1px solid ${bloqueado ? "#dc262633" : "#1f2937"}` }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                         <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{item.label}</p>
                         <button onClick={() => salvarCampoContato(item.key, !bloqueado)} style={{ width: 44, height: 24, background: bloqueado ? "#dc2626" : item.cor, borderRadius: 12, cursor: "pointer", border: "none", position: "relative" }}>
                           <div style={{ width: 18, height: 18, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: bloqueado ? 23 : 3, transition: "left 0.2s" }} />
                         </button>
                       </div>
-                      <p style={{ color: bloqueado ? "#dc2626" : "#6b7280", fontSize: 11, margin: 0 }}>Status: <b>{bloqueado ? "🚫 BLOQUEADO" : "✅ Ativo"}</b></p>
-                      <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0" }}>{item.desc}</p>
+                      <p style={{ color: bloqueado ? "#dc2626" : "#8696a0", fontSize: 11, margin: 0 }}>Status: <b>{bloqueado ? "🚫 BLOQUEADO" : "✅ Ativo"}</b></p>
+                      <p style={{ color: "#8696a0", fontSize: 10, margin: "4px 0 0" }}>{item.desc}</p>
                     </div>
                   );
                 })}
@@ -700,21 +719,19 @@ export function ChatSection() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <button onClick={exportarPDF} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "12px", fontSize: 13, cursor: "pointer", fontWeight: "bold", textAlign: "left" }}>
                   📄 Exportar Histórico em PDF
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", fontWeight: "normal" }}>Abre uma janela de impressão com toda a conversa</p>
+                  <p style={{ color: "#8696a0", fontSize: 10, margin: "4px 0 0", fontWeight: "normal" }}>Abre uma janela de impressão com toda a conversa</p>
                 </button>
-                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14 }}>
-                  <p style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", fontWeight: "bold", margin: "0 0 8px" }}>🆔 LID do WhatsApp</p>
+                <div style={{ background: "#202c33", borderRadius: 8, padding: 14 }}>
+                  <p style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", fontWeight: "bold", margin: "0 0 8px" }}>🆔 LID do WhatsApp</p>
                   <div style={{ background: "#111", borderRadius: 6, padding: "8px 10px", fontFamily: "monospace", fontSize: 12, color: "white", wordBreak: "break-all" }}>
                     {atendimentoAtivo.numero.includes("@") ? atendimentoAtivo.numero : atendimentoAtivo.numero + "@c.us"}
                   </div>
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: "6px 0 0" }}>Identificador único do WhatsApp</p>
                 </div>
-                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14 }}>
-                  <p style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", fontWeight: "bold", margin: "0 0 8px" }}>📱 Número Sanitizado</p>
-                  <div style={{ background: "#111", borderRadius: 6, padding: "8px 10px", fontFamily: "monospace", fontSize: 12, color: "#16a34a", wordBreak: "break-all" }}>
+                <div style={{ background: "#202c33", borderRadius: 8, padding: 14 }}>
+                  <p style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", fontWeight: "bold", margin: "0 0 8px" }}>📱 Número Sanitizado</p>
+                  <div style={{ background: "#111", borderRadius: 6, padding: "8px 10px", fontFamily: "monospace", fontSize: 12, color: "#00a884", wordBreak: "break-all" }}>
                     {numeroSanitizado(atendimentoAtivo.numero) || "(vazio)"}
                   </div>
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: "6px 0 0" }}>Só dígitos — pronto pra APIs externas</p>
                 </div>
                 <button onClick={() => { navigator.clipboard.writeText(numeroSanitizado(atendimentoAtivo.numero)); alert("Copiado!"); }} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
                   📋 Copiar número sanitizado
