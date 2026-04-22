@@ -51,7 +51,9 @@ export function ConexoesSection() {
 
   const fetchFluxos = async () => {
     if (!workspace?.id) return;
-    const { data } = await supabase.from("fluxos").select("id, nome, ativo").eq("workspace_id", workspace.username || workspace.id.toString()).order("created_at", { ascending: false });
+    const wsIdBusca = workspace.username || workspace.id.toString();
+    const { data, error } = await supabase.from("fluxos").select("id, nome, ativo").eq("workspace_id", wsIdBusca).order("created_at", { ascending: false });
+    console.log("Fluxos carregados:", data, "wsId:", wsIdBusca, "erro:", error);
     setFluxos(data || []);
   };
 
@@ -95,7 +97,9 @@ export function ConexoesSection() {
   const abrirEditar = (c: Conexao) => {
     setEditandoId(c.id);
     setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.wab_phone_id || "", wabaId: c.waba_id || "", token: c.wab_token || "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: c.api_key || "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila, pararSeAtendente: c.parar_se_atendente });
-    fetchFluxos(); setShowModalNovoCanal(true); setShowMenuEngrenagem(null);
+    setShowModalNovoCanal(true);
+    setShowMenuEngrenagem(null);
+    fetchFluxos(); // chama depois de abrir o modal
   };
 
   const salvarCanal = async () => {

@@ -90,7 +90,9 @@ export function ChatSection() {
         const m = payload.new as Mensagem;
         if (m.numero === num) { setHistorico(p => [...p, m]); setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }
       }).subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // Polling fallback para mensagens
+    const polling = setInterval(() => fetchHistorico(num), 3000);
+    return () => { supabase.removeChannel(ch); clearInterval(polling); };
   }, [atendimentoAtivo?.numero]);
 
   useEffect(() => { setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }, [historico]);
