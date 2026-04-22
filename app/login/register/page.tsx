@@ -1,6 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase";
+
+type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid";
 
 export default function Register() {
   const router = useRouter();
@@ -8,6 +11,7 @@ export default function Register() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [usernameError, setUsernameError] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [form, setForm] = useState({
     nome: "", empresa: "", cnpj: "", cpf: "",
     email: "", whatsapp: "", senha: "", confirmarSenha: "",
@@ -17,22 +21,87 @@ export default function Register() {
   const validarUsername = (value: string) => {
     const limpo = value.toLowerCase().replace(/[^a-z0-9_]/g, "");
     setForm(prev => ({ ...prev, username: limpo }));
-    if (limpo.length < 3) setUsernameError("Mínimo 3 caracteres");
-    else if (limpo.length > 30) setUsernameError("Máximo 30 caracteres");
-    else setUsernameError("");
+    if (limpo.length === 0) {
+      setUsernameError("");
+      setUsernameStatus("idle");
+      return;
+    }
+    if (limpo.length < 3) {
+      setUsernameError("Mínimo 3 caracteres");
+      setUsernameStatus("invalid");
+    } else if (limpo.length > 30) {
+      setUsernameError("Máximo 30 caracteres");
+      setUsernameStatus("invalid");
+    } else {
+      setUsernameError("");
+      setUsernameStatus("checking");
+    }
   };
+
+  // ✅ Verificação em tempo real com debounce 500ms
+  useEffect(() => {
+    if (usernameStatus !== "checking" || !form.username || form.username.length < 3) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("workspaces")
+          .select("username")
+          .ilike("username", form.username)
+          .maybeSingle();
+
+        if (error && error.code !== "PGRST116") {
+          // Erro de rede ou consulta — mostra como inválido por precaução
+          setUsernameStatus("invalid");
+          setUsernameError("Erro ao verificar. Tente novamente.");
+          return;
+        }
+
+        if (data) {
+          setUsernameStatus("taken");
+          setUsernameError("Este nome de usuário já está em uso");
+        } else {
+          setUsernameStatus("available");
+          setUsernameError("");
+        }
+      } catch {
+        setUsernameStatus("invalid");
+        setUsernameError("Erro ao verificar");
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [form.username, usernameStatus]);
 
   const handleSubmit = async () => {
     if (form.senha !== form.confirmarSenha) { alert("As senhas não coincidem!"); return; }
     if (!form.nome || !form.email || !form.whatsapp || !form.senha || !form.username || !form.plano) {
       alert("Preencha todos os campos obrigatórios!"); return;
     }
-    if (usernameError) { alert("Corrija o nome de usuário!"); return; }
+    if (usernameStatus !== "available") {
+      alert("Verifique o nome de usuário — precisa estar disponível!");
+      return;
+    }
     if (form.senha.length < 6) { alert("A senha deve ter pelo menos 6 caracteres!"); return; }
 
     setLoading(true);
 
     try {
+      // ✅ CHECAGEM FINAL server-side antes de enviar — previne race condition
+      const { data: existe } = await supabase
+        .from("workspaces")
+        .select("username")
+        .ilike("username", form.username)
+        .maybeSingle();
+
+      if (existe) {
+        setUsernameStatus("taken");
+        setUsernameError("Este nome de usuário já está em uso");
+        alert("O nome de usuário foi tomado enquanto você preenchia. Escolha outro!");
+        setLoading(false);
+        return;
+      }
+
       const resp = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -43,6 +112,10 @@ export default function Register() {
       if (!result.success) {
         if (result.error === "email_exists") {
           alert("Este e-mail já está cadastrado!");
+        } else if (result.error === "username_exists") {
+          setUsernameStatus("taken");
+          setUsernameError("Este nome de usuário já está em uso");
+          alert("Este nome de usuário já está em uso!");
         } else {
           alert("Erro ao cadastrar: " + result.error);
         }
@@ -77,6 +150,15 @@ export default function Register() {
     { value: "Intermediário - R$ 844,34/mês", label: "⭐ Plano Intermediário — R$ 844,34/mês (até 15 usuários)" },
     { value: "Ultra - R$ 1.099,99/mês", label: "🚀 Plano Ultra — R$ 1.099,99/mês (até 50 usuários)" },
   ];
+
+  // ✅ Borda do input username muda conforme status
+  const usernameBorderColor =
+    usernameStatus === "taken" || usernameStatus === "invalid" ? "#dc2626" :
+    usernameStatus === "available" ? "#16a34a" :
+    usernameStatus === "checking" ? "#f59e0b" :
+    "#d1d5db";
+
+  const submitDisabled = loading || usernameStatus !== "available";
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "Arial, sans-serif" }}>
@@ -151,12 +233,39 @@ export default function Register() {
                 placeholder="Nome de usuário * (ex: minha_empresa)"
                 value={form.username}
                 onChange={(e) => validarUsername(e.target.value)}
-                style={{ ...inputStyle, paddingLeft: 28, borderColor: usernameError ? "#dc2626" : "#d1d5db" }}
+                style={{ ...inputStyle, paddingLeft: 28, paddingRight: 44, borderColor: usernameBorderColor, borderWidth: 2 }}
               />
+              {/* ÍCONE DE STATUS */}
+              <span style={{ position: "absolute", right: 14, top: 14, fontSize: 16 }}>
+                {usernameStatus === "checking" && "⏳"}
+                {usernameStatus === "available" && "✅"}
+                {usernameStatus === "taken" && "❌"}
+                {usernameStatus === "invalid" && "⚠️"}
+              </span>
             </div>
-            {usernameError && <p style={{ color: "#dc2626", fontSize: 11, margin: "4px 0 0 4px" }}>{usernameError}</p>}
-            {!usernameError && form.username && <p style={{ color: "#16a34a", fontSize: 11, margin: "4px 0 0 4px" }}>✓ Disponível para verificação</p>}
-            <p style={{ color: "#9ca3af", fontSize: 11, margin: "4px 0 0 4px" }}>Apenas letras minúsculas, números e _ (underline)</p>
+
+            {/* MENSAGEM DE STATUS */}
+            {usernameStatus === "checking" && (
+              <p style={{ color: "#f59e0b", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
+                ⏳ Verificando disponibilidade...
+              </p>
+            )}
+            {usernameStatus === "available" && (
+              <p style={{ color: "#16a34a", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
+                ✅ Disponível! Pode usar este nome
+              </p>
+            )}
+            {usernameStatus === "taken" && (
+              <p style={{ color: "#dc2626", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
+                ❌ Este nome já está em uso. Escolha outro
+              </p>
+            )}
+            {usernameStatus === "invalid" && usernameError && (
+              <p style={{ color: "#dc2626", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
+                ⚠️ {usernameError}
+              </p>
+            )}
+            <p style={{ color: "#9ca3af", fontSize: 11, margin: "4px 0 0 4px" }}>Apenas letras minúsculas, números e _ (underline) — 3 a 30 caracteres</p>
           </div>
 
           <select
@@ -169,12 +278,13 @@ export default function Register() {
             ))}
           </select>
 
-          <button onClick={handleSubmit} disabled={loading} style={{
-            width: "100%", background: loading ? "#86efac" : "#16a34a", color: "white", border: "none",
+          <button onClick={handleSubmit} disabled={submitDisabled} style={{
+            width: "100%", background: submitDisabled ? "#86efac" : "#16a34a", color: "white", border: "none",
             borderRadius: 10, padding: 14, fontSize: 14, fontWeight: "bold",
-            cursor: loading ? "not-allowed" : "pointer", letterSpacing: 1, textTransform: "uppercase"
+            cursor: submitDisabled ? "not-allowed" : "pointer", letterSpacing: 1, textTransform: "uppercase",
+            opacity: submitDisabled ? 0.6 : 1,
           }}>
-            {loading ? "Enviando..." : "Enviar cadastro"}
+            {loading ? "Enviando..." : usernameStatus === "checking" ? "Verificando username..." : usernameStatus !== "available" && form.username ? "Corrija o username" : "Enviar cadastro"}
           </button>
 
           <button onClick={() => router.push("/")} style={{
