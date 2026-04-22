@@ -15,6 +15,13 @@ type Cadastro = {
   ia?: string; senha?: string; user_id?: string;
 };
 
+type SubUsuario = {
+  id: number; nome: string; email: string; perfil: string;
+  fila: string; status: string; grupo_id?: number; workspace_id: string;
+};
+
+type Grupo = { id: number; nome: string; };
+
 const planoPresets: Record<string, { usuarios: number; conexoes: number; webjs: boolean; waba: boolean; instagram: boolean }> = {
   basico:        { usuarios: 7,  conexoes: 1,  webjs: true,  waba: false, instagram: false },
   intermediario: { usuarios: 15, conexoes: 3,  webjs: true,  waba: true,  instagram: false },
@@ -37,6 +44,12 @@ export default function Clientes() {
   const [temAcesso, setTemAcesso] = useState(false);
   const [emailUsuario, setEmailUsuario] = useState("");
 
+  // 🔽 Estado das linhas expandidas
+  const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
+  const [subUsuariosMap, setSubUsuariosMap] = useState<Record<string, SubUsuario[]>>({});
+  const [gruposMap, setGruposMap] = useState<Record<string, Grupo[]>>({});
+  const [carregandoSubs, setCarregandoSubs] = useState<Set<string>>(new Set());
+
   const [formCadastro, setFormCadastro] = useState<Partial<Cadastro>>({
     nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
     username: "",
@@ -52,10 +65,7 @@ export default function Clientes() {
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/");
-        return;
-      }
+      if (!user) { router.push("/"); return; }
       setEmailUsuario(user.email || "");
       const admin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       setTemAcesso(!!admin);
@@ -63,7 +73,6 @@ export default function Clientes() {
     })();
   }, []);
 
-  // ═══ Token Bearer pra chamar as APIs admin ═══
   const getToken = async (): Promise<string | null> => {
     const { data: { session } } = await supabase.auth.getSession();
     return session?.access_token || null;
@@ -76,16 +85,57 @@ export default function Clientes() {
     setLoadingCadastros(false);
   };
 
-  // ═══ Carrega cadastros + Realtime ═══
   useEffect(() => {
     if (!temAcesso) return;
     fetchCadastros();
     const ch = supabase.channel("cadastros_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "cadastros" }, () => fetchCadastros())
       .on("postgres_changes", { event: "*", schema: "public", table: "workspaces" }, () => fetchCadastros())
+      .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace" }, () => {
+        // Recarrega sub-usuários de todos os workspaces atualmente expandidos
+        expandidas.forEach(username => carregarSubUsuarios(username));
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [temAcesso]);
+  }, [temAcesso, expandidas]);
+
+  // ═══ Carrega sub-usuários de um workspace específico ═══
+  const carregarSubUsuarios = async (username: string) => {
+    if (!username) return;
+    setCarregandoSubs(prev => new Set(prev).add(username));
+    try {
+      const [resSubs, resGrupos] = await Promise.all([
+        supabase.from("usuarios_workspace")
+          .select("*")
+          .eq("workspace_id", username)
+          .order("created_at", { ascending: false }),
+        supabase.from("grupos_permissao")
+          .select("id, nome")
+          .eq("workspace_id", username),
+      ]);
+      setSubUsuariosMap(prev => ({ ...prev, [username]: resSubs.data || [] }));
+      setGruposMap(prev => ({ ...prev, [username]: resGrupos.data || [] }));
+    } catch (e) {
+      console.error("Erro ao buscar sub-usuários", e);
+    }
+    setCarregandoSubs(prev => { const n = new Set(prev); n.delete(username); return n; });
+  };
+
+  // ═══ Toggle expandir/colapsar linha ═══
+  const toggleExpandir = (username: string) => {
+    if (!username) { alert("Este cliente não tem workspace configurado."); return; }
+    setExpandidas(prev => {
+      const n = new Set(prev);
+      if (n.has(username)) {
+        n.delete(username);
+      } else {
+        n.add(username);
+        // Carrega sub-usuários quando expande
+        if (!subUsuariosMap[username]) carregarSubUsuarios(username);
+      }
+      return n;
+    });
+  };
 
   const autorizarCadastro = async (c: Cadastro) => {
     try {
@@ -100,7 +150,6 @@ export default function Clientes() {
     await fetchCadastros();
   };
 
-  // ═══ EXCLUIR COMPLETO — chama API que apaga auth + workspace + dados ═══
   const excluirCadastro = async (c: Cadastro) => {
     if (!confirm(`⚠️ ATENÇÃO: Isso vai apagar PERMANENTEMENTE:\n\n• A conta de login de ${c.email}\n• O workspace "${c.empresa || c.nome}"\n• Todas as conexões, fluxos, atendimentos e mensagens\n\nEsta ação NÃO pode ser desfeita.\n\nTem certeza?`)) return;
 
@@ -110,25 +159,17 @@ export default function Clientes() {
     try {
       const resp = await fetch("/api/admin/cliente", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ email: c.email }),
       });
       const result = await resp.json();
 
-      if (!result.success) {
-        alert("Erro ao excluir: " + (result.error || "desconhecido"));
-        return;
-      }
+      if (!result.success) { alert("Erro ao excluir: " + (result.error || "desconhecido")); return; }
 
       await fetchCadastros();
       setShowModalDetalhe(false);
       alert("✅ Cliente excluído completamente!");
-    } catch (e: any) {
-      alert("Erro ao excluir: " + e.message);
-    }
+    } catch (e: any) { alert("Erro ao excluir: " + e.message); }
   };
 
   const abrirNovo = () => {
@@ -156,51 +197,38 @@ export default function Clientes() {
     else setFormCadastro(prev => ({ ...prev, plano }));
   };
 
-  // ═══ SALVAR — novo cadastro chama API, edição usa direto no banco ═══
   const salvarCadastro = async () => {
     if (!formCadastro.nome || !formCadastro.email) { alert("Nome e email são obrigatórios!"); return; }
-
     setSalvandoCliente(true);
     try {
       if (cadastroSelecionado) {
-        // ═══ EDIÇÃO — só atualiza campos do cadastro ═══
         const { error } = await supabase.from("cadastros").update({
-          nome: formCadastro.nome,
-          empresa: formCadastro.empresa,
-          whatsapp: formCadastro.whatsapp,
-          plano: formCadastro.plano,
+          nome: formCadastro.nome, empresa: formCadastro.empresa,
+          whatsapp: formCadastro.whatsapp, plano: formCadastro.plano,
           usuarios_liberados: formCadastro.usuarios_liberados,
           conexoes_liberadas: formCadastro.conexoes_liberadas,
           permite_webjs: formCadastro.permite_webjs,
           permite_waba: formCadastro.permite_waba,
           permite_instagram: formCadastro.permite_instagram,
-          ia: formCadastro.ia,
-          autorizado: formCadastro.autorizado,
+          ia: formCadastro.ia, autorizado: formCadastro.autorizado,
         }).eq("id", cadastroSelecionado.id);
-
         if (error) { alert("Erro ao salvar: " + error.message); setSalvandoCliente(false); return; }
         alert("✅ Cliente atualizado!");
       } else {
-        // ═══ NOVO — chama API que cria auth + workspace + cadastro ═══
         if (!formCadastro.senha || formCadastro.senha.length < 6) { alert("Senha obrigatória (mínimo 6 caracteres)"); setSalvandoCliente(false); return; }
         if (!formCadastro.username || !/^[a-z0-9_]{3,30}$/.test(formCadastro.username)) {
           alert("Username inválido. Use letras minúsculas, números e _ (3 a 30 caracteres)");
           setSalvandoCliente(false); return;
         }
-
         const token = await getToken();
-        if (!token) { alert("Sessão expirou. Faça login novamente."); setSalvandoCliente(false); return; }
+        if (!token) { alert("Sessão expirou."); setSalvandoCliente(false); return; }
 
         const resp = await fetch("/api/admin/cliente", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify(formCadastro),
         });
         const result = await resp.json();
-
         if (!result.success) {
           if (result.error === "email_exists") alert("❌ Este e-mail já está cadastrado!");
           else if (result.error === "username_exists") alert("❌ Este username já está em uso!");
@@ -208,10 +236,8 @@ export default function Clientes() {
           setSalvandoCliente(false);
           return;
         }
-
         alert("✅ Cliente criado! O cliente já pode fazer login com o email e senha.");
       }
-
       await fetchCadastros();
       setShowModalCliente(false);
     } catch (e: any) { alert("Erro: " + e.message); }
@@ -234,12 +260,10 @@ export default function Clientes() {
     .filter(c => filtroStatus === "todos" || (filtroStatus === "ativos" ? c.autorizado : !c.autorizado))
     .filter(c => !buscaCliente || c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.email?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.empresa?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.whatsapp?.includes(buscaCliente));
 
-  // ═══ Tela de carregamento enquanto checa permissão ═══
   if (permissaoLoading) {
     return <div style={{ padding: 48, textAlign: "center", color: "#6b7280" }}>Carregando...</div>;
   }
 
-  // ═══ Tela de bloqueio se não for admin master ═══
   if (!temAcesso) {
     return (
       <div style={{ padding: 48, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
@@ -275,7 +299,6 @@ export default function Clientes() {
                   <input placeholder="email@empresa.com" value={formCadastro.email || ""} onChange={e => setFormCadastro({ ...formCadastro, email: e.target.value })} style={inputSm} disabled={!!cadastroSelecionado} />
                 </div>
                 <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>WhatsApp</label><input placeholder="(62) 99999-9999" value={formCadastro.whatsapp || ""} onChange={e => setFormCadastro({ ...formCadastro, whatsapp: e.target.value })} style={inputSm} /></div>
-
                 {!cadastroSelecionado && (
                   <>
                     <div>
@@ -371,16 +394,6 @@ export default function Clientes() {
                 </div>
               </div>
             </div>
-            <div style={{ background: "#1f2937", borderRadius: 10, padding: 16 }}>
-              <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>🔗 Conexões Permitidas</p>
-              <div style={{ display: "flex", gap: 10 }}>
-                {[{ key: "permite_webjs", label: "📱 WhatsApp Web", color: "#16a34a" }, { key: "permite_waba", label: "🔗 API Meta", color: "#3b82f6" }, { key: "permite_instagram", label: "📸 Instagram", color: "#e1306c" }].map(item => (
-                  <span key={item.key} style={{ background: (cadastroSelecionado as any)[item.key] ? `${item.color}22` : "#11111133", color: (cadastroSelecionado as any)[item.key] ? item.color : "#6b7280", border: `1px solid ${(cadastroSelecionado as any)[item.key] ? item.color + "44" : "#374151"}`, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: "bold" }}>
-                    {(cadastroSelecionado as any)[item.key] ? "✓" : "✗"} {item.label}
-                  </span>
-                ))}
-              </div>
-            </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {!cadastroSelecionado.autorizado
                 ? <button onClick={() => { autorizarCadastro(cadastroSelecionado); setShowModalDetalhe(false); }} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Autorizar Acesso</button>
@@ -430,31 +443,103 @@ export default function Clientes() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#0d0d0d" }}>
-                {["Cliente", "Email", "Plano", "👥 Usuários", "📱 Conexões", "Permite", "Status", "Ações"].map(h => (
-                  <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+                {["", "Cliente", "Email", "Plano", "👥 Usuários", "📱 Conexões", "Permite", "Status", "Ações"].map((h, i) => (
+                  <th key={i} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {cadastrosFiltrados.map((c, i) => (
-                <tr key={c.id} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
-                  <td style={{ padding: "14px 16px" }}><div><p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{c.nome}</p>{c.empresa && <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{c.empresa}{c.username && ` • @${c.username}`}</p>}</div></td>
-                  <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.email}</td>
-                  <td style={{ padding: "14px 16px" }}><span style={{ background: c.plano === "ultra" ? "#8b5cf622" : c.plano === "intermediario" ? "#3b82f622" : "#16a34a22", color: c.plano === "ultra" ? "#8b5cf6" : c.plano === "intermediario" ? "#3b82f6" : "#16a34a", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.plano === "intermediario" ? "Intermediário" : c.plano === "ultra" ? "Ultra" : "Básico"}</span></td>
-                  <td style={{ padding: "14px 16px", textAlign: "center" }}><span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.usuarios_liberados || 1}</span></td>
-                  <td style={{ padding: "14px 16px", textAlign: "center" }}><span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.conexoes_liberadas || 1}</span></td>
-                  <td style={{ padding: "14px 16px" }}><div style={{ display: "flex", gap: 4 }}>{c.permite_webjs && <span style={{ fontSize: 14 }} title="WhatsApp Web">📱</span>}{c.permite_waba && <span style={{ fontSize: 14 }} title="API Meta">🔗</span>}{c.permite_instagram && <span style={{ fontSize: 14 }} title="Instagram">📸</span>}</div></td>
-                  <td style={{ padding: "14px 16px" }}><span style={{ background: c.autorizado ? "#16a34a22" : "#f59e0b22", color: c.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.autorizado ? "✅ Ativo" : "⏳ Pendente"}</span></td>
-                  <td style={{ padding: "14px 16px" }}>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => { setCadastroSelecionado(c); setShowModalDetalhe(true); }} style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>👁️</button>
-                      {!c.autorizado ? <button onClick={() => autorizarCadastro(c)} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold" }}>✅</button> : <button onClick={() => desautorizarCadastro(c)} style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>🚫</button>}
-                      <button onClick={() => abrirEditar(c)} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>✏️</button>
-                      <button onClick={() => excluirCadastro(c)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>🗑️</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {cadastrosFiltrados.map((c, i) => {
+                const username = c.username || "";
+                const expandida = expandidas.has(username);
+                const subs = subUsuariosMap[username] || [];
+                const grupos = gruposMap[username] || [];
+                const carregando = carregandoSubs.has(username);
+
+                return (
+                  <>
+                    <tr key={c.id} style={{ borderTop: "1px solid #1f2937", background: expandida ? "#0d1a10" : (i % 2 === 0 ? "#111" : "#0d0d0d") }}>
+                      <td style={{ padding: "14px 10px 14px 16px", width: 30 }}>
+                        <button onClick={() => toggleExpandir(username)} disabled={!username}
+                          style={{ background: "none", border: "none", color: expandida ? "#16a34a" : "#6b7280", cursor: username ? "pointer" : "not-allowed", fontSize: 14, opacity: username ? 1 : 0.3 }}
+                          title={username ? (expandida ? "Ocultar sub-usuários" : "Ver sub-usuários") : "Cliente sem workspace"}>
+                          {expandida ? "▼" : "▶"}
+                        </button>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}><div><p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{c.nome}</p>{c.empresa && <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{c.empresa}{c.username && ` • @${c.username}`}</p>}</div></td>
+                      <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.email}</td>
+                      <td style={{ padding: "14px 16px" }}><span style={{ background: c.plano === "ultra" ? "#8b5cf622" : c.plano === "intermediario" ? "#3b82f622" : "#16a34a22", color: c.plano === "ultra" ? "#8b5cf6" : c.plano === "intermediario" ? "#3b82f6" : "#16a34a", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.plano === "intermediario" ? "Intermediário" : c.plano === "ultra" ? "Ultra" : "Básico"}</span></td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}><span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.usuarios_liberados || 1}</span></td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}><span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.conexoes_liberadas || 1}</span></td>
+                      <td style={{ padding: "14px 16px" }}><div style={{ display: "flex", gap: 4 }}>{c.permite_webjs && <span style={{ fontSize: 14 }} title="WhatsApp Web">📱</span>}{c.permite_waba && <span style={{ fontSize: 14 }} title="API Meta">🔗</span>}{c.permite_instagram && <span style={{ fontSize: 14 }} title="Instagram">📸</span>}</div></td>
+                      <td style={{ padding: "14px 16px" }}><span style={{ background: c.autorizado ? "#16a34a22" : "#f59e0b22", color: c.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.autorizado ? "✅ Ativo" : "⏳ Pendente"}</span></td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => { setCadastroSelecionado(c); setShowModalDetalhe(true); }} style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>👁️</button>
+                          {!c.autorizado ? <button onClick={() => autorizarCadastro(c)} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold" }}>✅</button> : <button onClick={() => desautorizarCadastro(c)} style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>🚫</button>}
+                          <button onClick={() => abrirEditar(c)} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>✏️</button>
+                          <button onClick={() => excluirCadastro(c)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>🗑️</button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* ═══ LINHA EXPANDIDA — SUB-USUÁRIOS ═══ */}
+                    {expandida && (
+                      <tr key={`${c.id}-expandido`} style={{ background: "#0a1510" }}>
+                        <td colSpan={9} style={{ padding: "0 24px 16px 50px" }}>
+                          <div style={{ borderLeft: "2px solid #16a34a44", paddingLeft: 16, paddingTop: 8 }}>
+                            <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>
+                              👥 Sub-usuários do workspace @{username}
+                            </p>
+
+                            {carregando ? (
+                              <p style={{ color: "#6b7280", fontSize: 12, fontStyle: "italic", margin: "8px 0" }}>Carregando...</p>
+                            ) : subs.length === 0 ? (
+                              <p style={{ color: "#6b7280", fontSize: 12, fontStyle: "italic", margin: "8px 0" }}>
+                                Nenhum sub-usuário cadastrado neste workspace ainda
+                              </p>
+                            ) : (
+                              <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+                                <thead>
+                                  <tr style={{ background: "#0d0d0d" }}>
+                                    {["Nome", "Email", "Perfil", "Fila", "Grupo", "Status"].map(h => (
+                                      <th key={h} style={{ padding: "8px 12px", color: "#6b7280", fontSize: 10, textAlign: "left", textTransform: "uppercase" }}>{h}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {subs.map(s => (
+                                    <tr key={s.id} style={{ borderTop: "1px solid #1f2937" }}>
+                                      <td style={{ padding: "8px 12px", color: "white", fontSize: 12, fontWeight: "bold" }}>{s.nome}</td>
+                                      <td style={{ padding: "8px 12px", color: "#9ca3af", fontSize: 12 }}>{s.email}</td>
+                                      <td style={{ padding: "8px 12px" }}>
+                                        <span style={{ background: s.perfil === "Administrador" ? "#f59e0b22" : s.perfil === "Supervisor" ? "#8b5cf622" : "#3b82f622", color: s.perfil === "Administrador" ? "#f59e0b" : s.perfil === "Supervisor" ? "#8b5cf6" : "#3b82f6", padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: "bold" }}>{s.perfil}</span>
+                                      </td>
+                                      <td style={{ padding: "8px 12px", color: "#9ca3af", fontSize: 12 }}>{s.fila || "—"}</td>
+                                      <td style={{ padding: "8px 12px" }}>
+                                        {s.grupo_id ? (
+                                          <span style={{ background: "#8b5cf622", color: "#8b5cf6", padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: "bold" }}>
+                                            {grupos.find(g => g.id === s.grupo_id)?.nome || "—"}
+                                          </span>
+                                        ) : <span style={{ color: "#6b7280", fontSize: 11 }}>—</span>}
+                                      </td>
+                                      <td style={{ padding: "8px 12px" }}>
+                                        <span style={{ background: s.status === "online" ? "#16a34a22" : "#6b728022", color: s.status === "online" ? "#16a34a" : "#6b7280", padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: "bold" }}>
+                                          {s.status === "online" ? "🟢 Online" : "⚫ Offline"}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
             </tbody>
           </table>
         </div>
