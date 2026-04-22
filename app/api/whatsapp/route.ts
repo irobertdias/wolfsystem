@@ -5,9 +5,14 @@ const WHATSAPP_URL = process.env.NEXT_PUBLIC_WHATSAPP_URL || "http://localhost:3
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const rota = searchParams.get("rota") || "status";
+  // Passa todos os query params pra VPS (canalId, workspaceId, numero, etc)
+  const extraParams = new URLSearchParams();
+  searchParams.forEach((v, k) => { if (k !== "rota") extraParams.set(k, v); });
+  const queryStr = extraParams.toString();
+  const url = `${WHATSAPP_URL}/${rota}${queryStr ? "?" + queryStr : ""}`;
 
   try {
-    const resp = await fetch(`${WHATSAPP_URL}/${rota}`, {
+    const resp = await fetch(url, {
       headers: { "ngrok-skip-browser-warning": "true" },
     });
     const data = await resp.json();

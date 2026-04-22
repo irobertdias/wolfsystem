@@ -7,13 +7,15 @@ import { usePermissao } from "../../hooks/usePermissao";
 type Atendimento = {
   id: number; created_at: string; numero: string; nome: string; mensagem: string;
   status: string; fila: string; atendente: string; workspace_id: string;
+  canal_id?: number;
   email?: string; notas?: string; avaliacao?: number;
   bloqueado_ia?: boolean; bloqueado_fluxo?: boolean; bloqueado_typebot?: boolean; bloqueado_contato?: boolean;
   funil_etapa?: string; kanban_coluna?: string; demanda?: string; valor?: number;
 };
-type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; };
+type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; canal_id?: number; };
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
 type UsuarioWs = { email: string; nome: string; };
+type CanalInfo = { id: number; nome: string; tipo: string; };
 
 const WA_BG_DARK = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200' opacity='0.04'><g fill='%23ffffff'><path d='M40 40 l10 0 l0 10 l-10 0 z'/><circle cx='70' cy='75' r='4'/><path d='M110 35 l15 -5 l5 15 l-15 5 z' opacity='0.6'/><circle cx='150' cy='55' r='3'/><path d='M30 110 l8 8 l-8 8 l-8 -8 z'/><circle cx='80' cy='135' r='5'/><path d='M130 115 l10 0 l-5 10 z' opacity='0.7'/><circle cx='165' cy='150' r='4'/><path d='M50 170 l12 0 l-6 12 z'/><circle cx='100' cy='180' r='3'/></g></svg>")`;
 
@@ -26,7 +28,6 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
   const [waveform, setWaveform] = useState<number[]>(Array(40).fill(0.3));
   const [loaded, setLoaded] = useState(false);
 
-  // Gera waveform a partir do áudio
   useEffect(() => {
     let cancel = false;
     (async () => {
@@ -50,9 +51,7 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
         const normalized = peaks.map(p => Math.max(0.15, p / max));
         if (!cancel) setWaveform(normalized);
         try { ctx.close(); } catch {}
-      } catch (err) {
-        console.warn("Falha ao gerar waveform:", err);
-      }
+      } catch (err) { console.warn("Falha ao gerar waveform:", err); }
     })();
     return () => { cancel = true; };
   }, [src]);
@@ -74,26 +73,22 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
   }, []);
 
   const toggle = () => {
-    const a = audioRef.current;
-    if (!a) return;
+    const a = audioRef.current; if (!a) return;
     if (playing) { a.pause(); setPlaying(false); }
     else { a.play().catch(() => {}); setPlaying(true); }
   };
 
   const seekFromBar = (e: React.MouseEvent<HTMLDivElement>) => {
-    const a = audioRef.current;
-    if (!a || !duration) return;
+    const a = audioRef.current; if (!a || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
     const newTime = Math.max(0, Math.min(duration, pct * duration));
-    a.currentTime = newTime;
-    setCurrent(newTime);
+    a.currentTime = newTime; setCurrent(newTime);
   };
 
   const format = (s: number) => {
     if (!isFinite(s) || isNaN(s)) return "0:00";
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
+    const m = Math.floor(s / 60); const sec = Math.floor(s % 60);
     return `${m}:${String(sec).padStart(2, "0")}`;
   };
 
@@ -104,29 +99,17 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 260, padding: "4px 2px" }}>
       <audio ref={audioRef} src={src} preload="metadata" style={{ display: "none" }} />
-
-      {/* Botão play/pause */}
       <button onClick={toggle}
         style={{ width: 36, height: 36, borderRadius: "50%", background: isOwn ? "#ffffff22" : "#00a88422", border: "none", color: isOwn ? "#ffffff" : "#00a884", fontSize: 16, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
         {playing ? "⏸" : "▶"}
       </button>
-
-      {/* Waveform + duração */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
         <div onClick={seekFromBar}
           style={{ display: "flex", alignItems: "center", gap: 2, height: 28, cursor: "pointer", userSelect: "none" }}>
           {waveform.map((h, i) => {
             const isPast = (i / waveform.length) < progress;
             return (
-              <div key={i}
-                style={{
-                  flex: 1,
-                  height: `${Math.max(15, h * 100)}%`,
-                  minHeight: 4,
-                  background: isPast ? corAtiva : corInativa,
-                  borderRadius: 2,
-                  transition: "background 0.1s",
-                }} />
+              <div key={i} style={{ flex: 1, height: `${Math.max(15, h * 100)}%`, minHeight: 4, background: isPast ? corAtiva : corInativa, borderRadius: 2, transition: "background 0.1s" }} />
             );
           })}
         </div>
@@ -134,8 +117,6 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
           {loaded ? format(playing || current > 0 ? current : duration) : "carregando…"}
         </span>
       </div>
-
-      {/* Avatar */}
       <div style={{ width: 36, height: 36, borderRadius: "50%", background: isOwn ? "#ffffff22" : "#8696a033", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 }}>
         {isOwn ? "👤" : "🧑"}
       </div>
@@ -161,8 +142,9 @@ export function ChatSection() {
   const [atendimentoAtivo, setAtendimentoAtivo] = useState<Atendimento | null>(null);
   const [historico, setHistorico] = useState<Mensagem[]>([]);
   const [enviandoMsg, setEnviandoMsg] = useState(false);
+  const [canais, setCanais] = useState<CanalInfo[]>([]);
+  const [filtroCanal, setFiltroCanal] = useState<string>("todos");
 
-  // Gravação de áudio
   const [gravando, setGravando] = useState(false);
   const [tempoGravacao, setTempoGravacao] = useState(0);
   const [enviandoAudio, setEnviandoAudio] = useState(false);
@@ -171,20 +153,16 @@ export function ChatSection() {
   const timerRef = useRef<any>(null);
   const audioStreamRef = useRef<MediaStream | null>(null);
 
-  // Usuários
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
   const [meuNome, setMeuNome] = useState("");
 
-  // Painel
   const [showPainelContato, setShowPainelContato] = useState(false);
   const [abaPainel, setAbaPainel] = useState<"perfil" | "protocolo" | "funil" | "ia" | "utils" | "etiquetas">("perfil");
   const [salvandoContato, setSalvandoContato] = useState(false);
 
-  // Etiquetas
   const [etiquetasWorkspace, setEtiquetasWorkspace] = useState<Etiqueta[]>([]);
   const [etiquetasAtendimento, setEtiquetasAtendimento] = useState<number[]>([]);
 
-  // Filtros
   const [filtroFila, setFiltroFila] = useState("todas");
   const [filtroAtendente, setFiltroAtendente] = useState("todos");
   const [filtroEtiqueta, setFiltroEtiqueta] = useState("todas");
@@ -222,6 +200,24 @@ export function ChatSection() {
     return emailOrBot.split("@")[0];
   };
 
+  const nomeDoCanal = (canalId?: number): string => {
+    if (!canalId) return "—";
+    const c = canais.find(ch => ch.id === canalId);
+    return c ? c.nome : `Canal ${canalId}`;
+  };
+
+  const iconeCanal = (canalId?: number): string => {
+    if (!canalId) return "📱";
+    const c = canais.find(ch => ch.id === canalId);
+    return c?.tipo === "waba" ? "🔗" : "📱";
+  };
+
+  const fetchCanais = async () => {
+    if (!wsId) return;
+    const { data } = await supabase.from("conexoes").select("id, nome, tipo").eq("workspace_id", wsId);
+    setCanais(data || []);
+  };
+
   const fetchAtendimentos = async () => {
     if (!wsId) return;
     const { data } = await supabase.from("atendimentos").select("*")
@@ -230,8 +226,10 @@ export function ChatSection() {
     setAtendimentos(data || []);
   };
 
-  const fetchHistorico = async (numero: string) => {
-    const { data } = await supabase.from("mensagens").select("*").eq("numero", numero).order("created_at", { ascending: true });
+  const fetchHistorico = async (numero: string, canalId?: number) => {
+    let query = supabase.from("mensagens").select("*").eq("numero", numero);
+    if (canalId) query = query.eq("canal_id", canalId);
+    const { data } = await query.order("created_at", { ascending: true });
     setHistorico(data || []);
   };
 
@@ -251,11 +249,8 @@ export function ChatSection() {
     const subs: UsuarioWs[] = [];
     const { data } = await supabase.from("usuarios_workspace").select("email, nome").eq("workspace_id", wsId);
     if (data) subs.push(...data);
-    if (workspace?.owner_email) {
-      subs.push({ email: workspace.owner_email, nome: workspace.nome || "Dono" });
-    }
+    if (workspace?.owner_email) { subs.push({ email: workspace.owner_email, nome: workspace.nome || "Dono" }); }
     setUsuariosWs(subs);
-
     if (user?.email) {
       const eu = subs.find(s => s.email?.toLowerCase() === user.email?.toLowerCase());
       if (eu?.nome) setMeuNome(eu.nome);
@@ -269,8 +264,7 @@ export function ChatSection() {
     setSalvandoContato(true);
     try {
       if (jaTem) {
-        await supabase.from("atendimento_etiquetas").delete()
-          .eq("atendimento_id", atendimentoAtivo.id).eq("etiqueta_id", etiquetaId);
+        await supabase.from("atendimento_etiquetas").delete().eq("atendimento_id", atendimentoAtivo.id).eq("etiqueta_id", etiquetaId);
         setEtiquetasAtendimento(prev => prev.filter(id => id !== etiquetaId));
       } else {
         await supabase.from("atendimento_etiquetas").insert([{ atendimento_id: atendimentoAtivo.id, etiqueta_id: etiquetaId }]);
@@ -280,16 +274,17 @@ export function ChatSection() {
     setSalvandoContato(false);
   };
 
-  const inserirMensagemSistema = async (numero: string, texto: string) => {
+  const inserirMensagemSistema = async (numero: string, texto: string, canalId?: number) => {
     try {
-      await supabase.from("mensagens").insert([{
-        numero, mensagem: texto, de: "sistema", workspace_id: wsId,
-      }]);
+      const payload: any = { numero, mensagem: texto, de: "sistema", workspace_id: wsId };
+      if (canalId) payload.canal_id = canalId;
+      await supabase.from("mensagens").insert([payload]);
     } catch (e) { console.error("Erro ao inserir mensagem de sistema:", e); }
   };
 
   useEffect(() => {
     if (!wsId) return;
+    fetchCanais();
     fetchAtendimentos();
     fetchEtiquetasWorkspace();
     fetchUsuariosWorkspace();
@@ -297,6 +292,7 @@ export function ChatSection() {
       .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos", filter: `workspace_id=eq.${wsId}` }, () => fetchAtendimentos())
       .on("postgres_changes", { event: "*", schema: "public", table: "etiquetas", filter: `workspace_id=eq.${wsId}` }, () => fetchEtiquetasWorkspace())
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${wsId}` }, () => fetchUsuariosWorkspace())
+      .on("postgres_changes", { event: "*", schema: "public", table: "conexoes", filter: `workspace_id=eq.${wsId}` }, () => fetchCanais())
       .subscribe();
     const polling = setInterval(() => fetchAtendimentos(), 5000);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
@@ -305,17 +301,21 @@ export function ChatSection() {
   useEffect(() => {
     if (!atendimentoAtivo) { setEtiquetasAtendimento([]); return; }
     setHistorico([]);
-    fetchHistorico(atendimentoAtivo.numero);
+    fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
     fetchEtiquetasAtendimento(atendimentoAtivo.id);
-    const num = atendimentoAtivo.numero;
+    const num = atendimentoAtivo.numero; const cId = atendimentoAtivo.canal_id;
     const ch = supabase.channel(`msgs_${num}_${Date.now()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens" }, (payload) => {
         const m = payload.new as Mensagem;
-        if (m.numero === num) { setHistorico(p => [...p, m]); setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }
+        // Só adiciona se for do mesmo número E do mesmo canal do atendimento ativo
+        if (m.numero === num && (!cId || m.canal_id === cId)) {
+          setHistorico(p => [...p, m]);
+          setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+        }
       }).subscribe();
-    const polling = setInterval(() => fetchHistorico(num), 3000);
+    const polling = setInterval(() => fetchHistorico(num, cId), 3000);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
-  }, [atendimentoAtivo?.numero, atendimentoAtivo?.id]);
+  }, [atendimentoAtivo?.numero, atendimentoAtivo?.id, atendimentoAtivo?.canal_id]);
 
   useEffect(() => { setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }, [historico]);
 
@@ -333,34 +333,30 @@ export function ChatSection() {
   const contadoresAbas = { automatico: 0, aguardando: 0, abertos: 0, finalizados: 0 };
   atendimentos.forEach(a => {
     const aba = classificarAba(a);
-    if (aba === "abertos" && !podeVerTudo) {
-      if (a.atendente !== user?.email) return;
-    }
+    if (aba === "abertos" && !podeVerTudo) { if (a.atendente !== user?.email) return; }
     contadoresAbas[aba]++;
   });
 
   const atendimentosFiltrados = atendimentos
     .filter(a => classificarAba(a) === abaConversa)
-    .filter(a => {
-      if (abaConversa === "abertos" && !podeVerTudo) {
-        return a.atendente === user?.email;
-      }
-      return true;
-    })
+    .filter(a => { if (abaConversa === "abertos" && !podeVerTudo) return a.atendente === user?.email; return true; })
     .filter(a => !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.numero?.includes(busca))
     .filter(a => filtroFila === "todas" || a.fila === filtroFila)
-    .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente);
+    .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente)
+    .filter(a => filtroCanal === "todos" || String(a.canal_id) === filtroCanal);
 
-  const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas";
+  const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas" || filtroCanal !== "todos";
 
   const enviarMensagem = async () => {
     if (!mensagem || !atendimentoAtivo) return;
+    if (!atendimentoAtivo.canal_id) { alert("⚠️ Atendimento sem canal_id. Não é possível enviar."); return; }
     setEnviandoMsg(true);
     try {
       const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
       const mensagemFinal = nomeHeader + mensagem;
-      await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, workspaceId: wsId });
-      setMensagem("");
+      const resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id });
+      if (!resp.success) { alert("Erro ao enviar: " + (resp.error || "desconhecido")); }
+      else { setMensagem(""); }
     }
     catch { alert("Erro ao enviar!"); }
     setEnviandoMsg(false);
@@ -380,66 +376,49 @@ export function ChatSection() {
       audioChunksRef.current = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       recorder.start();
-      setGravando(true);
-      setTempoGravacao(0);
+      setGravando(true); setTempoGravacao(0);
       timerRef.current = setInterval(() => setTempoGravacao(t => t + 1), 1000);
-    } catch (err: any) {
-      alert("Não foi possível acessar o microfone.\n\n" + (err.message || "Verifique as permissões do navegador."));
-    }
+    } catch (err: any) { alert("Não foi possível acessar o microfone.\n\n" + (err.message || "Verifique as permissões do navegador.")); }
   };
 
   const pararStream = () => {
-    if (audioStreamRef.current) {
-      audioStreamRef.current.getTracks().forEach(t => t.stop());
-      audioStreamRef.current = null;
-    }
+    if (audioStreamRef.current) { audioStreamRef.current.getTracks().forEach(t => t.stop()); audioStreamRef.current = null; }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   };
 
   const cancelarGravacao = () => {
     try { mediaRecorderRef.current?.stop(); } catch {}
-    audioChunksRef.current = [];
-    pararStream();
-    setGravando(false);
-    setTempoGravacao(0);
+    audioChunksRef.current = []; pararStream(); setGravando(false); setTempoGravacao(0);
   };
 
   const enviarAudioGravado = async () => {
     if (!atendimentoAtivo || !mediaRecorderRef.current) return;
+    if (!atendimentoAtivo.canal_id) { alert("⚠️ Atendimento sem canal_id. Não é possível enviar áudio."); return; }
+    const canal = canais.find(c => c.id === atendimentoAtivo.canal_id);
+    if (canal?.tipo === "waba") { alert("⚠️ Áudio só funciona em canais WhatsApp Web (WebJS). WABA ainda não suporta."); return; }
+
     const recorder = mediaRecorderRef.current;
     setEnviandoAudio(true);
-
-    await new Promise<void>((resolve) => {
-      recorder.onstop = () => resolve();
-      try { recorder.stop(); } catch { resolve(); }
-    });
-    pararStream();
-    setGravando(false);
-
+    await new Promise<void>((resolve) => { recorder.onstop = () => resolve(); try { recorder.stop(); } catch { resolve(); } });
+    pararStream(); setGravando(false);
     try {
       const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
       audioChunksRef.current = [];
-
       const form = new FormData();
       form.append("audio", blob);
       form.append("numero", atendimentoAtivo.numero);
-      form.append("workspaceId", wsId);
-
+      form.append("canalId", String(atendimentoAtivo.canal_id));
       const resp = await fetch("/api/whatsapp-audio", { method: "POST", body: form });
       const data = await resp.json();
       if (!data.success) alert("Erro ao enviar áudio: " + (data.error || "desconhecido"));
-    } catch (e: any) {
-      alert("Erro ao enviar áudio: " + e.message);
-    }
-
-    setEnviandoAudio(false);
-    setTempoGravacao(0);
+    } catch (e: any) { alert("Erro ao enviar áudio: " + e.message); }
+    setEnviandoAudio(false); setTempoGravacao(0);
   };
 
   const assumirChatDaLista = async (e: React.MouseEvent, a: Atendimento) => {
     e.stopPropagation();
-    await wa("assumir", { numero: a.numero, workspaceId: wsId });
-    await inserirMensagemSistema(a.numero, `Chat assumido por: ${meuNome}`);
+    await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId });
+    await inserirMensagemSistema(a.numero, `Chat assumido por: ${meuNome}`, a.canal_id);
     await fetchAtendimentos();
   };
 
@@ -447,44 +426,40 @@ export function ChatSection() {
     e.stopPropagation();
     if (!confirm(`Parar o BOT para ${a.nome}?\n\nO BOT vai parar de responder automaticamente. Você assume o atendimento.`)) return;
     try {
-      await supabase.from("atendimentos").update({
-        bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true,
-      }).eq("id", a.id);
-      await wa("assumir", { numero: a.numero, workspaceId: wsId });
-      await inserirMensagemSistema(a.numero, `BOT interrompido. Chat assumido por: ${meuNome}`);
+      await supabase.from("atendimentos").update({ bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true }).eq("id", a.id);
+      await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId });
+      await inserirMensagemSistema(a.numero, `BOT interrompido. Chat assumido por: ${meuNome}`, a.canal_id);
       await fetchAtendimentos();
       alert("✅ BOT parado. Você assumiu o atendimento.");
     } catch (err: any) { alert("Erro: " + err.message); }
   };
 
-  const assumirChat = async (numero: string) => {
-    await wa("assumir", { numero, workspaceId: wsId });
-    await inserirMensagemSistema(numero, `Chat assumido por: ${meuNome}`);
+  const assumirChat = async (numero: string, canalId?: number) => {
+    await wa("assumir", { numero, canalId, workspaceId: wsId });
+    await inserirMensagemSistema(numero, `Chat assumido por: ${meuNome}`, canalId);
     fetchAtendimentos();
   };
-  const finalizarChat = async (numero: string) => {
-    await wa("finalizar", { numero, workspaceId: wsId });
-    await inserirMensagemSistema(numero, `Chat finalizado por: ${meuNome}`);
+  const finalizarChat = async (numero: string, canalId?: number) => {
+    await wa("finalizar", { numero, canalId, workspaceId: wsId });
+    await inserirMensagemSistema(numero, `Chat finalizado por: ${meuNome}`, canalId);
     fetchAtendimentos();
-    setAtendimentoAtivo(null);
-    setHistorico([]);
+    setAtendimentoAtivo(null); setHistorico([]);
   };
-  const devolverBot = async (numero: string) => {
-    await wa("devolver", { numero, workspaceId: wsId });
-    await inserirMensagemSistema(numero, `Chat devolvido ao BOT por: ${meuNome}`);
+  const devolverBot = async (numero: string, canalId?: number) => {
+    await wa("devolver", { numero, canalId, workspaceId: wsId });
+    await inserirMensagemSistema(numero, `Chat devolvido ao BOT por: ${meuNome}`, canalId);
     fetchAtendimentos();
   };
   const transferirParaFila = async (fila: string) => {
     if (!atendimentoAtivo) return;
     try {
       await supabase.from("atendimentos").update({ fila }).eq("id", atendimentoAtivo.id);
-      await inserirMensagemSistema(atendimentoAtivo.numero, `Chat transferido para fila: ${fila}, por: ${meuNome}`);
-      await fetchAtendimentos();
-      setShowTransferir(false);
+      await inserirMensagemSistema(atendimentoAtivo.numero, `Chat transferido para fila: ${fila}, por: ${meuNome}`, atendimentoAtivo.canal_id);
+      await fetchAtendimentos(); setShowTransferir(false);
       alert(`✅ Transferido para ${fila}`);
     } catch (e: any) { alert("Erro: " + e.message); }
   };
-  const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroEtiqueta("todas"); };
+  const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroEtiqueta("todas"); setFiltroCanal("todos"); };
 
   const tempoRelativo = (data: string) => { const d = Math.floor((Date.now() - new Date(data).getTime()) / 60000); return d < 1 ? "agora" : d < 60 ? `${d}min` : d < 1440 ? `${Math.floor(d/60)}h` : `${Math.floor(d/1440)}d`; };
   const horaMsg = (data: string) => new Date(data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -512,15 +487,14 @@ export function ChatSection() {
       <style>body{font-family:Arial;padding:20px}h1{color:#16a34a}.msg{padding:10px;margin:5px 0;border-radius:8px;max-width:60%}.cliente{background:#e5e7eb;margin-right:auto}.atendente{background:#dbeafe;margin-left:auto;text-align:right}.bot{background:#dcfce7;margin-left:auto;text-align:right}.sistema{background:#f3f4f6;margin:10px auto;text-align:center;font-style:italic;color:#6b7280}.meta{font-size:10px;color:#6b7280}</style>
       </head><body>
       <h1>📄 Histórico — ${atendimentoAtivo.nome}</h1>
-      <p><b>Número:</b> ${atendimentoAtivo.numero}<br><b>Fila:</b> ${atendimentoAtivo.fila || "—"}<br><b>Exportado em:</b> ${new Date().toLocaleString("pt-BR")}</p>
+      <p><b>Número:</b> ${atendimentoAtivo.numero}<br><b>Canal:</b> ${nomeDoCanal(atendimentoAtivo.canal_id)}<br><b>Fila:</b> ${atendimentoAtivo.fila || "—"}<br><b>Exportado em:</b> ${new Date().toLocaleString("pt-BR")}</p>
       <hr>
       ${historico.map(m => `<div class="msg ${m.de === "cliente" ? "cliente" : m.de === "bot" ? "bot" : m.de === "sistema" ? "sistema" : "atendente"}">
         <div>${isAudioMsg(m.mensagem) ? "🎤 [Áudio]" : (m.mensagem || "").replace(/</g, "&lt;")}</div>
         <div class="meta">${m.de === "cliente" ? "Cliente" : m.de === "bot" ? "BOT" : m.de === "sistema" ? "Sistema" : "Atendente"} • ${m.created_at ? new Date(m.created_at).toLocaleString("pt-BR") : ""}</div>
       </div>`).join("")}
       </body></html>`;
-    janela.document.write(html);
-    janela.document.close();
+    janela.document.write(html); janela.document.close();
     setTimeout(() => janela.print(), 500);
   };
 
@@ -536,14 +510,8 @@ export function ChatSection() {
 
   const renderBotaoAcaoLista = (a: Atendimento) => {
     const aba = classificarAba(a);
-    if (aba === "automatico") {
-      return <button onClick={(e) => pararBotDaLista(e, a)} title="Parar BOT e assumir"
-        style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>⏹ Parar BOT</button>;
-    }
-    if (aba === "aguardando") {
-      return <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir atendimento"
-        style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>Atender</button>;
-    }
+    if (aba === "automatico") return <button onClick={(e) => pararBotDaLista(e, a)} title="Parar BOT e assumir" style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>⏹ Parar BOT</button>;
+    if (aba === "aguardando") return <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir atendimento" style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>Atender</button>;
     return null;
   };
 
@@ -569,6 +537,12 @@ export function ChatSection() {
               <span style={{ color: "#8696a0", fontSize: 11, fontWeight: "bold", textTransform: "uppercase" }}>Filtros</span>
               {temFiltroAtivo && <button onClick={limparFiltros} style={{ background: "none", border: "none", color: "#dc2626", fontSize: 11, cursor: "pointer" }}>✕ Limpar</button>}
             </div>
+            {canais.length > 1 && (
+              <select value={filtroCanal} onChange={e => setFiltroCanal(e.target.value)} style={{ ...inputSm, background: "#202c33", border: "none" }}>
+                <option value="todos">📡 Todos os canais</option>
+                {canais.map(c => <option key={c.id} value={String(c.id)}>{c.tipo === "waba" ? "🔗" : "📱"} {c.nome}</option>)}
+              </select>
+            )}
             <select value={filtroFila} onChange={e => setFiltroFila(e.target.value)} style={{ ...inputSm, background: "#202c33", border: "none" }}>
               <option value="todas">Todas as filas</option>
               {filas.map(f => <option key={f} value={f}>{f}</option>)}
@@ -589,16 +563,10 @@ export function ChatSection() {
         <div style={{ display: "flex", borderBottom: "1px solid #222d34", background: "#111b21" }}>
           {abas.map(t => (
             <button key={t.key} onClick={() => setAbaConversa(t.key as any)}
-              style={{ flex: 1, padding: "10px 2px", background: "none", border: "none",
-                color: abaConversa === t.key ? t.color : "#8696a0",
-                fontSize: 10, fontWeight: "bold", cursor: "pointer",
-                borderBottom: abaConversa === t.key ? `3px solid ${t.color}` : "3px solid transparent",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              style={{ flex: 1, padding: "10px 2px", background: "none", border: "none", color: abaConversa === t.key ? t.color : "#8696a0", fontSize: 10, fontWeight: "bold", cursor: "pointer", borderBottom: abaConversa === t.key ? `3px solid ${t.color}` : "3px solid transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
               <span style={{ fontSize: 14 }}>{t.icon}</span>
               <span>{t.label}</span>
-              {t.count > 0 && (
-                <span style={{ background: t.color, color: "white", borderRadius: 10, padding: "0 6px", fontSize: 9, minWidth: 16 }}>{t.count}</span>
-              )}
+              {t.count > 0 && <span style={{ background: t.color, color: "white", borderRadius: 10, padding: "0 6px", fontSize: 9, minWidth: 16 }}>{t.count}</span>}
             </button>
           ))}
         </div>
@@ -607,16 +575,13 @@ export function ChatSection() {
           {atendimentosFiltrados.length === 0 ? (
             <div style={{ padding: 32, textAlign: "center" }}>
               <p style={{ fontSize: 32, margin: "0 0 8px" }}>{abas.find(a => a.key === abaConversa)?.icon}</p>
-              <p style={{ color: "#8696a0", fontSize: 13 }}>
-                {temFiltroAtivo ? "Nenhum resultado para os filtros" : `Nenhum atendimento em ${abas.find(a => a.key === abaConversa)?.label.toLowerCase()}`}
-              </p>
+              <p style={{ color: "#8696a0", fontSize: 13 }}>{temFiltroAtivo ? "Nenhum resultado para os filtros" : `Nenhum atendimento em ${abas.find(a => a.key === abaConversa)?.label.toLowerCase()}`}</p>
             </div>
           ) : atendimentosFiltrados.map(a => {
             const aba = classificarAba(a);
             return (
-              <div key={a.id} onClick={() => { setAtendimentoAtivo(a); setHistorico([]); fetchHistorico(a.numero); }}
-                style={{ padding: "12px 14px", borderBottom: "1px solid #1f2c33", cursor: "pointer",
-                  background: atendimentoAtivo?.id === a.id ? "#2a3942" : "transparent" }}>
+              <div key={a.id} onClick={() => { setAtendimentoAtivo(a); setHistorico([]); fetchHistorico(a.numero, a.canal_id); }}
+                style={{ padding: "12px 14px", borderBottom: "1px solid #1f2c33", cursor: "pointer", background: atendimentoAtivo?.id === a.id ? "#2a3942" : "transparent" }}>
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 14 }}>
                     {a.nome?.charAt(0).toUpperCase() || "?"}
@@ -627,7 +592,7 @@ export function ChatSection() {
                       <span style={{ color: "#8696a0", fontSize: 11, flexShrink: 0 }}>{tempoRelativo(a.created_at)}</span>
                     </div>
                     <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      📱 {numeroSanitizado(a.numero)}
+                      📱 {numeroSanitizado(a.numero)} {canais.length > 1 && a.canal_id && <span style={{ color: "#00a884" }}>• {iconeCanal(a.canal_id)} {nomeDoCanal(a.canal_id)}</span>}
                     </p>
                     <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {isAudioMsg(a.mensagem) ? "🎤 Mensagem de áudio" : a.mensagem}
@@ -635,12 +600,8 @@ export function ChatSection() {
                     <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                         {a.fila && <span style={{ background: "#00a88422", color: "#00a884", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>{a.fila}</span>}
-                        {aba === "automatico" && (
-                          <span style={{ background: "#8b5cf622", color: "#8b5cf6", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>🤖 BOT</span>
-                        )}
-                        {aba === "aguardando" && (
-                          <span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>⏳ Aguardando</span>
-                        )}
+                        {aba === "automatico" && <span style={{ background: "#8b5cf622", color: "#8b5cf6", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>🤖 BOT</span>}
+                        {aba === "aguardando" && <span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>⏳ Aguardando</span>}
                         {(aba === "abertos" || aba === "finalizados") && a.atendente && a.atendente !== "BOT" && (
                           <>
                             <span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>👤 Humano</span>
@@ -662,7 +623,6 @@ export function ChatSection() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#0b141a", backgroundImage: WA_BG_DARK, backgroundRepeat: "repeat" }}>
         {atendimentoAtivo ? (
           <>
-            {/* HEADER */}
             <div style={{ padding: "10px 16px", borderBottom: "1px solid #222d34", background: "#202c33", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0 }}>
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 14 }}>
@@ -672,9 +632,8 @@ export function ChatSection() {
                   <h3 style={{ color: "#e9edef", fontSize: 15, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{atendimentoAtivo.nome}</h3>
                   <p style={{ color: "#8696a0", fontSize: 11, margin: 0 }}>
                     {atendimentoAtivo.fila || "—"} • {atendimentoAtivo.numero}
-                    {atendimentoAtivo.atendente && atendimentoAtivo.atendente !== "BOT" && (
-                      <> • 👨‍💼 {nomeDoAtendente(atendimentoAtivo.atendente)}</>
-                    )}
+                    {atendimentoAtivo.canal_id && canais.length > 1 && <> • {iconeCanal(atendimentoAtivo.canal_id)} {nomeDoCanal(atendimentoAtivo.canal_id)}</>}
+                    {atendimentoAtivo.atendente && atendimentoAtivo.atendente !== "BOT" && <> • 👨‍💼 {nomeDoAtendente(atendimentoAtivo.atendente)}</>}
                   </p>
                   {etiquetasAplicadas.length > 0 && (
                     <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
@@ -683,15 +642,13 @@ export function ChatSection() {
                           <span>{et.icone}</span> {et.nome}
                         </span>
                       ))}
-                      {etiquetasAplicadas.length > 3 && (
-                        <span style={{ color: "#8696a0", fontSize: 10 }}>+{etiquetasAplicadas.length - 3}</span>
-                      )}
+                      {etiquetasAplicadas.length > 3 && <span style={{ color: "#8696a0", fontSize: 10 }}>+{etiquetasAplicadas.length - 3}</span>}
                     </div>
                   )}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 4, alignItems: "center", position: "relative" }}>
-                <button onClick={() => fetchHistorico(atendimentoAtivo.numero)} title="Atualizar mensagens"
+                <button onClick={() => fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id)} title="Atualizar mensagens"
                   style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 16, padding: 8, borderRadius: 6 }}>🔄</button>
                 <button onClick={() => setShowTransferir(!showTransferir)} title="Encaminhar"
                   style={{ background: showTransferir ? "#00a88422" : "none", border: "none", color: showTransferir ? "#00a884" : "#aebac1", cursor: "pointer", fontSize: 16, padding: 8, borderRadius: 6 }}>↗️</button>
@@ -704,18 +661,18 @@ export function ChatSection() {
                       style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
                       <span>👤</span> Dados do Contato
                     </button>
-                    <button onClick={() => { fetchHistorico(atendimentoAtivo.numero); setShowMenuTresPontos(false); }}
+                    <button onClick={() => { fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuTresPontos(false); }}
                       style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
                       <span>🔄</span> Atualizar mensagens
                     </button>
                     {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") && (
-                      <button onClick={() => { assumirChat(atendimentoAtivo.numero); setShowMenuTresPontos(false); }}
+                      <button onClick={() => { assumirChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuTresPontos(false); }}
                         style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
                         <span>👤</span> Assumir atendimento
                       </button>
                     )}
                     {atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
-                      <button onClick={() => { devolverBot(atendimentoAtivo.numero); setShowMenuTresPontos(false); }}
+                      <button onClick={() => { devolverBot(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuTresPontos(false); }}
                         style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
                         <span>🤖</span> Devolver ao Bot
                       </button>
@@ -730,7 +687,7 @@ export function ChatSection() {
                         <span>💰</span> Finalizar Venda
                       </button>
                     )}
-                    <button onClick={() => { finalizarChat(atendimentoAtivo.numero); setShowMenuTresPontos(false); }}
+                    <button onClick={() => { finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuTresPontos(false); }}
                       style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#dc2626", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left", borderTop: "1px solid #2a3942" }}>
                       <span>✓</span> Finalizar atendimento
                     </button>
@@ -750,7 +707,6 @@ export function ChatSection() {
               </div>
             </div>
 
-            {/* MENSAGENS */}
             <div style={{ flex: 1, overflowY: "auto", padding: "16px 8%", display: "flex", flexDirection: "column", gap: 6 }}>
               {historico.length === 0
                 ? <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#8696a0", fontSize: 13 }}>Nenhuma mensagem ainda</p></div>
@@ -760,39 +716,20 @@ export function ChatSection() {
                         <div key={i} style={{ display: "flex", justifyContent: "center", margin: "4px 0" }}>
                           <div style={{ background: "#182229", color: "#8696a0", fontSize: 11, padding: "6px 14px", borderRadius: 10, maxWidth: "80%", textAlign: "center", fontStyle: "italic" }}>
                             {msg.mensagem}
-                            {msg.created_at && (
-                              <div style={{ fontSize: 9, color: "#667781", marginTop: 2 }}>{dataHoraMsg(msg.created_at)}</div>
-                            )}
+                            {msg.created_at && <div style={{ fontSize: 9, color: "#667781", marginTop: 2 }}>{dataHoraMsg(msg.created_at)}</div>}
                           </div>
                         </div>
                       );
                     }
-
                     const isCliente = msg.de === "cliente"; const isBot = msg.de === "bot";
                     const ehAudio = isAudioMsg(msg.mensagem);
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end" }}>
-                        <div style={{
-                          maxWidth: ehAudio ? 340 : "65%", padding: "6px 10px 8px",
-                          borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px",
-                          background: isCliente ? "#202c33" : "#005c4b",
-                          boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)",
-                        }}>
-                          {!isCliente && !ehAudio && (
-                            <p style={{ color: "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>
-                              {isBot ? "🤖 BOT" : "👤 Você"}
-                            </p>
-                          )}
-                          {ehAudio ? (
-                            <AudioPlayer src={audioUrl(audioFilename(msg.mensagem))} isOwn={!isCliente} />
-                          ) : (
-                            <p style={{ color: "#e9edef", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.mensagem}</p>
-                          )}
-                          {msg.created_at && (
-                            <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 10, margin: "2px 0 0", textAlign: "right" }}>
-                              {horaMsg(msg.created_at)}{!isCliente && " ✓✓"}
-                            </p>
-                          )}
+                        <div style={{ maxWidth: ehAudio ? 340 : "65%", padding: "6px 10px 8px", borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px", background: isCliente ? "#202c33" : "#005c4b", boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)" }}>
+                          {!isCliente && !ehAudio && <p style={{ color: "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>}
+                          {ehAudio ? <AudioPlayer src={audioUrl(audioFilename(msg.mensagem))} isOwn={!isCliente} />
+                           : <p style={{ color: "#e9edef", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.mensagem}</p>}
+                          {msg.created_at && <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 10, margin: "2px 0 0", textAlign: "right" }}>{horaMsg(msg.created_at)}{!isCliente && " ✓✓"}</p>}
                         </div>
                       </div>
                     );
@@ -812,22 +749,17 @@ export function ChatSection() {
               </div>
             )}
 
-            {/* BARRA DE INPUT OU GRAVAÇÃO */}
             {gravando ? (
               <div style={{ background: "#202c33", padding: "10px 16px", display: "flex", gap: 12, alignItems: "center" }}>
                 <button onClick={cancelarGravacao} disabled={enviandoAudio} title="Cancelar gravação"
-                  style={{ background: "#dc2626", color: "white", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  ✕
-                </button>
+                  style={{ background: "#dc2626", color: "white", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
                 <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, background: "#2a3942", borderRadius: 20, padding: "10px 18px" }}>
                   <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#dc2626", animation: "pulse 1s infinite" }} />
                   <span style={{ color: "#e9edef", fontSize: 14, fontWeight: "bold" }}>Gravando...</span>
                   <span style={{ color: "#8696a0", fontSize: 13, fontFamily: "monospace", marginLeft: "auto" }}>{formatTempo(tempoGravacao)}</span>
                 </div>
                 <button onClick={enviarAudioGravado} disabled={enviandoAudio} title="Enviar áudio"
-                  style={{ background: enviandoAudio ? "#047857" : "#00a884", color: "white", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {enviandoAudio ? "…" : "➤"}
-                </button>
+                  style={{ background: enviandoAudio ? "#047857" : "#00a884", color: "white", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center" }}>{enviandoAudio ? "…" : "➤"}</button>
                 <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
               </div>
             ) : (
@@ -856,9 +788,7 @@ export function ChatSection() {
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, background: "#222e35" }}>
             <span style={{ fontSize: 80, opacity: 0.5 }}>💬</span>
             <h2 style={{ color: "#e9edef", fontSize: 28, fontWeight: "300", margin: 0 }}>Wolf Chatbot</h2>
-            <p style={{ color: "#8696a0", fontSize: 14, margin: 0, maxWidth: 400, textAlign: "center" }}>
-              Selecione uma conversa à esquerda pra começar a atender
-            </p>
+            <p style={{ color: "#8696a0", fontSize: 14, margin: 0, maxWidth: 400, textAlign: "center" }}>Selecione uma conversa à esquerda pra começar a atender</p>
             {meuNome && <p style={{ color: "#00a884", fontSize: 12, margin: 0 }}>👋 Olá, {meuNome}!</p>}
           </div>
         )}
@@ -876,17 +806,12 @@ export function ChatSection() {
           </div>
 
           <div style={{ display: "flex", borderBottom: "1px solid #222d34", background: "#111b21" }}>
-            {[
-              { key: "perfil", icon: "👤" }, { key: "protocolo", icon: "📋" }, { key: "funil", icon: "🎯" },
-              { key: "etiquetas", icon: "🏷️" }, { key: "ia", icon: "🤖" }, { key: "utils", icon: "🔧" },
-            ].map(a => (
+            {[{ key: "perfil", icon: "👤" }, { key: "protocolo", icon: "📋" }, { key: "funil", icon: "🎯" }, { key: "etiquetas", icon: "🏷️" }, { key: "ia", icon: "🤖" }, { key: "utils", icon: "🔧" }].map(a => (
               <button key={a.key} onClick={() => setAbaPainel(a.key as any)}
                 style={{ flex: 1, padding: "10px 4px", background: abaPainel === a.key ? "#2a3942" : "none", border: "none", borderBottom: abaPainel === a.key ? "2px solid #00a884" : "2px solid transparent", color: abaPainel === a.key ? "#00a884" : "#8696a0", fontSize: 15, cursor: "pointer", position: "relative" }}>
                 {a.icon}
                 {a.key === "etiquetas" && etiquetasAtendimento.length > 0 && (
-                  <span style={{ position: "absolute", top: 4, right: 4, background: "#dc2626", color: "white", borderRadius: "50%", width: 14, height: 14, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                    {etiquetasAtendimento.length}
-                  </span>
+                  <span style={{ position: "absolute", top: 4, right: 4, background: "#dc2626", color: "white", borderRadius: "50%", width: 14, height: 14, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>{etiquetasAtendimento.length}</span>
                 )}
               </button>
             ))}
@@ -906,6 +831,10 @@ export function ChatSection() {
                 <div>
                   <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Telefone</label>
                   <input value={atendimentoAtivo.numero || ""} disabled style={{ ...inputSm, opacity: 0.6 }} />
+                </div>
+                <div>
+                  <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Canal</label>
+                  <input value={atendimentoAtivo.canal_id ? `${iconeCanal(atendimentoAtivo.canal_id)} ${nomeDoCanal(atendimentoAtivo.canal_id)}` : "—"} disabled style={{ ...inputSm, opacity: 0.6 }} />
                 </div>
                 <div>
                   <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>E-mail</label>
@@ -987,10 +916,7 @@ export function ChatSection() {
 
             {abaPainel === "ia" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {[
-                  { key: "bloqueado_ia", label: "🤖 ChatGPT / IA", cor: "#16a34a" },
-                  { key: "bloqueado_typebot", label: "🔀 TypeBOT", cor: "#3b82f6" },
-                ].map(item => {
+                {[{ key: "bloqueado_ia", label: "🤖 ChatGPT / IA", cor: "#16a34a" }, { key: "bloqueado_typebot", label: "🔀 TypeBOT", cor: "#3b82f6" }].map(item => {
                   const bloqueado = !!(atendimentoAtivo as any)[item.key];
                   return (
                     <div key={item.key} style={{ background: "#202c33", borderRadius: 10, padding: 14 }}>
@@ -1008,15 +934,9 @@ export function ChatSection() {
 
             {abaPainel === "utils" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <button onClick={exportarPDF} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "12px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
-                  📄 Exportar Histórico em PDF
-                </button>
-                <button onClick={() => { navigator.clipboard.writeText(numeroSanitizado(atendimentoAtivo.numero)); alert("Copiado!"); }} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
-                  📋 Copiar número
-                </button>
-                <button onClick={() => window.open(`https://wa.me/${numeroSanitizado(atendimentoAtivo.numero)}`, "_blank")} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
-                  📞 Abrir no WhatsApp Web
-                </button>
+                <button onClick={exportarPDF} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "12px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>📄 Exportar Histórico em PDF</button>
+                <button onClick={() => { navigator.clipboard.writeText(numeroSanitizado(atendimentoAtivo.numero)); alert("Copiado!"); }} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📋 Copiar número</button>
+                <button onClick={() => window.open(`https://wa.me/${numeroSanitizado(atendimentoAtivo.numero)}`, "_blank")} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📞 Abrir no WhatsApp Web</button>
               </div>
             )}
           </div>
