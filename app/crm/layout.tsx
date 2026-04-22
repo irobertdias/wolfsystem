@@ -25,23 +25,53 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
       const admin = user.email === ADMIN_EMAIL;
       setIsAdmin(admin);
 
-      // Dono do workspace
-      const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).single();
+      // ═══ Dono do workspace ═══
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("*")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
       if (ws) {
         setWorkspaceNome(ws.nome);
-        const wsId = ws.username || ws.id.toString();
-        const { count } = await supabase.from("usuarios_workspace").select("*", { count: "exact", head: true }).eq("workspace_id", wsId);
-        setUsuariosCount(count || 0);
+        const wsId = ws.username;
+        if (wsId) {
+          const { count } = await supabase.from("usuarios_workspace").select("*", { count: "exact", head: true }).eq("workspace_id", wsId);
+          setUsuariosCount(count || 0);
+        }
         if (!admin) {
-          const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).single();
+          const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).maybeSingle();
           if (cadastro) setLimiteUsuarios(cadastro.usuarios_liberados || 1);
         }
       } else {
-        // Sub-usuário — busca workspace pelo usuarios_workspace
-        const { data: usuarioWs } = await supabase.from("usuarios_workspace").select("workspace_id").eq("email", user.email).single();
-        if (usuarioWs) {
-          const { data: wsData } = await supabase.from("workspaces").select("nome").or(`username.eq.${usuarioWs.workspace_id},id.eq.${usuarioWs.workspace_id}`).single();
-          if (wsData) setWorkspaceNome(wsData.nome);
+        // ═══ Sub-usuário — busca workspace pelo usuarios_workspace ═══
+        const { data: usuarioWs } = await supabase
+          .from("usuarios_workspace")
+          .select("workspace_id")
+          .eq("email", user.email)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (usuarioWs?.workspace_id) {
+          // ✅ Busca por username (padrão novo)
+          const { data: wsData } = await supabase
+            .from("workspaces")
+            .select("nome")
+            .eq("username", usuarioWs.workspace_id)
+            .maybeSingle();
+
+          if (wsData) {
+            setWorkspaceNome(wsData.nome);
+          } else if (/^\d+$/.test(usuarioWs.workspace_id)) {
+            // Fallback: se workspace_id for numérico (dados legados), busca por id
+            const { data: wsLegado } = await supabase
+              .from("workspaces")
+              .select("nome")
+              .eq("id", parseInt(usuarioWs.workspace_id))
+              .maybeSingle();
+            if (wsLegado) setWorkspaceNome(wsLegado.nome);
+          }
         }
       }
 
@@ -74,7 +104,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           <img src="/logo1.png" alt="Wolf" style={{ width: 36, filter: "brightness(0) invert(1)" }} />
           <div>
             <span style={{ color: "white", fontWeight: "bold", fontSize: 13, display: "block" }}>Wolf CRM</span>
-            <span style={{ color: "#16a34a", fontSize: 10 }}>{workspaceNome}</span>
+            <span style={{ color: "#16a34a", fontSize: 10 }}>{workspaceNome || "Carregando..."}</span>
           </div>
         </div>
 
