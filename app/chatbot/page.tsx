@@ -36,7 +36,10 @@ function ChatbotInner() {
     }] : []),
     ...(isDono ? [{
       key: "marketing", icon: "📢", label: "Marketing",
-      subitens: [{ key: "disparos", label: "Disparos em Massa", path: "/chatbot/disparos" }]
+      subitens: [
+        { key: "templates", label: "Templates", path: "/chatbot/templates" },
+        { key: "disparos", label: "Disparos em Massa", path: "/chatbot/disparos" }
+      ]
     }] : []),
     ...(isDono ? [{
       key: "cadastro", icon: "📋", label: "Cadastro",
