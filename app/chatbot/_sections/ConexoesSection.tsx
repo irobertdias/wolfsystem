@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { usePermissao } from "../../hooks/usePermissao";
 
 type Conexao = {
   id: number; nome: string; tipo: string; status: string; numero: string;
@@ -17,6 +18,7 @@ type LimitesPlano = { conexoes: number; webjs: boolean; waba: boolean; instagram
 export function ConexoesSection() {
   const router = useRouter();
   const { workspace, wsId, user } = useWorkspace();
+  const { isDono } = usePermissao();
 
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
   const [fluxos, setFluxos] = useState<FluxoItem[]>([]);
@@ -38,9 +40,6 @@ export function ConexoesSection() {
   const [registrandoWaba, setRegistrandoWaba] = useState(false);
 
   const [limites, setLimites] = useState<LimitesPlano>({ conexoes: 1, webjs: true, waba: false, instagram: false });
-
-  // 🆕 Flag de super admin do sistema (criador) — bypassa TODOS os limites
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "Fila Principal", pararSeAtendente: true };
   const [form, setForm] = useState(formInicial);
@@ -66,15 +65,6 @@ export function ConexoesSection() {
     }
     const resp = await fetch(`/api/whatsapp?rota=${rota}`);
     return resp.json();
-  };
-
-  // 🆕 Verifica se o USUÁRIO LOGADO (não o dono do workspace) é super admin do sistema
-  const fetchSuperAdmin = async () => {
-    if (!user?.email) return;
-    try {
-      const { data } = await supabase.from("cadastros").select("super_admin").eq("email", user.email).maybeSingle();
-      setIsSuperAdmin(!!data?.super_admin);
-    } catch (e) { setIsSuperAdmin(false); }
   };
 
   const fetchLimites = async () => {
@@ -120,7 +110,6 @@ export function ConexoesSection() {
     fetchConexoes();
     fetchFluxos();
     fetchLimites();
-    fetchSuperAdmin();
 
     const ch = supabase.channel("conexoes_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchConexoes())
@@ -263,8 +252,8 @@ export function ConexoesSection() {
     if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { alert("Preencha Phone Number ID e Token!"); return; }
     if (!editandoId && form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
 
-    // 🆕 Validação de limite do plano — Super Admin do sistema bypassa tudo
-    if (!editandoId && !isSuperAdmin) {
+    // 🆕 Validação de limite do plano — Dono do workspace bypassa tudo
+    if (!editandoId && !isDono) {
       if (conexoes.length >= limites.conexoes) {
         alert(`❌ Limite do plano atingido!\n\nSeu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}.\n\nFaça upgrade pra criar mais canais.`);
         return;
@@ -360,10 +349,10 @@ export function ConexoesSection() {
     </button>
   );
 
-  // 🆕 Helpers pra saber se o limite está atingido considerando super admin
-  const limiteAtingido = !isSuperAdmin && conexoes.length >= limites.conexoes;
-  const webjsPermitido = isSuperAdmin || limites.webjs;
-  const wabaPermitido = isSuperAdmin || limites.waba;
+  // 🆕 Dono bypassa qualquer limite do plano
+  const limiteAtingido = !isDono && conexoes.length >= limites.conexoes;
+  const webjsPermitido = isDono || limites.webjs;
+  const wabaPermitido = isDono || limites.waba;
 
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto", height: "100vh" }}>
@@ -394,7 +383,7 @@ export function ConexoesSection() {
               <div>
                 <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>{editandoId ? "✏️ Editar Canal" : "➕ Novo Canal"}</h2>
                 <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
-                  {editandoId ? "Altere as configurações" : isSuperAdmin ? `${conexoes.length} canais (ilimitado 👑)` : `${conexoes.length} de ${limites.conexoes} canais usados`}
+                  {editandoId ? "Altere as configurações" : isDono ? `${conexoes.length} canais (ilimitado 👑)` : `${conexoes.length} de ${limites.conexoes} canais usados`}
                 </p>
               </div>
               <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
@@ -537,10 +526,10 @@ export function ConexoesSection() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>
-            📱 Conexões {isSuperAdmin && <span style={{ fontSize: 12, color: "#f59e0b", marginLeft: 8 }}>👑 Super Admin</span>}
+            📱 Conexões {isDono && <span style={{ fontSize: 12, color: "#f59e0b", marginLeft: 8 }}>👑 Dono</span>}
           </h1>
           <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>
-            Workspace: {workspace?.nome || "Carregando..."} • {isSuperAdmin ? `${conexoes.length} canais (ilimitado)` : `${conexoes.length} de ${limites.conexoes} canais`}
+            Workspace: {workspace?.nome || "Carregando..."} • {isDono ? `${conexoes.length} canais (ilimitado)` : `${conexoes.length} de ${limites.conexoes} canais`}
           </p>
         </div>
         <button
