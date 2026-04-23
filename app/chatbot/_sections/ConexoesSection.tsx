@@ -39,6 +39,9 @@ export function ConexoesSection() {
 
   const [limites, setLimites] = useState<LimitesPlano>({ conexoes: 1, webjs: true, waba: false, instagram: false });
 
+  // 🆕 Flag de super admin do sistema (criador) — bypassa TODOS os limites
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
   const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "Fila Principal", pararSeAtendente: true };
   const [form, setForm] = useState(formInicial);
 
@@ -63,6 +66,15 @@ export function ConexoesSection() {
     }
     const resp = await fetch(`/api/whatsapp?rota=${rota}`);
     return resp.json();
+  };
+
+  // 🆕 Verifica se o USUÁRIO LOGADO (não o dono do workspace) é super admin do sistema
+  const fetchSuperAdmin = async () => {
+    if (!user?.email) return;
+    try {
+      const { data } = await supabase.from("cadastros").select("super_admin").eq("email", user.email).maybeSingle();
+      setIsSuperAdmin(!!data?.super_admin);
+    } catch (e) { setIsSuperAdmin(false); }
   };
 
   const fetchLimites = async () => {
@@ -108,6 +120,7 @@ export function ConexoesSection() {
     fetchConexoes();
     fetchFluxos();
     fetchLimites();
+    fetchSuperAdmin();
 
     const ch = supabase.channel("conexoes_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchConexoes())
@@ -250,8 +263,8 @@ export function ConexoesSection() {
     if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { alert("Preencha Phone Number ID e Token!"); return; }
     if (!editandoId && form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
 
-    // Validação de limite do plano
-    if (!editandoId) {
+    // 🆕 Validação de limite do plano — Super Admin do sistema bypassa tudo
+    if (!editandoId && !isSuperAdmin) {
       if (conexoes.length >= limites.conexoes) {
         alert(`❌ Limite do plano atingido!\n\nSeu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}.\n\nFaça upgrade pra criar mais canais.`);
         return;
@@ -347,6 +360,11 @@ export function ConexoesSection() {
     </button>
   );
 
+  // 🆕 Helpers pra saber se o limite está atingido considerando super admin
+  const limiteAtingido = !isSuperAdmin && conexoes.length >= limites.conexoes;
+  const webjsPermitido = isSuperAdmin || limites.webjs;
+  const wabaPermitido = isSuperAdmin || limites.waba;
+
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto", height: "100vh" }}>
 
@@ -375,7 +393,9 @@ export function ConexoesSection() {
             <div style={{ padding: "20px 28px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>{editandoId ? "✏️ Editar Canal" : "➕ Novo Canal"}</h2>
-                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{editandoId ? "Altere as configurações" : `${conexoes.length} de ${limites.conexoes} canais usados`}</p>
+                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
+                  {editandoId ? "Altere as configurações" : isSuperAdmin ? `${conexoes.length} canais (ilimitado 👑)` : `${conexoes.length} de ${limites.conexoes} canais usados`}
+                </p>
               </div>
               <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
             </div>
@@ -385,8 +405,8 @@ export function ConexoesSection() {
                   <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>1. Tipo de Canal</p>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     {[
-                      { key: "webjs", icon: "📱", label: "WhatsApp Web", desc: "Conexão via QR Code", disabled: !limites.webjs },
-                      { key: "waba", icon: "🔗", label: "API Meta (WABA)", desc: "API oficial do WhatsApp", disabled: !limites.waba }
+                      { key: "webjs", icon: "📱", label: "WhatsApp Web", desc: "Conexão via QR Code", disabled: !webjsPermitido },
+                      { key: "waba", icon: "🔗", label: "API Meta (WABA)", desc: "API oficial do WhatsApp", disabled: !wabaPermitido }
                     ].map(t => (
                       <button key={t.key}
                         onClick={() => !t.disabled && setForm(p => ({ ...p, tipo: t.key }))}
@@ -516,16 +536,18 @@ export function ConexoesSection() {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>📱 Conexões</h1>
+          <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>
+            📱 Conexões {isSuperAdmin && <span style={{ fontSize: 12, color: "#f59e0b", marginLeft: 8 }}>👑 Super Admin</span>}
+          </h1>
           <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>
-            Workspace: {workspace?.nome || "Carregando..."} • {conexoes.length} de {limites.conexoes} canais
+            Workspace: {workspace?.nome || "Carregando..."} • {isSuperAdmin ? `${conexoes.length} canais (ilimitado)` : `${conexoes.length} de ${limites.conexoes} canais`}
           </p>
         </div>
         <button
           onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); }}
-          disabled={conexoes.length >= limites.conexoes}
-          style={{ background: conexoes.length >= limites.conexoes ? "#374151" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: conexoes.length >= limites.conexoes ? "not-allowed" : "pointer", fontWeight: "bold" }}>
-          + Novo Canal {conexoes.length >= limites.conexoes && "(limite)"}
+          disabled={limiteAtingido}
+          style={{ background: limiteAtingido ? "#374151" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: limiteAtingido ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+          + Novo Canal {limiteAtingido && "(limite)"}
         </button>
       </div>
 
