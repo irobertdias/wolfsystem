@@ -35,6 +35,10 @@ function ChatbotInner() {
       subitens: [{ key: "fluxos", label: "Chatbot / Fluxos" }]
     }] : []),
     ...(isDono ? [{
+      key: "marketing", icon: "📢", label: "Marketing",
+      subitens: [{ key: "disparos", label: "Disparos em Massa", path: "/chatbot/disparos" }]
+    }] : []),
+    ...(isDono ? [{
       key: "cadastro", icon: "📋", label: "Cadastro",
       subitens: [{ key: "etiquetas", label: "Etiquetas" }]
     }] : []),
@@ -70,7 +74,7 @@ function ChatbotInner() {
               {menuAberto === menu.key && (
                 <div style={{ paddingLeft: 12, marginBottom: 4 }}>
                   {menu.subitens.map(sub => (
-                    <button key={sub.key} onClick={() => router.push(`/chatbot?aba=${sub.key}`)}
+                    <button key={sub.key} onClick={() => router.push((sub as any).path || `/chatbot?aba=${sub.key}`)}
                       style={{ display: "block", width: "100%", padding: "8px 12px", background: aba === sub.key ? "#3b82f622" : "none", border: "none", borderRadius: 8, cursor: "pointer", color: aba === sub.key ? "#3b82f6" : "#6b7280", fontSize: 12, textAlign: "left", fontWeight: aba === sub.key ? "bold" : "normal" }}>
                       {sub.label}
                     </button>
