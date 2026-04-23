@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
@@ -14,6 +15,7 @@ type Disparo = {
 };
 
 export default function DisparosPage() {
+  const router = useRouter();
   const { workspace, wsId, user } = useWorkspace();
   const { isDono, permissoes } = usePermissao();
 
@@ -190,11 +192,17 @@ export default function DisparosPage() {
 
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#0a0a0a", minHeight: "100vh", color: "white" }}>
-      <div>
-        <h1 style={{ fontSize: 22, fontWeight: "bold", margin: 0 }}>📢 Disparos em Massa</h1>
-        <p style={{ color: "#9ca3af", fontSize: 13, margin: "4px 0 0" }}>
-          Envie mensagens em lote via WhatsApp Web. Use delays altos pra evitar banimento.
-        </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <button onClick={() => router.push("/chatbot")}
+          style={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "8px 14px", color: "#9ca3af", fontSize: 12, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>
+          ← Voltar ao Chatbot
+        </button>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: "bold", margin: 0 }}>📢 Disparos em Massa</h1>
+          <p style={{ color: "#9ca3af", fontSize: 13, margin: "4px 0 0" }}>
+            Envie mensagens em lote via WhatsApp Web. Use delays altos pra evitar banimento.
+          </p>
+        </div>
       </div>
 
       {/* Aviso sobre banimento */}
