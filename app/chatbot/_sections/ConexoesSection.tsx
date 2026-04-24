@@ -32,6 +32,8 @@ export function ConexoesSection() {
   const [qrPolling, setQrPolling] = useState(false);
   const [qrConectado, setQrConectado] = useState(false);
   const [qrNumero, setQrNumero] = useState("");
+  // 🆕 Contador de tentativas do polling — depois de 30s sem detectar, mostra aviso pro user
+  const [qrTentativas, setQrTentativas] = useState(0);
   const [showModalNovoCanal, setShowModalNovoCanal] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [salvandoCanal, setSalvandoCanal] = useState(false);
@@ -169,23 +171,58 @@ export function ConexoesSection() {
     return () => { supabase.removeChannel(ch); clearInterval(interval); };
   }, [workspace, user?.email]);
 
+  // 🆕 POLLING RÁPIDO + DETECÇÃO VIA ESTADO — três camadas de segurança pra fechar o modal:
+  //   1. Poll agressivo em /qr-data a cada 1.5s (era 3s)
+  //   2. Logs no console pra debug caso o poll falhe silenciosamente
+  //   3. Contador — depois de 30s sem detectar, mostra o aviso visual no modal
   useEffect(() => {
     if (!qrPolling || !showModalQR || !qrCanalId) return;
+    let tentativas = 0;
     const interval = setInterval(async () => {
+      tentativas++;
+      setQrTentativas(tentativas);
       try {
-        const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}`);
-        const data = await resp.json();
-        if (data.qr) setQrImageUrl(data.qr);
-        if (data.status === "conectado") {
-          setQrConectado(true); setQrNumero(data.numero || ""); setQrPolling(false);
-          await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrCanalId);
-          fetchConexoes();
-          setShowModalQR(false);
+        const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}`, { cache: "no-store" });
+        if (!resp.ok) {
+          console.warn(`[QR poll] status HTTP ${resp.status} — tentativa ${tentativas}`);
+          return;
         }
-      } catch (e) {}
-    }, 3000);
+        const data = await resp.json();
+        if (data.qr && data.qr !== qrImageUrl) setQrImageUrl(data.qr);
+        console.log(`[QR poll #${tentativas}] canal=${qrCanalId} status=${data.status} numero=${data.numero || "—"}`);
+        if (data.status === "conectado") {
+          console.log(`[QR poll] ✅ DETECTOU CONEXÃO — fechando modal`);
+          setQrConectado(true);
+          setQrNumero(data.numero || "");
+          setQrPolling(false);
+          // Atualiza o banco também (redundante mas garante)
+          await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrCanalId);
+          await fetchConexoes();
+          // Fecha modal depois de 800ms pro user ver o ✅ WhatsApp Conectado!
+          setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
+        }
+      } catch (e: any) {
+        console.warn(`[QR poll] erro fetch:`, e?.message || e);
+      }
+    }, 1500);
     return () => clearInterval(interval);
   }, [qrPolling, showModalQR, qrCanalId]);
+
+  // 🆕 PLANO B — observa o estado `conexoes` (alimentado por Supabase Realtime)
+  // Se o backend atualizou a tabela (via atualizarStatusCanal no evento `ready`) e o poll do qr-data
+  // falhar por qualquer motivo (CORS, timeout, firewall), esse useEffect fecha o modal baseado
+  // no banco de dados. É a rede de segurança mais confiável.
+  useEffect(() => {
+    if (!showModalQR || !qrCanalId || qrConectado) return;
+    const canal = conexoes.find(c => c.id === qrCanalId);
+    if (canal && canal.status === "conectado") {
+      console.log(`[QR state] ✅ DETECTOU CONEXÃO via realtime/banco — canal ${qrCanalId}`);
+      setQrConectado(true);
+      setQrNumero(canal.numero || "");
+      setQrPolling(false);
+      setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
+    }
+  }, [conexoes, showModalQR, qrCanalId, qrConectado]);
 
   const registrarNumeroWaba = async (c: Conexao) => {
     const usarPinPadrao = confirm(
@@ -333,7 +370,7 @@ export function ConexoesSection() {
     const canal = conexoes.find(c => c.id === id);
     if (!canal) return;
     setQrCanalId(id); setResetando(true); setShowModalQR(true);
-    setQrImageUrl(""); setQrConectado(false); setQrNumero("");
+    setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0);
     try { await wa("resetar", { canalId: id }); } catch (e) {}
     await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", id);
     await fetchConexoes(); setResetando(false); setQrPolling(true);
@@ -384,9 +421,48 @@ export function ConexoesSection() {
                 : qrImageUrl ? <img src={qrImageUrl} alt="QR Code" style={{ width: 220, height: 220, borderRadius: 8 }} />
                 : <div><p style={{ color: "#9ca3af", fontSize: 14, margin: "0 0 8px" }}>⏳ Gerando QR Code...</p><p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>}
             </div>
+
+            {/* 🆕 Indicador de polling ativo (mostra que o sistema tá tentando detectar) */}
+            {qrPolling && !qrConectado && qrTentativas > 0 && (
+              <p style={{ color: "#6b7280", fontSize: 11, margin: "0 0 10px" }}>
+                🔄 Verificando conexão... ({qrTentativas}x)
+              </p>
+            )}
+
+            {/* 🆕 AVISO DE TIMEOUT — depois de 20 tentativas (≈30s) */}
+            {qrPolling && !qrConectado && qrTentativas >= 20 && (
+              <div style={{ background: "#422006", border: "1px solid #f59e0b44", borderRadius: 8, padding: 12, marginBottom: 14, textAlign: "left" }}>
+                <p style={{ color: "#f59e0b", fontSize: 12, fontWeight: "bold", margin: "0 0 6px" }}>⚠️ Tá demorando mais que o normal</p>
+                <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 10px", lineHeight: 1.4 }}>
+                  Se já aparece conectado no celular, clica em <b>Já Conectei!</b> pra atualizar. Senão, tenta gerar um novo QR.
+                </p>
+                <button
+                  onClick={async () => {
+                    if (!qrCanalId) return;
+                    // Força checagem imediata no backend, ignorando o intervalo
+                    try {
+                      const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}`, { cache: "no-store" });
+                      const data = await resp.json();
+                      if (data.status === "conectado") {
+                        await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrCanalId);
+                        await fetchConexoes();
+                        setQrConectado(true); setQrNumero(data.numero || "");
+                        setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
+                      } else {
+                        alert(`Backend ainda não reconheceu a conexão.\n\nStatus atual: ${data.status}\n\nTenta de novo ou recria o QR.`);
+                      }
+                    } catch (e: any) { alert("Erro ao verificar: " + (e?.message || e)); }
+                  }}
+                  style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: "bold" }}
+                >
+                  🔍 Verificar agora
+                </button>
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button onClick={() => { setShowModalQR(false); setQrPolling(false); setQrImageUrl(""); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Fechar</button>
-              {!qrConectado && <button onClick={async () => { if (qrCanalId) { await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrCanalId); await fetchConexoes(); } setShowModalQR(false); setQrPolling(false); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>}
+              <button onClick={() => { setShowModalQR(false); setQrPolling(false); setQrImageUrl(""); setQrTentativas(0); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Fechar</button>
+              {!qrConectado && <button onClick={async () => { if (qrCanalId) { await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrCanalId); await fetchConexoes(); } setShowModalQR(false); setQrPolling(false); setQrTentativas(0); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>}
             </div>
           </div>
         </div>
