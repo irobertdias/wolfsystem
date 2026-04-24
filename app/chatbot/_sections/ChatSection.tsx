@@ -19,6 +19,95 @@ type CanalInfo = { id: number; nome: string; tipo: string; };
 
 const WA_BG_DARK = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200' opacity='0.04'><g fill='%23ffffff'><path d='M40 40 l10 0 l0 10 l-10 0 z'/><circle cx='70' cy='75' r='4'/><path d='M110 35 l15 -5 l5 15 l-15 5 z' opacity='0.6'/><circle cx='150' cy='55' r='3'/><path d='M30 110 l8 8 l-8 8 l-8 -8 z'/><circle cx='80' cy='135' r='5'/><path d='M130 115 l10 0 l-5 10 z' opacity='0.7'/><circle cx='165' cy='150' r='4'/><path d='M50 170 l12 0 l-6 12 z'/><circle cx='100' cy='180' r='3'/></g></svg>")`;
 
+// 🆕 Lista de emojis organizados por categoria (estilo WhatsApp/Telegram)
+// Seleção curada dos mais usados — sem depender de lib externa
+const EMOJIS_CATEGORIAS: { id: string; label: string; icone: string; emojis: string[] }[] = [
+  {
+    id: "smileys", label: "Smileys", icone: "😊", emojis: [
+      "😀","😃","😄","😁","😆","😅","🤣","😂","🙂","🙃","😉","😊","😇","🥰","😍","🤩",
+      "😘","😗","😚","😙","😋","😛","😜","🤪","😝","🤑","🤗","🤭","🤫","🤔","🤐","🤨",
+      "😐","😑","😶","😏","😒","🙄","😬","🤥","😌","😔","😪","🤤","😴","😷","🤒","🤕",
+      "🤢","🤮","🤧","🥵","🥶","🥴","😵","🤯","🤠","🥳","😎","🤓","🧐","😕","😟","🙁",
+      "☹️","😮","😯","😲","😳","🥺","😦","😧","😨","😰","😥","😢","😭","😱","😖","😣",
+      "😞","😓","😩","😫","🥱","😤","😡","😠","🤬","😈","👿","💀","☠️","💩","🤡","👹","👺"
+    ]
+  },
+  {
+    id: "gestos", label: "Gestos & Pessoas", icone: "👋", emojis: [
+      "👋","🤚","🖐️","✋","🖖","👌","🤌","🤏","✌️","🤞","🤟","🤘","🤙","👈","👉","👆",
+      "🖕","👇","☝️","👍","👎","✊","👊","🤛","🤜","👏","🙌","👐","🤲","🤝","🙏","✍️",
+      "💅","🤳","💪","🦾","🦿","🦵","🦶","👂","🦻","👃","🧠","🦷","🦴","👀","👁️","👅","👄",
+      "👶","🧒","👦","👧","🧑","👨","👩","🧔","👴","👵","🙍","🙎","🙅","🙆","💁","🙋","🧏","🙇","🤦","🤷"
+    ]
+  },
+  {
+    id: "animais", label: "Animais & Natureza", icone: "🐶", emojis: [
+      "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐽","🐸","🐵",
+      "🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🐣","🐥","🦆","🦅","🦉","🦇","🐺","🐗",
+      "🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🦟","🦗","🕷️","🦂","🐢","🐍","🦎","🦖",
+      "🐙","🦑","🦐","🦀","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐊","🐅","🐆","🦓","🦍",
+      "🌵","🎄","🌲","🌳","🌴","🌱","🌿","☘️","🍀","🎍","🎋","🍃","🍂","🍁","🍄","🌾",
+      "💐","🌷","🌹","🥀","🌺","🌸","🌼","🌻","🌞","🌝","🌛","🌜","🌚","🌕","🌖","🌗",
+      "🌘","🌑","🌒","🌓","🌔","🌙","🌎","🌍","🌏","💫","⭐","🌟","✨","⚡","☄️","💥","🔥"
+    ]
+  },
+  {
+    id: "comida", label: "Comida & Bebida", icone: "🍔", emojis: [
+      "🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥",
+      "🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌶️","🫑","🌽","🥕","🫒","🧄","🧅","🥔","🍠",
+      "🥐","🥯","🍞","🥖","🥨","🧀","🥚","🍳","🧈","🥞","🧇","🥓","🥩","🍗","🍖","🦴",
+      "🌭","🍔","🍟","🍕","🥪","🥙","🧆","🌮","🌯","🫔","🥗","🥘","🫕","🥫","🍝","🍜",
+      "🍲","🍛","🍣","🍱","🥟","🦪","🍤","🍙","🍚","🍘","🍥","🥠","🥮","🍢","🍡","🍧",
+      "🍨","🍦","🥧","🧁","🍰","🎂","🍮","🍭","🍬","🍫","🍿","🍩","🍪","🌰","🥜","🍯",
+      "🥛","🍼","☕","🍵","🧃","🥤","🧋","🍶","🍺","🍻","🥂","🍷","🥃","🍸","🍹","🧉","🍾","🧊","🥄","🍴"
+    ]
+  },
+  {
+    id: "atividades", label: "Atividades & Esportes", icone: "⚽", emojis: [
+      "⚽","🏀","🏈","⚾","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍",
+      "🏏","🪃","🥅","⛳","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸️","🥌",
+      "🎿","⛷️","🏂","🪂","🏋️","🤼","🤸","⛹️","🤺","🤾","🏌️","🏇","🧘","🏄","🏊","🤽",
+      "🚣","🧗","🚵","🚴","🏆","🥇","🥈","🥉","🏅","🎖️","🏵️","🎗️","🎫","🎟️","🎪","🤹",
+      "🎭","🎨","🎬","🎤","🎧","🎼","🎹","🥁","🎷","🎺","🎸","🪕","🎻","🎲","♟️","🎯",
+      "🎳","🎮","🎰","🧩","🎨"
+    ]
+  },
+  {
+    id: "viagens", label: "Viagens & Lugares", icone: "🚗", emojis: [
+      "🚗","🚕","🚙","🚌","🚎","🏎️","🚓","🚑","🚒","🚐","🛻","🚚","🚛","🚜","🏍️","🛵",
+      "🚲","🛴","🛺","🚠","🚡","🚟","🚃","🚋","🚞","🚝","🚄","🚅","🚈","🚂","🚆","🚇",
+      "🚊","🚉","✈️","🛫","🛬","🛩️","💺","🛰️","🚀","🛸","🚁","🛶","⛵","🚤","🛥️","🛳️",
+      "⛴️","🚢","⚓","⛽","🚧","🚦","🚥","🗺️","🗿","🗽","🗼","🏰","🏯","🏟️","🎡","🎢",
+      "🎠","⛲","⛱️","🏖️","🏝️","🏜️","🌋","⛰️","🏔️","🗻","🏕️","⛺","🏠","🏡","🏘️","🏚️",
+      "🏗️","🏭","🏢","🏬","🏣","🏤","🏥","🏦","🏨","🏪","🏫","🏩","💒","⛪","🕌","🕍","🛕","🕋"
+    ]
+  },
+  {
+    id: "objetos", label: "Objetos", icone: "💡", emojis: [
+      "⌚","📱","📲","💻","⌨️","🖥️","🖨️","🖱️","🖲️","🕹️","🗜️","💽","💾","💿","📀","📼",
+      "📷","📸","📹","🎥","📽️","🎞️","📞","☎️","📟","📠","📺","📻","🎙️","🎚️","🎛️","🧭",
+      "⏱️","⏲️","⏰","🕰️","⌛","⏳","📡","🔋","🔌","💡","🔦","🕯️","🪔","🧯","🛢️","💸",
+      "💵","💴","💶","💷","💰","💳","💎","⚖️","🧰","🔧","🔨","⚒️","🛠️","⛏️","🔩","⚙️",
+      "🧱","⛓️","🧲","🔫","💣","🧨","🪓","🔪","🗡️","⚔️","🛡️","🚬","⚰️","⚱️","🏺","🔮",
+      "📿","🧿","💈","⚗️","🔭","🔬","🕳️","🩹","🩺","💊","💉","🩸","🧬","🦠","🧫","🧪",
+      "🌡️","🧹","🧺","🧻","🚽","🚰","🚿","🛁","🛀","🧼","🪒","🧽","🧴","🔑","🗝️","🚪",
+      "🛋️","🛏️","🛌","🧸","🖼️","🛍️","🛒","🎁","🎈","🎏","🎀","🎊","🎉","🎎","🏮","🎐"
+    ]
+  },
+  {
+    id: "simbolos", label: "Símbolos & Corações", icone: "❤️", emojis: [
+      "❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❣️","💕","💞","💓","💗","💖",
+      "💘","💝","💟","☮️","✝️","☪️","🕉️","☸️","✡️","🔯","🕎","☯️","☦️","🛐","⛎","♈",
+      "♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓","🆔","⚛️","🉑","☢️","☣️","📴",
+      "📳","🈶","🈚","🈸","🈺","🈷️","✴️","🆚","💮","🉐","㊙️","㊗️","🈴","🈵","🈹","🈲",
+      "🅰️","🅱️","🆎","🆑","🅾️","🆘","❌","⭕","🛑","⛔","📛","🚫","💯","💢","♨️","🚷",
+      "🚯","🚳","🚱","🔞","📵","🚭","❗","❕","❓","❔","‼️","⁉️","🔅","🔆","〽️","⚠️",
+      "🚸","🔱","⚜️","🔰","♻️","✅","🈯","💹","❇️","✳️","❎","🌐","💠","Ⓜ️","🌀","💤",
+      "🏧","🚾","♿","🅿️","🈳","🈂️","🛂","🛃","🛄","🛅","🚹","🚺","🚼","🚻","🚮","🎦"
+    ]
+  }
+];
+
 // ═══ Player de áudio estilo WhatsApp (com waveform real) ═══
 function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -142,6 +231,25 @@ export function ChatSection() {
   const [showTransferir, setShowTransferir] = useState(false);
   const [showChatInterno, setShowChatInterno] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
+
+  // 🆕 Emoji picker — abre painel fixo acima do input, estilo WhatsApp
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiCategoria, setEmojiCategoria] = useState<string>("smileys");
+  const [emojiBusca, setEmojiBusca] = useState("");
+
+  // 🆕 Upload de mídia (imagem/vídeo/PDF/Excel/doc)
+  const fileUploadRef = useRef<HTMLInputElement>(null);
+  const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
+  const [arquivoPreviewUrl, setArquivoPreviewUrl] = useState<string>("");
+  const [legendaArquivo, setLegendaArquivo] = useState("");
+  const [enviandoMidia, setEnviandoMidia] = useState(false);
+
+  // 🆕 Template WABA — envia template pra cliente (rompe janela 24h de WABA)
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templatesDoCanal, setTemplatesDoCanal] = useState<any[]>([]);
+  const [templateEscolhido, setTemplateEscolhido] = useState<any | null>(null);
+  const [templateVars, setTemplateVars] = useState<Record<string, string>>({});
+  const [enviandoTemplate, setEnviandoTemplate] = useState(false);
   // 🆕 Menu de 3 pontinhos REMOVIDO — todos os botões ficam visíveis na toolbar agora
   const [abaConversa, setAbaConversa] = useState<"automatico" | "aguardando" | "abertos" | "finalizados">("aguardando");
   const [busca, setBusca] = useState("");
@@ -419,6 +527,151 @@ export function ChatSection() {
     }
     catch { alert("Erro ao enviar!"); }
     setEnviandoMsg(false);
+  };
+
+  // 🆕 EMOJI PICKER — insere emoji no texto da mensagem no cursor
+  const inserirEmoji = (emoji: string) => {
+    setMensagem(prev => prev + emoji);
+  };
+
+  // Filtra emojis pela busca (procura pelo char mesmo ou deixa passar todos se busca vazia)
+  const emojisVisiveis = (() => {
+    const cat = EMOJIS_CATEGORIAS.find(c => c.id === emojiCategoria);
+    if (!cat) return [];
+    if (!emojiBusca.trim()) return cat.emojis;
+    // Busca simples: se o char do emoji contém o texto, retorna
+    // (limitação: emojis não têm nome, então busca só filtra por aparência parcial)
+    return cat.emojis.filter(e => e.includes(emojiBusca));
+  })();
+
+  // 🆕 UPLOAD DE MÍDIA — quando user clica em 📎 e escolhe um arquivo
+  const handleArquivoSelecionado = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const MAX_MB = 25; // Limite Meta/WABA = 16MB pra imagem, 100MB pra doc. 25MB é seguro pra todos.
+    if (file.size > MAX_MB * 1024 * 1024) {
+      alert(`⚠️ Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Máximo ${MAX_MB}MB.`);
+      if (fileUploadRef.current) fileUploadRef.current.value = "";
+      return;
+    }
+    setArquivoSelecionado(file);
+    // Cria preview URL pra imagens/vídeos
+    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
+      const url = URL.createObjectURL(file);
+      setArquivoPreviewUrl(url);
+    } else {
+      setArquivoPreviewUrl("");
+    }
+    setLegendaArquivo("");
+    if (fileUploadRef.current) fileUploadRef.current.value = "";
+  };
+
+  const cancelarEnvioArquivo = () => {
+    if (arquivoPreviewUrl) URL.revokeObjectURL(arquivoPreviewUrl);
+    setArquivoSelecionado(null);
+    setArquivoPreviewUrl("");
+    setLegendaArquivo("");
+  };
+
+  const enviarMidia = async () => {
+    if (!arquivoSelecionado || !atendimentoAtivo) return;
+    if (!atendimentoAtivo.canal_id) { alert("⚠️ Atendimento sem canal_id."); return; }
+    setEnviandoMidia(true);
+    setStickyFundo(true);
+    setTemMensagemNova(false);
+    try {
+      const fd = new FormData();
+      fd.append("arquivo", arquivoSelecionado);
+      fd.append("numero", atendimentoAtivo.numero);
+      fd.append("canalId", String(atendimentoAtivo.canal_id));
+      if (legendaArquivo) fd.append("legenda", legendaArquivo);
+      const resp = await fetch("/api/whatsapp-midia", { method: "POST", body: fd });
+      const data = await resp.json();
+      if (!data.success) {
+        alert("Erro ao enviar arquivo: " + (data.error || "desconhecido"));
+      } else {
+        cancelarEnvioArquivo();
+      }
+    } catch (e: any) {
+      alert("Erro ao enviar arquivo: " + e.message);
+    }
+    setEnviandoMidia(false);
+  };
+
+  // 🆕 TEMPLATE WABA — calcula se passou 24h da última mensagem do cliente
+  // Só faz sentido em canais WABA (WebJS não tem limite de janela)
+  const canalAtivo = canais.find(c => c.id === atendimentoAtivo?.canal_id);
+  const ehCanalWaba = canalAtivo?.tipo === "waba";
+
+  const { janelaExpirada, horasDesdeUltimaMsgCliente } = (() => {
+    if (!ehCanalWaba || historico.length === 0) {
+      return { janelaExpirada: false, horasDesdeUltimaMsgCliente: 0 };
+    }
+    // Pega a mensagem mais recente VINDA DO CLIENTE
+    const msgsCliente = historico.filter(m => m.de === "cliente");
+    if (msgsCliente.length === 0) {
+      // Nunca recebeu mensagem do cliente → janela nunca abriu → considera expirada
+      return { janelaExpirada: true, horasDesdeUltimaMsgCliente: 9999 };
+    }
+    const ultimaMsgCliente = msgsCliente[msgsCliente.length - 1];
+    const tempoMs = Date.now() - new Date(ultimaMsgCliente.created_at).getTime();
+    const horas = tempoMs / (1000 * 60 * 60);
+    return { janelaExpirada: horas > 24, horasDesdeUltimaMsgCliente: horas };
+  })();
+
+  const abrirModalTemplate = async () => {
+    if (!atendimentoAtivo?.canal_id || !wsId) return;
+    setShowTemplateModal(true);
+    // Busca templates aprovados do canal no Supabase direto (mais rápido que passar pelo backend)
+    const { data } = await supabase.from("templates_waba")
+      .select("*").eq("workspace_id", wsId).eq("canal_id", atendimentoAtivo.canal_id).eq("status", "aprovado")
+      .order("created_at", { ascending: false });
+    setTemplatesDoCanal(data || []);
+    setTemplateEscolhido(null);
+    setTemplateVars({});
+  };
+
+  // Extrai variáveis {{1}}, {{2}} etc do template selecionado
+  const variaveisDoTemplate = (() => {
+    if (!templateEscolhido) return [] as string[];
+    const vars = new Set<string>();
+    for (const comp of templateEscolhido.componentes || []) {
+      if ((comp.type === "BODY" && comp.text) || (comp.type === "HEADER" && comp.format === "TEXT" && comp.text)) {
+        const matches = comp.text.matchAll(/\{\{(\d+)\}\}/g);
+        for (const m of matches) vars.add(m[1]);
+      }
+    }
+    return Array.from(vars).sort((a, b) => parseInt(a) - parseInt(b));
+  })();
+
+  const enviarTemplateWaba = async () => {
+    if (!templateEscolhido || !atendimentoAtivo) return;
+    // Valida que todas as variáveis estão preenchidas
+    const faltando = variaveisDoTemplate.filter(v => !templateVars[v]?.trim());
+    if (faltando.length > 0) {
+      if (!confirm(`⚠️ Variáveis sem valor: ${faltando.map(v => `{{${v}}}`).join(", ")}.\n\nElas vão ser enviadas literalmente. Continuar?`)) return;
+    }
+    setEnviandoTemplate(true);
+    try {
+      const resp = await wa("enviar-template", {
+        numero: atendimentoAtivo.numero,
+        canalId: atendimentoAtivo.canal_id,
+        templateId: templateEscolhido.id,
+        variaveis: templateVars,
+        workspaceId: wsId
+      });
+      if (!resp.success) {
+        alert("Erro ao enviar template: " + (resp.error || "desconhecido"));
+      } else {
+        setShowTemplateModal(false);
+        setTemplateEscolhido(null);
+        setTemplateVars({});
+        setStickyFundo(true);
+      }
+    } catch (e: any) {
+      alert("Erro ao enviar template: " + e.message);
+    }
+    setEnviandoTemplate(false);
   };
 
   const iniciarGravacao = async () => {
@@ -1065,25 +1318,116 @@ export function ChatSection() {
                 <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
               </div>
             ) : (
-              <div style={{ background: "#202c33", padding: "8px 12px", display: "flex", gap: 8, alignItems: "center" }}>
-                {permissoes.respostas_rapidas && (
-                  <button onClick={() => setShowRespostas(!showRespostas)} title="Respostas rápidas"
-                    style={{ background: showRespostas ? "#00a88422" : "none", color: showRespostas ? "#00a884" : "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 18, cursor: "pointer" }}>⚡</button>
+              <>
+                {/* 🆕 BANNER de aviso de janela 24h expirada (só pra WABA) */}
+                {ehCanalWaba && janelaExpirada && (
+                  <div style={{ background: "#f59e0b22", borderTop: "1px solid #f59e0b66", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>⚠️</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ color: "#fbbf24", fontSize: 12, margin: 0, fontWeight: "bold" }}>
+                        Janela de 24h expirada
+                      </p>
+                      <p style={{ color: "#fde68a", fontSize: 11, margin: "2px 0 0" }}>
+                        {horasDesdeUltimaMsgCliente > 9000 ? "Esse contato nunca te enviou mensagem." : `Última mensagem do cliente há ${Math.floor(horasDesdeUltimaMsgCliente)}h.`} Só é possível enviar via Template aprovado.
+                      </p>
+                    </div>
+                    <button onClick={abrirModalTemplate} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>📋 Enviar Template</button>
+                  </div>
                 )}
-                <button title="Emoji" style={{ background: "none", color: "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 20, cursor: "pointer" }}>😊</button>
-                <button title="Anexar" style={{ background: "none", color: "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 18, cursor: "pointer" }}>📎</button>
-                <input placeholder={meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem"} value={mensagem}
-                  onChange={e => { setMensagem(e.target.value); if (e.target.value === "/" && permissoes.respostas_rapidas) setShowRespostas(true); else if (!e.target.value) setShowRespostas(false); }}
-                  onKeyDown={e => e.key === "Enter" && enviarMensagem()}
-                  style={{ flex: 1, background: "#2a3942", border: "none", borderRadius: 20, padding: "10px 16px", color: "#e9edef", fontSize: 14 }} />
-                {mensagem ? (
-                  <button onClick={enviarMensagem} disabled={enviandoMsg} title="Enviar"
-                    style={{ background: "#00a884", color: "white", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer", fontWeight: "bold" }}>{enviandoMsg ? "…" : "➤"}</button>
-                ) : (
-                  <button onClick={iniciarGravacao} title="Gravar áudio"
-                    style={{ background: "none", color: "#8696a0", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer" }}>🎤</button>
+
+                {/* 🆕 EMOJI PICKER — painel fixo acima do input (estilo WhatsApp) */}
+                {showEmojiPicker && (
+                  <div style={{ background: "#202c33", borderTop: "1px solid #2a3942", maxHeight: 320, display: "flex", flexDirection: "column" }}>
+                    {/* Header: abas de categorias + busca */}
+                    <div style={{ display: "flex", gap: 2, borderBottom: "1px solid #2a3942", padding: "6px 8px", overflowX: "auto" }}>
+                      {EMOJIS_CATEGORIAS.map(cat => (
+                        <button key={cat.id} onClick={() => setEmojiCategoria(cat.id)} title={cat.label}
+                          style={{
+                            background: emojiCategoria === cat.id ? "#00a88433" : "transparent",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "6px 10px",
+                            fontSize: 18,
+                            cursor: "pointer",
+                            flexShrink: 0,
+                            borderBottom: emojiCategoria === cat.id ? "2px solid #00a884" : "2px solid transparent"
+                          }}>
+                          {cat.icone}
+                        </button>
+                      ))}
+                      <input placeholder="🔍 Buscar..." value={emojiBusca} onChange={e => setEmojiBusca(e.target.value)}
+                        style={{ flex: 1, minWidth: 100, background: "#111b21", border: "1px solid #2a3942", borderRadius: 6, padding: "4px 10px", color: "#e9edef", fontSize: 12, marginLeft: 8 }} />
+                    </div>
+                    {/* Grid de emojis */}
+                    <div style={{ flex: 1, overflowY: "auto", padding: 8, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(36px, 1fr))", gap: 2 }}>
+                      {emojisVisiveis.length === 0 ? (
+                        <div style={{ gridColumn: "1 / -1", textAlign: "center", color: "#8696a0", fontSize: 12, padding: 20 }}>
+                          Nenhum emoji encontrado
+                        </div>
+                      ) : emojisVisiveis.map((emoji, i) => (
+                        <button key={`${emojiCategoria}-${i}`} onClick={() => inserirEmoji(emoji)}
+                          style={{ background: "none", border: "none", fontSize: 22, padding: 4, cursor: "pointer", borderRadius: 4, lineHeight: 1 }}
+                          onMouseEnter={e => e.currentTarget.style.background = "#2a3942"}
+                          onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
-              </div>
+
+                {/* TOOLBAR do input */}
+                <div style={{ background: "#202c33", padding: "8px 12px", display: "flex", gap: 8, alignItems: "center" }}>
+                  {permissoes.respostas_rapidas && (
+                    <button onClick={() => setShowRespostas(!showRespostas)} title="Respostas rápidas"
+                      style={{ background: showRespostas ? "#00a88422" : "none", color: showRespostas ? "#00a884" : "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 18, cursor: "pointer" }}>⚡</button>
+                  )}
+
+                  {/* 🆕 Botão EMOJI — abre/fecha picker */}
+                  <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="Emoji"
+                    style={{ background: showEmojiPicker ? "#00a88422" : "none", color: showEmojiPicker ? "#00a884" : "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 20, cursor: "pointer" }}>😊</button>
+
+                  {/* 🆕 Botão ANEXAR — abre dialog do navegador pra escolher arquivo */}
+                  <input
+                    ref={fileUploadRef}
+                    type="file"
+                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar"
+                    onChange={handleArquivoSelecionado}
+                    style={{ display: "none" }}
+                  />
+                  <button onClick={() => fileUploadRef.current?.click()} title="Anexar arquivo"
+                    style={{ background: "none", color: "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 18, cursor: "pointer" }}>📎</button>
+
+                  {/* 🆕 Botão TEMPLATE — só aparece em canal WABA. Amarelo se janela expirou, cinza se dentro dos 24h */}
+                  {ehCanalWaba && (
+                    <button onClick={abrirModalTemplate} title={janelaExpirada ? "Enviar template (janela 24h expirada)" : "Enviar template aprovado"}
+                      style={{
+                        background: janelaExpirada ? "#f59e0b" : "none",
+                        color: janelaExpirada ? "white" : "#8696a0",
+                        border: janelaExpirada ? "none" : "none",
+                        borderRadius: "50%",
+                        width: 38,
+                        height: 38,
+                        fontSize: 18,
+                        cursor: "pointer",
+                        animation: janelaExpirada ? "pulse 2s infinite" : "none"
+                      }}>📋</button>
+                  )}
+
+                  <input placeholder={meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem"} value={mensagem}
+                    onChange={e => { setMensagem(e.target.value); if (e.target.value === "/" && permissoes.respostas_rapidas) setShowRespostas(true); else if (!e.target.value) setShowRespostas(false); }}
+                    onKeyDown={e => e.key === "Enter" && enviarMensagem()}
+                    onFocus={() => setShowEmojiPicker(false)}
+                    style={{ flex: 1, background: "#2a3942", border: "none", borderRadius: 20, padding: "10px 16px", color: "#e9edef", fontSize: 14 }} />
+                  {mensagem ? (
+                    <button onClick={enviarMensagem} disabled={enviandoMsg} title="Enviar"
+                      style={{ background: "#00a884", color: "white", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer", fontWeight: "bold" }}>{enviandoMsg ? "…" : "➤"}</button>
+                  ) : (
+                    <button onClick={iniciarGravacao} title="Gravar áudio"
+                      style={{ background: "none", color: "#8696a0", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer" }}>🎤</button>
+                  )}
+                </div>
+              </>
             )}
           </>
         ) : (
@@ -1095,6 +1439,172 @@ export function ChatSection() {
           </div>
         )}
       </div>
+
+      {/* 🆕 MODAL PREVIEW DE ARQUIVO — aparece antes de enviar pra user ver preview + adicionar legenda */}
+      {arquivoSelecionado && (
+        <div onClick={() => !enviandoMidia && cancelarEnvioArquivo()}
+          style={{ position: "fixed", inset: 0, background: "#000e", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: "#111b21", borderRadius: 12, width: "100%", maxWidth: 520, maxHeight: "90vh", display: "flex", flexDirection: "column", border: "1px solid #2a3942", overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid #2a3942", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>📎 Enviar arquivo</h3>
+              <button onClick={cancelarEnvioArquivo} disabled={enviandoMidia}
+                style={{ background: "none", border: "none", color: "#8696a0", fontSize: 22, cursor: enviandoMidia ? "not-allowed" : "pointer" }}>✕</button>
+            </div>
+
+            {/* Preview */}
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: "#0b141a" }}>
+              {arquivoPreviewUrl && arquivoSelecionado.type.startsWith("image/") ? (
+                <img src={arquivoPreviewUrl} alt="preview" style={{ maxWidth: "100%", maxHeight: 320, borderRadius: 8, objectFit: "contain" }} />
+              ) : arquivoPreviewUrl && arquivoSelecionado.type.startsWith("video/") ? (
+                <video src={arquivoPreviewUrl} controls style={{ maxWidth: "100%", maxHeight: 320, borderRadius: 8 }} />
+              ) : (
+                <div style={{ background: "#2a3942", borderRadius: 8, padding: 30, textAlign: "center", width: "100%" }}>
+                  <p style={{ fontSize: 56, margin: 0 }}>
+                    {arquivoSelecionado.type.startsWith("audio/") ? "🎵"
+                      : arquivoSelecionado.name.match(/\.pdf$/i) ? "📕"
+                      : arquivoSelecionado.name.match(/\.(xlsx?|csv)$/i) ? "📊"
+                      : arquivoSelecionado.name.match(/\.(docx?|rtf)$/i) ? "📄"
+                      : arquivoSelecionado.name.match(/\.(pptx?)$/i) ? "📽️"
+                      : arquivoSelecionado.name.match(/\.(zip|rar|7z)$/i) ? "🗜️"
+                      : "📎"}
+                  </p>
+                </div>
+              )}
+              <div style={{ textAlign: "center", color: "#e9edef" }}>
+                <p style={{ fontSize: 14, fontWeight: "bold", margin: "0 0 2px", wordBreak: "break-all" }}>{arquivoSelecionado.name}</p>
+                <p style={{ fontSize: 11, color: "#8696a0", margin: 0 }}>
+                  {(arquivoSelecionado.size / 1024 / 1024).toFixed(2)} MB · {arquivoSelecionado.type || "tipo desconhecido"}
+                </p>
+              </div>
+            </div>
+
+            {/* Legenda + botão enviar */}
+            <div style={{ padding: "12px 16px", background: "#202c33", display: "flex", gap: 8, alignItems: "center" }}>
+              <input placeholder="Adicione uma legenda (opcional)" value={legendaArquivo}
+                onChange={e => setLegendaArquivo(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !enviandoMidia && enviarMidia()}
+                disabled={enviandoMidia}
+                style={{ flex: 1, background: "#2a3942", border: "none", borderRadius: 20, padding: "10px 16px", color: "#e9edef", fontSize: 14 }} />
+              <button onClick={enviarMidia} disabled={enviandoMidia}
+                style={{ background: enviandoMidia ? "#047857" : "#00a884", color: "white", border: "none", borderRadius: "50%", width: 44, height: 44, fontSize: 18, cursor: enviandoMidia ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+                {enviandoMidia ? "…" : "➤"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 MODAL TEMPLATE WABA — escolher template aprovado + preencher variáveis + enviar */}
+      {showTemplateModal && atendimentoAtivo && (
+        <div onClick={() => !enviandoTemplate && setShowTemplateModal(false)}
+          style={{ position: "fixed", inset: 0, background: "#000e", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: "#111b21", borderRadius: 12, width: "100%", maxWidth: 600, maxHeight: "90vh", display: "flex", flexDirection: "column", border: "1px solid #2a3942", overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid #2a3942", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>📋 Enviar Template WABA</h3>
+              <button onClick={() => setShowTemplateModal(false)} disabled={enviandoTemplate}
+                style={{ background: "none", border: "none", color: "#8696a0", fontSize: 22, cursor: enviandoTemplate ? "not-allowed" : "pointer" }}>✕</button>
+            </div>
+
+            {janelaExpirada && (
+              <div style={{ padding: "10px 20px", background: "#f59e0b22", borderBottom: "1px solid #f59e0b44" }}>
+                <p style={{ color: "#fbbf24", fontSize: 12, margin: 0 }}>
+                  ⚠️ Janela de 24h expirada. O template vai reabrir a conversa (custo da Meta aplica).
+                </p>
+              </div>
+            )}
+
+            <div style={{ padding: 20, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* Lista de templates */}
+              <div>
+                <label style={{ color: "#8696a0", fontSize: 11, display: "block", marginBottom: 4, textTransform: "uppercase", fontWeight: "bold" }}>
+                  Template aprovado ({templatesDoCanal.length} disponíveis)
+                </label>
+                {templatesDoCanal.length === 0 ? (
+                  <div style={{ background: "#202c33", borderRadius: 8, padding: 16, textAlign: "center" }}>
+                    <p style={{ color: "#f59e0b", fontSize: 13, margin: "0 0 8px" }}>⚠️ Nenhum template aprovado pra esse canal</p>
+                    <p style={{ color: "#8696a0", fontSize: 11, margin: 0 }}>
+                      Cria templates em <b>Chatbot → Templates</b> e aguarda aprovação da Meta.
+                    </p>
+                  </div>
+                ) : (
+                  <select value={templateEscolhido?.id || ""}
+                    onChange={e => {
+                      const t = templatesDoCanal.find(tpl => tpl.id === parseInt(e.target.value));
+                      setTemplateEscolhido(t || null);
+                      setTemplateVars({});
+                    }}
+                    style={{ width: "100%", background: "#2a3942", border: "1px solid #374045", borderRadius: 8, padding: "10px 12px", color: "white", fontSize: 13 }}>
+                    <option value="">— Selecione um template —</option>
+                    {templatesDoCanal.map(t => (
+                      <option key={t.id} value={t.id}>
+                        ✅ {t.nome_amigavel || t.meta_template_name} ({t.categoria}, {t.idioma})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Preview do template selecionado */}
+              {templateEscolhido && (
+                <div style={{ background: "#202c33", borderRadius: 10, padding: 14 }}>
+                  <p style={{ color: "#8696a0", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>Preview</p>
+                  {(templateEscolhido.componentes || []).map((c: any, i: number) => {
+                    if (c.type === "HEADER" && c.format === "TEXT") return <p key={i} style={{ color: "#86efac", fontSize: 12, margin: "0 0 6px", fontWeight: "bold" }}>📌 {c.text}</p>;
+                    if (c.type === "HEADER") return <p key={i} style={{ color: "#8696a0", fontSize: 11, margin: "0 0 6px" }}>📎 {c.format}</p>;
+                    if (c.type === "BODY") return <p key={i} style={{ color: "#e9edef", fontSize: 13, margin: "0 0 6px", whiteSpace: "pre-wrap" }}>{c.text}</p>;
+                    if (c.type === "FOOTER") return <p key={i} style={{ color: "#8696a0", fontSize: 11, margin: "0 0 6px", fontStyle: "italic" }}>{c.text}</p>;
+                    if (c.type === "BUTTONS") return <div key={i} style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                      {(c.buttons || []).map((b: any, j: number) => (
+                        <span key={j} style={{ background: "#00a88422", color: "#00a884", fontSize: 11, padding: "3px 10px", borderRadius: 6 }}>{b.text}</span>
+                      ))}
+                    </div>;
+                    return null;
+                  })}
+                </div>
+              )}
+
+              {/* Inputs pra variáveis {{1}}, {{2}} etc */}
+              {templateEscolhido && variaveisDoTemplate.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <label style={{ color: "#8696a0", fontSize: 11, textTransform: "uppercase", fontWeight: "bold" }}>
+                    🔧 Variáveis ({variaveisDoTemplate.length})
+                  </label>
+                  {variaveisDoTemplate.map(v => (
+                    <div key={v}>
+                      <label style={{ color: "#8696a0", fontSize: 11, display: "block", marginBottom: 2 }}>{`{{${v}}}`}</label>
+                      <input
+                        value={templateVars[v] || ""}
+                        onChange={e => setTemplateVars(p => ({ ...p, [v]: e.target.value }))}
+                        placeholder={`Valor pra {{${v}}}`}
+                        style={{ width: "100%", background: "#2a3942", border: "1px solid #374045", borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 13, boxSizing: "border-box" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer com botão enviar */}
+            <div style={{ padding: "12px 20px", borderTop: "1px solid #2a3942", background: "#202c33", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+              <p style={{ color: "#8696a0", fontSize: 11, margin: 0 }}>
+                Para: <b style={{ color: "#00a884", fontFamily: "monospace" }}>{atendimentoAtivo.numero}</b>
+              </p>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setShowTemplateModal(false)} disabled={enviandoTemplate}
+                  style={{ background: "#2a3942", color: "#8696a0", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: enviandoTemplate ? "not-allowed" : "pointer" }}>
+                  Cancelar
+                </button>
+                <button onClick={enviarTemplateWaba} disabled={enviandoTemplate || !templateEscolhido}
+                  style={{ background: (enviandoTemplate || !templateEscolhido) ? "#047857" : "#00a884", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, cursor: (enviandoTemplate || !templateEscolhido) ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+                  {enviandoTemplate ? "⏳ Enviando..." : "🚀 Enviar Template"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PAINEL DADOS DO CONTATO */}
       {atendimentoAtivo && showPainelContato && (
