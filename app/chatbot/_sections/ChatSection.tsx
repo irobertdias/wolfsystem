@@ -520,6 +520,10 @@ export function ChatSection() {
   const classificarAba = (a: Atendimento): "automatico" | "aguardando" | "abertos" | "finalizados" => {
     if (a.status === "resolvido") return "finalizados";
     if (a.atendente === "BOT") return "automatico";
+    // 🆕 Se já tem um atendente real atribuído (ex: vindo da roleta), vai direto pra "Abertos".
+    // Antes caía em "Aguardando" porque status ainda era "pendente" — agora respeita o atendente real.
+    const atendenteEhReal = !!a.atendente && !["BOT", "Humano"].includes(a.atendente);
+    if (atendenteEhReal) return "abertos";
     if (a.status === "pendente") return "aguardando";
     return "abertos";
   };
