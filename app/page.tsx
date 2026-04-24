@@ -200,13 +200,68 @@ export default function Site() {
         </button>
       </section>
 
-      {/* FOOTER */}
-      <footer style={{ padding: "32px", textAlign: "center", borderTop: "1px solid #1f2937" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
-          <img src="/logo1.png" alt="Wolf" style={{ width: 28, filter: "brightness(0) invert(1)" }} />
-          <span style={{ color: "white", fontWeight: "bold" }}>Wolf System</span>
+      {/* 🆕 FOOTER — com links pra LGPD / Termos / Contato */}
+      <footer style={{ padding: "48px 32px 24px", borderTop: "1px solid #1f2937", background: "#0a0a0a" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+
+          {/* Grid com colunas: marca + navegação + legal + contato */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 40, marginBottom: 32 }}>
+
+            {/* Marca + tagline */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <img src="/logo1.png" alt="Wolf" style={{ width: 32, filter: "brightness(0) invert(1)" }} />
+                <span style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>Wolf System</span>
+              </div>
+              <p style={{ color: "#6b7280", fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                CRM + ChatBot com WhatsApp &amp; IA. Automatize seu atendimento e venda mais.
+              </p>
+            </div>
+
+            {/* Navegação */}
+            <div>
+              <h4 style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 12px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>Navegação</h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <a href="#recursos" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>Recursos</a>
+                <a href="#planos" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>Planos</a>
+                <a href="https://app.wolfgyn.com.br/login" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>Acessar sistema</a>
+                <a href="https://app.wolfgyn.com.br/login/register" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>Criar conta grátis</a>
+              </div>
+            </div>
+
+            {/* 🆕 Legal — LGPD e Termos */}
+            <div>
+              <h4 style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 12px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>Legal</h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <a href="/privacidade" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>🔒 Política de Privacidade</a>
+                <a href="/termos" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>📄 Termos de Uso</a>
+                <a href="/privacidade#seus-direitos" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>⚖️ LGPD — Seus Direitos</a>
+              </div>
+            </div>
+
+            {/* Contato */}
+            <div>
+              <h4 style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 12px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>Contato</h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <a href="mailto:suporte@wolfgyn.com.br" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>suporte@wolfgyn.com.br</a>
+                <a href="mailto:comercial@wolfgyn.com.br" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>comercial@wolfgyn.com.br</a>
+                <a href="mailto:privacidade@wolfgyn.com.br" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>privacidade@wolfgyn.com.br</a>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Linha divisória + copyright */}
+          <div style={{ borderTop: "1px solid #1f2937", paddingTop: 20, display: "flex", flexDirection: "column", gap: 8, textAlign: "center" }}>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>
+              © {new Date().getFullYear()} Wolf System. Todos os direitos reservados.
+            </p>
+            <p style={{ color: "#4b5563", fontSize: 11, margin: 0 }}>
+              Em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018).
+            </p>
+          </div>
+
         </div>
-        <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>© 2025 Wolf System. Todos os direitos reservados.</p>
       </footer>
     </div>
   );
