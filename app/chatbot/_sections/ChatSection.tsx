@@ -474,9 +474,57 @@ export function ChatSection() {
       await supabase.from("atendimentos").update({ fila }).eq("id", atendimentoAtivo.id);
       await inserirMensagemSistema(atendimentoAtivo.numero, `Chat transferido para fila: ${fila}, por: ${meuNome}`, atendimentoAtivo.canal_id);
       await fetchAtendimentos(); setShowTransferir(false);
-      alert(`✅ Transferido para ${fila}`);
+      alert(`✅ Transferido para fila ${fila}`);
     } catch (e: any) { alert("Erro: " + e.message); }
   };
+
+  // 🆕 Transferir pra um atendente específico (não pra fila)
+  // Grava o email do atendente no campo `atendente` → quem recebeu vê o chat na aba "Abertos" dele
+  // Também garante que o chat saia do BOT e de "pendente"
+  const transferirParaAtendente = async (emailDestino: string, nomeDestino: string) => {
+    if (!atendimentoAtivo) return;
+    if (!emailDestino) { alert("Atendente sem email válido."); return; }
+    try {
+      await supabase.from("atendimentos").update({
+        atendente: emailDestino,
+        status: "aberto",
+        bloqueado_ia: true,
+        bloqueado_fluxo: true,
+        bloqueado_typebot: true,
+      }).eq("id", atendimentoAtivo.id);
+      await inserirMensagemSistema(
+        atendimentoAtivo.numero,
+        `Chat transferido para: ${nomeDestino}, por: ${meuNome}`,
+        atendimentoAtivo.canal_id
+      );
+      await fetchAtendimentos();
+      setShowTransferir(false);
+      alert(`✅ Transferido para ${nomeDestino}`);
+    } catch (e: any) { alert("Erro: " + e.message); }
+  };
+
+  // 🆕 Reabrir atendimento finalizado
+  // Status volta pra "aberto", quem reabriu vira o atendente, chat aparece na aba "Abertos"
+  const reabrirChat = async (a: Atendimento) => {
+    if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
+    if (!confirm(`Reabrir atendimento de ${a.nome}?\n\nO chat volta para a aba "Abertos" e você passa a ser o atendente.`)) return;
+    try {
+      await supabase.from("atendimentos").update({
+        status: "aberto",
+        atendente: user.email,
+        bloqueado_ia: true,
+        bloqueado_fluxo: true,
+        bloqueado_typebot: true,
+      }).eq("id", a.id);
+      await inserirMensagemSistema(a.numero, `Atendimento REABERTO por: ${meuNome}`, a.canal_id);
+      await fetchAtendimentos();
+      setAbaConversa("abertos");
+      // Atualiza o atendimento ativo com o novo status pra UI reagir na hora
+      setAtendimentoAtivo({ ...a, status: "aberto", atendente: user.email });
+      alert("✅ Atendimento reaberto. Você é o atendente agora.");
+    } catch (e: any) { alert("Erro: " + e.message); }
+  };
+
   const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroEtiqueta("todas"); setFiltroCanal("todos"); };
 
   const tempoRelativo = (data: string) => { const d = Math.floor((Date.now() - new Date(data).getTime()) / 60000); return d < 1 ? "agora" : d < 60 ? `${d}min` : d < 1440 ? `${Math.floor(d/60)}h` : `${Math.floor(d/1440)}d`; };
@@ -530,6 +578,12 @@ export function ChatSection() {
     const aba = classificarAba(a);
     if (aba === "automatico") return <button onClick={(e) => pararBotDaLista(e, a)} title="Parar BOT e assumir" style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>⏹ Parar BOT</button>;
     if (aba === "aguardando") return <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir atendimento" style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>Atender</button>;
+    // 🆕 Botão Reabrir direto da lista (aba Finalizados)
+    if (aba === "finalizados") return <button
+      onClick={(e) => { e.stopPropagation(); reabrirChat(a); }}
+      title="Reabrir esta conversa"
+      style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}
+    >🔓 Reabrir</button>;
     return null;
   };
 
@@ -717,35 +771,19 @@ export function ChatSection() {
                 </div>
               </div>
 
-              {/* TOOLBAR DE AÇÕES — TUDO VISÍVEL */}
+              {/* TOOLBAR DE AÇÕES — muda conforme o status do atendimento */}
               <div style={{ display: "flex", gap: 4, alignItems: "center", position: "relative", flexShrink: 0 }}>
-                {/* 🔄 Atualizar */}
+                {/* 🔄 Atualizar — sempre visível */}
                 <button onClick={() => fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
                   title="Atualizar mensagens" style={botaoToolbar()}>🔄</button>
 
-                {/* ↗️ Encaminhar */}
-                <button onClick={() => setShowTransferir(!showTransferir)}
-                  title="Encaminhar para outra fila"
-                  style={{ ...botaoToolbar(showTransferir ? "#00a884" : "#aebac1"), background: showTransferir ? "#00a88422" : "none" }}>↗️</button>
-
-                {/* 👤 Assumir / 🤖 Devolver Bot — aparecem conforme o estado */}
-                {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") ? (
-                  <button onClick={() => assumirChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
-                    title="Assumir atendimento (parar o bot)"
-                    style={botaoToolbar("#f59e0b")}>👤</button>
-                ) : atendimentoAtivo.status !== "resolvido" && (
-                  <button onClick={() => devolverBot(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
-                    title="Devolver para o BOT"
-                    style={botaoToolbar("#8b5cf6")}>🤖</button>
-                )}
-
-                {/* 💰 FINALIZAR VENDA — destaque com texto */}
-                {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && atendimentoAtivo.status !== "resolvido" && (
+                {atendimentoAtivo.status === "resolvido" ? (
+                  /* 🆕 ATENDIMENTO FINALIZADO → mostra SÓ o botão de Reabrir (destaque laranja) */
                   <button
-                    onClick={() => window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank")}
-                    title="Finalizar venda — abre a tela de proposta em nova aba"
+                    onClick={() => reabrirChat(atendimentoAtivo)}
+                    title="Reabrir esta conversa — volta pra aba Abertos"
                     style={{
-                      background: "#16a34a",
+                      background: "#f59e0b",
                       border: "none",
                       color: "white",
                       cursor: "pointer",
@@ -759,36 +797,124 @@ export function ChatSection() {
                       whiteSpace: "nowrap",
                       marginLeft: 4,
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#15803d")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "#16a34a")}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#d97706")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "#f59e0b")}
                   >
-                    💰 Finalizar Venda
+                    🔓 Reabrir Conversa
                   </button>
+                ) : (
+                  /* ATENDIMENTO ATIVO → mostra todas as ações */
+                  <>
+                    {/* ↗️ Encaminhar (fila ou atendente) */}
+                    <button onClick={() => setShowTransferir(!showTransferir)}
+                      title="Encaminhar para fila ou atendente"
+                      style={{ ...botaoToolbar(showTransferir ? "#00a884" : "#aebac1"), background: showTransferir ? "#00a88422" : "none" }}>↗️</button>
+
+                    {/* 👤 Assumir / 🤖 Devolver Bot */}
+                    {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") ? (
+                      <button onClick={() => assumirChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
+                        title="Assumir atendimento (parar o bot)"
+                        style={botaoToolbar("#f59e0b")}>👤</button>
+                    ) : (
+                      <button onClick={() => devolverBot(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
+                        title="Devolver para o BOT"
+                        style={botaoToolbar("#8b5cf6")}>🤖</button>
+                    )}
+
+                    {/* 💰 FINALIZAR VENDA — destaque */}
+                    {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
+                      <button
+                        onClick={() => window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank")}
+                        title="Finalizar venda — abre a tela de proposta em nova aba"
+                        style={{
+                          background: "#16a34a",
+                          border: "none",
+                          color: "white",
+                          cursor: "pointer",
+                          fontSize: 12,
+                          fontWeight: "bold",
+                          padding: "8px 14px",
+                          borderRadius: 6,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          whiteSpace: "nowrap",
+                          marginLeft: 4,
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "#15803d")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "#16a34a")}
+                      >
+                        💰 Finalizar Venda
+                      </button>
+                    )}
+
+                    {/* ✓ Finalizar atendimento */}
+                    <button
+                      onClick={() => {
+                        if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`))
+                          finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
+                      }}
+                      title="Finalizar atendimento"
+                      style={{ ...botaoToolbar("#dc2626"), fontSize: 18, fontWeight: "bold" }}
+                    >✓</button>
+                  </>
                 )}
 
-                {/* ✓ Finalizar atendimento */}
-                {atendimentoAtivo.status !== "resolvido" && (
-                  <button
-                    onClick={() => {
-                      if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`))
-                        finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
-                    }}
-                    title="Finalizar atendimento"
-                    style={{ ...botaoToolbar("#dc2626"), fontSize: 18, fontWeight: "bold" }}
-                  >✓</button>
-                )}
-
-                {/* Dropdown de transferir (abre ao clicar em ↗️) */}
+                {/* 🆕 Dropdown de transferir — agora com DUAS SEÇÕES: Filas E Atendentes */}
                 {showTransferir && (
-                  <div style={{ position: "absolute", top: 44, right: 0, background: "#233138", border: "1px solid #2a3942", borderRadius: 8, padding: 12, zIndex: 110, width: 240 }}>
-                    <p style={{ color: "#8696a0", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>Encaminhar para fila:</p>
+                  <div style={{ position: "absolute", top: 44, right: 0, background: "#233138", border: "1px solid #2a3942", borderRadius: 8, padding: 12, zIndex: 110, width: 260, maxHeight: 440, overflowY: "auto" }}>
+                    {/* Seção FILAS */}
+                    <p style={{ color: "#00a884", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px", letterSpacing: 0.5 }}>
+                      📋 Encaminhar para fila
+                    </p>
                     {filas.length === 0 ? (
-                      <p style={{ color: "#8696a0", fontSize: 11, fontStyle: "italic", margin: "0 0 8px" }}>Nenhuma fila disponível. Crie em Configurações → Filas.</p>
-                    ) : filas.map(f => (
-                      <button key={f} onClick={() => transferirParaFila(f)}
-                        style={{ display: "block", width: "100%", background: "#111b21", border: "1px solid #2a3942", borderRadius: 6, padding: "8px 12px", color: "#e9edef", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 4 }}>📋 {f}</button>
-                    ))}
-                    <button onClick={() => setShowTransferir(false)} style={{ background: "none", color: "#8696a0", border: "none", padding: "6px", fontSize: 11, cursor: "pointer", width: "100%" }}>Cancelar</button>
+                      <p style={{ color: "#8696a0", fontSize: 11, fontStyle: "italic", margin: "0 0 10px" }}>Nenhuma fila cadastrada.</p>
+                    ) : (
+                      filas.map(f => (
+                        <button key={"fila-" + f} onClick={() => transferirParaFila(f)}
+                          style={{ display: "block", width: "100%", background: "#111b21", border: "1px solid #2a3942", borderRadius: 6, padding: "8px 12px", color: "#e9edef", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 4 }}>
+                          📋 {f}
+                        </button>
+                      ))
+                    )}
+
+                    {/* Separador */}
+                    <div style={{ height: 1, background: "#2a3942", margin: "12px 0" }} />
+
+                    {/* Seção ATENDENTES */}
+                    <p style={{ color: "#f59e0b", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px", letterSpacing: 0.5 }}>
+                      👥 Encaminhar para atendente
+                    </p>
+                    {(() => {
+                      // Filtra: remove o próprio usuário e entradas sem email válido
+                      const outrosAtendentes = usuariosWs.filter(u =>
+                        u.email && u.email.toLowerCase() !== user?.email?.toLowerCase()
+                      );
+                      if (outrosAtendentes.length === 0) {
+                        return <p style={{ color: "#8696a0", fontSize: 11, fontStyle: "italic", margin: "0 0 8px" }}>Nenhum outro atendente no workspace.</p>;
+                      }
+                      return outrosAtendentes.map((u, idx) => (
+                        <button key={"user-" + u.email + idx} onClick={() => transferirParaAtendente(u.email, u.nome || u.email.split("@")[0])}
+                          style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "#111b21", border: "1px solid #2a3942", borderRadius: 6, padding: "8px 12px", color: "#e9edef", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 4 }}>
+                          <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#f59e0b33", color: "#f59e0b", fontWeight: "bold", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {(u.nome || u.email).charAt(0).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ color: "#e9edef", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {u.nome || u.email.split("@")[0]}
+                            </p>
+                            <p style={{ color: "#8696a0", fontSize: 9, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {u.email}
+                            </p>
+                          </div>
+                        </button>
+                      ));
+                    })()}
+
+                    <button onClick={() => setShowTransferir(false)}
+                      style={{ background: "none", color: "#8696a0", border: "none", padding: "6px", fontSize: 11, cursor: "pointer", width: "100%", marginTop: 6 }}>
+                      Cancelar
+                    </button>
                   </div>
                 )}
               </div>
