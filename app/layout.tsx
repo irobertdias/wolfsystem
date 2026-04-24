@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SoftphoneProvider } from "./hooks/useSoftphone";
+import { Softphone } from "./components/Softphone";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +33,16 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* 🆕 SoftphoneProvider envolve TUDO — permite que qualquer página/componente
+            (CRM, Chatbot, etc) chame useSoftphone() sem precisar de Provider local.
+            O <Softphone /> renderiza uma bolha flutuante no canto inferior direito,
+            visível em todas as rotas (mas só é funcional pra usuário autenticado). */}
+        <SoftphoneProvider>
+          {children}
+          <Softphone />
+        </SoftphoneProvider>
+      </body>
     </html>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from "react";
+import { supabase } from "../lib/supabase";
 
 // ═══════════════════════════════════════════════════════════════════════
 // 🎧 SOFTPHONE — Context + Hook
@@ -15,15 +16,15 @@ import { createContext, useContext, useState, useCallback, useRef, useEffect, Re
 // ═══════════════════════════════════════════════════════════════════════
 
 export type StatusChamada =
-  | "ocioso"         // nenhuma chamada
-  | "iniciando"      // clicou ligar, preparando
-  | "chamando"       // tocando no destino
-  | "conectado"      // destino atendeu
-  | "encerrando"     // desligando
-  | "sem_resposta"   // não atendeu
-  | "ocupado"        // linha ocupada
-  | "falha"          // erro
-  | "caixa_postal";  // caiu na caixa postal
+  | "ocioso"
+  | "iniciando"
+  | "chamando"
+  | "conectado"
+  | "encerrando"
+  | "sem_resposta"
+  | "ocupado"
+  | "falha"
+  | "caixa_postal";
 
 export type ChamadaAtiva = {
   numero: string;
@@ -32,7 +33,7 @@ export type ChamadaAtiva = {
   iniciadoEm: Date;
   atendidoEm?: Date;
   mudo: boolean;
-  ligacaoId?: number;  // id na tabela `ligacoes` após registro
+  ligacaoId?: number;
   canalVoipId?: number;
 };
 
@@ -44,7 +45,6 @@ type SoftphoneContextType = {
   encerrarChamada: () => void;
   toggleMudo: () => void;
   enviarDTMF: (digito: string) => void;
-  // Segundos decorridos desde que atendeu (só conta após conectado)
   segundosConectado: number;
 };
 
@@ -53,18 +53,16 @@ const SoftphoneContext = createContext<SoftphoneContextType | null>(null);
 export function useSoftphone() {
   const ctx = useContext(SoftphoneContext);
   if (!ctx) {
-    // 🆕 Fallback seguro — se não tem SoftphoneProvider envolvendo, retorna dummy que não quebra a página.
-    // Acontece em páginas que não incluem <SoftphoneProvider>. O botão 📞 mostra aviso em vez de crashar.
+    // 🆕 Fallback seguro — caso alguém chame useSoftphone() fora do Provider,
+    // retorna dummy em vez de crashar a página inteira.
     if (typeof window !== "undefined") {
-      console.warn("⚠️ useSoftphone chamado fora de <SoftphoneProvider>. Chamadas não funcionam nesta tela.");
+      console.warn("⚠️ useSoftphone chamado fora de <SoftphoneProvider>.");
     }
     return {
       chamada: null,
       aberto: false,
       setAberto: () => {},
-      iniciarChamada: (_numero: string, _nome?: string) => {
-        alert("⚠️ Softphone não disponível nesta tela. Acesse pelo CRM.");
-      },
+      iniciarChamada: () => { alert("⚠️ Softphone indisponível nesta tela."); },
       encerrarChamada: () => {},
       toggleMudo: () => {},
       enviarDTMF: () => {},
@@ -74,12 +72,36 @@ export function useSoftphone() {
   return ctx;
 }
 
+// Cache de workspace/email — evita consultas repetidas ao Supabase
+let workspaceIdCache: string | null = null;
+let userEmailCache: string | null = null;
+
+async function getWorkspaceEusuario(): Promise<{ workspaceId: string | null; email: string | null }> {
+  if (workspaceIdCache && userEmailCache) {
+    return { workspaceId: workspaceIdCache, email: userEmailCache };
+  }
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { workspaceId: null, email: null };
+    userEmailCache = user.email || null;
+
+    const { data: wsDono } = await supabase.from("workspaces").select("username").eq("owner_id", user.id).maybeSingle();
+    if (wsDono?.username) { workspaceIdCache = wsDono.username; return { workspaceId: wsDono.username, email: user.email || null }; }
+
+    const { data: wsUsr } = await supabase.from("usuarios_workspace").select("workspace_id").eq("email", user.email).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (wsUsr?.workspace_id) { workspaceIdCache = wsUsr.workspace_id; return { workspaceId: wsUsr.workspace_id, email: user.email || null }; }
+
+    return { workspaceId: null, email: user.email || null };
+  } catch (e) {
+    return { workspaceId: null, email: null };
+  }
+}
+
 export function SoftphoneProvider({ children }: { children: ReactNode }) {
   const [chamada, setChamada] = useState<ChamadaAtiva | null>(null);
   const [aberto, setAberto] = useState(false);
   const [segundosConectado, setSegundosConectado] = useState(0);
 
-  // Timer de segundos após atender
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -94,15 +116,19 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [chamada?.status, chamada?.atendidoEm]);
 
-  // Helpers que programam transições de estado (simulação da chamada mockada)
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
   const registrarLigacao = useCallback(async (ch: ChamadaAtiva, statusFinal: StatusChamada, duracaoSegs: number) => {
     try {
+      const { workspaceId, email } = await getWorkspaceEusuario();
+      if (!workspaceId) { console.warn("Softphone: sem workspace, chamada não registrada"); return false; }
+
       const resp = await fetch("/api/whatsapp?rota=voip/registrar-ligacao", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          workspaceId,
+          atendenteEmail: email,
           numero_destino: ch.numero,
           status: statusFinal,
           duracao_segundos: duracaoSegs,
@@ -125,8 +151,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     }
 
     const novaChamada: ChamadaAtiva = {
-      numero,
-      nome,
+      numero, nome,
       status: "iniciando",
       iniciadoEm: new Date(),
       mudo: false,
@@ -138,11 +163,9 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     await sleep(600);
     setChamada(c => c ? { ...c, status: "chamando" } : c);
 
-    // Simula toque entre 2-5 segundos
     const tempoToque = 2000 + Math.random() * 3000;
     await sleep(tempoToque);
 
-    // 75% atende, 15% sem resposta, 10% ocupado (pra variar o mock)
     const sorteio = Math.random();
     if (sorteio < 0.75) {
       setChamada(c => c ? { ...c, status: "conectado", atendidoEm: new Date() } : c);
@@ -180,7 +203,6 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   const enviarDTMF = useCallback((digito: string) => {
     if (!chamada || chamada.status !== "conectado") return;
     console.log(`🔢 DTMF: ${digito}`);
-    // Quando plugar Twilio/Zenvia real, envia o DTMF pelo SDK
   }, [chamada]);
 
   return (
