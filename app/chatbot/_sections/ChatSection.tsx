@@ -297,6 +297,30 @@ export function ChatSection() {
   const WA_BASE = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
   const isAudioMsg = (txt: string) => typeof txt === "string" && txt.startsWith("[audio:") && txt.endsWith("]");
   const audioFilename = (txt: string) => txt.replace(/^\[audio:/, "").replace(/\]$/, "");
+
+  // 🆕 Parsers de mídia nova (img/video/file) — formato: "[tipo:filename]" ou "[tipo:filename]\nlegenda"
+  const parseMidia = (txt: string): { tipo: "img" | "video" | "file" | null; filename: string; legenda: string } => {
+    if (typeof txt !== "string") return { tipo: null, filename: "", legenda: "" };
+    const match = txt.match(/^\[(img|video|file):([^\]]+)\](\n([\s\S]*))?$/);
+    if (!match) return { tipo: null, filename: "", legenda: "" };
+    return {
+      tipo: match[1] as "img" | "video" | "file",
+      filename: match[2],
+      legenda: match[4] || ""
+    };
+  };
+
+  // Ícone baseado na extensão do arquivo (pra tipo=file)
+  const iconePorExtensao = (filename: string): string => {
+    const ext = (filename.split(".").pop() || "").toLowerCase();
+    if (["pdf"].includes(ext)) return "📕";
+    if (["xls", "xlsx", "csv"].includes(ext)) return "📊";
+    if (["doc", "docx", "rtf"].includes(ext)) return "📄";
+    if (["ppt", "pptx"].includes(ext)) return "📽️";
+    if (["zip", "rar", "7z"].includes(ext)) return "🗜️";
+    if (["txt"].includes(ext)) return "📝";
+    return "📎";
+  };
   const audioUrl = (filename: string) => `${WA_BASE}/audios/${filename}`;
 
   const wa = async (rota: string, body?: object) => {
@@ -1236,13 +1260,64 @@ export function ChatSection() {
                     }
                     const isCliente = msg.de === "cliente"; const isBot = msg.de === "bot";
                     const ehAudio = isAudioMsg(msg.mensagem);
+                    // 🆕 Detecta se é mídia nova (img/video/file)
+                    const midia = parseMidia(msg.mensagem);
+                    const ehMidia = midia.tipo !== null;
+                    // Largura máxima varia: áudio 340, imagem/vídeo 320, arquivo 300, texto 65%
+                    const maxWidth = ehAudio ? 340 : midia.tipo === "img" || midia.tipo === "video" ? 320 : midia.tipo === "file" ? 300 : "65%";
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end" }}>
-                        <div style={{ maxWidth: ehAudio ? 340 : "65%", padding: "6px 10px 8px", borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px", background: isCliente ? "#202c33" : "#005c4b", boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)" }}>
-                          {!isCliente && !ehAudio && <p style={{ color: "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>}
-                          {ehAudio ? <AudioPlayer src={audioUrl(audioFilename(msg.mensagem))} isOwn={!isCliente} />
-                           : <p style={{ color: "#e9edef", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.mensagem}</p>}
-                          {msg.created_at && <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 10, margin: "2px 0 0", textAlign: "right" }}>{horaMsg(msg.created_at)}{!isCliente && " ✓✓"}</p>}
+                        <div style={{ maxWidth, padding: ehMidia ? "4px 4px 6px" : "6px 10px 8px", borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px", background: isCliente ? "#202c33" : "#005c4b", boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)" }}>
+                          {!isCliente && !ehAudio && !ehMidia && <p style={{ color: "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>}
+
+                          {ehAudio && <AudioPlayer src={audioUrl(audioFilename(msg.mensagem))} isOwn={!isCliente} />}
+
+                          {/* 🆕 Imagem inline — clique abre em nova aba */}
+                          {midia.tipo === "img" && (
+                            <div>
+                              <a href={audioUrl(midia.filename)} target="_blank" rel="noreferrer">
+                                <img src={audioUrl(midia.filename)} alt={midia.filename}
+                                  style={{ display: "block", maxWidth: "100%", maxHeight: 320, borderRadius: 6, cursor: "pointer", objectFit: "cover" }} />
+                              </a>
+                              {midia.legenda && <p style={{ color: "#e9edef", fontSize: 13.5, margin: "6px 6px 0", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{midia.legenda}</p>}
+                            </div>
+                          )}
+
+                          {/* 🆕 Vídeo inline — com controles nativos */}
+                          {midia.tipo === "video" && (
+                            <div>
+                              <video src={audioUrl(midia.filename)} controls preload="metadata"
+                                style={{ display: "block", maxWidth: "100%", maxHeight: 320, borderRadius: 6 }} />
+                              {midia.legenda && <p style={{ color: "#e9edef", fontSize: 13.5, margin: "6px 6px 0", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{midia.legenda}</p>}
+                            </div>
+                          )}
+
+                          {/* 🆕 Arquivo genérico (PDF, Excel, etc) — ícone + nome + botão download */}
+                          {midia.tipo === "file" && (
+                            <div>
+                              <a href={audioUrl(midia.filename)} target="_blank" rel="noreferrer" download
+                                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: isCliente ? "#1f2a31" : "#00604f", borderRadius: 6, textDecoration: "none" }}>
+                                <span style={{ fontSize: 32 }}>{iconePorExtensao(midia.filename)}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ color: "#e9edef", fontSize: 13, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {/* Remove o prefixo midia_TIMESTAMP_RAND_ pra mostrar só o nome original */}
+                                    {midia.filename.replace(/^midia_\d+_[a-z0-9]+_/, "")}
+                                  </p>
+                                  <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 11, margin: "2px 0 0" }}>
+                                    {(midia.filename.split(".").pop() || "arquivo").toUpperCase()} · clique p/ baixar
+                                  </p>
+                                </div>
+                              </a>
+                              {midia.legenda && <p style={{ color: "#e9edef", fontSize: 13.5, margin: "6px 6px 0", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{midia.legenda}</p>}
+                            </div>
+                          )}
+
+                          {/* Texto comum — só se não for áudio nem mídia */}
+                          {!ehAudio && !ehMidia && (
+                            <p style={{ color: "#e9edef", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.mensagem}</p>
+                          )}
+
+                          {msg.created_at && <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 10, margin: "2px 6px 0 0", textAlign: "right" }}>{horaMsg(msg.created_at)}{!isCliente && " ✓✓"}</p>}
                         </div>
                       </div>
                     );
