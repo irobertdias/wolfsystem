@@ -52,7 +52,25 @@ const SoftphoneContext = createContext<SoftphoneContextType | null>(null);
 
 export function useSoftphone() {
   const ctx = useContext(SoftphoneContext);
-  if (!ctx) throw new Error("useSoftphone precisa estar dentro de <SoftphoneProvider>");
+  if (!ctx) {
+    // 🆕 Fallback seguro — se não tem SoftphoneProvider envolvendo, retorna dummy que não quebra a página.
+    // Acontece em páginas que não incluem <SoftphoneProvider>. O botão 📞 mostra aviso em vez de crashar.
+    if (typeof window !== "undefined") {
+      console.warn("⚠️ useSoftphone chamado fora de <SoftphoneProvider>. Chamadas não funcionam nesta tela.");
+    }
+    return {
+      chamada: null,
+      aberto: false,
+      setAberto: () => {},
+      iniciarChamada: (_numero: string, _nome?: string) => {
+        alert("⚠️ Softphone não disponível nesta tela. Acesse pelo CRM.");
+      },
+      encerrarChamada: () => {},
+      toggleMudo: () => {},
+      enviarDTMF: () => {},
+      segundosConectado: 0,
+    } as SoftphoneContextType;
+  }
   return ctx;
 }
 
