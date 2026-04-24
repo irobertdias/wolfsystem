@@ -13,6 +13,7 @@ type Atendimento = {
 };
 type Canal = { id: number; nome: string; tipo: string };
 type Fila = { id: number; nome: string };
+type UsuarioWs = { email: string; nome: string };
 
 type Periodo = "hoje" | "semana" | "mes" | "ano" | "todos";
 
@@ -22,12 +23,14 @@ export function DashboardSection() {
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [canais, setCanais] = useState<Canal[]>([]);
   const [filas, setFilas] = useState<Fila[]>([]);
+  const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
   const [carregando, setCarregando] = useState(true);
 
   // 🆕 Filtros
   const [periodo, setPeriodo] = useState<Periodo>("mes"); // default = últimos 30 dias
   const [canalFiltro, setCanalFiltro] = useState<string>("todos"); // "todos" ou String(id)
   const [filaFiltro, setFilaFiltro] = useState<string>("todas"); // "todas" ou nome da fila
+  const [atendenteFiltro, setAtendenteFiltro] = useState<string>("todos"); // "todos" ou email
 
   // Busca dados (atendimentos + canais + filas)
   useEffect(() => {
@@ -37,7 +40,7 @@ export function DashboardSection() {
     const fetchTudo = async () => {
       setCarregando(true);
       try {
-        const [resAt, resCx, resFi] = await Promise.all([
+        const [resAt, resCx, resFi, resUs] = await Promise.all([
           supabase
             .from("atendimentos")
             .select("id, status, created_at, fila, canal_id, atendente")
@@ -52,11 +55,21 @@ export function DashboardSection() {
             .select("id, nome")
             .eq("workspace_id", wsId)
             .order("nome", { ascending: true }),
+          supabase
+            .from("usuarios_workspace")
+            .select("email, nome")
+            .eq("workspace_id", wsId),
         ]);
         if (cancel) return;
         setAtendimentos((resAt.data as Atendimento[]) || []);
         setCanais((resCx.data as Canal[]) || []);
         setFilas((resFi.data as Fila[]) || []);
+        // 🆕 Lista de usuários do workspace — inclui o dono também
+        const subs: UsuarioWs[] = (resUs.data as UsuarioWs[]) || [];
+        if (workspace?.owner_email) {
+          subs.push({ email: workspace.owner_email, nome: workspace.nome || "Dono" });
+        }
+        setUsuariosWs(subs);
       } finally {
         if (!cancel) setCarregando(false);
       }
@@ -82,13 +95,18 @@ export function DashboardSection() {
         { event: "*", schema: "public", table: "filas", filter: `workspace_id=eq.${wsId}` },
         () => fetchTudo()
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${wsId}` },
+        () => fetchTudo()
+      )
       .subscribe();
 
     return () => {
       cancel = true;
       supabase.removeChannel(ch);
     };
-  }, [wsId]);
+  }, [wsId, workspace?.owner_email, workspace?.nome]);
 
   // 🆕 Calcula data de início conforme o período selecionado
   const dataInicio = useMemo(() => {
@@ -122,9 +140,10 @@ export function DashboardSection() {
       if (dataInicio && new Date(a.created_at) < dataInicio) return false;
       if (canalFiltro !== "todos" && String(a.canal_id || "") !== canalFiltro) return false;
       if (filaFiltro !== "todas" && (a.fila || "") !== filaFiltro) return false;
+      if (atendenteFiltro !== "todos" && (a.atendente || "") !== atendenteFiltro) return false;
       return true;
     });
-  }, [atendimentos, dataInicio, canalFiltro, filaFiltro]);
+  }, [atendimentos, dataInicio, canalFiltro, filaFiltro, atendenteFiltro]);
 
   // Cards principais — usa o mesmo critério de status que já existia
   const cards = [
@@ -187,6 +206,47 @@ export function DashboardSection() {
       .sort((a, b) => b.count - a.count);
   }, [atendimentosFiltrados]);
 
+  // 🆕 Breakdown por atendente — mostra quantos cada usuário tá tratando e quantos já resolveu
+  // Útil pra ver produtividade da equipe no período filtrado
+  const porAtendente = useMemo(() => {
+    type Bucket = { chave: string; emAtendimento: number; resolvidos: number; total: number };
+    const map: Record<string, Bucket> = {};
+
+    atendimentosFiltrados.forEach(a => {
+      const chave = a.atendente || "sem-atendente";
+      if (!map[chave]) map[chave] = { chave, emAtendimento: 0, resolvidos: 0, total: 0 };
+      map[chave].total++;
+      if (a.status === "resolvido") map[chave].resolvidos++;
+      else map[chave].emAtendimento++;
+    });
+
+    // Pega o nome amigável pelo email, com tratamento especial pro BOT e vazio
+    const nomeDe = (chave: string): string => {
+      if (chave === "sem-atendente") return "— Sem atendente —";
+      if (chave === "BOT") return "🤖 BOT (automático)";
+      if (chave === "Humano") return "👤 Humano (legado)"; // atendimentos antigos antes do fix do email
+      const u = usuariosWs.find(us => us.email?.toLowerCase() === chave.toLowerCase());
+      if (u?.nome) return u.nome;
+      return chave.includes("@") ? chave.split("@")[0] : chave;
+    };
+
+    const corDe = (chave: string): string => {
+      if (chave === "BOT") return "#8b5cf6";
+      if (chave === "sem-atendente") return "#6b7280";
+      if (chave === "Humano") return "#64748b";
+      return "#00a884";
+    };
+
+    return Object.values(map)
+      .map(b => ({
+        ...b,
+        nome: nomeDe(b.chave),
+        cor: corDe(b.chave),
+        inicial: (nomeDe(b.chave).replace(/[^a-zA-Z0-9À-ÿ]/g, "").charAt(0) || "?").toUpperCase(),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [atendimentosFiltrados, usuariosWs]);
+
   // Helpers de estilo
   const botaoPeriodo = (p: Periodo, label: string, icone: string) => {
     const ativo = periodo === p;
@@ -214,7 +274,7 @@ export function DashboardSection() {
   };
 
   const temFiltroAtivo =
-    periodo !== "todos" || canalFiltro !== "todos" || filaFiltro !== "todas";
+    periodo !== "todos" || canalFiltro !== "todos" || filaFiltro !== "todas" || atendenteFiltro !== "todos";
 
   // Label amigável do período ativo (aparece nos cards)
   const labelPeriodo = {
@@ -316,12 +376,42 @@ export function DashboardSection() {
             </select>
           </div>
 
+          {/* 🆕 Filtro por atendente */}
+          <div style={{ flex: "1 1 220px", minWidth: 200 }}>
+            <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 6px" }}>
+              Atendente
+            </p>
+            <select
+              value={atendenteFiltro}
+              onChange={e => setAtendenteFiltro(e.target.value)}
+              style={{
+                width: "100%",
+                background: "#1f2937",
+                color: "white",
+                border: "1px solid #374151",
+                borderRadius: 8,
+                padding: "10px 12px",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              <option value="todos">👥 Todos os atendentes</option>
+              <option value="BOT">🤖 BOT (automático)</option>
+              {usuariosWs.map((u, i) => (
+                <option key={u.email + i} value={u.email}>
+                  👤 {u.nome || u.email.split("@")[0]}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {temFiltroAtivo && (
             <button
               onClick={() => {
                 setPeriodo("todos");
                 setCanalFiltro("todos");
                 setFilaFiltro("todas");
+                setAtendenteFiltro("todos");
               }}
               style={{
                 background: "#7f1d1d",
@@ -437,6 +527,83 @@ export function DashboardSection() {
             })
           )}
         </div>
+      </div>
+
+      {/* 🆕 POR ATENDENTE — quem tá tratando e quem tratou */}
+      {/* Barra stacked (laranja = em atendimento, verde = resolvidos) pra ver produtividade de cada um */}
+      <div
+        style={{
+          background: "#111",
+          borderRadius: 12,
+          padding: 20,
+          border: "1px solid #1f2937",
+          minHeight: 140,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+          <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>
+            👥 Por Atendente
+          </p>
+          {/* Legenda */}
+          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#f59e0b", fontSize: 10, fontWeight: "bold" }}>
+              <span style={{ width: 10, height: 10, background: "#f59e0b", borderRadius: 2, display: "inline-block" }} />
+              Em atendimento
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#16a34a", fontSize: 10, fontWeight: "bold" }}>
+              <span style={{ width: 10, height: 10, background: "#16a34a", borderRadius: 2, display: "inline-block" }} />
+              Resolvidos
+            </span>
+          </div>
+        </div>
+
+        {porAtendente.length === 0 ? (
+          <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>Nenhum atendimento no período.</p>
+        ) : (
+          porAtendente.map((a, i) => {
+            const maxTotal = porAtendente[0]?.total || 1;
+            const pctBarra = (a.total / maxTotal) * 100;
+            const pctAtendendo = a.total > 0 ? (a.emAtendimento / a.total) * 100 : 0;
+            // barra externa representa proporção do total dessa pessoa vs quem mais atendeu;
+            // dentro dela, divisão laranja/verde mostra split entre "em atendimento" vs "resolvidos"
+            return (
+              <div key={a.chave + i} style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                  {/* Avatar com inicial */}
+                  <div style={{
+                    width: 28, height: 28, borderRadius: "50%",
+                    background: a.cor + "33", color: a.cor,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontWeight: "bold", fontSize: 12, flexShrink: 0,
+                  }}>
+                    {a.inicial}
+                  </div>
+                  <span style={{ color: "white", fontSize: 13, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {a.nome}
+                  </span>
+                  <span style={{ color: "#9ca3af", fontSize: 11, flexShrink: 0 }}>
+                    <span style={{ color: "#f59e0b", fontWeight: "bold" }}>{a.emAtendimento}</span>
+                    <span style={{ opacity: 0.5, margin: "0 4px" }}>·</span>
+                    <span style={{ color: "#16a34a", fontWeight: "bold" }}>{a.resolvidos}</span>
+                    <span style={{ opacity: 0.5, margin: "0 4px" }}>·</span>
+                    <span style={{ color: "white", fontWeight: "bold" }}>{a.total}</span>
+                  </span>
+                </div>
+                {/* Barra stacked */}
+                <div style={{
+                  height: 8, background: "#1f2937", borderRadius: 4, overflow: "hidden",
+                  width: `${pctBarra}%`, // a largura da barra mostra o peso desse atendente vs o top
+                  minWidth: 40,
+                  transition: "width 0.3s",
+                  display: "flex",
+                }}>
+                  <div style={{ width: `${pctAtendendo}%`, height: "100%", background: "#f59e0b" }} />
+                  <div style={{ flex: 1, height: "100%", background: "#16a34a" }} />
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
