@@ -128,6 +128,13 @@ export function ChatSection() {
   const { workspace, wsId, user } = useWorkspace();
   const { permissoes, isDono } = usePermissao();
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  // 🆕 Ref do container de mensagens — usado pra ler scrollTop e saber se o user tá no fundo
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // 🆕 "Sticky fundo": se o usuário está colado ao final (ou não). Só mexe scroll automaticamente se true.
+  // Evita o bug de forçar o scroll pra baixo quando o user tá lendo msg antiga lá em cima.
+  const [stickyFundo, setStickyFundo] = useState(true);
+  // 🆕 Indica se chegou mensagem nova enquanto o user estava scrollado pra cima (pra mostrar badge flutuante)
+  const [temMensagemNova, setTemMensagemNova] = useState(false);
 
   const [mensagem, setMensagem] = useState("");
   const [mensagemInterna, setMensagemInterna] = useState("");
@@ -303,6 +310,10 @@ export function ChatSection() {
   useEffect(() => {
     if (!atendimentoAtivo) { setEtiquetasAtendimento([]); return; }
     setHistorico([]);
+    // 🆕 Ao abrir um atendimento NOVO, reseta o sticky pra true e esconde o badge —
+    // o user acabou de entrar no chat, faz sentido ir pro fundo.
+    setStickyFundo(true);
+    setTemMensagemNova(false);
     fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
     fetchEtiquetasAtendimento(atendimentoAtivo.id);
     const num = atendimentoAtivo.numero; const cId = atendimentoAtivo.canal_id;
@@ -311,14 +322,46 @@ export function ChatSection() {
         const m = payload.new as Mensagem;
         if (m.numero === num && (!cId || m.canal_id === cId)) {
           setHistorico(p => [...p, m]);
-          setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+          // 🆕 Se o user está scrollado pra cima lendo msg antiga, NÃO arrasta ele pra baixo —
+          // apenas sinaliza que chegou msg nova. Ele decide quando descer clicando no badge.
+          if (!stickyFundoRef.current) {
+            setTemMensagemNova(true);
+          }
         }
       }).subscribe();
     const polling = setInterval(() => fetchHistorico(num, cId), 3000);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
   }, [atendimentoAtivo?.numero, atendimentoAtivo?.id, atendimentoAtivo?.canal_id]);
 
-  useEffect(() => { setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }, [historico]);
+  // 🆕 Ref que espelha o state de stickyFundo — necessário porque o listener do realtime
+  // é criado uma vez e capturaria o valor inicial de stickyFundo no closure (stale state).
+  const stickyFundoRef = useRef(stickyFundo);
+  useEffect(() => { stickyFundoRef.current = stickyFundo; }, [stickyFundo]);
+
+  // 🆕 Handler do scroll — detecta se o user está "colado" no fundo do chat
+  // (tolerância de 120px pra não virar cacete quando dá um leve overshoot)
+  const onScrollChat = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distanciaDoFundo = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const estaNoFundo = distanciaDoFundo < 120;
+    if (estaNoFundo !== stickyFundo) setStickyFundo(estaNoFundo);
+    if (estaNoFundo && temMensagemNova) setTemMensagemNova(false);
+  };
+
+  // 🆕 Scroll automático SÓ se o usuário estiver colado ao fundo (sticky=true).
+  // Se ele tá lendo msg antiga lá em cima, o polling de 3s NÃO vai mais arrastar ele de volta.
+  useEffect(() => {
+    if (!stickyFundo) return;
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
+  }, [historico, stickyFundo]);
+
+  // 🆕 Função pro botão "↓ Nova mensagem" — leva o user pro fundo manualmente e limpa o badge
+  const irParaFundo = () => {
+    setStickyFundo(true);
+    setTemMensagemNova(false);
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+  };
 
   const filas = [...new Set(atendimentos.map(a => a.fila))].filter(Boolean);
   const atendentesEmails = [...new Set(atendimentos.map(a => a.atendente))].filter(Boolean);
@@ -364,6 +407,9 @@ export function ChatSection() {
     if (!mensagem || !atendimentoAtivo) return;
     if (!atendimentoAtivo.canal_id) { alert("⚠️ Atendimento sem canal_id. Não é possível enviar."); return; }
     setEnviandoMsg(true);
+    // 🆕 User enviou mensagem → ele claramente quer ver a própria msg, então volta pro fundo
+    setStickyFundo(true);
+    setTemMensagemNova(false);
     try {
       const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
       const mensagemFinal = nomeHeader + mensagem;
@@ -723,7 +769,7 @@ export function ChatSection() {
       </div>
 
       {/* ÁREA DO CHAT */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#0b141a", backgroundImage: WA_BG_DARK, backgroundRepeat: "repeat" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#0b141a", backgroundImage: WA_BG_DARK, backgroundRepeat: "repeat", position: "relative" }}>
         {atendimentoAtivo ? (
           <>
             {/* 🆕 HEADER REFORMULADO
@@ -920,7 +966,8 @@ export function ChatSection() {
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto", padding: "16px 8%", display: "flex", flexDirection: "column", gap: 6 }}>
+            {/* 🆕 Container de mensagens agora com ref + onScroll pra detectar posição do user */}
+            <div ref={scrollContainerRef} onScroll={onScrollChat} style={{ flex: 1, overflowY: "auto", padding: "16px 8%", display: "flex", flexDirection: "column", gap: 6 }}>
               {historico.length === 0
                 ? <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#8696a0", fontSize: 13 }}>Nenhuma mensagem ainda</p></div>
                 : historico.map((msg, i) => {
@@ -949,6 +996,48 @@ export function ChatSection() {
                   })}
               <div ref={chatBottomRef} />
             </div>
+
+            {/* 🆕 Botão flutuante "↓ Nova mensagem" — aparece quando o user tá scrollado pra cima
+                e chega msg nova. Clicando, leva pro fundo. Evita arrastar o user à força. */}
+            {!stickyFundo && (
+              <button
+                onClick={irParaFundo}
+                title={temMensagemNova ? "Nova mensagem recebida — clique pra ver" : "Ir para a última mensagem"}
+                style={{
+                  position: "absolute",
+                  right: 20,
+                  bottom: 90, // acima do input de texto
+                  width: 42,
+                  height: 42,
+                  borderRadius: "50%",
+                  background: temMensagemNova ? "#00a884" : "#2a3942",
+                  border: "1px solid " + (temMensagemNova ? "#00a884" : "#3b4a54"),
+                  color: "white",
+                  fontSize: 18,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                  zIndex: 10,
+                  fontWeight: "bold",
+                }}
+              >
+                ↓
+                {temMensagemNova && (
+                  <span style={{
+                    position: "absolute",
+                    top: -4,
+                    right: -4,
+                    width: 12,
+                    height: 12,
+                    background: "#dc2626",
+                    borderRadius: "50%",
+                    border: "2px solid #0b141a",
+                  }} />
+                )}
+              </button>
+            )}
 
             {showRespostas && permissoes.respostas_rapidas && !gravando && (
               <div style={{ background: "#202c33", borderTop: "1px solid #2a3942", padding: 10, maxHeight: 180, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
