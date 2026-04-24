@@ -225,6 +225,11 @@ export function ChatSection() {
   // 🆕 Indica se chegou mensagem nova enquanto o user estava scrollado pra cima (pra mostrar badge flutuante)
   const [temMensagemNova, setTemMensagemNova] = useState(false);
 
+  // 🆕 Indica se a Roleta de Distribuição está ativa no workspace.
+  // Quando ativa, o atendente vê o botão "Parar BOT/IA" nos chats onde a roleta já atribuiu ele,
+  // mesmo com o bot ainda respondendo. Clicando, ele assume e o bot para.
+  const [roletaAtiva, setRoletaAtiva] = useState(false);
+
   const [mensagem, setMensagem] = useState("");
   const [mensagemInterna, setMensagemInterna] = useState("");
   const [showRespostas, setShowRespostas] = useState(false);
@@ -432,11 +437,21 @@ export function ChatSection() {
     fetchAtendimentos();
     fetchEtiquetasWorkspace();
     fetchUsuariosWorkspace();
+
+    // 🆕 Busca config da roleta (pra saber se botão "Parar BOT/IA" aparece)
+    const fetchRoleta = async () => {
+      const { data } = await supabase.from("roleta_config").select("ativa").eq("workspace_id", wsId).maybeSingle();
+      setRoletaAtiva(!!data?.ativa);
+    };
+    fetchRoleta();
+
     const ch = supabase.channel("atendimentos_chat_rt_" + wsId)
       .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos", filter: `workspace_id=eq.${wsId}` }, () => fetchAtendimentos())
       .on("postgres_changes", { event: "*", schema: "public", table: "etiquetas", filter: `workspace_id=eq.${wsId}` }, () => fetchEtiquetasWorkspace())
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${wsId}` }, () => fetchUsuariosWorkspace())
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes", filter: `workspace_id=eq.${wsId}` }, () => fetchCanais())
+      // 🆕 Atualiza em tempo real se o dono ligar/desligar a roleta
+      .on("postgres_changes", { event: "*", schema: "public", table: "roleta_config", filter: `workspace_id=eq.${wsId}` }, () => fetchRoleta())
       .subscribe();
     const polling = setInterval(() => fetchAtendimentos(), 5000);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
@@ -794,6 +809,44 @@ export function ChatSection() {
     await inserirMensagemSistema(numero, `Chat devolvido ao BOT por: ${meuNome}`, canalId);
     fetchAtendimentos();
   };
+
+  // 🆕 Para o BOT/IA e assume o chat — usado quando roleta atribui atendente mas bot ainda tá respondendo.
+  // Diferente do "assumir" tradicional porque o atendente JÁ é o dono do chat (atribuído pela roleta).
+  // Aqui só seta as flags de bloqueio pra bot parar e salva mensagem sistema.
+  const pararBotIA = async () => {
+    if (!atendimentoAtivo) return;
+    if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue."); return; }
+
+    // Se o atendente atribuído pela roleta é OUTRA pessoa, pede confirmação antes de "roubar" o chat
+    const ehMeu = atendimentoAtivo.atendente === user.email;
+    if (!ehMeu) {
+      const nomeDono = usuariosWorkspace.find(u => u.email === atendimentoAtivo.atendente)?.nome || atendimentoAtivo.atendente;
+      if (!confirm(`Esse chat foi atribuído pela roleta a ${nomeDono}.\n\nDeseja assumir mesmo assim? (${nomeDono} vai perder o lead)`)) return;
+    }
+
+    try {
+      await supabase.from("atendimentos").update({
+        bloqueado_ia: true,
+        bloqueado_fluxo: true,
+        bloqueado_typebot: true,
+        atendente: user.email,
+        status: "aberto"
+      }).eq("id", atendimentoAtivo.id);
+
+      // Também avisa o backend pra limpar sessão de IA na RAM (evita bot responder mais uma vez)
+      await wa("assumir", { numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id, workspaceId: wsId, atendenteEmail: user.email });
+
+      await inserirMensagemSistema(
+        atendimentoAtivo.numero,
+        `🛑 BOT/IA interrompido. Chat assumido por: ${meuNome}`,
+        atendimentoAtivo.canal_id
+      );
+      await fetchAtendimentos();
+      setAbaConversa("abertos");
+    } catch (e: any) {
+      alert("Erro ao parar bot: " + e.message);
+    }
+  };
   const transferirParaFila = async (fila: string) => {
     if (!atendimentoAtivo) return;
     try {
@@ -1136,16 +1189,33 @@ export function ChatSection() {
                       title="Encaminhar para fila ou atendente"
                       style={{ ...botaoToolbar(showTransferir ? "#00a884" : "#aebac1"), background: showTransferir ? "#00a88422" : "none" }}>↗️</button>
 
-                    {/* 👤 Assumir / 🤖 Devolver Bot */}
-                    {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") ? (
-                      <button onClick={() => assumirChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
-                        title="Assumir atendimento (parar o bot)"
-                        style={botaoToolbar("#f59e0b")}>👤</button>
-                    ) : (
-                      <button onClick={() => devolverBot(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
-                        title="Devolver para o BOT"
-                        style={botaoToolbar("#8b5cf6")}>🤖</button>
-                    )}
+                    {/* 👤 Assumir / 🛑 Parar BOT/IA / 🤖 Devolver Bot — qual aparece depende do estado */}
+                    {(() => {
+                      // Estado 1: chat sem dono ou ainda com BOT — botão ASSUMIR clássico
+                      if (atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") {
+                        return (
+                          <button onClick={() => assumirChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
+                            title="Assumir atendimento (parar o bot)"
+                            style={botaoToolbar("#f59e0b")}>👤</button>
+                        );
+                      }
+                      // Estado 2: roleta atribuiu mas bot ainda tá ativo → botão PARAR BOT/IA
+                      const atendenteEhEmail = atendimentoAtivo.atendente && !["BOT", "Humano"].includes(atendimentoAtivo.atendente);
+                      const botAtivo = !atendimentoAtivo.bloqueado_ia && !atendimentoAtivo.bloqueado_fluxo;
+                      if (roletaAtiva && atendenteEhEmail && botAtivo) {
+                        return (
+                          <button onClick={pararBotIA}
+                            title="🛑 Parar BOT/IA e assumir a conversa (a roleta já te atribuiu esse lead)"
+                            style={{ ...botaoToolbar("#dc2626"), background: "#dc262622", border: "1px solid #dc262644" }}>🛑</button>
+                        );
+                      }
+                      // Estado 3: atendente humano já assumiu e bot parado → botão DEVOLVER BOT
+                      return (
+                        <button onClick={() => devolverBot(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
+                          title="Devolver para o BOT"
+                          style={botaoToolbar("#8b5cf6")}>🤖</button>
+                      );
+                    })()}
 
                     {/* 💰 FINALIZAR VENDA — destaque */}
                     {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
