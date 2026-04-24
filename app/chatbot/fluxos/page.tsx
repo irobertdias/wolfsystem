@@ -18,6 +18,7 @@ type No = { id: string; tipo: TipoNo; x: number; y: number; dados: Record<string
 type Aresta = { id: string; de: string; saidaIndex: number; para: string; };
 type Fluxo = { id?: number; nome: string; descricao: string; ativo: boolean; trigger_tipo: string; trigger_valor: string; nos: No[]; conexoes: Aresta[]; workspace_id: string; };
 type BC = { label: string; icone: string; cor: string; saidas: string[]; grupo: string; };
+type FilaItem = { id: number; nome: string; conexao?: string; }; // 🆕 filas do CRM
 
 const B: Record<TipoNo, BC> = {
   texto:                {label:"Texto",           icone:"💬", cor:"#3b82f6", saidas:["Próximo"],                     grupo:"Bubbles"},
@@ -113,7 +114,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     inicio:{mensagem:"Olá! Como posso te ajudar?"},
     comando:{comando:"/start"},reply:{palavras:""},
     invalido:{mensagem:"Não entendi."},
-    transferir:{fila:"Fila Principal",mensagem:"Transferindo..."},
+    transferir:{fila:"",mensagem:"Transferindo..."}, // 🆕 fila vazia, usuário seleciona
     finalizar:{mensagem:"Atendimento finalizado. Obrigado!"},
   };
   return m[tipo]||{};
@@ -148,17 +149,18 @@ function getPreview(no: No): string {
     case "comando": return d.comando||"/start";
     case "reply": return d.palavras||"Palavras-chave";
     case "invalido": return d.mensagem||"Inválido";
-    case "transferir": return `→ ${d.fila}`;
+    case "transferir": return d.fila ? `→ ${d.fila}` : "⚠️ Sem fila selecionada"; // 🆕
     case "finalizar": return d.mensagem||"Finalizar";
     default: return "";
   }
 }
 
-function PainelProps({ noSel, updateNo, excluirNo, setNos }: {
+function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
   setNos: React.Dispatch<React.SetStateAction<No[]>>;
+  filasBanco: FilaItem[]; // 🆕
 }) {
   const d = noSel.dados;
   const id = noSel.id;
@@ -312,11 +314,35 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos }: {
         <input value={d.palavras||""} onChange={e => u({palavras: e.target.value})} style={IS} placeholder="oi, olá, bom dia" />
       </div>;
     case "invalido":  return <>{T("Mensagem para inválido","mensagem","Não entendi...",80)}</>;
+
+    // 🆕 Transferir — agora lista filas do banco (tabela filas do workspace)
     case "transferir":
       return <>
-        {S("Fila de destino","fila",[{value:"Fila Principal",label:"Fila Principal"},{value:"Fila Suporte",label:"Fila Suporte"},{value:"Fila Vendas",label:"Fila Vendas"}])}
+        <div>
+          <label style={LS}>Fila de destino</label>
+          {filasBanco.length === 0 ? (
+            <div style={{background:"#1f1b0a", border:"1px solid #f59e0b44", borderRadius:6, padding:10}}>
+              <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>⚠️ Nenhuma fila cadastrada</p>
+              <p style={{color:"#9ca3af", fontSize:10, margin:0, lineHeight:1.4}}>
+                Vá em <b>CRM → Configurações → Filas</b> e crie suas filas.<br/>
+                Depois volte aqui e selecione a fila de destino.
+              </p>
+            </div>
+          ) : (
+            <select value={d.fila||""} onChange={e => u({fila: e.target.value})} style={IS}>
+              <option value="">Selecione uma fila...</option>
+              {filasBanco.map(f => (
+                <option key={f.id} value={f.nome}>📋 {f.nome}{f.conexao ? ` (${f.conexao})` : ""}</option>
+              ))}
+            </select>
+          )}
+          <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
+            💡 Filas são criadas em <b>Configurações → Filas</b> do CRM
+          </p>
+        </div>
         {T("Mensagem ao transferir","mensagem","Transferindo...",80)}
       </>;
+
     case "finalizar": return <>{T("Mensagem de encerramento","mensagem","Obrigado pelo contato!",80)}</>;
     default: return <p style={{color:"#6b7280",fontSize:12}}>Sem propriedades.</p>;
   }
@@ -427,6 +453,7 @@ export default function FluxosPage() {
   // ✅ Agora é username (string como "wolf_admin"), nunca id numérico
   const [wsId,setWsId]             = useState<string|null>(null);
   const [fluxos,setFluxos]         = useState<Fluxo[]>([]);
+  const [filasBanco,setFilasBanco] = useState<FilaItem[]>([]); // 🆕
   const [view,setView]             = useState<"lista"|"editor">("lista");
   const [fluxoAtivo,setFluxoAtivo] = useState<Fluxo|null>(null);
   const [nos,setNos]               = useState<No[]>([]);
@@ -460,13 +487,19 @@ export default function FluxosPage() {
       if (cancelled || !username) return;
       setWsId(username);
       load(username);
+      fetchFilas(username); // 🆕
     });
 
-    // Realtime — quando criar/editar/apagar fluxo em qualquer aba, atualiza aqui
+    // Realtime — quando criar/editar/apagar fluxo ou fila em qualquer aba, atualiza aqui
     const ch = supabase.channel("fluxos_editor_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "fluxos" }, () => {
         if (!cancelled) {
           getWsUsername().then(u => { if (u && !cancelled) load(u); });
+        }
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "filas" }, () => { // 🆕
+        if (!cancelled) {
+          getWsUsername().then(u => { if (u && !cancelled) fetchFilas(u); });
         }
       })
       .subscribe();
@@ -474,7 +507,7 @@ export default function FluxosPage() {
     // Polling 5s fallback
     const interval = setInterval(() => {
       if (cancelled) return;
-      getWsUsername().then(u => { if (u && !cancelled) load(u); });
+      getWsUsername().then(u => { if (u && !cancelled) { load(u); fetchFilas(u); } });
     }, 5000);
 
     return () => { cancelled = true; supabase.removeChannel(ch); clearInterval(interval); };
@@ -486,6 +519,19 @@ export default function FluxosPage() {
     if (!u) return;
     const {data} = await supabase.from("fluxos").select("*").eq("workspace_id", u).order("created_at",{ascending:false});
     setFluxos((data||[]).map(f=>({...f,nos:f.nos||[],conexoes:f.conexoes||[]})));
+  }
+
+  // 🆕 Busca filas cadastradas em Configurações → Filas do CRM
+  async function fetchFilas(username?: string) {
+    const u = username || wsId;
+    if (!u) return;
+    try {
+      const {data} = await supabase.from("filas").select("id, nome, conexao").eq("workspace_id", u).order("nome",{ascending:true});
+      setFilasBanco(data || []);
+    } catch (e) {
+      console.error("Erro ao buscar filas:", e);
+      setFilasBanco([]);
+    }
   }
 
   async function criarFluxo() {
@@ -500,7 +546,7 @@ export default function FluxosPage() {
         nos:[ini],conexoes:[],workspace_id:username};
       const {data,error} = await supabase.from("fluxos").insert([payload]).select().single();
       if(error){alert("Erro: "+error.message);return;}
-      setWsId(username); await load(username);
+      setWsId(username); await load(username); await fetchFilas(username);
       abrirEditor({...payload, id:data.id} as Fluxo);
       setShowNovo(false);
       setForm({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:""});
@@ -509,10 +555,16 @@ export default function FluxosPage() {
 
   function abrirEditor(f:Fluxo) {
     setFluxoAtivo(f); setNos(f.nos||[]); setArestas(f.conexoes||[]); setNoSel(null); setView("editor");
+    fetchFilas(); // 🆕 recarrega filas ao abrir o editor
   }
 
   async function salvar() {
     if(!fluxoAtivo?.id) return;
+    // 🆕 Validação: avisa se algum nó transferir não tem fila selecionada
+    const transferirSemFila = nos.filter(n => n.tipo === "transferir" && !n.dados?.fila);
+    if (transferirSemFila.length > 0) {
+      if (!confirm(`⚠️ ${transferirSemFila.length} nó(s) de Transferir estão sem fila selecionada.\n\nQuando executados vão usar "Fila Principal" como fallback. Deseja salvar assim mesmo?`)) return;
+    }
     setSalvando(true);
     await supabase.from("fluxos").update({nos,conexoes:arestas,nome:fluxoAtivo.nome,
       descricao:fluxoAtivo.descricao,ativo:fluxoAtivo.ativo,
@@ -849,6 +901,7 @@ export default function FluxosPage() {
               updateNo={updateNo}
               excluirNo={excluirNo}
               setNos={setNos}
+              filasBanco={filasBanco}
             />
             {noSel.tipo!=="inicio" && (
               <button onClick={()=>excluirNo(noSel.id)} style={{background:"#dc262611",color:"#dc2626",border:"1px solid #dc262633",borderRadius:8,padding:"8px",fontSize:12,cursor:"pointer",fontWeight:"bold",marginTop:"auto"}}>
