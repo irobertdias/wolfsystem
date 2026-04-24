@@ -7,12 +7,13 @@ export default function Site() {
   const planos = [
     {
       nome: "Básico",
-      preco: "R$ 544,34",
+      preco: "R$ 444,27",
       periodo: "/mês",
       cor: "#16a34a",
       destaque: false,
       recursos: [
-        "Até 7 usuários",
+        "Até 5 usuários",
+        "1 conexão WhatsApp",
         "ChatBot com IA",
         "Atendimentos ilimitados",
         "Mensagens ilimitadas",
@@ -27,7 +28,7 @@ export default function Site() {
     },
     {
       nome: "Intermediário",
-      preco: "R$ 844,34",
+      preco: "R$ 744,27",
       periodo: "/mês",
       cor: "#3b82f6",
       destaque: true,
@@ -45,11 +46,13 @@ export default function Site() {
         "Integração ChatBot + CRM",
         "Chat Interno",
         "API de Integração",
+        "🎯 Roleta de Distribuição",
+        "📤 Disparos em massa (Web)",
       ],
     },
     {
       nome: "Ultra",
-      preco: "R$ 1.099,99",
+      preco: "R$ 1.044,27",
       periodo: "/mês",
       cor: "#8b5cf6",
       destaque: false,
@@ -68,6 +71,9 @@ export default function Site() {
         "Chat Interno",
         "API de Integração",
         "Instagram Direct",
+        "🎯 Roleta de Distribuição",
+        "📤 Disparos em massa (Web + API)",
+        "📞 Módulo de Ligações VOIP",
       ],
     },
   ];
@@ -146,6 +152,9 @@ export default function Site() {
             { icon: "🏢", titulo: "Filas e Departamentos", desc: "Organize seu time com filas de atendimento e distribuição automática por roleta." },
             { icon: "📋", titulo: "Geração de Protocolo", desc: "Cada atendimento gera um protocolo automático para rastreabilidade total." },
             { icon: "🔗", titulo: "Integração ChatBot + CRM", desc: "Abra uma proposta de venda direto do chat com nome e número já preenchidos." },
+            { icon: "🎯", titulo: "Roleta de Distribuição", desc: "Distribua leads automaticamente entre os atendentes — balanceada, ranqueada ou aleatória." },
+            { icon: "📤", titulo: "Disparos em Massa", desc: "Envie campanhas pra milhares de contatos via WhatsApp Web ou API oficial da Meta." },
+            { icon: "📞", titulo: "Ligações VOIP", desc: "Faça chamadas de voz direto do CRM via Twilio ou Zenvia — tudo no navegador, sem instalar nada." },
           ].map((r) => (
             <div key={r.titulo} style={{ background: "#111", borderRadius: 12, padding: 28, border: "1px solid #1f2937" }}>
               <div style={{ fontSize: 36, marginBottom: 16 }}>{r.icon}</div>
@@ -189,6 +198,32 @@ export default function Site() {
             </div>
           ))}
         </div>
+
+        {/* 🆕 EXTRAS — preços de adicionais (usuários e conexões extras) */}
+        <div style={{ marginTop: 40, background: "#111", border: "1px solid #1f2937", borderRadius: 12, padding: "24px 32px", maxWidth: 700, marginLeft: "auto", marginRight: "auto" }}>
+          <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: "0 0 16px 0", textAlign: "center" }}>
+            ➕ Precisa de mais? Adicione a qualquer plano:
+          </h3>
+          <div style={{ display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#0a0a0a", borderRadius: 10, padding: "14px 20px", border: "1px solid #1f2937" }}>
+              <span style={{ fontSize: 24 }}>👤</span>
+              <div>
+                <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>Usuário extra</p>
+                <p style={{ color: "#16a34a", fontSize: 17, margin: 0, fontWeight: "bold" }}>R$ 29,90<span style={{ color: "#6b7280", fontSize: 12, fontWeight: "normal" }}> /mês</span></p>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#0a0a0a", borderRadius: 10, padding: "14px 20px", border: "1px solid #1f2937" }}>
+              <span style={{ fontSize: 24 }}>🔗</span>
+              <div>
+                <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>Conexão extra</p>
+                <p style={{ color: "#3b82f6", fontSize: 17, margin: 0, fontWeight: "bold" }}>R$ 79,90<span style={{ color: "#6b7280", fontSize: 12, fontWeight: "normal" }}> /mês</span></p>
+              </div>
+            </div>
+          </div>
+          <p style={{ color: "#6b7280", fontSize: 11, margin: "14px 0 0", textAlign: "center", fontStyle: "italic" }}>
+            Fale com nosso time comercial pra contratar adicionais
+          </p>
+        </div>
       </section>
 
       {/* CTA FINAL */}
@@ -200,14 +235,12 @@ export default function Site() {
         </button>
       </section>
 
-      {/* 🆕 FOOTER — com links pra LGPD / Termos / Contato */}
+      {/* FOOTER — com links pra LGPD / Termos / Contato */}
       <footer style={{ padding: "48px 32px 24px", borderTop: "1px solid #1f2937", background: "#0a0a0a" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 
-          {/* Grid com colunas: marca + navegação + legal + contato */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 40, marginBottom: 32 }}>
 
-            {/* Marca + tagline */}
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                 <img src="/logo1.png" alt="Wolf" style={{ width: 32, filter: "brightness(0) invert(1)" }} />
@@ -218,7 +251,6 @@ export default function Site() {
               </p>
             </div>
 
-            {/* Navegação */}
             <div>
               <h4 style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 12px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>Navegação</h4>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -229,7 +261,6 @@ export default function Site() {
               </div>
             </div>
 
-            {/* 🆕 Legal — LGPD e Termos */}
             <div>
               <h4 style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 12px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>Legal</h4>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -239,7 +270,6 @@ export default function Site() {
               </div>
             </div>
 
-            {/* Contato */}
             <div>
               <h4 style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 12px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>Contato</h4>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -251,7 +281,6 @@ export default function Site() {
 
           </div>
 
-          {/* Linha divisória + copyright */}
           <div style={{ borderTop: "1px solid #1f2937", paddingTop: 20, display: "flex", flexDirection: "column", gap: 8, textAlign: "center" }}>
             <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>
               © {new Date().getFullYear()} Wolf System. Todos os direitos reservados.
