@@ -9,6 +9,7 @@ import { ConexoesSection } from "./_sections/ConexoesSection";
 import { EtiquetasSection } from "./_sections/EtiquetasSection";
 import { RelatoriosSection } from "./_sections/RelatoriosSection";
 import { RespostasRapidasSection } from "./_sections/RespostasRapidasSection";
+import { RoletaSection } from "./_sections/RoletaSection";
 
 function ChatbotInner() {
   const router = useRouter();
@@ -17,6 +18,14 @@ function ChatbotInner() {
   const { workspace } = useWorkspace();
   const { permissoes, isDono } = usePermissao();
   const [menuAberto, setMenuAberto] = useState<string | null>("atendimentos");
+
+  // 🆕 Agora usando as permissões granulares ao invés de só "isDono" em tudo.
+  // Isso faz com que um Administrador ou um Supervisor com grupo customizado
+  // consiga acessar as áreas corretas sem precisar ser o dono do workspace.
+  const podeVerAutomacao = isDono || permissoes.administrador;
+  const podeVerMarketing = isDono || permissoes.disparo_enviar || permissoes.templates_waba;
+  const podeVerCadastro = isDono || permissoes.etiquetas;
+  const podeVerRoleta = isDono || permissoes.roleta_gerenciar;
 
   const menus = [
     ...((permissoes.chat_proprio || permissoes.chat_todos || permissoes.dashboard) ? [{
@@ -30,26 +39,28 @@ function ChatbotInner() {
       key: "conexoes_menu", icon: "📱", label: "Conexões",
       subitens: [{ key: "conexoes", label: "Conexões" }]
     }] : []),
-    ...(isDono ? [{
+    ...(podeVerAutomacao ? [{
       key: "automacao", icon: "🤖", label: "Automação",
       subitens: [{ key: "fluxos", label: "Chatbot / Fluxos" }]
     }] : []),
-    ...(isDono ? [{
+    ...(podeVerMarketing ? [{
       key: "marketing", icon: "📢", label: "Marketing",
       subitens: [
-        { key: "templates", label: "Templates", path: "/chatbot/templates" },
-        { key: "disparos", label: "Disparos em Massa", path: "/chatbot/disparos" }
+        ...((isDono || permissoes.templates_waba) ? [{ key: "templates", label: "Templates", path: "/chatbot/templates" }] : []),
+        ...((isDono || permissoes.disparo_enviar) ? [{ key: "disparos", label: "Disparos em Massa", path: "/chatbot/disparos" }] : []),
       ]
     }] : []),
-    ...(isDono ? [{
+    ...(podeVerCadastro ? [{
       key: "cadastro", icon: "📋", label: "Cadastro",
       subitens: [{ key: "etiquetas", label: "Etiquetas" }]
     }] : []),
-    ...((permissoes.relatorios || permissoes.respostas_rapidas) ? [{
+    ...((permissoes.relatorios || permissoes.respostas_rapidas || podeVerRoleta) ? [{
       key: "configuracoes", icon: "⚙️", label: "Configurações",
       subitens: [
         ...(permissoes.relatorios ? [{ key: "relatorios", label: "Relatórios" }] : []),
         ...(permissoes.respostas_rapidas ? [{ key: "respostas_rapidas", label: "Respostas Rápidas" }] : []),
+        // 🆕 Roleta de Distribuição — visível pra dono e pra quem tem permissão de gerenciar roleta
+        ...(podeVerRoleta ? [{ key: "roleta", label: "🎯 Roleta de Distribuição" }] : []),
       ]
     }] : []),
   ];
@@ -104,7 +115,7 @@ function ChatbotInner() {
           </div>
         )}
         {aba === "conexoes" && permissoes.conexoes && <ConexoesSection />}
-        {aba === "fluxos" && isDono && (
+        {aba === "fluxos" && podeVerAutomacao && (
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center", justifyContent: "center", flex: 1 }}>
             <span style={{ fontSize: 64 }}>🤖</span>
             <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Chatbot / Fluxos</h1>
@@ -112,9 +123,11 @@ function ChatbotInner() {
             <button onClick={() => router.push("/chatbot/fluxos")} style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 10, padding: "14px 32px", fontSize: 16, cursor: "pointer", fontWeight: "bold" }}>🤖 Abrir Editor de Fluxos →</button>
           </div>
         )}
-        {aba === "etiquetas" && isDono && <EtiquetasSection />}
+        {aba === "etiquetas" && podeVerCadastro && <EtiquetasSection />}
         {aba === "relatorios" && permissoes.relatorios && <RelatoriosSection />}
         {aba === "respostas_rapidas" && permissoes.respostas_rapidas && <RespostasRapidasSection />}
+        {/* 🆕 Rota Roleta */}
+        {aba === "roleta" && podeVerRoleta && <RoletaSection />}
       </div>
     </div>
   );
