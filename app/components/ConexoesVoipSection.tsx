@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
-import { useWorkspace } from "../../hooks/useWorkspace";
-import { usePermissao } from "../../hooks/usePermissao";
+import { supabase } from "../lib/supabase";
+import { useWorkspace } from "../hooks/useWorkspace";
+import { usePermissao } from "../hooks/usePermissao";
 
 type ConexaoVoip = {
   id: number;
