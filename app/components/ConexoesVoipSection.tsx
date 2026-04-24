@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { usePermissao } from "../hooks/usePermissao";
+import { useModulos, ModuloBloqueado } from "../hooks/useModulos";
 
 type ConexaoVoip = {
   id: number;
@@ -30,7 +31,8 @@ type ConexaoVoip = {
 
 export default function ConexoesVoipSection() {
   const { workspace, wsId, user } = useWorkspace();
-  const { isDono, permissoes } = usePermissao();
+  const { isDono, isSuperAdmin, permissoes } = usePermissao();
+  const { modulos, carregado: modulosCarregados } = useModulos();
 
   const [conexoes, setConexoes] = useState<ConexaoVoip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,8 +64,16 @@ export default function ConexoesVoipSection() {
   const [enviando, setEnviando] = useState(false);
   const [mostrarAjuda, setMostrarAjuda] = useState<"twilio" | "zenvia" | null>(null);
 
-  // Permissão — só dono ou admin pode gerenciar conexões VOIP
-  const podeGerenciar = isDono || permissoes.administrador;
+  // 🆕 HIERARQUIA Presidente → STF → Ministros:
+  //   👑 Super Admin Wolf (você): bypass total
+  //   🏢 Dono workspace: respeita módulo do plano (se plano tem VOIP, vê)
+  //   👤 Sub-usuário (Supervisor/Atendente/Admin): respeita plano E grupo de permissão (voip_conexoes)
+  const podeGerenciar = (() => {
+    if (isSuperAdmin) return true;
+    if (!modulos.voip) return false;          // plano não inclui VOIP → ninguém vê
+    if (isDono) return true;                   // dono respeita só o plano
+    return !!permissoes.voip_conexoes;        // sub-usuário precisa da permissão granular
+  })();
 
   const wa = async (rota: string, body?: object) => {
     const opts: any = body !== undefined
@@ -220,11 +230,16 @@ export default function ConexoesVoipSection() {
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
 
+  if (modulosCarregados && !modulos.voip && !isSuperAdmin) {
+    return <ModuloBloqueado modulo="voip" />;
+  }
+
   if (!podeGerenciar) {
     return (
       <div style={{ padding: 32, textAlign: "center", minHeight: "100vh", background: "#0a0a0a" }}>
         <h1 style={{ color: "white", fontSize: 20 }}>🔒 Acesso Restrito</h1>
-        <p style={{ color: "#9ca3af" }}>Apenas o dono ou administrador pode gerenciar conexões VOIP.</p>
+        <p style={{ color: "#9ca3af" }}>Seu usuário não tem permissão para gerenciar conexões VOIP.</p>
+        <p style={{ color: "#6b7280", fontSize: 12, marginTop: 8 }}>Peça ao dono do workspace pra marcar "Gerenciar conexões VOIP" no seu grupo de permissão.</p>
       </div>
     );
   }

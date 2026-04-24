@@ -3,16 +3,25 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { usePermissao } from "../hooks/usePermissao";
+import { useModulos } from "../hooks/useModulos";
+
+// ═══════════════════════════════════════════════════════════════════════
+// 🏛️ HIERARQUIA APLICADA NESTE LAYOUT:
+//
+//   👑 Super Admin Wolf → vê TUDO sempre (bypass)
+//   🏢 Dono do workspace → vê o que o PLANO libera
+//   👤 Sub-usuário → vê (PLANO libera) E (grupo de permissão libera)
+// ═══════════════════════════════════════════════════════════════════════
 
 const ADMIN_EMAIL = "robert.dias@live.com";
 
 export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { permissoes, isDono, perfil } = usePermissao();
+  const { permissoes, isDono, isSuperAdmin, perfil } = usePermissao();
+  const { modulos, carregado: modulosCarregados } = useModulos();
   const [userEmail, setUserEmail] = useState("");
   const [workspaceNome, setWorkspaceNome] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
   const [cadastrosCount, setCadastrosCount] = useState(0);
   const [usuariosCount, setUsuariosCount] = useState(0);
   const [limiteUsuarios, setLimiteUsuarios] = useState(9999);
@@ -22,8 +31,6 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/"); return; }
       setUserEmail(user.email || "");
-      const admin = user.email === ADMIN_EMAIL;
-      setIsAdmin(admin);
 
       const { data: ws } = await supabase
         .from("workspaces")
@@ -38,7 +45,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           const { count } = await supabase.from("usuarios_workspace").select("*", { count: "exact", head: true }).eq("workspace_id", wsId);
           setUsuariosCount(count || 0);
         }
-        if (!admin) {
+        if (!isSuperAdmin) {
           const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).maybeSingle();
           if (cadastro) setLimiteUsuarios(cadastro.usuarios_liberados || 1);
         }
@@ -71,28 +78,62 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         }
       }
 
-      if (admin) {
+      if (isSuperAdmin) {
         const { count } = await supabase.from("cadastros").select("*", { count: "exact", head: true });
         setCadastrosCount(count || 0);
       }
     };
     init();
-  }, []);
+  }, [isSuperAdmin]);
 
   const signOut = async () => { await supabase.auth.signOut(); router.push("/"); };
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // 🔧 HELPERS de hierarquia
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Super admin sempre vê tudo
+  // Dono respeita só o módulo do plano
+  // Sub-usuário respeita (módulo) E (permissão granular)
+  const podeVerComHierarquia = (
+    moduloAtivo: boolean,
+    permissaoKey: keyof typeof permissoes
+  ): boolean => {
+    if (isSuperAdmin) return true;
+    if (!moduloAtivo) return false;            // plano não inclui → ninguém vê
+    if (isDono) return true;                    // dono respeita só o plano
+    return !!permissoes[permissaoKey];          // sub-usuário precisa da permissão
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 📋 Itens do menu — cada um respeitando a hierarquia
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Super admin tem item especial "Clientes Wolf" (não disponível pra outros)
+  // Dashboard, Funil, Vendas: básicos do CRM, sempre liberados (não dependem de módulo)
   const menuItems = [
-    ...(permissoes.dashboard ? [{ path: "/crm/dashboard", icon: "📊", label: "Dashboard" }] : []),
-    ...(permissoes.vendas_proprio || permissoes.vendas_equipe ? [{ path: "/crm/funil", icon: "🎯", label: "Funil de Vendas" }] : []),
-    ...(permissoes.vendas_proprio || permissoes.vendas_equipe ? [{ path: "/crm/vendas", icon: "💰", label: "Vendas" }] : []),
-    ...(isAdmin ? [{ path: "/crm/clientes", icon: "👥", label: "Clientes Wolf", badge: cadastrosCount }] : []),
-    ...(!isAdmin && (permissoes.chat_proprio || permissoes.chat_todos) ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos", badge: 0 }] : []),
-    ...(permissoes.configuracoes_workspace ? [{ path: "/crm/configuracoes", icon: "⚙️", label: "Configurações", badge: 0 }] : []),
+    ...(isSuperAdmin ? [{ path: "/crm/clientes", icon: "👥", label: "Clientes Wolf", badge: cadastrosCount }] : []),
+    ...((isSuperAdmin || isDono || permissoes.dashboard) ? [{ path: "/crm/dashboard", icon: "📊", label: "Dashboard" }] : []),
+    ...((isSuperAdmin || isDono || permissoes.funil || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/funil", icon: "🎯", label: "Funil de Vendas" }] : []),
+    ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/vendas", icon: "💰", label: "Vendas" }] : []),
+    ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos) ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos", badge: 0 }] : []),
+    ...((isSuperAdmin || isDono || permissoes.configuracoes_workspace) ? [{ path: "/crm/configuracoes", icon: "⚙️", label: "Configurações", badge: 0 }] : []),
   ];
 
   const isActive = (path: string) => pathname === path;
 
-  const podeVerTelefonia = isDono || perfil === "Administrador";
+  // 📞 TELEFONIA — respeita hierarquia: super admin sempre / dono se plano tem / sub-usuário se plano tem E permissão
+  const podeVerTelefonia = podeVerComHierarquia(modulos.voip, "voip_usar");
+
+  // Botão Chatbot - super admin OU dono OU quem tem chat_proprio/chat_todos
+  const podeVerChatbot = isSuperAdmin || isDono || permissoes.chat_proprio || permissoes.chat_todos;
+
+  // Mostra label do perfil pro usuário
+  const perfilLabel = isSuperAdmin ? "👑 Super Admin Wolf"
+    : isDono ? "🏢 Dono do Workspace"
+    : perfil === "Supervisor" ? "🔍 Supervisor"
+    : perfil === "Administrador" ? "👔 Administrador"
+    : "👤 Atendente";
 
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#0a0a0a" }}>
@@ -108,12 +149,10 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         <div style={{ background: "#1f2937", borderRadius: 8, padding: "8px 12px", marginBottom: 4 }}>
           <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 2px" }}>Logado como</p>
           <p style={{ color: "white", fontSize: 11, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userEmail}</p>
-          <p style={{ color: "#6b7280", fontSize: 10, margin: "2px 0 0" }}>
-            {isDono ? "👑 Dono" : perfil === "Supervisor" ? "🔍 Supervisor" : perfil === "Administrador" ? "👔 Administrador" : "👤 Atendente"}
-          </p>
+          <p style={{ color: "#6b7280", fontSize: 10, margin: "2px 0 0" }}>{perfilLabel}</p>
         </div>
 
-        {isDono && !isAdmin && (
+        {isDono && !isSuperAdmin && (
           <div style={{ background: "#1f293788", borderRadius: 8, padding: "8px 12px", marginBottom: 4 }}>
             <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 2px" }}>Plano</p>
             <span style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold" }}>👥 {usuariosCount}/{limiteUsuarios} usuários</span>
@@ -130,11 +169,14 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         ))}
 
         <div style={{ borderTop: "1px solid #1f2937", marginTop: 8, paddingTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-          <button onClick={() => router.push("/chatbot")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#3b82f622", border: "1px solid #3b82f633", borderRadius: 8, cursor: "pointer", color: "#3b82f6", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
-            <span>💬</span> Chatbot
-          </button>
+          {podeVerChatbot && (
+            <button onClick={() => router.push("/chatbot")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#3b82f622", border: "1px solid #3b82f633", borderRadius: 8, cursor: "pointer", color: "#3b82f6", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
+              <span>💬</span> Chatbot
+            </button>
+          )}
 
-          {podeVerTelefonia && (
+          {/* 📞 TELEFONIA — só aparece se passa na hierarquia (módulo + permissão) */}
+          {modulosCarregados && podeVerTelefonia && (
             <button onClick={() => router.push("/crm/telefonia")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: isActive("/crm/telefonia") ? "#16a34a33" : "#16a34a22", border: `1px solid ${isActive("/crm/telefonia") ? "#16a34a" : "#16a34a33"}`, borderRadius: 8, cursor: "pointer", color: "#16a34a", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
               <span>📞</span> Telefonia
             </button>

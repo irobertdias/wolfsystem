@@ -4,9 +4,22 @@ import { supabase } from "../lib/supabase";
 // ═══════════════════════════════════════════════════════════════════════
 // 🔐 Sistema de permissões Wolf CRM
 // ═══════════════════════════════════════════════════════════════════════
-// Cada chave é uma permissão granular. Agrupadas em 8 categorias lógicas
-// na UI de edição de grupos. Mas aqui no hook é um objeto plano.
+// HIERARQUIA (analogia Presidente → STF → Ministros):
+//
+//   👑 Super Admin Wolf (robert.dias@live.com) = "Presidente"
+//      → Acesso TOTAL em qualquer workspace, sempre. Bypass tudo.
+//
+//   🏢 Dono do workspace = "STF"
+//      → Pode tudo dentro do workspace dele
+//      → MAS respeita o limite do plano que paga
+//
+//   👤 Supervisor / Atendente = "Ministros"
+//      → Respeita o grupo de permissão configurado pelo Dono
+//      → Respeita o plano do workspace
 // ═══════════════════════════════════════════════════════════════════════
+
+// 🔒 Email do super admin Wolf (você)
+const ADMIN_EMAIL = "robert.dias@live.com";
 
 export type Permissoes = {
   // 💬 ATENDIMENTO
@@ -105,9 +118,13 @@ export const PERMISSOES_ZERO: Permissoes = Object.keys(PERMISSOES_DONO).reduce((
   return acc;
 }, {} as Permissoes);
 
+// Versão com TUDO true — usada como fallback pro super admin Wolf
+const PERMISSOES_SUPER_ADMIN: Permissoes = { ...PERMISSOES_DONO };
+
 export function usePermissao() {
   const [permissoes, setPermissoes] = useState<Permissoes>(PERMISSOES_ZERO);
   const [isDono, setIsDono] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [perfil, setPerfil] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -117,14 +134,28 @@ export function usePermissao() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      // ═══ É dono? ═══
+      // 🆕 Detecta SUPER ADMIN Wolf — bypass total em qualquer workspace
+      const ehSuperAdmin = (user.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      setIsSuperAdmin(ehSuperAdmin);
+
+      // ═══ É dono do workspace atual? ═══
       const { data: ws } = await supabase.from("workspaces").select("id")
         .eq("owner_id", user.id).maybeSingle();
 
       if (ws) {
         setIsDono(true);
-        setPerfil("dono");
+        setPerfil(ehSuperAdmin ? "super_admin" : "dono");
         setPermissoes(PERMISSOES_DONO);
+        setLoading(false);
+        return;
+      }
+
+      // 🆕 Se é super admin mas não é dono desse workspace, ainda assim libera tudo
+      // (super admin entra em workspace alheio pra dar suporte, deve poder fazer tudo)
+      if (ehSuperAdmin) {
+        setIsDono(false);
+        setPerfil("super_admin");
+        setPermissoes(PERMISSOES_SUPER_ADMIN);
         setLoading(false);
         return;
       }
@@ -169,5 +200,5 @@ export function usePermissao() {
     init();
   }, []);
 
-  return { permissoes, isDono, perfil, loading };
+  return { permissoes, isDono, isSuperAdmin, perfil, loading };
 }
