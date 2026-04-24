@@ -15,6 +15,7 @@ type Proposta = {
   data_agendamento?: string; periodo_instalacao?: string;
   data_instalacao?: string; data_cancelamento?: string;
 };
+type UsuarioWs = { email: string; nome: string; };
 
 const statusColor: Record<string, string> = {
   PENDENTE: "#f59e0b", "AGUARDANDO AUDITORIA": "#3b82f6",
@@ -25,12 +26,14 @@ const STATUS_OPCOES = ["PENDENTE", "AGUARDANDO AUDITORIA", "CANCELADA", "INSTALA
 
 export default function Vendas() {
   const router = useRouter();
-  const { isDono, perfil } = usePermissao();
+  const { isDono, perfil, permissoes } = usePermissao(); // 🆕 agora pega permissoes tb
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [loading, setLoading] = useState(true);
   const [workspaceId, setWorkspaceId] = useState("");
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [userEmail, setUserEmail] = useState<string>(""); // 🆕 email do user logado
+  const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]); // 🆕 lista pra escolher vendedor no modal + mapear nomes
 
   // Modal edição
   const [showModal, setShowModal] = useState(false);
@@ -41,7 +44,20 @@ export default function Vendas() {
   // ✅ Só dono ou Administrador podem excluir
   const podeExcluir = isDono || perfil === "Administrador";
 
+  // 🆕 Regra central: quem pode ver vendas de todo mundo
+  //    - Dono do workspace: sempre
+  //    - Perfil "Administrador": sempre
+  //    - Usuário com permissão `vendas_equipe` marcada no grupo: sim
+  //    - Resto (Atendente, Vendedor): só vê as próprias
+  const podeVerTudo = isDono || perfil === "Administrador" || !!permissoes?.vendas_equipe;
+
   const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
+
+  const nomeVendedor = (v: string): string => {
+    if (!v) return "—";
+    const u = usuariosWs.find(x => x.email?.toLowerCase() === v?.toLowerCase());
+    return u?.nome || v;
+  };
 
   const fetchPropostas = async (wsId: string) => {
     const { data } = await supabase.from("proposta").select("*")
@@ -50,16 +66,31 @@ export default function Vendas() {
     setPropostas(data || []);
   };
 
+  const fetchUsuariosWs = async (wsId: string, wsData?: any) => {
+    const lista: UsuarioWs[] = [];
+    const ws = wsData || (await supabase.from("workspaces").select("nome, owner_email, username, id").or(`username.eq.${wsId},id.eq.${wsId}`).maybeSingle()).data;
+    if (ws?.owner_email) lista.push({ email: ws.owner_email, nome: ws.nome || "Dono" });
+    const { data: subs } = await supabase.from("usuarios_workspace").select("email, nome").eq("workspace_id", wsId);
+    for (const s of (subs || [])) {
+      if (s.email && !lista.find(x => x.email?.toLowerCase() === s.email?.toLowerCase())) {
+        lista.push({ email: s.email, nome: s.nome || s.email });
+      }
+    }
+    setUsuariosWs(lista);
+  };
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/"); return; }
+      setUserEmail(user.email || "");
 
       // Caminho 1: dono
       const { data: wsDono } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).maybeSingle();
       if (wsDono?.username) {
         setWorkspaceId(wsDono.username);
         await fetchPropostas(wsDono.username);
+        await fetchUsuariosWs(wsDono.username, wsDono);
         setLoading(false);
         return;
       }
@@ -75,6 +106,7 @@ export default function Vendas() {
       if (usuarioWs?.workspace_id) {
         setWorkspaceId(usuarioWs.workspace_id);
         await fetchPropostas(usuarioWs.workspace_id);
+        await fetchUsuariosWs(usuarioWs.workspace_id);
       }
       setLoading(false);
     };
@@ -86,6 +118,7 @@ export default function Vendas() {
     if (!workspaceId) return;
     const ch = supabase.channel("proposta_rt_" + workspaceId)
       .on("postgres_changes", { event: "*", schema: "public", table: "proposta", filter: `workspace_id=eq.${workspaceId}` }, () => fetchPropostas(workspaceId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${workspaceId}` }, () => fetchUsuariosWs(workspaceId))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [workspaceId]);
@@ -149,9 +182,16 @@ export default function Vendas() {
     } catch (e: any) { alert("Erro: " + e.message); }
   };
 
+  // 🆕 FILTRO PRINCIPAL — aplica a regra de quem pode ver o quê
+  // Se o user pode ver tudo, não filtra.
+  // Senão, só as onde vendedor === email do user logado.
   const propostasFiltradas = propostas
+    .filter(p => podeVerTudo || (p.vendedor && p.vendedor.toLowerCase() === userEmail.toLowerCase()))
     .filter(p => filtroStatus === "todos" || p.status_venda === filtroStatus)
-    .filter(p => !busca || p.nome?.toLowerCase().includes(busca.toLowerCase()) || p.cpf?.includes(busca) || p.vendedor?.toLowerCase().includes(busca.toLowerCase()));
+    .filter(p => !busca || p.nome?.toLowerCase().includes(busca.toLowerCase()) || p.cpf?.includes(busca) || nomeVendedor(p.vendedor).toLowerCase().includes(busca.toLowerCase()));
+
+  const totalVisivel = propostasFiltradas.length;
+  const totalGeral = propostas.length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -180,7 +220,21 @@ export default function Vendas() {
                 </div>
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Vendedor</label>
-                  <input value={form.vendedor || ""} onChange={e => setForm({ ...form, vendedor: e.target.value })} style={inputStyle} />
+                  {/* 🆕 Dropdown dinâmico (só admin/dono/com vendas_equipe pode alterar). Outros veem travado. */}
+                  {podeVerTudo ? (
+                    <select value={form.vendedor || ""} onChange={e => setForm({ ...form, vendedor: e.target.value })} style={inputStyle}>
+                      <option value="">Selecione...</option>
+                      {usuariosWs.map(u => (
+                        <option key={u.email} value={u.email}>{u.nome}</option>
+                      ))}
+                      {/* Se a proposta antiga tem vendedor "ROBERT" (nome literal), mostra tb pra não perder */}
+                      {form.vendedor && !usuariosWs.find(u => u.email?.toLowerCase() === form.vendedor?.toLowerCase()) && (
+                        <option value={form.vendedor}>⚠️ {form.vendedor} (legado)</option>
+                      )}
+                    </select>
+                  ) : (
+                    <input value={nomeVendedor(form.vendedor || "")} disabled style={{ ...inputStyle, opacity: 0.6 }} />
+                  )}
                 </div>
               </div>
             </div>
@@ -338,7 +392,12 @@ export default function Vendas() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>💰 Vendas</h1>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{propostas.length} proposta(s) cadastrada(s)</p>
+          <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
+            {/* 🆕 Explica quantas o user está vendo vs total */}
+            {podeVerTudo
+              ? `${totalGeral} proposta(s) cadastrada(s)`
+              : `${totalVisivel} proposta(s) suas${totalGeral > totalVisivel ? ` · ${totalGeral - totalVisivel} de outros vendedores ocultas` : ""}`}
+          </p>
         </div>
         <button onClick={() => router.push("/crm/proposta")} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
           📋 Nova Proposta
@@ -371,13 +430,19 @@ export default function Vendas() {
             ) : propostasFiltradas.length === 0 ? (
               <tr><td colSpan={8} style={{ padding: 48, color: "#6b7280", textAlign: "center" }}>
                 <p style={{ fontSize: 40, margin: "0 0 8px" }}>💰</p>
-                <p style={{ fontSize: 13, margin: 0 }}>{busca || filtroStatus !== "todos" ? "Nenhum resultado pros filtros" : "Nenhuma proposta cadastrada ainda"}</p>
+                <p style={{ fontSize: 13, margin: 0 }}>
+                  {busca || filtroStatus !== "todos"
+                    ? "Nenhum resultado pros filtros"
+                    : podeVerTudo
+                      ? "Nenhuma proposta cadastrada ainda"
+                      : "Você ainda não cadastrou nenhuma proposta"}
+                </p>
               </td></tr>
             ) : propostasFiltradas.map((v, i) => (
               <tr key={v.id} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
                 <td style={{ padding: "12px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{v.nome}</td>
                 <td style={{ padding: "12px 16px", color: "#9ca3af", fontSize: 12 }}>{v.cpf || "—"}</td>
-                <td style={{ padding: "12px 16px", color: "#9ca3af", fontSize: 12 }}>{v.vendedor || "—"}</td>
+                <td style={{ padding: "12px 16px", color: "#9ca3af", fontSize: 12 }}>{nomeVendedor(v.vendedor)}</td>
                 <td style={{ padding: "12px 16px", color: "#9ca3af", fontSize: 12 }}>{v.plano || "—"}</td>
                 <td style={{ padding: "12px 16px", color: "#16a34a", fontSize: 13, fontWeight: "bold" }}>R$ {(v.valor_plano || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td style={{ padding: "12px 16px" }}>
@@ -401,6 +466,11 @@ export default function Vendas() {
       {!podeExcluir && propostas.length > 0 && (
         <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: 0 }}>
           🔒 Apenas o dono do workspace ou administrador podem excluir propostas.
+        </p>
+      )}
+      {!podeVerTudo && (
+        <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: 0 }}>
+          👤 Você só vê suas próprias propostas. Pra ver as da equipe, peça ao admin para habilitar a permissão <b>"Ver vendas da equipe"</b> no seu grupo.
         </p>
       )}
     </div>

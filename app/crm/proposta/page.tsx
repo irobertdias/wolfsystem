@@ -1,16 +1,25 @@
 "use client";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
+
+type UsuarioWs = { email: string; nome: string; };
 
 function PropostaForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { workspace } = useWorkspace();
   const [loading, setLoading] = useState(false);
+
+  // 🆕 Estados novos pra dropdown de vendedor
+  const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [podeEscolherVendedor, setPodeEscolherVendedor] = useState<boolean>(false);
+  const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
+
   const [form, setForm] = useState({
-    dataProposta: "",
+    dataProposta: new Date().toISOString().split("T")[0], // pré-preenche com hoje
     nome: searchParams.get("nome") || "",
     cpf: "",
     dataNascimento: "",
@@ -30,16 +39,75 @@ function PropostaForm() {
     valorPlano: "",
     dataAgendamento: "",
     periodoInstalacao: "",
-    vendedor: "",
+    vendedor: "", // vai ser pré-preenchido com email do user
     statusVenda: "PENDENTE",
     dataInstalacao: "",
     dataCancelamento: "",
     operadora: "",
   });
 
+  // 🆕 Carrega usuários do workspace + define se user pode escolher qualquer vendedor
+  useEffect(() => {
+    const carregar = async () => {
+      if (!workspace?.username) return;
+      setCarregandoUsuarios(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setCarregandoUsuarios(false); return; }
+        setUserEmail(user.email || "");
+
+        // Busca dados do workspace pra pegar owner_email
+        const { data: ws } = await supabase.from("workspaces")
+          .select("owner_id, owner_email, nome, username, id")
+          .or(`username.eq.${workspace.username},id.eq.${workspace.username}`)
+          .maybeSingle();
+
+        const userEhDono = ws?.owner_id === user.id;
+
+        // Busca sub-usuários
+        const { data: subs } = await supabase.from("usuarios_workspace")
+          .select("email, nome, perfil, grupo_id")
+          .eq("workspace_id", workspace.username);
+
+        // Monta lista de vendedores (dono + sub-usuários, deduplicados)
+        const lista: UsuarioWs[] = [];
+        if (ws?.owner_email) lista.push({ email: ws.owner_email, nome: ws.nome || "Dono" });
+        for (const s of (subs || [])) {
+          if (s.email && !lista.find(x => x.email?.toLowerCase() === s.email?.toLowerCase())) {
+            lista.push({ email: s.email, nome: s.nome || s.email });
+          }
+        }
+        setUsuariosWs(lista);
+
+        // Descobre permissões do user atual pra decidir se ele pode escolher qualquer vendedor
+        let pode = userEhDono;
+        if (!pode) {
+          const uw = (subs || []).find(s => s.email?.toLowerCase() === user.email?.toLowerCase());
+          if (uw?.perfil === "Administrador") pode = true;
+          else if (uw?.grupo_id) {
+            const { data: gp } = await supabase.from("grupos_permissao")
+              .select("permissoes").eq("id", uw.grupo_id).maybeSingle();
+            if (gp?.permissoes?.vendas_equipe === true) pode = true;
+          }
+        }
+        setPodeEscolherVendedor(pode);
+
+        // Pré-seleciona vendedor com o email do user atual
+        // (pra atendente: trava nessa; pra admin: começa aqui mas pode trocar)
+        setForm(p => ({ ...p, vendedor: user.email || "" }));
+      } catch (e) { console.error("Erro ao carregar usuários:", e); }
+      setCarregandoUsuarios(false);
+    };
+    carregar();
+  }, [workspace]);
+
   const handleSubmit = async () => {
     if (!form.nome || !form.cpf || !form.telefone1) {
       alert("Preencha pelo menos Nome, CPF e Telefone 1!");
+      return;
+    }
+    if (!form.vendedor) {
+      alert("Selecione o vendedor!");
       return;
     }
     if (!workspace) {
@@ -69,7 +137,7 @@ function PropostaForm() {
       valor_plano: form.valorPlano ? Number(form.valorPlano) : null,
       data_agendamento: form.dataAgendamento,
       periodo_instalacao: form.periodoInstalacao,
-      vendedor: form.vendedor,
+      vendedor: form.vendedor, // 🆕 agora é sempre um email válido
       status_venda: form.statusVenda,
       data_instalacao: form.dataInstalacao,
       data_cancelamento: form.dataCancelamento,
@@ -85,7 +153,7 @@ function PropostaForm() {
     }
 
     alert("Proposta cadastrada com sucesso!");
-    router.push("/crm");
+    router.push("/crm/vendas"); // 🆕 volta pra Vendas ao invés do CRM genérico
   };
 
   const inputStyle = {
@@ -115,6 +183,39 @@ function PropostaForm() {
     </div>
   );
 
+  // 🆕 Renderiza o campo Vendedor: dropdown pra admin, campo bloqueado pros outros
+  const renderVendedorField = () => {
+    if (carregandoUsuarios) {
+      return <input value="⏳ Carregando vendedores..." disabled style={{ ...inputStyle, opacity: 0.5 }} />;
+    }
+    if (podeEscolherVendedor) {
+      return (
+        <select
+          value={form.vendedor}
+          onChange={(e) => setForm({ ...form, vendedor: e.target.value })}
+          style={inputStyle}
+        >
+          <option value="">Selecione o vendedor...</option>
+          {usuariosWs.map(u => (
+            <option key={u.email} value={u.email}>
+              {u.nome} {u.email === userEmail ? "(você)" : ""}
+            </option>
+          ))}
+        </select>
+      );
+    }
+    // Atendente/Vendedor comum — mostra o próprio nome (não editável)
+    const meuNome = usuariosWs.find(u => u.email?.toLowerCase() === userEmail.toLowerCase())?.nome || userEmail;
+    return (
+      <input
+        value={`${meuNome} (você)`}
+        disabled
+        style={{ ...inputStyle, opacity: 0.7, cursor: "not-allowed" }}
+        title="Você só pode cadastrar propostas em seu próprio nome"
+      />
+    );
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0a", fontFamily: "Arial, sans-serif", padding: 32 }}>
 
@@ -126,11 +227,11 @@ function PropostaForm() {
             <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>Wolf CRM — {workspace?.nome}</p>
           </div>
         </div>
-        <button onClick={() => router.push("/crm")} style={{
+        <button onClick={() => router.push("/crm/vendas")} style={{
           background: "#1f2937", color: "#9ca3af", border: "1px solid #374151",
           borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer"
         }}>
-          ← Voltar ao CRM
+          ← Voltar para Vendas
         </button>
       </div>
 
@@ -142,8 +243,13 @@ function PropostaForm() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
             {fieldBox("Data da Proposta", <input type="date" value={form.dataProposta} onChange={(e) => setForm({ ...form, dataProposta: e.target.value })} style={inputStyle} />)}
             {fieldBox("Operadora", <input placeholder="Ex: Claro, Vivo, Tim..." value={form.operadora} onChange={(e) => setForm({ ...form, operadora: e.target.value })} style={inputStyle} />)}
-            {fieldBox("Vendedor", <input placeholder="Nome do vendedor" value={form.vendedor} onChange={(e) => setForm({ ...form, vendedor: e.target.value })} style={inputStyle} />)}
+            {fieldBox("Vendedor *", renderVendedorField())}
           </div>
+          {!podeEscolherVendedor && !carregandoUsuarios && (
+            <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: "8px 0 0" }}>
+              🔒 Sua conta só pode cadastrar propostas em seu próprio nome. Admins podem atribuir a outros vendedores.
+            </p>
+          )}
         </div>
 
         {/* Dados Pessoais */}
@@ -234,7 +340,7 @@ function PropostaForm() {
 
         {/* Botões */}
         <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
-          <button onClick={() => router.push("/crm")} style={{
+          <button onClick={() => router.push("/crm/vendas")} style={{
             background: "none", color: "#9ca3af", border: "1px solid #374151",
             borderRadius: 8, padding: "12px 24px", fontSize: 14, cursor: "pointer"
           }}>
@@ -253,6 +359,7 @@ function PropostaForm() {
     </div>
   );
 }
+
 export default function NovaProposta() {
   return (
     <Suspense fallback={<div style={{ background: "#0a0a0a", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "white" }}>Carregando...</p></div>}>
