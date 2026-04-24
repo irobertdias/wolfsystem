@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
+import { useModulos, ModuloBloqueado } from "../../hooks/useModulos";
 
 type Canal = { id: number; nome: string; tipo: string; status: string; waba_id?: string; };
 type Template = {
@@ -23,7 +24,8 @@ type ContatoWaba = { numero: string; vars: Record<string, string>; };
 export default function DisparosPage() {
   const router = useRouter();
   const { workspace, wsId, user } = useWorkspace();
-  const { isDono, permissoes } = usePermissao();
+  const { isDono, perfil, permissoes } = usePermissao();
+  const { modulos, carregado: modulosCarregados } = useModulos();
 
   const [tipoDisparo, setTipoDisparo] = useState<"webjs" | "waba">("webjs");
   const [canais, setCanais] = useState<Canal[]>([]);
@@ -36,7 +38,6 @@ export default function DisparosPage() {
   const [mensagem, setMensagem] = useState("");
   const [numerosTexto, setNumerosTexto] = useState("");
 
-  // WABA: variáveis fixas (pra todos) e contatos com variáveis individuais
   const [varsFixas, setVarsFixas] = useState<Record<string, string>>({});
   const [contatosWaba, setContatosWaba] = useState<ContatoWaba[]>([]);
 
@@ -47,9 +48,16 @@ export default function DisparosPage() {
   const [contatosDetalhe, setContatosDetalhe] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const podeDisparar = isDono || permissoes.supervisor;
+  // 🆕 FIX PERMISSÃO:
+  // Antes: `isDono || permissoes.supervisor` → "supervisor" não existe no tipo Permissoes, SEMPRE bloqueava.
+  // Agora: respeita a permissão granular `disparo_enviar` OU perfil Administrador OU dono do workspace.
+  //        Também aceita `templates_waba` como sinal indireto (quem gerencia templates geralmente dispara).
+  const podeDisparar =
+    isDono
+    || perfil === "Administrador"
+    || !!(permissoes && (permissoes as any).disparo_enviar)
+    || !!(permissoes && (permissoes as any).templates_waba);
 
-  // Ajusta delays default quando muda tipo
   useEffect(() => {
     if (tipoDisparo === "waba") {
       setDelayMin(1); setDelayMax(3);
@@ -108,7 +116,6 @@ export default function DisparosPage() {
 
   useEffect(() => { fetchTemplatesAprovados(); }, [canalSelecionado, wsId]);
 
-  // Polling do disparo aberto
   useEffect(() => {
     if (!disparoDetalhe) return;
     const fetchContatos = async () => {
@@ -127,7 +134,6 @@ export default function DisparosPage() {
       .filter(n => n.length >= 10 && n.length <= 15);
   };
 
-  // Extrai as variáveis usadas no template (body + header)
   const extrairVariaveisTemplate = (): string[] => {
     const tpl = templates.find(t => t.id === templateSelecionado);
     if (!tpl) return [];
@@ -150,7 +156,6 @@ export default function DisparosPage() {
       const linhas = txt.split(/[\r\n]+/).filter(l => l.trim());
 
       if (tipoDisparo === "webjs") {
-        // WebJS: pega só primeira coluna (número)
         const numeros = linhas
           .map(l => l.split(/[,;]/)[0])
           .map(n => n.replace(/\D/g, ""))
@@ -158,7 +163,6 @@ export default function DisparosPage() {
         setNumerosTexto(numeros.join("\n"));
         alert(`✅ ${numeros.length} número(s) importado(s)`);
       } else {
-        // WABA: primeira coluna = número, demais = vars {{1}}, {{2}}, ...
         const varsTemplate = extrairVariaveisTemplate();
         const contatos: ContatoWaba[] = [];
         for (const linha of linhas) {
@@ -179,7 +183,6 @@ export default function DisparosPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Monta lista de contatos WABA a partir dos números digitados manualmente
   const montarContatosWabaDoTexto = (): ContatoWaba[] => {
     const numeros = processarNumeros(numerosTexto);
     return numeros.map(n => ({ numero: n, vars: {} }));
@@ -223,7 +226,6 @@ export default function DisparosPage() {
     if (contatosFinal.length > 5000) return alert("Máximo 5000 contatos por disparo WABA");
 
     const varsTemplate = extrairVariaveisTemplate();
-    // Verifica se todas as variáveis têm valor (em varsFixas ou em cada contato)
     const varsSemValor: string[] = [];
     for (const v of varsTemplate) {
       const temValorFixo = varsFixas[v] && varsFixas[v].trim();
@@ -287,11 +289,20 @@ export default function DisparosPage() {
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
 
+  // 🔒 Bloqueio de módulo (plano) — tem prioridade sobre permissão de usuário
+  // Se o plano não inclui disparos, mostra tela de upsell pra qualquer um (inclusive supervisor)
+  // Mas admin wolf (robert.dias@live.com) passa direto, via o próprio hook useModulos
+  if (modulosCarregados && !modulos.disparos_web && !modulos.disparos_api) {
+    return <ModuloBloqueado modulo="disparos_web" />;
+  }
+
+  // Acesso restrito por permissão de usuário (dentro do workspace)
   if (!podeDisparar) {
     return (
       <div style={{ padding: 32, textAlign: "center", minHeight: "100vh", background: "#0a0a0a" }}>
         <h1 style={{ color: "white", fontSize: 20 }}>🔒 Acesso Restrito</h1>
-        <p style={{ color: "#9ca3af" }}>Apenas o dono ou supervisor podem acessar disparos em massa.</p>
+        <p style={{ color: "#9ca3af" }}>Seu usuário não tem permissão para disparos em massa.</p>
+        <p style={{ color: "#6b7280", fontSize: 12, marginTop: 8 }}>Peça ao administrador do workspace pra marcar "Enviar disparos em massa" no seu grupo de permissão.</p>
       </div>
     );
   }
@@ -315,14 +326,18 @@ export default function DisparosPage() {
         <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>Tipo de disparo</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <button onClick={() => setTipoDisparo("webjs")}
-            style={{ background: tipoDisparo === "webjs" ? "#3b82f622" : "#1f2937", border: `2px solid ${tipoDisparo === "webjs" ? "#3b82f6" : "#374151"}`, borderRadius: 10, padding: "14px 16px", cursor: "pointer", textAlign: "left" }}>
-            <p style={{ fontSize: 22, margin: "0 0 4px" }}>📱</p>
+            disabled={!modulos.disparos_web}
+            title={!modulos.disparos_web ? "Disparos WebJS não estão no seu plano" : ""}
+            style={{ background: tipoDisparo === "webjs" ? "#3b82f622" : "#1f2937", border: `2px solid ${tipoDisparo === "webjs" ? "#3b82f6" : "#374151"}`, borderRadius: 10, padding: "14px 16px", cursor: modulos.disparos_web ? "pointer" : "not-allowed", textAlign: "left", opacity: modulos.disparos_web ? 1 : 0.4 }}>
+            <p style={{ fontSize: 22, margin: "0 0 4px" }}>📱 {!modulos.disparos_web && "🔒"}</p>
             <p style={{ color: tipoDisparo === "webjs" ? "#3b82f6" : "white", fontSize: 13, fontWeight: "bold", margin: "0 0 4px" }}>WhatsApp Web</p>
             <p style={{ color: "#6b7280", fontSize: 11, margin: 0, lineHeight: 1.4 }}>Texto livre. Delays longos obrigatórios. Alto risco de banimento.</p>
           </button>
           <button onClick={() => setTipoDisparo("waba")}
-            style={{ background: tipoDisparo === "waba" ? "#16a34a22" : "#1f2937", border: `2px solid ${tipoDisparo === "waba" ? "#16a34a" : "#374151"}`, borderRadius: 10, padding: "14px 16px", cursor: "pointer", textAlign: "left" }}>
-            <p style={{ fontSize: 22, margin: "0 0 4px" }}>🔗</p>
+            disabled={!modulos.disparos_api}
+            title={!modulos.disparos_api ? "Disparos WABA só no plano Ultra" : ""}
+            style={{ background: tipoDisparo === "waba" ? "#16a34a22" : "#1f2937", border: `2px solid ${tipoDisparo === "waba" ? "#16a34a" : "#374151"}`, borderRadius: 10, padding: "14px 16px", cursor: modulos.disparos_api ? "pointer" : "not-allowed", textAlign: "left", opacity: modulos.disparos_api ? 1 : 0.4 }}>
+            <p style={{ fontSize: 22, margin: "0 0 4px" }}>🔗 {!modulos.disparos_api && "🔒"}</p>
             <p style={{ color: tipoDisparo === "waba" ? "#16a34a" : "white", fontSize: 13, fontWeight: "bold", margin: "0 0 4px" }}>API Oficial (WABA)</p>
             <p style={{ color: "#6b7280", fontSize: 11, margin: 0, lineHeight: 1.4 }}>Usa template aprovado pela Meta. Sem banimento. Até 5000/disparo.</p>
           </button>
@@ -369,7 +384,6 @@ export default function DisparosPage() {
           </div>
         </div>
 
-        {/* WABA: seleção de template */}
         {tipoDisparo === "waba" && canalSelecionado && (
           <div style={{ marginBottom: 16 }}>
             <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4, textTransform: "uppercase" }}>📋 Template Aprovado</label>
@@ -391,7 +405,6 @@ export default function DisparosPage() {
           </div>
         )}
 
-        {/* WABA: preview do template */}
         {tipoDisparo === "waba" && templateEscolhido && (
           <div style={{ background: "#1f2937", borderRadius: 10, padding: 14, marginBottom: 16 }}>
             <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>📋 Preview do Template</p>
@@ -410,7 +423,6 @@ export default function DisparosPage() {
           </div>
         )}
 
-        {/* WABA: variáveis fixas */}
         {tipoDisparo === "waba" && templateEscolhido && varsTemplate.length > 0 && (
           <div style={{ background: "#1f2937", borderRadius: 10, padding: 14, marginBottom: 16 }}>
             <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 4px" }}>🔧 Variáveis Fixas (valor pra TODOS)</p>
@@ -431,7 +443,6 @@ export default function DisparosPage() {
           </div>
         )}
 
-        {/* WebJS: mensagem */}
         {tipoDisparo === "webjs" && (
           <div style={{ marginBottom: 16 }}>
             <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4, textTransform: "uppercase" }}>💬 Mensagem</label>
@@ -440,7 +451,6 @@ export default function DisparosPage() {
           </div>
         )}
 
-        {/* Delays */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
           <div>
             <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4, textTransform: "uppercase" }}>⏱️ Delay Mínimo (seg)</label>
@@ -456,7 +466,6 @@ export default function DisparosPage() {
           </div>
         </div>
 
-        {/* Números / Contatos */}
         <div style={{ marginBottom: 16 }}>
           <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4, textTransform: "uppercase" }}>
             📱 {tipoDisparo === "webjs" ? "Números (um por linha)" : "Contatos"}
@@ -561,7 +570,6 @@ export default function DisparosPage() {
         )}
       </div>
 
-      {/* Modal detalhes */}
       {disparoDetalhe && (
         <div onClick={() => setDisparoDetalhe(null)} style={{ position: "fixed", inset: 0, background: "#000c", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#111", borderRadius: 12, width: "100%", maxWidth: 720, maxHeight: "85vh", display: "flex", flexDirection: "column", border: "1px solid #1f2937" }}>
