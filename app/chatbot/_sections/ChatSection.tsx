@@ -145,6 +145,9 @@ export function ChatSection() {
   const [canais, setCanais] = useState<CanalInfo[]>([]);
   const [filtroCanal, setFiltroCanal] = useState<string>("todos");
 
+  // 🆕 Toggle pro admin ver finalizados de todos os atendentes
+  const [mostrarTodosFinalizados, setMostrarTodosFinalizados] = useState(false);
+
   const [gravando, setGravando] = useState(false);
   const [tempoGravacao, setTempoGravacao] = useState(0);
   const [enviandoAudio, setEnviandoAudio] = useState(false);
@@ -330,16 +333,34 @@ export function ChatSection() {
     return "abertos";
   };
 
+  // 🆕 Função helper — diz se o usuário pode ver esse atendimento na aba atual
+  // Regras:
+  // - Aba "abertos": atendente só vê os SEUS; admin/com chat_todos vê tudo
+  // - Aba "finalizados": atendente só vê os SEUS; admin precisa ATIVAR toggle "Ver todos"
+  //   (por padrão admin também só vê os seus — evita poluir a lista)
+  // - Abas "automatico" e "aguardando": todos veem tudo (são filas compartilhadas)
+  const podeVerAtendimento = (a: Atendimento, aba: string): boolean => {
+    if (aba === "abertos") {
+      if (podeVerTudo) return true;
+      return a.atendente === user?.email;
+    }
+    if (aba === "finalizados") {
+      if (podeVerTudo && mostrarTodosFinalizados) return true;
+      return a.atendente === user?.email;
+    }
+    return true;
+  };
+
   const contadoresAbas = { automatico: 0, aguardando: 0, abertos: 0, finalizados: 0 };
   atendimentos.forEach(a => {
     const aba = classificarAba(a);
-    if (aba === "abertos" && !podeVerTudo) { if (a.atendente !== user?.email) return; }
+    if (!podeVerAtendimento(a, aba)) return;
     contadoresAbas[aba]++;
   });
 
   const atendimentosFiltrados = atendimentos
     .filter(a => classificarAba(a) === abaConversa)
-    .filter(a => { if (abaConversa === "abertos" && !podeVerTudo) return a.atendente === user?.email; return true; })
+    .filter(a => podeVerAtendimento(a, abaConversa))
     .filter(a => !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.numero?.includes(busca))
     .filter(a => filtroFila === "todas" || a.fila === filtroFila)
     .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente)
@@ -415,29 +436,38 @@ export function ChatSection() {
     setEnviandoAudio(false); setTempoGravacao(0);
   };
 
+  // 🆕 CORREÇÃO CRÍTICA — sempre envia atendenteEmail pro backend
+  // O backend vai usar esse email como valor do campo `atendente`.
+  // Antes: ficava "Humano" genérico → atendimento sumia pro atendente e só o admin via.
   const assumirChatDaLista = async (e: React.MouseEvent, a: Atendimento) => {
     e.stopPropagation();
-    await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId });
+    if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
+    await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId, atendenteEmail: user.email });
     await inserirMensagemSistema(a.numero, `Chat assumido por: ${meuNome}`, a.canal_id);
     await fetchAtendimentos();
   };
 
   const pararBotDaLista = async (e: React.MouseEvent, a: Atendimento) => {
     e.stopPropagation();
+    if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
     if (!confirm(`Parar o BOT para ${a.nome}?\n\nO BOT vai parar de responder automaticamente. Você assume o atendimento.`)) return;
     try {
       await supabase.from("atendimentos").update({ bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true }).eq("id", a.id);
-      await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId });
+      await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId, atendenteEmail: user.email });
       await inserirMensagemSistema(a.numero, `BOT interrompido. Chat assumido por: ${meuNome}`, a.canal_id);
       await fetchAtendimentos();
-      alert("✅ BOT parado. Você assumiu o atendimento.");
+      // Muda pra aba Abertos automaticamente pra o atendente já ver o chat que acabou de assumir
+      setAbaConversa("abertos");
+      alert("✅ BOT parado. Você assumiu o atendimento.\n\nVá na aba 💬 Abertos pra continuar.");
     } catch (err: any) { alert("Erro: " + err.message); }
   };
 
   const assumirChat = async (numero: string, canalId?: number) => {
-    await wa("assumir", { numero, canalId, workspaceId: wsId });
+    if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
+    await wa("assumir", { numero, canalId, workspaceId: wsId, atendenteEmail: user.email });
     await inserirMensagemSistema(numero, `Chat assumido por: ${meuNome}`, canalId);
     fetchAtendimentos();
+    setAbaConversa("abertos");
   };
   const finalizarChat = async (numero: string, canalId?: number) => {
     await wa("finalizar", { numero, canalId, workspaceId: wsId });
@@ -570,6 +600,24 @@ export function ChatSection() {
             </button>
           ))}
         </div>
+
+        {/* 🆕 Toggle do admin pra visualizar finalizados de todos os atendentes */}
+        {abaConversa === "finalizados" && podeVerTudo && (
+          <div style={{ background: "#0d1418", borderBottom: "1px solid #222d34", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ color: "#e9edef", fontSize: 12, fontWeight: "bold", margin: 0 }}>
+                {mostrarTodosFinalizados ? "👁️ Todos os finalizados" : "👤 Só os meus finalizados"}
+              </p>
+              <p style={{ color: "#8696a0", fontSize: 10, margin: "2px 0 0" }}>
+                {mostrarTodosFinalizados ? "Visualizando de todos os atendentes" : "Ative pra ver os de outros atendentes"}
+              </p>
+            </div>
+            <button onClick={() => setMostrarTodosFinalizados(!mostrarTodosFinalizados)}
+              style={{ width: 40, height: 22, background: mostrarTodosFinalizados ? "#00a884" : "#374151", borderRadius: 11, cursor: "pointer", border: "none", position: "relative", flexShrink: 0 }}>
+              <div style={{ width: 16, height: 16, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: mostrarTodosFinalizados ? 21 : 3, transition: "left 0.2s" }} />
+            </button>
+          </div>
+        )}
 
         <div style={{ overflowY: "auto", flex: 1, background: "#111b21" }}>
           {atendimentosFiltrados.length === 0 ? (

@@ -13,6 +13,7 @@ type Conexao = {
   workspace_id: string;
 };
 type FluxoItem = { id: number; nome: string; ativo: boolean; };
+type FilaItem = { id: number; nome: string; conexao?: string; };
 type LimitesPlano = { conexoes: number; webjs: boolean; waba: boolean; instagram: boolean; };
 
 export function ConexoesSection() {
@@ -22,6 +23,7 @@ export function ConexoesSection() {
 
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
   const [fluxos, setFluxos] = useState<FluxoItem[]>([]);
+  const [filasBanco, setFilasBanco] = useState<FilaItem[]>([]); // 🆕 Filas vindas do CRM
   const [showModalQR, setShowModalQR] = useState(false);
   const [showMenuEngrenagem, setShowMenuEngrenagem] = useState<number | null>(null);
   const [qrCanalId, setQrCanalId] = useState<number | null>(null);
@@ -41,7 +43,7 @@ export function ConexoesSection() {
 
   const [limites, setLimites] = useState<LimitesPlano>({ conexoes: 1, webjs: true, waba: false, instagram: false });
 
-  const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "Fila Principal", pararSeAtendente: true };
+  const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "", pararSeAtendente: true };
   const [form, setForm] = useState(formInicial);
 
   const [apiKeyTocada, setApiKeyTocada] = useState(false);
@@ -98,6 +100,19 @@ export function ConexoesSection() {
     setFluxos(data || []);
   };
 
+  // 🆕 Busca filas cadastradas no CRM (em Configurações → Filas)
+  const fetchFilas = async () => {
+    const ids = wsIdsRef.current;
+    if (ids.length === 0) return;
+    try {
+      const { data } = await supabase.from("filas").select("id, nome, conexao").in("workspace_id", ids).order("nome", { ascending: true });
+      setFilasBanco(data || []);
+    } catch (e) {
+      console.error("Erro ao buscar filas:", e);
+      setFilasBanco([]);
+    }
+  };
+
   const verificarStatusWaba = async (canalId: number) => {
     try {
       const resp = await fetch(`https://api.wolfgyn.com.br/waba/verificar-status?canalId=${canalId}`);
@@ -109,10 +124,12 @@ export function ConexoesSection() {
     if (!workspace?.id) return;
     fetchConexoes();
     fetchFluxos();
+    fetchFilas(); // 🆕
     fetchLimites();
 
     const ch = supabase.channel("conexoes_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchConexoes())
+      .on("postgres_changes", { event: "*", schema: "public", table: "filas" }, () => fetchFilas()) // 🆕 realtime
       .subscribe();
 
     const interval = setInterval(async () => {
@@ -242,17 +259,19 @@ export function ConexoesSection() {
 
   const abrirEditar = (c: Conexao) => {
     setEditandoId(c.id);
-    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila, pararSeAtendente: c.parar_se_atendente });
-    setApiKeyTocada(false); setTokenTocado(false); setShowModalNovoCanal(true); setShowMenuEngrenagem(null); fetchFluxos();
+    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila || "", pararSeAtendente: c.parar_se_atendente });
+    setApiKeyTocada(false); setTokenTocado(false); setShowModalNovoCanal(true); setShowMenuEngrenagem(null);
+    fetchFluxos(); fetchFilas(); // 🆕 recarrega filas ao abrir pra editar
   };
 
   const salvarCanal = async () => {
     if (!wsId) { alert("Aguarde o workspace carregar!"); return; }
     if (!form.nome.trim()) { alert("Digite o nome do canal!"); return; }
+    if (!form.fila) { alert("Selecione uma fila!\n\nSe não tiver fila cadastrada, vá em Configurações → Filas e crie uma."); return; } // 🆕
     if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { alert("Preencha Phone Number ID e Token!"); return; }
     if (!editandoId && form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
 
-    // 🆕 Validação de limite do plano — Dono do workspace bypassa tudo
+    // Validação de limite do plano — Dono do workspace bypassa tudo
     if (!editandoId && !isDono) {
       if (conexoes.length >= limites.conexoes) {
         alert(`❌ Limite do plano atingido!\n\nSeu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}.\n\nFaça upgrade pra criar mais canais.`);
@@ -275,7 +294,6 @@ export function ConexoesSection() {
       if (editandoId) {
         await supabase.from("conexoes").update(payload).eq("id", editandoId);
         setEditandoId(null);
-        // Atualiza configuração do canal no VPS (caso modo IA tenha mudado)
         try { await wa("configurar-ia", { canalId: editandoId, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo }); } catch (e) {}
         alert("✅ Canal atualizado!");
       } else {
@@ -299,7 +317,6 @@ export function ConexoesSection() {
           novoId = inserted.id;
         }
 
-        // Pede pro VPS criar a sessão pro novo canal
         if (novoId) {
           try { await wa("canal/criar", { canalId: novoId }); } catch (e) { console.error("Erro ao criar sessão no VPS:", e); }
         }
@@ -349,7 +366,6 @@ export function ConexoesSection() {
     </button>
   );
 
-  // 🆕 Dono bypassa qualquer limite do plano
   const limiteAtingido = !isDono && conexoes.length >= limites.conexoes;
   const webjsPermitido = isDono || limites.webjs;
   const wabaPermitido = isDono || limites.waba;
@@ -495,14 +511,31 @@ export function ConexoesSection() {
                   </div>
                 )}
               </div>
+              {/* 🆕 FILA / DEPARTAMENTO — agora puxa do CRM */}
               <div>
                 <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>{editandoId ? "3" : form.tipo === "waba" ? "5" : "4"}. Fila / Departamento</p>
-                <select value={form.fila} onChange={e => setForm(p => ({ ...p, fila: e.target.value }))} style={IS}>
-                  <option value="Fila Principal">Fila Principal</option>
-                  <option value="Fila Suporte">Fila Suporte</option>
-                  <option value="Fila Vendas">Fila Vendas</option>
-                  <option value="Fila Técnico">Fila Técnico</option>
-                </select>
+                {filasBanco.length === 0 ? (
+                  <div style={{ background: "#1f2937", border: "1px solid #f59e0b33", borderRadius: 10, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 22 }}>⚠️</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ color: "#f59e0b", fontSize: 13, fontWeight: "bold", margin: "0 0 2px" }}>Nenhuma fila cadastrada</p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>Crie filas em <b>Configurações → Filas</b> antes de criar o canal.</p>
+                    </div>
+                    <button onClick={() => { setShowModalNovoCanal(false); router.push("/crm/configuracoes"); }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>Criar fila</button>
+                  </div>
+                ) : (
+                  <select value={form.fila} onChange={e => setForm(p => ({ ...p, fila: e.target.value }))} style={IS}>
+                    <option value="">Selecione uma fila...</option>
+                    {filasBanco.map(f => (
+                      <option key={f.id} value={f.nome}>
+                        📋 {f.nome}{f.conexao ? ` (${f.conexao})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p style={{ color: "#6b7280", fontSize: 11, margin: "6px 0 0" }}>
+                  💡 Filas são gerenciadas em <b>Configurações → Filas</b> do CRM.
+                </p>
               </div>
               <div>
                 <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>{editandoId ? "4" : form.tipo === "waba" ? "6" : "5"}. Comportamento</p>
@@ -533,7 +566,7 @@ export function ConexoesSection() {
           </p>
         </div>
         <button
-          onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); }}
+          onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); }}
           disabled={limiteAtingido}
           style={{ background: limiteAtingido ? "#374151" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: limiteAtingido ? "not-allowed" : "pointer", fontWeight: "bold" }}>
           + Novo Canal {limiteAtingido && "(limite)"}
@@ -545,7 +578,7 @@ export function ConexoesSection() {
           <p style={{ fontSize: 48, margin: "0 0 16px" }}>📱</p>
           <h3 style={{ color: "white", fontSize: 16, fontWeight: "bold", margin: "0 0 8px" }}>Nenhum canal conectado</h3>
           <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Crie seu primeiro canal pra começar</p>
-          <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
+          <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
@@ -563,7 +596,7 @@ export function ConexoesSection() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: "bold" }}>{c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxo_nome}` : "🚫 Sem automação"}</span></div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Fila:</span><span style={{ color: "#3b82f6", fontSize: 12 }}>{c.fila}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Fila:</span><span style={{ color: "#3b82f6", fontSize: 12 }}>{c.fila || "—"}</span></div>
                 {c.numero && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Número:</span><span style={{ color: "white", fontSize: 12 }}>{c.numero}</span></div>}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
