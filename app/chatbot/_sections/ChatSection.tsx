@@ -135,7 +135,7 @@ export function ChatSection() {
   const [showTransferir, setShowTransferir] = useState(false);
   const [showChatInterno, setShowChatInterno] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
-  const [showMenuTresPontos, setShowMenuTresPontos] = useState(false);
+  // 🆕 Menu de 3 pontinhos REMOVIDO — todos os botões ficam visíveis na toolbar agora
   const [abaConversa, setAbaConversa] = useState<"automatico" | "aguardando" | "abertos" | "finalizados">("aguardando");
   const [busca, setBusca] = useState("");
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
@@ -145,7 +145,6 @@ export function ChatSection() {
   const [canais, setCanais] = useState<CanalInfo[]>([]);
   const [filtroCanal, setFiltroCanal] = useState<string>("todos");
 
-  // 🆕 Toggle pro admin ver finalizados de todos os atendentes
   const [mostrarTodosFinalizados, setMostrarTodosFinalizados] = useState(false);
 
   const [gravando, setGravando] = useState(false);
@@ -310,7 +309,6 @@ export function ChatSection() {
     const ch = supabase.channel(`msgs_${num}_${Date.now()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens" }, (payload) => {
         const m = payload.new as Mensagem;
-        // Só adiciona se for do mesmo número E do mesmo canal do atendimento ativo
         if (m.numero === num && (!cId || m.canal_id === cId)) {
           setHistorico(p => [...p, m]);
           setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
@@ -333,12 +331,6 @@ export function ChatSection() {
     return "abertos";
   };
 
-  // 🆕 Função helper — diz se o usuário pode ver esse atendimento na aba atual
-  // Regras:
-  // - Aba "abertos": atendente só vê os SEUS; admin/com chat_todos vê tudo
-  // - Aba "finalizados": atendente só vê os SEUS; admin precisa ATIVAR toggle "Ver todos"
-  //   (por padrão admin também só vê os seus — evita poluir a lista)
-  // - Abas "automatico" e "aguardando": todos veem tudo (são filas compartilhadas)
   const podeVerAtendimento = (a: Atendimento, aba: string): boolean => {
     if (aba === "abertos") {
       if (podeVerTudo) return true;
@@ -436,9 +428,6 @@ export function ChatSection() {
     setEnviandoAudio(false); setTempoGravacao(0);
   };
 
-  // 🆕 CORREÇÃO CRÍTICA — sempre envia atendenteEmail pro backend
-  // O backend vai usar esse email como valor do campo `atendente`.
-  // Antes: ficava "Humano" genérico → atendimento sumia pro atendente e só o admin via.
   const assumirChatDaLista = async (e: React.MouseEvent, a: Atendimento) => {
     e.stopPropagation();
     if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
@@ -456,7 +445,6 @@ export function ChatSection() {
       await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId, atendenteEmail: user.email });
       await inserirMensagemSistema(a.numero, `BOT interrompido. Chat assumido por: ${meuNome}`, a.canal_id);
       await fetchAtendimentos();
-      // Muda pra aba Abertos automaticamente pra o atendente já ver o chat que acabou de assumir
       setAbaConversa("abertos");
       alert("✅ BOT parado. Você assumiu o atendimento.\n\nVá na aba 💬 Abertos pra continuar.");
     } catch (err: any) { alert("Erro: " + err.message); }
@@ -545,6 +533,20 @@ export function ChatSection() {
     return null;
   };
 
+  // 🆕 Helper pros botões-ícone da toolbar do header — mesmo estilo em todos
+  const botaoToolbar = (cor: string = "#aebac1") => ({
+    background: "none" as const,
+    border: "none" as const,
+    color: cor,
+    cursor: "pointer" as const,
+    fontSize: 16,
+    padding: 8,
+    borderRadius: 6,
+    display: "flex" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  });
+
   return (
     <div style={{ display: "flex", flex: 1, height: "100vh" }}>
 
@@ -601,7 +603,6 @@ export function ChatSection() {
           ))}
         </div>
 
-        {/* 🆕 Toggle do admin pra visualizar finalizados de todos os atendentes */}
         {abaConversa === "finalizados" && podeVerTudo && (
           <div style={{ background: "#0d1418", borderBottom: "1px solid #222d34", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -671,8 +672,28 @@ export function ChatSection() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#0b141a", backgroundImage: WA_BG_DARK, backgroundRepeat: "repeat" }}>
         {atendimentoAtivo ? (
           <>
-            <div style={{ padding: "10px 16px", borderBottom: "1px solid #222d34", background: "#202c33", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0 }}>
+            {/* 🆕 HEADER REFORMULADO
+                - Avatar+nome viraram CLICÁVEIS (abrem painel Dados do Contato)
+                - Removemos o menu de 3 pontinhos (showMenuTresPontos)
+                - Todos os botões ficam VISÍVEIS na toolbar pra agilizar o atendimento
+                - Finalizar Venda ganhou destaque (botão verde com texto)
+            */}
+            <div style={{ padding: "10px 16px", borderBottom: "1px solid #222d34", background: "#202c33", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              {/* BLOCO CLICÁVEL: Avatar + Nome + Info → abre painel do contato */}
+              <div
+                onClick={() => setShowPainelContato(true)}
+                title="Ver dados do contato"
+                style={{
+                  display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0,
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  margin: "-4px -8px",
+                  borderRadius: 8,
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#2a3942")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 14 }}>
                   {atendimentoAtivo.nome?.charAt(0).toUpperCase() || "?"}
                 </div>
@@ -695,57 +716,75 @@ export function ChatSection() {
                   )}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 4, alignItems: "center", position: "relative" }}>
-                <button onClick={() => fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id)} title="Atualizar mensagens"
-                  style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 16, padding: 8, borderRadius: 6 }}>🔄</button>
-                <button onClick={() => setShowTransferir(!showTransferir)} title="Encaminhar"
-                  style={{ background: showTransferir ? "#00a88422" : "none", border: "none", color: showTransferir ? "#00a884" : "#aebac1", cursor: "pointer", fontSize: 16, padding: 8, borderRadius: 6 }}>↗️</button>
-                <button onClick={() => setShowMenuTresPontos(!showMenuTresPontos)} title="Mais opções"
-                  style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 20, padding: 6 }}>⋮</button>
 
-                {showMenuTresPontos && (
-                  <div style={{ position: "absolute", top: 44, right: 0, background: "#233138", border: "1px solid #2a3942", borderRadius: 8, minWidth: 240, zIndex: 100, boxShadow: "0 8px 24px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-                    <button onClick={() => { setShowPainelContato(true); setShowMenuTresPontos(false); }}
-                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                      <span>👤</span> Dados do Contato
-                    </button>
-                    <button onClick={() => { fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuTresPontos(false); }}
-                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                      <span>🔄</span> Atualizar mensagens
-                    </button>
-                    {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") && (
-                      <button onClick={() => { assumirChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuTresPontos(false); }}
-                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                        <span>👤</span> Assumir atendimento
-                      </button>
-                    )}
-                    {atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
-                      <button onClick={() => { devolverBot(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuTresPontos(false); }}
-                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                        <span>🤖</span> Devolver ao Bot
-                      </button>
-                    )}
-                    <button onClick={() => { setShowTransferir(true); setShowMenuTresPontos(false); }}
-                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                      <span>↗️</span> Encaminhar
-                    </button>
-                    {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
-                      <button onClick={() => { window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank"); setShowMenuTresPontos(false); }}
-                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#16a34a", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                        <span>💰</span> Finalizar Venda
-                      </button>
-                    )}
-                    <button onClick={() => { finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuTresPontos(false); }}
-                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#dc2626", padding: "12px 16px", fontSize: 13, cursor: "pointer", textAlign: "left", borderTop: "1px solid #2a3942" }}>
-                      <span>✓</span> Finalizar atendimento
-                    </button>
-                  </div>
+              {/* TOOLBAR DE AÇÕES — TUDO VISÍVEL */}
+              <div style={{ display: "flex", gap: 4, alignItems: "center", position: "relative", flexShrink: 0 }}>
+                {/* 🔄 Atualizar */}
+                <button onClick={() => fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
+                  title="Atualizar mensagens" style={botaoToolbar()}>🔄</button>
+
+                {/* ↗️ Encaminhar */}
+                <button onClick={() => setShowTransferir(!showTransferir)}
+                  title="Encaminhar para outra fila"
+                  style={{ ...botaoToolbar(showTransferir ? "#00a884" : "#aebac1"), background: showTransferir ? "#00a88422" : "none" }}>↗️</button>
+
+                {/* 👤 Assumir / 🤖 Devolver Bot — aparecem conforme o estado */}
+                {(atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") ? (
+                  <button onClick={() => assumirChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
+                    title="Assumir atendimento (parar o bot)"
+                    style={botaoToolbar("#f59e0b")}>👤</button>
+                ) : atendimentoAtivo.status !== "resolvido" && (
+                  <button onClick={() => devolverBot(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
+                    title="Devolver para o BOT"
+                    style={botaoToolbar("#8b5cf6")}>🤖</button>
                 )}
 
+                {/* 💰 FINALIZAR VENDA — destaque com texto */}
+                {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && atendimentoAtivo.status !== "resolvido" && (
+                  <button
+                    onClick={() => window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank")}
+                    title="Finalizar venda — abre a tela de proposta em nova aba"
+                    style={{
+                      background: "#16a34a",
+                      border: "none",
+                      color: "white",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: "bold",
+                      padding: "8px 14px",
+                      borderRadius: 6,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      whiteSpace: "nowrap",
+                      marginLeft: 4,
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#15803d")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "#16a34a")}
+                  >
+                    💰 Finalizar Venda
+                  </button>
+                )}
+
+                {/* ✓ Finalizar atendimento */}
+                {atendimentoAtivo.status !== "resolvido" && (
+                  <button
+                    onClick={() => {
+                      if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`))
+                        finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
+                    }}
+                    title="Finalizar atendimento"
+                    style={{ ...botaoToolbar("#dc2626"), fontSize: 18, fontWeight: "bold" }}
+                  >✓</button>
+                )}
+
+                {/* Dropdown de transferir (abre ao clicar em ↗️) */}
                 {showTransferir && (
                   <div style={{ position: "absolute", top: 44, right: 0, background: "#233138", border: "1px solid #2a3942", borderRadius: 8, padding: 12, zIndex: 110, width: 240 }}>
                     <p style={{ color: "#8696a0", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>Encaminhar para fila:</p>
-                    {(filas.length > 0 ? filas : ["—"]).map(f => (
+                    {filas.length === 0 ? (
+                      <p style={{ color: "#8696a0", fontSize: 11, fontStyle: "italic", margin: "0 0 8px" }}>Nenhuma fila disponível. Crie em Configurações → Filas.</p>
+                    ) : filas.map(f => (
                       <button key={f} onClick={() => transferirParaFila(f)}
                         style={{ display: "block", width: "100%", background: "#111b21", border: "1px solid #2a3942", borderRadius: 6, padding: "8px 12px", color: "#e9edef", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 4 }}>📋 {f}</button>
                     ))}
