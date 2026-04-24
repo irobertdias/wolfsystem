@@ -5,7 +5,7 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 
 type Atendimento = {
-  id: number; created_at: string; numero: string; nome: string; mensagem: string;
+  id: number; created_at: string; updated_at?: string; numero: string; nome: string; mensagem: string;
   status: string; fila: string; atendente: string; workspace_id: string;
   canal_id?: number;
   email?: string; notas?: string; avaliacao?: number;
@@ -361,9 +361,12 @@ export function ChatSection() {
 
   const fetchAtendimentos = async () => {
     if (!wsId) return;
+    // 🆕 Ordena por updated_at (última atividade real) ao invés de created_at (só quando criou).
+    // Se a tabela ainda não tiver updated_at populado em todas as linhas, o Supabase usa como fallback
+    // o próprio created_at graças ao trigger padrão. E no frontend a gente sempre faz updated_at || created_at.
     const { data } = await supabase.from("atendimentos").select("*")
       .eq("workspace_id", wsId)
-      .order("created_at", { ascending: false });
+      .order("updated_at", { ascending: false, nullsFirst: false });
     setAtendimentos(data || []);
   };
 
@@ -1015,7 +1018,7 @@ export function ChatSection() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2, gap: 8 }}>
                       <span style={{ color: "#e9edef", fontSize: 14, fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{a.nome}</span>
-                      <span style={{ color: "#8696a0", fontSize: 11, flexShrink: 0 }}>{tempoRelativo(a.created_at)}</span>
+                      <span style={{ color: "#8696a0", fontSize: 11, flexShrink: 0 }}>{tempoRelativo(a.updated_at || a.created_at)}</span>
                     </div>
                     <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       📱 {numeroSanitizado(a.numero)} {canais.length > 1 && a.canal_id && <span style={{ color: "#00a884" }}>• {iconeCanal(a.canal_id)} {nomeDoCanal(a.canal_id)}</span>}
