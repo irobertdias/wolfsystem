@@ -3,7 +3,11 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
-import { usePermissao } from "../../hooks/usePermissao";
+// import { usePermissao } from "../../hooks/usePermissao";  // desativado — não usa mais isDono aqui
+
+// 🔒 Super admin do sistema Wolf — único que tem bypass de limites de plano
+// Dono de workspace NÃO É super admin: respeita o plano que ele paga.
+const ADMIN_EMAIL = "robert.dias@live.com";
 
 type Conexao = {
   id: number; nome: string; tipo: string; status: string; numero: string;
@@ -19,7 +23,12 @@ type LimitesPlano = { conexoes: number; webjs: boolean; waba: boolean; instagram
 export function ConexoesSection() {
   const router = useRouter();
   const { workspace, wsId, user } = useWorkspace();
-  const { isDono } = usePermissao();
+  // 🆕 Não usa mais isDono pra limites — dono de workspace NÃO é super admin do Wolf
+  // (se precisar verificar "é dono do workspace?" pra outras regras, reabilita esta linha)
+  // const { isDono } = usePermissao();
+
+  // 🔒 Só o super admin do Wolf tem bypass de limites — dono de workspace respeita plano
+  const isSuperAdmin = (user?.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
   const [fluxos, setFluxos] = useState<FluxoItem[]>([]);
@@ -308,8 +317,8 @@ export function ConexoesSection() {
     if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { alert("Preencha Phone Number ID e Token!"); return; }
     if (!editandoId && form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
 
-    // Validação de limite do plano — Dono do workspace bypassa tudo
-    if (!editandoId && !isDono) {
+    // 🆕 Validação de limite do plano — APENAS super admin Wolf bypassa (dono de workspace respeita plano)
+    if (!editandoId && !isSuperAdmin) {
       if (conexoes.length >= limites.conexoes) {
         alert(`❌ Limite do plano atingido!\n\nSeu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}.\n\nFaça upgrade pra criar mais canais.`);
         return;
@@ -403,9 +412,9 @@ export function ConexoesSection() {
     </button>
   );
 
-  const limiteAtingido = !isDono && conexoes.length >= limites.conexoes;
-  const webjsPermitido = isDono || limites.webjs;
-  const wabaPermitido = isDono || limites.waba;
+  const limiteAtingido = !isSuperAdmin && conexoes.length >= limites.conexoes;
+  const webjsPermitido = isSuperAdmin || limites.webjs;
+  const wabaPermitido = isSuperAdmin || limites.waba;
 
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto", height: "100vh" }}>
@@ -475,7 +484,7 @@ export function ConexoesSection() {
               <div>
                 <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>{editandoId ? "✏️ Editar Canal" : "➕ Novo Canal"}</h2>
                 <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
-                  {editandoId ? "Altere as configurações" : isDono ? `${conexoes.length} canais (ilimitado 👑)` : `${conexoes.length} de ${limites.conexoes} canais usados`}
+                  {editandoId ? "Altere as configurações" : isSuperAdmin ? `${conexoes.length} canais (ilimitado 👑)` : `${conexoes.length} de ${limites.conexoes} canais usados`}
                 </p>
               </div>
               <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
@@ -635,10 +644,10 @@ export function ConexoesSection() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>
-            📱 Conexões {isDono && <span style={{ fontSize: 12, color: "#f59e0b", marginLeft: 8 }}>👑 Dono</span>}
+            📱 Conexões {isSuperAdmin && <span style={{ fontSize: 12, color: "#f59e0b", marginLeft: 8 }}>👑 Super Admin</span>}
           </h1>
           <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>
-            Workspace: {workspace?.nome || "Carregando..."} • {isDono ? `${conexoes.length} canais (ilimitado)` : `${conexoes.length} de ${limites.conexoes} canais`}
+            Workspace: {workspace?.nome || "Carregando..."} • {isSuperAdmin ? `${conexoes.length} canais (ilimitado)` : `${conexoes.length} de ${limites.conexoes} canais`}
           </p>
         </div>
         <button
