@@ -418,23 +418,32 @@ export default function ConexoesVoipSection() {
                         <input value={twilioNumeroDid} onChange={e => setTwilioNumeroDid(e.target.value)} placeholder="+5511999999999" style={IS} />
                         <p style={{ color: "#6b7280", fontSize: 10, margin: "2px 0 0" }}>Número comprado na Twilio que aparece no celular de quem recebe.</p>
                       </div>
-                      <details style={{ background: "#1f2937", borderRadius: 8, padding: "10px 14px" }}>
-                        <summary style={{ cursor: "pointer", color: "#9ca3af", fontSize: 12, fontWeight: "bold" }}>⚙️ Campos avançados (pra softphone)</summary>
+                      <details open style={{ background: "#1f2937", borderRadius: 8, padding: "10px 14px" }}>
+                        <summary style={{ cursor: "pointer", color: "#f59e0b", fontSize: 12, fontWeight: "bold" }}>⚡ Credenciais para ligações no navegador (obrigatório)</summary>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+                          <div style={{ background: "#0a0a0a", border: "1px solid #16a34a44", borderRadius: 6, padding: 10 }}>
+                            <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", margin: "0 0 6px" }}>📋 URL pra cadastrar no TwiML App da Twilio:</p>
+                            <code style={{ display: "block", color: "#e9edef", fontSize: 11, background: "#000", padding: "6px 8px", borderRadius: 4, wordBreak: "break-all", fontFamily: "monospace" }}>
+                              https://api.wolfgyn.com.br/voip/twilio/twiml/{wsId || "SEU_WORKSPACE"}
+                            </code>
+                            <p style={{ color: "#6b7280", fontSize: 10, margin: "6px 0 0" }}>
+                              No dashboard Twilio → Voice → TwiML Apps → (criar) → cole essa URL no campo "Voice Request URL" (método POST).
+                            </p>
+                          </div>
                           <div>
-                            <label style={{ color: "#9ca3af", fontSize: 10 }}>API Key SID</label>
+                            <label style={{ color: "#9ca3af", fontSize: 10 }}>API Key SID *</label>
                             <input value={twilioApiKeySid} onChange={e => setTwilioApiKeySid(e.target.value)} placeholder="SK•••••" style={IS} />
                           </div>
                           <div>
-                            <label style={{ color: "#9ca3af", fontSize: 10 }}>API Key Secret</label>
+                            <label style={{ color: "#9ca3af", fontSize: 10 }}>API Key Secret *</label>
                             <input type="password" value={twilioApiKeySecret} onChange={e => setTwilioApiKeySecret(e.target.value)} placeholder="•••••" style={IS} />
                           </div>
                           <div>
-                            <label style={{ color: "#9ca3af", fontSize: 10 }}>TwiML App SID</label>
+                            <label style={{ color: "#9ca3af", fontSize: 10 }}>TwiML App SID *</label>
                             <input value={twilioTwimlAppSid} onChange={e => setTwilioTwimlAppSid(e.target.value)} placeholder="AP•••••" style={IS} />
                           </div>
                           <p style={{ color: "#6b7280", fontSize: 10, margin: 0 }}>
-                            Necessários na Fase 2 (softphone no navegador). Pode deixar vazio agora — vai funcionar a ligação via API.
+                            Todos são necessários pra ligar pelo navegador. Veja o tutorial no menu "Ajuda" pra saber como gerar cada um no dashboard Twilio.
                           </p>
                         </div>
                       </details>
