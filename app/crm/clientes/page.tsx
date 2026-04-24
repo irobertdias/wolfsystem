@@ -12,6 +12,9 @@ type Cadastro = {
   username: string; workspace_id?: string;
   usuarios_liberados?: number; conexoes_liberadas?: number;
   permite_webjs?: boolean; permite_waba?: boolean; permite_instagram?: boolean;
+  // 🆕 módulos por plano
+  modulo_roleta?: boolean; modulo_disparos_web?: boolean; modulo_disparos_api?: boolean;
+  modulo_voip?: boolean; modulo_api_integracao?: boolean; modulo_instagram?: boolean;
   ia?: string; senha?: string; user_id?: string;
 };
 
@@ -22,10 +25,37 @@ type SubUsuario = {
 
 type Grupo = { id: number; nome: string; };
 
-const planoPresets: Record<string, { usuarios: number; conexoes: number; webjs: boolean; waba: boolean; instagram: boolean }> = {
-  basico:        { usuarios: 7,  conexoes: 1,  webjs: true,  waba: false, instagram: false },
-  intermediario: { usuarios: 15, conexoes: 3,  webjs: true,  waba: true,  instagram: false },
-  ultra:         { usuarios: 50, conexoes: 10, webjs: true,  waba: true,  instagram: true  },
+// ═══════════════════════════════════════════════════════════════════════
+// 🆕 presets de plano — agora incluem os 6 módulos novos
+// ═══════════════════════════════════════════════════════════════════════
+// Básico (R$ 444,27): 5 users, 1 conexão — SEM roleta/disparos/voip/API/instagram
+// Intermediário (R$ 744,27): 15 users, 3 conexões — COM roleta + disparos_web + api_integracao
+// Ultra (R$ 1.044,27): 50 users, 10 conexões — TUDO
+// ═══════════════════════════════════════════════════════════════════════
+const planoPresets: Record<string, {
+  usuarios: number; conexoes: number;
+  webjs: boolean; waba: boolean; instagram: boolean;
+  modulo_roleta: boolean; modulo_disparos_web: boolean; modulo_disparos_api: boolean;
+  modulo_voip: boolean; modulo_api_integracao: boolean; modulo_instagram: boolean;
+}> = {
+  basico: {
+    usuarios: 5, conexoes: 1,
+    webjs: true, waba: false, instagram: false,
+    modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
+    modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
+  },
+  intermediario: {
+    usuarios: 15, conexoes: 3,
+    webjs: true, waba: true, instagram: false,
+    modulo_roleta: true, modulo_disparos_web: true, modulo_disparos_api: false,
+    modulo_voip: false, modulo_api_integracao: true, modulo_instagram: false,
+  },
+  ultra: {
+    usuarios: 50, conexoes: 10,
+    webjs: true, waba: true, instagram: true,
+    modulo_roleta: true, modulo_disparos_web: true, modulo_disparos_api: true,
+    modulo_voip: true, modulo_api_integracao: true, modulo_instagram: true,
+  },
 };
 
 export default function Clientes() {
@@ -53,8 +83,10 @@ export default function Clientes() {
   const [formCadastro, setFormCadastro] = useState<Partial<Cadastro>>({
     nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
     username: "",
-    usuarios_liberados: 7, conexoes_liberadas: 1,
+    usuarios_liberados: 5, conexoes_liberadas: 1,
     permite_webjs: true, permite_waba: false, permite_instagram: false,
+    modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
+    modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
     ia: "gpt", autorizado: false, senha: "",
   });
 
@@ -92,47 +124,32 @@ export default function Clientes() {
       .on("postgres_changes", { event: "*", schema: "public", table: "cadastros" }, () => fetchCadastros())
       .on("postgres_changes", { event: "*", schema: "public", table: "workspaces" }, () => fetchCadastros())
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace" }, () => {
-        // Recarrega sub-usuários de todos os workspaces atualmente expandidos
         expandidas.forEach(username => carregarSubUsuarios(username));
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [temAcesso, expandidas]);
 
-  // ═══ Carrega sub-usuários de um workspace específico ═══
   const carregarSubUsuarios = async (username: string) => {
     if (!username) return;
     setCarregandoSubs(prev => new Set(prev).add(username));
     try {
       const [resSubs, resGrupos] = await Promise.all([
-        supabase.from("usuarios_workspace")
-          .select("*")
-          .eq("workspace_id", username)
-          .order("created_at", { ascending: false }),
-        supabase.from("grupos_permissao")
-          .select("id, nome")
-          .eq("workspace_id", username),
+        supabase.from("usuarios_workspace").select("*").eq("workspace_id", username).order("created_at", { ascending: false }),
+        supabase.from("grupos_permissao").select("id, nome").eq("workspace_id", username),
       ]);
       setSubUsuariosMap(prev => ({ ...prev, [username]: resSubs.data || [] }));
       setGruposMap(prev => ({ ...prev, [username]: resGrupos.data || [] }));
-    } catch (e) {
-      console.error("Erro ao buscar sub-usuários", e);
-    }
+    } catch (e) { console.error(e); }
     setCarregandoSubs(prev => { const n = new Set(prev); n.delete(username); return n; });
   };
 
-  // ═══ Toggle expandir/colapsar linha ═══
   const toggleExpandir = (username: string) => {
     if (!username) { alert("Este cliente não tem workspace configurado."); return; }
     setExpandidas(prev => {
       const n = new Set(prev);
-      if (n.has(username)) {
-        n.delete(username);
-      } else {
-        n.add(username);
-        // Carrega sub-usuários quando expande
-        if (!subUsuariosMap[username]) carregarSubUsuarios(username);
-      }
+      if (n.has(username)) n.delete(username);
+      else { n.add(username); if (!subUsuariosMap[username]) carregarSubUsuarios(username); }
       return n;
     });
   };
@@ -152,10 +169,8 @@ export default function Clientes() {
 
   const excluirCadastro = async (c: Cadastro) => {
     if (!confirm(`⚠️ ATENÇÃO: Isso vai apagar PERMANENTEMENTE:\n\n• A conta de login de ${c.email}\n• O workspace "${c.empresa || c.nome}"\n• Todas as conexões, fluxos, atendimentos e mensagens\n\nEsta ação NÃO pode ser desfeita.\n\nTem certeza?`)) return;
-
     const token = await getToken();
     if (!token) { alert("Sessão expirou. Faça login novamente."); return; }
-
     try {
       const resp = await fetch("/api/admin/cliente", {
         method: "DELETE",
@@ -163,9 +178,7 @@ export default function Clientes() {
         body: JSON.stringify({ email: c.email }),
       });
       const result = await resp.json();
-
       if (!result.success) { alert("Erro ao excluir: " + (result.error || "desconhecido")); return; }
-
       await fetchCadastros();
       setShowModalDetalhe(false);
       alert("✅ Cliente excluído completamente!");
@@ -176,8 +189,10 @@ export default function Clientes() {
     setFormCadastro({
       nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
       username: "",
-      usuarios_liberados: 7, conexoes_liberadas: 1,
+      usuarios_liberados: 5, conexoes_liberadas: 1,
       permite_webjs: true, permite_waba: false, permite_instagram: false,
+      modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
+      modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
       ia: "gpt", autorizado: false, senha: "",
     });
     setCadastroSelecionado(null);
@@ -191,10 +206,28 @@ export default function Clientes() {
     setShowModalDetalhe(false);
   };
 
+  // 🆕 Aplica TODAS as flags do preset (incluindo os 6 módulos)
   const aplicarPresetPlano = (plano: string) => {
     const preset = planoPresets[plano];
-    if (preset) setFormCadastro(prev => ({ ...prev, plano, usuarios_liberados: preset.usuarios, conexoes_liberadas: preset.conexoes, permite_webjs: preset.webjs, permite_waba: preset.waba, permite_instagram: preset.instagram }));
-    else setFormCadastro(prev => ({ ...prev, plano }));
+    if (preset) {
+      setFormCadastro(prev => ({
+        ...prev,
+        plano,
+        usuarios_liberados: preset.usuarios,
+        conexoes_liberadas: preset.conexoes,
+        permite_webjs: preset.webjs,
+        permite_waba: preset.waba,
+        permite_instagram: preset.instagram,
+        modulo_roleta: preset.modulo_roleta,
+        modulo_disparos_web: preset.modulo_disparos_web,
+        modulo_disparos_api: preset.modulo_disparos_api,
+        modulo_voip: preset.modulo_voip,
+        modulo_api_integracao: preset.modulo_api_integracao,
+        modulo_instagram: preset.modulo_instagram,
+      }));
+    } else {
+      setFormCadastro(prev => ({ ...prev, plano }));
+    }
   };
 
   const salvarCadastro = async () => {
@@ -210,6 +243,13 @@ export default function Clientes() {
           permite_webjs: formCadastro.permite_webjs,
           permite_waba: formCadastro.permite_waba,
           permite_instagram: formCadastro.permite_instagram,
+          // 🆕 módulos
+          modulo_roleta: !!formCadastro.modulo_roleta,
+          modulo_disparos_web: !!formCadastro.modulo_disparos_web,
+          modulo_disparos_api: !!formCadastro.modulo_disparos_api,
+          modulo_voip: !!formCadastro.modulo_voip,
+          modulo_api_integracao: !!formCadastro.modulo_api_integracao,
+          modulo_instagram: !!formCadastro.modulo_instagram,
           ia: formCadastro.ia, autorizado: formCadastro.autorizado,
         }).eq("id", cadastroSelecionado.id);
         if (error) { alert("Erro ao salvar: " + error.message); setSalvandoCliente(false); return; }
@@ -222,7 +262,6 @@ export default function Clientes() {
         }
         const token = await getToken();
         if (!token) { alert("Sessão expirou."); setSalvandoCliente(false); return; }
-
         const resp = await fetch("/api/admin/cliente", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -256,6 +295,19 @@ export default function Clientes() {
     </div>
   );
 
+  // 🆕 Mini badge pra mostrar módulos liberados (na tabela e no detalhe)
+  const BadgeModulo = ({ ativo, icone, label, cor }: { ativo: boolean; icone: string; label: string; cor: string }) => (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      background: ativo ? `${cor}22` : "#1f293733",
+      color: ativo ? cor : "#4b5563",
+      fontSize: 10, padding: "2px 8px", borderRadius: 10, fontWeight: "bold",
+      opacity: ativo ? 1 : 0.4,
+    }} title={label}>
+      {icone} {label}
+    </span>
+  );
+
   const cadastrosFiltrados = cadastros
     .filter(c => filtroStatus === "todos" || (filtroStatus === "ativos" ? c.autorizado : !c.autorizado))
     .filter(c => !buscaCliente || c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.email?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.empresa?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.whatsapp?.includes(buscaCliente));
@@ -279,14 +331,18 @@ export default function Clientes() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-      {/* MODAL CRIAR/EDITAR */}
+      {/* ═══════════════════════════════════════════════════════════════
+          MODAL CRIAR/EDITAR
+      ═══════════════════════════════════════════════════════════════ */}
       {showModalCliente && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 680, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
+          <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 720, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>{cadastroSelecionado ? "✏️ Editar Cliente" : "➕ Novo Cliente Wolf"}</h2>
               <button onClick={() => setShowModalCliente(false)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
             </div>
+
+            {/* Dados pessoais */}
             <div>
               <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>👤 Dados Pessoais</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -316,17 +372,29 @@ export default function Clientes() {
                 )}
               </div>
             </div>
+
+            {/* Plano — com valores atualizados */}
             <div>
               <p style={{ color: "#3b82f6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>📦 Plano</p>
               <div style={{ display: "flex", gap: 10 }}>
-                {[{ key: "basico", label: "Básico", color: "#16a34a", usuarios: 7, conexoes: 1 }, { key: "intermediario", label: "Intermediário", color: "#3b82f6", usuarios: 15, conexoes: 3 }, { key: "ultra", label: "Ultra", color: "#8b5cf6", usuarios: 50, conexoes: 10 }].map(p => (
+                {[
+                  { key: "basico", label: "Básico", color: "#16a34a", usuarios: 5, conexoes: 1, preco: "R$ 444,27" },
+                  { key: "intermediario", label: "Intermediário", color: "#3b82f6", usuarios: 15, conexoes: 3, preco: "R$ 744,27" },
+                  { key: "ultra", label: "Ultra", color: "#8b5cf6", usuarios: 50, conexoes: 10, preco: "R$ 1.044,27" },
+                ].map(p => (
                   <button key={p.key} onClick={() => aplicarPresetPlano(p.key)} style={{ flex: 1, background: formCadastro.plano === p.key ? `${p.color}22` : "#1f2937", border: `2px solid ${formCadastro.plano === p.key ? p.color : "#374151"}`, borderRadius: 10, padding: "12px 8px", cursor: "pointer", textAlign: "center" }}>
                     <p style={{ color: formCadastro.plano === p.key ? p.color : "white", fontSize: 13, fontWeight: "bold", margin: "0 0 4px 0" }}>{p.label}</p>
+                    <p style={{ color: formCadastro.plano === p.key ? p.color : "#6b7280", fontSize: 11, margin: "0 0 2px 0", fontWeight: "bold" }}>{p.preco}</p>
                     <p style={{ color: "#6b7280", fontSize: 10, margin: 0 }}>{p.usuarios} usuários • {p.conexoes} conexões</p>
                   </button>
                 ))}
               </div>
+              <p style={{ color: "#6b7280", fontSize: 10, margin: "8px 0 0", fontStyle: "italic" }}>
+                💡 Ao selecionar o plano, os limites e módulos abaixo são preenchidos automaticamente. Você pode ajustar individualmente.
+              </p>
             </div>
+
+            {/* Limites Personalizados */}
             <div>
               <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>⚙️ Limites Personalizados</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -344,12 +412,36 @@ export default function Clientes() {
                 </div>
               </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <Toggle value={!!formCadastro.permite_webjs} onChange={() => setFormCadastro({ ...formCadastro, permite_webjs: !formCadastro.permite_webjs })} label="📱 WhatsApp Web (QR Code)" desc="Conexão via QR Code — gratuita" color="#16a34a" />
-              <Toggle value={!!formCadastro.permite_waba} onChange={() => setFormCadastro({ ...formCadastro, permite_waba: !formCadastro.permite_waba })} label="🔗 API Meta (WABA)" desc="API oficial do WhatsApp Business" color="#3b82f6" />
-              <Toggle value={!!formCadastro.permite_instagram} onChange={() => setFormCadastro({ ...formCadastro, permite_instagram: !formCadastro.permite_instagram })} label="📸 Instagram Direct" desc="Mensagens do Instagram Direct" color="#e1306c" />
+
+            {/* Tipos de Conexão permitidos */}
+            <div>
+              <p style={{ color: "#e1306c", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>🔌 Tipos de Conexão Permitidos</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Toggle value={!!formCadastro.permite_webjs} onChange={() => setFormCadastro({ ...formCadastro, permite_webjs: !formCadastro.permite_webjs })} label="📱 WhatsApp Web (QR Code)" desc="Conexão via QR Code — gratuita" color="#16a34a" />
+                <Toggle value={!!formCadastro.permite_waba} onChange={() => setFormCadastro({ ...formCadastro, permite_waba: !formCadastro.permite_waba })} label="🔗 API Meta (WABA)" desc="API oficial do WhatsApp Business" color="#3b82f6" />
+                <Toggle value={!!formCadastro.permite_instagram} onChange={() => setFormCadastro({ ...formCadastro, permite_instagram: !formCadastro.permite_instagram })} label="📸 Instagram Direct" desc="Mensagens do Instagram Direct" color="#e1306c" />
+              </div>
             </div>
+
+            {/* 🆕 MÓDULOS LIBERADOS */}
+            <div>
+              <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>🎁 Módulos Liberados</p>
+              <p style={{ color: "#6b7280", fontSize: 11, margin: "0 0 12px 0", fontStyle: "italic" }}>
+                Controle quais módulos o cliente pode acessar. Módulos não liberados aparecem no menu mas mostram tela de upsell ao clicar.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <Toggle value={!!formCadastro.modulo_roleta} onChange={() => setFormCadastro({ ...formCadastro, modulo_roleta: !formCadastro.modulo_roleta })} label="🎯 Roleta de Distribuição" desc="Intermediário, Ultra" color="#3b82f6" />
+                <Toggle value={!!formCadastro.modulo_disparos_web} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_web: !formCadastro.modulo_disparos_web })} label="📤 Disparos Web" desc="Intermediário, Ultra" color="#3b82f6" />
+                <Toggle value={!!formCadastro.modulo_disparos_api} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_api: !formCadastro.modulo_disparos_api })} label="📨 Disparos API" desc="Apenas Ultra" color="#8b5cf6" />
+                <Toggle value={!!formCadastro.modulo_voip} onChange={() => setFormCadastro({ ...formCadastro, modulo_voip: !formCadastro.modulo_voip })} label="📞 Ligações VOIP" desc="Apenas Ultra" color="#8b5cf6" />
+                <Toggle value={!!formCadastro.modulo_api_integracao} onChange={() => setFormCadastro({ ...formCadastro, modulo_api_integracao: !formCadastro.modulo_api_integracao })} label="🔌 API de Integração" desc="Intermediário, Ultra" color="#3b82f6" />
+                <Toggle value={!!formCadastro.modulo_instagram} onChange={() => setFormCadastro({ ...formCadastro, modulo_instagram: !formCadastro.modulo_instagram })} label="📸 Instagram Direct (Módulo)" desc="Apenas Ultra" color="#e1306c" />
+              </div>
+            </div>
+
+            {/* Autorização final */}
             <Toggle value={!!formCadastro.autorizado} onChange={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} label="✅ Autorizado — Permitir acesso ao sistema" color="#16a34a" />
+
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
               <button onClick={() => setShowModalCliente(false)} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
               <button onClick={salvarCadastro} disabled={salvandoCliente} style={{ background: salvandoCliente ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{salvandoCliente ? "Salvando..." : cadastroSelecionado ? "💾 Salvar" : "➕ Criar Cliente"}</button>
@@ -358,10 +450,12 @@ export default function Clientes() {
         </div>
       )}
 
-      {/* MODAL DETALHE */}
+      {/* ═══════════════════════════════════════════════════════════════
+          MODAL DETALHE
+      ═══════════════════════════════════════════════════════════════ */}
       {showModalDetalhe && cadastroSelecionado && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 620, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
+          <div style={{ background: "#111", borderRadius: 16, padding: 32, width: "100%", maxWidth: 640, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{ width: 56, height: 56, borderRadius: "50%", background: cadastroSelecionado.autorizado ? "#16a34a22" : "#f59e0b22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🏢</div>
@@ -394,6 +488,20 @@ export default function Clientes() {
                 </div>
               </div>
             </div>
+
+            {/* 🆕 Módulos no detalhe */}
+            <div style={{ background: "#1f2937", borderRadius: 10, padding: 16 }}>
+              <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px 0" }}>🎁 Módulos Liberados</p>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_roleta} icone="🎯" label="Roleta" cor="#3b82f6" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_disparos_web} icone="📤" label="Disparos Web" cor="#3b82f6" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_disparos_api} icone="📨" label="Disparos API" cor="#8b5cf6" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_voip} icone="📞" label="VOIP" cor="#8b5cf6" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_api_integracao} icone="🔌" label="API Integração" cor="#3b82f6" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_instagram} icone="📸" label="Instagram" cor="#e1306c" />
+              </div>
+            </div>
+
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {!cadastroSelecionado.autorizado
                 ? <button onClick={() => { autorizarCadastro(cadastroSelecionado); setShowModalDetalhe(false); }} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Autorizar Acesso</button>
@@ -439,11 +547,11 @@ export default function Clientes() {
           <button onClick={abrirNovo} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold", marginTop: 12 }}>+ Novo Cliente</button>
         </div>
       ) : (
-        <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1200 }}>
             <thead>
               <tr style={{ background: "#0d0d0d" }}>
-                {["", "Cliente", "Email", "Plano", "👥 Usuários", "📱 Conexões", "Permite", "Status", "Ações"].map((h, i) => (
+                {["", "Cliente", "Plano", "👥", "📱", "Conexões", "🎁 Módulos", "Status", "Ações"].map((h, i) => (
                   <th key={i} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
@@ -466,12 +574,31 @@ export default function Clientes() {
                           {expandida ? "▼" : "▶"}
                         </button>
                       </td>
-                      <td style={{ padding: "14px 16px" }}><div><p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{c.nome}</p>{c.empresa && <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{c.empresa}{c.username && ` • @${c.username}`}</p>}</div></td>
-                      <td style={{ padding: "14px 16px", color: "#9ca3af", fontSize: 12 }}>{c.email}</td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <div>
+                          <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{c.nome}</p>
+                          <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>{c.email}</p>
+                          {c.empresa && <p style={{ color: "#4b5563", fontSize: 10, margin: 0 }}>{c.empresa}{c.username && ` • @${c.username}`}</p>}
+                        </div>
+                      </td>
                       <td style={{ padding: "14px 16px" }}><span style={{ background: c.plano === "ultra" ? "#8b5cf622" : c.plano === "intermediario" ? "#3b82f622" : "#16a34a22", color: c.plano === "ultra" ? "#8b5cf6" : c.plano === "intermediario" ? "#3b82f6" : "#16a34a", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.plano === "intermediario" ? "Intermediário" : c.plano === "ultra" ? "Ultra" : "Básico"}</span></td>
                       <td style={{ padding: "14px 16px", textAlign: "center" }}><span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.usuarios_liberados || 1}</span></td>
                       <td style={{ padding: "14px 16px", textAlign: "center" }}><span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.conexoes_liberadas || 1}</span></td>
                       <td style={{ padding: "14px 16px" }}><div style={{ display: "flex", gap: 4 }}>{c.permite_webjs && <span style={{ fontSize: 14 }} title="WhatsApp Web">📱</span>}{c.permite_waba && <span style={{ fontSize: 14 }} title="API Meta">🔗</span>}{c.permite_instagram && <span style={{ fontSize: 14 }} title="Instagram">📸</span>}</div></td>
+
+                      {/* 🆕 Coluna de módulos */}
+                      <td style={{ padding: "14px 16px" }}>
+                        <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                          {c.modulo_roleta && <span style={{ fontSize: 14 }} title="Roleta">🎯</span>}
+                          {c.modulo_disparos_web && <span style={{ fontSize: 14 }} title="Disparos Web">📤</span>}
+                          {c.modulo_disparos_api && <span style={{ fontSize: 14 }} title="Disparos API">📨</span>}
+                          {c.modulo_voip && <span style={{ fontSize: 14 }} title="Ligações VOIP">📞</span>}
+                          {c.modulo_api_integracao && <span style={{ fontSize: 14 }} title="API Integração">🔌</span>}
+                          {c.modulo_instagram && <span style={{ fontSize: 14 }} title="Instagram">📸</span>}
+                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && <span style={{ color: "#4b5563", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
+                        </div>
+                      </td>
+
                       <td style={{ padding: "14px 16px" }}><span style={{ background: c.autorizado ? "#16a34a22" : "#f59e0b22", color: c.autorizado ? "#16a34a" : "#f59e0b", fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.autorizado ? "✅ Ativo" : "⏳ Pendente"}</span></td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 6 }}>
@@ -483,7 +610,7 @@ export default function Clientes() {
                       </td>
                     </tr>
 
-                    {/* ═══ LINHA EXPANDIDA — SUB-USUÁRIOS ═══ */}
+                    {/* LINHA EXPANDIDA — SUB-USUÁRIOS */}
                     {expandida && (
                       <tr key={`${c.id}-expandido`} style={{ background: "#0a1510" }}>
                         <td colSpan={9} style={{ padding: "0 24px 16px 50px" }}>
