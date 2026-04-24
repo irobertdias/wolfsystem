@@ -31,7 +31,7 @@ const CONFIG_PADRAO: RoletaConfig = {
   horario_fim: "18:00",
 };
 
-export default function RoletaSection() {
+export function RoletaSection() {
   const { wsId } = useWorkspace();
   const { isDono, permissoes } = usePermissao();
 
