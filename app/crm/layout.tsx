@@ -97,6 +97,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   const isActive = (path: string) => pathname === path;
 
+  // 🆕 Só dono ou admin vê Telefonia (gerencia credenciais sensíveis do provedor VOIP)
+  const podeVerTelefonia = isDono || perfil === "Administrador";
+
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#0a0a0a" }}>
       <div style={{ width: 220, background: "#111", borderRight: "1px solid #1f2937", display: "flex", flexDirection: "column", padding: 16, gap: 8, flexShrink: 0 }}>
@@ -133,10 +136,17 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           </button>
         ))}
 
-        <div style={{ borderTop: "1px solid #1f2937", marginTop: 8, paddingTop: 8 }}>
+        <div style={{ borderTop: "1px solid #1f2937", marginTop: 8, paddingTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
           <button onClick={() => router.push("/chatbot")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#3b82f622", border: "1px solid #3b82f633", borderRadius: 8, cursor: "pointer", color: "#3b82f6", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
             <span>💬</span> Chatbot
           </button>
+
+          {/* 🆕 Botão Telefonia VOIP — só visível pra dono/admin */}
+          {podeVerTelefonia && (
+            <button onClick={() => router.push("/crm/telefonia")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: isActive("/crm/telefonia") ? "#16a34a33" : "#16a34a22", border: `1px solid ${isActive("/crm/telefonia") ? "#16a34a" : "#16a34a33"}`, borderRadius: 8, cursor: "pointer", color: "#16a34a", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
+              <span>📞</span> Telefonia
+            </button>
+          )}
         </div>
         <div style={{ marginTop: "auto", borderTop: "1px solid #1f2937", paddingTop: 8 }}>
           <button onClick={signOut} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#dc262622", border: "1px solid #dc262633", borderRadius: 8, cursor: "pointer", color: "#dc2626", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
