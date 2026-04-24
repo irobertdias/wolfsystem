@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
+import { useSoftphone } from "../../hooks/useSoftphone";
 
 type Atendimento = {
   id: number; created_at: string; updated_at?: string; numero: string; nome: string; mensagem: string;
@@ -216,6 +217,8 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
 export function ChatSection() {
   const { workspace, wsId, user } = useWorkspace();
   const { permissoes, isDono } = usePermissao();
+  // 🆕 Softphone — botão de ligar chama iniciarChamada(numero, nome)
+  const { iniciarChamada } = useSoftphone();
   const chatBottomRef = useRef<HTMLDivElement>(null);
   // 🆕 Ref do container de mensagens — usado pra ler scrollTop e saber se o user tá no fundo
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1158,6 +1161,13 @@ export function ChatSection() {
 
               {/* TOOLBAR DE AÇÕES — muda conforme o status do atendimento */}
               <div style={{ display: "flex", gap: 4, alignItems: "center", position: "relative", flexShrink: 0 }}>
+                {/* 📞 Ligar — inicia chamada VOIP pro número do lead */}
+                {permissoes.voip_usar !== false && (
+                  <button onClick={() => iniciarChamada(atendimentoAtivo.numero, atendimentoAtivo.nome)}
+                    title="📞 Ligar pro lead via softphone"
+                    style={{ ...botaoToolbar("#16a34a"), background: "#16a34a22", border: "1px solid #16a34a44" }}>📞</button>
+                )}
+
                 {/* 👁️ Ver dados do contato — abre o painel à direita (novo, dedicado) */}
                 <button onClick={() => setShowPainelContato(true)}
                   title="Ver dados do contato" style={botaoToolbar()}>👁️</button>
