@@ -1116,10 +1116,12 @@ export function ChatSection() {
                 - Finalizar Venda ganhou destaque (botão verde com texto)
             */}
             <div style={{ padding: "10px 16px", borderBottom: "1px solid #222d34", background: "#202c33", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-              {/* BLOCO CLICÁVEL: Avatar + Nome + Info → abre painel do contato */}
+              {/* BLOCO CLICÁVEL: Avatar + Nome + Info → abre painel do contato
+                  O clique ainda funciona, mas sem tooltip "Ver dados do contato" (que era gigante
+                  e aparecia sobre o chat atrapalhando a leitura). Pra descobrabilidade, tem um
+                  botão 👁️ dedicado na toolbar do lado direito. */}
               <div
                 onClick={() => setShowPainelContato(true)}
-                title="Ver dados do contato"
                 style={{
                   display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0,
                   cursor: "pointer",
@@ -1156,6 +1158,10 @@ export function ChatSection() {
 
               {/* TOOLBAR DE AÇÕES — muda conforme o status do atendimento */}
               <div style={{ display: "flex", gap: 4, alignItems: "center", position: "relative", flexShrink: 0 }}>
+                {/* 👁️ Ver dados do contato — abre o painel à direita (novo, dedicado) */}
+                <button onClick={() => setShowPainelContato(true)}
+                  title="Ver dados do contato" style={botaoToolbar()}>👁️</button>
+
                 {/* 🔄 Atualizar — sempre visível */}
                 <button onClick={() => fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
                   title="Atualizar mensagens" style={botaoToolbar()}>🔄</button>
@@ -1188,38 +1194,36 @@ export function ChatSection() {
                 ) : (
                   /* ATENDIMENTO ATIVO → mostra todas as ações */
                   <>
-                    {/* ↗️ Encaminhar (fila ou atendente) */}
-                    <button onClick={() => setShowTransferir(!showTransferir)}
-                      title="Encaminhar para fila ou atendente"
-                      style={{ ...botaoToolbar(showTransferir ? "#00a884" : "#aebac1"), background: showTransferir ? "#00a88422" : "none" }}>↗️</button>
-
-                    {/* 👤 Assumir / 🛑 Parar BOT/IA / 🤖 Devolver Bot — qual aparece depende do estado */}
+                    {/* 👤 Assumir / 🛑 Parar BOT/IA / 🤖 Devolver Bot — logo após o atualizar (mais acessível) */}
                     {(() => {
-                      // Estado 1: chat sem dono ou ainda com BOT — botão ASSUMIR clássico
-                      if (atendimentoAtivo.atendente === "BOT" || atendimentoAtivo.status === "pendente") {
+                      const atendenteEhEmailReal = !!atendimentoAtivo.atendente && !["BOT", "Humano"].includes(atendimentoAtivo.atendente);
+                      const botAtivo = !atendimentoAtivo.bloqueado_ia && !atendimentoAtivo.bloqueado_fluxo;
+
+                      if (atendimentoAtivo.atendente === "BOT" || (!atendenteEhEmailReal && atendimentoAtivo.status === "pendente")) {
                         return (
                           <button onClick={() => assumirChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
                             title="Assumir atendimento (parar o bot)"
                             style={botaoToolbar("#f59e0b")}>👤</button>
                         );
                       }
-                      // Estado 2: roleta atribuiu mas bot ainda tá ativo → botão PARAR BOT/IA
-                      const atendenteEhEmail = atendimentoAtivo.atendente && !["BOT", "Humano"].includes(atendimentoAtivo.atendente);
-                      const botAtivo = !atendimentoAtivo.bloqueado_ia && !atendimentoAtivo.bloqueado_fluxo;
-                      if (roletaAtiva && atendenteEhEmail && botAtivo) {
+                      if (atendenteEhEmailReal && botAtivo) {
                         return (
                           <button onClick={pararBotIA}
-                            title="🛑 Parar BOT/IA e assumir a conversa (a roleta já te atribuiu esse lead)"
+                            title="🛑 Parar BOT/IA e assumir a conversa"
                             style={{ ...botaoToolbar("#dc2626"), background: "#dc262622", border: "1px solid #dc262644" }}>🛑</button>
                         );
                       }
-                      // Estado 3: atendente humano já assumiu e bot parado → botão DEVOLVER BOT
                       return (
                         <button onClick={() => devolverBot(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
                           title="Devolver para o BOT"
                           style={botaoToolbar("#8b5cf6")}>🤖</button>
                       );
                     })()}
+
+                    {/* ↗️ Encaminhar (fila ou atendente) */}
+                    <button onClick={() => setShowTransferir(!showTransferir)}
+                      title="Encaminhar para fila ou atendente"
+                      style={{ ...botaoToolbar(showTransferir ? "#00a884" : "#aebac1"), background: showTransferir ? "#00a88422" : "none" }}>↗️</button>
 
                     {/* 💰 FINALIZAR VENDA — destaque */}
                     {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
