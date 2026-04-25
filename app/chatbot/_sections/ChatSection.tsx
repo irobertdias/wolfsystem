@@ -769,8 +769,11 @@ export function ChatSection() {
   const enviarAudioGravado = async () => {
     if (!atendimentoAtivo || !mediaRecorderRef.current) return;
     if (!atendimentoAtivo.canal_id) { alert("⚠️ Atendimento sem canal_id. Não é possível enviar áudio."); return; }
-    const canal = canais.find(c => c.id === atendimentoAtivo.canal_id);
-    if (canal?.tipo === "waba") { alert("⚠️ Áudio só funciona em canais WhatsApp Web (WebJS). WABA ainda não suporta."); return; }
+    // 🆕 Áudio agora funciona em WebJS E WABA. Backend converte pra OGG opus e envia via Graph API
+    // (upload + send) no caso WABA, ou MessageMedia.sendAudioAsVoice no WebJS. Ambos exibem como
+    // mensagem de voz nativa pro cliente.
+    //
+    // ⚠️ Limitação WABA: respeita janela de 24h. Se passou, Meta rejeita e o erro vem no alert.
 
     const recorder = mediaRecorderRef.current;
     setEnviandoAudio(true);
