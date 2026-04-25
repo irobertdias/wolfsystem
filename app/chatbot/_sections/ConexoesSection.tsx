@@ -124,9 +124,10 @@ export function ConexoesSection() {
     }
   };
 
-  const verificarStatusWaba = async (canalId: number) => {
+  // 🔒 MULTI-TENANT: passa workspaceId no query — backend exige pra confirmar que canal é do workspace.
+  const verificarStatusWaba = async (canalId: number, workspaceIdDoCanal: string) => {
     try {
-      const resp = await fetch(`https://api.wolfgyn.com.br/waba/verificar-status?canalId=${canalId}`);
+      const resp = await fetch(`https://api.wolfgyn.com.br/waba/verificar-status?canalId=${canalId}&workspaceId=${encodeURIComponent(workspaceIdDoCanal)}`);
       return await resp.json();
     } catch (e) { return { success: false, status: "desconectado" }; }
   };
@@ -150,7 +151,10 @@ export function ConexoesSection() {
 
     const interval = setInterval(async () => {
       try {
-        const resp = await fetch(`https://api.wolfgyn.com.br/status`);
+        // 🔒 MULTI-TENANT: backend exige workspaceId — só retorna sessões deste workspace.
+        // Se wsId ainda não carregou, pula esta iteração (evita chamada com workspaceId vazio).
+        if (!wsId) return;
+        const resp = await fetch(`https://api.wolfgyn.com.br/status?workspaceId=${encodeURIComponent(wsId)}`);
         const data = await resp.json();
         if (data.sessoes && Array.isArray(data.sessoes)) {
           const ids = wsIdsRef.current;
@@ -169,7 +173,7 @@ export function ConexoesSection() {
                   .eq("id", c.id).eq("workspace_id", c.workspace_id);
               }
             } else if (c.tipo === "waba") {
-              const wabaStatus = await verificarStatusWaba(c.id);
+              const wabaStatus = await verificarStatusWaba(c.id, c.workspace_id);
               if (wabaStatus.success) {
                 const statusReal = wabaStatus.status;
                 const numeroReal = wabaStatus.numero || c.numero;
@@ -200,7 +204,9 @@ export function ConexoesSection() {
       tentativas++;
       setQrTentativas(tentativas);
       try {
-        const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}`, { cache: "no-store" });
+        // 🔒 MULTI-TENANT: backend exige workspaceId pra retornar QR (vazamento crítico — atacante poderia
+        // pegar QR alheio e conectar o WhatsApp do cliente ao próprio celular).
+        const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store" });
         if (!resp.ok) {
           console.warn(`[QR poll] status HTTP ${resp.status} — tentativa ${tentativas}`);
           return;
@@ -261,9 +267,10 @@ export function ConexoesSection() {
     }
     setRegistrandoWaba(true); setShowMenuEngrenagem(null);
     try {
+      // 🔒 MULTI-TENANT: backend exige workspaceId pra confirmar que canal pertence ao workspace.
       const resp = await fetch(`/api/whatsapp?rota=waba/registrar`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ canalId: c.id, pin }),
+        body: JSON.stringify({ canalId: c.id, pin, workspaceId: c.workspace_id }),
       });
       const data = await resp.json();
       if (data.success) {
@@ -352,7 +359,8 @@ export function ConexoesSection() {
         // 🔒 MULTI-TENANT: defesa em profundidade — só edita canal deste workspace
         await supabase.from("conexoes").update(payload).eq("id", editandoId).in("workspace_id", wsIdsRef.current);
         setEditandoId(null);
-        try { await wa("configurar-ia", { canalId: editandoId, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo }); } catch (e) {}
+        // 🔒 MULTI-TENANT: backend exige workspaceId pra validar que canal pertence ao workspace.
+        try { await wa("configurar-ia", { canalId: editandoId, workspaceId: wsId, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo }); } catch (e) {}
         alert("✅ Canal atualizado!");
       } else {
         let novoId: number | null = null;
@@ -376,7 +384,8 @@ export function ConexoesSection() {
         }
 
         if (novoId) {
-          try { await wa("canal/criar", { canalId: novoId }); } catch (e) { console.error("Erro ao criar sessão no VPS:", e); }
+          // 🔒 MULTI-TENANT: backend exige workspaceId
+          try { await wa("canal/criar", { canalId: novoId, workspaceId: wsId }); } catch (e) { console.error("Erro ao criar sessão no VPS:", e); }
         }
         alert("✅ Canal criado com sucesso!");
       }
@@ -392,7 +401,8 @@ export function ConexoesSection() {
     if (!canal) return;
     setQrCanalId(id); setResetando(true); setShowModalQR(true);
     setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0);
-    try { await wa("resetar", { canalId: id }); } catch (e) {}
+    // 🔒 MULTI-TENANT: backend exige workspaceId. canal.workspace_id já é o desse workspace.
+    try { await wa("resetar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {}
     // 🔒 MULTI-TENANT: defesa em profundidade — confirma que canal pertence a este workspace
     await supabase.from("conexoes").update({ status: "desconectado", numero: "" })
       .eq("id", id).eq("workspace_id", canal.workspace_id);
@@ -402,7 +412,8 @@ export function ConexoesSection() {
   const desconectarCanal = async (c: Conexao) => {
     if (!confirm(`Desconectar ${c.nome}? Isso vai desconectar o WhatsApp.`)) return;
     try {
-      await wa("desconectar", { canalId: c.id });
+      // 🔒 MULTI-TENANT: backend exige workspaceId
+      await wa("desconectar", { canalId: c.id, workspaceId: c.workspace_id });
       // 🔒 MULTI-TENANT: c.workspace_id já vem do banco filtrado por este workspace
       await supabase.from("conexoes").update({ status: "desconectado", numero: "" })
         .eq("id", c.id).eq("workspace_id", c.workspace_id);
@@ -415,7 +426,8 @@ export function ConexoesSection() {
     if (!confirm("Excluir esse canal?\n\nTodo o histórico vai ser preservado mas o canal será removido.")) return;
     const canal = conexoes.find(c => c.id === id);
     if (!canal) { alert("Canal não encontrado."); return; }
-    if (canal.tipo === "webjs") { try { await wa("desconectar", { canalId: id }); } catch (e) {} }
+    // 🔒 MULTI-TENANT: backend exige workspaceId
+    if (canal.tipo === "webjs") { try { await wa("desconectar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {} }
     // 🔒 MULTI-TENANT CRÍTICO: delete só passa se canal for deste workspace.
     // Antes, qualquer um com o id podia deletar canais de outro workspace via DevTools.
     await supabase.from("conexoes").delete().eq("id", id).eq("workspace_id", canal.workspace_id);
@@ -469,7 +481,8 @@ export function ConexoesSection() {
                     if (!qrCanalId) return;
                     // Força checagem imediata no backend, ignorando o intervalo
                     try {
-                      const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}`, { cache: "no-store" });
+                      // 🔒 MULTI-TENANT: workspaceId obrigatório
+                      const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store" });
                       const data = await resp.json();
                       if (data.status === "conectado") {
                         // 🔒 MULTI-TENANT: defesa em profundidade
