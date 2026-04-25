@@ -134,6 +134,9 @@ export default function Vendas() {
     if (!form.nome || !form.telefone1) { alert("Nome e Telefone 1 são obrigatórios!"); return; }
     setSalvando(true);
     try {
+      // 🔒 MULTI-TENANT: confere workspace_id no WHERE pra impedir edição de propostas de outros workspaces.
+      // Antes só filtrava por id — se um vendedor descobrisse o id de uma proposta de outro cliente
+      // (CPF, RG, telefone), poderia editar via DevTools.
       const { error } = await supabase.from("proposta").update({
         data_proposta: form.data_proposta,
         nome: form.nome,
@@ -160,7 +163,9 @@ export default function Vendas() {
         data_instalacao: form.data_instalacao,
         data_cancelamento: form.data_cancelamento,
         operadora: form.operadora,
-      }).eq("id", propostaEditando.id);
+      })
+        .eq("id", propostaEditando.id)
+        .eq("workspace_id", workspaceId);  // 🔒 MULTI-TENANT
 
       if (error) { alert("Erro ao salvar: " + error.message); setSalvando(false); return; }
       await fetchPropostas(workspaceId);
@@ -174,8 +179,14 @@ export default function Vendas() {
   const excluir = async (p: Proposta) => {
     if (!podeExcluir) { alert("Você não tem permissão para excluir!"); return; }
     if (!confirm(`⚠️ Excluir a proposta de ${p.nome}?\n\nEsta ação NÃO pode ser desfeita.`)) return;
+    if (!workspaceId) { alert("Workspace não carregado. Recarregue a página."); return; }
     try {
-      const { error } = await supabase.from("proposta").delete().eq("id", p.id);
+      // 🔒 MULTI-TENANT CRÍTICO: confere workspace_id pra impedir delete de propostas de outros workspaces.
+      // Antes, qualquer admin de qualquer workspace que descobrisse o id de uma proposta podia deletar
+      // via DevTools — isso significa apagar dados de cliente real (CPF, RG, contrato) sem rastro.
+      const { error } = await supabase.from("proposta").delete()
+        .eq("id", p.id)
+        .eq("workspace_id", workspaceId);
       if (error) { alert("Erro ao excluir: " + error.message); return; }
       await fetchPropostas(workspaceId);
       alert("✅ Proposta excluída!");

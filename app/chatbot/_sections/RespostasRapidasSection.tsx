@@ -54,7 +54,13 @@ export function RespostasRapidasSection() {
   const remover = async (r: RespostaRapida) => {
     if (!confirm(`Remover atalho ${r.atalho}?`)) return;
     if (r.id) {
-      await supabase.from("respostas_rapidas").delete().eq("id", r.id);
+      // 🔒 MULTI-TENANT: defesa em profundidade — só deleta se for deste workspace.
+      // Antes, qualquer um com o id da resposta podia deletar de outro workspace via DevTools.
+      const wsAlvo = workspace?.username || workspace?.id?.toString() || wsId;
+      if (!wsAlvo) { alert("Workspace não carregado. Recarregue a página."); return; }
+      await supabase.from("respostas_rapidas").delete()
+        .eq("id", r.id)
+        .eq("workspace_id", wsAlvo);
       await fetchRespostas();
     } else {
       setRespostas(respostas.filter(x => x.atalho !== r.atalho));

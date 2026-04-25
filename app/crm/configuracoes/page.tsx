@@ -295,7 +295,14 @@ export default function Configuracoes() {
 
   const excluirFila = async (f: Fila) => {
     if (!confirm(`Excluir a fila "${f.nome}"?`)) return;
-    const { error } = await supabase.from("filas").delete().eq("id", f.id);
+    if (!workspaceId) { alert("Workspace não carregado."); return; }
+    // 🔒 MULTI-TENANT CRÍTICO: confere workspace_id no WHERE.
+    // Antes, qualquer admin de qualquer workspace que descobrisse o id de uma fila
+    // de outro workspace podia deletar via DevTools. Filas estão ligadas a atendentes
+    // e roleta — apagar fila alheia quebra distribuição de leads do outro workspace.
+    const { error } = await supabase.from("filas").delete()
+      .eq("id", f.id)
+      .eq("workspace_id", workspaceId);
     if (error) { alert("Erro ao excluir: " + error.message); return; }
     await fetchFilas(workspaceId);
   };
@@ -311,8 +318,15 @@ export default function Configuracoes() {
 
   const salvarGrupo = async () => {
     if (!formGrupo.nome) { alert("Digite o nome do grupo!"); return; }
+    if (!workspaceId) { alert("Workspace não carregado."); return; }
     if (editandoGrupo) {
-      await supabase.from("grupos_permissao").update({ nome: formGrupo.nome, descricao: formGrupo.descricao, permissoes: formGrupo.permissoes }).eq("id", editandoGrupo.id);
+      // 🔒 MULTI-TENANT: defesa em profundidade — só edita grupo se for deste workspace.
+      // Antes, com o id do grupo em mãos, dava pra editar nome/descrição/permissoes
+      // de grupos de outros workspaces via DevTools.
+      await supabase.from("grupos_permissao")
+        .update({ nome: formGrupo.nome, descricao: formGrupo.descricao, permissoes: formGrupo.permissoes })
+        .eq("id", editandoGrupo.id)
+        .eq("workspace_id", workspaceId);
     } else {
       await supabase.from("grupos_permissao").insert([{ workspace_id: workspaceId, nome: formGrupo.nome, descricao: formGrupo.descricao, permissoes: formGrupo.permissoes }]);
     }
@@ -331,7 +345,14 @@ export default function Configuracoes() {
 
   const excluirGrupo = async (id: number) => {
     if (!confirm("Excluir este grupo?")) return;
-    await supabase.from("grupos_permissao").delete().eq("id", id);
+    if (!workspaceId) { alert("Workspace não carregado."); return; }
+    // 🔒 MULTI-TENANT CRÍTICO: confere workspace_id no WHERE.
+    // Antes, com o id de um grupo de outro workspace, dava pra deletá-lo via DevTools.
+    // Grupos contêm permissões — deletar deixa todos os usuários daquele grupo sem
+    // permissões corretas (cai no fallback do perfil), o que pode dar acesso indevido.
+    await supabase.from("grupos_permissao").delete()
+      .eq("id", id)
+      .eq("workspace_id", workspaceId);
     await fetchGrupos(workspaceId);
   };
 

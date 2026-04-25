@@ -379,7 +379,12 @@ export function ChatSection() {
   };
 
   const fetchHistorico = async (numero: string, canalId?: number) => {
-    let query = supabase.from("mensagens").select("*").eq("numero", numero);
+    if (!wsId) return;  // 🔒 SEGURANÇA: sem wsId, não busca nada (evita vazamento)
+    // 🔒 MULTI-TENANT: sempre filtra por workspace_id — antes vazava mensagens entre workspaces
+    // que tivessem o mesmo número (ex: lead da Abc + lead da RM TELECOM com mesmo telefone).
+    let query = supabase.from("mensagens").select("*")
+      .eq("numero", numero)
+      .eq("workspace_id", wsId);
     if (canalId) query = query.eq("canal_id", canalId);
     const { data } = await query.order("created_at", { ascending: true });
     setHistorico(data || []);
@@ -470,9 +475,14 @@ export function ChatSection() {
     fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
     fetchEtiquetasAtendimento(atendimentoAtivo.id);
     const num = atendimentoAtivo.numero; const cId = atendimentoAtivo.canal_id;
-    const ch = supabase.channel(`msgs_${num}_${Date.now()}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens" }, (payload) => {
+    // 🔒 SEGURANÇA MULTI-TENANT: filter `workspace_id=eq.${wsId}` no postgres_changes garante
+    // que o canal só recebe INSERTs deste workspace. Antes recebia de TODOS workspaces e filtrava
+    // no JS — vulnerável (e desperdiçava ciclos). Agora o Postgres filtra na fonte.
+    const ch = supabase.channel(`msgs_${wsId}_${num}_${Date.now()}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens", filter: `workspace_id=eq.${wsId}` }, (payload) => {
         const m = payload.new as Mensagem;
+        // Defesa extra: confere workspace mesmo após filter (não custa nada)
+        if (m.workspace_id !== wsId) return;
         if (m.numero === num && (!cId || m.canal_id === cId)) {
           setHistorico(p => [...p, m]);
           // 🆕 Se o user está scrollado pra cima lendo msg antiga, NÃO arrasta ele pra baixo —
@@ -789,7 +799,9 @@ export function ChatSection() {
     if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
     if (!confirm(`Parar o BOT para ${a.nome}?\n\nO BOT vai parar de responder automaticamente. Você assume o atendimento.`)) return;
     try {
-      await supabase.from("atendimentos").update({ bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true }).eq("id", a.id);
+      // 🔒 MULTI-TENANT: confirma workspace_id mesmo updateando por id (defesa em profundidade)
+      await supabase.from("atendimentos").update({ bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true })
+        .eq("id", a.id).eq("workspace_id", wsId);
       await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId, atendenteEmail: user.email });
       await inserirMensagemSistema(a.numero, `BOT interrompido. Chat assumido por: ${meuNome}`, a.canal_id);
       await fetchAtendimentos();
@@ -827,7 +839,7 @@ export function ChatSection() {
     // Se o atendente atribuído pela roleta é OUTRA pessoa, pede confirmação antes de "roubar" o chat
     const ehMeu = atendimentoAtivo.atendente === user.email;
     if (!ehMeu) {
-      const nomeDono = usuariosWorkspace.find(u => u.email === atendimentoAtivo.atendente)?.nome || atendimentoAtivo.atendente;
+      const nomeDono = usuariosWs.find(u => u.email === atendimentoAtivo.atendente)?.nome || atendimentoAtivo.atendente;
       if (!confirm(`Esse chat foi atribuído pela roleta a ${nomeDono}.\n\nDeseja assumir mesmo assim? (${nomeDono} vai perder o lead)`)) return;
     }
 
@@ -838,7 +850,7 @@ export function ChatSection() {
         bloqueado_typebot: true,
         atendente: user.email,
         status: "aberto"
-      }).eq("id", atendimentoAtivo.id);
+      }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
 
       // Também avisa o backend pra limpar sessão de IA na RAM (evita bot responder mais uma vez)
       await wa("assumir", { numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id, workspaceId: wsId, atendenteEmail: user.email });
@@ -857,7 +869,7 @@ export function ChatSection() {
   const transferirParaFila = async (fila: string) => {
     if (!atendimentoAtivo) return;
     try {
-      await supabase.from("atendimentos").update({ fila }).eq("id", atendimentoAtivo.id);
+      await supabase.from("atendimentos").update({ fila }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
       await inserirMensagemSistema(atendimentoAtivo.numero, `Chat transferido para fila: ${fila}, por: ${meuNome}`, atendimentoAtivo.canal_id);
       await fetchAtendimentos(); setShowTransferir(false);
       alert(`✅ Transferido para fila ${fila}`);
@@ -877,7 +889,7 @@ export function ChatSection() {
         bloqueado_ia: true,
         bloqueado_fluxo: true,
         bloqueado_typebot: true,
-      }).eq("id", atendimentoAtivo.id);
+      }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
       await inserirMensagemSistema(
         atendimentoAtivo.numero,
         `Chat transferido para: ${nomeDestino}, por: ${meuNome}`,
@@ -901,7 +913,7 @@ export function ChatSection() {
         bloqueado_ia: true,
         bloqueado_fluxo: true,
         bloqueado_typebot: true,
-      }).eq("id", a.id);
+      }).eq("id", a.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
       await inserirMensagemSistema(a.numero, `Atendimento REABERTO por: ${meuNome}`, a.canal_id);
       await fetchAtendimentos();
       setAbaConversa("abertos");
@@ -922,7 +934,8 @@ export function ChatSection() {
     if (!atendimentoAtivo) return;
     setSalvandoContato(true);
     try {
-      const { error } = await supabase.from("atendimentos").update({ [campo]: valor }).eq("id", atendimentoAtivo.id);
+      const { error } = await supabase.from("atendimentos").update({ [campo]: valor })
+        .eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
       if (error) { alert("Erro ao salvar: " + error.message); setSalvandoContato(false); return; }
       setAtendimentoAtivo({ ...atendimentoAtivo, [campo]: valor });
       setAtendimentos(prev => prev.map(a => a.id === atendimentoAtivo.id ? { ...a, [campo]: valor } : a));

@@ -488,21 +488,24 @@ export default function FluxosPage() {
       setWsId(username);
       load(username);
       fetchFilas(username); // 🆕
-    });
 
-    // Realtime — quando criar/editar/apagar fluxo ou fila em qualquer aba, atualiza aqui
-    const ch = supabase.channel("fluxos_editor_rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "fluxos" }, () => {
-        if (!cancelled) {
-          getWsUsername().then(u => { if (u && !cancelled) load(u); });
-        }
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "filas" }, () => { // 🆕
-        if (!cancelled) {
-          getWsUsername().then(u => { if (u && !cancelled) fetchFilas(u); });
-        }
-      })
-      .subscribe();
+      // 🔒 MULTI-TENANT: Realtime AGORA filtra por workspace_id no servidor.
+      // Antes recebia eventos de fluxos/filas de TODOS workspaces — vazamento de
+      // metadados (nomes de fluxos, IDs, status ativo/inativo) entre contas.
+      // O filter precisa ser registrado depois que sabemos o username, por isso
+      // movido pra dentro do .then() do getWsUsername.
+      const ch = supabase.channel("fluxos_editor_rt_" + username)
+        .on("postgres_changes", { event: "*", schema: "public", table: "fluxos", filter: `workspace_id=eq.${username}` }, () => {
+          if (!cancelled) load(username);
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "filas", filter: `workspace_id=eq.${username}` }, () => { // 🆕
+          if (!cancelled) fetchFilas(username);
+        })
+        .subscribe();
+
+      // Guarda a referência do channel pra cleanup
+      (window as any).__wolfFluxosCh = ch;
+    });
 
     // Polling 5s fallback
     const interval = setInterval(() => {
@@ -510,7 +513,12 @@ export default function FluxosPage() {
       getWsUsername().then(u => { if (u && !cancelled) { load(u); fetchFilas(u); } });
     }, 5000);
 
-    return () => { cancelled = true; supabase.removeChannel(ch); clearInterval(interval); };
+    return () => {
+      cancelled = true;
+      const ch = (window as any).__wolfFluxosCh;
+      if (ch) { supabase.removeChannel(ch); delete (window as any).__wolfFluxosCh; }
+      clearInterval(interval);
+    };
   }, []);
 
   // ✅ Busca fluxos filtrando por username
@@ -560,33 +568,56 @@ export default function FluxosPage() {
 
   async function salvar() {
     if(!fluxoAtivo?.id) return;
+    if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
     // 🆕 Validação: avisa se algum nó transferir não tem fila selecionada
     const transferirSemFila = nos.filter(n => n.tipo === "transferir" && !n.dados?.fila);
     if (transferirSemFila.length > 0) {
       if (!confirm(`⚠️ ${transferirSemFila.length} nó(s) de Transferir estão sem fila selecionada.\n\nQuando executados vão usar "Fila Principal" como fallback. Deseja salvar assim mesmo?`)) return;
     }
     setSalvando(true);
+    // 🔒 MULTI-TENANT: defesa em profundidade — só salva se fluxo for deste workspace
     await supabase.from("fluxos").update({nos,conexoes:arestas,nome:fluxoAtivo.nome,
       descricao:fluxoAtivo.descricao,ativo:fluxoAtivo.ativo,
-      trigger_tipo:fluxoAtivo.trigger_tipo,trigger_valor:fluxoAtivo.trigger_valor}).eq("id",fluxoAtivo.id);
+      trigger_tipo:fluxoAtivo.trigger_tipo,trigger_valor:fluxoAtivo.trigger_valor})
+      .eq("id",fluxoAtivo.id)
+      .eq("workspace_id", wsId);
     await load(); setSalvando(false); alert("✅ Fluxo salvo!");
   }
 
   async function toggleAtivo() {
     if(!fluxoAtivo?.id) return;
+    if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
     const v = !fluxoAtivo.ativo;
-    await supabase.from("fluxos").update({ativo:v}).eq("id",fluxoAtivo.id);
+    // 🔒 MULTI-TENANT: defesa em profundidade — só togglea se fluxo for deste workspace
+    await supabase.from("fluxos").update({ativo:v})
+      .eq("id",fluxoAtivo.id)
+      .eq("workspace_id", wsId);
     setFluxoAtivo(p => p?{...p,ativo:v}:null); await load();
   }
 
   // ✅ Exclusão real — verifica se deu certo e limpa sessão se estava aberta
   async function excluirFluxo(id:number, nome:string) {
     if(!confirm(`Excluir o fluxo "${nome}" permanentemente?\nIsso não pode ser desfeito.`)) return;
+    if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
 
-    // Também apaga as sessões em execução desse fluxo (pra não ficar lixo)
+    // 🔒 MULTI-TENANT: confere que o fluxo realmente pertence a este workspace ANTES de mexer.
+    // Antes, qualquer user com o id do fluxo (descoberto via DevTools, console, etc) podia
+    // deletar fluxos de outros workspaces.
+    const fluxo = fluxos.find(f => f.id === id);
+    if (!fluxo || fluxo.workspace_id !== wsId) {
+      alert("Erro: fluxo não pertence a este workspace.");
+      return;
+    }
+
+    // Também apaga as sessões em execução desse fluxo (pra não ficar lixo).
+    // Não precisa filtrar por workspace_id aqui: como já confirmamos acima que `fluxo` pertence
+    // a este workspace, `id` é uma chave globalmente única e podemos confiar nele.
     await supabase.from("fluxo_sessoes").delete().eq("fluxo_id", id);
 
-    const { error } = await supabase.from("fluxos").delete().eq("id",id);
+    // 🔒 MULTI-TENANT CRÍTICO: delete do fluxo agora exige id E workspace_id baterem
+    const { error } = await supabase.from("fluxos").delete()
+      .eq("id",id)
+      .eq("workspace_id", wsId);
     if (error) { alert("Erro ao excluir: " + error.message); return; }
 
     // Se era o fluxo aberto, volta pra lista

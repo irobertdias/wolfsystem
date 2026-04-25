@@ -88,9 +88,12 @@ export function EtiquetasSection() {
     setSalvando(true);
     try {
       if (editando) {
+        // 🔒 MULTI-TENANT: defesa em profundidade — só edita etiqueta se for deste workspace.
+        // Antes, se um user descobrisse o id de uma etiqueta de outro workspace, podia editar.
         const { error } = await supabase.from("etiquetas")
           .update({ nome: form.nome.trim(), cor: form.cor, icone: form.icone })
-          .eq("id", editando.id);
+          .eq("id", editando.id)
+          .eq("workspace_id", wsId);
         if (error) { alert("Erro ao atualizar: " + error.message); setSalvando(false); return; }
       } else {
         const { error } = await supabase.from("etiquetas").insert([{
@@ -110,11 +113,22 @@ export function EtiquetasSection() {
   // ═══ Excluir ═══
   const excluir = async (e: Etiqueta) => {
     if (!confirm(`Excluir a etiqueta "${e.nome}"?\n\nEla será removida de todos os atendimentos que a usavam.`)) return;
+    if (!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
     try {
-      // Primeiro remove das tabelas de associação
+      // 🔒 MULTI-TENANT: confere que a etiqueta pertence a este workspace ANTES de qualquer delete.
+      // e.workspace_id veio do banco filtrado, mas confirmamos pra ficar 100% blindado contra
+      // manipulação via DevTools.
+      if (e.workspace_id && e.workspace_id !== wsId) {
+        alert("Erro: etiqueta não pertence a este workspace.");
+        return;
+      }
+      // Primeiro remove das tabelas de associação. atendimento_etiquetas filtra por etiqueta_id
+      // (que é único globalmente), então não precisa de workspace_id aqui.
       await supabase.from("atendimento_etiquetas").delete().eq("etiqueta_id", e.id);
-      // Depois apaga a etiqueta
-      const { error } = await supabase.from("etiquetas").delete().eq("id", e.id);
+      // Depois apaga a etiqueta — defesa em profundidade com workspace_id no WHERE.
+      const { error } = await supabase.from("etiquetas").delete()
+        .eq("id", e.id)
+        .eq("workspace_id", wsId);
       if (error) { alert("Erro ao excluir: " + error.message); return; }
       await fetchEtiquetas(wsId);
     } catch (err: any) { alert("Erro: " + err.message); }

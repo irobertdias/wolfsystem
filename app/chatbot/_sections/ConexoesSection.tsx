@@ -138,9 +138,14 @@ export function ConexoesSection() {
     fetchFilas(); // 🆕
     fetchLimites();
 
-    const ch = supabase.channel("conexoes_rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchConexoes())
-      .on("postgres_changes", { event: "*", schema: "public", table: "filas" }, () => fetchFilas()) // 🆕 realtime
+    // 🔒 MULTI-TENANT: filter no postgres_changes pra só receber eventos deste workspace.
+    // Antes ouvia mudanças de TODOS workspaces e disparava fetch (desperdício + risco de listar
+    // canais errados se algum bug deixasse passar). Como wsId pode estar como username ou id numérico,
+    // usa o `wsId` (string canônica que useWorkspace retorna).
+    const channelName = `conexoes_rt_${wsId || "anon"}`;
+    const ch = supabase.channel(channelName)
+      .on("postgres_changes", { event: "*", schema: "public", table: "conexoes", filter: `workspace_id=eq.${wsId}` }, () => fetchConexoes())
+      .on("postgres_changes", { event: "*", schema: "public", table: "filas", filter: `workspace_id=eq.${wsId}` }, () => fetchFilas())
       .subscribe();
 
     const interval = setInterval(async () => {
@@ -159,7 +164,9 @@ export function ConexoesSection() {
               const statusReal = sessaoVPS.status === "conectado" ? "conectado" : "desconectado";
               const numeroReal = sessaoVPS.numero || "";
               if (c.status !== statusReal || (statusReal === "conectado" && c.numero !== numeroReal)) {
-                await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal }).eq("id", c.id);
+                // 🔒 MULTI-TENANT: confirma workspace_id mesmo updateando por id (defesa em profundidade)
+                await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal })
+                  .eq("id", c.id).eq("workspace_id", c.workspace_id);
               }
             } else if (c.tipo === "waba") {
               const wabaStatus = await verificarStatusWaba(c.id);
@@ -167,7 +174,9 @@ export function ConexoesSection() {
                 const statusReal = wabaStatus.status;
                 const numeroReal = wabaStatus.numero || c.numero;
                 if (c.status !== statusReal || c.numero !== numeroReal) {
-                  await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal }).eq("id", c.id);
+                  // 🔒 MULTI-TENANT: confirma workspace_id (defesa em profundidade)
+                  await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal })
+                    .eq("id", c.id).eq("workspace_id", c.workspace_id);
                 }
               }
             }
@@ -205,7 +214,9 @@ export function ConexoesSection() {
           setQrNumero(data.numero || "");
           setQrPolling(false);
           // Atualiza o banco também (redundante mas garante)
-          await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrCanalId);
+          // 🔒 MULTI-TENANT: defesa em profundidade — só updateia se canal for deste workspace
+          await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" })
+            .eq("id", qrCanalId).in("workspace_id", wsIdsRef.current);
           await fetchConexoes();
           // Fecha modal depois de 800ms pro user ver o ✅ WhatsApp Conectado!
           setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
@@ -338,7 +349,8 @@ export function ConexoesSection() {
       if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
 
       if (editandoId) {
-        await supabase.from("conexoes").update(payload).eq("id", editandoId);
+        // 🔒 MULTI-TENANT: defesa em profundidade — só edita canal deste workspace
+        await supabase.from("conexoes").update(payload).eq("id", editandoId).in("workspace_id", wsIdsRef.current);
         setEditandoId(null);
         try { await wa("configurar-ia", { canalId: editandoId, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo }); } catch (e) {}
         alert("✅ Canal atualizado!");
@@ -381,7 +393,9 @@ export function ConexoesSection() {
     setQrCanalId(id); setResetando(true); setShowModalQR(true);
     setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0);
     try { await wa("resetar", { canalId: id }); } catch (e) {}
-    await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", id);
+    // 🔒 MULTI-TENANT: defesa em profundidade — confirma que canal pertence a este workspace
+    await supabase.from("conexoes").update({ status: "desconectado", numero: "" })
+      .eq("id", id).eq("workspace_id", canal.workspace_id);
     await fetchConexoes(); setResetando(false); setQrPolling(true);
   };
 
@@ -389,7 +403,9 @@ export function ConexoesSection() {
     if (!confirm(`Desconectar ${c.nome}? Isso vai desconectar o WhatsApp.`)) return;
     try {
       await wa("desconectar", { canalId: c.id });
-      await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", c.id);
+      // 🔒 MULTI-TENANT: c.workspace_id já vem do banco filtrado por este workspace
+      await supabase.from("conexoes").update({ status: "desconectado", numero: "" })
+        .eq("id", c.id).eq("workspace_id", c.workspace_id);
       await fetchConexoes();
       alert("✅ Desconectado!");
     } catch (e: any) { alert("Erro: " + e.message); }
@@ -398,8 +414,11 @@ export function ConexoesSection() {
   const excluirCanal = async (id: number) => {
     if (!confirm("Excluir esse canal?\n\nTodo o histórico vai ser preservado mas o canal será removido.")) return;
     const canal = conexoes.find(c => c.id === id);
-    if (canal?.tipo === "webjs") { try { await wa("desconectar", { canalId: id }); } catch (e) {} }
-    await supabase.from("conexoes").delete().eq("id", id);
+    if (!canal) { alert("Canal não encontrado."); return; }
+    if (canal.tipo === "webjs") { try { await wa("desconectar", { canalId: id }); } catch (e) {} }
+    // 🔒 MULTI-TENANT CRÍTICO: delete só passa se canal for deste workspace.
+    // Antes, qualquer um com o id podia deletar canais de outro workspace via DevTools.
+    await supabase.from("conexoes").delete().eq("id", id).eq("workspace_id", canal.workspace_id);
     await fetchConexoes(); setShowMenuEngrenagem(null);
   };
 
@@ -453,7 +472,9 @@ export function ConexoesSection() {
                       const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}`, { cache: "no-store" });
                       const data = await resp.json();
                       if (data.status === "conectado") {
-                        await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrCanalId);
+                        // 🔒 MULTI-TENANT: defesa em profundidade
+                        await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" })
+                          .eq("id", qrCanalId).in("workspace_id", wsIdsRef.current);
                         await fetchConexoes();
                         setQrConectado(true); setQrNumero(data.numero || "");
                         setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
@@ -471,7 +492,7 @@ export function ConexoesSection() {
 
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button onClick={() => { setShowModalQR(false); setQrPolling(false); setQrImageUrl(""); setQrTentativas(0); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Fechar</button>
-              {!qrConectado && <button onClick={async () => { if (qrCanalId) { await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrCanalId); await fetchConexoes(); } setShowModalQR(false); setQrPolling(false); setQrTentativas(0); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>}
+              {!qrConectado && <button onClick={async () => { if (qrCanalId) { /* 🔒 MULTI-TENANT */ await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrCanalId).in("workspace_id", wsIdsRef.current); await fetchConexoes(); } setShowModalQR(false); setQrPolling(false); setQrTentativas(0); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>}
             </div>
           </div>
         </div>

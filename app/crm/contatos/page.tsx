@@ -17,12 +17,34 @@ export default function Contatos() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/"); return; }
-      const { data: ws } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).single();
-      if (ws) {
-        const wsId = ws.username || ws.id.toString();
-        const { data } = await supabase.from("atendimentos").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false });
-        setAtendimentos(data || []);
+
+      // 🆕 FIX BUG FUNCIONAL: tenta achar workspace pelas duas vias (dono OU sub-usuário).
+      // Antes só buscava por owner_id → atendentes (sub-usuários) abriam a tela e não viam nada.
+      // Mesma lógica que já existe no Dashboard CRM e em vendas-page.
+      let wsId: string | null = null;
+
+      // Caminho 1: usuário é DONO do workspace
+      const { data: wsDono } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).maybeSingle();
+      if (wsDono) {
+        wsId = wsDono.username || wsDono.id.toString();
+      } else {
+        // Caminho 2: usuário é SUB-USUÁRIO (atendente, supervisor, admin) — busca via usuarios_workspace
+        const { data: uw } = await supabase.from("usuarios_workspace")
+          .select("workspace_id")
+          .eq("email", user.email)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (uw?.workspace_id) wsId = uw.workspace_id;
       }
+
+      if (!wsId) return;  // sem workspace, não busca nada
+
+      // 🔒 MULTI-TENANT: filtra por workspace_id (já estava OK aqui)
+      const { data } = await supabase.from("atendimentos").select("*")
+        .eq("workspace_id", wsId)
+        .order("created_at", { ascending: false });
+      setAtendimentos(data || []);
     };
     init();
   }, []);
