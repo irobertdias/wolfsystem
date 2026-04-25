@@ -580,7 +580,9 @@ export function ChatSection() {
     try {
       const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
       const mensagemFinal = nomeHeader + mensagem;
-      const resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id });
+      // 🔒 MULTI-TENANT: workspaceId é OBRIGATÓRIO no backend agora.
+      // Sem ele a rota /enviar retorna 400. wsId vem do useWorkspace().
+      const resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
       if (!resp.success) { alert("Erro ao enviar: " + (resp.error || "desconhecido")); }
       else { setMensagem(""); }
     }
@@ -643,6 +645,8 @@ export function ChatSection() {
       fd.append("arquivo", arquivoSelecionado);
       fd.append("numero", atendimentoAtivo.numero);
       fd.append("canalId", String(atendimentoAtivo.canal_id));
+      // 🔒 MULTI-TENANT: workspaceId obrigatório (proxy /api/whatsapp-midia repassa o FormData inteiro)
+      fd.append("workspaceId", String(wsId));
       if (legendaArquivo) fd.append("legenda", legendaArquivo);
       const resp = await fetch("/api/whatsapp-midia", { method: "POST", body: fd });
       const data = await resp.json();
@@ -779,6 +783,8 @@ export function ChatSection() {
       form.append("audio", blob);
       form.append("numero", atendimentoAtivo.numero);
       form.append("canalId", String(atendimentoAtivo.canal_id));
+      // 🔒 MULTI-TENANT: workspaceId obrigatório (proxy /api/whatsapp-audio repassa o FormData inteiro)
+      form.append("workspaceId", String(wsId));
       const resp = await fetch("/api/whatsapp-audio", { method: "POST", body: form });
       const data = await resp.json();
       if (!data.success) alert("Erro ao enviar áudio: " + (data.error || "desconhecido"));
