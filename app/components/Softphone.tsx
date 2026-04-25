@@ -10,6 +10,13 @@ import { useSoftphone } from "../hooks/useSoftphone";
 // - Expandido (card): mostra chamada ativa OU teclado discador
 // ═══════════════════════════════════════════════════════════════════════
 
+// 🆕 POSIÇÃO BASE — valor único que controla o "bottom" tanto da bolinha minimizada
+// quanto do card expandido. Antes era 24px e ficava colidindo com o input de mensagem
+// no chat (que também fica no canto inferior). 100px deixa o softphone bem acima do
+// input de mensagem, do botão de áudio e do botão de enviar, sem encostar em nenhum.
+const SOFTPHONE_BOTTOM = 100;
+const SOFTPHONE_RIGHT = 24;
+
 export function Softphone() {
   const { chamada, aberto, setAberto, iniciarChamada, encerrarChamada, toggleMudo, enviarDTMF, segundosConectado } = useSoftphone();
   const [numeroDigitado, setNumeroDigitado] = useState("");
@@ -84,8 +91,8 @@ export function Softphone() {
         title="Abrir discador"
         style={{
           position: "fixed",
-          bottom: 24,
-          right: 24,
+          bottom: SOFTPHONE_BOTTOM,
+          right: SOFTPHONE_RIGHT,
           width: 56,
           height: 56,
           borderRadius: "50%",
@@ -121,8 +128,8 @@ export function Softphone() {
       `}</style>
       <div style={{
         position: "fixed",
-        bottom: 24,
-        right: 24,
+        bottom: SOFTPHONE_BOTTOM,
+        right: SOFTPHONE_RIGHT,
         width: 320,
         background: "#111",
         border: "1px solid #1f2937",
