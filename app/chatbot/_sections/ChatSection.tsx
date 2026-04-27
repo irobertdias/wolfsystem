@@ -12,7 +12,10 @@ type Atendimento = {
   email?: string; notas?: string; avaliacao?: number;
   bloqueado_ia?: boolean; bloqueado_fluxo?: boolean; bloqueado_typebot?: boolean; bloqueado_contato?: boolean;
   funil_etapa?: string; kanban_coluna?: string; demanda?: string; valor?: number;
-  visualizado_em?: string | null;  // 🆕 quando o atendente abriu este chat pela última vez (pra calcular msgs não lidas)
+  // 🔔 NOTIFICAÇÕES: timestamp de quando o atendente clicou no chat pela última vez.
+  // NULL = nunca foi visualizado nessa lógica nova. Ao clicar no chat, vira NOW().
+  // Usado pra contar mensagens "não lidas" (mensagens do cliente com created_at > visualizado_em).
+  visualizado_em?: string | null;
 };
 type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; canal_id?: number; };
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
@@ -234,6 +237,24 @@ export function ChatSection() {
   // mesmo com o bot ainda respondendo. Clicando, ele assume e o bot para.
   const [roletaAtiva, setRoletaAtiva] = useState(false);
 
+  // 🔔 ═══════════════════════════════════════════════════════════════════════════
+  // SISTEMA DE NOTIFICAÇÕES (estilo WhatsApp)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Som ligado/desligado — atendente decide. Salvo em localStorage por usuário.
+  // Default: ligado (teleatendimento precisa ouvir).
+  const [somAtivo, setSomAtivo] = useState<boolean>(true);
+  // Map<atendimento_id, qtd_nao_lidas> — quantas msgs do cliente vieram após visualizado_em
+  const [naoLidasPorAtendimento, setNaoLidasPorAtendimento] = useState<Record<number, number>>({});
+  // Set de IDs já conhecidos — usado pra detectar "atendimento NOVO" (toca som diferente)
+  // Refs em vez de state pra não disparar re-render — só queremos saber se já vimos antes.
+  const atendimentosConhecidosRef = useRef<Set<number>>(new Set());
+  // Flag pra ignorar a primeira carga (evita tocar som pra todos os atendimentos antigos no F5)
+  const primeiraCargaAtendimentosRef = useRef<boolean>(true);
+  // Ref do AudioContext — criado uma vez e reusado (browser limita instâncias)
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  // Ref pra última quantidade conhecida de não lidas por atendimento — pra detectar quando aumentou
+  const ultimaQtdNaoLidasRef = useRef<Record<number, number>>({});
+
   const [mensagem, setMensagem] = useState("");
   const [mensagemInterna, setMensagemInterna] = useState("");
   const [showRespostas, setShowRespostas] = useState(false);
@@ -271,52 +292,6 @@ export function ChatSection() {
 
   const [mostrarTodosFinalizados, setMostrarTodosFinalizados] = useState(false);
 
-  // 🆕 NOTIFICAÇÕES DE MENSAGENS NÃO LIDAS — estilo WhatsApp
-  // contadoresNaoLidas: { [atendimentoId]: número de msgs do cliente não lidas }
-  // somAtivo: usuário pode mutar via toggle
-  // tituloOriginal: guarda "Wolf System" ou seja lá qual for, pra restaurar quando zerar
-  const [contadoresNaoLidas, setContadoresNaoLidas] = useState<Record<number, number>>({});
-  // 🆕 Som ativo: lembra a preferência do user entre sessões via localStorage
-  const [somAtivo, setSomAtivo] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    const salvo = localStorage.getItem("wolf_som_notificacao");
-    return salvo === null ? true : salvo === "1";
-  });
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("wolf_som_notificacao", somAtivo ? "1" : "0");
-  }, [somAtivo]);
-  const tituloOriginalRef = useRef<string>("");
-  // Audio de notificação — Web Audio API gera o som inline (evita precisar de arquivo .mp3)
-  const audioCtxRef = useRef<AudioContext | null>(null);
-
-  // Toca um "ding" curto (frequência alta tipo notificação WhatsApp)
-  const tocarSomNotificacao = () => {
-    if (!somAtivo) return;
-    try {
-      // @ts-ignore
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      if (!audioCtxRef.current) audioCtxRef.current = new AudioCtx();
-      const ctx = audioCtxRef.current;
-      // Cria 2 tons em sequência (estilo "ding-ding")
-      const tocarTom = (freq: number, inicio: number, dur: number) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.frequency.value = freq;
-        osc.type = "sine";
-        gain.gain.setValueAtTime(0, ctx.currentTime + inicio);
-        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + inicio + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + inicio + dur);
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + inicio);
-        osc.stop(ctx.currentTime + inicio + dur);
-      };
-      tocarTom(880, 0, 0.12);
-      tocarTom(1100, 0.13, 0.15);
-    } catch (e) { /* navegador antigo, ignora */ }
-  };
-
   const [gravando, setGravando] = useState(false);
   const [tempoGravacao, setTempoGravacao] = useState(0);
   const [enviandoAudio, setEnviandoAudio] = useState(false);
@@ -352,6 +327,104 @@ export function ChatSection() {
   const WA_BASE = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
   const isAudioMsg = (txt: string) => typeof txt === "string" && txt.startsWith("[audio:") && txt.endsWith("]");
   const audioFilename = (txt: string) => txt.replace(/^\[audio:/, "").replace(/\]$/, "");
+
+  // 🔔 ═══════════════════════════════════════════════════════════════════════════
+  // FUNÇÕES DE NOTIFICAÇÃO SONORA
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Cria/recupera o AudioContext (browser limita - precisa ser criado após user interaction).
+  // Usado tanto pro som de chat NOVO quanto de mensagem em chat existente.
+  const getAudioCtx = (): AudioContext | null => {
+    if (typeof window === "undefined") return null;
+    if (!audioCtxRef.current) {
+      try {
+        // @ts-ignore — webkitAudioContext pra Safari
+        const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!Ctx) return null;
+        audioCtxRef.current = new Ctx();
+      } catch { return null; }
+    }
+    return audioCtxRef.current;
+  };
+
+  // Toca som tipo "ding-DONG" — 2 tons em sequência. Usado pra ATENDIMENTO NOVO (chat inédito).
+  // Mais alto e perceptível pra atendente nunca perder.
+  const tocarSomChatNovo = () => {
+    if (!somAtivo) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    try {
+      // Tom 1: 880Hz (A5) — agudo e atencional
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.frequency.value = 880;
+      osc1.type = "sine";
+      gain1.gain.setValueAtTime(0, ctx.currentTime);
+      gain1.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+      osc1.connect(gain1).connect(ctx.destination);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.2);
+
+      // Tom 2: 1320Hz (E6) — mais agudo, dá a sensação "ding-DONG"
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.frequency.value = 1320;
+      osc2.type = "sine";
+      gain2.gain.setValueAtTime(0, ctx.currentTime + 0.18);
+      gain2.gain.linearRampToValueAtTime(0.28, ctx.currentTime + 0.20);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.42);
+      osc2.connect(gain2).connect(ctx.destination);
+      osc2.start(ctx.currentTime + 0.18);
+      osc2.stop(ctx.currentTime + 0.45);
+    } catch (e) { console.warn("Erro ao tocar som de chat novo:", e); }
+  };
+
+  // Toca som tipo "ding" curto — 1 tom só, suave. Usado pra MENSAGEM em chat existente.
+  // Mais discreto pra não cansar o atendente que recebe muitas msgs.
+  const tocarSomMsgExistente = () => {
+    if (!somAtivo) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = 660; // E5 — médio, suave
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.20);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.22);
+    } catch (e) { console.warn("Erro ao tocar som de msg existente:", e); }
+  };
+
+  // Carrega preferência de som do localStorage no mount
+  // Chave por usuário pra cada atendente ter sua própria configuração
+  useEffect(() => {
+    if (typeof window === "undefined" || !user?.email) return;
+    try {
+      const key = `wolf_som_ativo_${user.email}`;
+      const saved = localStorage.getItem(key);
+      // Default = true (ligado). Só desativa se EXPLICITAMENTE salvou "false".
+      if (saved === "false") setSomAtivo(false);
+      else setSomAtivo(true);
+    } catch {}
+  }, [user?.email]);
+
+  // Toggle do som — também salva no localStorage
+  const toggleSom = () => {
+    setSomAtivo(prev => {
+      const novo = !prev;
+      try {
+        if (user?.email) {
+          localStorage.setItem(`wolf_som_ativo_${user.email}`, String(novo));
+        }
+      } catch {}
+      return novo;
+    });
+  };
+  // ═══════════════════════════════════════════════════════════════════════════
 
   // 🆕 Parsers de mídia nova (img/video/file) — formato: "[tipo:filename]" ou "[tipo:filename]\nlegenda"
   const parseMidia = (txt: string): { tipo: "img" | "video" | "file" | null; filename: string; legenda: string } => {
@@ -422,38 +495,44 @@ export function ChatSection() {
     const { data } = await supabase.from("atendimentos").select("*")
       .eq("workspace_id", wsId)
       .order("updated_at", { ascending: false, nullsFirst: false });
-    setAtendimentos(data || []);
-    // 🆕 Sempre que recarrega atendimentos, recalcula contadores de msgs não lidas
-    if (data && data.length > 0) calcularContadoresNaoLidas(data);
-  };
+    const lista = data || [];
 
-  // 🆕 CALCULA MSGS NÃO LIDAS — pra cada atendimento, conta msgs do cliente
-  // que chegaram DEPOIS do `visualizado_em`. Se nunca foi visualizado, conta tudo.
-  // Usa COUNT do Supabase (rápido, não puxa as mensagens em si).
-  const calcularContadoresNaoLidas = async (lista: Atendimento[]) => {
-    if (!wsId) return;
-    const novosContadores: Record<number, number> = {};
+    // 🔔 DETECÇÃO DE ATENDIMENTO NOVO — pra tocar som distinto
+    // Lógica: se um atendimento aparece agora mas o ID NÃO estava no Set de conhecidos,
+    // é um chat novo. Toca som "ding-DONG".
+    // Na PRIMEIRA carga (F5/login) ignora — só popula o Set sem tocar som.
+    if (primeiraCargaAtendimentosRef.current) {
+      lista.forEach(a => atendimentosConhecidosRef.current.add(a.id));
+      primeiraCargaAtendimentosRef.current = false;
+    } else {
+      const novos = lista.filter(a => !atendimentosConhecidosRef.current.has(a.id));
+      // Só toca som se tem novos E o user pode ver eles (respeita filtro de permissão)
+      // Pra atendentes comuns: só toca se chat foi atribuído pra eles ou tá na fila deles
+      if (novos.length > 0) {
+        // Filtra novos que esse atendente vai conseguir ver
+        const novosVisiveis = novos.filter(a => {
+          const aba = (() => {
+            if (a.status === "resolvido") return "finalizados";
+            if (a.atendente === "BOT") return "automatico";
+            const atendenteEhReal = !!a.atendente && !["BOT", "Humano"].includes(a.atendente);
+            if (atendenteEhReal) return "abertos";
+            if (a.status === "pendente") return "aguardando";
+            return "abertos";
+          })();
+          // Permissão: dono/supervisor vê tudo. Atendente comum só vê os seus + os pendentes/automaticos
+          if (isDono || permissoes.chat_todos) return true;
+          if (aba === "abertos" || aba === "finalizados") return a.atendente === user?.email;
+          return true; // pendentes/automaticos todos veem
+        });
+        if (novosVisiveis.length > 0) {
+          tocarSomChatNovo();
+        }
+        // Adiciona os novos no Set (todos, mesmo os não visíveis — pra não tocar de novo se ficar visível depois)
+        novos.forEach(a => atendimentosConhecidosRef.current.add(a.id));
+      }
+    }
 
-    // Roda em paralelo (Promise.all) — pra 50 atendimentos vai gastar ~1s no total
-    await Promise.all(lista.map(async (a) => {
-      try {
-        // Se atendimento NUNCA foi visualizado, baseline = created_at do atendimento
-        // (assim msgs antigas de antes do atendimento criar não contam)
-        const baseline = a.visualizado_em || a.created_at;
-
-        let query = supabase.from("mensagens").select("id", { count: "exact", head: true })
-          .eq("workspace_id", wsId)
-          .eq("numero", a.numero)
-          .eq("de", "cliente")  // Decisão 2: só conta msg do cliente
-          .gt("created_at", baseline);
-        if (a.canal_id) query = query.eq("canal_id", a.canal_id);
-
-        const { count } = await query;
-        if (count && count > 0) novosContadores[a.id] = count;
-      } catch (e) { /* ignora erro pra não quebrar tudo */ }
-    }));
-
-    setContadoresNaoLidas(novosContadores);
+    setAtendimentos(lista);
   };
 
   const fetchHistorico = async (numero: string, canalId?: number) => {
@@ -543,6 +622,112 @@ export function ChatSection() {
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
   }, [wsId, workspace?.owner_email, user?.email]);
 
+  // 🔔 ═══════════════════════════════════════════════════════════════════════════
+  // useEffect: COMPUTA NÃO LIDAS + TOCA SOM EM MSG NOVA
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Pra cada atendimento da lista, conta quantas mensagens do CLIENTE chegaram após
+  // o visualizado_em do atendimento. Se aumentou desde a última vez, toca som.
+  // Roda toda vez que `atendimentos` muda (pode ser por polling, realtime, etc).
+  useEffect(() => {
+    if (!wsId || atendimentos.length === 0) {
+      setNaoLidasPorAtendimento({});
+      return;
+    }
+
+    let cancelado = false;
+
+    (async () => {
+      // Busca TODAS as mensagens "cliente" recentes do workspace numa única query agrupada por
+      // numero+canal — bem mais leve que 1 query por atendimento.
+      // Pega só os últimos 7 dias pra não trazer histórico gigante.
+      const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: msgs } = await supabase
+        .from("mensagens")
+        .select("numero, canal_id, created_at")
+        .eq("workspace_id", wsId)
+        .eq("de", "cliente")
+        .gte("created_at", seteDiasAtras);
+
+      if (cancelado || !msgs) return;
+
+      // Mapeia: pra cada atendimento, quantas msgs do cliente vieram após visualizado_em
+      const novoMap: Record<number, number> = {};
+      for (const a of atendimentos) {
+        // Threshold: visualizado_em do atendimento. Se for null, conta TODAS as msgs do cliente.
+        // Mas pra não bombardear o atendente com 431 atendimentos antigos cheios de badge,
+        // usamos o created_at do próprio atendimento como fallback (visualizado_em || created_at).
+        // Lógica: "se nunca foi visualizado, considera que tudo desde a CRIAÇÃO é não lido".
+        // Em prática isso vai pintar os antigos com badge — atendente clica → marca visualizado → some.
+        const threshold = a.visualizado_em || a.created_at;
+        const thresholdMs = new Date(threshold).getTime();
+
+        const count = msgs.filter(m =>
+          m.numero === a.numero &&
+          (!a.canal_id || m.canal_id === a.canal_id) &&
+          new Date(m.created_at).getTime() > thresholdMs
+        ).length;
+
+        if (count > 0) novoMap[a.id] = count;
+      }
+
+      if (cancelado) return;
+
+      // 🔔 DETECÇÃO DE MENSAGEM NOVA EM CHAT EXISTENTE
+      // Se a contagem de não lidas AUMENTOU pra algum atendimento (em relação ao último cálculo),
+      // toca som de "ding" suave. Se DIMINUIU (atendente clicou no chat) ignora.
+      // Não toca se o atendimento ativo é o que recebeu (faz sentido — user já tá vendo).
+      const ultimas = ultimaQtdNaoLidasRef.current;
+      let teveAumento = false;
+      for (const id in novoMap) {
+        const idNum = parseInt(id);
+        const antes = ultimas[idNum] || 0;
+        const agora = novoMap[idNum];
+        if (agora > antes && idNum !== atendimentoAtivo?.id) {
+          teveAumento = true;
+        }
+      }
+      // Não toca som no primeiro cálculo (popular o ref vazio acionaria som pra tudo)
+      const primeiraVez = Object.keys(ultimas).length === 0;
+      if (teveAumento && !primeiraVez) {
+        // Pode coincidir com o som de "chat novo" — pra não tocar 2 sons sobrepostos,
+        // só toca o "ding" se NÃO houve atendimento novo nessa rodada.
+        // Tá ok deixar tocar porque o useEffect de fetchAtendimentos já tocou ding-DONG
+        // ANTES desse aqui rodar — então se foi chat novo, esse aqui só reforça com ding suave.
+        tocarSomMsgExistente();
+      }
+      ultimaQtdNaoLidasRef.current = novoMap;
+      setNaoLidasPorAtendimento(novoMap);
+    })();
+
+    return () => { cancelado = true; };
+  }, [atendimentos, wsId, atendimentoAtivo?.id]);
+
+  // 🔔 Atualiza title da aba do navegador com (N) Wolf System quando tem não lidas
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    // Soma TODAS as não lidas (incluindo as não visíveis ao user atual — title é global)
+    // Filtra: só conta as que o user pode ver (atendentes comuns só vêem os deles)
+    let total = 0;
+    for (const a of atendimentos) {
+      const count = naoLidasPorAtendimento[a.id];
+      if (!count) continue;
+      // Verifica se o user vê esse atendimento
+      const atendenteEhReal = !!a.atendente && !["BOT", "Humano"].includes(a.atendente);
+      const aba = a.status === "resolvido" ? "finalizados" :
+                  a.atendente === "BOT" ? "automatico" :
+                  atendenteEhReal ? "abertos" :
+                  a.status === "pendente" ? "aguardando" : "abertos";
+      const podeVer = (isDono || permissoes.chat_todos) ||
+                      (aba === "abertos" || aba === "finalizados" ? a.atendente === user?.email : true);
+      if (podeVer) total += count;
+    }
+    document.title = total > 0 ? `(${total > 99 ? "99+" : total}) Wolf System` : "Wolf System";
+    return () => {
+      // Restaura title quando componente desmonta (ex: navegou pra outra página)
+      if (typeof document !== "undefined") document.title = "Wolf System";
+    };
+  }, [naoLidasPorAtendimento, atendimentos, isDono, permissoes.chat_todos, user?.email]);
+
   useEffect(() => {
     if (!atendimentoAtivo) { setEtiquetasAtendimento([]); return; }
     setHistorico([]);
@@ -578,31 +763,6 @@ export function ChatSection() {
   // é criado uma vez e capturaria o valor inicial de stickyFundo no closure (stale state).
   const stickyFundoRef = useRef(stickyFundo);
   useEffect(() => { stickyFundoRef.current = stickyFundo; }, [stickyFundo]);
-
-  // 🆕 TÍTULO DA ABA — mostra (N) Wolf System quando tem msgs não lidas
-  // Exemplo: "(4) Wolf System" → atendente vê o número mesmo em outra aba do navegador
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    if (!tituloOriginalRef.current) tituloOriginalRef.current = document.title.replace(/^\(\d+\)\s*/, "");
-    const totalNaoLidas = Object.values(contadoresNaoLidas).reduce((s, n) => s + n, 0);
-    if (totalNaoLidas > 0) {
-      document.title = `(${totalNaoLidas}) ${tituloOriginalRef.current}`;
-    } else {
-      document.title = tituloOriginalRef.current;
-    }
-  }, [contadoresNaoLidas]);
-
-  // 🆕 SOM DE NOTIFICAÇÃO — quando a soma de não lidas SOBE, é porque chegou msg nova
-  // Compara o estado anterior com o atual usando uma ref pra detectar a transição.
-  const totalNaoLidasRef = useRef(0);
-  useEffect(() => {
-    const total = Object.values(contadoresNaoLidas).reduce((s, n) => s + n, 0);
-    if (total > totalNaoLidasRef.current) {
-      // Subiu → chegou msg nova → toca som
-      tocarSomNotificacao();
-    }
-    totalNaoLidasRef.current = total;
-  }, [contadoresNaoLidas]);
 
   // 🆕 Handler do scroll — detecta se o user está "colado" no fundo do chat
   // (tolerância de 120px pra não virar cacete quando dá um leve overshoot)
@@ -922,30 +1082,6 @@ export function ChatSection() {
     } catch (err: any) { alert("Erro: " + err.message); }
   };
 
-  // 🆕 Abre um atendimento na tela e marca como visualizado (zera contador da bolinha verde)
-  // Usado no onClick de cada card da lista lateral.
-  const abrirAtendimento = async (a: Atendimento) => {
-    setAtendimentoAtivo(a);
-    setHistorico([]);
-    fetchHistorico(a.numero, a.canal_id);
-
-    // Zera contador local imediatamente (UX rápida — sem esperar banco)
-    setContadoresNaoLidas(prev => {
-      const novo = { ...prev };
-      delete novo[a.id];
-      return novo;
-    });
-
-    // Atualiza o banco — visualizado_em = agora
-    try {
-      const agora = new Date().toISOString();
-      await supabase.from("atendimentos")
-        .update({ visualizado_em: agora })
-        .eq("id", a.id)
-        .eq("workspace_id", wsId);  // 🔒 MULTI-TENANT (defesa em profundidade)
-    } catch (e) { console.error("Erro ao marcar visualizado:", e); }
-  };
-
   const assumirChat = async (numero: string, canalId?: number) => {
     if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
     await wa("assumir", { numero, canalId, workspaceId: wsId, atendenteEmail: user.email });
@@ -1061,6 +1197,39 @@ export function ChatSection() {
 
   const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroEtiqueta("todas"); setFiltroCanal("todos"); };
 
+  // 🔔 Abre um atendimento + MARCA COMO VISUALIZADO no banco
+  // Usado quando atendente clica no card da lista. Atualiza visualizado_em = NOW() e
+  // limpa o badge de não lidas localmente (otimista, sem esperar realtime).
+  const abrirAtendimento = async (a: Atendimento) => {
+    setAtendimentoAtivo(a);
+    setHistorico([]);
+    fetchHistorico(a.numero, a.canal_id);
+
+    // Limpa badge local de imediato (sem esperar query)
+    setNaoLidasPorAtendimento(prev => {
+      const novo = { ...prev };
+      delete novo[a.id];
+      return novo;
+    });
+    // Atualiza ref pra evitar re-toque de som no próximo cálculo
+    if (ultimaQtdNaoLidasRef.current[a.id]) {
+      ultimaQtdNaoLidasRef.current = { ...ultimaQtdNaoLidasRef.current, [a.id]: 0 };
+    }
+
+    // Marca visualizado_em no banco — UPDATE simples por ID (zero risco)
+    // 🔒 MULTI-TENANT: confirma workspace_id pra defender em profundidade
+    try {
+      await supabase.from("atendimentos")
+        .update({ visualizado_em: new Date().toISOString() })
+        .eq("id", a.id)
+        .eq("workspace_id", wsId);
+      // Atualiza local também pra próxima leitura ficar consistente
+      setAtendimentos(prev => prev.map(x => x.id === a.id ? { ...x, visualizado_em: new Date().toISOString() } : x));
+    } catch (e) {
+      console.warn("Falha ao marcar visualizado_em (não bloqueia uso):", e);
+    }
+  };
+
   const tempoRelativo = (data: string) => { const d = Math.floor((Date.now() - new Date(data).getTime()) / 60000); return d < 1 ? "agora" : d < 60 ? `${d}min` : d < 1440 ? `${Math.floor(d/60)}h` : `${Math.floor(d/1440)}d`; };
   const horaMsg = (data: string) => new Date(data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const dataHoraMsg = (data: string) => new Date(data).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -1138,11 +1307,11 @@ export function ChatSection() {
 
   return (
     <div style={{ display: "flex", flex: 1, height: "100vh" }}>
-      {/* 🆕 Animação da bolinha azul piscando nos cards de conversa não lida */}
+      {/* 🔔 CSS de animação da bolinha azul piscando (notificação não lida) */}
       <style>{`
         @keyframes pulseBlue {
           0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
-          50% { opacity: 0.4; transform: translateY(-50%) scale(1.4); }
+          50% { opacity: 0.5; transform: translateY(-50%) scale(1.4); }
         }
       `}</style>
 
@@ -1151,13 +1320,13 @@ export function ChatSection() {
         <div style={{ padding: "12px 14px", background: "#202c33", borderBottom: "1px solid #222d34", display: "flex", gap: 8, alignItems: "center" }}>
           <input placeholder="🔍 Buscar conversa..." value={busca} onChange={e => setBusca(e.target.value)}
             style={{ flex: 1, background: "#111b21", border: "none", borderRadius: 20, padding: "8px 14px", color: "white", fontSize: 13 }} />
-          <button onClick={fetchAtendimentos} title="Atualizar lista"
-            style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 16, padding: 4 }}>🔄</button>
-          {/* 🆕 Toggle do som de notificação */}
-          <button onClick={() => setSomAtivo(!somAtivo)} title={somAtivo ? "Silenciar notificações" : "Ativar som de notificações"}
-            style={{ background: "none", border: "none", color: somAtivo ? "#00a884" : "#dc2626", cursor: "pointer", fontSize: 16, padding: 4 }}>
+          {/* 🔔 Toggle de som das notificações — preferência salva no localStorage por usuário */}
+          <button onClick={toggleSom} title={somAtivo ? "Som ligado (clique pra silenciar)" : "Som silenciado (clique pra ativar)"}
+            style={{ background: "none", border: "none", color: somAtivo ? "#00a884" : "#8696a0", cursor: "pointer", fontSize: 16, padding: 4 }}>
             {somAtivo ? "🔔" : "🔕"}
           </button>
+          <button onClick={fetchAtendimentos} title="Atualizar lista"
+            style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 16, padding: 4 }}>🔄</button>
           <button onClick={() => setShowFiltros(!showFiltros)} title="Filtros"
             style={{ background: "none", border: "none", color: temFiltroAtivo ? "#00a884" : "#aebac1", cursor: "pointer", fontSize: 16, padding: 4, position: "relative" }}>
             🔽{temFiltroAtivo && <span style={{ position: "absolute", top: 0, right: 0, width: 6, height: 6, background: "#00a884", borderRadius: "50%" }} />}
@@ -1229,15 +1398,26 @@ export function ChatSection() {
             </div>
           ) : atendimentosFiltrados.map(a => {
             const aba = classificarAba(a);
-            // 🆕 Quantas msgs novas tem nesse atendimento (do cliente, depois do visualizado_em)
-            const naoLidas = contadoresNaoLidas[a.id] || 0;
-            const temNaoLidas = naoLidas > 0;
+            // 🔔 Não lidas pra esse atendimento (0 = sem badge)
+            const naoLidas = naoLidasPorAtendimento[a.id] || 0;
+            const temNaoLidas = naoLidas > 0 && atendimentoAtivo?.id !== a.id;
             return (
               <div key={a.id} onClick={() => abrirAtendimento(a)}
                 style={{ padding: "12px 14px", borderBottom: "1px solid #1f2c33", cursor: "pointer", background: atendimentoAtivo?.id === a.id ? "#2a3942" : "transparent", position: "relative" }}>
-                {/* 🆕 Bolinha azul piscando do lado esquerdo do card quando tem msg não lida */}
-                {temNaoLidas && atendimentoAtivo?.id !== a.id && (
-                  <div style={{ position: "absolute", left: 4, top: "50%", transform: "translateY(-50%)", width: 6, height: 6, borderRadius: "50%", background: "#3b82f6", boxShadow: "0 0 6px #3b82f6", animation: "pulseBlue 1.5s infinite" }} />
+                {/* 🔔 Bolinha azul piscando — indica chat com mensagem não lida (canto esquerdo) */}
+                {temNaoLidas && (
+                  <span style={{
+                    position: "absolute",
+                    left: 4,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 6,
+                    height: 6,
+                    background: "#00a884",
+                    borderRadius: "50%",
+                    animation: "pulseBlue 1.5s ease-in-out infinite",
+                    zIndex: 1,
+                  }} />
                 )}
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 14 }}>
@@ -1245,19 +1425,20 @@ export function ChatSection() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2, gap: 8 }}>
-                      {/* 🆕 Nome em NEGRITO mais forte + cor mais branca quando tem não lidas */}
-                      <span style={{ color: temNaoLidas ? "#ffffff" : "#e9edef", fontSize: 14, fontWeight: temNaoLidas ? 800 : "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{a.nome}</span>
-                      <span style={{ color: temNaoLidas ? "#00a884" : "#8696a0", fontSize: 11, flexShrink: 0, fontWeight: temNaoLidas ? "bold" : "normal" }}>{tempoRelativo(a.updated_at || a.created_at)}</span>
+                      {/* Nome em negrito sempre, mas se tem não lidas fica branco mais forte */}
+                      <span style={{ color: temNaoLidas ? "#ffffff" : "#e9edef", fontSize: 14, fontWeight: temNaoLidas ? 700 : "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{a.nome}</span>
+                      {/* Hora em VERDE quando tem não lidas (igual WhatsApp) */}
+                      <span style={{ color: temNaoLidas ? "#00a884" : "#8696a0", fontSize: 11, fontWeight: temNaoLidas ? "bold" : "normal", flexShrink: 0 }}>{tempoRelativo(a.updated_at || a.created_at)}</span>
                     </div>
                     <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       📱 {numeroSanitizado(a.numero)} {canais.length > 1 && a.canal_id && <span style={{ color: "#00a884" }}>• {iconeCanal(a.canal_id)} {nomeDoCanal(a.canal_id)}</span>}
                     </p>
-                    {/* 🆕 Última mensagem em negrito + cor branca quando tem não lidas */}
-                    <p style={{ color: temNaoLidas ? "#e9edef" : "#8696a0", fontSize: 12, margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: temNaoLidas ? "bold" : "normal" }}>
+                    {/* Última mensagem em branco/negrito quando tem não lidas */}
+                    <p style={{ color: temNaoLidas ? "#e9edef" : "#8696a0", fontSize: 12, fontWeight: temNaoLidas ? "bold" : "normal", margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {isAudioMsg(a.mensagem) ? "🎤 Mensagem de áudio" : a.mensagem}
                     </p>
                     <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
                         {a.fila && <span style={{ background: "#00a88422", color: "#00a884", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>{a.fila}</span>}
                         {aba === "automatico" && <span style={{ background: "#8b5cf622", color: "#8b5cf6", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>🤖 BOT</span>}
                         {aba === "aguardando" && <span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>⏳ Aguardando</span>}
@@ -1267,29 +1448,26 @@ export function ChatSection() {
                             <span style={{ background: "#16a34a22", color: "#16a34a", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>👨‍💼 {nomeDoAtendente(a.atendente)}</span>
                           </>
                         )}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        {/* 🆕 Badge verde com número de msgs não lidas (estilo WhatsApp) */}
-                        {temNaoLidas && atendimentoAtivo?.id !== a.id && (
+                        {/* 🔔 BOLINHA VERDE COM NÚMERO DE NÃO LIDAS — igual WhatsApp */}
+                        {temNaoLidas && (
                           <span style={{
                             background: "#00a884",
                             color: "white",
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: "bold",
-                            minWidth: 20,
-                            height: 20,
-                            borderRadius: 10,
                             padding: "0 6px",
+                            minWidth: 18,
+                            height: 18,
+                            borderRadius: 9,
                             display: "inline-flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
                           }}>
                             {naoLidas > 99 ? "99+" : naoLidas}
                           </span>
                         )}
-                        {renderBotaoAcaoLista(a)}
                       </div>
+                      {renderBotaoAcaoLista(a)}
                     </div>
                   </div>
                 </div>
