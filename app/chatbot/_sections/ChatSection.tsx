@@ -649,18 +649,19 @@ export function ChatSection() {
   }, [wsId, workspace?.owner_email, user?.email]);
 
   // 🔔 ═══════════════════════════════════════════════════════════════════════════
-  // useEffect: COMPUTA NÃO LIDAS + TOCA SOM EM MSG NOVA  (VERSÃO SIMPLIFICADA)
+  // useEffect: COMPUTA NÃO LIDAS + TOCA SOM EM MSG NOVA  (VERSÃO 3 — PAGINAÇÃO)
   // ═══════════════════════════════════════════════════════════════════════════
-  // Lógica simples: pra cada atendimento, faz uma query pequena no Supabase contando
-  // quantas mensagens do cliente chegaram após o visualizado_em. Sem limite de 1000.
+  // Histórico das tentativas:
+  // V1: 1 query gigante → falhava porque Supabase corta em 1000 linhas
+  // V2: 1 query por atendimento → estourava rate limit do Supabase (503 Service Unavailable)
+  // V3 (atual): query paginada — pega 1000 em 1000 até trazer tudo, em poucas queries
   //
-  // Por que mudei: a versão anterior fazia 1 query gigante pegando TODAS as msgs de TODOS
-  // os atendimentos — e o Supabase corta em 1000 linhas por padrão. Resultado: atendimentos
-  // que ficavam fora dessas 1000 não tinham contagem (badge não aparecia).
+  // Como funciona:
+  // - Pega só as msgs dos últimos 7 dias do workspace, do tipo "cliente"
+  // - Pagina de 1000 em 1000 (range do Supabase)
+  // - Junta no frontend, comparra com visualizado_em de cada atendimento
   //
-  // Agora: faz N queries pequenas (1 por atendimento visível). Cada uma usa COUNT no banco
-  // e retorna só o número, sem trazer dados das mensagens. É leve e funciona pra qualquer
-  // tamanho de dataset.
+  // Resultado: ~3-5 queries totais ao invés de 555. Não estoura rate limit.
   useEffect(() => {
     if (!wsId || atendimentos.length === 0) {
       setNaoLidasPorAtendimento({});
@@ -670,62 +671,87 @@ export function ChatSection() {
     let cancelado = false;
 
     (async () => {
-      const novoMap: Record<number, number> = {};
+      try {
+        // Pega só msgs dos últimos 7 dias (suficiente — chats mais antigos raramente recebem msg)
+        const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      // Limita a contar só atendimentos NÃO finalizados (não faz sentido badge em chat resolvido)
-      const ativos = atendimentos.filter(a => a.status !== "resolvido");
+        // Paginação: pega de 1000 em 1000 até cobrir tudo
+        const PAGE_SIZE = 1000;
+        const todasMsgs: Array<{ numero: string; canal_id: number | null; created_at: string }> = [];
+        let offset = 0;
+        let temMais = true;
 
-      // Faz queries em paralelo (Promise.all) — bem mais rápido que sequencial
-      // Limita a 100 atendimentos por vez pra não estourar conexões do Supabase
-      const BATCH_SIZE = 100;
-      for (let i = 0; i < ativos.length; i += BATCH_SIZE) {
-        if (cancelado) return;
-        const lote = ativos.slice(i, i + BATCH_SIZE);
-        const resultados = await Promise.all(lote.map(async (a) => {
-          // Threshold: visualizado_em do atendimento. Se NULL, conta tudo desde criação do atendimento.
-          const threshold = a.visualizado_em || a.created_at;
-
-          // Query COUNT — não traz dados, só o número. Bem leve.
-          let q = supabase
+        while (temMais && !cancelado) {
+          const { data, error } = await supabase
             .from("mensagens")
-            .select("id", { count: "exact", head: true })
+            .select("numero, canal_id, created_at")
             .eq("workspace_id", wsId)
-            .eq("numero", a.numero)
             .eq("de", "cliente")
-            .gt("created_at", threshold);
+            .gte("created_at", seteDiasAtras)
+            .order("created_at", { ascending: false })
+            .range(offset, offset + PAGE_SIZE - 1);
 
-          if (a.canal_id) q = q.eq("canal_id", a.canal_id);
-
-          const { count } = await q;
-          return { id: a.id, count: count || 0 };
-        }));
-
-        for (const r of resultados) {
-          if (r.count > 0) novoMap[r.id] = r.count;
+          if (error) {
+            console.warn("Erro ao buscar mensagens pra contar não lidas:", error);
+            break;
+          }
+          if (!data || data.length === 0) {
+            temMais = false;
+            break;
+          }
+          todasMsgs.push(...data);
+          if (data.length < PAGE_SIZE) {
+            temMais = false; // veio menos de 1000 = chegamos no fim
+          } else {
+            offset += PAGE_SIZE;
+          }
+          // Limite de segurança: nunca passar de 10 páginas (10 mil mensagens em 7 dias é absurdo)
+          if (offset >= 10000) {
+            temMais = false;
+          }
         }
-      }
 
-      if (cancelado) return;
+        if (cancelado) return;
 
-      // 🔔 DETECÇÃO DE MENSAGEM NOVA — toca som "ding" suave se aumentou desde último cálculo
-      // Não toca se o atendimento ativo é o que recebeu (user já tá olhando).
-      const ultimas = ultimaQtdNaoLidasRef.current;
-      let teveAumento = false;
-      for (const id in novoMap) {
-        const idNum = parseInt(id);
-        const antes = ultimas[idNum] || 0;
-        const agora = novoMap[idNum];
-        if (agora > antes && idNum !== atendimentoAtivo?.id) {
-          teveAumento = true;
+        // Agora calcula não lidas pra cada atendimento usando os dados em memória
+        const novoMap: Record<number, number> = {};
+        const ativos = atendimentos.filter(a => a.status !== "resolvido");
+
+        for (const a of ativos) {
+          const threshold = a.visualizado_em || a.created_at;
+          const thresholdMs = new Date(threshold).getTime();
+
+          const count = todasMsgs.filter(m =>
+            m.numero === a.numero &&
+            (!a.canal_id || m.canal_id === a.canal_id) &&
+            new Date(m.created_at).getTime() > thresholdMs
+          ).length;
+
+          if (count > 0) novoMap[a.id] = count;
         }
+
+        if (cancelado) return;
+
+        // 🔔 DETECÇÃO DE MENSAGEM NOVA — toca som "ding" se aumentou desde último cálculo
+        const ultimas = ultimaQtdNaoLidasRef.current;
+        let teveAumento = false;
+        for (const id in novoMap) {
+          const idNum = parseInt(id);
+          const antes = ultimas[idNum] || 0;
+          const agora = novoMap[idNum];
+          if (agora > antes && idNum !== atendimentoAtivo?.id) {
+            teveAumento = true;
+          }
+        }
+        const primeiraVez = Object.keys(ultimas).length === 0;
+        if (teveAumento && !primeiraVez) {
+          tocarSomMsgExistente();
+        }
+        ultimaQtdNaoLidasRef.current = novoMap;
+        setNaoLidasPorAtendimento(novoMap);
+      } catch (err) {
+        console.warn("Erro no cálculo de não lidas:", err);
       }
-      // Não toca som no primeiro cálculo (ref vazio acionaria som pra todos os antigos)
-      const primeiraVez = Object.keys(ultimas).length === 0;
-      if (teveAumento && !primeiraVez) {
-        tocarSomMsgExistente();
-      }
-      ultimaQtdNaoLidasRef.current = novoMap;
-      setNaoLidasPorAtendimento(novoMap);
     })();
 
     return () => { cancelado = true; };
