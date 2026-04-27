@@ -33,8 +33,8 @@ export default function NovaSenha() {
           </div>
         )}
         <div className="w-full flex flex-col gap-4">
-          <input type="password" placeholder="Nova senha" value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          <input type="password" placeholder="Confirmar nova senha" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <input type="password" placeholder="Nova senha" value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <input type="password" placeholder="Confirmar nova senha" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
           <button onClick={handleSalvar} disabled={loading} style={{ background: loading ? "#86efac" : "black" }} className="w-full text-white rounded-lg py-3 text-sm font-semibold">
             {loading ? "Salvando..." : "SALVAR NOVA SENHA"}
           </button>
