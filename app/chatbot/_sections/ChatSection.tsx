@@ -343,8 +343,34 @@ export function ChatSection() {
         audioCtxRef.current = new Ctx();
       } catch { return null; }
     }
+    // 🔓 AUTOPLAY POLICY: navegadores criam o AudioContext em estado "suspended" se o user
+    // ainda não interagiu com a página. Aqui forçamos o resume() — funciona depois do
+    // primeiro clique em qualquer botão da página. Sem isso, o som NUNCA toca.
+    if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
+      audioCtxRef.current.resume().catch(() => {});
+    }
     return audioCtxRef.current;
   };
+
+  // 🔓 Listener global: na primeira interação do user com a página (clique/tecla/touch),
+  // força resume do AudioContext. Garante que o som funcione mesmo se o user nunca clicou
+  // num botão que chame getAudioCtx antes da primeira mensagem chegar.
+  useEffect(() => {
+    const desbloquear = () => {
+      const ctx = getAudioCtx();
+      if (ctx && ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+    };
+    window.addEventListener("click", desbloquear, { once: true });
+    window.addEventListener("keydown", desbloquear, { once: true });
+    window.addEventListener("touchstart", desbloquear, { once: true });
+    return () => {
+      window.removeEventListener("click", desbloquear);
+      window.removeEventListener("keydown", desbloquear);
+      window.removeEventListener("touchstart", desbloquear);
+    };
+  }, []);
 
   // Toca som tipo "ding-DONG" — 2 tons em sequência. Usado pra ATENDIMENTO NOVO (chat inédito).
   // Mais alto e perceptível pra atendente nunca perder.
@@ -623,11 +649,18 @@ export function ChatSection() {
   }, [wsId, workspace?.owner_email, user?.email]);
 
   // 🔔 ═══════════════════════════════════════════════════════════════════════════
-  // useEffect: COMPUTA NÃO LIDAS + TOCA SOM EM MSG NOVA
+  // useEffect: COMPUTA NÃO LIDAS + TOCA SOM EM MSG NOVA  (VERSÃO SIMPLIFICADA)
   // ═══════════════════════════════════════════════════════════════════════════
-  // Pra cada atendimento da lista, conta quantas mensagens do CLIENTE chegaram após
-  // o visualizado_em do atendimento. Se aumentou desde a última vez, toca som.
-  // Roda toda vez que `atendimentos` muda (pode ser por polling, realtime, etc).
+  // Lógica simples: pra cada atendimento, faz uma query pequena no Supabase contando
+  // quantas mensagens do cliente chegaram após o visualizado_em. Sem limite de 1000.
+  //
+  // Por que mudei: a versão anterior fazia 1 query gigante pegando TODAS as msgs de TODOS
+  // os atendimentos — e o Supabase corta em 1000 linhas por padrão. Resultado: atendimentos
+  // que ficavam fora dessas 1000 não tinham contagem (badge não aparecia).
+  //
+  // Agora: faz N queries pequenas (1 por atendimento visível). Cada uma usa COUNT no banco
+  // e retorna só o número, sem trazer dados das mensagens. É leve e funciona pra qualquer
+  // tamanho de dataset.
   useEffect(() => {
     if (!wsId || atendimentos.length === 0) {
       setNaoLidasPorAtendimento({});
@@ -637,45 +670,45 @@ export function ChatSection() {
     let cancelado = false;
 
     (async () => {
-      // Busca TODAS as mensagens "cliente" recentes do workspace numa única query agrupada por
-      // numero+canal — bem mais leve que 1 query por atendimento.
-      // Pega só os últimos 7 dias pra não trazer histórico gigante.
-      const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: msgs } = await supabase
-        .from("mensagens")
-        .select("numero, canal_id, created_at")
-        .eq("workspace_id", wsId)
-        .eq("de", "cliente")
-        .gte("created_at", seteDiasAtras);
-
-      if (cancelado || !msgs) return;
-
-      // Mapeia: pra cada atendimento, quantas msgs do cliente vieram após visualizado_em
       const novoMap: Record<number, number> = {};
-      for (const a of atendimentos) {
-        // Threshold: visualizado_em do atendimento. Se for null, conta TODAS as msgs do cliente.
-        // Mas pra não bombardear o atendente com 431 atendimentos antigos cheios de badge,
-        // usamos o created_at do próprio atendimento como fallback (visualizado_em || created_at).
-        // Lógica: "se nunca foi visualizado, considera que tudo desde a CRIAÇÃO é não lido".
-        // Em prática isso vai pintar os antigos com badge — atendente clica → marca visualizado → some.
-        const threshold = a.visualizado_em || a.created_at;
-        const thresholdMs = new Date(threshold).getTime();
 
-        const count = msgs.filter(m =>
-          m.numero === a.numero &&
-          (!a.canal_id || m.canal_id === a.canal_id) &&
-          new Date(m.created_at).getTime() > thresholdMs
-        ).length;
+      // Limita a contar só atendimentos NÃO finalizados (não faz sentido badge em chat resolvido)
+      const ativos = atendimentos.filter(a => a.status !== "resolvido");
 
-        if (count > 0) novoMap[a.id] = count;
+      // Faz queries em paralelo (Promise.all) — bem mais rápido que sequencial
+      // Limita a 100 atendimentos por vez pra não estourar conexões do Supabase
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < ativos.length; i += BATCH_SIZE) {
+        if (cancelado) return;
+        const lote = ativos.slice(i, i + BATCH_SIZE);
+        const resultados = await Promise.all(lote.map(async (a) => {
+          // Threshold: visualizado_em do atendimento. Se NULL, conta tudo desde criação do atendimento.
+          const threshold = a.visualizado_em || a.created_at;
+
+          // Query COUNT — não traz dados, só o número. Bem leve.
+          let q = supabase
+            .from("mensagens")
+            .select("id", { count: "exact", head: true })
+            .eq("workspace_id", wsId)
+            .eq("numero", a.numero)
+            .eq("de", "cliente")
+            .gt("created_at", threshold);
+
+          if (a.canal_id) q = q.eq("canal_id", a.canal_id);
+
+          const { count } = await q;
+          return { id: a.id, count: count || 0 };
+        }));
+
+        for (const r of resultados) {
+          if (r.count > 0) novoMap[r.id] = r.count;
+        }
       }
 
       if (cancelado) return;
 
-      // 🔔 DETECÇÃO DE MENSAGEM NOVA EM CHAT EXISTENTE
-      // Se a contagem de não lidas AUMENTOU pra algum atendimento (em relação ao último cálculo),
-      // toca som de "ding" suave. Se DIMINUIU (atendente clicou no chat) ignora.
-      // Não toca se o atendimento ativo é o que recebeu (faz sentido — user já tá vendo).
+      // 🔔 DETECÇÃO DE MENSAGEM NOVA — toca som "ding" suave se aumentou desde último cálculo
+      // Não toca se o atendimento ativo é o que recebeu (user já tá olhando).
       const ultimas = ultimaQtdNaoLidasRef.current;
       let teveAumento = false;
       for (const id in novoMap) {
@@ -686,13 +719,9 @@ export function ChatSection() {
           teveAumento = true;
         }
       }
-      // Não toca som no primeiro cálculo (popular o ref vazio acionaria som pra tudo)
+      // Não toca som no primeiro cálculo (ref vazio acionaria som pra todos os antigos)
       const primeiraVez = Object.keys(ultimas).length === 0;
       if (teveAumento && !primeiraVez) {
-        // Pode coincidir com o som de "chat novo" — pra não tocar 2 sons sobrepostos,
-        // só toca o "ding" se NÃO houve atendimento novo nessa rodada.
-        // Tá ok deixar tocar porque o useEffect de fetchAtendimentos já tocou ding-DONG
-        // ANTES desse aqui rodar — então se foi chat novo, esse aqui só reforça com ding suave.
         tocarSomMsgExistente();
       }
       ultimaQtdNaoLidasRef.current = novoMap;
