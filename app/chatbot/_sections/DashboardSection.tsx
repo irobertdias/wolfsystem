@@ -392,7 +392,7 @@ export function DashboardSection() {
   })();
 
   return (
-    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, height: "100vh", overflowY: "auto", boxSizing: "border-box" }}>
       {/* 🆕 CSS de animação spin pro botão atualizar */}
       <style>{`
         @keyframes spin-icon {
