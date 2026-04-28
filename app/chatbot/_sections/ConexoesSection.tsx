@@ -409,6 +409,46 @@ export function ConexoesSection() {
     await fetchConexoes(); setResetando(false); setQrPolling(true);
   };
 
+  // 🆕 RECONECTAR — preserva sessão LocalAuth, NÃO pede QR de novo.
+  // Usa quando: canal travou ("detached frame"), reconectar após queda, etc.
+  // Diferença vs Resetar:
+  //   - Reconectar: destrói cliente + recria, login do WhatsApp PERSISTE no disco → sem QR
+  //   - Resetar: destrói cliente + APAGA pasta de sessão → precisa escanear QR de novo
+  const reconectarCanal = async (c: Conexao) => {
+    if (!confirm(
+      `🔄 Reconectar ${c.nome}?\n\n` +
+      `Vai destruir a conexão atual e recriar SEM perder o login do WhatsApp.\n` +
+      `Use isso quando o canal travou ou está com erro.\n\n` +
+      `(Se quiser trocar o número/conta, use "Resetar" no menu da engrenagem.)`
+    )) return;
+    setShowMenuEngrenagem(null);
+    try {
+      // 🔒 MULTI-TENANT: backend exige workspaceId
+      const data = await wa("reconectar", { canalId: c.id, workspaceId: c.workspace_id });
+      if (!data.success) {
+        alert(`❌ Falha ao reconectar: ${data.error || "erro desconhecido"}`);
+        return;
+      }
+      // Atualiza status local pra mostrar que tá reconectando
+      await supabase.from("conexoes").update({ status: "desconectado" })
+        .eq("id", c.id).eq("workspace_id", c.workspace_id);
+      await fetchConexoes();
+
+      if (data.sessao_salva === false) {
+        // Sem sessão salva — vai precisar escanear QR mesmo. Abre modal automaticamente.
+        alert(`⚠️ ${c.nome} não tem sessão salva no servidor.\n\nVou abrir o QR Code pra você escanear.`);
+        // Reusa o fluxo do QR
+        setQrCanalId(c.id); setResetando(false); setShowModalQR(true);
+        setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0);
+        setQrPolling(true);
+      } else {
+        alert(`✅ ${c.nome} reconectando...\n\nO login do WhatsApp será restaurado automaticamente em alguns segundos.\nNão precisa escanear QR.`);
+      }
+    } catch (e: any) {
+      alert("Erro ao reconectar: " + (e?.message || e));
+    }
+  };
+
   const desconectarCanal = async (c: Conexao) => {
     if (!confirm(`Desconectar ${c.nome}? Isso vai desconectar o WhatsApp.`)) return;
     try {
@@ -720,8 +760,11 @@ export function ConexoesSection() {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {c.tipo === "webjs" && (c.status === "desconectado"
-                  ? <button onClick={() => abrirQR(c.id)} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📷 Escanear QR</button>
-                  : <><button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>✅ Conectado</button><button onClick={() => desconectarCanal(c)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "9px 14px", fontSize: 12, cursor: "pointer" }}>Desconectar</button></>
+                  ? <>
+                      <button onClick={() => reconectarCanal(c)} title="Tenta reconectar SEM apagar o login. Use isso primeiro." style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🔄 Reconectar</button>
+                      <button onClick={() => abrirQR(c.id)} title="Apaga sessão salva e gera QR novo. Use só pra trocar de número." style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", fontSize: 12, cursor: "pointer" }}>📷 QR</button>
+                    </>
+                  : <><button onClick={() => reconectarCanal(c)} title="Reconectar caso esteja com erro tipo detached frame" style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold", cursor: "pointer" }}>✅ Conectado · 🔄</button><button onClick={() => desconectarCanal(c)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "9px 14px", fontSize: 12, cursor: "pointer" }}>Desconectar</button></>
                 )}
                 {c.tipo === "waba" && (c.status === "conectado"
                   ? <button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>🔗 API Conectada</button>
@@ -735,7 +778,8 @@ export function ConexoesSection() {
                   {showMenuEngrenagem === c.id && (
                     <div style={{ position: "absolute", bottom: 44, right: 0, background: "#1f2937", border: "1px solid #374151", borderRadius: 10, overflow: "hidden", zIndex: 100, minWidth: 240 }}>
                       <button onClick={() => abrirEditar(c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>✏️ Editar Canal</button>
-                      {c.tipo === "webjs" && <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>📷 Novo QR Code</button>}
+                      {c.tipo === "webjs" && <button onClick={() => reconectarCanal(c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: "bold" }}>🔄 Reconectar (preserva login)</button>}
+                      {c.tipo === "webjs" && <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>📷 Resetar e Escanear QR</button>}
                       {c.tipo === "waba" && <button onClick={() => registrarNumeroWaba(c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: "bold" }}>🟢 Ativar Número na Meta</button>}
                       <button onClick={() => encerrarAtendimentosEmMassa("aguardando", c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#f59e0b", fontSize: 13, cursor: "pointer", textAlign: "left" }}>⏳ Encerrar Aguardando</button>
                       <button onClick={() => encerrarAtendimentosEmMassa("abertos", c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#3b82f6", fontSize: 13, cursor: "pointer", textAlign: "left" }}>💬 Encerrar Abertos</button>
