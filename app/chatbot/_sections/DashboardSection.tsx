@@ -15,7 +15,7 @@ type Canal = { id: number; nome: string; tipo: string };
 type Fila = { id: number; nome: string };
 type UsuarioWs = { email: string; nome: string };
 
-type Periodo = "hoje" | "semana" | "mes" | "ano" | "todos";
+type Periodo = "hoje" | "semana" | "mes" | "ano" | "todos" | "personalizado";
 
 export function DashboardSection() {
   const { workspace, wsId } = useWorkspace();
@@ -32,50 +32,78 @@ export function DashboardSection() {
   const [filaFiltro, setFilaFiltro] = useState<string>("todas"); // "todas" ou nome da fila
   const [atendenteFiltro, setAtendenteFiltro] = useState<string>("todos"); // "todos" ou email
 
+  // 🆕 Data personalizada — quando periodo === "personalizado", esses dois states ditam o range.
+  // Padrão: últimos 30 dias quando o user clica "Personalizado" pela primeira vez.
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const trintaDiasAtrasStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const [dataCustomInicio, setDataCustomInicio] = useState<string>(trintaDiasAtrasStr);
+  const [dataCustomFim, setDataCustomFim] = useState<string>(hojeStr);
+
+  // 🆕 Botão atualizar com feedback visual (estado de loading + spin do emoji 🔄)
+  const [atualizando, setAtualizando] = useState(false);
+
   // Busca dados (atendimentos + canais + filas)
+  // 🆕 fetchTudo extraído pra fora do useEffect — agora pode ser chamado pelo botão Atualizar.
+  // O parâmetro `silencioso` evita mostrar "🔄 Carregando..." no header quando é refresh manual
+  // (assim o spin do botão é o único feedback, fica mais limpo).
+  const fetchTudo = async (silencioso = false) => {
+    if (!wsId) return;
+    if (!silencioso) setCarregando(true);
+    try {
+      const [resAt, resCx, resFi, resUs] = await Promise.all([
+        supabase
+          .from("atendimentos")
+          .select("id, status, created_at, fila, canal_id, atendente")
+          .eq("workspace_id", wsId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("conexoes")
+          .select("id, nome, tipo")
+          .eq("workspace_id", wsId),
+        supabase
+          .from("filas")
+          .select("id, nome")
+          .eq("workspace_id", wsId)
+          .order("nome", { ascending: true }),
+        supabase
+          .from("usuarios_workspace")
+          .select("email, nome")
+          .eq("workspace_id", wsId),
+      ]);
+      setAtendimentos((resAt.data as Atendimento[]) || []);
+      setCanais((resCx.data as Canal[]) || []);
+      setFilas((resFi.data as Fila[]) || []);
+      const subs: UsuarioWs[] = (resUs.data as UsuarioWs[]) || [];
+      if (workspace?.owner_email) {
+        subs.push({ email: workspace.owner_email, nome: workspace.nome || "Dono" });
+      }
+      setUsuariosWs(subs);
+    } finally {
+      if (!silencioso) setCarregando(false);
+    }
+  };
+
+  // 🆕 Botão atualizar manual com feedback (mín. 600ms de spin pra UX)
+  const atualizarManual = async () => {
+    if (atualizando) return;
+    setAtualizando(true);
+    const t0 = Date.now();
+    try {
+      await fetchTudo(true);
+    } catch (e) {
+      console.error("Erro ao atualizar dashboard:", e);
+    }
+    const passou = Date.now() - t0;
+    if (passou < 600) await new Promise(r => setTimeout(r, 600 - passou));
+    setAtualizando(false);
+  };
+
   useEffect(() => {
     if (!wsId) return;
     let cancel = false;
 
-    const fetchTudo = async () => {
-      setCarregando(true);
-      try {
-        const [resAt, resCx, resFi, resUs] = await Promise.all([
-          supabase
-            .from("atendimentos")
-            .select("id, status, created_at, fila, canal_id, atendente")
-            .eq("workspace_id", wsId)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("conexoes")
-            .select("id, nome, tipo")
-            .eq("workspace_id", wsId),
-          supabase
-            .from("filas")
-            .select("id, nome")
-            .eq("workspace_id", wsId)
-            .order("nome", { ascending: true }),
-          supabase
-            .from("usuarios_workspace")
-            .select("email, nome")
-            .eq("workspace_id", wsId),
-        ]);
-        if (cancel) return;
-        setAtendimentos((resAt.data as Atendimento[]) || []);
-        setCanais((resCx.data as Canal[]) || []);
-        setFilas((resFi.data as Fila[]) || []);
-        // 🆕 Lista de usuários do workspace — inclui o dono também
-        const subs: UsuarioWs[] = (resUs.data as UsuarioWs[]) || [];
-        if (workspace?.owner_email) {
-          subs.push({ email: workspace.owner_email, nome: workspace.nome || "Dono" });
-        }
-        setUsuariosWs(subs);
-      } finally {
-        if (!cancel) setCarregando(false);
-      }
-    };
-
     fetchTudo();
+
 
     // Realtime — atualiza sozinho quando entram novos leads
     const ch = supabase
@@ -131,19 +159,34 @@ export function DashboardSection() {
       d.setDate(d.getDate() - 365);
       return d;
     }
+    // 🆕 Período personalizado — usa as datas escolhidas pelo user
+    if (periodo === "personalizado") {
+      const d = new Date(dataCustomInicio + "T00:00:00");
+      return isNaN(d.getTime()) ? null : d;
+    }
     return null; // "todos" = sem limite
-  }, [periodo]);
+  }, [periodo, dataCustomInicio]);
+
+  // 🆕 Data fim — só relevante pra período personalizado (os outros filtram só por início).
+  // Inclui o dia inteiro: T23:59:59.999
+  const dataFim = useMemo(() => {
+    if (periodo !== "personalizado") return null;
+    const d = new Date(dataCustomFim + "T23:59:59.999");
+    return isNaN(d.getTime()) ? null : d;
+  }, [periodo, dataCustomFim]);
 
   // 🆕 Aplica todos os filtros
   const atendimentosFiltrados = useMemo(() => {
     return atendimentos.filter(a => {
-      if (dataInicio && new Date(a.created_at) < dataInicio) return false;
+      const dt = new Date(a.created_at);
+      if (dataInicio && dt < dataInicio) return false;
+      if (dataFim && dt > dataFim) return false; // 🆕 só relevante pra período personalizado
       if (canalFiltro !== "todos" && String(a.canal_id || "") !== canalFiltro) return false;
       if (filaFiltro !== "todas" && (a.fila || "") !== filaFiltro) return false;
       if (atendenteFiltro !== "todos" && (a.atendente || "") !== atendenteFiltro) return false;
       return true;
     });
-  }, [atendimentos, dataInicio, canalFiltro, filaFiltro, atendenteFiltro]);
+  }, [atendimentos, dataInicio, dataFim, canalFiltro, filaFiltro, atendenteFiltro]);
 
   // Cards principais — usa o mesmo critério de status que já existia
   const cards = [
@@ -205,6 +248,65 @@ export function DashboardSection() {
       .map(([nome, count]) => ({ nome, count }))
       .sort((a, b) => b.count - a.count);
   }, [atendimentosFiltrados]);
+
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // GRÁFICO DE DESEMPENHO — agrupa atendimentos por dia (ou hora se período curto)
+  // ═══════════════════════════════════════════════════════════════════════
+  // Decisão de granularidade:
+  //   - hoje              → agrupa por hora (24 buckets)
+  //   - semana / mes      → agrupa por dia (7 ou ~30 buckets)
+  //   - ano / todos       → agrupa por mês
+  //   - personalizado     → decide pelo range em dias
+  //
+  // Cada bucket tem: { rotulo, abertos, em_atendimento, resolvidos, total }
+  // O SVG renderiza barras stacked (azul/laranja/verde) representando esses status.
+  const serieGrafico = useMemo(() => {
+    if (atendimentosFiltrados.length === 0) return { buckets: [], granularidade: "dia" as "hora" | "dia" | "mes" };
+
+    // Decide granularidade pelo range
+    let granularidade: "hora" | "dia" | "mes" = "dia";
+    if (periodo === "hoje") granularidade = "hora";
+    else if (periodo === "ano" || periodo === "todos") granularidade = "mes";
+    else if (periodo === "personalizado") {
+      const inicio = dataInicio?.getTime() || 0;
+      const fim = dataFim?.getTime() || Date.now();
+      const dias = (fim - inicio) / (1000 * 60 * 60 * 24);
+      if (dias <= 2) granularidade = "hora";
+      else if (dias > 90) granularidade = "mes";
+      else granularidade = "dia";
+    }
+
+    // Agrupa
+    const map: Record<string, { abertos: number; em_atendimento: number; resolvidos: number; total: number; ts: number }> = {};
+    atendimentosFiltrados.forEach(a => {
+      const dt = new Date(a.created_at);
+      let chave: string;
+      let ts: number;
+      if (granularidade === "hora") {
+        chave = `${String(dt.getHours()).padStart(2, "0")}h`;
+        ts = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), dt.getHours()).getTime();
+      } else if (granularidade === "dia") {
+        chave = `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}`;
+        ts = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
+      } else {
+        const mesNome = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][dt.getMonth()];
+        chave = `${mesNome}/${String(dt.getFullYear()).slice(2)}`;
+        ts = new Date(dt.getFullYear(), dt.getMonth(), 1).getTime();
+      }
+      if (!map[chave]) map[chave] = { abertos: 0, em_atendimento: 0, resolvidos: 0, total: 0, ts };
+      map[chave].total++;
+      if (a.status === "resolvido") map[chave].resolvidos++;
+      else if (a.status === "em_atendimento") map[chave].em_atendimento++;
+      else map[chave].abertos++;
+    });
+
+    // Ordena cronologicamente
+    const buckets = Object.entries(map)
+      .map(([rotulo, v]) => ({ rotulo, ...v }))
+      .sort((a, b) => a.ts - b.ts);
+
+    return { buckets, granularidade };
+  }, [atendimentosFiltrados, periodo, dataInicio, dataFim]);
 
   // 🆕 Breakdown por atendente — mostra quantos cada usuário tá tratando e quantos já resolveu
   // Útil pra ver produtividade da equipe no período filtrado
@@ -277,21 +379,57 @@ export function DashboardSection() {
     periodo !== "todos" || canalFiltro !== "todos" || filaFiltro !== "todas" || atendenteFiltro !== "todos";
 
   // Label amigável do período ativo (aparece nos cards)
-  const labelPeriodo = {
-    hoje: "hoje",
-    semana: "últimos 7 dias",
-    mes: "últimos 30 dias",
-    ano: "últimos 365 dias",
-    todos: "período total",
-  }[periodo];
+  const labelPeriodo = (() => {
+    const map: Record<Periodo, string> = {
+      hoje: "hoje",
+      semana: "últimos 7 dias",
+      mes: "últimos 30 dias",
+      ano: "últimos 365 dias",
+      todos: "período total",
+      personalizado: `${dataCustomInicio.split("-").reverse().join("/")} → ${dataCustomFim.split("-").reverse().join("/")}`,
+    };
+    return map[periodo];
+  })();
 
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* 🆕 CSS de animação spin pro botão atualizar */}
+      <style>{`
+        @keyframes spin-icon {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>📊 Dashboard</h1>
-        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>
-          {carregando ? "🔄 Carregando..." : `📍 Mostrando: ${labelPeriodo}`}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>
+            {carregando ? "🔄 Carregando..." : `📍 Mostrando: ${labelPeriodo}`}
+          </p>
+          {/* 🆕 Botão atualizar — recarrega dados manualmente com feedback visual */}
+          <button
+            onClick={atualizarManual}
+            disabled={atualizando || carregando}
+            title="Atualizar dados"
+            style={{
+              background: atualizando ? "#16a34a22" : "#1f2937",
+              border: "1px solid #374151",
+              color: atualizando ? "#16a34a" : "#e5e7eb",
+              borderRadius: 8,
+              padding: "8px 14px",
+              fontSize: 12,
+              fontWeight: "bold",
+              cursor: atualizando ? "wait" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <span style={{ display: "inline-block", animation: atualizando ? "spin-icon 0.6s linear infinite" : "none" }}>🔄</span>
+            {atualizando ? "Atualizando..." : "Atualizar"}
+          </button>
+        </div>
       </div>
 
       {/* 🆕 BARRA DE FILTROS */}
@@ -317,7 +455,62 @@ export function DashboardSection() {
             {botaoPeriodo("mes", "30 dias", "📆")}
             {botaoPeriodo("ano", "365 dias", "🗃️")}
             {botaoPeriodo("todos", "Todos", "∞")}
+            {botaoPeriodo("personalizado", "Personalizado", "🎯")}
           </div>
+
+          {/* 🆕 Inputs de data — só aparecem se "personalizado" estiver selecionado */}
+          {periodo === "personalizado" && (
+            <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <div style={{ flex: "1 1 180px", minWidth: 160 }}>
+                <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 6px" }}>
+                  De
+                </p>
+                <input
+                  type="date"
+                  value={dataCustomInicio}
+                  max={dataCustomFim}
+                  onChange={e => setDataCustomInicio(e.target.value)}
+                  style={{
+                    width: "100%",
+                    background: "#1f2937",
+                    border: "1px solid #374151",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    color: "#fff",
+                    fontSize: 13,
+                    boxSizing: "border-box",
+                    colorScheme: "dark",
+                  }}
+                />
+              </div>
+              <div style={{ flex: "1 1 180px", minWidth: 160 }}>
+                <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 6px" }}>
+                  Até
+                </p>
+                <input
+                  type="date"
+                  value={dataCustomFim}
+                  min={dataCustomInicio}
+                  max={hojeStr}
+                  onChange={e => setDataCustomFim(e.target.value)}
+                  style={{
+                    width: "100%",
+                    background: "#1f2937",
+                    border: "1px solid #374151",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    color: "#fff",
+                    fontSize: 13,
+                    boxSizing: "border-box",
+                    colorScheme: "dark",
+                  }}
+                />
+              </div>
+              <p style={{ color: "#6b7280", fontSize: 11, margin: 0, paddingBottom: 12 }}>
+                💡 Escolha o intervalo que quer analisar
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Canal e Fila */}
@@ -450,6 +643,126 @@ export function DashboardSection() {
             <p style={{ color: card.color, fontSize: 28, fontWeight: "bold", margin: 0 }}>{card.value}</p>
           </div>
         ))}
+      </div>
+
+      {/* 🆕 ═══════════════════════════════════════════════════════════════
+          GRÁFICO DE DESEMPENHO — atendimentos ao longo do tempo (SVG inline)
+          ═══════════════════════════════════════════════════════════════
+          Renderiza barras stacked: azul=abertos, laranja=em_atendimento, verde=resolvidos.
+          Usa serieGrafico pra agrupar por hora/dia/mês conforme o período selecionado.
+      */}
+      <div
+        style={{
+          background: "#111",
+          borderRadius: 12,
+          padding: 20,
+          border: "1px solid #1f2937",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+          <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>
+            📈 Desempenho ({serieGrafico.granularidade === "hora" ? "por hora" : serieGrafico.granularidade === "mes" ? "por mês" : "por dia"})
+          </p>
+          {/* Legenda */}
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#3b82f6", fontSize: 11 }}>
+              <span style={{ width: 10, height: 10, background: "#3b82f6", borderRadius: 2 }} /> Abertos
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#f59e0b", fontSize: 11 }}>
+              <span style={{ width: 10, height: 10, background: "#f59e0b", borderRadius: 2 }} /> Em atendimento
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#16a34a", fontSize: 11 }}>
+              <span style={{ width: 10, height: 10, background: "#16a34a", borderRadius: 2 }} /> Resolvidos
+            </span>
+          </div>
+        </div>
+
+        {serieGrafico.buckets.length === 0 ? (
+          <p style={{ color: "#6b7280", fontSize: 12, margin: "20px 0", textAlign: "center" }}>
+            Nenhum atendimento no período selecionado.
+          </p>
+        ) : (() => {
+          const buckets = serieGrafico.buckets;
+          const maxTotal = Math.max(...buckets.map(b => b.total), 1);
+          const w = 1000;
+          const h = 280;
+          const padL = 40, padR = 12, padT = 16, padB = 36;
+          const innerW = w - padL - padR;
+          const innerH = h - padT - padB;
+          const slotW = innerW / buckets.length;
+          const barW = slotW * 0.7;
+          const gridLines = [0.25, 0.5, 0.75, 1].map(p => ({
+            y: padT + innerH - innerH * p,
+            valor: Math.round(maxTotal * p),
+          }));
+          const passoRotulo = Math.max(1, Math.ceil(buckets.length / 12));
+
+          return (
+            <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto", display: "block" }}>
+              {gridLines.map((g, i) => (
+                <g key={i}>
+                  <line x1={padL} y1={g.y} x2={w - padR} y2={g.y} stroke="#1f2937" strokeWidth="1" strokeDasharray="3 3" />
+                  <text x={padL - 6} y={g.y + 4} fontSize="10" fill="#6b7280" textAnchor="end">{g.valor}</text>
+                </g>
+              ))}
+
+              {buckets.map((b, i) => {
+                const x = padL + slotW * i + (slotW - barW) / 2;
+                const totalH = (b.total / maxTotal) * innerH;
+                const hAbertos = (b.abertos / maxTotal) * innerH;
+                const hAtend = (b.em_atendimento / maxTotal) * innerH;
+                const hResolv = (b.resolvidos / maxTotal) * innerH;
+                const yCursor = padT + innerH - totalH;
+
+                return (
+                  <g key={b.rotulo + i}>
+                    <title>
+                      {b.rotulo}: {b.total} total ({b.abertos} abertos, {b.em_atendimento} em atendimento, {b.resolvidos} resolvidos)
+                    </title>
+                    {hAbertos > 0 && (
+                      <rect x={x} y={yCursor} width={barW} height={hAbertos} fill="#3b82f6" rx="2" />
+                    )}
+                    {hAtend > 0 && (
+                      <rect x={x} y={yCursor + hAbertos} width={barW} height={hAtend} fill="#f59e0b" />
+                    )}
+                    {hResolv > 0 && (
+                      <rect x={x} y={yCursor + hAbertos + hAtend} width={barW} height={hResolv} fill="#16a34a" />
+                    )}
+                    {i % passoRotulo === 0 && (
+                      <text
+                        x={x + barW / 2}
+                        y={h - padB + 16}
+                        fontSize="10"
+                        fill="#9ca3af"
+                        textAnchor="middle"
+                      >
+                        {b.rotulo}
+                      </text>
+                    )}
+                    {totalH > 18 && (
+                      <text
+                        x={x + barW / 2}
+                        y={yCursor - 4}
+                        fontSize="9"
+                        fill="#e5e7eb"
+                        textAnchor="middle"
+                        fontWeight="bold"
+                      >
+                        {b.total}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+
+              <line x1={padL} y1={padT + innerH} x2={w - padR} y2={padT + innerH} stroke="#374151" strokeWidth="1" />
+            </svg>
+          );
+        })()}
+
+        <p style={{ color: "#6b7280", fontSize: 11, margin: "8px 0 0", textAlign: "center" }}>
+          💡 Passe o mouse sobre as barras pra ver detalhes
+        </p>
       </div>
 
       {/* 🆕 BREAKDOWNS — quantos leads por canal e por fila */}
