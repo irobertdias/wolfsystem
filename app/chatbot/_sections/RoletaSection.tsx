@@ -127,7 +127,7 @@ export function RoletaSection() {
   const usuariosSelecionados = usuarios.filter(u => config.usuarios.includes(u.email));
 
   return (
-    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, height: "100vh", overflowY: "auto", boxSizing: "border-box" }}>
       <div>
         <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>🎯 Roleta de Distribuição</h1>
         <p style={{ color: "#9ca3af", fontSize: 13, margin: "4px 0 0" }}>
