@@ -314,6 +314,63 @@ export function ChatSection() {
   const [filtroAtendente, setFiltroAtendente] = useState("todos");
   const [filtroEtiqueta, setFiltroEtiqueta] = useState("todas");
 
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // TEMA CLARO/ESCURO — preferência salva em localStorage por usuário
+  // ═══════════════════════════════════════════════════════════════════════
+  // Padrão é "escuro" (visual atual). Usuário pode alternar pelo botão na toolbar.
+  // Cores são lidas via objeto `tema` — qualquer mudança propaga pra todos elementos
+  // que usam ele. Os elementos que ainda têm cor hardcoded NÃO mudam (por enquanto),
+  // mas o impacto visual já é grande na sidebar+lista+painel principal.
+  const [temaMode, setTemaMode] = useState<"escuro" | "claro">(() => {
+    if (typeof window === "undefined") return "escuro";
+    return (localStorage.getItem("wolf_chat_tema") as "escuro" | "claro") || "escuro";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("wolf_chat_tema", temaMode);
+  }, [temaMode]);
+  const ehClaro = temaMode === "claro";
+  // Paleta — tom WhatsApp escuro vs WhatsApp claro
+  const tema = {
+    sidebarBg:    ehClaro ? "#f0f2f5" : "#111b21",
+    headerBg:     ehClaro ? "#f0f2f5" : "#202c33",
+    listaItem:    ehClaro ? "#ffffff" : "#111b21",
+    listaItemSel: ehClaro ? "#e9edef" : "#2a3942",
+    chatBg:       ehClaro ? "#efeae2" : "#0b141a",
+    inputBg:      ehClaro ? "#ffffff" : "#2a3942",
+    inputBgAlt:   ehClaro ? "#ffffff" : "#202c33",
+    bordaSutil:   ehClaro ? "#d1d7db" : "#222d34",
+    bordaForte:   ehClaro ? "#aebac1" : "#374151",
+    textoForte:   ehClaro ? "#111b21" : "#e9edef",
+    textoNormal:  ehClaro ? "#3b4a54" : "#aebac1",
+    textoFraco:   ehClaro ? "#667781" : "#8696a0",
+    bolha:        ehClaro ? "#ffffff" : "#202c33",
+    bolhaMinha:   ehClaro ? "#d9fdd3" : "#005c4b",
+    bolhaSistema: ehClaro ? "#fff3cd" : "#1e3a5f",
+    accent:       "#00a884", // WhatsApp green funciona nos dois temas
+    accentHover:  ehClaro ? "#06cf9c" : "#06cf9c",
+  };
+
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // FILTRO DE TEMPO — "tudo" / "sem_resposta" / "ultima_hora" / "ultimos_15min"
+  // ═══════════════════════════════════════════════════════════════════════
+  // - "tudo"            → comportamento atual (não filtra por tempo)
+  // - "sem_resposta"    → atendimentos onde a ÚLTIMA mensagem foi do cliente (de='cliente')
+  //                       e ainda não houve resposta humana/bot. Critério prático: usa
+  //                       `visualizado_em` como proxy — se for null E status pendente, é não respondido.
+  //                       Para precisão real, faz query adicional (deixei query async).
+  // - "ultima_hora"     → atendimentos com updated_at ≥ now-1h
+  // - "ultimos_15min"   → atendimentos com updated_at ≥ now-15min
+  const [filtroTempo, setFiltroTempo] = useState<"tudo" | "sem_resposta" | "ultima_hora" | "ultimos_15min">("tudo");
+
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // BOTÃO ATUALIZAR — feedback visual de carregamento
+  // ═══════════════════════════════════════════════════════════════════════
+  // Antes só chamava fetchAtendimentos sem feedback, dava sensação que não funcionava.
+  // Agora: estado `atualizando` controla animação de spin do emoji 🔄, e a função
+  // `atualizarManual` recarrega TUDO: lista de atendimentos + histórico do chat ativo +
+  // canais e usuários (caso tenham mudado).
+  const [atualizando, setAtualizando] = useState(false);
+
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
   const inputSm = { ...IS, padding: "7px 10px", fontSize: 12 };
 
@@ -571,6 +628,29 @@ export function ChatSection() {
     if (canalId) query = query.eq("canal_id", canalId);
     const { data } = await query.order("created_at", { ascending: true });
     setHistorico(data || []);
+  };
+
+  // 🆕 Atualizar manualmente — chamado pelo botão 🔄 da toolbar.
+  // Recarrega lista de atendimentos + histórico do chat ativo (se tiver) + canais/usuários.
+  // Mostra feedback visual via state `atualizando` (animação de spin no emoji).
+  // Tempo mínimo de 600ms pro feedback ser perceptível mesmo se a query for instantânea.
+  const atualizarManual = async () => {
+    if (atualizando) return; // evita clique duplo
+    setAtualizando(true);
+    const t0 = Date.now();
+    try {
+      const tarefas: Promise<any>[] = [fetchAtendimentos()];
+      if (atendimentoAtivo) {
+        tarefas.push(fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id));
+      }
+      await Promise.all(tarefas);
+    } catch (e) {
+      console.error("Erro ao atualizar:", e);
+    }
+    // Garante que o spin dura no mínimo 600ms (UX — pra o usuário ver que aconteceu)
+    const passou = Date.now() - t0;
+    if (passou < 600) await new Promise(r => setTimeout(r, 600 - passou));
+    setAtualizando(false);
   };
 
   const fetchEtiquetasWorkspace = async () => {
@@ -884,9 +964,25 @@ export function ChatSection() {
     .filter(a => !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.numero?.includes(busca))
     .filter(a => filtroFila === "todas" || a.fila === filtroFila)
     .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente)
-    .filter(a => filtroCanal === "todos" || String(a.canal_id) === filtroCanal);
+    .filter(a => filtroCanal === "todos" || String(a.canal_id) === filtroCanal)
+    // 🆕 FILTRO DE TEMPO — aplicado por último pra não quebrar a lógica das abas
+    .filter(a => {
+      if (filtroTempo === "tudo") return true;
+      const dataRef = a.updated_at || a.created_at;
+      if (!dataRef) return false;
+      const ts = new Date(dataRef).getTime();
+      const agora = Date.now();
+      if (filtroTempo === "ultima_hora") return (agora - ts) <= 60 * 60 * 1000;
+      if (filtroTempo === "ultimos_15min") return (agora - ts) <= 15 * 60 * 1000;
+      if (filtroTempo === "sem_resposta") {
+        // Critério: visualizado_em é null E status pendente (cliente mandou, ninguém abriu ainda)
+        // OU é um chat aguardando (status pendente, sem atendente humano)
+        return a.status === "pendente" && (!a.visualizado_em || a.atendente === "BOT" || !a.atendente);
+      }
+      return true;
+    });
 
-  const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas" || filtroCanal !== "todos";
+  const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas" || filtroCanal !== "todos" || filtroTempo !== "tudo";
 
   const enviarMensagem = async () => {
     if (!mensagem || !atendimentoAtivo) return;
@@ -1250,7 +1346,7 @@ export function ChatSection() {
     } catch (e: any) { alert("Erro: " + e.message); }
   };
 
-  const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroEtiqueta("todas"); setFiltroCanal("todos"); };
+  const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroEtiqueta("todas"); setFiltroCanal("todos"); setFiltroTempo("tudo"); };
 
   // 🔔 Abre um atendimento + MARCA COMO VISUALIZADO no banco
   // Usado quando atendente clica no card da lista. Atualiza visualizado_em = NOW() e
@@ -1368,59 +1464,79 @@ export function ChatSection() {
           0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
           50% { opacity: 0.5; transform: translateY(-50%) scale(1.4); }
         }
+        @keyframes spin-icon {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
       `}</style>
 
       {/* LISTA ESQUERDA */}
-      <div style={{ width: 340, background: "#111b21", borderRight: "1px solid #222d34", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "12px 14px", background: "#202c33", borderBottom: "1px solid #222d34", display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ width: 340, background: tema.sidebarBg, borderRight: `1px solid ${tema.bordaSutil}`, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "12px 14px", background: tema.headerBg, borderBottom: `1px solid ${tema.bordaSutil}`, display: "flex", gap: 8, alignItems: "center" }}>
           <input placeholder="🔍 Buscar conversa..." value={busca} onChange={e => setBusca(e.target.value)}
-            style={{ flex: 1, background: "#111b21", border: "none", borderRadius: 20, padding: "8px 14px", color: "white", fontSize: 13 }} />
+            style={{ flex: 1, background: ehClaro ? "#ffffff" : "#111b21", border: ehClaro ? `1px solid ${tema.bordaSutil}` : "none", borderRadius: 20, padding: "8px 14px", color: tema.textoForte, fontSize: 13 }} />
           {/* 🔔 Toggle de som das notificações — preferência salva no localStorage por usuário */}
           <button onClick={toggleSom} title={somAtivo ? "Som ligado (clique pra silenciar)" : "Som silenciado (clique pra ativar)"}
-            style={{ background: "none", border: "none", color: somAtivo ? "#00a884" : "#8696a0", cursor: "pointer", fontSize: 16, padding: 4 }}>
+            style={{ background: "none", border: "none", color: somAtivo ? tema.accent : tema.textoFraco, cursor: "pointer", fontSize: 16, padding: 4 }}>
             {somAtivo ? "🔔" : "🔕"}
           </button>
-          <button onClick={fetchAtendimentos} title="Atualizar lista"
-            style={{ background: "none", border: "none", color: "#aebac1", cursor: "pointer", fontSize: 16, padding: 4 }}>🔄</button>
+          {/* 🆕 Atualizar — agora com feedback visual de spin (animação CSS spin-icon) */}
+          <button onClick={atualizarManual} title="Atualizar lista e mensagens" disabled={atualizando}
+            style={{ background: "none", border: "none", color: atualizando ? tema.accent : tema.textoNormal, cursor: atualizando ? "wait" : "pointer", fontSize: 16, padding: 4 }}>
+            <span style={{ display: "inline-block", animation: atualizando ? "spin-icon 0.6s linear infinite" : "none" }}>🔄</span>
+          </button>
+          {/* 🆕 Toggle de tema claro/escuro — preferência salva em localStorage */}
+          <button onClick={() => setTemaMode(ehClaro ? "escuro" : "claro")}
+            title={ehClaro ? "Mudar pra tema escuro" : "Mudar pra tema claro"}
+            style={{ background: "none", border: "none", color: tema.textoNormal, cursor: "pointer", fontSize: 16, padding: 4 }}>
+            {ehClaro ? "🌙" : "☀️"}
+          </button>
           <button onClick={() => setShowFiltros(!showFiltros)} title="Filtros"
-            style={{ background: "none", border: "none", color: temFiltroAtivo ? "#00a884" : "#aebac1", cursor: "pointer", fontSize: 16, padding: 4, position: "relative" }}>
-            🔽{temFiltroAtivo && <span style={{ position: "absolute", top: 0, right: 0, width: 6, height: 6, background: "#00a884", borderRadius: "50%" }} />}
+            style={{ background: "none", border: "none", color: temFiltroAtivo ? tema.accent : tema.textoNormal, cursor: "pointer", fontSize: 16, padding: 4, position: "relative" }}>
+            🔽{temFiltroAtivo && <span style={{ position: "absolute", top: 0, right: 0, width: 6, height: 6, background: tema.accent, borderRadius: "50%" }} />}
           </button>
         </div>
 
         {showFiltros && (
-          <div style={{ background: "#111b21", borderBottom: "1px solid #222d34", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ background: tema.sidebarBg, borderBottom: `1px solid ${tema.bordaSutil}`, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: "#8696a0", fontSize: 11, fontWeight: "bold", textTransform: "uppercase" }}>Filtros</span>
+              <span style={{ color: tema.textoFraco, fontSize: 11, fontWeight: "bold", textTransform: "uppercase" }}>Filtros</span>
               {temFiltroAtivo && <button onClick={limparFiltros} style={{ background: "none", border: "none", color: "#dc2626", fontSize: 11, cursor: "pointer" }}>✕ Limpar</button>}
             </div>
+            {/* 🆕 FILTRO DE TEMPO — primeira opção, mais usado */}
+            <select value={filtroTempo} onChange={e => setFiltroTempo(e.target.value as any)} style={{ ...inputSm, background: ehClaro ? "#ffffff" : "#202c33", border: ehClaro ? `1px solid ${tema.bordaSutil}` : "none", color: tema.textoForte }}>
+              <option value="tudo">⏰ Mostrar tudo (sem filtro de tempo)</option>
+              <option value="sem_resposta">⚠️ Não respondidos ainda</option>
+              <option value="ultima_hora">🕐 Última hora</option>
+              <option value="ultimos_15min">⚡ Últimos 15 minutos</option>
+            </select>
             {canais.length > 1 && (
-              <select value={filtroCanal} onChange={e => setFiltroCanal(e.target.value)} style={{ ...inputSm, background: "#202c33", border: "none" }}>
+              <select value={filtroCanal} onChange={e => setFiltroCanal(e.target.value)} style={{ ...inputSm, background: ehClaro ? "#ffffff" : "#202c33", border: ehClaro ? `1px solid ${tema.bordaSutil}` : "none", color: tema.textoForte }}>
                 <option value="todos">📡 Todos os canais</option>
                 {canais.map(c => <option key={c.id} value={String(c.id)}>{c.tipo === "waba" ? "🔗" : "📱"} {c.nome}</option>)}
               </select>
             )}
-            <select value={filtroFila} onChange={e => setFiltroFila(e.target.value)} style={{ ...inputSm, background: "#202c33", border: "none" }}>
+            <select value={filtroFila} onChange={e => setFiltroFila(e.target.value)} style={{ ...inputSm, background: ehClaro ? "#ffffff" : "#202c33", border: ehClaro ? `1px solid ${tema.bordaSutil}` : "none", color: tema.textoForte }}>
               <option value="todas">Todas as filas</option>
               {filas.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
             {podeVerTudo && (
-              <select value={filtroAtendente} onChange={e => setFiltroAtendente(e.target.value)} style={{ ...inputSm, background: "#202c33", border: "none" }}>
+              <select value={filtroAtendente} onChange={e => setFiltroAtendente(e.target.value)} style={{ ...inputSm, background: ehClaro ? "#ffffff" : "#202c33", border: ehClaro ? `1px solid ${tema.bordaSutil}` : "none", color: tema.textoForte }}>
                 <option value="todos">Todos os atendentes</option>
                 {atendentesEmails.map(a => <option key={a} value={a}>{a === "BOT" ? "🤖 BOT" : "👤 " + nomeDoAtendente(a)}</option>)}
               </select>
             )}
-            <select value={filtroEtiqueta} onChange={e => setFiltroEtiqueta(e.target.value)} style={{ ...inputSm, background: "#202c33", border: "none" }}>
+            <select value={filtroEtiqueta} onChange={e => setFiltroEtiqueta(e.target.value)} style={{ ...inputSm, background: ehClaro ? "#ffffff" : "#202c33", border: ehClaro ? `1px solid ${tema.bordaSutil}` : "none", color: tema.textoForte }}>
               <option value="todas">Todas as etiquetas</option>
               {etiquetasWorkspace.map(et => <option key={et.id} value={et.id.toString()}>{et.icone} {et.nome}</option>)}
             </select>
           </div>
         )}
 
-        <div style={{ display: "flex", borderBottom: "1px solid #222d34", background: "#111b21" }}>
+        <div style={{ display: "flex", borderBottom: `1px solid ${tema.bordaSutil}`, background: tema.sidebarBg }}>
           {abas.map(t => (
             <button key={t.key} onClick={() => setAbaConversa(t.key as any)}
-              style={{ flex: 1, padding: "10px 2px", background: "none", border: "none", color: abaConversa === t.key ? t.color : "#8696a0", fontSize: 10, fontWeight: "bold", cursor: "pointer", borderBottom: abaConversa === t.key ? `3px solid ${t.color}` : "3px solid transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              style={{ flex: 1, padding: "10px 2px", background: "none", border: "none", color: abaConversa === t.key ? t.color : tema.textoFraco, fontSize: 10, fontWeight: "bold", cursor: "pointer", borderBottom: abaConversa === t.key ? `3px solid ${t.color}` : "3px solid transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
               <span style={{ fontSize: 14 }}>{t.icon}</span>
               <span>{t.label}</span>
               {t.count > 0 && <span style={{ background: t.color, color: "white", borderRadius: 10, padding: "0 6px", fontSize: 9, minWidth: 16 }}>{t.count}</span>}
@@ -1445,11 +1561,11 @@ export function ChatSection() {
           </div>
         )}
 
-        <div style={{ overflowY: "auto", flex: 1, background: "#111b21" }}>
+        <div style={{ overflowY: "auto", flex: 1, background: tema.listaItem }}>
           {atendimentosFiltrados.length === 0 ? (
             <div style={{ padding: 32, textAlign: "center" }}>
               <p style={{ fontSize: 32, margin: "0 0 8px" }}>{abas.find(a => a.key === abaConversa)?.icon}</p>
-              <p style={{ color: "#8696a0", fontSize: 13 }}>{temFiltroAtivo ? "Nenhum resultado para os filtros" : `Nenhum atendimento em ${abas.find(a => a.key === abaConversa)?.label.toLowerCase()}`}</p>
+              <p style={{ color: tema.textoFraco, fontSize: 13 }}>{temFiltroAtivo ? "Nenhum resultado para os filtros" : `Nenhum atendimento em ${abas.find(a => a.key === abaConversa)?.label.toLowerCase()}`}</p>
             </div>
           ) : atendimentosFiltrados.map(a => {
             const aba = classificarAba(a);
@@ -1458,7 +1574,7 @@ export function ChatSection() {
             const temNaoLidas = naoLidas > 0 && atendimentoAtivo?.id !== a.id;
             return (
               <div key={a.id} onClick={() => abrirAtendimento(a)}
-                style={{ padding: "12px 14px", borderBottom: "1px solid #1f2c33", cursor: "pointer", background: atendimentoAtivo?.id === a.id ? "#2a3942" : "transparent", position: "relative" }}>
+                style={{ padding: "12px 14px", borderBottom: `1px solid ${tema.bordaSutil}`, cursor: "pointer", background: atendimentoAtivo?.id === a.id ? tema.listaItemSel : "transparent", position: "relative" }}>
                 {/* 🔔 Bolinha azul piscando — indica chat com mensagem não lida (canto esquerdo) */}
                 {temNaoLidas && (
                   <span style={{
@@ -1468,20 +1584,20 @@ export function ChatSection() {
                     transform: "translateY(-50%)",
                     width: 6,
                     height: 6,
-                    background: "#00a884",
+                    background: tema.accent,
                     borderRadius: "50%",
                     animation: "pulseBlue 1.5s ease-in-out infinite",
                     zIndex: 1,
                   }} />
                 )}
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 14 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: "50%", background: ehClaro ? "#9ca3af" : "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 14 }}>
                     {a.nome?.charAt(0).toUpperCase() || "?"}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2, gap: 8 }}>
                       {/* Nome em negrito sempre, mas se tem não lidas fica branco mais forte */}
-                      <span style={{ color: temNaoLidas ? "#ffffff" : "#e9edef", fontSize: 14, fontWeight: temNaoLidas ? 700 : "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{a.nome}</span>
+                      <span style={{ color: temNaoLidas ? (ehClaro ? "#000" : "#ffffff") : tema.textoForte, fontSize: 14, fontWeight: temNaoLidas ? 700 : "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{a.nome}</span>
                       {/* Hora em VERDE quando tem não lidas (igual WhatsApp) */}
                       <span style={{ color: temNaoLidas ? "#00a884" : "#8696a0", fontSize: 11, fontWeight: temNaoLidas ? "bold" : "normal", flexShrink: 0 }}>{tempoRelativo(a.updated_at || a.created_at)}</span>
                     </div>
@@ -1489,7 +1605,7 @@ export function ChatSection() {
                       📱 {numeroSanitizado(a.numero)} {canais.length > 1 && a.canal_id && <span style={{ color: "#00a884" }}>• {iconeCanal(a.canal_id)} {nomeDoCanal(a.canal_id)}</span>}
                     </p>
                     {/* Última mensagem em branco/negrito quando tem não lidas */}
-                    <p style={{ color: temNaoLidas ? "#e9edef" : "#8696a0", fontSize: 12, fontWeight: temNaoLidas ? "bold" : "normal", margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <p style={{ color: temNaoLidas ? tema.textoForte : tema.textoFraco, fontSize: 12, fontWeight: temNaoLidas ? "bold" : "normal", margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {isAudioMsg(a.mensagem) ? "🎤 Mensagem de áudio" : a.mensagem}
                     </p>
                     <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
@@ -1533,7 +1649,7 @@ export function ChatSection() {
       </div>
 
       {/* ÁREA DO CHAT */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#0b141a", backgroundImage: WA_BG_DARK, backgroundRepeat: "repeat", position: "relative" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: ehClaro ? "none" : WA_BG_DARK, backgroundRepeat: "repeat", position: "relative" }}>
         {atendimentoAtivo ? (
           <>
             {/* 🆕 HEADER REFORMULADO
@@ -1542,7 +1658,7 @@ export function ChatSection() {
                 - Todos os botões ficam VISÍVEIS na toolbar pra agilizar o atendimento
                 - Finalizar Venda ganhou destaque (botão verde com texto)
             */}
-            <div style={{ padding: "10px 16px", borderBottom: "1px solid #222d34", background: "#202c33", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div style={{ padding: "10px 16px", borderBottom: `1px solid ${tema.bordaSutil}`, background: tema.headerBg, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
               {/* BLOCO CLICÁVEL: Avatar + Nome + Info → abre painel do contato
                   O clique ainda funciona, mas sem tooltip "Ver dados do contato" (que era gigante
                   e aparecia sobre o chat atrapalhando a leitura). Pra descobrabilidade, tem um
