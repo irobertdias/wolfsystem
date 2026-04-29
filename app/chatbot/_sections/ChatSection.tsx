@@ -315,6 +315,21 @@ export function ChatSection() {
   const [filtroEtiqueta, setFiltroEtiqueta] = useState("todas");
 
   // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // ENCERRAR ATENDIMENTOS ANTIGOS — limpa pendentes que ninguém respondeu há X dias
+  // ═══════════════════════════════════════════════════════════════════════
+  // Por que existe: a aba "Aguardando" acumula leads que ninguém respondeu.
+  // Em workspaces com muitos leads/dia (50-200), em uma semana já tem milhar
+  // de atendimentos pendentes que nunca vão ser respondidos (o cliente desistiu,
+  // era spam, era duplicado, etc). Sem limpeza, a lista cresce indefinidamente.
+  //
+  // O botão dispara um modal onde o user escolhe a antiguidade (1/2/3/7 dias)
+  // e confirma. Faz UPDATE em massa: status=resolvido + insere mensagem do sistema
+  // explicando que foi encerrado por inatividade.
+  const [showEncerrarAntigos, setShowEncerrarAntigos] = useState(false);
+  const [diasAntiguidade, setDiasAntiguidade] = useState<1 | 2 | 3 | 7>(2);
+  const [encerrandoAntigos, setEncerrandoAntigos] = useState(false);
+
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
   // TEMA CLARO/ESCURO — preferência salva em localStorage por usuário
   // ═══════════════════════════════════════════════════════════════════════
   // Padrão é "escuro" (visual atual). Usuário pode alternar pelo botão na toolbar.
@@ -700,6 +715,95 @@ export function ChatSection() {
       if (canalId) payload.canal_id = canalId;
       await supabase.from("mensagens").insert([payload]);
     } catch (e) { console.error("Erro ao inserir mensagem de sistema:", e); }
+  };
+
+  // 🆕 Encerra em massa atendimentos pendentes/aguardando antigos.
+  // - dias: corte de antiguidade (1, 2, 3 ou 7 dias)
+  // - critério: status=pendente E (updated_at é mais antigo que [hoje - X dias])
+  //   (se updated_at não existir, fallback pra created_at)
+  // - ação: status=resolvido + mensagem do sistema "Encerrado por inatividade"
+  const encerrarAtendimentosAntigos = async (dias: 1 | 2 | 3 | 7) => {
+    if (!wsId) return;
+    setEncerrandoAntigos(true);
+    try {
+      const corteDate = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
+
+      // 1) Busca os candidatos pra confirmar count e ter os dados pra inserir mensagens
+      // Filtro: workspace_id + status pendente + updated_at OR created_at antes do corte
+      const { data: candidatos, error: errBusca } = await supabase
+        .from("atendimentos")
+        .select("id, numero, canal_id, updated_at, created_at, status, atendente")
+        .eq("workspace_id", wsId)
+        .eq("status", "pendente");
+
+      if (errBusca) throw errBusca;
+
+      // Filtro client-side: usa updated_at se existir, senão created_at
+      const alvos = (candidatos || []).filter(a => {
+        const dataRef = a.updated_at || a.created_at;
+        if (!dataRef) return false;
+        return new Date(dataRef).toISOString() < corteDate;
+      });
+
+      if (alvos.length === 0) {
+        alert(`✅ Nenhum atendimento pendente com mais de ${dias} dia(s) sem interação.`);
+        setEncerrandoAntigos(false);
+        setShowEncerrarAntigos(false);
+        return;
+      }
+
+      // 2) Update em batch — Supabase aceita .in("id", [...]) pra atualizar várias linhas
+      // Faz em lotes de 200 ids pra evitar query muito grande
+      const ids = alvos.map(a => a.id);
+      const LOTE = 200;
+      for (let i = 0; i < ids.length; i += LOTE) {
+        const lote = ids.slice(i, i + LOTE);
+        await supabase.from("atendimentos").update({ status: "resolvido" })
+          .in("id", lote)
+          .eq("workspace_id", wsId); // 🔒 defesa em profundidade — confirma workspace
+      }
+
+      // 3) Mensagens de sistema — insere em batch também
+      const meuNome = user?.email ? user.email.split("@")[0] : "Sistema";
+      const mensagensSistema = alvos.map(a => ({
+        numero: a.numero,
+        mensagem: `Atendimento encerrado por inatividade (${dias} dia${dias > 1 ? "s" : ""} sem nova interação) — ação de ${meuNome}`,
+        de: "sistema",
+        workspace_id: wsId,
+        canal_id: a.canal_id || null,
+      }));
+      for (let i = 0; i < mensagensSistema.length; i += LOTE) {
+        const lote = mensagensSistema.slice(i, i + LOTE);
+        await supabase.from("mensagens").insert(lote);
+      }
+
+      // 4) Finaliza sessões de fluxo se existirem
+      try {
+        await supabase.from("fluxo_sessoes").update({ status: "finalizado" })
+          .in("numero", alvos.map(a => a.numero))
+          .eq("workspace_id", wsId)
+          .eq("status", "ativo");
+      } catch (e) { /* ignora — pode não ter sessões */ }
+
+      alert(`✅ ${alvos.length} atendimento(s) encerrado(s) por inatividade!`);
+      await fetchAtendimentos();
+      setShowEncerrarAntigos(false);
+    } catch (e: any) {
+      console.error("Erro ao encerrar antigos:", e);
+      alert("❌ Erro ao encerrar: " + (e?.message || e));
+    }
+    setEncerrandoAntigos(false);
+  };
+
+  // 🆕 Quantos pendentes existem com mais de N dias (calculado em memória pra preview no modal)
+  const contarPendentesAntigos = (dias: 1 | 2 | 3 | 7): number => {
+    const corte = Date.now() - dias * 24 * 60 * 60 * 1000;
+    return atendimentos.filter(a => {
+      if (a.status !== "pendente") return false;
+      const dataRef = a.updated_at || a.created_at;
+      if (!dataRef) return false;
+      return new Date(dataRef).getTime() < corte;
+    }).length;
   };
 
   useEffect(() => {
@@ -1560,6 +1664,28 @@ export function ChatSection() {
             </button>
           </div>
         )}
+
+        {/* 🆕 Aba Aguardando — botão pra limpar pendentes antigos (só dono/supervisor pode) */}
+        {abaConversa === "aguardando" && podeVerTudo && (() => {
+          const qtde2dias = contarPendentesAntigos(2);
+          if (qtde2dias === 0) return null; // nada pra limpar, esconde
+          return (
+            <div style={{ background: ehClaro ? "#fff8e1" : "#0d1418", borderBottom: `1px solid ${tema.bordaSutil}`, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ color: ehClaro ? "#92400e" : "#f59e0b", fontSize: 12, fontWeight: "bold", margin: 0 }}>
+                  ⚠️ {qtde2dias} pendente(s) há +2 dias
+                </p>
+                <p style={{ color: tema.textoFraco, fontSize: 10, margin: "2px 0 0" }}>
+                  Encerra atendimentos sem interação recente
+                </p>
+              </div>
+              <button onClick={() => setShowEncerrarAntigos(true)}
+                style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b66", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: "bold", cursor: "pointer", whiteSpace: "nowrap" }}>
+                🧹 Limpar
+              </button>
+            </div>
+          );
+        })()}
 
         <div style={{ overflowY: "auto", flex: 1, background: tema.listaItem }}>
           {atendimentosFiltrados.length === 0 ? (
@@ -2457,6 +2583,97 @@ export function ChatSection() {
                 <button onClick={() => window.open(`https://wa.me/${numeroSanitizado(atendimentoAtivo.numero)}`, "_blank")} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📞 Abrir no WhatsApp Web</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 ═══════════════════════════════════════════════════════════════
+          MODAL — Encerrar atendimentos antigos por inatividade
+          ═══════════════════════════════════════════════════════════════ */}
+      {showEncerrarAntigos && (
+        <div onClick={() => !encerrandoAntigos && setShowEncerrarAntigos(false)}
+          style={{ position: "fixed", inset: 0, background: "#000000aa", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: ehClaro ? "#ffffff" : "#111b21", borderRadius: 12, width: "100%", maxWidth: 480, padding: 24, border: `1px solid ${tema.bordaSutil}` }}>
+            <div style={{ marginBottom: 16 }}>
+              <h2 style={{ color: tema.textoForte, fontSize: 18, fontWeight: "bold", margin: "0 0 6px" }}>
+                🧹 Encerrar atendimentos antigos
+              </h2>
+              <p style={{ color: tema.textoFraco, fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+                Vai marcar como <b>resolvido</b> todos os atendimentos pendentes que estão sem nova interação há mais tempo que o limite escolhido.
+              </p>
+            </div>
+
+            <p style={{ color: tema.textoNormal, fontSize: 12, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>
+              Encerrar pendentes há mais de:
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+              {[1, 2, 3, 7].map(d => {
+                const qtde = contarPendentesAntigos(d as 1 | 2 | 3 | 7);
+                const ativo = diasAntiguidade === d;
+                return (
+                  <button key={d} onClick={() => setDiasAntiguidade(d as 1 | 2 | 3 | 7)}
+                    style={{
+                      background: ativo ? "#f59e0b22" : (ehClaro ? "#f3f4f6" : "#1f2937"),
+                      border: `2px solid ${ativo ? "#f59e0b" : tema.bordaForte}`,
+                      borderRadius: 10,
+                      padding: "12px 8px",
+                      cursor: "pointer",
+                      textAlign: "center",
+                    }}>
+                    <p style={{ color: ativo ? "#f59e0b" : tema.textoForte, fontSize: 14, fontWeight: "bold", margin: "0 0 4px" }}>
+                      {d} {d === 1 ? "dia" : "dias"}
+                    </p>
+                    <p style={{ color: tema.textoFraco, fontSize: 10, margin: 0 }}>
+                      {qtde} {qtde === 1 ? "atend." : "atend."}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {(() => {
+              const qtde = contarPendentesAntigos(diasAntiguidade);
+              return (
+                <div style={{
+                  background: qtde > 0 ? "#f59e0b22" : (ehClaro ? "#f3f4f6" : "#1f2937"),
+                  border: `1px solid ${qtde > 0 ? "#f59e0b66" : tema.bordaSutil}`,
+                  borderRadius: 8,
+                  padding: 14,
+                  marginBottom: 16,
+                }}>
+                  <p style={{ color: qtde > 0 ? "#f59e0b" : tema.textoFraco, fontSize: 13, margin: 0, fontWeight: "bold" }}>
+                    {qtde > 0
+                      ? `⚠️ ${qtde} atendimento(s) será(ão) encerrado(s)`
+                      : "✅ Nenhum atendimento atende esse critério"
+                    }
+                  </p>
+                  <p style={{ color: tema.textoFraco, fontSize: 11, margin: "4px 0 0", lineHeight: 1.4 }}>
+                    Cada atendimento receberá uma mensagem de sistema explicando o motivo do encerramento. Ação irreversível — mas você pode reabrir manualmente depois se precisar.
+                  </p>
+                </div>
+              );
+            })()}
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setShowEncerrarAntigos(false)} disabled={encerrandoAntigos}
+                style={{ background: "none", color: tema.textoNormal, border: `1px solid ${tema.bordaForte}`, borderRadius: 8, padding: "10px 18px", fontSize: 13, cursor: encerrandoAntigos ? "wait" : "pointer" }}>
+                Cancelar
+              </button>
+              <button onClick={() => encerrarAtendimentosAntigos(diasAntiguidade)} disabled={encerrandoAntigos || contarPendentesAntigos(diasAntiguidade) === 0}
+                style={{
+                  background: encerrandoAntigos || contarPendentesAntigos(diasAntiguidade) === 0 ? "#6b7280" : "#f59e0b",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "10px 22px",
+                  fontSize: 13,
+                  fontWeight: "bold",
+                  cursor: encerrandoAntigos || contarPendentesAntigos(diasAntiguidade) === 0 ? "not-allowed" : "pointer",
+                }}>
+                {encerrandoAntigos ? "⏳ Encerrando..." : `🧹 Encerrar ${contarPendentesAntigos(diasAntiguidade)}`}
+              </button>
+            </div>
           </div>
         </div>
       )}
