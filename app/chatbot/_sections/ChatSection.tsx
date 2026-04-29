@@ -308,6 +308,10 @@ export function ChatSection() {
   const [salvandoContato, setSalvandoContato] = useState(false);
 
   const [etiquetasWorkspace, setEtiquetasWorkspace] = useState<Etiqueta[]>([]);
+  // 🆕 Mapa de etiquetas por atendimento — usado pra mostrar tags coloridas na lista
+  // Formato: { [atendimentoId]: [etiquetaId1, etiquetaId2, ...] }
+  // Carregado uma vez quando o workspace carrega + recarregado quando muda alguma coisa
+  const [etiquetasPorAtendimento, setEtiquetasPorAtendimento] = useState<Record<number, number[]>>({});
   const [etiquetasAtendimento, setEtiquetasAtendimento] = useState<number[]>([]);
 
   const [filtroFila, setFiltroFila] = useState("todas");
@@ -770,6 +774,38 @@ export function ChatSection() {
     setEtiquetasWorkspace(data || []);
   };
 
+  // 🆕 Carrega o mapa de etiquetas por atendimento DO WORKSPACE INTEIRO.
+  // Por que: a lista de atendimentos precisa mostrar as tags coloridas embaixo do nome (LUANA,
+  // VENDAS, VIVO, etc). Antes a gente só carregava as etiquetas do atendimento ATIVO (quando
+  // abria), então a lista nunca conseguia mostrar.
+  // 
+  // Estratégia: como atendimento_etiquetas pode ter milhares de linhas em workspaces grandes,
+  // a gente filtra por atendimentos do workspace via .in() em batches. Os atendimentos já
+  // foram carregados (até 5000) então o array `atendimentos` é a fonte certa.
+  const fetchEtiquetasPorAtendimento = async () => {
+    if (!wsId || atendimentos.length === 0) return;
+    try {
+      // Pega os IDs em batches de 500 pra evitar URL muito longa
+      const ids = atendimentos.map(a => a.id);
+      const LOTE = 500;
+      const mapa: Record<number, number[]> = {};
+      for (let i = 0; i < ids.length; i += LOTE) {
+        const lote = ids.slice(i, i + LOTE);
+        const { data } = await supabase
+          .from("atendimento_etiquetas")
+          .select("atendimento_id, etiqueta_id")
+          .in("atendimento_id", lote);
+        (data || []).forEach(rel => {
+          if (!mapa[rel.atendimento_id]) mapa[rel.atendimento_id] = [];
+          mapa[rel.atendimento_id].push(rel.etiqueta_id);
+        });
+      }
+      setEtiquetasPorAtendimento(mapa);
+    } catch (e) {
+      console.error("Erro ao carregar mapa de etiquetas:", e);
+    }
+  };
+
   const fetchEtiquetasAtendimento = async (atendimentoId: number) => {
     const { data } = await supabase.from("atendimento_etiquetas").select("etiqueta_id").eq("atendimento_id", atendimentoId);
     setEtiquetasAtendimento((data || []).map(d => d.etiqueta_id));
@@ -972,6 +1008,21 @@ export function ChatSection() {
     const polling = setInterval(() => fetchAtendimentos(), 5000);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
   }, [wsId, workspace?.owner_email, user?.email]);
+
+  // 🆕 useEffect próprio pro mapa de etiquetas por atendimento.
+  // Roda quando: lista de atendimentos muda OU alguma relação atendimento_etiqueta muda no banco.
+  // Realtime: subscribe na tabela atendimento_etiquetas (sem filtro de workspace porque a tabela
+  // não tem essa coluna — o filtro acontece via .in(ids) na função).
+  useEffect(() => {
+    if (!wsId) return;
+    fetchEtiquetasPorAtendimento();
+
+    const ch = supabase.channel("etiq_atend_rt_" + wsId)
+      .on("postgres_changes", { event: "*", schema: "public", table: "atendimento_etiquetas" }, () => fetchEtiquetasPorAtendimento())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // Dependência em atendimentos.length pra recarregar quando lista muda (novo atendimento entrou/saiu)
+  }, [wsId, atendimentos.length]);
 
   // 🔔 ═══════════════════════════════════════════════════════════════════════════
   // useEffect: COMPUTA NÃO LIDAS + TOCA SOM EM MSG NOVA  (VERSÃO 3 — PAGINAÇÃO)
@@ -1933,12 +1984,38 @@ export function ChatSection() {
                       <span style={{ color: temNaoLidas ? "#00a884" : "#8696a0", fontSize: 11, fontWeight: temNaoLidas ? "bold" : "normal", flexShrink: 0 }}>{tempoRelativo(a.updated_at || a.created_at)}</span>
                     </div>
                     <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      📱 {numeroSanitizado(a.numero)} {canais.length > 1 && a.canal_id && <span style={{ color: "#00a884" }}>• {iconeCanal(a.canal_id)} {nomeDoCanal(a.canal_id)}</span>}
+                      {/* 🆕 Sempre mostra canal ao lado do número (antes só mostrava se canais.length > 1) */}
+                      📱 {numeroSanitizado(a.numero)}{a.canal_id && <span style={{ color: "#00a884" }}> • {iconeCanal(a.canal_id)} {nomeDoCanal(a.canal_id)}</span>}
                     </p>
                     {/* Última mensagem em branco/negrito quando tem não lidas */}
                     <p style={{ color: temNaoLidas ? tema.textoForte : tema.textoFraco, fontSize: 12, fontWeight: temNaoLidas ? "bold" : "normal", margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {isAudioMsg(a.mensagem) ? "🎤 Mensagem de áudio" : a.mensagem}
                     </p>
+                    {/* 🆕 ETIQUETAS CUSTOMIZADAS DO WORKSPACE — usa cor e ícone reais que o cliente cadastrou.
+                        Filtra do array etiquetasWorkspace as que estão em etiquetasPorAtendimento[a.id]. */}
+                    {(() => {
+                      const ids = etiquetasPorAtendimento[a.id] || [];
+                      if (ids.length === 0) return null;
+                      const etiqs = etiquetasWorkspace.filter(e => ids.includes(e.id));
+                      if (etiqs.length === 0) return null;
+                      return (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
+                          {etiqs.map(et => (
+                            <span key={et.id} style={{
+                              background: (et.cor || "#3b82f6") + "22",
+                              color: et.cor || "#3b82f6",
+                              fontSize: 10,
+                              padding: "2px 7px",
+                              borderRadius: 10,
+                              fontWeight: "bold",
+                              whiteSpace: "nowrap",
+                            }}>
+                              {et.icone ? `${et.icone} ` : ""}{et.nome}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
                         {a.fila && <span style={{ background: "#00a88422", color: "#00a884", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>{a.fila}</span>}
