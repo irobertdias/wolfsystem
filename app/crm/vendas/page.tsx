@@ -32,6 +32,12 @@ export default function Vendas() {
   const [workspaceId, setWorkspaceId] = useState("");
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  // 🆕 FILTRO DE DATA — filtra propostas por data_proposta dentro de um range.
+  // Vazio em ambos = sem filtro de data (default).
+  const [filtroDataInicio, setFiltroDataInicio] = useState("");
+  const [filtroDataFim, setFiltroDataFim] = useState("");
+  // 🆕 MODAL DE VISUALIZAÇÃO — readonly, abre antes de editar/excluir pra confirmar
+  const [propostaVisualizando, setPropostaVisualizando] = useState<Proposta | null>(null);
   const [userEmail, setUserEmail] = useState<string>(""); // 🆕 email do user logado
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]); // 🆕 lista pra escolher vendedor no modal + mapear nomes
 
@@ -218,7 +224,16 @@ export default function Vendas() {
   const propostasFiltradas = propostas
     .filter(p => podeVerTudo || (p.vendedor && p.vendedor.toLowerCase() === userEmail.toLowerCase()))
     .filter(p => filtroStatus === "todos" || p.status_venda === filtroStatus)
-    .filter(p => !busca || p.nome?.toLowerCase().includes(busca.toLowerCase()) || p.cpf?.includes(busca) || nomeVendedor(p.vendedor).toLowerCase().includes(busca.toLowerCase()));
+    .filter(p => !busca || p.nome?.toLowerCase().includes(busca.toLowerCase()) || p.cpf?.includes(busca) || nomeVendedor(p.vendedor).toLowerCase().includes(busca.toLowerCase()))
+    // 🆕 Filtro de data — usa data_proposta (campo de negócio, formato YYYY-MM-DD) e não created_at (técnico).
+    // Inputs vazios = sem corte. Comparação por string funciona com YYYY-MM-DD direto.
+    .filter(p => {
+      if (!filtroDataInicio && !filtroDataFim) return true;
+      const dt = p.data_proposta || "";
+      if (filtroDataInicio && dt < filtroDataInicio) return false;
+      if (filtroDataFim && dt > filtroDataFim) return false;
+      return true;
+    });
 
   const totalVisivel = propostasFiltradas.length;
   const totalGeral = propostas.length;
@@ -442,6 +457,22 @@ export default function Vendas() {
           <option value="todos">Todos os status</option>
           {STATUS_OPCOES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+        {/* 🆕 FILTRO DE DATA — De / Até. Filtra por data_proposta. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "4px 10px" }}>
+          <span style={{ color: "#9ca3af", fontSize: 11, whiteSpace: "nowrap" }}>📅 De:</span>
+          <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)} max={filtroDataFim || undefined}
+            style={{ background: "transparent", border: "none", color: "white", fontSize: 12, padding: "4px 0", colorScheme: "dark" }} />
+          <span style={{ color: "#9ca3af", fontSize: 11, whiteSpace: "nowrap" }}>Até:</span>
+          <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)} min={filtroDataInicio || undefined}
+            style={{ background: "transparent", border: "none", color: "white", fontSize: 12, padding: "4px 0", colorScheme: "dark" }} />
+        </div>
+        {/* Botão Limpar Filtros — só aparece se algum filtro tá ativo */}
+        {(busca || filtroStatus !== "todos" || filtroDataInicio || filtroDataFim) && (
+          <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltroDataInicio(""); setFiltroDataFim(""); }}
+            style={{ background: "#dc262622", border: "1px solid #dc262633", color: "#dc2626", borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
+            ✕ Limpar
+          </button>
+        )}
       </div>
 
       {/* TABELA */}
@@ -481,6 +512,8 @@ export default function Vendas() {
                 <td style={{ padding: "12px 16px", color: "#9ca3af", fontSize: 12 }}>{v.data_proposta ? new Date(v.data_proposta).toLocaleDateString("pt-BR") : "—"}</td>
                 <td style={{ padding: "12px 16px" }}>
                   <div style={{ display: "flex", gap: 6 }}>
+                    {/* 🆕 Visualizar — abre modal readonly com TODOS os campos da proposta */}
+                    <button onClick={() => setPropostaVisualizando(v)} title="Visualizar" style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>👁️</button>
                     <button onClick={() => abrirEditar(v)} title="Editar" style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>✏️</button>
                     {podeExcluir && (
                       <button onClick={() => excluir(v)} title="Excluir" style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>🗑️</button>
@@ -502,6 +535,137 @@ export default function Vendas() {
         <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: 0 }}>
           👤 Você só vê suas próprias propostas. Pra ver as da equipe, peça ao admin para habilitar a permissão <b>"Ver vendas da equipe"</b> no seu grupo.
         </p>
+      )}
+
+      {/* 🆕 ═══════════════════════════════════════════════════════════════
+          MODAL DE VISUALIZAÇÃO — readonly. Mostra TODA a proposta sem permitir edição.
+          ═══════════════════════════════════════════════════════════════
+          Útil pra:
+          - Conferir antes de editar (evita clicar em editar e errar campo)
+          - Conferir antes de excluir (evita excluir errado)
+          - Apresentar pro cliente sem risco de mudar nada acidentalmente
+          - Atendentes que não tem permissão de editar mas precisam ver detalhe */}
+      {propostaVisualizando && (
+        <div onClick={() => setPropostaVisualizando(null)}
+          style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: "#111", borderRadius: 12, width: "100%", maxWidth: 720, maxHeight: "90vh", overflowY: "auto", border: "1px solid #1f2937" }}>
+            {/* Header do modal */}
+            <div style={{ padding: 20, borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, background: "#111", zIndex: 1 }}>
+              <div>
+                <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>
+                  👁️ Detalhes da Proposta
+                </h2>
+                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
+                  {propostaVisualizando.nome} • #{propostaVisualizando.id}
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => { const p = propostaVisualizando; setPropostaVisualizando(null); abrirEditar(p); }}
+                  style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: "bold", cursor: "pointer" }}>
+                  ✏️ Editar
+                </button>
+                <button onClick={() => setPropostaVisualizando(null)}
+                  style={{ background: "#1f2937", color: "white", border: "1px solid #374151", borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer" }}>
+                  ✕ Fechar
+                </button>
+              </div>
+            </div>
+
+            {/* Conteúdo do modal — agrupado por seções */}
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Status + Valor + Vendedor (destaque no topo) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14, borderLeft: `3px solid ${statusColor[propostaVisualizando.status_venda] || "#6b7280"}` }}>
+                  <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Status</p>
+                  <p style={{ color: statusColor[propostaVisualizando.status_venda] || "white", fontSize: 14, margin: "4px 0 0", fontWeight: "bold" }}>{propostaVisualizando.status_venda || "—"}</p>
+                </div>
+                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14, borderLeft: "3px solid #16a34a" }}>
+                  <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Valor</p>
+                  <p style={{ color: "#16a34a", fontSize: 14, margin: "4px 0 0", fontWeight: "bold" }}>R$ {Number(propostaVisualizando.valor_plano || 0).toFixed(2).replace(".", ",")}</p>
+                </div>
+                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14, borderLeft: "3px solid #3b82f6" }}>
+                  <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Vendedor</p>
+                  <p style={{ color: "white", fontSize: 14, margin: "4px 0 0", fontWeight: "bold" }}>{nomeVendedor(propostaVisualizando.vendedor)}</p>
+                </div>
+                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14, borderLeft: "3px solid #8b5cf6" }}>
+                  <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Data Proposta</p>
+                  <p style={{ color: "white", fontSize: 14, margin: "4px 0 0", fontWeight: "bold" }}>{propostaVisualizando.data_proposta ? new Date(propostaVisualizando.data_proposta + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</p>
+                </div>
+              </div>
+
+              {/* Dados pessoais */}
+              <ViewSection titulo="👤 Dados Pessoais" campos={[
+                ["Nome", propostaVisualizando.nome],
+                ["CPF", propostaVisualizando.cpf],
+                ["RG", propostaVisualizando.rg],
+                ["Data de Nascimento", propostaVisualizando.data_nascimento ? new Date(propostaVisualizando.data_nascimento + "T00:00:00").toLocaleDateString("pt-BR") : ""],
+                ["Nome da Mãe", propostaVisualizando.nome_mae],
+                ["Email", propostaVisualizando.email],
+              ]} />
+
+              {/* Endereço */}
+              <ViewSection titulo="📍 Endereço" campos={[
+                ["Endereço", propostaVisualizando.endereco],
+                ["CEP", propostaVisualizando.cep],
+                ["Cidade", propostaVisualizando.cidade],
+                ["Estado", propostaVisualizando.estado],
+              ]} />
+
+              {/* Contatos */}
+              <ViewSection titulo="📞 Contatos" campos={[
+                ["Telefone 1", propostaVisualizando.telefone1],
+                ["Telefone 2", propostaVisualizando.telefone2],
+                ["Telefone 3", propostaVisualizando.telefone3],
+              ]} />
+
+              {/* Plano e pagamento */}
+              <ViewSection titulo="📦 Plano e Pagamento" campos={[
+                ["Operadora", propostaVisualizando.operadora],
+                ["Plano", propostaVisualizando.plano],
+                ["Valor", propostaVisualizando.valor_plano ? `R$ ${Number(propostaVisualizando.valor_plano).toFixed(2).replace(".", ",")}` : ""],
+                ["Vencimento", propostaVisualizando.vencimento],
+                ["Forma de Pagamento", propostaVisualizando.forma_pagamento],
+              ]} />
+
+              {/* Datas operacionais */}
+              <ViewSection titulo="📅 Datas Operacionais" campos={[
+                ["Agendamento", propostaVisualizando.data_agendamento ? new Date(propostaVisualizando.data_agendamento + "T00:00:00").toLocaleDateString("pt-BR") : ""],
+                ["Período de Instalação", propostaVisualizando.periodo_instalacao],
+                ["Instalação", propostaVisualizando.data_instalacao ? new Date(propostaVisualizando.data_instalacao + "T00:00:00").toLocaleDateString("pt-BR") : ""],
+                ["Cancelamento", propostaVisualizando.data_cancelamento ? new Date(propostaVisualizando.data_cancelamento + "T00:00:00").toLocaleDateString("pt-BR") : ""],
+                ["Cadastrada em", propostaVisualizando.created_at ? new Date(propostaVisualizando.created_at).toLocaleString("pt-BR") : ""],
+              ]} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 🆕 Componente auxiliar — renderiza uma seção do modal de visualização.
+// Mostra um título e uma grade de campos (label + valor). Se valor é vazio, mostra "—" em cinza.
+// Mantém visual consistente entre todas as seções (Dados pessoais, Endereço, etc).
+function ViewSection({ titulo, campos }: { titulo: string; campos: [string, any][] }) {
+  // Filtra campos que tem algum valor (mostra "—" só se TUDO da seção tá vazio)
+  const todosVazios = campos.every(([, v]) => !v);
+  return (
+    <div>
+      <h3 style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</h3>
+      {todosVazios ? (
+        <p style={{ color: "#6b7280", fontSize: 12, margin: 0, fontStyle: "italic" }}>Nenhuma informação cadastrada</p>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, background: "#0d0d0d", padding: 14, borderRadius: 8 }}>
+          {campos.map(([label, valor]) => (
+            <div key={label}>
+              <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase" }}>{label}</p>
+              <p style={{ color: valor ? "white" : "#6b7280", fontSize: 13, margin: "2px 0 0", wordBreak: "break-word" }}>
+                {valor || "—"}
+              </p>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
