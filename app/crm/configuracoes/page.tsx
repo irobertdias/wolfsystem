@@ -737,11 +737,110 @@ export default function Configuracoes() {
       </div>
       )}
 
+      {/* 🆕 CONFIGURAÇÕES GERAIS — tempo de bloqueio pós-finalização */}
+      {(isDono || isSuperAdmin || permissoes.configuracoes_workspace) && (
+        <ConfigGeraisWorkspace />
+      )}
+
       {/* 🚫 A seção Roleta foi REMOVIDA daqui. Agora ela fica no Chatbot → Configurações → Roleta de Distribuição */}
       <div style={{ background: "#3b82f611", border: "1px solid #3b82f633", borderRadius: 10, padding: 16 }}>
         <p style={{ color: "#3b82f6", fontSize: 13, margin: 0 }}>
           💡 <b>A Roleta de Distribuição</b> agora fica em <b>Chatbot → Configurações → Roleta</b>, já que está mais relacionada ao fluxo de atendimento do que à configuração do workspace.
         </p>
+      </div>
+    </div>
+  );
+}
+
+// 🆕 ═══════════════════════════════════════════════════════════════════════
+// COMPONENTE: ConfigGeraisWorkspace
+// ═══════════════════════════════════════════════════════════════════════
+// Card com configurações específicas do workspace que não cabem em outras seções.
+// Por enquanto: só o tempo de bloqueio pós-finalização (24h padrão).
+// Foi separado em componente próprio pra deixar o código do Configuracoes mais legível.
+function ConfigGeraisWorkspace() {
+  const { workspace, wsId } = useWorkspace();
+  const [horasBloqueio, setHorasBloqueio] = useState<number>(24);
+  const [salvando, setSalvando] = useState(false);
+  const [editado, setEditado] = useState(false);
+
+  useEffect(() => {
+    // Quando o workspace carregar, popula com o valor real do banco
+    if (workspace && (workspace as any).bloqueio_pos_finalizacao_horas !== undefined) {
+      const valor = (workspace as any).bloqueio_pos_finalizacao_horas;
+      setHorasBloqueio(valor === null ? 24 : valor);
+    }
+  }, [workspace]);
+
+  const salvar = async () => {
+    if (!wsId) return;
+    setSalvando(true);
+    const { error } = await supabase.from("workspaces")
+      .update({ bloqueio_pos_finalizacao_horas: horasBloqueio })
+      .eq("id", wsId);
+    setSalvando(false);
+    if (error) {
+      alert("❌ Erro ao salvar: " + error.message);
+    } else {
+      setEditado(false);
+      alert("✅ Configuração salva!");
+    }
+  };
+
+  return (
+    <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", padding: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <h2 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>⚙️ Configurações Gerais</h2>
+          <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>Comportamento do atendimento neste workspace</p>
+        </div>
+      </div>
+
+      <div style={{ background: "#0d1418", border: "1px solid #1f2937", borderRadius: 10, padding: 16 }}>
+        <label style={{ color: "white", fontSize: 13, fontWeight: "bold", display: "block", marginBottom: 4 }}>
+          🔒 Bloqueio pós-finalização (horas)
+        </label>
+        <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 12px", lineHeight: 1.4 }}>
+          Quando um atendente finaliza um chat, o cliente fica bloqueado de reabrir por essa quantidade de horas.
+          Mensagens dele nesse período são registradas mas o atendimento NÃO volta pra "Aguardando".
+          <br />
+          <b>0 = desativa o bloqueio</b> (cliente pode reabrir imediatamente após finalização).
+          <br />
+          <b>Recomendado: 24h.</b> Aplica só em finalização manual humana — fechamento por inatividade ou bot NÃO bloqueia.
+        </p>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <input
+            type="number"
+            min="0"
+            max="720"
+            value={horasBloqueio}
+            onChange={e => { setHorasBloqueio(Math.max(0, Math.min(720, parseInt(e.target.value) || 0))); setEditado(true); }}
+            style={{ background: "#1f2937", border: "1px solid #374151", color: "white", borderRadius: 8, padding: "10px 14px", fontSize: 14, width: 100 }}
+          />
+          <span style={{ color: "#9ca3af", fontSize: 12 }}>
+            {horasBloqueio === 0 ? "(desativado)" : horasBloqueio === 24 ? "(1 dia)" : horasBloqueio === 48 ? "(2 dias)" : horasBloqueio === 168 ? "(1 semana)" : `(${horasBloqueio}h)`}
+          </span>
+          <div style={{ flex: 1 }} />
+          {editado && (
+            <button onClick={salvar} disabled={salvando}
+              style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 13, fontWeight: "bold", cursor: salvando ? "wait" : "pointer" }}>
+              {salvando ? "Salvando..." : "💾 Salvar"}
+            </button>
+          )}
+        </div>
+        {/* Atalhos rápidos */}
+        <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
+          {[0, 12, 24, 48, 72, 168].map(h => (
+            <button key={h} type="button" onClick={() => { setHorasBloqueio(h); setEditado(true); }}
+              style={{
+                background: horasBloqueio === h ? "#3b82f6" : "#1f2937",
+                color: horasBloqueio === h ? "white" : "#9ca3af",
+                border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold",
+              }}>
+              {h === 0 ? "Off" : h < 24 ? `${h}h` : h === 24 ? "1d" : h === 48 ? "2d" : h === 72 ? "3d" : "1sem"}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
