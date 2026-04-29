@@ -1371,12 +1371,44 @@ export function ChatSection() {
   const handleArquivoSelecionado = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const MAX_MB = 25; // Limite Meta/WABA = 16MB pra imagem, 100MB pra doc. 25MB é seguro pra todos.
-    if (file.size > MAX_MB * 1024 * 1024) {
-      alert(`⚠️ Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Máximo ${MAX_MB}MB.`);
+
+    // 🆕 LIMITES REAIS DO WHATSAPP (Meta) — passar disso = WhatsApp rejeita silenciosamente
+    // Antes a gente tinha um limite genérico de 25MB, então o user achava que tava enviando
+    // mas o WhatsApp não entregava. Agora avisa NA HORA com mensagem clara e dica.
+    // Fonte: https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#supported-media-types
+    let limiteMB = 16; // padrão pra maioria
+    let tipoLabel = "arquivo";
+    let dica = "Reduza o tamanho ou envie pelo Google Drive/WeTransfer.";
+
+    if (file.type.startsWith("video/")) {
+      limiteMB = 16;
+      tipoLabel = "vídeo";
+      dica = "Comprima o vídeo (apps como Video Compressor) ou envie um link do YouTube/Drive.";
+    } else if (file.type.startsWith("image/")) {
+      limiteMB = 5;
+      tipoLabel = "imagem";
+      dica = "Reduza a resolução ou converta pra JPEG.";
+    } else if (file.type.startsWith("audio/")) {
+      limiteMB = 16;
+      tipoLabel = "áudio";
+      dica = "Áudio muito longo? Divida em partes ou envie como documento.";
+    } else {
+      // PDF/Word/Excel/etc — WhatsApp aceita até 100MB
+      limiteMB = 100;
+      tipoLabel = "documento";
+      dica = "Reduza o tamanho do arquivo ou envie pelo Google Drive.";
+    }
+
+    if (file.size > limiteMB * 1024 * 1024) {
+      const tamanhoMB = (file.size / 1024 / 1024).toFixed(1);
+      alert(`⚠️ ${tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1)} muito grande!\n\n` +
+        `Tamanho do seu arquivo: ${tamanhoMB} MB\n` +
+        `Limite do WhatsApp pra ${tipoLabel}: ${limiteMB} MB\n\n` +
+        `💡 ${dica}`);
       if (fileUploadRef.current) fileUploadRef.current.value = "";
       return;
     }
+
     setArquivoSelecionado(file);
     // Cria preview URL pra imagens/vídeos
     if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
