@@ -50,12 +50,36 @@ export function DashboardSection() {
     if (!wsId) return;
     if (!silencioso) setCarregando(true);
     try {
-      const [resAt, resCx, resFi, resUs] = await Promise.all([
-        supabase
-          .from("atendimentos")
-          .select("id, status, created_at, fila, canal_id, atendente")
-          .eq("workspace_id", wsId)
-          .order("created_at", { ascending: false }),
+      // 🆕 ATENDIMENTOS — paginação até 5000 (limite combinado com o ChatSection).
+      // Antes era query única, então o Supabase cortava em 1000 e o dashboard mostrava
+      // estatística incompleta (ex: workspace com 16k atendimentos mostrava só "1000 total").
+      // Agora pega 1000 em 1000 ordenado por created_at desc, até bater 5000 ou acabar.
+      const fetchAtendimentosPaginado = async (): Promise<Atendimento[]> => {
+        const PAGE_SIZE = 1000;
+        const TOTAL_LIMITE = 5000;
+        let lista: Atendimento[] = [];
+        let offset = 0;
+        while (offset < TOTAL_LIMITE) {
+          const { data: pagina, error } = await supabase
+            .from("atendimentos")
+            .select("id, status, created_at, fila, canal_id, atendente")
+            .eq("workspace_id", wsId)
+            .order("created_at", { ascending: false })
+            .range(offset, offset + PAGE_SIZE - 1);
+          if (error) {
+            console.error("Erro fetchAtendimentos paginado (Dashboard):", error);
+            break;
+          }
+          if (!pagina || pagina.length === 0) break;
+          lista = lista.concat(pagina as Atendimento[]);
+          if (pagina.length < PAGE_SIZE) break;
+          offset += PAGE_SIZE;
+        }
+        return lista;
+      };
+
+      const [listaAtendimentos, resCx, resFi, resUs] = await Promise.all([
+        fetchAtendimentosPaginado(),
         supabase
           .from("conexoes")
           .select("id, nome, tipo")
@@ -70,7 +94,7 @@ export function DashboardSection() {
           .select("email, nome")
           .eq("workspace_id", wsId),
       ]);
-      setAtendimentos((resAt.data as Atendimento[]) || []);
+      setAtendimentos(listaAtendimentos);
       setCanais((resCx.data as Canal[]) || []);
       setFilas((resFi.data as Fila[]) || []);
       const subs: UsuarioWs[] = (resUs.data as UsuarioWs[]) || [];
