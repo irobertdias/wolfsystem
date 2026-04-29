@@ -329,6 +329,13 @@ export function ChatSection() {
   const [diasAntiguidade, setDiasAntiguidade] = useState<1 | 2 | 3 | 7>(2);
   const [encerrandoAntigos, setEncerrandoAntigos] = useState(false);
 
+  // 🆕 Contagens reais vindas DO BANCO (não do array em memória).
+  // Por que: o array de atendimentos tem limite de 1000 do Supabase. Em workspaces
+  // com muito acúmulo (ex: 5000+ pendentes), o array só vê os 1000 mais recentes —
+  // e a função "contar antigos" filtrando esse array daria 0 mesmo tendo milhares
+  // antigos no banco. Esse state guarda a contagem REAL por antiguidade.
+  const [pendentesAntigosCount, setPendentesAntigosCount] = useState<{ [dias: number]: number }>({ 1: 0, 2: 0, 3: 0, 7: 0 });
+
   // 🆕 ═══════════════════════════════════════════════════════════════════════
   // TEMA CLARO/ESCURO — preferência salva em localStorage por usuário
   // ═══════════════════════════════════════════════════════════════════════
@@ -719,31 +726,45 @@ export function ChatSection() {
 
   // 🆕 Encerra em massa atendimentos pendentes/aguardando antigos.
   // - dias: corte de antiguidade (1, 2, 3 ou 7 dias)
-  // - critério: status=pendente E (updated_at é mais antigo que [hoje - X dias])
-  //   (se updated_at não existir, fallback pra created_at)
+  // - critério: status=pendente E updated_at antes de [hoje - X dias]
   // - ação: status=resolvido + mensagem do sistema "Encerrado por inatividade"
+  //
+  // ⚠️ IMPORTANTE: busca TODOS os candidatos no banco em paginação (1000 em 1000).
+  // Antes filtrava só o array em memória, mas como o array tá limitado a 1000, em
+  // workspaces grandes (RM TELECOM com 5000+ pendentes) o filtro nem via os antigos.
+  // Agora busca direto do banco com .lt("updated_at", corte) e pagina até trazer tudo.
   const encerrarAtendimentosAntigos = async (dias: 1 | 2 | 3 | 7) => {
     if (!wsId) return;
     setEncerrandoAntigos(true);
     try {
       const corteDate = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
 
-      // 1) Busca os candidatos pra confirmar count e ter os dados pra inserir mensagens
-      // Filtro: workspace_id + status pendente + updated_at OR created_at antes do corte
-      const { data: candidatos, error: errBusca } = await supabase
-        .from("atendimentos")
-        .select("id, numero, canal_id, updated_at, created_at, status, atendente")
-        .eq("workspace_id", wsId)
-        .eq("status", "pendente");
-
-      if (errBusca) throw errBusca;
-
-      // Filtro client-side: usa updated_at se existir, senão created_at
-      const alvos = (candidatos || []).filter(a => {
-        const dataRef = a.updated_at || a.created_at;
-        if (!dataRef) return false;
-        return new Date(dataRef).toISOString() < corteDate;
-      });
+      // 1) Busca TODOS os candidatos paginando (1000 em 1000) — sem isso, em workspaces grandes
+      //    o Supabase corta na primeira query e a gente só limpa parte.
+      const PAGE_SIZE = 1000;
+      let alvos: Array<{ id: number; numero: string; canal_id: number | null }> = [];
+      let offset = 0;
+      let temMais = true;
+      let iter = 0;
+      while (temMais && iter < 50) { // safety: máx 50.000 atendimentos por chamada
+        iter++;
+        const { data: lote, error } = await supabase
+          .from("atendimentos")
+          .select("id, numero, canal_id")
+          .eq("workspace_id", wsId)
+          .eq("status", "pendente")
+          .lt("updated_at", corteDate)
+          .order("id", { ascending: true })
+          .range(offset, offset + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!lote || lote.length === 0) {
+          temMais = false;
+        } else {
+          alvos = alvos.concat(lote as any);
+          if (lote.length < PAGE_SIZE) temMais = false;
+          else offset += PAGE_SIZE;
+        }
+      }
 
       if (alvos.length === 0) {
         alert(`✅ Nenhum atendimento pendente com mais de ${dias} dia(s) sem interação.`);
@@ -779,10 +800,15 @@ export function ChatSection() {
 
       // 4) Finaliza sessões de fluxo se existirem
       try {
-        await supabase.from("fluxo_sessoes").update({ status: "finalizado" })
-          .in("numero", alvos.map(a => a.numero))
-          .eq("workspace_id", wsId)
-          .eq("status", "ativo");
+        // Pra evitar query gigante, processa em lotes
+        const numeros = alvos.map(a => a.numero);
+        for (let i = 0; i < numeros.length; i += LOTE) {
+          const lote = numeros.slice(i, i + LOTE);
+          await supabase.from("fluxo_sessoes").update({ status: "finalizado" })
+            .in("numero", lote)
+            .eq("workspace_id", wsId)
+            .eq("status", "ativo");
+        }
       } catch (e) { /* ignora — pode não ter sessões */ }
 
       alert(`✅ ${alvos.length} atendimento(s) encerrado(s) por inatividade!`);
@@ -795,16 +821,40 @@ export function ChatSection() {
     setEncerrandoAntigos(false);
   };
 
-  // 🆕 Quantos pendentes existem com mais de N dias (calculado em memória pra preview no modal)
+  // 🆕 Quantos pendentes existem com mais de N dias — usa o state alimentado pelo banco.
+  // O state é atualizado pelo useEffect abaixo via query count: "exact" do Supabase.
   const contarPendentesAntigos = (dias: 1 | 2 | 3 | 7): number => {
-    const corte = Date.now() - dias * 24 * 60 * 60 * 1000;
-    return atendimentos.filter(a => {
-      if (a.status !== "pendente") return false;
-      const dataRef = a.updated_at || a.created_at;
-      if (!dataRef) return false;
-      return new Date(dataRef).getTime() < corte;
-    }).length;
+    return pendentesAntigosCount[dias] || 0;
   };
+
+  // 🆕 useEffect — busca contagens REAIS do banco (não limitado a 1000)
+  // Roda: ao montar, ao mudar de workspace, e a cada vez que atendimentos é atualizado
+  // (depois de encerrar antigos, depois de fetchAtendimentos, etc).
+  useEffect(() => {
+    if (!wsId) return;
+    let cancelado = false;
+
+    const carregarCounts = async () => {
+      const novosCounts: { [dias: number]: number } = {};
+      // Faz uma query count pra cada antiguidade (4 queries, todas leves porque count: exact + head)
+      for (const dias of [1, 2, 3, 7]) {
+        const corte = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
+        const { count } = await supabase
+          .from("atendimentos")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", wsId)
+          .eq("status", "pendente")
+          .lt("updated_at", corte);
+        if (cancelado) return;
+        novosCounts[dias] = count || 0;
+      }
+      if (!cancelado) setPendentesAntigosCount(novosCounts);
+    };
+
+    carregarCounts();
+
+    return () => { cancelado = true; };
+  }, [wsId, atendimentos.length]); // recarrega quando a lista muda (após limpeza, novo lead, etc)
 
   useEffect(() => {
     if (!wsId) return;
