@@ -60,10 +60,29 @@ export default function Vendas() {
   };
 
   const fetchPropostas = async (wsId: string) => {
-    const { data } = await supabase.from("proposta").select("*")
-      .eq("workspace_id", wsId)
-      .order("created_at", { ascending: false });
-    setPropostas(data || []);
+    // 🆕 PAGINAÇÃO ATÉ 10.000 PROPOSTAS — vendas são dado crítico, mantém histórico completo.
+    // Antes era query única → Supabase cortava em 1000 e workspaces com muitas vendas perdiam
+    // visibilidade do histórico (importante pros últimos 6 meses pelo menos).
+    // Limite alto de 10k garante histórico longo. SEM auto-limpeza — nunca mexe no banco.
+    const PAGE_SIZE = 1000;
+    const TOTAL_LIMITE = 10000;
+    let lista: any[] = [];
+    let offset = 0;
+    while (offset < TOTAL_LIMITE) {
+      const { data: pagina, error } = await supabase.from("proposta").select("*")
+        .eq("workspace_id", wsId)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) {
+        console.error("Erro fetchPropostas paginado:", error);
+        break;
+      }
+      if (!pagina || pagina.length === 0) break;
+      lista = lista.concat(pagina);
+      if (pagina.length < PAGE_SIZE) break; // chegou no fim
+      offset += PAGE_SIZE;
+    }
+    setPropostas(lista);
   };
 
   const fetchUsuariosWs = async (wsId: string, wsData?: any) => {
