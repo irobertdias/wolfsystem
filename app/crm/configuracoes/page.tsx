@@ -105,7 +105,7 @@ const LABELS_MAP: Record<string, string> = TODAS_PERMISSOES.reduce((acc, p) => {
 
 export default function Configuracoes() {
   const router = useRouter();
-  const { isDono } = usePermissao();
+  const { isDono, isSuperAdmin, permissoes } = usePermissao();
   const [workspaceId, setWorkspaceId] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [autorizado, setAutorizado] = useState(false);
@@ -221,6 +221,11 @@ export default function Configuracoes() {
   };
 
   const excluirUsuario = async (u: Usuario) => {
+    // 🔒 PERMISSÃO: dono/super-admin sempre podem; outros precisam de usuarios_gerenciar
+    if (!isDono && !isSuperAdmin && !permissoes.usuarios_gerenciar) {
+      alert("❌ Você não tem permissão para excluir usuários.");
+      return;
+    }
     if (!confirm(`Excluir ${u.nome}? Isso vai apagar o login dele também.`)) return;
     const token = await getToken();
     if (!token) { alert("Sessão expirou."); return; }
@@ -238,6 +243,11 @@ export default function Configuracoes() {
   };
 
   const salvarUsuario = async () => {
+    // 🔒 PERMISSÃO: dono/super-admin sempre podem; outros precisam de usuarios_gerenciar
+    if (!isDono && !isSuperAdmin && !permissoes.usuarios_gerenciar) {
+      alert("❌ Você não tem permissão para gerenciar usuários.");
+      return;
+    }
     if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; }
     setSalvandoUsuario(true);
     try {
@@ -278,6 +288,11 @@ export default function Configuracoes() {
   };
 
   const salvarFila = async () => {
+    // 🔒 PERMISSÃO
+    if (!isDono && !isSuperAdmin && !permissoes.filas) {
+      alert("❌ Você não tem permissão para gerenciar filas.");
+      return;
+    }
     if (!formFila.nome.trim()) { alert("Digite o nome da fila!"); return; }
     setSalvandoFila(true);
     try {
@@ -296,6 +311,11 @@ export default function Configuracoes() {
   };
 
   const excluirFila = async (f: Fila) => {
+    // 🔒 PERMISSÃO
+    if (!isDono && !isSuperAdmin && !permissoes.filas) {
+      alert("❌ Você não tem permissão para excluir filas.");
+      return;
+    }
     if (!confirm(`Excluir a fila "${f.nome}"?`)) return;
     if (!workspaceId) { alert("Workspace não carregado."); return; }
     // 🔒 MULTI-TENANT CRÍTICO: confere workspace_id no WHERE.
@@ -319,6 +339,11 @@ export default function Configuracoes() {
   };
 
   const salvarGrupo = async () => {
+    // 🔒 PERMISSÃO — auto-promoção é o risco maior aqui
+    if (!isDono && !isSuperAdmin && !permissoes.grupos_permissao) {
+      alert("❌ Você não tem permissão para gerenciar grupos de permissão.");
+      return;
+    }
     if (!formGrupo.nome) { alert("Digite o nome do grupo!"); return; }
     if (!workspaceId) { alert("Workspace não carregado."); return; }
     if (editandoGrupo) {
@@ -346,6 +371,11 @@ export default function Configuracoes() {
   };
 
   const excluirGrupo = async (id: number) => {
+    // 🔒 PERMISSÃO
+    if (!isDono && !isSuperAdmin && !permissoes.grupos_permissao) {
+      alert("❌ Você não tem permissão para excluir grupos de permissão.");
+      return;
+    }
     if (!confirm("Excluir este grupo?")) return;
     if (!workspaceId) { alert("Workspace não carregado."); return; }
     // 🔒 MULTI-TENANT CRÍTICO: confere workspace_id no WHERE.
@@ -368,7 +398,16 @@ export default function Configuracoes() {
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
       <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>⚙️ Configurações do Workspace</h1>
 
-      {/* USUÁRIOS */}
+      {/* 🔒 Fallback — usuário entrou na página mas não tem permissão pra NENHUMA seção */}
+      {!isDono && !isSuperAdmin && !permissoes.usuarios_gerenciar && !permissoes.filas && !permissoes.grupos_permissao && !permissoes.configuracoes_workspace && (
+        <div style={{ background: "#dc262611", border: "1px solid #dc262633", borderRadius: 10, padding: 24, textAlign: "center" }}>
+          <p style={{ color: "#dc2626", fontSize: 15, fontWeight: "bold", margin: 0 }}>🔒 Acesso restrito</p>
+          <p style={{ color: "#9ca3af", fontSize: 13, margin: "8px 0 0" }}>Você não tem permissão para acessar as configurações do workspace. Entre em contato com o administrador.</p>
+        </div>
+      )}
+
+      {/* USUÁRIOS — só aparece pra quem tem permissão usuarios_gerenciar */}
+      {(isDono || isSuperAdmin || permissoes.usuarios_gerenciar) && (
       <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
         <div style={{ padding: "16px 24px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
@@ -558,8 +597,10 @@ export default function Configuracoes() {
           </table>
         )}
       </div>
+      )}
 
-      {/* FILAS */}
+      {/* FILAS — só aparece pra quem tem permissão filas */}
+      {(isDono || isSuperAdmin || permissoes.filas) && (
       <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
         <div style={{ padding: "16px 24px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
@@ -597,8 +638,10 @@ export default function Configuracoes() {
           </table>
         )}
       </div>
+      )}
 
-      {/* GRUPOS DE PERMISSÃO — agora com 30 permissões em 8 categorias */}
+      {/* GRUPOS DE PERMISSÃO — só aparece pra quem tem permissão grupos_permissao */}
+      {(isDono || isSuperAdmin || permissoes.grupos_permissao) && (
       <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
         <div style={{ padding: "16px 24px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
@@ -692,6 +735,7 @@ export default function Configuracoes() {
           </div>
         )}
       </div>
+      )}
 
       {/* 🚫 A seção Roleta foi REMOVIDA daqui. Agora ela fica no Chatbot → Configurações → Roleta de Distribuição */}
       <div style={{ background: "#3b82f611", border: "1px solid #3b82f633", borderRadius: 10, padding: 16 }}>

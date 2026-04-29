@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { usePermissao } from "../../hooks/usePermissao";
 
 type Proposta = {
   id: number; created_at: string; nome: string; vendedor: string;
@@ -10,6 +11,9 @@ type Proposta = {
 
 export default function Funil() {
   const router = useRouter();
+  // 🔒 PERMISSÃO funil — antes era 0 usos no código (decorativa)
+  // Agora bloqueia abrir a tela inteira pra quem não tem
+  const { isDono, isSuperAdmin, permissoes } = usePermissao();
   const [filtro, setFiltro] = useState("diario");
   const [propostas, setPropostas] = useState<Proposta[]>([]);
 
@@ -42,6 +46,19 @@ export default function Funil() {
   const totalGeradas = pf.filter(p => p.status_venda === "GERADA").length;
   const totalCanceladas = pf.filter(p => p.status_venda === "CANCELADA").length;
   const totalPendentes = pf.filter(p => p.status_venda === "PENDENTE").length;
+
+  // 🔒 Sem permissão pra ver funil — mostra acesso restrito
+  if (!isDono && !isSuperAdmin && !permissoes.funil) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", padding: 32 }}>
+        <div style={{ background: "#dc262611", border: "1px solid #dc262633", borderRadius: 12, padding: 40, textAlign: "center", maxWidth: 480 }}>
+          <p style={{ fontSize: 56, margin: "0 0 16px" }}>🔒</p>
+          <h1 style={{ color: "#dc2626", fontSize: 18, fontWeight: "bold", margin: "0 0 8px" }}>Acesso restrito</h1>
+          <p style={{ color: "#9ca3af", fontSize: 13, margin: 0 }}>Você não tem permissão para ver o Funil de Vendas.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

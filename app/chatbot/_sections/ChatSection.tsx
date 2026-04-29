@@ -1535,6 +1535,11 @@ export function ChatSection() {
     setAbaConversa("abertos");
   };
   const finalizarChat = async (numero: string, canalId?: number) => {
+    // 🔒 PERMISSÃO
+    if (!isDono && !permissoes.finalizar_chat) {
+      alert("❌ Você não tem permissão para finalizar atendimentos.");
+      return;
+    }
     await wa("finalizar", { numero, canalId, workspaceId: wsId });
     await inserirMensagemSistema(numero, `Chat finalizado por: ${meuNome}`, canalId);
     fetchAtendimentos();
@@ -1585,6 +1590,11 @@ export function ChatSection() {
   };
   const transferirParaFila = async (fila: string) => {
     if (!atendimentoAtivo) return;
+    // 🔒 PERMISSÃO
+    if (!isDono && !permissoes.transferir_chat) {
+      alert("❌ Você não tem permissão para transferir conversas.");
+      return;
+    }
     try {
       await supabase.from("atendimentos").update({ fila }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
       await inserirMensagemSistema(atendimentoAtivo.numero, `Chat transferido para fila: ${fila}, por: ${meuNome}`, atendimentoAtivo.canal_id);
@@ -1599,6 +1609,11 @@ export function ChatSection() {
   const transferirParaAtendente = async (emailDestino: string, nomeDestino: string) => {
     if (!atendimentoAtivo) return;
     if (!emailDestino) { alert("Atendente sem email válido."); return; }
+    // 🔒 PERMISSÃO
+    if (!isDono && !permissoes.transferir_chat) {
+      alert("❌ Você não tem permissão para transferir conversas.");
+      return;
+    }
     try {
       await supabase.from("atendimentos").update({
         atendente: emailDestino,
@@ -2086,10 +2101,12 @@ export function ChatSection() {
                       );
                     })()}
 
-                    {/* ↗️ Encaminhar (fila ou atendente) */}
-                    <button onClick={() => setShowTransferir(!showTransferir)}
-                      title="Encaminhar para fila ou atendente"
-                      style={{ ...botaoToolbar(showTransferir ? "#00a884" : "#aebac1"), background: showTransferir ? "#00a88422" : "none" }}>↗️</button>
+                    {/* ↗️ Encaminhar (fila ou atendente) — só pra quem tem permissão transferir_chat */}
+                    {(isDono || permissoes.transferir_chat) && (
+                      <button onClick={() => setShowTransferir(!showTransferir)}
+                        title="Encaminhar para fila ou atendente"
+                        style={{ ...botaoToolbar(showTransferir ? "#00a884" : "#aebac1"), background: showTransferir ? "#00a88422" : "none" }}>↗️</button>
+                    )}
 
                     {/* 💰 FINALIZAR VENDA — destaque */}
                     {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
@@ -2118,15 +2135,17 @@ export function ChatSection() {
                       </button>
                     )}
 
-                    {/* ✓ Finalizar atendimento */}
-                    <button
-                      onClick={() => {
-                        if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`))
-                          finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
-                      }}
-                      title="Finalizar atendimento"
-                      style={{ ...botaoToolbar("#dc2626"), fontSize: 18, fontWeight: "bold" }}
-                    >✓</button>
+                    {/* ✓ Finalizar atendimento — só pra quem tem permissão finalizar_chat */}
+                    {(isDono || permissoes.finalizar_chat) && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`))
+                            finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
+                        }}
+                        title="Finalizar atendimento"
+                        style={{ ...botaoToolbar("#dc2626"), fontSize: 18, fontWeight: "bold" }}
+                      >✓</button>
+                    )}
                   </>
                 )}
 

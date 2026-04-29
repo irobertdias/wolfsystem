@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { usePermissao } from "../../hooks/usePermissao";
 
 type Etiqueta = {
   id: number;
@@ -29,6 +30,9 @@ const EMOJIS_COMUNS = [
 
 export function EtiquetasSection() {
   const { wsId, wsPronto } = useWorkspace();
+  // 🔒 PERMISSÃO etiquetas — antes só checava na ABA do menu, mas dentro da tela qualquer um podia
+  // criar/excluir. Agora bloqueia também as funções (defesa em profundidade).
+  const { isDono, isSuperAdmin, permissoes } = usePermissao();
   const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -83,6 +87,11 @@ export function EtiquetasSection() {
 
   // ═══ Salvar (criar ou atualizar) ═══
   const salvar = async () => {
+    // 🔒 PERMISSÃO
+    if (!isDono && !isSuperAdmin && !permissoes.etiquetas) {
+      alert("❌ Você não tem permissão para gerenciar etiquetas.");
+      return;
+    }
     if (!form.nome.trim()) { alert("Digite o nome da etiqueta!"); return; }
     if (!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
     setSalvando(true);
@@ -112,6 +121,11 @@ export function EtiquetasSection() {
 
   // ═══ Excluir ═══
   const excluir = async (e: Etiqueta) => {
+    // 🔒 PERMISSÃO
+    if (!isDono && !isSuperAdmin && !permissoes.etiquetas) {
+      alert("❌ Você não tem permissão para excluir etiquetas.");
+      return;
+    }
     if (!confirm(`Excluir a etiqueta "${e.nome}"?\n\nEla será removida de todos os atendimentos que a usavam.`)) return;
     if (!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
     try {

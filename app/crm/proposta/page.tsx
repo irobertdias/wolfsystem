@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { usePermissao } from "../../hooks/usePermissao";
 
 type UsuarioWs = { email: string; nome: string; };
 
@@ -10,6 +11,7 @@ function PropostaForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { workspace } = useWorkspace();
+  const { isDono, isSuperAdmin, permissoes } = usePermissao();
   const [loading, setLoading] = useState(false);
 
   // 🆕 Estados novos pra dropdown de vendedor
@@ -102,6 +104,11 @@ function PropostaForm() {
   }, [workspace]);
 
   const handleSubmit = async () => {
+    // 🔒 PERMISSÃO: dono/super-admin sempre podem; outros precisam de proposta_criar
+    if (!isDono && !isSuperAdmin && !permissoes.proposta_criar) {
+      alert("❌ Você não tem permissão para criar propostas.");
+      return;
+    }
     if (!form.nome || !form.cpf || !form.telefone1) {
       alert("Preencha pelo menos Nome, CPF e Telefone 1!");
       return;
@@ -215,6 +222,20 @@ function PropostaForm() {
       />
     );
   };
+
+  // 🔒 Sem permissão pra criar proposta — mostra tela de acesso restrito (defesa em profundidade — handleSubmit já bloqueia)
+  if (!isDono && !isSuperAdmin && !permissoes.proposta_criar) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0a0a0a", fontFamily: "Arial, sans-serif", padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: "#dc262611", border: "1px solid #dc262633", borderRadius: 12, padding: 40, textAlign: "center", maxWidth: 480 }}>
+          <p style={{ fontSize: 56, margin: "0 0 16px" }}>🔒</p>
+          <h1 style={{ color: "#dc2626", fontSize: 18, fontWeight: "bold", margin: "0 0 8px" }}>Acesso restrito</h1>
+          <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 20px" }}>Você não tem permissão para criar propostas. Entre em contato com o administrador do workspace.</p>
+          <button onClick={() => router.back()} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, fontWeight: "bold", cursor: "pointer" }}>← Voltar</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0a", fontFamily: "Arial, sans-serif", padding: 32 }}>
