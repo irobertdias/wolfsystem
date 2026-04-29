@@ -506,7 +506,13 @@ export function DashboardSection() {
   })();
 
   return (
-    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, height: "100vh", overflowY: "auto", boxSizing: "border-box" }}>
+    <div style={{ padding: 32, height: "100vh", overflowY: "auto", boxSizing: "border-box" }}>
+      {/* 🆕 Container raiz mudou de flex pra block + display flex em wrapper interno.
+          Por que: com flex column + height: 100vh, filhos com muito conteúdo eram
+          COMPRIMIDOS pelo flex-shrink: 1 default → conteúdo vazava visualmente em cima
+          do bloco seguinte (ex: barras do "Por Atendente" sobrepondo "Desempenho por Canal").
+          Agora cada filho ocupa altura real do conteúdo dele e não há shrink. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* 🆕 CSS de animação spin pro botão atualizar */}
       <style>{`
         @keyframes spin-icon {
@@ -966,6 +972,10 @@ export function DashboardSection() {
           padding: 20,
           border: "1px solid #1f2937",
           minHeight: 140,
+          // 🆕 Fix de vazamento visual: garante que conteúdo não escape do card
+          // (antes algumas barras coloridas estavam atravessando o título do bloco seguinte)
+          overflow: "hidden",
+          flexShrink: 0,
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
@@ -1388,6 +1398,7 @@ export function DashboardSection() {
             );
           })()}
         </div>
+      </div>
       </div>
     </div>
   );
