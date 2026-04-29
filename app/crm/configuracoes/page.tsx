@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
+import { useWorkspace } from "../../hooks/useWorkspace";
 
 const ADMIN_EMAIL = "robert.dias@live.com";
 
