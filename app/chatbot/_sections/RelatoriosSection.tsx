@@ -40,30 +40,65 @@ export function RelatoriosSection() {
   const IS = { background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, width: "100%", boxSizing: "border-box" as const };
 
   // ═══ Carrega atendimentos + etiquetas ═══
+  // 🆕 Estado pra avisar usuário se atingiu o limite (truncamento do relatório)
+  const [truncado, setTruncado] = useState(false);
+
   useEffect(() => {
     if (!wsId) return;
     const fetchTudo = async () => {
-      const [resAtend, resEtiq, resRelacoes] = await Promise.all([
-        supabase.from("atendimentos").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false }),
+      // 🆕 PAGINAÇÃO ATÉ 20.000 — relatórios precisam de histórico longo (análise mensal/trimestral).
+      // Antes era query única, então Supabase cortava em 1000 e o Excel saía MUITO incompleto
+      // (ex: cliente com 8.000 leads exportava só 1.000 e tomava decisão errada).
+      // Limite de 20k cobre relatório anual de ~55 leads/dia útil.
+      // Se passar disso, mostra aviso de truncamento — user pode filtrar por período pra refinar.
+      const PAGE_SIZE = 1000;
+      const TOTAL_LIMITE = 20000;
+      const fetchAtendimentosPaginado = async (): Promise<Atendimento[]> => {
+        let lista: Atendimento[] = [];
+        let offset = 0;
+        while (offset < TOTAL_LIMITE) {
+          const { data: pagina, error } = await supabase.from("atendimentos")
+            .select("*")
+            .eq("workspace_id", wsId)
+            .order("created_at", { ascending: false })
+            .range(offset, offset + PAGE_SIZE - 1);
+          if (error) {
+            console.error("Erro fetchAtendimentos paginado (Relatórios):", error);
+            break;
+          }
+          if (!pagina || pagina.length === 0) break;
+          lista = lista.concat(pagina as Atendimento[]);
+          if (pagina.length < PAGE_SIZE) break; // chegou no fim
+          offset += PAGE_SIZE;
+        }
+        return lista;
+      };
+
+      const [atends, resEtiq] = await Promise.all([
+        fetchAtendimentosPaginado(),
         supabase.from("etiquetas").select("*").eq("workspace_id", wsId),
-        // Só pega relações dos atendimentos deste workspace — buscamos depois de ter os ids
-        Promise.resolve({ data: null }),
       ]);
-      const atends = resAtend.data || [];
       setAtendimentos(atends);
       setEtiquetas(resEtiq.data || []);
+      // 🆕 Detecta se atingiu o limite (truncado = pode haver mais no banco)
+      setTruncado(atends.length >= TOTAL_LIMITE);
 
       // Agora pega as relações atendimento_etiquetas baseado nos ids
+      // 🔒 PAGINAÇÃO: .in() com muitos ids estoura — divide em lotes de 500
       if (atends.length > 0) {
         const ids = atends.map(a => a.id);
-        const { data: relacoes } = await supabase.from("atendimento_etiquetas")
-          .select("atendimento_id, etiqueta_id")
-          .in("atendimento_id", ids);
+        const LOTE_IN = 500;
         const mapa: Record<number, number[]> = {};
-        (relacoes || []).forEach(r => {
-          if (!mapa[r.atendimento_id]) mapa[r.atendimento_id] = [];
-          mapa[r.atendimento_id].push(r.etiqueta_id);
-        });
+        for (let i = 0; i < ids.length; i += LOTE_IN) {
+          const lote = ids.slice(i, i + LOTE_IN);
+          const { data: relacoes } = await supabase.from("atendimento_etiquetas")
+            .select("atendimento_id, etiqueta_id")
+            .in("atendimento_id", lote);
+          (relacoes || []).forEach(r => {
+            if (!mapa[r.atendimento_id]) mapa[r.atendimento_id] = [];
+            mapa[r.atendimento_id].push(r.etiqueta_id);
+          });
+        }
         setEtiquetasPorAtend(mapa);
       }
     };
@@ -192,6 +227,20 @@ export function RelatoriosSection() {
       <div>
         <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>📈 Relatórios</h1>
         <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>Filtre e exporte seus atendimentos em Excel</p>
+        {/* 🆕 Aviso de truncamento — quando o workspace tem mais de 20.000 atendimentos no histórico */}
+        {truncado && (
+          <div style={{ background: "#f59e0b22", border: "1px solid #f59e0b66", borderRadius: 8, padding: "10px 14px", marginTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 18 }}>⚠️</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: "#f59e0b", fontSize: 13, fontWeight: "bold", margin: 0 }}>
+                Mostrando os 20.000 atendimentos mais recentes
+              </p>
+              <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0", lineHeight: 1.4 }}>
+                Seu workspace tem mais que isso no histórico. Pra análise de períodos antigos, use o filtro <b>Personalizado</b> com data específica e exporte em fatias.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* FILTROS */}
