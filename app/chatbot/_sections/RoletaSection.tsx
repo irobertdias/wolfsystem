@@ -202,7 +202,8 @@ export function RoletaSection() {
                     <div style={{ flex: 1 }}>
                       <p style={{ color: "white", fontSize: 13, margin: 0, fontWeight: "bold" }}>{u.nome}</p>
                       <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
-                        {u.email} • {u.perfil}{u.fila ? ` • Fila: ${u.fila}` : ""}
+                        {/* 🆕 Multi-fila — exibe lista de filas do atendente (separadas por vírgula no campo) */}
+                        {u.email} • {u.perfil}{u.fila ? ` • Fila${u.fila.includes(",") ? "s" : ""}: ${u.fila.split(",").map(s => s.trim()).filter(Boolean).join(", ")}` : ""}
                       </p>
                     </div>
                   </label>

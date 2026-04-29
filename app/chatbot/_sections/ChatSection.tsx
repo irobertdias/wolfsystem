@@ -19,7 +19,7 @@ type Atendimento = {
 };
 type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; canal_id?: number; };
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
-type UsuarioWs = { email: string; nome: string; };
+type UsuarioWs = { email: string; nome: string; fila?: string | null; };
 type CanalInfo = { id: number; nome: string; tipo: string; };
 
 const WA_BG_DARK = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200' opacity='0.04'><g fill='%23ffffff'><path d='M40 40 l10 0 l0 10 l-10 0 z'/><circle cx='70' cy='75' r='4'/><path d='M110 35 l15 -5 l5 15 l-15 5 z' opacity='0.6'/><circle cx='150' cy='55' r='3'/><path d='M30 110 l8 8 l-8 8 l-8 -8 z'/><circle cx='80' cy='135' r='5'/><path d='M130 115 l10 0 l-5 10 z' opacity='0.7'/><circle cx='165' cy='150' r='4'/><path d='M50 170 l12 0 l-6 12 z'/><circle cx='100' cy='180' r='3'/></g></svg>")`;
@@ -778,7 +778,9 @@ export function ChatSection() {
   const fetchUsuariosWorkspace = async () => {
     if (!wsId) return;
     const subs: UsuarioWs[] = [];
-    const { data } = await supabase.from("usuarios_workspace").select("email, nome").eq("workspace_id", wsId);
+    // 🆕 Traz fila também — necessário pra regra de visibilidade multi-fila funcionar.
+    // Frontend filtra atendimento por: usuario.fila contém a fila do atendimento (CSV).
+    const { data } = await supabase.from("usuarios_workspace").select("email, nome, fila").eq("workspace_id", wsId);
     if (data) subs.push(...data);
     if (workspace?.owner_email) { subs.push({ email: workspace.owner_email, nome: workspace.nome || "Dono" }); }
     setUsuariosWs(subs);
@@ -1182,15 +1184,64 @@ export function ChatSection() {
     return "abertos";
   };
 
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // VISIBILIDADE ESTRITA POR FILA — atendente comum só vê atendimentos das filas dele
+  // ═══════════════════════════════════════════════════════════════════════
+  // Antes: aba "Aguardando" / "Automático" mostrava TODOS os pendentes — atendente da
+  // fila SKY via leads da fila FLIX e podia pegar (caos operacional).
+  //
+  // Agora: usuário em FILA1,FILA2 só vê atendimentos dessas filas em TODAS as abas.
+  // Quem tem permissão "chat_todos" (dono/supervisor/grupos personalizados com flag)
+  // mantém visão geral.
+  //
+  // Edge cases tratados:
+  // - Atendimento SEM fila → todos veem (não é fluxo principal, leads recém-chegados
+  //   sem classificar pelo bot; melhor ficar visível do que sumir)
+  // - Usuário SEM fila configurada → vê tudo (compatibilidade com configurações antigas
+  //   que não tinham campo fila preenchido — não quero quebrar workspaces existentes)
+  // - Usuário com 1 fila ("FLIX") → funciona igual antes (retrocompatível com formato antigo)
+  // - Usuário com N filas ("FLIX,SKY,POSPAGO") → vê atendimentos de qualquer uma das 3
+  const minhasFilas = (() => {
+    if (!user?.email) return [];
+    const meu = usuariosWs.find(u => u.email?.toLowerCase() === user.email?.toLowerCase());
+    if (!meu?.fila) return [];
+    return meu.fila.split(",").map(f => f.trim()).filter(Boolean);
+  })();
+
+  // Verifica se a fila do atendimento bate com alguma fila do usuário
+  const minhaFilaAtende = (filaAtendimento: string | null | undefined): boolean => {
+    // Atendimento sem fila → todos veem (lead novo sem classificação ainda)
+    if (!filaAtendimento) return true;
+    // Usuário sem fila configurada → vê tudo (compatibilidade com configs antigas)
+    if (minhasFilas.length === 0) return true;
+    // Caso normal: chega aqui se atendente tem fila E atendimento tem fila
+    return minhasFilas.includes(filaAtendimento);
+  };
+
   const podeVerAtendimento = (a: Atendimento, aba: string): boolean => {
+    // Quem tem chat_todos (dono/supervisor/permissão elevada) vê tudo, em qualquer aba
+    if (podeVerTudo) {
+      // Exceção: aba finalizados pra quem é dono/supervisor — toggle de "ver só os meus"
+      if (aba === "finalizados" && !mostrarTodosFinalizados) {
+        return a.atendente === user?.email;
+      }
+      return true;
+    }
+
+    // Atendente comum — REGRA ESTRITA POR FILA aplicada em TODAS as abas
+    // (automático, aguardando, abertos, finalizados)
+    if (!minhaFilaAtende(a.fila)) return false;
+
+    // Filtros adicionais por aba
     if (aba === "abertos") {
-      if (podeVerTudo) return true;
+      // Aberto = atribuído a alguém. Atendente comum só vê os DELE.
       return a.atendente === user?.email;
     }
     if (aba === "finalizados") {
-      if (podeVerTudo && mostrarTodosFinalizados) return true;
+      // Finalizado = só os que ele finalizou (não vê de outros, mesmo da mesma fila)
       return a.atendente === user?.email;
     }
+    // Automático / Aguardando: já passou no filtro de fila, libera
     return true;
   };
 

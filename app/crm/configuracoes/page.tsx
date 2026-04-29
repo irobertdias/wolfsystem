@@ -117,6 +117,8 @@ export default function Configuracoes() {
   const [showFormFila, setShowFormFila] = useState(false);
   const [showFormGrupo, setShowFormGrupo] = useState(false);
   const [showSenha, setShowSenha] = useState(false);
+  // 🆕 Controla abertura do dropdown de filas (multi-select)
+  const [showDropdownFilas, setShowDropdownFilas] = useState(false);
   const [editandoUsuario, setEditandoUsuario] = useState<Usuario | null>(null);
   const [editandoGrupo, setEditandoGrupo] = useState<GrupoPermissao | null>(null);
   const [formUsuario, setFormUsuario] = useState({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "" });
@@ -356,7 +358,11 @@ export default function Configuracoes() {
     await fetchGrupos(workspaceId);
   };
 
-  const contarUsuariosPorFila = (nomeFila: string) => usuarios.filter(u => u.fila === nomeFila).length;
+  // 🆕 Conta usuários numa fila específica — agora respeita multi-fila (CSV no campo)
+  const contarUsuariosPorFila = (nomeFila: string) => usuarios.filter(u => {
+    if (!u.fila) return false;
+    return u.fila.split(",").map(s => s.trim()).includes(nomeFila);
+  }).length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
@@ -407,11 +413,87 @@ export default function Configuracoes() {
                   <option value="Atendente">Atendente</option>
                 </select>
               </div>
-              <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Fila</label>
-                <select value={formUsuario.fila} onChange={e => setFormUsuario({ ...formUsuario, fila: e.target.value })} style={IS}>
-                  <option value="">Selecione...</option>
-                  {filas.map(f => <option key={f.id} value={f.nome}>{f.nome}</option>)}
-                </select>
+              <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Filas</label>
+                {/* 🆕 MULTI-SELECT DE FILAS — atendente pode estar em várias filas ao mesmo tempo.
+                    Salva no banco como CSV: "FLIX,SKY". Retrocompatível com o formato antigo (string única).
+                    UI: dropdown que abre com checkboxes — clique abre, marca as filas, fecha automaticamente.
+                */}
+                {(() => {
+                  const filasSelecionadas = (formUsuario.fila || "").split(",").map(s => s.trim()).filter(Boolean);
+                  const labelBotao = filasSelecionadas.length === 0
+                    ? "Selecione..."
+                    : filasSelecionadas.length === 1
+                      ? filasSelecionadas[0]
+                      : `${filasSelecionadas.length} filas selecionadas`;
+                  const toggleFila = (nome: string) => {
+                    const novas = filasSelecionadas.includes(nome)
+                      ? filasSelecionadas.filter(f => f !== nome)
+                      : [...filasSelecionadas, nome];
+                    setFormUsuario({ ...formUsuario, fila: novas.join(",") });
+                  };
+                  return (
+                    <div style={{ position: "relative" }}>
+                      <button type="button" onClick={() => setShowDropdownFilas(!showDropdownFilas)}
+                        style={{ ...IS, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ color: filasSelecionadas.length === 0 ? "#6b7280" : "white" }}>{labelBotao}</span>
+                        <span style={{ color: "#9ca3af", fontSize: 10 }}>{showDropdownFilas ? "▲" : "▼"}</span>
+                      </button>
+                      {showDropdownFilas && (
+                        <>
+                          {/* Backdrop pra fechar ao clicar fora */}
+                          <div onClick={() => setShowDropdownFilas(false)}
+                            style={{ position: "fixed", inset: 0, zIndex: 100 }} />
+                          <div style={{
+                            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                            background: "#1f2937", border: "1px solid #374151", borderRadius: 8,
+                            maxHeight: 240, overflowY: "auto", zIndex: 101,
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                          }}>
+                            {filas.length === 0 ? (
+                              <p style={{ color: "#6b7280", fontSize: 12, padding: 12, textAlign: "center", margin: 0 }}>
+                                Nenhuma fila criada ainda. Crie uma fila primeiro abaixo.
+                              </p>
+                            ) : (
+                              <>
+                                {filas.map(f => {
+                                  const marcada = filasSelecionadas.includes(f.nome);
+                                  return (
+                                    <label key={f.id} style={{
+                                      display: "flex", alignItems: "center", gap: 10,
+                                      padding: "10px 14px", cursor: "pointer",
+                                      borderBottom: "1px solid #2d3748",
+                                      background: marcada ? "#3b82f622" : "transparent",
+                                    }}>
+                                      <input type="checkbox" checked={marcada}
+                                        onChange={() => toggleFila(f.nome)}
+                                        style={{ accentColor: "#3b82f6", cursor: "pointer" }} />
+                                      <span style={{ color: marcada ? "#3b82f6" : "white", fontSize: 13, fontWeight: marcada ? "bold" : "normal" }}>
+                                        {f.nome}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                                {filasSelecionadas.length > 0 && (
+                                  <div style={{ padding: "8px 14px", borderTop: "1px solid #374151", background: "#111" }}>
+                                    <button type="button" onClick={() => setFormUsuario({ ...formUsuario, fila: "" })}
+                                      style={{ background: "none", border: "none", color: "#dc2626", fontSize: 11, cursor: "pointer" }}>
+                                      ✕ Limpar seleção
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </>
+                      )}
+                      {filasSelecionadas.length > 1 && (
+                        <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
+                          ℹ️ Atende {filasSelecionadas.length} filas: {filasSelecionadas.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Grupo de Permissão</label>
                 <select value={formUsuario.grupo_id} onChange={e => setFormUsuario({ ...formUsuario, grupo_id: e.target.value })} style={IS}>
