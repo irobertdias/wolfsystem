@@ -11,6 +11,9 @@ type Atendimento = {
   canal_id?: number;
   email?: string; notas?: string; avaliacao?: number;
   bloqueado_ia?: boolean; bloqueado_fluxo?: boolean; bloqueado_typebot?: boolean; bloqueado_contato?: boolean;
+  // 🆕 BLOQUEIO PÓS-FINALIZAÇÃO 24h
+  bloqueado_ate?: string | null; // timestamp ISO até quando o cliente fica bloqueado de reabrir
+  atendente_finalizou?: string | null; // email do atendente que finalizou (pra reabrir no mesmo)
   funil_etapa?: string; kanban_coluna?: string; demanda?: string; valor?: number;
   // 🔔 NOTIFICAÇÕES: timestamp de quando o atendente clicou no chat pela última vez.
   // NULL = nunca foi visualizado nessa lógica nova. Ao clicar no chat, vira NOW().
@@ -1591,7 +1594,9 @@ export function ChatSection() {
       alert("❌ Você não tem permissão para finalizar atendimentos.");
       return;
     }
-    await wa("finalizar", { numero, canalId, workspaceId: wsId });
+    // 🆕 BLOQUEIO 24h — passa email do usuário pro backend identificar que é finalização HUMANA
+    // (sistema/bot/inatividade não passa quemFinalizou → não aplica bloqueio).
+    await wa("finalizar", { numero, canalId, workspaceId: wsId, quemFinalizou: user?.email });
     await inserirMensagemSistema(numero, `Chat finalizado por: ${meuNome}`, canalId);
     fetchAtendimentos();
     setAtendimentoAtivo(null); setHistorico([]);
@@ -2094,6 +2099,23 @@ export function ChatSection() {
                     {atendimentoAtivo.canal_id && canais.length > 1 && <> • {iconeCanal(atendimentoAtivo.canal_id)} {nomeDoCanal(atendimentoAtivo.canal_id)}</>}
                     {atendimentoAtivo.atendente && atendimentoAtivo.atendente !== "BOT" && <> • 👨‍💼 {nomeDoAtendente(atendimentoAtivo.atendente)}</>}
                   </p>
+                  {/* 🆕 INDICADOR DE BLOQUEIO — só aparece se atendimento está finalizado e bloqueado_ate ainda no futuro */}
+                  {atendimentoAtivo.status === "resolvido" && atendimentoAtivo.bloqueado_ate && (() => {
+                    const fim = new Date(atendimentoAtivo.bloqueado_ate).getTime();
+                    const agora = Date.now();
+                    if (agora >= fim) return null; // já expirou, não mostra
+                    const minutosRest = Math.ceil((fim - agora) / 60000);
+                    const horas = Math.floor(minutosRest / 60);
+                    const min = minutosRest % 60;
+                    const tempoFmt = horas > 0 ? `${horas}h${min > 0 ? ` ${min}min` : ""}` : `${minutosRest}min`;
+                    const dataLib = new Date(fim).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+                    return (
+                      <div style={{ marginTop: 5, background: "#dc262611", border: "1px solid #dc262633", borderRadius: 6, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10 }}>
+                        <span style={{ color: "#dc2626", fontWeight: "bold" }}>🔒 Bloqueado por {tempoFmt}</span>
+                        <span style={{ color: "#9ca3af" }}>· libera {dataLib}</span>
+                      </div>
+                    );
+                  })()}
                   {etiquetasAplicadas.length > 0 && (
                     <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
                       {etiquetasAplicadas.slice(0, 3).map(et => (
