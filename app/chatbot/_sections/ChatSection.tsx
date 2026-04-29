@@ -592,15 +592,98 @@ export function ChatSection() {
     setCanais(data || []);
   };
 
+  // 🆕 LIMITE DE ATENDIMENTOS NÃO RESOLVIDOS — quando o workspace tem mais que LIMITE_ATIVOS
+  // atendimentos não-resolvidos, a gente auto-resolve os mais antigos pra manter o banco
+  // enxuto (e o frontend rápido). Configurado pra 5000.
+  // Definido fora da função pra ficar fácil de ajustar no futuro.
+  const LIMITE_ATIVOS = 5000;
+
+  // 🆕 Auto-limpeza: chamada ao fim do fetchAtendimentos.
+  // Se total de não-resolvidos > LIMITE_ATIVOS, resolve os excedentes (mais antigos por updated_at).
+  // Insere mensagem de sistema explicando.
+  // Roda ASYNC e em background — não bloqueia a UI.
+  const autoLimparExcedentes = async () => {
+    if (!wsId) return;
+    try {
+      // Conta total de não-resolvidos
+      const { count } = await supabase
+        .from("atendimentos")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", wsId)
+        .neq("status", "resolvido");
+
+      const total = count || 0;
+      if (total <= LIMITE_ATIVOS) return; // dentro do limite, nada a fazer
+
+      const excedentes = total - LIMITE_ATIVOS;
+      console.log(`🧹 Auto-limpeza: ${total} não-resolvidos > ${LIMITE_ATIVOS}, resolvendo os ${excedentes} mais antigos`);
+
+      // Pega os mais antigos (updated_at ASC) — usa range pra trazer só os excedentes
+      // Pra ser seguro: nunca processa mais que 1000 por vez (se passou muito do limite, faz aos poucos)
+      const qtdAResolver = Math.min(excedentes, 1000);
+      const { data: alvos } = await supabase
+        .from("atendimentos")
+        .select("id, numero, canal_id")
+        .eq("workspace_id", wsId)
+        .neq("status", "resolvido")
+        .order("updated_at", { ascending: true, nullsFirst: true })
+        .limit(qtdAResolver);
+
+      if (!alvos || alvos.length === 0) return;
+
+      // Resolve em batch
+      const ids = alvos.map(a => a.id);
+      const LOTE = 200;
+      for (let i = 0; i < ids.length; i += LOTE) {
+        const lote = ids.slice(i, i + LOTE);
+        await supabase.from("atendimentos").update({ status: "resolvido" })
+          .in("id", lote)
+          .eq("workspace_id", wsId);
+      }
+
+      // Insere mensagens de sistema explicando
+      const mensagensSistema = alvos.map(a => ({
+        numero: a.numero,
+        mensagem: `Atendimento encerrado automaticamente — limite de ${LIMITE_ATIVOS} atendimentos ativos atingido (workspace mantém os mais recentes)`,
+        de: "sistema",
+        workspace_id: wsId,
+        canal_id: a.canal_id || null,
+      }));
+      for (let i = 0; i < mensagensSistema.length; i += LOTE) {
+        const lote = mensagensSistema.slice(i, i + LOTE);
+        await supabase.from("mensagens").insert(lote);
+      }
+
+      console.log(`✅ Auto-limpeza concluída: ${alvos.length} atendimento(s) resolvidos`);
+    } catch (e) {
+      console.error("❌ Erro na auto-limpeza:", e);
+      // não mostra alert pro user — é processo de manutenção em background
+    }
+  };
+
   const fetchAtendimentos = async () => {
     if (!wsId) return;
-    // 🆕 Ordena por updated_at (última atividade real) ao invés de created_at (só quando criou).
-    // Se a tabela ainda não tiver updated_at populado em todas as linhas, o Supabase usa como fallback
-    // o próprio created_at graças ao trigger padrão. E no frontend a gente sempre faz updated_at || created_at.
-    const { data } = await supabase.from("atendimentos").select("*")
-      .eq("workspace_id", wsId)
-      .order("updated_at", { ascending: false, nullsFirst: false });
-    const lista = data || [];
+    // 🆕 Paginação — Supabase corta em 1000 por query. Pra pegar até LIMITE_ATIVOS (5000),
+    // faz 5 queries de 1000 em 1000 ordenadas por updated_at desc.
+    // Antes só trazia 1000, então atendimentos antigos sumiam da lista mesmo estando no banco.
+    const PAGE_SIZE = 1000;
+    const TOTAL_LIMITE = LIMITE_ATIVOS; // 5000
+    let lista: Atendimento[] = [];
+    let offset = 0;
+    while (offset < TOTAL_LIMITE) {
+      const { data: pagina, error } = await supabase.from("atendimentos").select("*")
+        .eq("workspace_id", wsId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) {
+        console.error("Erro fetchAtendimentos paginado:", error);
+        break;
+      }
+      if (!pagina || pagina.length === 0) break; // chegou no fim
+      lista = lista.concat(pagina as Atendimento[]);
+      if (pagina.length < PAGE_SIZE) break; // última página tinha menos = chegou no fim
+      offset += PAGE_SIZE;
+    }
 
     // 🔔 DETECÇÃO DE ATENDIMENTO NOVO — pra tocar som distinto
     // Lógica: se um atendimento aparece agora mas o ID NÃO estava no Set de conhecidos,
@@ -638,6 +721,12 @@ export function ChatSection() {
     }
 
     setAtendimentos(lista);
+
+    // 🆕 Dispara auto-limpeza em background (não aguarda).
+    // Só dono/supervisor dispara — atendente comum não tem permissão de fazer update em massa.
+    if (isDono || permissoes.chat_todos) {
+      autoLimparExcedentes();
+    }
   };
 
   const fetchHistorico = async (numero: string, canalId?: number) => {
