@@ -132,7 +132,14 @@ function getPreview(no: No): string {
     case "input_selecao_imagem": return `${d.itens?.length||0} imgs`;
     case "input_pagamento": return `R$ ${d.valor||0}`;
     case "input_cards": return `${d.cards?.length||0} cards`;
-    case "condicao": return `SE {{${d.variavel}}} ${d.operador} "${d.valor}"`;
+    case "condicao": {
+      // 🆕 Suporta múltiplas condições com OR/AND
+      if (Array.isArray(d.condicoes) && d.condicoes.length > 0) {
+        const juncao = d.juncao === "OR" ? " OU " : " E ";
+        return d.condicoes.slice(0, 2).map((c: any) => `{{${c.variavel||"?"}}} ${c.operador||"="} "${c.valor||""}"`).join(juncao) + (d.condicoes.length > 2 ? ` ${juncao} +${d.condicoes.length - 2}` : "");
+      }
+      return `SE {{${d.variavel}}} ${d.operador} "${d.valor}"`;
+    }
     case "variavel": return `{{${d.nome}}} = "${d.valor}"`;
     case "redirecionar": return d.url||"Sem URL";
     case "script": return "Script JS";
@@ -237,15 +244,67 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
       </div>;
     case "condicao":
       return <>
-        {F("Variável","variavel","text","resposta")}
-        {S("Operador","operador",[
-          {value:"igual",label:"É igual a"},{value:"diferente",label:"É diferente de"},
-          {value:"contem",label:"Contém"},{value:"nao_contem",label:"Não contém"},
-          {value:"comeca",label:"Começa com"},{value:"termina",label:"Termina com"},
-          {value:"vazio",label:"Está vazio"},{value:"nao_vazio",label:"Não está vazio"},
-          {value:"maior",label:"Maior que"},{value:"menor",label:"Menor que"},
-        ])}
-        {F("Valor","valor","text","Comparar com")}
+        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>🔀 SE (todas/alguma) das condições forem verdadeiras → saída <b style={{color:"#16a34a"}}>Verdadeiro</b>, senão → <b style={{color:"#dc2626"}}>Falso</b></p>
+        {/* 🆕 Junção: AND (todas) ou OR (alguma) */}
+        {S("Lógica entre condições","juncao",[{value:"AND",label:"E (todas precisam ser verdadeiras)"},{value:"OR",label:"OU (pelo menos uma)"}])}
+        {/* 🆕 Múltiplas condições — array dinâmico. Adiciona/remove com botões. */}
+        <label style={LS}>Condições</label>
+        {(d.condicoes && Array.isArray(d.condicoes) && d.condicoes.length > 0
+          ? d.condicoes
+          : [{ variavel: d.variavel || "resposta", operador: d.operador || "igual", valor: d.valor || "" }]
+        ).map((cond: any, idx: number) => (
+          <div key={idx} style={{ background:"#0d1418", borderRadius:8, padding:10, marginBottom:8, border:"1px solid #1f2937" }}>
+            <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6 }}>
+              <span style={{ color:"#9ca3af", fontSize:10, fontWeight:"bold" }}>#{idx+1}</span>
+              <input value={cond.variavel||""} placeholder="variável" style={{...IS, padding:"6px 10px", flex:1}}
+                onChange={e => {
+                  const lista = (d.condicoes||[{variavel:d.variavel,operador:d.operador,valor:d.valor}]).slice();
+                  lista[idx] = { ...lista[idx], variavel: e.target.value };
+                  u({ condicoes: lista });
+                }} />
+              <select value={cond.operador||"igual"} style={{...IS, padding:"6px 10px", maxWidth:130}}
+                onChange={e => {
+                  const lista = (d.condicoes||[{variavel:d.variavel,operador:d.operador,valor:d.valor}]).slice();
+                  lista[idx] = { ...lista[idx], operador: e.target.value };
+                  u({ condicoes: lista });
+                }}>
+                <option value="igual">=</option>
+                <option value="diferente">≠</option>
+                <option value="contem">contém</option>
+                <option value="nao_contem">não contém</option>
+                <option value="comeca_com">começa com</option>
+                <option value="termina_com">termina com</option>
+                <option value="vazio">vazio</option>
+                <option value="preenchido">preenchido</option>
+                <option value=">">&gt;</option>
+                <option value="<">&lt;</option>
+                <option value=">=">≥</option>
+                <option value="<=">≤</option>
+              </select>
+              {!["vazio","preenchido"].includes(cond.operador) && (
+                <input value={cond.valor||""} placeholder="valor" style={{...IS, padding:"6px 10px", flex:1}}
+                  onChange={e => {
+                    const lista = (d.condicoes||[{variavel:d.variavel,operador:d.operador,valor:d.valor}]).slice();
+                    lista[idx] = { ...lista[idx], valor: e.target.value };
+                    u({ condicoes: lista });
+                  }} />
+              )}
+              {((d.condicoes||[]).length > 1 || idx > 0) && (
+                <button onClick={() => {
+                  const lista = (d.condicoes||[]).filter((_:any,i:number) => i !== idx);
+                  u({ condicoes: lista });
+                }} style={{background:"#dc262622",color:"#dc2626",border:"none",borderRadius:4,padding:"4px 8px",fontSize:10,cursor:"pointer"}}>✕</button>
+              )}
+            </div>
+          </div>
+        ))}
+        <button onClick={() => {
+          const lista = (d.condicoes||[{variavel:d.variavel||"resposta",operador:d.operador||"igual",valor:d.valor||""}]).slice();
+          lista.push({ variavel: "", operador: "igual", valor: "" });
+          u({ condicoes: lista });
+        }} style={{background:"#3b82f622",color:"#3b82f6",border:"1px dashed #3b82f6",borderRadius:6,padding:"6px 10px",fontSize:11,cursor:"pointer",width:"100%"}}>
+          + Adicionar condição
+        </button>
       </>;
     case "variavel":
       return <>
@@ -254,7 +313,13 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
         {F("Valor","valor","text","{{outra_variavel}}")}
       </>;
     case "redirecionar": return <>{F("URL","url","url","https://...")}</>;
-    case "script":        return <>{T("Código JavaScript","codigo","// return true;",150)}</>;
+    case "script":
+      return <>
+        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>🆕 API disponível: <code style={{color:"#3b82f6"}}>setVariable(nome, valor)</code>, <code style={{color:"#3b82f6"}}>getVariable(nome)</code>, <code style={{color:"#3b82f6"}}>fetch</code>, <code style={{color:"#3b82f6"}}>sleep(ms)</code>, <code style={{color:"#3b82f6"}}>log(...)</code></p>
+        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>{`{{variaveis}} são substituídas no código antes de executar.`}</p>
+        {T("Código JavaScript","codigo",`// Exemplo:\n// const resp = await fetch("https://api.exemplo.com/cep/" + getVariable("cep"))\n// const data = await resp.json()\n// setVariable("rua", data.logradouro)`,200)}
+        <p style={{color:"#9ca3af",fontSize:10,margin:"4px 0 0"}}>Saídas: <span style={{color:"#16a34a"}}>0=sucesso</span> / <span style={{color:"#dc2626"}}>1=erro</span></p>
+      </>;
     case "espera":        return <>{F("Aguardar (segundos)","segundos","number","3")}</>;
     case "teste_ab":
       return <div>
@@ -268,11 +333,14 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
         {S("Método","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}
         {T("Headers JSON","headers",'{"Authorization":"Bearer token"}',60)}
         {T("Body JSON","body",'{"chave":"valor"}',60)}
+        {F("Salvar resposta em","variavel_resposta","text","resposta_api")}
+        {F("Salvar status em","variavel_status","text","status_api")}
       </>;
     case "pular": case "retornar":
       return <>{F("ID do nó alvo","alvo","text","ID do bloco destino")}</>;
     case "google_sheets":
       return <>
+        <p style={{color:"#f59e0b",fontSize:11,margin:"0 0 6px"}}>⚠️ Em desenvolvimento — ainda não funcional.</p>
         {F("ID da Planilha","spreadsheet_id","text","ID do Google Sheets")}
         {F("Aba","aba","text","Sheet1")}
         {S("Ação","acao",[{value:"append",label:"Adicionar linha"},{value:"update",label:"Atualizar"},{value:"get",label:"Buscar"}])}
@@ -284,24 +352,34 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
         {S("Método","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}
         {T("Headers JSON","headers",'{"Content-Type":"application/json"}',60)}
         {T("Body JSON","body",'{"chave":"{{variavel}}"}',60)}
-        {F("Salvar resposta em","variavel","text","resposta_api")}
+        {F("Salvar resposta em","variavel_resposta","text","resposta_api")}
+        {F("Salvar status em","variavel_status","text","status_api")}
       </>;
     case "openai":
       return <>
         {F("API Key","apiKey","password","sk-...")}
         {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"},{value:"gpt-3.5-turbo",label:"GPT-3.5"}])}
         {T("Prompt do sistema","prompt","Você é um assistente...",100)}
-        {F("Salvar resposta em","variavel","text","resposta_ia")}
+        {F("Salvar resposta em","variavel_resposta","text","resposta_ia")}
+        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"white",fontSize:12}}>
+          <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
+          Enviar resposta pro cliente automaticamente
+        </label>
       </>;
     case "claude_ai":
       return <>
         {F("API Key","apiKey","password","sk-ant-...")}
         {S("Modelo","modelo",[{value:"claude-opus-4-5",label:"Claude Opus 4.5"},{value:"claude-sonnet-4-20250514",label:"Claude Sonnet 4"},{value:"claude-haiku-4-5",label:"Claude Haiku"}])}
         {T("Prompt do sistema","prompt","Você é um assistente...",100)}
-        {F("Salvar resposta em","variavel","text","resposta_ia")}
+        {F("Salvar resposta em","variavel_resposta","text","resposta_ia")}
+        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"white",fontSize:12}}>
+          <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
+          Enviar resposta pro cliente automaticamente
+        </label>
       </>;
     case "gmail":
       return <>
+        <p style={{color:"#f59e0b",fontSize:11,margin:"0 0 6px"}}>⚠️ Em desenvolvimento — ainda não funcional.</p>
         {F("Para","para","email","email@exemplo.com")}
         {F("Assunto","assunto","text","Assunto do email")}
         {T("Corpo do email","corpo","Olá {{nome}}...",120)}
