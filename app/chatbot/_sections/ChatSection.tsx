@@ -482,12 +482,13 @@ export function ChatSection() {
       try {
         // Query: busca atendimentos cujas mensagens contenham o texto.
         // Multi-tenant (workspace_id obrigatório) + ILIKE pra busca case-insensitive.
+        // ⚠️ FIX: o campo correto da tabela é "mensagem" (não "texto")
         // Limit 1000 mensagens distintas → daí extrai os atendimento_id únicos.
         const { data, error } = await supabase
           .from("mensagens")
-          .select("atendimento_id")
+          .select("atendimento_id, numero")
           .eq("workspace_id", wsId)
-          .ilike("texto", `%${buscaTrim}%`)
+          .ilike("mensagem", `%${buscaTrim}%`)
           .order("created_at", { ascending: false })
           .limit(1000);
 
@@ -495,20 +496,28 @@ export function ChatSection() {
           console.error("Erro na busca de mensagens:", error);
           setAtendimentosComMatch(new Set());
         } else {
-          // Extrai IDs únicos
-          const ids = new Set<string>();
+          // 🆕 Extrai IDs (atendimento_id) E NÚMEROS — porque algumas mensagens
+          // antigas podem não ter atendimento_id mas têm numero.
+          const idsAtend = new Set<string>();
+          const numerosMatch = new Set<string>();
           (data || []).forEach((m: any) => {
-            if (m.atendimento_id) ids.add(String(m.atendimento_id));
+            if (m.atendimento_id) idsAtend.add(String(m.atendimento_id));
+            if (m.numero) numerosMatch.add(String(m.numero));
           });
+          // Junta IDs + números pra montar Set unificado
+          // (o filtro vai testar "tem id" OU "tem numero")
+          const matches = new Set<string>();
+          idsAtend.forEach(id => matches.add(`id:${id}`));
+          numerosMatch.forEach(n => matches.add(`num:${n}`));
 
           // Salva no cache (max 20 entradas pra não vazar memória)
           if (cacheBuscaRef.current.size > 20) {
             const firstKey = cacheBuscaRef.current.keys().next().value;
             if (firstKey) cacheBuscaRef.current.delete(firstKey);
           }
-          cacheBuscaRef.current.set(cacheKey, ids);
+          cacheBuscaRef.current.set(cacheKey, matches);
 
-          setAtendimentosComMatch(ids);
+          setAtendimentosComMatch(matches);
         }
       } catch (e) {
         console.error("Erro inesperado na busca:", e);
@@ -1402,8 +1411,12 @@ export function ChatSection() {
       // Match local: nome ou número
       if (a.nome?.toLowerCase().includes(buscaLower)) return true;
       if (a.numero?.includes(busca)) return true;
-      // Match em mensagens: só conta se já tiver resultado da busca server-side
-      if (atendimentosComMatch && atendimentosComMatch.has(String(a.id))) return true;
+      // Match em mensagens: testa por atendimento_id E por numero
+      // (algumas mensagens antigas podem não ter atendimento_id mas têm numero)
+      if (atendimentosComMatch) {
+        if (atendimentosComMatch.has(`id:${a.id}`)) return true;
+        if (atendimentosComMatch.has(`num:${a.numero}`)) return true;
+      }
       return false;
     })
     .filter(a => filtroFila === "todas" || a.fila === filtroFila)
@@ -2089,7 +2102,7 @@ export function ChatSection() {
         {/* 🆕 Badge informativa: avisa que está buscando em mensagens */}
         {busca.trim().length >= 3 && atendimentosComMatch !== null && (
           <div style={{ padding: "8px 14px", background: ehClaro ? "#dbeafe" : "#1e3a5f", borderBottom: `1px solid ${tema.bordaSutil}`, fontSize: 11, color: ehClaro ? "#1e40af" : "#93c5fd" }}>
-            🔍 Busca por <b>"{busca}"</b> — {atendimentosComMatch.size} atendimento(s) com essa palavra nas mensagens
+            🔍 Busca por <b>"{busca}"</b> — {atendimentosFiltrados.length} atendimento(s) encontrado(s)
           </div>
         )}
         {busca.trim().length > 0 && busca.trim().length < 3 && (
