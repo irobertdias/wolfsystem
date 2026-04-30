@@ -168,6 +168,224 @@ function getPreview(no: No): string {
   }
 }
 
+// 🆕 ═══════════════════════════════════════════════════════════════════════
+// TVarComponent — Textarea com botão "+ Variável" igual Typebot.
+// ═══════════════════════════════════════════════════════════════════════
+// CRITICAL FIX: dropdown usa position:fixed (não absolute) com posição calculada
+// via useRef + useState, pra escapar do clip do modal scrollável (overflow:auto).
+// Antes ficava clipado quando o popup tentava ir pra cima do textarea.
+function TVarComponent({
+  label, valor, onChange, placeholder, altura, variaveis, idSuffix
+}: {
+  label: string;
+  valor: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  altura: number;
+  variaveis: string[];
+  idSuffix: string;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const [filtro, setFiltro] = useState("");
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  // Calcula posição do dropdown baseado no botão (em coords da viewport)
+  function abrir() {
+    const btn = btnRef.current;
+    if (!btn) return;
+    const r = btn.getBoundingClientRect();
+    const dropdownWidth = 260;
+    const dropdownHeight = 240;
+    // Tenta abrir ACIMA do botão (preferência); se não couber, abre abaixo
+    let top = r.top - dropdownHeight - 8;
+    if (top < 10) top = r.bottom + 8; // sem espaço acima → abre abaixo
+    // Alinha pela direita do botão (cresce pra esquerda)
+    let left = r.right - dropdownWidth;
+    if (left < 10) left = 10; // não deixa ir pra fora da tela
+    setPos({ left, top });
+    setAberto(true);
+    setFiltro("");
+  }
+
+  // Fecha quando clica fora
+  useEffect(() => {
+    if (!aberto) return;
+    function clickFora(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (dropRef.current?.contains(target)) return;
+      if (btnRef.current?.contains(target)) return;
+      setAberto(false);
+    }
+    document.addEventListener("mousedown", clickFora);
+    return () => document.removeEventListener("mousedown", clickFora);
+  }, [aberto]);
+
+  // Insere {{nome}} no cursor do textarea
+  function inserir(nome: string) {
+    if (!nome.trim()) return;
+    const ta = taRef.current;
+    const valorAtual = valor || "";
+    let novoValor: string;
+    let novaPos: number;
+    if (ta) {
+      const start = ta.selectionStart ?? valorAtual.length;
+      const end = ta.selectionEnd ?? valorAtual.length;
+      const insercao = `{{${nome.trim()}}}`;
+      novoValor = valorAtual.slice(0, start) + insercao + valorAtual.slice(end);
+      novaPos = start + insercao.length;
+    } else {
+      novoValor = valorAtual + `{{${nome.trim()}}}`;
+      novaPos = novoValor.length;
+    }
+    onChange(novoValor);
+    setAberto(false);
+    setTimeout(() => {
+      const t = taRef.current;
+      if (t) { t.focus(); t.setSelectionRange(novaPos, novaPos); }
+    }, 50);
+  }
+
+  // Filtra variáveis pelo texto digitado
+  const variaveisFiltradas = filtro.trim()
+    ? variaveis.filter(v => v.toLowerCase().includes(filtro.toLowerCase()))
+    : variaveis;
+
+  return (
+    <div key={`tvar-${idSuffix}`}>
+      <label style={LS}>{label}</label>
+      <div style={{ position: "relative" }}>
+        <textarea
+          ref={taRef}
+          value={valor}
+          onChange={e => onChange(e.target.value)}
+          style={{ ...IS, height: altura, resize: "vertical", paddingRight: 12 }}
+          placeholder={placeholder}
+        />
+        <button
+          ref={btnRef}
+          type="button"
+          onClick={() => aberto ? setAberto(false) : abrir()}
+          style={{
+            position: "absolute",
+            bottom: 8,
+            right: 8,
+            background: aberto ? "#8b5cf644" : "#8b5cf622",
+            color: "#a78bfa",
+            border: "1px solid #8b5cf633",
+            borderRadius: 6,
+            padding: "4px 10px",
+            fontSize: 11,
+            fontWeight: "bold",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            outline: "none",
+          }}
+        >
+          <span style={{ fontSize: 14, lineHeight: 1 }}>＋</span> Variável
+        </button>
+      </div>
+      {variaveis.length > 0 && (
+        <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
+          💡 Clique em <b style={{ color: "#a78bfa" }}>＋ Variável</b> pra inserir uma variável do fluxo na posição do cursor.
+        </p>
+      )}
+
+      {/* Dropdown com position:fixed — escapa do clip do modal */}
+      {aberto && pos && (
+        <div
+          ref={dropRef}
+          style={{
+            position: "fixed",
+            left: pos.left,
+            top: pos.top,
+            background: "#1f2937",
+            border: "1px solid #374151",
+            borderRadius: 8,
+            boxShadow: "0 12px 32px #000c",
+            padding: 10,
+            width: 260,
+            maxHeight: 240,
+            display: "flex",
+            flexDirection: "column",
+            zIndex: 3000,
+          }}
+        >
+          <input
+            type="text"
+            placeholder={variaveis.length > 0 ? "Buscar ou criar variável..." : "Digite o nome da nova variável..."}
+            value={filtro}
+            onChange={e => setFiltro(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                inserir(filtro);
+              }
+              if (e.key === "Escape") setAberto(false);
+            }}
+            autoFocus
+            style={{
+              width: "100%",
+              background: "#111",
+              border: "1px solid #374151",
+              borderRadius: 6,
+              padding: "6px 10px",
+              color: "white",
+              fontSize: 12,
+              marginBottom: 8,
+              outline: "none",
+              boxSizing: "border-box",
+              flexShrink: 0,
+            }}
+          />
+          {/* Lista scrollável */}
+          <div style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
+            {variaveisFiltradas.length === 0 ? (
+              <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
+                {filtro
+                  ? <>Nenhuma variável corresponde.<br/>Pressione <b>Enter</b> pra criar <span style={{color:"#a78bfa"}}>{`{{${filtro}}}`}</span></>
+                  : <>Nenhuma variável no fluxo ainda.<br/>Digite acima pra criar a primeira.</>
+                }
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {variaveisFiltradas.map(v => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => inserir(v)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "6px 10px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span style={{
+                      background: "#8b5cf622",
+                      color: "#a78bfa",
+                      padding: "3px 10px",
+                      borderRadius: 10,
+                      fontSize: 11,
+                      fontWeight: "bold",
+                    }}>{`{{${v}}}`}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
@@ -221,155 +439,16 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
   // Mostra lista de variáveis existentes no fluxo + opção de criar nova.
   // Use em blocos onde a mensagem contém texto + variáveis (texto, legenda, etc).
   const TVar = (lbl: string, key: string, ph = "", h = 100) => {
-    const dropdownId = `tvar-${id}-${key}`;
-    const textareaId = `textarea-${id}-${key}`;
-
-    // Insere {{nome}} na posição do cursor (ou no fim se não tiver foco)
-    const inserirVar = (nome: string) => {
-      if (!nome.trim()) return;
-      const nomeFinal = nome.trim();
-      const ta = document.getElementById(textareaId) as HTMLTextAreaElement | null;
-      const valorAtual = String(d[key] || "");
-      let novoValor: string;
-      let novaPos: number;
-
-      if (ta) {
-        const start = ta.selectionStart ?? valorAtual.length;
-        const end = ta.selectionEnd ?? valorAtual.length;
-        const insercao = `{{${nomeFinal}}}`;
-        novoValor = valorAtual.slice(0, start) + insercao + valorAtual.slice(end);
-        novaPos = start + insercao.length;
-      } else {
-        novoValor = valorAtual + `{{${nomeFinal}}}`;
-        novaPos = novoValor.length;
-      }
-
-      u({ [key]: novoValor });
-
-      // Restaura o cursor depois do insert (precisa de timeout pq React vai re-renderizar)
-      setTimeout(() => {
-        const taNova = document.getElementById(textareaId) as HTMLTextAreaElement | null;
-        if (taNova) {
-          taNova.focus();
-          taNova.setSelectionRange(novaPos, novaPos);
-        }
-      }, 50);
-
-      // Fecha o dropdown
-      document.getElementById(dropdownId)?.removeAttribute("open");
-    };
-
     return (
-      <div key={`${id}-${key}-tvar`}>
-        <label style={LS}>{lbl}</label>
-        <div style={{ position: "relative" }}>
-          <textarea
-            id={textareaId}
-            value={d[key] || ""}
-            onChange={e => u({ [key]: e.target.value })}
-            style={{ ...IS, height: h, resize: "vertical", paddingRight: 12 }}
-            placeholder={ph}
-          />
-          {/* Botão "+ Variável" no canto inferior direito do textarea */}
-          <details
-            id={dropdownId}
-            style={{ position: "absolute", bottom: 8, right: 8 }}
-          >
-            <summary style={{
-              listStyle: "none",
-              cursor: "pointer",
-              background: "#8b5cf622",
-              color: "#a78bfa",
-              border: "1px solid #8b5cf633",
-              borderRadius: 6,
-              padding: "4px 10px",
-              fontSize: 11,
-              fontWeight: "bold",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              userSelect: "none",
-              outline: "none",
-            }}>
-              <span style={{ fontSize: 14, lineHeight: 1 }}>＋</span> Variável
-            </summary>
-            <div style={{
-              position: "absolute",
-              bottom: "calc(100% + 6px)",
-              right: 0,                  // 🆕 alinhado pela direita do botão (cresce pra esquerda)
-              background: "#1f2937",
-              border: "1px solid #374151",
-              borderRadius: 8,
-              boxShadow: "0 8px 24px #000c",
-              padding: 10,
-              width: 240,                // 🆕 width fixo menor — cabe no modal
-              maxHeight: 220,
-              overflowY: "auto",
-              zIndex: 2000,
-            }}>
-              {/* Input pra digitar nome novo */}
-              <input
-                type="text"
-                placeholder="Digite ou crie variável..."
-                onKeyDown={e => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    inserirVar((e.target as HTMLInputElement).value);
-                    (e.target as HTMLInputElement).value = "";
-                  }
-                }}
-                style={{
-                  width: "100%",
-                  background: "#111",
-                  border: "1px solid #374151",
-                  borderRadius: 6,
-                  padding: "6px 10px",
-                  color: "white",
-                  fontSize: 12,
-                  marginBottom: 8,
-                  outline: "none",
-                }}
-              />
-              {variaveisDoFluxo.length === 0 ? (
-                <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
-                  Nenhuma variável no fluxo ainda.<br />Digite acima pra criar a primeira.
-                </p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {variaveisDoFluxo.map(v => (
-                    <button
-                      key={v}
-                      onClick={() => inserirVar(v)}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        borderRadius: 6,
-                        padding: "6px 10px",
-                        cursor: "pointer",
-                        textAlign: "left",
-                      }}
-                    >
-                      <span style={{
-                        background: "#8b5cf622",
-                        color: "#a78bfa",
-                        padding: "3px 10px",
-                        borderRadius: 10,
-                        fontSize: 11,
-                        fontWeight: "bold",
-                      }}>{`{{${v}}}`}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </details>
-        </div>
-        {variaveisDoFluxo.length > 0 && (
-          <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
-            💡 Clique em <b style={{ color: "#a78bfa" }}>＋ Variável</b> pra inserir uma variável do fluxo na posição do cursor.
-          </p>
-        )}
-      </div>
+      <TVarComponent
+        label={lbl}
+        valor={d[key] || ""}
+        onChange={(v) => u({ [key]: v })}
+        placeholder={ph}
+        altura={h}
+        variaveis={variaveisDoFluxo}
+        idSuffix={`${id}-${key}`}
+      />
     );
   };
 
