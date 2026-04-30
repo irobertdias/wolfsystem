@@ -295,17 +295,17 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
             </summary>
             <div style={{
               position: "absolute",
-              bottom: "calc(100% + 4px)",
-              right: 0,
+              bottom: "calc(100% + 6px)",
+              right: 0,                  // 🆕 alinhado pela direita do botão (cresce pra esquerda)
               background: "#1f2937",
               border: "1px solid #374151",
               borderRadius: 8,
-              boxShadow: "0 8px 24px #0008",
-              padding: 8,
-              minWidth: 220,
-              maxHeight: 280,
+              boxShadow: "0 8px 24px #000c",
+              padding: 10,
+              width: 240,                // 🆕 width fixo menor — cabe no modal
+              maxHeight: 220,
               overflowY: "auto",
-              zIndex: 200,
+              zIndex: 2000,
             }}>
               {/* Input pra digitar nome novo */}
               <input
@@ -999,9 +999,10 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
   }
 }
 
-function NoCard({ no, sel, scale, onSelect, onDelete, onConectarSaida, onConectarEntrada }: {
+function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, onConectarEntrada }: {
   no: No; sel: boolean; scale: number;
   onSelect: (id:string) => void;
+  onOpen: (id:string) => void; // 🆕 abre modal (separado de selecionar)
   onDelete: (id:string) => void;
   onConectarSaida: (noId:string, idx:number) => void;
   onConectarEntrada: (noId:string) => void;
@@ -1010,16 +1011,18 @@ function NoCard({ no, sel, scale, onSelect, onDelete, onConectarSaida, onConecta
   const cfg = B[no.tipo];
   const divRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
-  const startPtr = useRef({px:0, py:0, nx:0, ny:0});
+  const moveu = useRef(false); // 🆕 detecta se houve movimento real (drag) ou só click
+  const startPtr = useRef({px:0, py:0, nx:0, ny:0, t:0});
 
   function onPointerDown(e: React.PointerEvent) {
     const t = e.target as HTMLElement;
     if (t.tagName==="BUTTON"||t.tagName==="INPUT"||t.tagName==="SELECT"||t.tagName==="TEXTAREA") return;
     if (t.closest("button")||t.closest("input")||t.closest("select")||t.closest("textarea")) return;
     e.stopPropagation();
-    onSelect(no.id);
+    // 🆕 NÃO seleciona aqui — só prepara o drag. Seleção/abertura acontece no PointerUp.
     dragging.current = true;
-    startPtr.current = {px:e.clientX, py:e.clientY, nx:no.x, ny:no.y};
+    moveu.current = false;
+    startPtr.current = {px:e.clientX, py:e.clientY, nx:no.x, ny:no.y, t:Date.now()};
     divRef.current?.setPointerCapture(e.pointerId);
   }
 
@@ -1027,6 +1030,10 @@ function NoCard({ no, sel, scale, onSelect, onDelete, onConectarSaida, onConecta
     if (!dragging.current) return;
     const dx = (e.clientX - startPtr.current.px) / scale;
     const dy = (e.clientY - startPtr.current.py) / scale;
+    // 🆕 Considera "movimento real" se passou de 5px em qualquer direção (tolerância anti-click trêmulo)
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      moveu.current = true;
+    }
     const el = divRef.current;
     if (el) {
       el.style.left = `${startPtr.current.nx + dx}px`;
@@ -1040,7 +1047,19 @@ function NoCard({ no, sel, scale, onSelect, onDelete, onConectarSaida, onConecta
     divRef.current?.releasePointerCapture(e.pointerId);
     const dx = (e.clientX - startPtr.current.px) / scale;
     const dy = (e.clientY - startPtr.current.py) / scale;
-    (window as any).__wolfMoveNo?.(no.id, startPtr.current.nx+dx, startPtr.current.ny+dy);
+    if (moveu.current) {
+      // 🆕 Foi DRAG — só atualiza posição, NÃO seleciona/abre modal
+      (window as any).__wolfMoveNo?.(no.id, startPtr.current.nx+dx, startPtr.current.ny+dy);
+    } else {
+      // 🆕 Foi CLICK — só seleciona (destaca, mas NÃO abre modal)
+      onSelect(no.id);
+    }
+  }
+
+  // 🆕 Double click pra abrir o modal de edição
+  function onDoubleClickHandler(e: React.MouseEvent) {
+    e.stopPropagation();
+    onOpen(no.id);
   }
 
   return (
@@ -1050,11 +1069,11 @@ function NoCard({ no, sel, scale, onSelect, onDelete, onConectarSaida, onConecta
         background:"#111", borderRadius:10,
         border:`2px solid ${sel ? cfg.cor : "#2d2d2d"}`,
         boxShadow: sel ? `0 0 0 3px ${cfg.cor}33,0 4px 20px rgba(0,0,0,.5)` : "0 2px 8px rgba(0,0,0,.4)",
-        userSelect:"none", zIndex:sel?10:1, touchAction:"none"}}
+        userSelect:"none", zIndex:sel?10:1, touchAction:"none", cursor: "grab"}}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onClick={e => {e.stopPropagation(); onSelect(no.id);}}
+      onDoubleClick={onDoubleClickHandler}
       onMouseUp={e => {e.stopPropagation(); onConectarEntrada(no.id);}}
     >
       <div style={{background:cfg.cor, borderRadius:"8px 8px 0 0", padding:"8px 10px",
@@ -1110,6 +1129,9 @@ export default function FluxosPage() {
   const [nos,setNos]               = useState<No[]>([]);
   const [arestas,setArestas]       = useState<Aresta[]>([]);
   const [noSel,setNoSel]           = useState<No|null>(null);
+  // 🆕 noEditando = qual nó tá com modal aberto. Separado de noSel pra permitir
+  //    drag/seleção sem abrir modal automaticamente. Modal só abre em DOUBLE click.
+  const [noEditando, setNoEditando] = useState<No|null>(null);
   const [salvando,setSalvando]     = useState(false);
   const [grupoAberto,setGrupoAberto] = useState("Bubbles");
   const [conectando,setConectando]   = useState<{noId:string;saidaIndex:number}|null>(null);
@@ -1213,7 +1235,7 @@ export default function FluxosPage() {
   }
 
   function abrirEditor(f:Fluxo) {
-    setFluxoAtivo(f); setNos(f.nos||[]); setArestas(f.conexoes||[]); setNoSel(null); setView("editor");
+    setFluxoAtivo(f); setNos(f.nos||[]); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
     fetchFilas(); // 🆕 recarrega filas ao abrir o editor
   }
 
@@ -1294,11 +1316,13 @@ export default function FluxosPage() {
     setNos(p => p.filter(n=>n.id!==id));
     setArestas(p => p.filter(a=>a.de!==id&&a.para!==id));
     if(noSel?.id===id) setNoSel(null);
+    if(noEditando?.id===id) setNoEditando(null);
   }
 
   function updateNo(id:string, d:Record<string,any>) {
     setNos(p => p.map(n => n.id===id ? {...n,dados:{...n.dados,...d}} : n));
     setNoSel(p => p?.id===id ? {...p,dados:{...p.dados,...d}} : p);
+    setNoEditando(p => p?.id===id ? {...p,dados:{...p.dados,...d}} : p);
   }
 
   function onCanvasPointerDown(e:React.PointerEvent) {
@@ -1539,6 +1563,13 @@ export default function FluxosPage() {
             <NoCard key={no.id} no={no} sel={noSel?.id===no.id}
               scale={scale}
               onSelect={id => setNoSel(nos.find(n=>n.id===id)||null)}
+              onOpen={id => {
+                const n = nos.find(n => n.id === id);
+                if (n) {
+                  setNoSel(n);
+                  setNoEditando(n);
+                }
+              }}
               onDelete={excluirNo}
               onConectarSaida={iniciarConexao}
               onConectarEntrada={finalizarConexao}
@@ -1566,9 +1597,9 @@ export default function FluxosPage() {
       {/* 🆕 MODAL CENTRALIZADO de edição (em vez de sidebar lateral).
           Vantagens: muito mais espaço pros campos, não some informação, foco total no bloco.
           Desvantagem: canvas fica escurecido atrás (mas dá pra fechar e voltar rápido). */}
-      {noSel && (
+      {noEditando && (
         <div
-          onClick={() => setNoSel(null)}
+          onClick={() => setNoEditando(null)}
           style={{
             position: "fixed",
             inset: 0,
@@ -1608,21 +1639,21 @@ export default function FluxosPage() {
                   width: 36,
                   height: 36,
                   borderRadius: 8,
-                  background: B[noSel.tipo]?.cor,
+                  background: B[noEditando.tipo]?.cor,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 18,
                 }}>
-                  {B[noSel.tipo]?.icone}
+                  {B[noEditando.tipo]?.icone}
                 </div>
                 <div>
-                  <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>{B[noSel.tipo]?.label}</h3>
-                  <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{B[noSel.tipo]?.grupo}</p>
+                  <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>{B[noEditando.tipo]?.label}</h3>
+                  <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{B[noEditando.tipo]?.grupo}</p>
                 </div>
               </div>
               <button
-                onClick={() => setNoSel(null)}
+                onClick={() => setNoEditando(null)}
                 style={{
                   background: "#1f2937",
                   border: "none",
@@ -1639,19 +1670,21 @@ export default function FluxosPage() {
               >✕</button>
             </div>
 
-            {/* Conteúdo (scrollável) */}
+            {/* Conteúdo (scrollável). overflowX visible permite que o dropdown ＋Variável
+                possa expandir lateralmente sem ser cortado. */}
             <div style={{
               padding: 18,
               overflowY: "auto",
+              overflowX: "visible",
               flex: 1,
               display: "flex",
               flexDirection: "column",
               gap: 14,
             }}>
               <PainelProps
-                noSel={noSel}
+                noSel={noEditando}
                 updateNo={updateNo}
-                excluirNo={excluirNo}
+                excluirNo={(id) => { excluirNo(id); setNoEditando(null); }}
                 setNos={setNos}
                 filasBanco={filasBanco}
                 nos={nos}
@@ -1659,7 +1692,7 @@ export default function FluxosPage() {
             </div>
 
             {/* Footer com ações */}
-            {noSel.tipo !== "inicio" && (
+            {noEditando.tipo !== "inicio" && (
               <div style={{
                 padding: "12px 18px",
                 borderTop: "1px solid #1f2937",
@@ -1668,7 +1701,7 @@ export default function FluxosPage() {
                 flexShrink: 0,
               }}>
                 <button
-                  onClick={() => excluirNo(noSel.id)}
+                  onClick={() => { excluirNo(noEditando.id); setNoEditando(null); }}
                   style={{
                     background: "#dc262611",
                     color: "#dc2626",
@@ -1682,7 +1715,7 @@ export default function FluxosPage() {
                 >🗑️ Excluir bloco</button>
                 <div style={{ flex: 1 }} />
                 <button
-                  onClick={() => setNoSel(null)}
+                  onClick={() => setNoEditando(null)}
                   style={{
                     background: "#3b82f6",
                     color: "white",
@@ -1697,7 +1730,7 @@ export default function FluxosPage() {
               </div>
             )}
             {/* Pro nó "inicio" só botão de concluir */}
-            {noSel.tipo === "inicio" && (
+            {noEditando.tipo === "inicio" && (
               <div style={{
                 padding: "12px 18px",
                 borderTop: "1px solid #1f2937",
@@ -1706,7 +1739,7 @@ export default function FluxosPage() {
                 flexShrink: 0,
               }}>
                 <button
-                  onClick={() => setNoSel(null)}
+                  onClick={() => setNoEditando(null)}
                   style={{
                     background: "#3b82f6",
                     color: "white",
