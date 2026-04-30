@@ -140,7 +140,13 @@ function getPreview(no: No): string {
       }
       return `SE {{${d.variavel}}} ${d.operador} "${d.valor}"`;
     }
-    case "variavel": return `{{${d.nome}}} = "${d.valor}"`;
+    case "variavel": {
+      // 🆕 Mostra modo no canvas
+      const modo = d.modo_valor || "texto";
+      const icone = modo === "codigo" ? "💻" : modo === "expressao" ? "🔗" : "📝";
+      const valor = String(d.valor || "").slice(0, 30);
+      return `${icone} {{${d.nome||"?"}}} = ${valor}${String(d.valor||"").length > 30 ? "..." : ""}`;
+    }
     case "redirecionar": return d.url||"Sem URL";
     case "script": return "Script JS";
     case "espera": return `⏳ ${d.segundos}s`;
@@ -162,16 +168,37 @@ function getPreview(no: No): string {
   }
 }
 
-function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
+function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
   setNos: React.Dispatch<React.SetStateAction<No[]>>;
   filasBanco: FilaItem[]; // 🆕
+  nos: No[]; // 🆕 lista completa de nós pra detectar variáveis criadas
 }) {
   const d = noSel.dados;
   const id = noSel.id;
   const u = (o: Record<string,any>) => updateNo(id, o);
+
+  // 🆕 Coleta TODAS as variáveis criadas no fluxo (em qualquer bloco que seta variável).
+  // Usado pro autocomplete/dropdown nos blocos que usam variáveis.
+  const variaveisDoFluxo = (() => {
+    const set = new Set<string>();
+    nos.forEach(n => {
+      const dn = n.dados || {};
+      // Blocos que CAPTURAM variáveis
+      if (dn.variavel) set.add(dn.variavel);
+      if (dn.variavel_resposta) set.add(dn.variavel_resposta);
+      if (dn.variavel_status) set.add(dn.variavel_status);
+      // Bloco "variavel" (set manual)
+      if (n.tipo === "variavel" && dn.nome) set.add(dn.nome);
+      // Condições — referenciam mas também incluo pra autocompletar
+      if (Array.isArray(dn.condicoes)) {
+        dn.condicoes.forEach((c: any) => { if (c.variavel) set.add(c.variavel); });
+      }
+    });
+    return Array.from(set).sort();
+  })();
 
   const F = (lbl: string, key: string, type = "text", ph = "") => (
     <div key={`${id}-${key}`}>
@@ -196,6 +223,201 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
     </div>
   );
 
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // VarPill — Componente visual estilo Typebot pra escolher variável.
+  // ═══════════════════════════════════════════════════════════════════════
+  // Exibe a variável atual como uma "pílula" roxa (igual Typebot). Click abre
+  // dropdown com lista das variáveis existentes + opção de criar nova.
+  const VarPill = (label: string | null, key: string, placeholder = "Selecionar variável") => {
+    const valor = d[key] || "";
+    const dropdownId = `varpill-${id}-${key}`;
+    return (
+      <div key={dropdownId}>
+        {label && <label style={LS}>{label}</label>}
+        <details className="var-pill-dropdown" style={{ position: "relative" }}>
+          <summary style={{
+            listStyle: "none",
+            background: "#1f2937",
+            border: "1px solid #374151",
+            borderRadius: 8,
+            padding: "8px 12px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            outline: "none",
+          }}>
+            {valor ? (
+              <span style={{
+                background: "#8b5cf622",
+                color: "#a78bfa",
+                padding: "3px 10px",
+                borderRadius: 12,
+                fontSize: 12,
+                fontWeight: "bold",
+              }}>{`{{${valor}}}`}</span>
+            ) : (
+              <span style={{ color: "#6b7280", fontSize: 12 }}>{placeholder}</span>
+            )}
+            <span style={{ marginLeft: "auto", color: "#6b7280", fontSize: 10 }}>▼</span>
+          </summary>
+          <div style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+            background: "#1f2937", border: "1px solid #374151", borderRadius: 8,
+            zIndex: 100, maxHeight: 280, overflowY: "auto", padding: 8,
+            boxShadow: "0 8px 24px #0008",
+          }}>
+            {/* Input pra digitar nova variável */}
+            <input
+              type="text"
+              placeholder="Digite ou crie uma variável..."
+              defaultValue={valor}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  const v = (e.target as HTMLInputElement).value.trim();
+                  if (v) u({ [key]: v });
+                  (e.target as HTMLInputElement).closest("details")?.removeAttribute("open");
+                }
+              }}
+              onBlur={e => {
+                const v = e.target.value.trim();
+                if (v && v !== valor) u({ [key]: v });
+              }}
+              style={{
+                width: "100%", background: "#111", border: "1px solid #374151",
+                borderRadius: 6, padding: "6px 10px", color: "white", fontSize: 12,
+                marginBottom: 8, outline: "none",
+              }}
+            />
+            {/* Lista de variáveis existentes */}
+            {variaveisDoFluxo.length === 0 ? (
+              <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
+                Nenhuma variável no fluxo ainda.<br/>Digite acima pra criar a primeira.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {variaveisDoFluxo.map(v => (
+                  <button
+                    key={v}
+                    onClick={() => {
+                      u({ [key]: v });
+                      // Fecha o details
+                      const det = document.getElementById(dropdownId)?.closest("details");
+                      det?.removeAttribute("open");
+                    }}
+                    style={{
+                      background: v === valor ? "#8b5cf633" : "transparent",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "6px 10px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      color: "#a78bfa",
+                      fontSize: 12,
+                      fontWeight: "bold",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span style={{
+                      background: "#8b5cf622",
+                      padding: "2px 8px",
+                      borderRadius: 10,
+                      fontSize: 11,
+                    }}>{`{{${v}}}`}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Botão limpar */}
+            {valor && (
+              <button
+                onClick={() => u({ [key]: "" })}
+                style={{
+                  width: "100%", marginTop: 6, padding: 6, background: "transparent",
+                  border: "1px dashed #374151", borderRadius: 6, color: "#6b7280",
+                  fontSize: 11, cursor: "pointer",
+                }}
+              >✕ Limpar</button>
+            )}
+          </div>
+        </details>
+      </div>
+    );
+  };
+
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // OpSelect — Select de operador estilo Typebot (visual customizado, não nativo).
+  // ═══════════════════════════════════════════════════════════════════════
+  const OpSelect = (key: string, valor: string, onChange: (v: string) => void) => {
+    const opcoes = [
+      { value: "igual", label: "Igual a", icone: "=" },
+      { value: "diferente", label: "Diferente de", icone: "≠" },
+      { value: "contem", label: "Contém", icone: "⊇" },
+      { value: "nao_contem", label: "Não contém", icone: "⊉" },
+      { value: "comeca_com", label: "Começa com", icone: "▶" },
+      { value: "termina_com", label: "Termina com", icone: "◀" },
+      { value: ">", label: "Maior que", icone: ">" },
+      { value: "<", label: "Menor que", icone: "<" },
+      { value: ">=", label: "Maior ou igual", icone: "≥" },
+      { value: "<=", label: "Menor ou igual", icone: "≤" },
+      { value: "preenchido", label: "Preenchido", icone: "✓" },
+      { value: "vazio", label: "Vazio", icone: "∅" },
+    ];
+    const atual = opcoes.find(o => o.value === valor) || opcoes[0];
+    return (
+      <select
+        value={valor}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          background: "#1f2937",
+          border: "1px solid #374151",
+          color: "#a78bfa",
+          borderRadius: 8,
+          padding: "8px 12px",
+          fontSize: 12,
+          fontWeight: "bold",
+          cursor: "pointer",
+          outline: "none",
+          minWidth: 140,
+        }}
+      >
+        {opcoes.map(o => (
+          <option key={o.value} value={o.value}>{o.icone} {o.label}</option>
+        ))}
+      </select>
+    );
+  };
+
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // VarSelect — versão LEGACY (autocomplete simples). Mantenho pra blocos pequenos
+  // tipo http_request "Salvar status em" que não precisam de UI tão rica.
+  // ═══════════════════════════════════════════════════════════════════════
+  const VarSelect = (label: string, key: string, placeholder = "nome_da_variavel") => (
+    <div key={`${id}-${key}-varsel`}>
+      <label style={LS}>{label}</label>
+      <input
+        list={`vars-${id}-${key}`}
+        value={d[key] || ""}
+        onChange={e => u({ [key]: e.target.value })}
+        style={IS}
+        placeholder={placeholder}
+        autoComplete="off"
+      />
+      <datalist id={`vars-${id}-${key}`}>
+        {variaveisDoFluxo.filter(v => v !== d[key]).map(v => (
+          <option key={v} value={v} />
+        ))}
+      </datalist>
+      {variaveisDoFluxo.length > 0 && (
+        <p style={{color:"#6b7280", fontSize:10, margin:"3px 0 0", lineHeight:1.3}}>
+          💡 Variáveis no fluxo: {variaveisDoFluxo.slice(0, 5).join(", ")}{variaveisDoFluxo.length > 5 ? "..." : ""}
+        </p>
+      )}
+    </div>
+  );
+
   switch (noSel.tipo) {
     case "texto": return <>{T("Mensagem","texto","Digite...",120)}</>;
     case "imagem": return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
@@ -204,9 +426,16 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
     case "embed":  return <>{F("URL","url","url","https://...")}</>;
     case "input_texto": case "input_email": case "input_website": case "input_numero":
     case "input_telefone": case "input_arquivo": case "input_data": case "input_hora":
-      return <>{T("Pergunta","pergunta","Qual...?",80)}{F("Variável","variavel","text","nome")}</>;
+      return <>
+        {T("Pergunta","pergunta","Qual...?",80)}
+        {VarPill("Salvar resposta em", "variavel", "ex: nome")}
+      </>;
     case "input_avaliacao":
-      return <>{T("Pergunta","pergunta","Como avalia?",80)}{F("Máximo","max","number","5")}{F("Variável","variavel","text","avaliacao")}</>;
+      return <>
+        {T("Pergunta","pergunta","Como avalia?",80)}
+        {F("Máximo","max","number","5")}
+        {VarPill("Salvar resposta em", "variavel", "ex: avaliacao")}
+      </>;
     case "input_pagamento":
       return <>{F("Valor (R$)","valor","number","0")}{F("Descrição","descricao")}</>;
     case "input_botao":
@@ -225,6 +454,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
             placeholder={"Sim\nNão\nTalvez"}
           />
         </div>
+        {VarPill("Salvar resposta em (opcional)", "variavel", "ex: opcao_escolhida")}
       </>;
     case "input_cards":
       return <div>
@@ -244,74 +474,258 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
       </div>;
     case "condicao":
       return <>
-        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>🔀 SE (todas/alguma) das condições forem verdadeiras → saída <b style={{color:"#16a34a"}}>Verdadeiro</b>, senão → <b style={{color:"#dc2626"}}>Falso</b></p>
-        {/* 🆕 Junção: AND (todas) ou OR (alguma) */}
-        {S("Lógica entre condições","juncao",[{value:"AND",label:"E (todas precisam ser verdadeiras)"},{value:"OR",label:"OU (pelo menos uma)"}])}
-        {/* 🆕 Múltiplas condições — array dinâmico. Adiciona/remove com botões. */}
+        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 10px",lineHeight:1.4}}>
+          🔀 SE (todas/alguma) das condições forem verdadeiras → saída <b style={{color:"#16a34a"}}>Verdadeiro</b>, senão → <b style={{color:"#dc2626"}}>Falso</b>
+        </p>
+        {/* Lógica AND/OR — botões grandes */}
+        <label style={LS}>Lógica entre condições</label>
+        <div style={{display:"flex",gap:6,marginBottom:14}}>
+          {[
+            {key:"AND", label:"E (todas)", desc:"Todas precisam ser verdadeiras"},
+            {key:"OR", label:"OU (alguma)", desc:"Pelo menos uma"},
+          ].map(opt => {
+            const ativo = (d.juncao || "AND") === opt.key;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => u({ juncao: opt.key })}
+                style={{
+                  flex:1,
+                  background: ativo ? "#8b5cf622" : "#1f2937",
+                  border: `1px solid ${ativo ? "#8b5cf6" : "#374151"}`,
+                  color: ativo ? "#a78bfa" : "white",
+                  borderRadius:8, padding:"8px 10px", fontSize:11, cursor:"pointer", fontWeight:"bold",
+                  textAlign:"center",
+                }}
+                title={opt.desc}
+              >{opt.label}</button>
+            );
+          })}
+        </div>
+
+        {/* Lista de condições — cada uma com VarPill + OpSelect + valor */}
         <label style={LS}>Condições</label>
-        {(d.condicoes && Array.isArray(d.condicoes) && d.condicoes.length > 0
-          ? d.condicoes
-          : [{ variavel: d.variavel || "resposta", operador: d.operador || "igual", valor: d.valor || "" }]
-        ).map((cond: any, idx: number) => (
-          <div key={idx} style={{ background:"#0d1418", borderRadius:8, padding:10, marginBottom:8, border:"1px solid #1f2937" }}>
-            <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6 }}>
-              <span style={{ color:"#9ca3af", fontSize:10, fontWeight:"bold" }}>#{idx+1}</span>
-              <input value={cond.variavel||""} placeholder="variável" style={{...IS, padding:"6px 10px", flex:1}}
-                onChange={e => {
-                  const lista = (d.condicoes||[{variavel:d.variavel,operador:d.operador,valor:d.valor}]).slice();
-                  lista[idx] = { ...lista[idx], variavel: e.target.value };
-                  u({ condicoes: lista });
-                }} />
-              <select value={cond.operador||"igual"} style={{...IS, padding:"6px 10px", maxWidth:130}}
-                onChange={e => {
-                  const lista = (d.condicoes||[{variavel:d.variavel,operador:d.operador,valor:d.valor}]).slice();
-                  lista[idx] = { ...lista[idx], operador: e.target.value };
-                  u({ condicoes: lista });
+        {(() => {
+          const lista = (d.condicoes && Array.isArray(d.condicoes) && d.condicoes.length > 0)
+            ? d.condicoes
+            : [{ variavel: d.variavel || "", operador: d.operador || "igual", valor: d.valor || "" }];
+
+          const updateCond = (idx: number, patch: any) => {
+            const nova = lista.slice();
+            nova[idx] = { ...nova[idx], ...patch };
+            u({ condicoes: nova });
+          };
+          const removerCond = (idx: number) => {
+            const nova = lista.filter((_: any, i: number) => i !== idx);
+            u({ condicoes: nova });
+          };
+          const addCond = () => {
+            u({ condicoes: [...lista, { variavel: "", operador: "igual", valor: "" }] });
+          };
+
+          return <>
+            {lista.map((cond: any, idx: number) => {
+              const semValor = ["vazio", "preenchido"].includes(cond.operador);
+              const dropdownVarId = `cond-${id}-${idx}`;
+              return (
+                <div key={idx} style={{
+                  background: "#0d1418",
+                  border: "1px solid #1f2937",
+                  borderRadius: 10,
+                  padding: 12,
+                  marginBottom: 8,
+                  display: "flex", flexDirection: "column", gap: 8,
                 }}>
-                <option value="igual">=</option>
-                <option value="diferente">≠</option>
-                <option value="contem">contém</option>
-                <option value="nao_contem">não contém</option>
-                <option value="comeca_com">começa com</option>
-                <option value="termina_com">termina com</option>
-                <option value="vazio">vazio</option>
-                <option value="preenchido">preenchido</option>
-                <option value=">">&gt;</option>
-                <option value="<">&lt;</option>
-                <option value=">=">≥</option>
-                <option value="<=">≤</option>
-              </select>
-              {!["vazio","preenchido"].includes(cond.operador) && (
-                <input value={cond.valor||""} placeholder="valor" style={{...IS, padding:"6px 10px", flex:1}}
-                  onChange={e => {
-                    const lista = (d.condicoes||[{variavel:d.variavel,operador:d.operador,valor:d.valor}]).slice();
-                    lista[idx] = { ...lista[idx], valor: e.target.value };
-                    u({ condicoes: lista });
-                  }} />
-              )}
-              {((d.condicoes||[]).length > 1 || idx > 0) && (
-                <button onClick={() => {
-                  const lista = (d.condicoes||[]).filter((_:any,i:number) => i !== idx);
-                  u({ condicoes: lista });
-                }} style={{background:"#dc262622",color:"#dc2626",border:"none",borderRadius:4,padding:"4px 8px",fontSize:10,cursor:"pointer"}}>✕</button>
-              )}
-            </div>
-          </div>
-        ))}
-        <button onClick={() => {
-          const lista = (d.condicoes||[{variavel:d.variavel||"resposta",operador:d.operador||"igual",valor:d.valor||""}]).slice();
-          lista.push({ variavel: "", operador: "igual", valor: "" });
-          u({ condicoes: lista });
-        }} style={{background:"#3b82f622",color:"#3b82f6",border:"1px dashed #3b82f6",borderRadius:6,padding:"6px 10px",fontSize:11,cursor:"pointer",width:"100%"}}>
-          + Adicionar condição
-        </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{
+                      background: "#3b82f622", color: "#3b82f6",
+                      padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: "bold",
+                    }}>#{idx+1}</span>
+                    {lista.length > 1 && (
+                      <button
+                        onClick={() => removerCond(idx)}
+                        style={{
+                          marginLeft: "auto", background: "#dc262622", color: "#dc2626",
+                          border: "none", borderRadius: 6, padding: "3px 8px",
+                          fontSize: 11, cursor: "pointer", fontWeight: "bold",
+                        }}
+                      >✕</button>
+                    )}
+                  </div>
+                  {/* Variável (pill) */}
+                  <details style={{ position: "relative" }} id={dropdownVarId}>
+                    <summary style={{
+                      listStyle: "none",
+                      background: "#1f2937",
+                      border: "1px solid #374151",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: 8, outline: "none",
+                    }}>
+                      {cond.variavel ? (
+                        <span style={{
+                          background: "#8b5cf622", color: "#a78bfa",
+                          padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: "bold",
+                        }}>{`{{${cond.variavel}}}`}</span>
+                      ) : (
+                        <span style={{ color: "#6b7280", fontSize: 12 }}>Selecionar variável...</span>
+                      )}
+                      <span style={{ marginLeft: "auto", color: "#6b7280", fontSize: 10 }}>▼</span>
+                    </summary>
+                    <div style={{
+                      position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                      background: "#1f2937", border: "1px solid #374151", borderRadius: 8,
+                      zIndex: 100, maxHeight: 240, overflowY: "auto", padding: 8,
+                      boxShadow: "0 8px 24px #0008",
+                    }}>
+                      <input
+                        type="text"
+                        placeholder="Digite ou crie variável..."
+                        defaultValue={cond.variavel || ""}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            updateCond(idx, { variavel: (e.target as HTMLInputElement).value.trim() });
+                            (e.target as HTMLInputElement).closest("details")?.removeAttribute("open");
+                          }
+                        }}
+                        onBlur={e => {
+                          const v = e.target.value.trim();
+                          if (v && v !== cond.variavel) updateCond(idx, { variavel: v });
+                        }}
+                        style={{
+                          width: "100%", background: "#111", border: "1px solid #374151",
+                          borderRadius: 6, padding: "6px 10px", color: "white", fontSize: 12,
+                          marginBottom: 8, outline: "none",
+                        }}
+                      />
+                      {variaveisDoFluxo.length === 0 ? (
+                        <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
+                          Sem variáveis ainda
+                        </p>
+                      ) : variaveisDoFluxo.map(v => (
+                        <button
+                          key={v}
+                          onClick={() => {
+                            updateCond(idx, { variavel: v });
+                            document.getElementById(dropdownVarId)?.removeAttribute("open");
+                          }}
+                          style={{
+                            width: "100%", textAlign: "left", padding: "6px 10px",
+                            background: v === cond.variavel ? "#8b5cf633" : "transparent",
+                            border: "none", borderRadius: 6, cursor: "pointer", marginBottom: 2,
+                          }}
+                        >
+                          <span style={{
+                            background: "#8b5cf622", color: "#a78bfa",
+                            padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: "bold",
+                          }}>{`{{${v}}}`}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </details>
+
+                  {/* Operador + Valor */}
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    {OpSelect(`op-${idx}`, cond.operador || "igual", v => updateCond(idx, { operador: v }))}
+                    {!semValor && (
+                      <input
+                        value={cond.valor || ""}
+                        onChange={e => updateCond(idx, { valor: e.target.value })}
+                        placeholder="Valor pra comparar"
+                        style={{
+                          flex: 1, background: "#1f2937", border: "1px solid #374151",
+                          borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 12, outline: "none",
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            <button
+              onClick={addCond}
+              style={{
+                width: "100%",
+                background: "#3b82f611", color: "#3b82f6",
+                border: "1px dashed #3b82f6", borderRadius: 8,
+                padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold",
+              }}
+            >
+              + Adicionar condição
+            </button>
+          </>;
+        })()}
       </>;
-    case "variavel":
+    case "variavel": {
+      // 🆕 Modo do valor: "texto" (literal), "codigo" (JS), "expressao" (substituição {{var}})
+      const modo = d.modo_valor || "texto";
       return <>
-        {F("Nome da Variável","nome","text","minhaVar")}
-        {S("Tipo","tipo",[{value:"texto",label:"Texto"},{value:"numero",label:"Número"},{value:"booleano",label:"Booleano"},{value:"lista",label:"Lista"}])}
-        {F("Valor","valor","text","{{outra_variavel}}")}
+        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 10px",lineHeight:1.4}}>
+          📝 Cria ou atualiza uma variável. O valor é salvo no banco e fica disponível em todos os blocos seguintes.
+        </p>
+        {VarPill("Nome da variável", "nome", "Selecionar ou criar variável...")}
+        {/* Toggle Text / Code / Expressão */}
+        <div>
+          <label style={LS}>Tipo do valor</label>
+          <div style={{display:"flex",gap:6,marginBottom:8}}>
+            {[
+              {key:"texto",label:"📝 Texto",hint:"Valor literal"},
+              {key:"expressao",label:"🔗 Expressão",hint:"Usa {{var}}"},
+              {key:"codigo",label:"💻 Código",hint:"JavaScript"},
+            ].map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => u({ modo_valor: opt.key })}
+                style={{
+                  flex:1,
+                  background: modo === opt.key ? "#3b82f622" : "#1f2937",
+                  border: `1px solid ${modo === opt.key ? "#3b82f6" : "#374151"}`,
+                  color: modo === opt.key ? "#3b82f6" : "white",
+                  borderRadius:6, padding:"6px 8px", fontSize:11, cursor:"pointer", fontWeight:"bold"
+                }}
+                title={opt.hint}
+              >{opt.label}</button>
+            ))}
+          </div>
+        </div>
+        {/* Campo de valor varia conforme modo */}
+        {modo === "texto" && (
+          <div>
+            <label style={LS}>Valor (texto literal)</label>
+            <input value={d.valor||""} onChange={e => u({valor: e.target.value})} style={IS} placeholder="Ex: SP" />
+          </div>
+        )}
+        {modo === "expressao" && (
+          <div>
+            <label style={LS}>Expressão</label>
+            <input value={d.valor||""} onChange={e => u({valor: e.target.value})} style={IS} placeholder="{{nome}} - {{cpf_limpo}}" />
+            <p style={{color:"#6b7280", fontSize:10, margin:"3px 0 0"}}>
+              💡 Use <code style={{color:"#3b82f6"}}>{"{{nome_variavel}}"}</code> pra inserir valores de outras variáveis. Ex: <code>{"Olá {{nome}}"}</code>
+            </p>
+          </div>
+        )}
+        {modo === "codigo" && (
+          <>
+            <div>
+              <label style={LS}>Código JavaScript</label>
+              <textarea
+                value={d.valor||""}
+                onChange={e => u({valor: e.target.value})}
+                style={{...IS, height:140, resize:"vertical", fontFamily:"monospace", fontSize:11}}
+                placeholder={`// Use 'return' pro valor da variável\n// API: getVariable(nome), setVariable(nome,valor), fetch, sleep, log\nconst cep = getVariable("cep").replace(/\\D/g, "");\nreturn cep;`}
+              />
+            </div>
+            {/* Save error in variable (igual Typebot) */}
+            {VarPill("Salvar erro em (opcional)", "salvar_erro_em", "Variável pra erro...")}
+            <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 0", lineHeight:1.3}}>
+              Se o código der erro, a mensagem fica salva nessa variável. Útil pra blocos de condição depois.
+            </p>
+          </>
+        )}
       </>;
+    }
     case "redirecionar": return <>{F("URL","url","url","https://...")}</>;
     case "script":
       return <>
@@ -333,8 +747,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
         {S("Método","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}
         {T("Headers JSON","headers",'{"Authorization":"Bearer token"}',60)}
         {T("Body JSON","body",'{"chave":"valor"}',60)}
-        {F("Salvar resposta em","variavel_resposta","text","resposta_api")}
-        {F("Salvar status em","variavel_status","text","status_api")}
+        {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_api")}
+        {VarPill("Salvar status em", "variavel_status", "ex: status_api")}
       </>;
     case "pular": case "retornar":
       return <>{F("ID do nó alvo","alvo","text","ID do bloco destino")}</>;
@@ -352,15 +766,15 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
         {S("Método","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}
         {T("Headers JSON","headers",'{"Content-Type":"application/json"}',60)}
         {T("Body JSON","body",'{"chave":"{{variavel}}"}',60)}
-        {F("Salvar resposta em","variavel_resposta","text","resposta_api")}
-        {F("Salvar status em","variavel_status","text","status_api")}
+        {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_api")}
+        {VarPill("Salvar status em", "variavel_status", "ex: status_api")}
       </>;
     case "openai":
       return <>
         {F("API Key","apiKey","password","sk-...")}
         {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"},{value:"gpt-3.5-turbo",label:"GPT-3.5"}])}
         {T("Prompt do sistema","prompt","Você é um assistente...",100)}
-        {F("Salvar resposta em","variavel_resposta","text","resposta_ia")}
+        {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_ia")}
         <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"white",fontSize:12}}>
           <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
           Enviar resposta pro cliente automaticamente
@@ -371,7 +785,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco }: {
         {F("API Key","apiKey","password","sk-ant-...")}
         {S("Modelo","modelo",[{value:"claude-opus-4-5",label:"Claude Opus 4.5"},{value:"claude-sonnet-4-20250514",label:"Claude Sonnet 4"},{value:"claude-haiku-4-5",label:"Claude Haiku"}])}
         {T("Prompt do sistema","prompt","Você é um assistente...",100)}
-        {F("Salvar resposta em","variavel_resposta","text","resposta_ia")}
+        {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_ia")}
         <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"white",fontSize:12}}>
           <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
           Enviar resposta pro cliente automaticamente
@@ -1011,6 +1425,7 @@ export default function FluxosPage() {
               excluirNo={excluirNo}
               setNos={setNos}
               filasBanco={filasBanco}
+              nos={nos}
             />
             {noSel.tipo!=="inicio" && (
               <button onClick={()=>excluirNo(noSel.id)} style={{background:"#dc262611",color:"#dc2626",border:"1px solid #dc262633",borderRadius:8,padding:"8px",fontSize:12,cursor:"pointer",fontWeight:"bold",marginTop:"auto"}}>
