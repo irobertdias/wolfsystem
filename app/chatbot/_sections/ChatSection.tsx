@@ -480,22 +480,35 @@ export function ChatSection() {
     setBuscandoMsgs(true);
     const timeoutId = setTimeout(async () => {
       try {
+        // 🆕 Escapa caracteres especiais do ILIKE: % e _ são curingas no Postgres.
+        //    Sem isso, busca por "x_y" trataria _ como "qualquer caractere" — confuso.
+        //    Mantém - e outros chars normais (eles funcionam normalmente em ILIKE).
+        const buscaEscapada = buscaTrim.replace(/[\\%_]/g, "\\$&");
+
         // Query: busca atendimentos cujas mensagens contenham o texto.
         // Multi-tenant (workspace_id obrigatório) + ILIKE pra busca case-insensitive.
         // ⚠️ FIX: o campo correto da tabela é "mensagem" (não "texto")
         // Limit 1000 mensagens distintas → daí extrai os atendimento_id únicos.
+        console.log(`🔍 [Busca] Procurando "${buscaTrim}" em mensagens do workspace ${wsId}`);
         const { data, error } = await supabase
           .from("mensagens")
-          .select("atendimento_id, numero")
+          .select("atendimento_id, numero, mensagem")
           .eq("workspace_id", wsId)
-          .ilike("mensagem", `%${buscaTrim}%`)
+          .ilike("mensagem", `%${buscaEscapada}%`)
           .order("created_at", { ascending: false })
           .limit(1000);
 
         if (error) {
-          console.error("Erro na busca de mensagens:", error);
+          console.error("❌ [Busca] Erro:", error);
           setAtendimentosComMatch(new Set());
         } else {
+          console.log(`🔍 [Busca] ${(data || []).length} mensagem(ns) bate(m) com "${buscaTrim}"`);
+          if ((data || []).length > 0) {
+            // Loga as 3 primeiras pra debug
+            (data || []).slice(0, 3).forEach((m: any) => {
+              console.log(`   → numero=${m.numero} atendimento_id=${m.atendimento_id} msg="${String(m.mensagem || "").slice(0, 60)}"`);
+            });
+          }
           // 🆕 Extrai IDs (atendimento_id) E NÚMEROS — porque algumas mensagens
           // antigas podem não ter atendimento_id mas têm numero.
           const idsAtend = new Set<string>();
@@ -1399,8 +1412,24 @@ export function ChatSection() {
     contadoresAbas[aba]++;
   });
 
+  // 🆕 Log detalhado da busca quando ativa (DEBUG — remover depois de validar)
+  if (busca.trim().length >= 3 && atendimentosComMatch !== null && atendimentosComMatch.size > 0) {
+    const matchNumeros = Array.from(atendimentosComMatch).filter(k => k.startsWith("num:")).map(k => k.slice(4));
+    const matchIds = Array.from(atendimentosComMatch).filter(k => k.startsWith("id:")).map(k => k.slice(3));
+    console.log(`🔍 [Filtro] Busca "${busca}" → atendimentosComMatch=${atendimentosComMatch.size} (ids=${matchIds.length}, numeros=${matchNumeros.length})`);
+    console.log(`   → Numeros que bateram: ${matchNumeros.slice(0, 5).join(", ")}${matchNumeros.length > 5 ? "..." : ""}`);
+    console.log(`   → atendimentos.length=${atendimentos.length} (carregados em memória)`);
+    // Verifica se algum atendimento atual tem esse número
+    const candidatos = atendimentos.filter(a => matchNumeros.includes(String(a.numero)) || matchIds.includes(String(a.id)));
+    console.log(`   → Candidatos na lista atendimentos: ${candidatos.length} (${candidatos.slice(0, 3).map(a => `${a.numero}(${a.nome})`).join(", ")})`);
+  }
+
   const atendimentosFiltrados = atendimentos
-    .filter(a => classificarAba(a) === abaConversa)
+    // 🆕 Quando busca tem 3+ chars, IGNORA filtro de aba (busca global em todas)
+    //    Antes: user buscava "98300-9410" mas atendimento tava em "Finalizados" e
+    //    o filtro de aba "Abertos" excluía → resultado 0.
+    //    Agora: busca >= 3 chars vê TODAS as abas (e mostra a aba do match).
+    .filter(a => busca.trim().length >= 3 || classificarAba(a) === abaConversa)
     .filter(a => podeVerAtendimento(a, abaConversa))
     // 🆕 BUSCA: nome OU número OU mensagem (atendimentosComMatch é Set vindo do banco)
     //    Se busca curta (<3) ou vazia: filtro padrão por nome/número
@@ -2102,7 +2131,7 @@ export function ChatSection() {
         {/* 🆕 Badge informativa: avisa que está buscando em mensagens */}
         {busca.trim().length >= 3 && atendimentosComMatch !== null && (
           <div style={{ padding: "8px 14px", background: ehClaro ? "#dbeafe" : "#1e3a5f", borderBottom: `1px solid ${tema.bordaSutil}`, fontSize: 11, color: ehClaro ? "#1e40af" : "#93c5fd" }}>
-            🔍 Busca por <b>"{busca}"</b> — {atendimentosFiltrados.length} atendimento(s) encontrado(s)
+            🔍 Busca por <b>"{busca}"</b> — {atendimentosFiltrados.length} atendimento(s) encontrado(s) em <b>todas as abas</b>
           </div>
         )}
         {busca.trim().length > 0 && busca.trim().length < 3 && (
