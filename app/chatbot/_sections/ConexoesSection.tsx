@@ -15,6 +15,8 @@ type Conexao = {
   fila: string; api_key: string; prompt: string; parar_se_atendente: boolean;
   phone_number_id?: string; waba_id?: string; token_waba?: string; webhook_token?: string;
   workspace_id: string;
+  // 🆕 Typebot
+  typebot_url?: string; typebot_msg_invalida?: string; typebot_msg_boas_vindas?: string;
 };
 type FluxoItem = { id: number; nome: string; ativo: boolean; };
 type FilaItem = { id: number; nome: string; conexao?: string; };
@@ -54,7 +56,7 @@ export function ConexoesSection() {
 
   const [limites, setLimites] = useState<LimitesPlano>({ conexoes: 1, webjs: true, waba: false, instagram: false });
 
-  const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "", pararSeAtendente: true };
+  const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "", pararSeAtendente: true, typebot_url: "", typebot_msg_invalida: "", typebot_msg_boas_vindas: "" };
   const [form, setForm] = useState(formInicial);
 
   const [apiKeyTocada, setApiKeyTocada] = useState(false);
@@ -323,7 +325,7 @@ export function ConexoesSection() {
 
   const abrirEditar = (c: Conexao) => {
     setEditandoId(c.id);
-    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila || "", pararSeAtendente: c.parar_se_atendente });
+    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila || "", pararSeAtendente: c.parar_se_atendente, typebot_url: c.typebot_url || "", typebot_msg_invalida: c.typebot_msg_invalida || "", typebot_msg_boas_vindas: c.typebot_msg_boas_vindas || "" });
     setApiKeyTocada(false); setTokenTocado(false); setShowModalNovoCanal(true); setShowMenuEngrenagem(null);
     fetchFluxos(); fetchFilas(); // 🆕 recarrega filas ao abrir pra editar
   };
@@ -334,6 +336,11 @@ export function ConexoesSection() {
     if (!form.fila) { alert("Selecione uma fila!\n\nSe não tiver fila cadastrada, vá em Configurações → Filas e crie uma."); return; } // 🆕
     if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { alert("Preencha Phone Number ID e Token!"); return; }
     if (!editandoId && form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
+    // 🆕 TYPEBOT — exige URL pra criar
+    if (form.modo === "typebot" && !form.typebot_url?.trim()) {
+      alert("Cole a URL de publicação do Typebot!");
+      return;
+    }
 
     // 🆕 Validação de limite do plano — APENAS super admin Wolf bypassa (dono de workspace respeita plano)
     if (!editandoId && !isSuperAdmin) {
@@ -351,7 +358,11 @@ export function ConexoesSection() {
 
       const payload: any = {
         nome: form.nome, modo: form.modo, ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
-        fila: form.fila, prompt: form.prompt, parar_se_atendente: form.pararSeAtendente
+        fila: form.fila, prompt: form.prompt, parar_se_atendente: form.pararSeAtendente,
+        // 🆕 TYPEBOT — sempre salva (mesmo vazio) pra consistência
+        typebot_url: form.typebot_url || "",
+        typebot_msg_invalida: form.typebot_msg_invalida || "Desculpe, não entendi sua resposta. Pode tentar de novo?",
+        typebot_msg_boas_vindas: form.typebot_msg_boas_vindas || "",
       };
       if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
 
@@ -474,7 +485,7 @@ export function ConexoesSection() {
     await fetchConexoes(); setShowMenuEngrenagem(null);
   };
 
-  const modoColor: Record<string, string> = { nenhum: "#6b7280", ia: "#10b981", fluxo: "#8b5cf6" };
+  const modoColor: Record<string, string> = { nenhum: "#6b7280", ia: "#10b981", fluxo: "#8b5cf6", typebot: "#a78bfa" };
   const iaLabel: Record<string, string> = { gpt: "ChatGPT", claude: "Claude AI", gemini: "Gemini", deepseek: "DeepSeek" };
 
   const Toggle = ({ value, onChange }: { value: boolean; onChange: () => void }) => (
@@ -618,8 +629,13 @@ export function ConexoesSection() {
               )}
               <div>
                 <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>{editandoId ? "2" : form.tipo === "waba" ? "4" : "3"}. Automação</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
-                  {[{ key: "nenhum", icon: "🚫", label: "Sem automação", desc: "Só humano" }, { key: "ia", icon: "🤖", label: "Usar IA", desc: "Claude, GPT..." }, { key: "fluxo", icon: "🔀", label: "Usar Fluxo", desc: "Chatbot visual" }].map(m => (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
+                  {[
+                    { key: "nenhum", icon: "🚫", label: "Sem automação", desc: "Só humano" },
+                    { key: "ia", icon: "🤖", label: "Usar IA", desc: "Claude, GPT..." },
+                    { key: "fluxo", icon: "🔀", label: "Usar Fluxo", desc: "Chatbot visual" },
+                    { key: "typebot", icon: "🎯", label: "Typebot", desc: "URL do Typebot" },
+                  ].map(m => (
                     <button key={m.key} onClick={() => setForm(p => ({ ...p, modo: m.key }))} style={{ background: form.modo === m.key ? "#8b5cf622" : "#1f2937", border: `2px solid ${form.modo === m.key ? "#8b5cf6" : "#374151"}`, borderRadius: 10, padding: "12px 10px", cursor: "pointer", textAlign: "center" }}>
                       <p style={{ color: "white", fontSize: 22, margin: "0 0 4px" }}>{m.icon}</p>
                       <p style={{ color: form.modo === m.key ? "#8b5cf6" : "white", fontSize: 12, fontWeight: "bold", margin: "0 0 2px" }}>{m.label}</p>
@@ -667,6 +683,57 @@ export function ConexoesSection() {
                         {form.fluxoId === f.id.toString() && <span style={{ color: "#8b5cf6", fontSize: 18 }}>✓</span>}
                       </button>
                     ))}
+                  </div>
+                )}
+                {/* 🆕 TYPEBOT — campos de configuração quando modo é typebot */}
+                {form.modo === "typebot" && (
+                  <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                    <p style={{ color: "#a78bfa", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>🎯 Configurar Typebot</p>
+                    <p style={{ color: "#9ca3af", fontSize: 11, margin: "-4px 0 0", lineHeight: 1.4 }}>
+                      Cole a URL de publicação do seu Typebot. O sistema vai usar a API dele pra processar os atendimentos automaticamente.
+                    </p>
+                    <div>
+                      <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>
+                        URL do Typebot *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="https://typebot.io/meu-bot ou https://seu-typebot.com.br/atendimento"
+                        value={form.typebot_url || ""}
+                        onChange={e => setForm(p => ({ ...p, typebot_url: e.target.value }))}
+                        style={IS}
+                      />
+                      <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>
+                        Cole a URL completa de publicação. Aceita typebot.io e self-hosted.
+                      </p>
+                    </div>
+                    <div>
+                      <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>
+                        Mensagem de boas-vindas (opcional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Olá! Vou te ajudar agora 😊"
+                        value={form.typebot_msg_boas_vindas || ""}
+                        onChange={e => setForm(p => ({ ...p, typebot_msg_boas_vindas: e.target.value }))}
+                        style={IS}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>
+                        Mensagem quando resposta é inválida
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Desculpe, não entendi sua resposta. Pode tentar de novo?"
+                        value={form.typebot_msg_invalida || ""}
+                        onChange={e => setForm(p => ({ ...p, typebot_msg_invalida: e.target.value }))}
+                        style={IS}
+                      />
+                      <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>
+                        Mostrada quando o cliente manda algo que o bloco do Typebot não aceita (ex: bot pede CEP e ele responde "oi").
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -754,7 +821,7 @@ export function ConexoesSection() {
                 <span style={{ background: c.status === "conectado" ? "#16a34a22" : "#dc262622", color: c.status === "conectado" ? "#16a34a" : "#dc2626", fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.status === "conectado" ? "🟢 Conectado" : "🔴 Desconectado"}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: "bold" }}>{c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxo_nome}` : "🚫 Sem automação"}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: "bold" }}>{c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxo_nome}` : c.modo === "typebot" ? `🎯 Typebot` : "🚫 Sem automação"}</span></div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Fila:</span><span style={{ color: "#3b82f6", fontSize: 12 }}>{c.fila || "—"}</span></div>
                 {c.numero && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Número:</span><span style={{ color: "white", fontSize: 12 }}>{c.numero}</span></div>}
               </div>
