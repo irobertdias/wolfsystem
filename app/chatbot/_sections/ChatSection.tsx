@@ -259,6 +259,8 @@ export function ChatSection() {
   const ultimaQtdNaoLidasRef = useRef<Record<number, number>>({});
 
   const [mensagem, setMensagem] = useState("");
+  // 🆕 Ref pro textarea de mensagem — usado pra resetar altura após envio
+  const mensagemTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [mensagemInterna, setMensagemInterna] = useState("");
   const [showRespostas, setShowRespostas] = useState(false);
   const [showTransferir, setShowTransferir] = useState(false);
@@ -1476,7 +1478,13 @@ export function ChatSection() {
       // Sem ele a rota /enviar retorna 400. wsId vem do useWorkspace().
       const resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
       if (!resp.success) { alert("Erro ao enviar: " + (resp.error || "desconhecido")); }
-      else { setMensagem(""); }
+      else {
+        setMensagem("");
+        // 🆕 Reseta altura do textarea pra 1 linha após enviar
+        if (mensagemTextareaRef.current) {
+          mensagemTextareaRef.current.style.height = "auto";
+        }
+      }
     }
     catch { alert("Erro ao enviar!"); }
     setEnviandoMsg(false);
@@ -2738,11 +2746,43 @@ export function ChatSection() {
                       }}>📋</button>
                   )}
 
-                  <input placeholder={meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem"} value={mensagem}
-                    onChange={e => { setMensagem(e.target.value); if (e.target.value === "/" && permissoes.respostas_rapidas) setShowRespostas(true); else if (!e.target.value) setShowRespostas(false); }}
-                    onKeyDown={e => e.key === "Enter" && enviarMensagem()}
+                  <textarea
+                    ref={mensagemTextareaRef}
+                    placeholder={meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem"}
+                    value={mensagem}
+                    onChange={e => {
+                      setMensagem(e.target.value);
+                      if (e.target.value === "/" && permissoes.respostas_rapidas) setShowRespostas(true);
+                      else if (!e.target.value) setShowRespostas(false);
+                      // 🆕 Auto-resize: cresce conforme o user digita (até 6 linhas)
+                      const ta = e.target;
+                      ta.style.height = "auto";
+                      ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
+                    }}
+                    onKeyDown={e => {
+                      // 🆕 Enter envia, Shift+Enter quebra linha (igual WhatsApp/Slack)
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        enviarMensagem();
+                      }
+                    }}
                     onFocus={() => setShowEmojiPicker(false)}
-                    style={{ flex: 1, background: "#2a3942", border: "none", borderRadius: 20, padding: "10px 16px", color: "#e9edef", fontSize: 14 }} />
+                    rows={1}
+                    style={{
+                      flex: 1,
+                      background: "#2a3942",
+                      border: "none",
+                      borderRadius: 20,
+                      padding: "10px 16px",
+                      color: "#e9edef",
+                      fontSize: 14,
+                      resize: "none",          // 🆕 sem alça de resize
+                      fontFamily: "inherit",   // 🆕 textarea por padrão usa monospace
+                      lineHeight: "1.4",
+                      maxHeight: 140,
+                      overflowY: "auto",
+                    }}
+                  />
                   {mensagem ? (
                     <button onClick={enviarMensagem} disabled={enviandoMsg} title="Enviar"
                       style={{ background: "#00a884", color: "white", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer", fontWeight: "bold" }}>{enviandoMsg ? "…" : "➤"}</button>
@@ -2805,11 +2845,40 @@ export function ChatSection() {
 
             {/* Legenda + botão enviar */}
             <div style={{ padding: "12px 16px", background: "#202c33", display: "flex", gap: 8, alignItems: "center" }}>
-              <input placeholder="Adicione uma legenda (opcional)" value={legendaArquivo}
-                onChange={e => setLegendaArquivo(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && !enviandoMidia && enviarMidia()}
+              <textarea
+                placeholder="Adicione uma legenda (opcional)"
+                value={legendaArquivo}
+                onChange={e => {
+                  setLegendaArquivo(e.target.value);
+                  // Auto-resize
+                  const ta = e.target;
+                  ta.style.height = "auto";
+                  ta.style.height = Math.min(ta.scrollHeight, 100) + "px";
+                }}
+                onKeyDown={e => {
+                  // Enter envia, Shift+Enter quebra linha
+                  if (e.key === "Enter" && !e.shiftKey && !enviandoMidia) {
+                    e.preventDefault();
+                    enviarMidia();
+                  }
+                }}
                 disabled={enviandoMidia}
-                style={{ flex: 1, background: "#2a3942", border: "none", borderRadius: 20, padding: "10px 16px", color: "#e9edef", fontSize: 14 }} />
+                rows={1}
+                style={{
+                  flex: 1,
+                  background: "#2a3942",
+                  border: "none",
+                  borderRadius: 20,
+                  padding: "10px 16px",
+                  color: "#e9edef",
+                  fontSize: 14,
+                  resize: "none",
+                  fontFamily: "inherit",
+                  lineHeight: "1.4",
+                  maxHeight: 100,
+                  overflowY: "auto",
+                }}
+              />
               <button onClick={enviarMidia} disabled={enviandoMidia}
                 style={{ background: enviandoMidia ? "#047857" : "#00a884", color: "white", border: "none", borderRadius: "50%", width: 44, height: 44, fontSize: 18, cursor: enviandoMidia ? "not-allowed" : "pointer", fontWeight: "bold" }}>
                 {enviandoMidia ? "…" : "➤"}
