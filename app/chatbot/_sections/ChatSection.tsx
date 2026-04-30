@@ -286,6 +286,15 @@ export function ChatSection() {
   // 🆕 Menu de 3 pontinhos REMOVIDO — todos os botões ficam visíveis na toolbar agora
   const [abaConversa, setAbaConversa] = useState<"automatico" | "aguardando" | "abertos" | "finalizados">("aguardando");
   const [busca, setBusca] = useState("");
+  // 🆕 BUSCA EM MENSAGENS — quando user digita 3+ chars, dispara query nas mensagens.
+  //    atendimentosComMatch contém IDs de atendimentos que têm a mensagem buscada.
+  //    Usado pra filtrar a lista junto com nome/número.
+  //    null = ainda não buscou (busca curta ou vazia)
+  //    Set vazio = buscou e não encontrou nada
+  const [atendimentosComMatch, setAtendimentosComMatch] = useState<Set<string> | null>(null);
+  const [buscandoMsgs, setBuscandoMsgs] = useState(false);
+  // Cache simples — se repetir a mesma busca, reusa o resultado
+  const cacheBuscaRef = useRef<Map<string, Set<string>>>(new Map());
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [atendimentoAtivo, setAtendimentoAtivo] = useState<Atendimento | null>(null);
   const [historico, setHistorico] = useState<Mensagem[]>([]);
@@ -437,6 +446,81 @@ export function ChatSection() {
     }
     return audioCtxRef.current;
   };
+
+  // 🆕 ═══════════════════════════════════════════════════════════════════
+  // BUSCA POR MENSAGEM — dispara query no banco quando user digita 3+ chars
+  // ═══════════════════════════════════════════════════════════════════════
+  // Comportamento:
+  //   - Busca SÓ em mensagens (deixa nome/número pra busca client-side)
+  //   - Debounce de 500ms (espera user parar de digitar)
+  //   - Cache: se repete a mesma busca, reusa resultado
+  //   - Limit 200 atendimentos pra não estourar memória
+  //   - Loading visual quando tá buscando (buscandoMsgs)
+  useEffect(() => {
+    if (!wsId) return;
+
+    // Busca curta ou vazia = limpa o filtro de mensagens
+    const buscaTrim = busca.trim();
+    if (buscaTrim.length < 3) {
+      setAtendimentosComMatch(null);
+      setBuscandoMsgs(false);
+      return;
+    }
+
+    // Cache hit
+    const cacheKey = `${wsId}::${buscaTrim.toLowerCase()}`;
+    const cached = cacheBuscaRef.current.get(cacheKey);
+    if (cached) {
+      setAtendimentosComMatch(cached);
+      setBuscandoMsgs(false);
+      return;
+    }
+
+    // Debounce — espera 500ms sem digitar antes de buscar
+    setBuscandoMsgs(true);
+    const timeoutId = setTimeout(async () => {
+      try {
+        // Query: busca atendimentos cujas mensagens contenham o texto.
+        // Multi-tenant (workspace_id obrigatório) + ILIKE pra busca case-insensitive.
+        // Limit 1000 mensagens distintas → daí extrai os atendimento_id únicos.
+        const { data, error } = await supabase
+          .from("mensagens")
+          .select("atendimento_id")
+          .eq("workspace_id", wsId)
+          .ilike("texto", `%${buscaTrim}%`)
+          .order("created_at", { ascending: false })
+          .limit(1000);
+
+        if (error) {
+          console.error("Erro na busca de mensagens:", error);
+          setAtendimentosComMatch(new Set());
+        } else {
+          // Extrai IDs únicos
+          const ids = new Set<string>();
+          (data || []).forEach((m: any) => {
+            if (m.atendimento_id) ids.add(String(m.atendimento_id));
+          });
+
+          // Salva no cache (max 20 entradas pra não vazar memória)
+          if (cacheBuscaRef.current.size > 20) {
+            const firstKey = cacheBuscaRef.current.keys().next().value;
+            if (firstKey) cacheBuscaRef.current.delete(firstKey);
+          }
+          cacheBuscaRef.current.set(cacheKey, ids);
+
+          setAtendimentosComMatch(ids);
+        }
+      } catch (e) {
+        console.error("Erro inesperado na busca:", e);
+        setAtendimentosComMatch(new Set());
+      } finally {
+        setBuscandoMsgs(false);
+      }
+    }, 500);
+
+    // Cancela busca pendente se user continuar digitando
+    return () => clearTimeout(timeoutId);
+  }, [busca, wsId]);
 
   // 🔓 Listener global: na primeira interação do user com a página (clique/tecla/touch),
   // força resume do AudioContext. Garante que o som funcione mesmo se o user nunca clicou
@@ -1309,7 +1393,19 @@ export function ChatSection() {
   const atendimentosFiltrados = atendimentos
     .filter(a => classificarAba(a) === abaConversa)
     .filter(a => podeVerAtendimento(a, abaConversa))
-    .filter(a => !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.numero?.includes(busca))
+    // 🆕 BUSCA: nome OU número OU mensagem (atendimentosComMatch é Set vindo do banco)
+    //    Se busca curta (<3) ou vazia: filtro padrão por nome/número
+    //    Se busca >= 3: ALÉM de nome/número, considera atendimentos com match em mensagens
+    .filter(a => {
+      if (!busca) return true;
+      const buscaLower = busca.toLowerCase();
+      // Match local: nome ou número
+      if (a.nome?.toLowerCase().includes(buscaLower)) return true;
+      if (a.numero?.includes(busca)) return true;
+      // Match em mensagens: só conta se já tiver resultado da busca server-side
+      if (atendimentosComMatch && atendimentosComMatch.has(String(a.id))) return true;
+      return false;
+    })
     .filter(a => filtroFila === "todas" || a.fila === filtroFila)
     .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente)
     .filter(a => filtroCanal === "todos" || String(a.canal_id) === filtroCanal)
@@ -1870,8 +1966,18 @@ export function ChatSection() {
       {/* LISTA ESQUERDA */}
       <div style={{ width: 340, background: tema.sidebarBg, borderRight: `1px solid ${tema.bordaSutil}`, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "12px 14px", background: tema.headerBg, borderBottom: `1px solid ${tema.bordaSutil}`, display: "flex", gap: 8, alignItems: "center" }}>
-          <input placeholder="🔍 Buscar conversa..." value={busca} onChange={e => setBusca(e.target.value)}
-            style={{ flex: 1, background: ehClaro ? "#ffffff" : "#111b21", border: ehClaro ? `1px solid ${tema.bordaSutil}` : "none", borderRadius: 20, padding: "8px 14px", color: tema.textoForte, fontSize: 13 }} />
+          <div style={{ flex: 1, position: "relative" }}>
+            <input
+              placeholder="🔍 Buscar conversa, nome ou mensagem..."
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              style={{ width: "100%", boxSizing: "border-box", background: ehClaro ? "#ffffff" : "#111b21", border: ehClaro ? `1px solid ${tema.bordaSutil}` : "none", borderRadius: 20, padding: "8px 14px", paddingRight: buscandoMsgs ? 36 : 14, color: tema.textoForte, fontSize: 13 }}
+            />
+            {/* 🆕 Spinner enquanto busca em mensagens */}
+            {buscandoMsgs && (
+              <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, border: `2px solid ${tema.accent}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin-icon 0.6s linear infinite" }} />
+            )}
+          </div>
           {/* 🔔 Toggle de som das notificações — preferência salva no localStorage por usuário */}
           <button onClick={toggleSom} title={somAtivo ? "Som ligado (clique pra silenciar)" : "Som silenciado (clique pra ativar)"}
             style={{ background: "none", border: "none", color: somAtivo ? tema.accent : tema.textoFraco, cursor: "pointer", fontSize: 16, padding: 4 }}>
@@ -1979,6 +2085,18 @@ export function ChatSection() {
             </div>
           );
         })()}
+
+        {/* 🆕 Badge informativa: avisa que está buscando em mensagens */}
+        {busca.trim().length >= 3 && atendimentosComMatch !== null && (
+          <div style={{ padding: "8px 14px", background: ehClaro ? "#dbeafe" : "#1e3a5f", borderBottom: `1px solid ${tema.bordaSutil}`, fontSize: 11, color: ehClaro ? "#1e40af" : "#93c5fd" }}>
+            🔍 Busca por <b>"{busca}"</b> — {atendimentosComMatch.size} atendimento(s) com essa palavra nas mensagens
+          </div>
+        )}
+        {busca.trim().length > 0 && busca.trim().length < 3 && (
+          <div style={{ padding: "8px 14px", background: ehClaro ? "#fef3c7" : "#3a2e0a", borderBottom: `1px solid ${tema.bordaSutil}`, fontSize: 11, color: ehClaro ? "#92400e" : "#fcd34d" }}>
+            💡 Digite 3+ caracteres pra buscar também nas mensagens
+          </div>
+        )}
 
         <div style={{ overflowY: "auto", flex: 1, background: tema.listaItem }}>
           {atendimentosFiltrados.length === 0 ? (
