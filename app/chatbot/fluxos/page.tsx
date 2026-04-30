@@ -214,6 +214,165 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
     </div>
   );
 
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // TVar — Textarea COM botão "+ Variável" estilo Typebot.
+  // ═══════════════════════════════════════════════════════════════════════
+  // Permite inserir {{nome_variavel}} na posição do cursor com 1 clique.
+  // Mostra lista de variáveis existentes no fluxo + opção de criar nova.
+  // Use em blocos onde a mensagem contém texto + variáveis (texto, legenda, etc).
+  const TVar = (lbl: string, key: string, ph = "", h = 100) => {
+    const dropdownId = `tvar-${id}-${key}`;
+    const textareaId = `textarea-${id}-${key}`;
+
+    // Insere {{nome}} na posição do cursor (ou no fim se não tiver foco)
+    const inserirVar = (nome: string) => {
+      if (!nome.trim()) return;
+      const nomeFinal = nome.trim();
+      const ta = document.getElementById(textareaId) as HTMLTextAreaElement | null;
+      const valorAtual = String(d[key] || "");
+      let novoValor: string;
+      let novaPos: number;
+
+      if (ta) {
+        const start = ta.selectionStart ?? valorAtual.length;
+        const end = ta.selectionEnd ?? valorAtual.length;
+        const insercao = `{{${nomeFinal}}}`;
+        novoValor = valorAtual.slice(0, start) + insercao + valorAtual.slice(end);
+        novaPos = start + insercao.length;
+      } else {
+        novoValor = valorAtual + `{{${nomeFinal}}}`;
+        novaPos = novoValor.length;
+      }
+
+      u({ [key]: novoValor });
+
+      // Restaura o cursor depois do insert (precisa de timeout pq React vai re-renderizar)
+      setTimeout(() => {
+        const taNova = document.getElementById(textareaId) as HTMLTextAreaElement | null;
+        if (taNova) {
+          taNova.focus();
+          taNova.setSelectionRange(novaPos, novaPos);
+        }
+      }, 50);
+
+      // Fecha o dropdown
+      document.getElementById(dropdownId)?.removeAttribute("open");
+    };
+
+    return (
+      <div key={`${id}-${key}-tvar`}>
+        <label style={LS}>{lbl}</label>
+        <div style={{ position: "relative" }}>
+          <textarea
+            id={textareaId}
+            value={d[key] || ""}
+            onChange={e => u({ [key]: e.target.value })}
+            style={{ ...IS, height: h, resize: "vertical", paddingRight: 12 }}
+            placeholder={ph}
+          />
+          {/* Botão "+ Variável" no canto inferior direito do textarea */}
+          <details
+            id={dropdownId}
+            style={{ position: "absolute", bottom: 8, right: 8 }}
+          >
+            <summary style={{
+              listStyle: "none",
+              cursor: "pointer",
+              background: "#8b5cf622",
+              color: "#a78bfa",
+              border: "1px solid #8b5cf633",
+              borderRadius: 6,
+              padding: "4px 10px",
+              fontSize: 11,
+              fontWeight: "bold",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              userSelect: "none",
+              outline: "none",
+            }}>
+              <span style={{ fontSize: 14, lineHeight: 1 }}>＋</span> Variável
+            </summary>
+            <div style={{
+              position: "absolute",
+              bottom: "calc(100% + 4px)",
+              right: 0,
+              background: "#1f2937",
+              border: "1px solid #374151",
+              borderRadius: 8,
+              boxShadow: "0 8px 24px #0008",
+              padding: 8,
+              minWidth: 220,
+              maxHeight: 280,
+              overflowY: "auto",
+              zIndex: 200,
+            }}>
+              {/* Input pra digitar nome novo */}
+              <input
+                type="text"
+                placeholder="Digite ou crie variável..."
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    inserirVar((e.target as HTMLInputElement).value);
+                    (e.target as HTMLInputElement).value = "";
+                  }
+                }}
+                style={{
+                  width: "100%",
+                  background: "#111",
+                  border: "1px solid #374151",
+                  borderRadius: 6,
+                  padding: "6px 10px",
+                  color: "white",
+                  fontSize: 12,
+                  marginBottom: 8,
+                  outline: "none",
+                }}
+              />
+              {variaveisDoFluxo.length === 0 ? (
+                <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
+                  Nenhuma variável no fluxo ainda.<br />Digite acima pra criar a primeira.
+                </p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {variaveisDoFluxo.map(v => (
+                    <button
+                      key={v}
+                      onClick={() => inserirVar(v)}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        borderRadius: 6,
+                        padding: "6px 10px",
+                        cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      <span style={{
+                        background: "#8b5cf622",
+                        color: "#a78bfa",
+                        padding: "3px 10px",
+                        borderRadius: 10,
+                        fontSize: 11,
+                        fontWeight: "bold",
+                      }}>{`{{${v}}}`}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </details>
+        </div>
+        {variaveisDoFluxo.length > 0 && (
+          <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
+            💡 Clique em <b style={{ color: "#a78bfa" }}>＋ Variável</b> pra inserir uma variável do fluxo na posição do cursor.
+          </p>
+        )}
+      </div>
+    );
+  };
+
   const S = (lbl: string, key: string, opts: {value:string;label:string}[]) => (
     <div key={`${id}-${key}`}>
       <label style={LS}>{lbl}</label>
@@ -419,7 +578,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
   );
 
   switch (noSel.tipo) {
-    case "texto": return <>{T("Mensagem","texto","Digite...",120)}</>;
+    case "texto": return <>{TVar("Mensagem","texto","Digite sua mensagem aqui...",120)}</>;
     case "imagem": return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
     case "video":  return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
     case "audio":  return <>{F("URL do Áudio","url","url","https://...")}</>;
@@ -427,12 +586,12 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
     case "input_texto": case "input_email": case "input_website": case "input_numero":
     case "input_telefone": case "input_arquivo": case "input_data": case "input_hora":
       return <>
-        {T("Pergunta","pergunta","Qual...?",80)}
+        {TVar("Pergunta","pergunta","Qual...?",80)}
         {VarPill("Salvar resposta em", "variavel", "ex: nome")}
       </>;
     case "input_avaliacao":
       return <>
-        {T("Pergunta","pergunta","Como avalia?",80)}
+        {TVar("Pergunta","pergunta","Como avalia?",80)}
         {F("Máximo","max","number","5")}
         {VarPill("Salvar resposta em", "variavel", "ex: avaliacao")}
       </>;
@@ -440,7 +599,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
       return <>{F("Valor (R$)","valor","number","0")}{F("Descrição","descricao")}</>;
     case "input_botao":
       return <>
-        {T("Texto","texto","Escolha:",60)}
+        {TVar("Texto","texto","Escolha:",60)}
         <div>
           <label style={LS}>Botões (máx 3, um por linha)</label>
           <textarea
@@ -798,7 +957,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         {F("Assunto","assunto","text","Assunto do email")}
         {T("Corpo do email","corpo","Olá {{nome}}...",120)}
       </>;
-    case "inicio":    return <>{T("Mensagem de boas-vindas","mensagem","Olá! Como posso ajudar?",100)}</>;
+    case "inicio":    return <>{TVar("Mensagem de boas-vindas","mensagem","Olá! Como posso ajudar?",100)}</>;
     case "comando":   return <>{F("Comando","comando","text","/start")}</>;
     case "reply":
       return <div>
@@ -1404,33 +1563,162 @@ export default function FluxosPage() {
         </div>
       </div>
 
+      {/* 🆕 MODAL CENTRALIZADO de edição (em vez de sidebar lateral).
+          Vantagens: muito mais espaço pros campos, não some informação, foco total no bloco.
+          Desvantagem: canvas fica escurecido atrás (mas dá pra fechar e voltar rápido). */}
       {noSel && (
-        <div style={{width:270,background:"#111",borderLeft:"1px solid #1f2937",display:"flex",flexDirection:"column",flexShrink:0}}>
-          <div style={{padding:"12px 16px",borderBottom:"1px solid #1f2937",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:28,height:28,borderRadius:6,background:B[noSel.tipo]?.cor,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                {B[noSel.tipo]?.icone}
+        <div
+          onClick={() => setNoSel(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "#000000cc",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#111",
+              borderRadius: 12,
+              border: "1px solid #1f2937",
+              width: "100%",
+              maxWidth: 560,
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 20px 60px #000c",
+            }}
+          >
+            {/* Header do modal */}
+            <div style={{
+              padding: "14px 18px",
+              borderBottom: "1px solid #1f2937",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexShrink: 0,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: B[noSel.tipo]?.cor,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 18,
+                }}>
+                  {B[noSel.tipo]?.icone}
+                </div>
+                <div>
+                  <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>{B[noSel.tipo]?.label}</h3>
+                  <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{B[noSel.tipo]?.grupo}</p>
+                </div>
               </div>
-              <div>
-                <h3 style={{color:"white",fontSize:13,fontWeight:"bold",margin:0}}>{B[noSel.tipo]?.label}</h3>
-                <p style={{color:"#6b7280",fontSize:10,margin:0}}>{B[noSel.tipo]?.grupo}</p>
-              </div>
+              <button
+                onClick={() => setNoSel(null)}
+                style={{
+                  background: "#1f2937",
+                  border: "none",
+                  borderRadius: 8,
+                  color: "#9ca3af",
+                  width: 32,
+                  height: 32,
+                  cursor: "pointer",
+                  fontSize: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >✕</button>
             </div>
-            <button onClick={()=>setNoSel(null)} style={{background:"none",border:"none",color:"#6b7280",fontSize:18,cursor:"pointer"}}>✕</button>
-          </div>
-          <div style={{padding:14,overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:12}}>
-            <PainelProps
-              noSel={noSel}
-              updateNo={updateNo}
-              excluirNo={excluirNo}
-              setNos={setNos}
-              filasBanco={filasBanco}
-              nos={nos}
-            />
-            {noSel.tipo!=="inicio" && (
-              <button onClick={()=>excluirNo(noSel.id)} style={{background:"#dc262611",color:"#dc2626",border:"1px solid #dc262633",borderRadius:8,padding:"8px",fontSize:12,cursor:"pointer",fontWeight:"bold",marginTop:"auto"}}>
-                🗑️ Excluir Bloco
-              </button>
+
+            {/* Conteúdo (scrollável) */}
+            <div style={{
+              padding: 18,
+              overflowY: "auto",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}>
+              <PainelProps
+                noSel={noSel}
+                updateNo={updateNo}
+                excluirNo={excluirNo}
+                setNos={setNos}
+                filasBanco={filasBanco}
+                nos={nos}
+              />
+            </div>
+
+            {/* Footer com ações */}
+            {noSel.tipo !== "inicio" && (
+              <div style={{
+                padding: "12px 18px",
+                borderTop: "1px solid #1f2937",
+                display: "flex",
+                gap: 8,
+                flexShrink: 0,
+              }}>
+                <button
+                  onClick={() => excluirNo(noSel.id)}
+                  style={{
+                    background: "#dc262611",
+                    color: "#dc2626",
+                    border: "1px solid #dc262633",
+                    borderRadius: 8,
+                    padding: "10px 16px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >🗑️ Excluir bloco</button>
+                <div style={{ flex: 1 }} />
+                <button
+                  onClick={() => setNoSel(null)}
+                  style={{
+                    background: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "10px 24px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >✓ Concluir</button>
+              </div>
+            )}
+            {/* Pro nó "inicio" só botão de concluir */}
+            {noSel.tipo === "inicio" && (
+              <div style={{
+                padding: "12px 18px",
+                borderTop: "1px solid #1f2937",
+                display: "flex",
+                justifyContent: "flex-end",
+                flexShrink: 0,
+              }}>
+                <button
+                  onClick={() => setNoSel(null)}
+                  style={{
+                    background: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "10px 24px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >✓ Concluir</button>
+              </div>
             )}
           </div>
         </div>
