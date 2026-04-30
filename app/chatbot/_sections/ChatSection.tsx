@@ -481,18 +481,15 @@ export function ChatSection() {
     const timeoutId = setTimeout(async () => {
       try {
         // 🆕 Escapa caracteres especiais do ILIKE: % e _ são curingas no Postgres.
-        //    Sem isso, busca por "x_y" trataria _ como "qualquer caractere" — confuso.
-        //    Mantém - e outros chars normais (eles funcionam normalmente em ILIKE).
         const buscaEscapada = buscaTrim.replace(/[\\%_]/g, "\\$&");
 
-        // Query: busca atendimentos cujas mensagens contenham o texto.
+        // Query: busca mensagens cujo texto contenha a busca.
+        // ⚠️ FIX: tabela mensagens NÃO tem atendimento_id — relação é só por numero+canal_id.
         // Multi-tenant (workspace_id obrigatório) + ILIKE pra busca case-insensitive.
-        // ⚠️ FIX: o campo correto da tabela é "mensagem" (não "texto")
-        // Limit 1000 mensagens distintas → daí extrai os atendimento_id únicos.
         console.log(`🔍 [Busca] Procurando "${buscaTrim}" em mensagens do workspace ${wsId}`);
         const { data, error } = await supabase
           .from("mensagens")
-          .select("atendimento_id, numero, mensagem")
+          .select("numero, canal_id, mensagem")
           .eq("workspace_id", wsId)
           .ilike("mensagem", `%${buscaEscapada}%`)
           .order("created_at", { ascending: false })
@@ -506,22 +503,18 @@ export function ChatSection() {
           if ((data || []).length > 0) {
             // Loga as 3 primeiras pra debug
             (data || []).slice(0, 3).forEach((m: any) => {
-              console.log(`   → numero=${m.numero} atendimento_id=${m.atendimento_id} msg="${String(m.mensagem || "").slice(0, 60)}"`);
+              console.log(`   → numero=${m.numero} canal=${m.canal_id} msg="${String(m.mensagem || "").slice(0, 60)}"`);
             });
           }
-          // 🆕 Extrai IDs (atendimento_id) E NÚMEROS — porque algumas mensagens
-          // antigas podem não ter atendimento_id mas têm numero.
-          const idsAtend = new Set<string>();
-          const numerosMatch = new Set<string>();
-          (data || []).forEach((m: any) => {
-            if (m.atendimento_id) idsAtend.add(String(m.atendimento_id));
-            if (m.numero) numerosMatch.add(String(m.numero));
-          });
-          // Junta IDs + números pra montar Set unificado
-          // (o filtro vai testar "tem id" OU "tem numero")
+          // 🆕 Junta numero + canal_id pra montar chave única
+          //    (mesmo número em canais diferentes é atendimento diferente)
           const matches = new Set<string>();
-          idsAtend.forEach(id => matches.add(`id:${id}`));
-          numerosMatch.forEach(n => matches.add(`num:${n}`));
+          (data || []).forEach((m: any) => {
+            if (m.numero) {
+              matches.add(`num:${m.numero}`);
+              if (m.canal_id) matches.add(`numcanal:${m.numero}:${m.canal_id}`);
+            }
+          });
 
           // Salva no cache (max 20 entradas pra não vazar memória)
           if (cacheBuscaRef.current.size > 20) {
@@ -1415,12 +1408,11 @@ export function ChatSection() {
   // 🆕 Log detalhado da busca quando ativa (DEBUG — remover depois de validar)
   if (busca.trim().length >= 3 && atendimentosComMatch !== null && atendimentosComMatch.size > 0) {
     const matchNumeros = Array.from(atendimentosComMatch).filter(k => k.startsWith("num:")).map(k => k.slice(4));
-    const matchIds = Array.from(atendimentosComMatch).filter(k => k.startsWith("id:")).map(k => k.slice(3));
-    console.log(`🔍 [Filtro] Busca "${busca}" → atendimentosComMatch=${atendimentosComMatch.size} (ids=${matchIds.length}, numeros=${matchNumeros.length})`);
+    console.log(`🔍 [Filtro] Busca "${busca}" → atendimentosComMatch=${atendimentosComMatch.size} (numeros únicos: ${matchNumeros.length})`);
     console.log(`   → Numeros que bateram: ${matchNumeros.slice(0, 5).join(", ")}${matchNumeros.length > 5 ? "..." : ""}`);
     console.log(`   → atendimentos.length=${atendimentos.length} (carregados em memória)`);
     // Verifica se algum atendimento atual tem esse número
-    const candidatos = atendimentos.filter(a => matchNumeros.includes(String(a.numero)) || matchIds.includes(String(a.id)));
+    const candidatos = atendimentos.filter(a => matchNumeros.includes(String(a.numero)));
     console.log(`   → Candidatos na lista atendimentos: ${candidatos.length} (${candidatos.slice(0, 3).map(a => `${a.numero}(${a.nome})`).join(", ")})`);
   }
 
@@ -1440,10 +1432,10 @@ export function ChatSection() {
       // Match local: nome ou número
       if (a.nome?.toLowerCase().includes(buscaLower)) return true;
       if (a.numero?.includes(busca)) return true;
-      // Match em mensagens: testa por atendimento_id E por numero
-      // (algumas mensagens antigas podem não ter atendimento_id mas têm numero)
+      // Match em mensagens: testa por numero (preferindo match com canal_id)
+      // Tabela mensagens não tem atendimento_id — relação é só por numero+canal
       if (atendimentosComMatch) {
-        if (atendimentosComMatch.has(`id:${a.id}`)) return true;
+        if (a.canal_id && atendimentosComMatch.has(`numcanal:${a.numero}:${a.canal_id}`)) return true;
         if (atendimentosComMatch.has(`num:${a.numero}`)) return true;
       }
       return false;
