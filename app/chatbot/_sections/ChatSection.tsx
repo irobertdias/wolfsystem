@@ -1580,7 +1580,7 @@ export function ChatSection() {
       // 🔒 MULTI-TENANT: workspaceId obrigatório (proxy /api/whatsapp-midia repassa o FormData inteiro)
       fd.append("workspaceId", String(wsId));
       if (legendaArquivo) fd.append("legenda", legendaArquivo);
-      const resp = await fetch("/api/whatsapp-midia", { method: "POST", body: fd });
+      const resp = await fetch(`${WA_BASE}/enviar-midia`, { method: "POST", body: fd });
       const data = await resp.json();
       if (!data.success) {
         alert("Erro ao enviar arquivo: " + (data.error || "desconhecido"));
@@ -1720,7 +1720,7 @@ export function ChatSection() {
       form.append("canalId", String(atendimentoAtivo.canal_id));
       // 🔒 MULTI-TENANT: workspaceId obrigatório (proxy /api/whatsapp-audio repassa o FormData inteiro)
       form.append("workspaceId", String(wsId));
-      const resp = await fetch("/api/whatsapp-audio", { method: "POST", body: form });
+      const resp = await fetch(`${WA_BASE}/enviar-audio`, { method: "POST", body: form });
       const data = await resp.json();
       if (!data.success) alert("Erro ao enviar áudio: " + (data.error || "desconhecido"));
     } catch (e: any) { alert("Erro ao enviar áudio: " + e.message); }
