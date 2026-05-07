@@ -422,6 +422,8 @@ export function ChatSection() {
   ];
 
   const WA_BASE = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
+  // 🆕 Backend wolf-meta — usado pra Instagram/Messenger (rotas /send/*)
+  const META_BASE = process.env.NEXT_PUBLIC_META_URL || "https://meta.api.wolfgyn.com.br";
   const isAudioMsg = (txt: string) => typeof txt === "string" && txt.startsWith("[audio:") && txt.endsWith("]");
   const audioFilename = (txt: string) => txt.replace(/^\[audio:/, "").replace(/\]$/, "");
 
@@ -1474,9 +1476,36 @@ export function ChatSection() {
     try {
       const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
       const mensagemFinal = nomeHeader + mensagem;
-      // 🔒 MULTI-TENANT: workspaceId é OBRIGATÓRIO no backend agora.
-      // Sem ele a rota /enviar retorna 400. wsId vem do useWorkspace().
-      const resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
+
+      // 🆕 ROTEAMENTO POR TIPO DO CANAL
+      // - instagram/messenger → wolf-meta (porta 3002, /send/texto)
+      // - webjs/waba → wolf-whatsapp (fluxo atual via /api/whatsapp)
+      const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
+      const tipoCanal = canalAtual?.tipo;
+      let resp: any;
+
+      if (tipoCanal === "instagram" || tipoCanal === "messenger") {
+        // Wolf Meta — POST direto na VPS
+        const r = await fetch(`${META_BASE}/send/texto`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceId: wsId,
+            canalId: atendimentoAtivo.canal_id,
+            recipientId: atendimentoAtivo.numero,
+            texto: mensagemFinal,
+            atendimentoId: atendimentoAtivo.id
+          })
+        });
+        const data = await r.json();
+        // wolf-meta retorna { sucesso, message_id } ou { erro } — adapta pro formato esperado
+        resp = data.sucesso ? { success: true } : { success: false, error: data.erro || "Erro no envio" };
+      } else {
+        // WhatsApp (webjs/waba) — fluxo original via wolf-whatsapp
+        // 🔒 MULTI-TENANT: workspaceId é OBRIGATÓRIO no backend agora.
+        resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
+      }
+
       if (!resp.success) { alert("Erro ao enviar: " + (resp.error || "desconhecido")); }
       else {
         setMensagem("");
