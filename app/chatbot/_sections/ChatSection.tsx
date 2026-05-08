@@ -1858,23 +1858,73 @@ export function ChatSection() {
     // mensagem de voz nativa pro cliente.
     //
     // ⚠️ Limitação WABA: respeita janela de 24h. Se passou, Meta rejeita e o erro vem no alert.
+    // 🆕 v4.1: também roteia pra Wolf Meta (Messenger) quando canal é tipo='meta'/'messenger'.
+    //          Backend wolf-meta converte webm → m4a com ffmpeg antes de enviar pra Meta API.
+    //          Instagram DM NÃO aceita áudio (limitação da plataforma) — bloqueia aqui.
 
     const recorder = mediaRecorderRef.current;
     setEnviandoAudio(true);
     await new Promise<void>((resolve) => { recorder.onstop = () => resolve(); try { recorder.stop(); } catch { resolve(); } });
     pararStream(); setGravando(false);
     try {
-      const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
-      audioChunksRef.current = [];
-      const form = new FormData();
-      form.append("audio", blob);
-      form.append("numero", atendimentoAtivo.numero);
-      form.append("canalId", String(atendimentoAtivo.canal_id));
-      // 🔒 MULTI-TENANT: workspaceId obrigatório (proxy /api/whatsapp-audio repassa o FormData inteiro)
-      form.append("workspaceId", String(wsId));
-      const resp = await fetch(`${WA_BASE}/enviar-audio`, { method: "POST", body: form });
-      const data = await resp.json();
-      if (!data.success) alert("Erro ao enviar áudio: " + (data.error || "desconhecido"));
+      // 🆕 ROTEAMENTO POR TIPO DO CANAL (mesmo padrão do enviarMidia/enviarMensagem)
+      const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
+      const tipoCanal = canalAtual?.tipo;
+      const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
+
+      if (ehCanalMeta) {
+        // Detecta origem (Instagram ou Messenger)
+        let origem: string | undefined;
+        if (tipoCanal === "instagram") origem = "instagram";
+        else if (tipoCanal === "messenger") origem = "messenger";
+        else if (atendimentoAtivo.origem) origem = atendimentoAtivo.origem;
+        else {
+          const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem);
+          origem = ultimaCliente?.origem || "messenger";
+        }
+
+        // 🆕 Instagram DM NÃO aceita áudio enviado via API — limitação da plataforma
+        if (origem === "instagram") {
+          audioChunksRef.current = [];
+          alert("⚠️ Instagram não aceita áudio\n\nO Instagram Direct (DM) não permite envio de mensagens de áudio pela API. Limitação da plataforma — não é bug do sistema.\n\n💡 Use texto ou um vídeo curto.");
+          setEnviandoAudio(false);
+          setTempoGravacao(0);
+          return;
+        }
+
+        // Wolf Meta (Messenger) — manda FormData pra /send/enviar-midia-arquivo
+        // O backend converte webm → m4a com ffmpeg antes de enviar pra Meta
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        audioChunksRef.current = [];
+        const fd = new FormData();
+        // Nome do arquivo ajuda o backend a determinar a extensão correta
+        const file = new File([blob], `audio_${Date.now()}.webm`, { type: blob.type });
+        fd.append("arquivo", file);
+        fd.append("recipientId", atendimentoAtivo.numero);
+        fd.append("canalId", String(atendimentoAtivo.canal_id));
+        fd.append("workspaceId", String(wsId));
+        fd.append("atendimentoId", String(atendimentoAtivo.id));
+        fd.append("origem", origem);
+
+        const r = await fetch(`${META_BASE}/send/enviar-midia-arquivo`, { method: "POST", body: fd });
+        const data = await r.json();
+        if (!(data.success || data.sucesso)) {
+          alert("Erro ao enviar áudio: " + (data.erro || data.error || "desconhecido"));
+        }
+      } else {
+        // 🐺 WhatsApp (webjs/waba) — fluxo original
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        audioChunksRef.current = [];
+        const form = new FormData();
+        form.append("audio", blob);
+        form.append("numero", atendimentoAtivo.numero);
+        form.append("canalId", String(atendimentoAtivo.canal_id));
+        // 🔒 MULTI-TENANT: workspaceId obrigatório (proxy /api/whatsapp-audio repassa o FormData inteiro)
+        form.append("workspaceId", String(wsId));
+        const resp = await fetch(`${WA_BASE}/enviar-audio`, { method: "POST", body: form });
+        const data = await resp.json();
+        if (!data.success) alert("Erro ao enviar áudio: " + (data.error || "desconhecido"));
+      }
     } catch (e: any) { alert("Erro ao enviar áudio: " + e.message); }
     setEnviandoAudio(false); setTempoGravacao(0);
   };
