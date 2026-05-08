@@ -401,44 +401,48 @@ export function ConexoesSection() {
     setConectandoMeta(true);
     setResultadoMeta(null);
 
+    // 🆕 SDK do Facebook NÃO aceita callback async — wrapping em IIFE
     window.FB.login(
-      async (response: any) => {
+      (response: any) => {
         if (!response.authResponse) {
           setConectandoMeta(false);
           setResultadoMeta({ sucesso: false, mensagem: "Você cancelou a conexão." });
           return;
         }
 
-        try {
-          const accessToken = response.authResponse.accessToken;
-          const r = await fetch(`${META_BASE}/auth/conectar`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ workspaceId: wsId, accessToken }),
-          });
-          const data = await r.json();
+        const accessToken = response.authResponse.accessToken;
 
-          if (data.sucesso) {
-            setResultadoMeta({
-              sucesso: true,
-              mensagem: `${data.pages_processadas} fan page(s) conectada(s)!`,
-              pages: data.resultados,
+        (async () => {
+          try {
+            const r = await fetch(`${META_BASE}/auth/conectar`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ workspaceId: wsId, accessToken }),
             });
-            await fetchConexoes();
-          } else {
+            const data = await r.json();
+
+            if (data.sucesso) {
+              setResultadoMeta({
+                sucesso: true,
+                mensagem: `${data.pages_processadas} fan page(s) conectada(s)!`,
+                pages: data.resultados,
+              });
+              await fetchConexoes();
+            } else {
+              setResultadoMeta({
+                sucesso: false,
+                mensagem: data.erro || "Erro ao conectar. Tente de novo.",
+              });
+            }
+          } catch (err: any) {
             setResultadoMeta({
               sucesso: false,
-              mensagem: data.erro || "Erro ao conectar. Tente de novo.",
+              mensagem: "Erro de rede: " + (err.message || "desconhecido"),
             });
+          } finally {
+            setConectandoMeta(false);
           }
-        } catch (err: any) {
-          setResultadoMeta({
-            sucesso: false,
-            mensagem: "Erro de rede: " + (err.message || "desconhecido"),
-          });
-        } finally {
-          setConectandoMeta(false);
-        }
+        })();
       },
       {
         config_id: FB_CONFIG_ID,
