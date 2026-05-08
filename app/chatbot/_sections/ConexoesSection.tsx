@@ -3,11 +3,24 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
+
+// 🆕 Tipagem do Facebook SDK (carregado dinamicamente)
+declare global {
+  interface Window {
+    FB?: any;
+    fbAsyncInit?: () => void;
+  }
+}
 // import { usePermissao } from "../../hooks/usePermissao";  // desativado — não usa mais isDono aqui
 
 // 🔒 Super admin do sistema Wolf — único que tem bypass de limites de plano
 // Dono de workspace NÃO É super admin: respeita o plano que ele paga.
 const ADMIN_EMAIL = "robert.dias@live.com";
+
+// 🆕 Backend wolf-meta + Facebook Login pra Empresas
+const META_BASE = process.env.NEXT_PUBLIC_META_URL || "https://meta.api.wolfgyn.com.br";
+const FB_APP_ID = "1658330965492693";
+const FB_CONFIG_ID = "852551211216508";
 
 type Conexao = {
   id: number; nome: string; tipo: string; status: string; numero: string;
@@ -46,6 +59,9 @@ export function ConexoesSection() {
   // 🆕 Contador de tentativas do polling — depois de 30s sem detectar, mostra aviso pro user
   const [qrTentativas, setQrTentativas] = useState(0);
   const [showModalNovoCanal, setShowModalNovoCanal] = useState(false);
+  // 🆕 Estado da conexão Meta (Facebook/Instagram via OAuth)
+  const [conectandoMeta, setConectandoMeta] = useState(false);
+  const [resultadoMeta, setResultadoMeta] = useState<{ sucesso?: boolean; mensagem?: string; pages?: any[] } | null>(null);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [salvandoCanal, setSalvandoCanal] = useState(false);
   const [testandoWABA, setTestandoWABA] = useState(false);
@@ -63,6 +79,47 @@ export function ConexoesSection() {
   const [tokenTocado, setTokenTocado] = useState(false);
 
   const wsIdsRef = useRef<string[]>([]);
+  // 🆕 Carrega Facebook SDK uma vez (necessário pro popup OAuth)
+
+  useEffect(() => {
+
+    if (window.FB) return;
+
+    if (document.getElementById("facebook-jssdk")) return;
+
+
+    window.fbAsyncInit = function () {
+
+      window.FB.init({
+
+        appId: FB_APP_ID,
+
+        cookie: true,
+
+        xfbml: false,
+
+        version: "v21.0",
+
+      });
+
+    };
+
+
+    const script = document.createElement("script");
+
+    script.id = "facebook-jssdk";
+
+    script.src = "https://connect.facebook.net/pt_BR/sdk.js";
+
+    script.async = true;
+
+    script.defer = true;
+
+    document.body.appendChild(script);
+
+  }, []);
+
+
   useEffect(() => {
     const ids: string[] = [];
     if (workspace?.username) ids.push(workspace.username);
@@ -330,6 +387,66 @@ export function ConexoesSection() {
     fetchFluxos(); fetchFilas(); // 🆕 recarrega filas ao abrir pra editar
   };
 
+  // 🆕 Conecta Facebook/Instagram via OAuth do Facebook for Business
+  const conectarMeta = () => {
+    if (!workspaceId) {
+      alert("Workspace não identificado. Recarregue a página.");
+      return;
+    }
+    if (!window.FB) {
+      alert("Facebook SDK ainda carregando. Aguarde 2s e tente de novo.");
+      return;
+    }
+
+    setConectandoMeta(true);
+    setResultadoMeta(null);
+
+    window.FB.login(
+      async (response: any) => {
+        if (!response.authResponse) {
+          setConectandoMeta(false);
+          setResultadoMeta({ sucesso: false, mensagem: "Você cancelou a conexão." });
+          return;
+        }
+
+        try {
+          const accessToken = response.authResponse.accessToken;
+          const r = await fetch(`${META_BASE}/auth/conectar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ workspaceId, accessToken }),
+          });
+          const data = await r.json();
+
+          if (data.sucesso) {
+            setResultadoMeta({
+              sucesso: true,
+              mensagem: `${data.pages_processadas} fan page(s) conectada(s)!`,
+              pages: data.resultados,
+            });
+            await fetchConexoes();
+          } else {
+            setResultadoMeta({
+              sucesso: false,
+              mensagem: data.erro || "Erro ao conectar. Tente de novo.",
+            });
+          }
+        } catch (err: any) {
+          setResultadoMeta({
+            sucesso: false,
+            mensagem: "Erro de rede: " + (err.message || "desconhecido"),
+          });
+        } finally {
+          setConectandoMeta(false);
+        }
+      },
+      {
+        config_id: FB_CONFIG_ID,
+        response_type: "token",
+      }
+    );
+  };
+
   const salvarCanal = async () => {
     if (!wsId) { alert("Aguarde o workspace carregar!"); return; }
     if (!form.nome.trim()) { alert("Digite o nome do canal!"); return; }
@@ -497,6 +614,7 @@ export function ConexoesSection() {
   const limiteAtingido = !isSuperAdmin && conexoes.length >= limites.conexoes;
   const webjsPermitido = isSuperAdmin || limites.webjs;
   const wabaPermitido = isSuperAdmin || limites.waba;
+  const instagramPermitido = isSuperAdmin || limites.instagram;
 
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto", height: "100vh" }}>
@@ -578,10 +696,11 @@ export function ConexoesSection() {
               {!editandoId && (
                 <div>
                   <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>1. Tipo de Canal</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                     {[
                       { key: "webjs", icon: "📱", label: "WhatsApp Web", desc: "Conexão via QR Code", disabled: !webjsPermitido },
-                      { key: "waba", icon: "🔗", label: "API Meta (WABA)", desc: "API oficial do WhatsApp", disabled: !wabaPermitido }
+                      { key: "waba", icon: "🔗", label: "API Meta (WABA)", desc: "API oficial do WhatsApp", disabled: !wabaPermitido },
+                      { key: "meta_oauth", icon: "📲", label: "Facebook / Instagram", desc: "Login com Facebook (Direct + Messenger)", disabled: !instagramPermitido }
                     ].map(t => (
                       <button key={t.key}
                         onClick={() => !t.disabled && setForm(p => ({ ...p, tipo: t.key }))}
@@ -606,6 +725,64 @@ export function ConexoesSection() {
                 <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>{editandoId ? "1" : "2"}. Nome do Canal</p>
                 <input placeholder="Ex: WhatsApp Vendas..." value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} style={IS} />
               </div>
+              {/* 🆕 Bloco especial pra Facebook/Instagram via OAuth */}
+              {!editandoId && form.tipo === "meta_oauth" && (
+                <div>
+                  <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>3. Conectar conta Facebook</p>
+                  <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                    <p style={{ color: "#86efac", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+                      Vamos conectar todas as suas <b>fan pages do Facebook</b> e respectivas contas do <b>Instagram Business</b> automaticamente.
+                    </p>
+                    <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+                      Você logará no Facebook (popup oficial), autorizará as permissões necessárias e o sistema criará os canais sozinho.
+                    </p>
+                    <button
+                      onClick={conectarMeta}
+                      disabled={conectandoMeta}
+                      style={{
+                        background: conectandoMeta ? "#1d4ed8" : "#1877f2",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "12px 16px",
+                        fontSize: 14,
+                        fontWeight: "bold",
+                        cursor: conectandoMeta ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {conectandoMeta ? "⏳ Conectando..." : "📲 Conectar com Facebook"}
+                    </button>
+                    {resultadoMeta && (
+                      <div style={{
+                        background: resultadoMeta.sucesso ? "#16a34a22" : "#dc262622",
+                        border: `1px solid ${resultadoMeta.sucesso ? "#16a34a33" : "#dc262633"}`,
+                        borderRadius: 8,
+                        padding: 12,
+                      }}>
+                        <p style={{
+                          color: resultadoMeta.sucesso ? "#16a34a" : "#dc2626",
+                          fontSize: 13,
+                          margin: "0 0 6px",
+                          fontWeight: "bold",
+                        }}>
+                          {resultadoMeta.sucesso ? "✅ " : "❌ "}{resultadoMeta.mensagem}
+                        </p>
+                        {resultadoMeta.pages && resultadoMeta.pages.length > 0 && (
+                          <ul style={{ margin: "8px 0 0", padding: "0 0 0 18px", color: "#86efac", fontSize: 12 }}>
+                            {resultadoMeta.pages.map((p: any, i: number) => (
+                              <li key={i}>
+                                <b>{p.page_name}</b>
+                                {p.instagram_username && ` + Instagram @${p.instagram_username}`}
+                                {p.erro && <span style={{ color: "#dc2626" }}> — Erro: {p.erro}</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               {!editandoId && form.tipo === "waba" && (
                 <div>
                   <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>3. Credenciais da API Meta</p>
