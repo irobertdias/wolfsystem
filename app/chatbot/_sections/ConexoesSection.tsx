@@ -1125,36 +1125,42 @@ export function ConexoesSection() {
                   : <button onClick={() => registrarNumeroWaba(c)} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🟢 Ativar Número na Meta</button>
                 )}
                 {c.tipo === "meta" && (
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ flex: 1, display: "flex", gap: 6 }}>
                     <button
                       onClick={() => toggleMetaFlag(c, "messenger_ativo")}
+                      title={c.messenger_ativo ? "Messenger ligado — clique para desligar" : "Messenger desligado — clique para ligar"}
                       style={{
-                        background: c.messenger_ativo ? "#1877f222" : "#1f2937",
-                        color: c.messenger_ativo ? "#1877f2" : "#6b7280",
-                        border: `1px solid ${c.messenger_ativo ? "#1877f244" : "#374151"}`,
-                        borderRadius: 8, padding: "7px 10px", fontSize: 12, cursor: "pointer",
-                        fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center",
+                        flex: 1,
+                        background: c.messenger_ativo ? "#1877f2" : "#1f2937",
+                        color: c.messenger_ativo ? "white" : "#6b7280",
+                        border: `1px solid ${c.messenger_ativo ? "#1877f2" : "#374151"}`,
+                        borderRadius: 8, padding: "9px 4px", fontSize: 13, cursor: "pointer",
+                        fontWeight: "bold", textAlign: "center",
+                        opacity: c.messenger_ativo ? 1 : 0.6,
+                        transition: "all 0.15s",
                       }}
                     >
-                      <span>💬 Messenger</span>
-                      <span>{c.messenger_ativo ? "🟢 Ligado" : "⚫ Desligado"}</span>
+                      💬 Messenger
                     </button>
                     {c.instagram_business_id ? (
                       <button
                         onClick={() => toggleMetaFlag(c, "instagram_ativo")}
+                        title={c.instagram_ativo ? `Instagram @${c.instagram_username} ligado — clique para desligar` : `Instagram @${c.instagram_username} desligado — clique para ligar`}
                         style={{
-                          background: c.instagram_ativo ? "#e1306c22" : "#1f2937",
-                          color: c.instagram_ativo ? "#e1306c" : "#6b7280",
-                          border: `1px solid ${c.instagram_ativo ? "#e1306c44" : "#374151"}`,
-                          borderRadius: 8, padding: "7px 10px", fontSize: 12, cursor: "pointer",
-                          fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center",
+                          flex: 1,
+                          background: c.instagram_ativo ? "#e1306c" : "#1f2937",
+                          color: c.instagram_ativo ? "white" : "#6b7280",
+                          border: `1px solid ${c.instagram_ativo ? "#e1306c" : "#374151"}`,
+                          borderRadius: 8, padding: "9px 4px", fontSize: 13, cursor: "pointer",
+                          fontWeight: "bold", textAlign: "center",
+                          opacity: c.instagram_ativo ? 1 : 0.6,
+                          transition: "all 0.15s",
                         }}
                       >
-                        <span>📷 Instagram{c.instagram_username ? ` @${c.instagram_username}` : ""}</span>
-                        <span>{c.instagram_ativo ? "🟢 Ligado" : "⚫ Desligado"}</span>
+                        📷 Instagram
                       </button>
                     ) : (
-                      <div style={{ background: "#1f2937", color: "#6b7280", border: "1px solid #374151", borderRadius: 8, padding: "7px 10px", fontSize: 11, fontStyle: "italic" }}>📷 Sem Instagram vinculado</div>
+                      <div style={{ flex: 1, background: "#1f2937", color: "#6b7280", border: "1px solid #374151", borderRadius: 8, padding: "9px 4px", fontSize: 11, fontStyle: "italic", textAlign: "center" }}>📷 sem IG</div>
                     )}
                   </div>
                 )}
