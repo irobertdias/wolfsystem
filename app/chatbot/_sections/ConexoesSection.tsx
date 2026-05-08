@@ -62,6 +62,10 @@ export function ConexoesSection() {
   // 🆕 Estado da conexão Meta (Facebook/Instagram via OAuth)
   const [conectandoMeta, setConectandoMeta] = useState(false);
   const [resultadoMeta, setResultadoMeta] = useState<{ sucesso?: boolean; mensagem?: string; pages?: any[] } | null>(null);
+  // 🆕 Modal de seleção de pages (entre OAuth e criação dos canais)
+  const [pagesDisponiveis, setPagesDisponiveis] = useState<any[]>([]);
+  const [pagesSelecionadas, setPagesSelecionadas] = useState<Set<string>>(new Set());
+  const [showSelecaoPages, setShowSelecaoPages] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [salvandoCanal, setSalvandoCanal] = useState(false);
   const [testandoWABA, setTestandoWABA] = useState(false);
@@ -387,7 +391,7 @@ export function ConexoesSection() {
     fetchFluxos(); fetchFilas(); // 🆕 recarrega filas ao abrir pra editar
   };
 
-  // 🆕 Conecta Facebook/Instagram via OAuth do Facebook for Business
+  // 🆕 Inicia OAuth, lista pages e abre modal de seleção (cliente decide quais conectar)
   const conectarMeta = () => {
     if (!wsId) {
       alert("Workspace não identificado. Recarregue a página.");
@@ -401,7 +405,6 @@ export function ConexoesSection() {
     setConectandoMeta(true);
     setResultadoMeta(null);
 
-    // 🆕 SDK do Facebook NÃO aceita callback async — wrapping em IIFE
     window.FB.login(
       (response: any) => {
         if (!response.authResponse) {
@@ -414,24 +417,28 @@ export function ConexoesSection() {
 
         (async () => {
           try {
-            const r = await fetch(`${META_BASE}/auth/conectar`, {
+            const r = await fetch(`${META_BASE}/auth/listar-pages`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ workspaceId: wsId, accessToken }),
+              body: JSON.stringify({ accessToken }),
             });
             const data = await r.json();
 
-            if (data.sucesso) {
-              setResultadoMeta({
-                sucesso: true,
-                mensagem: `${data.pages_processadas} fan page(s) conectada(s)!`,
-                pages: data.resultados,
-              });
-              await fetchConexoes();
+            if (data.sucesso && Array.isArray(data.pages)) {
+              if (data.pages.length === 0) {
+                setResultadoMeta({
+                  sucesso: false,
+                  mensagem: "Nenhuma fan page encontrada nessa conta Facebook.",
+                });
+              } else {
+                setPagesDisponiveis(data.pages);
+                setPagesSelecionadas(new Set());
+                setShowSelecaoPages(true);
+              }
             } else {
               setResultadoMeta({
                 sucesso: false,
-                mensagem: data.erro || "Erro ao conectar. Tente de novo.",
+                mensagem: data.erro || "Erro ao listar pages.",
               });
             }
           } catch (err: any) {
@@ -449,6 +456,57 @@ export function ConexoesSection() {
         response_type: "token",
       }
     );
+  };
+
+  // 🆕 Toggle de seleção de uma page no modal
+  const togglePage = (pageId: string) => {
+    setPagesSelecionadas(prev => {
+      const novo = new Set(prev);
+      if (novo.has(pageId)) novo.delete(pageId);
+      else novo.add(pageId);
+      return novo;
+    });
+  };
+
+  // 🆕 Confirma seleção e chama backend pra criar canais
+  const confirmarSelecaoPages = async () => {
+    if (pagesSelecionadas.size === 0) {
+      alert("Selecione pelo menos 1 fan page.");
+      return;
+    }
+    const pagesEscolhidas = pagesDisponiveis.filter(p => pagesSelecionadas.has(p.id));
+    setConectandoMeta(true);
+
+    try {
+      const r = await fetch(`${META_BASE}/auth/conectar-pages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId: wsId, pages: pagesEscolhidas }),
+      });
+      const data = await r.json();
+
+      if (data.sucesso) {
+        setResultadoMeta({
+          sucesso: true,
+          mensagem: `${data.pages_processadas} fan page(s) conectada(s)!`,
+          pages: data.resultados,
+        });
+        await fetchConexoes();
+        setShowSelecaoPages(false);
+      } else {
+        setResultadoMeta({
+          sucesso: false,
+          mensagem: data.erro || "Erro ao conectar pages.",
+        });
+      }
+    } catch (err: any) {
+      setResultadoMeta({
+        sucesso: false,
+        mensagem: "Erro de rede: " + (err.message || "desconhecido"),
+      });
+    } finally {
+      setConectandoMeta(false);
+    }
   };
 
   const salvarCanal = async () => {
@@ -694,7 +752,7 @@ export function ConexoesSection() {
                   {editandoId ? "Altere as configurações" : isSuperAdmin ? `${conexoes.length} canais (ilimitado 👑)` : `${conexoes.length} de ${limites.conexoes} canais usados`}
                 </p>
               </div>
-              <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
+              <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); setResultadoMeta(null); setPagesDisponiveis([]); setPagesSelecionadas(new Set()); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
             </div>
             <div style={{ overflowY: "auto", padding: "24px 28px", display: "flex", flexDirection: "column", gap: 24 }}>
               {!editandoId && (
@@ -729,6 +787,17 @@ export function ConexoesSection() {
                 <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>{editandoId ? "1" : "2"}. Nome do Canal</p>
                 <input placeholder="Ex: WhatsApp Vendas..." value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} style={IS} />
               </div>
+              {/* 🆕 Info quando editando canal Instagram/Messenger */}
+              {editandoId && (form.tipo === "instagram" || form.tipo === "messenger") && (
+                <div style={{ background: "#1f2937", borderRadius: 10, padding: 14, border: "1px solid #374151" }}>
+                  <p style={{ color: "#86efac", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+                    {form.tipo === "instagram" ? "📷 Canal Instagram" : "💬 Canal Messenger"} conectado via Login com Facebook.
+                  </p>
+                  <p style={{ color: "#6b7280", fontSize: 11, margin: "6px 0 0", lineHeight: 1.4 }}>
+                    Pra reconectar (renovar token, mudar fan page), delete este canal e crie um novo via "Facebook / Instagram".
+                  </p>
+                </div>
+              )}
               {/* 🆕 Bloco especial pra Facebook/Instagram via OAuth */}
               {!editandoId && form.tipo === "meta_oauth" && (
                 <div>
@@ -1038,6 +1107,60 @@ export function ConexoesSection() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {/* 🆕 Modal de seleção de pages */}
+      {showSelecaoPages && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000dd", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "#111", borderRadius: 16, width: "100%", maxWidth: 600, border: "1px solid #1f2937", display: "flex", flexDirection: "column", maxHeight: "85vh", overflow: "hidden" }}>
+            <div style={{ padding: "20px 28px", borderBottom: "1px solid #1f2937" }}>
+              <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>📲 Escolha as fan pages</h2>
+              <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>Marque quais Facebook pages você quer conectar. Cada page com Instagram Business vai gerar 2 canais (Messenger + Instagram).</p>
+            </div>
+            <div style={{ overflowY: "auto", padding: "16px 28px", flex: 1 }}>
+              {pagesDisponiveis.length === 0 ? (
+                <p style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhuma page encontrada</p>
+              ) : pagesDisponiveis.map((p: any) => {
+                const selecionada = pagesSelecionadas.has(p.id);
+                return (
+                  <button key={p.id}
+                    onClick={() => togglePage(p.id)}
+                    style={{
+                      display: "flex", width: "100%", alignItems: "center", gap: 12,
+                      background: selecionada ? "#16a34a22" : "#1f2937",
+                      border: `2px solid ${selecionada ? "#16a34a" : "#374151"}`,
+                      borderRadius: 10, padding: "12px 14px", marginBottom: 10,
+                      cursor: "pointer", textAlign: "left",
+                    }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 4,
+                      background: selecionada ? "#16a34a" : "transparent",
+                      border: `2px solid ${selecionada ? "#16a34a" : "#6b7280"}`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                      {selecionada && <span style={{ color: "white", fontSize: 14, fontWeight: "bold" }}>✓</span>}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                      <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>
+                        💬 Messenger
+                        {p.instagram_username && <span> · 📷 @{p.instagram_username}</span>}
+                        {!p.instagram_username && <span style={{ color: "#9ca3af" }}> · sem Instagram</span>}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ padding: "16px 28px", borderTop: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>{pagesSelecionadas.size} de {pagesDisponiveis.length} selecionada(s)</p>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => { setShowSelecaoPages(false); setPagesSelecionadas(new Set()); }} disabled={conectandoMeta} style={{ background: "#1f2937", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, cursor: conectandoMeta ? "not-allowed" : "pointer" }}>Cancelar</button>
+                <button onClick={confirmarSelecaoPages} disabled={conectandoMeta || pagesSelecionadas.size === 0} style={{ background: conectandoMeta ? "#1d4ed8" : "#1877f2", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: "bold", cursor: (conectandoMeta || pagesSelecionadas.size === 0) ? "not-allowed" : "pointer" }}>{conectandoMeta ? "⏳ Conectando..." : `📲 Conectar (${pagesSelecionadas.size})`}</button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
