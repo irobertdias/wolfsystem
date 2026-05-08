@@ -1596,10 +1596,9 @@ export function ChatSection() {
     const ehAudio = file.type.startsWith("audio/");
     const ehDocumento = !ehVideo && !ehImagem && !ehAudio;
 
-    // 🆕 BLOQUEIO INSTAGRAM: Instagram DM não aceita documentos.
-    // Detecta origem do canal Meta:
-    //   - tipo='instagram' → sempre Instagram
-    //   - tipo='meta' + atendimentoAtivo.origem='instagram' → Instagram
+    // 🆕 BLOQUEIO INSTAGRAM: Instagram DM aceita imagem, vídeo, áudio E PDF.
+    // NÃO aceita .docx, .xlsx, .ppt, .zip, etc — só PDF entre os documentos.
+    // Doc oficial: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api/
     if (ehCanalMeta && ehDocumento) {
       let origemAtendimento: string | undefined;
       if (tipoCanal === "instagram") origemAtendimento = "instagram";
@@ -1610,9 +1609,13 @@ export function ChatSection() {
         origemAtendimento = ultimaCliente?.origem;
       }
       if (origemAtendimento === "instagram") {
-        alert(`⚠️ Instagram não aceita documentos\n\nO Instagram Direct (DM) só permite imagem, vídeo ou áudio. Documentos (PDF, Word, Excel, ZIP, etc.) não podem ser enviados por aqui.\n\n💡 Envie como imagem (screenshot do conteúdo) ou compartilhe um link do Google Drive na mensagem de texto.`);
-        if (fileUploadRef.current) fileUploadRef.current.value = "";
-        return;
+        const nomeLower = file.name.toLowerCase();
+        const ehPdf = nomeLower.endsWith(".pdf") || file.type === "application/pdf";
+        if (!ehPdf) {
+          alert(`⚠️ Instagram aceita apenas PDF como documento\n\nO Instagram Direct (DM) só permite imagem, vídeo, áudio e PDF. Outros formatos (Word, Excel, ZIP, etc.) não podem ser enviados por aqui.\n\n💡 Converta o arquivo pra PDF, ou envie como imagem (screenshot do conteúdo), ou compartilhe um link do Google Drive na mensagem de texto.`);
+          if (fileUploadRef.current) fileUploadRef.current.value = "";
+          return;
+        }
       }
     }
 
@@ -1883,17 +1886,9 @@ export function ChatSection() {
           origem = ultimaCliente?.origem || "messenger";
         }
 
-        // 🆕 Instagram DM NÃO aceita áudio enviado via API — limitação da plataforma
-        if (origem === "instagram") {
-          audioChunksRef.current = [];
-          alert("⚠️ Instagram não aceita áudio\n\nO Instagram Direct (DM) não permite envio de mensagens de áudio pela API. Limitação da plataforma — não é bug do sistema.\n\n💡 Use texto ou um vídeo curto.");
-          setEnviandoAudio(false);
-          setTempoGravacao(0);
-          return;
-        }
-
-        // Wolf Meta (Messenger) — manda FormData pra /send/enviar-midia-arquivo
+        // Wolf Meta (Messenger ou Instagram) — manda FormData pra /send/enviar-midia-arquivo
         // O backend converte webm → m4a com ffmpeg antes de enviar pra Meta
+        // (Meta DM aceita aac/m4a/wav/mp4 — webm do navegador nao serve, por isso converte)
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         audioChunksRef.current = [];
         const fd = new FormData();
