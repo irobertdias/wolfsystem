@@ -389,7 +389,7 @@ export function ConexoesSection() {
 
   // 🆕 Conecta Facebook/Instagram via OAuth do Facebook for Business
   const conectarMeta = () => {
-    if (!workspaceId) {
+    if (!wsId) {
       alert("Workspace não identificado. Recarregue a página.");
       return;
     }
@@ -414,7 +414,7 @@ export function ConexoesSection() {
           const r = await fetch(`${META_BASE}/auth/conectar`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ workspaceId, accessToken }),
+            body: JSON.stringify({ workspaceId: wsId, accessToken }),
           });
           const data = await r.json();
 
