@@ -666,7 +666,20 @@ export function ChatSection() {
     if (["txt"].includes(ext)) return "📝";
     return "📎";
   };
-  const audioUrl = (filename: string) => `${WA_BASE}/audios/${filename}`;
+  // 🆕 URL pública de mídia — detecta canal pra usar a base certa.
+  // - Canais Wolf Meta (tipo='meta'/'instagram'/'messenger') → ${META_BASE}/midia/<filename>
+  // - Canais WhatsApp (tipo='webjs'/'waba') → ${WA_BASE}/audios/<filename>
+  // O nome `audioUrl` foi mantido pra não quebrar chamadas existentes.
+  const audioUrl = (filename: string, canalId?: number | string | null) => {
+    if (canalId !== undefined && canalId !== null) {
+      const canal = canais.find(c => String(c.id) === String(canalId));
+      const tipo = canal?.tipo;
+      if (tipo === "meta" || tipo === "instagram" || tipo === "messenger") {
+        return `${META_BASE}/midia/${filename}`;
+      }
+    }
+    return `${WA_BASE}/audios/${filename}`;
+  };
 
   const wa = async (rota: string, body?: object) => {
     if (body !== undefined) {
@@ -1569,31 +1582,73 @@ export function ChatSection() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 🆕 LIMITES REAIS DO WHATSAPP (Meta) — passar disso = WhatsApp rejeita silenciosamente
-    // Antes a gente tinha um limite genérico de 25MB, então o user achava que tava enviando
-    // mas o WhatsApp não entregava. Agora avisa NA HORA com mensagem clara e dica.
-    // Fonte: https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#supported-media-types
-    let limiteMB = 16; // padrão pra maioria
-    let tipoLabel = "arquivo";
-    let dica = "Reduza o tamanho ou envie pelo Google Drive/WeTransfer.";
+    // 🆕 Detecta tipo do canal ATIVO pra escolher os limites corretos.
+    // - WhatsApp (webjs/waba): limites por tipo (5/16/16/100 MB) — Meta Cloud API
+    // - Wolf Meta (meta/instagram/messenger): 25 MB pra TODOS os tipos — Meta DM
+    //   E Instagram DM NÃO aceita documentos (só image/video/audio).
+    const canalAtual = canais.find(c => c.id === atendimentoAtivo?.canal_id);
+    const tipoCanal = canalAtual?.tipo;
+    const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
 
-    if (file.type.startsWith("video/")) {
-      limiteMB = 16;
-      tipoLabel = "vídeo";
-      dica = "Comprima o vídeo (apps como Video Compressor) ou envie um link do YouTube/Drive.";
-    } else if (file.type.startsWith("image/")) {
-      limiteMB = 5;
-      tipoLabel = "imagem";
-      dica = "Reduza a resolução ou converta pra JPEG.";
-    } else if (file.type.startsWith("audio/")) {
-      limiteMB = 16;
-      tipoLabel = "áudio";
-      dica = "Áudio muito longo? Divida em partes ou envie como documento.";
+    // Detecta tipo do arquivo
+    const ehVideo = file.type.startsWith("video/");
+    const ehImagem = file.type.startsWith("image/");
+    const ehAudio = file.type.startsWith("audio/");
+    const ehDocumento = !ehVideo && !ehImagem && !ehAudio;
+
+    // 🆕 BLOQUEIO INSTAGRAM: Instagram DM não aceita documentos.
+    // Detecta origem do canal Meta:
+    //   - tipo='instagram' → sempre Instagram
+    //   - tipo='meta' + atendimentoAtivo.origem='instagram' → Instagram
+    if (ehCanalMeta && ehDocumento) {
+      let origemAtendimento: string | undefined;
+      if (tipoCanal === "instagram") origemAtendimento = "instagram";
+      else if (tipoCanal === "messenger") origemAtendimento = "messenger";
+      else if (atendimentoAtivo?.origem) origemAtendimento = atendimentoAtivo.origem;
+      else {
+        const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem);
+        origemAtendimento = ultimaCliente?.origem;
+      }
+      if (origemAtendimento === "instagram") {
+        alert(`⚠️ Instagram não aceita documentos\n\nO Instagram Direct (DM) só permite imagem, vídeo ou áudio. Documentos (PDF, Word, Excel, ZIP, etc.) não podem ser enviados por aqui.\n\n💡 Envie como imagem (screenshot do conteúdo) ou compartilhe um link do Google Drive na mensagem de texto.`);
+        if (fileUploadRef.current) fileUploadRef.current.value = "";
+        return;
+      }
+    }
+
+    let limiteMB: number;
+    let tipoLabel: string;
+    let dica: string;
+
+    if (ehCanalMeta) {
+      // 🆕 Wolf Meta (Messenger/Instagram): 25 MB pra todos os tipos
+      limiteMB = 25;
+      tipoLabel = ehVideo ? "vídeo" : ehImagem ? "imagem" : ehAudio ? "áudio" : "documento";
+      dica = ehVideo
+        ? "Comprima o vídeo ou envie um link no texto."
+        : ehImagem
+        ? "Reduza a resolução ou converta pra JPEG."
+        : "Reduza o tamanho do arquivo.";
     } else {
-      // PDF/Word/Excel/etc — WhatsApp aceita até 100MB
-      limiteMB = 100;
-      tipoLabel = "documento";
-      dica = "Reduza o tamanho do arquivo ou envie pelo Google Drive.";
+      // 🐺 WhatsApp (webjs/waba): limites originais por tipo
+      // Fonte: https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#supported-media-types
+      if (ehVideo) {
+        limiteMB = 16;
+        tipoLabel = "vídeo";
+        dica = "Comprima o vídeo (apps como Video Compressor) ou envie um link do YouTube/Drive.";
+      } else if (ehImagem) {
+        limiteMB = 5;
+        tipoLabel = "imagem";
+        dica = "Reduza a resolução ou converta pra JPEG.";
+      } else if (ehAudio) {
+        limiteMB = 16;
+        tipoLabel = "áudio";
+        dica = "Áudio muito longo? Divida em partes ou envie como documento.";
+      } else {
+        limiteMB = 100;
+        tipoLabel = "documento";
+        dica = "Reduza o tamanho do arquivo ou envie pelo Google Drive.";
+      }
     }
 
     if (file.size > limiteMB * 1024 * 1024) {
@@ -1632,19 +1687,57 @@ export function ChatSection() {
     setStickyFundo(true);
     setTemMensagemNova(false);
     try {
-      const fd = new FormData();
-      fd.append("arquivo", arquivoSelecionado);
-      fd.append("numero", atendimentoAtivo.numero);
-      fd.append("canalId", String(atendimentoAtivo.canal_id));
-      // 🔒 MULTI-TENANT: workspaceId obrigatório (proxy /api/whatsapp-midia repassa o FormData inteiro)
-      fd.append("workspaceId", String(wsId));
-      if (legendaArquivo) fd.append("legenda", legendaArquivo);
-      const resp = await fetch(`${WA_BASE}/enviar-midia`, { method: "POST", body: fd });
-      const data = await resp.json();
-      if (!data.success) {
-        alert("Erro ao enviar arquivo: " + (data.error || "desconhecido"));
+      // 🆕 ROTEAMENTO POR TIPO DO CANAL (mesmo padrão do enviarMensagem)
+      const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
+      const tipoCanal = canalAtual?.tipo;
+      const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
+
+      if (ehCanalMeta) {
+        // 🆕 Wolf Meta — manda FormData pra /send/enviar-midia-arquivo
+        // Detecta origem (instagram/messenger), igual o enviarMensagem faz
+        let origem: string | undefined;
+        if (tipoCanal === "instagram") origem = "instagram";
+        else if (tipoCanal === "messenger") origem = "messenger";
+        else if (atendimentoAtivo.origem) origem = atendimentoAtivo.origem;
+        else {
+          const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem);
+          if (ultimaCliente?.origem) origem = ultimaCliente.origem;
+          else origem = "messenger";
+        }
+
+        const fd = new FormData();
+        fd.append("arquivo", arquivoSelecionado);
+        fd.append("recipientId", atendimentoAtivo.numero);
+        fd.append("canalId", String(atendimentoAtivo.canal_id));
+        fd.append("workspaceId", String(wsId));
+        fd.append("atendimentoId", String(atendimentoAtivo.id));
+        fd.append("origem", origem);
+        if (legendaArquivo) fd.append("legenda", legendaArquivo);
+
+        const r = await fetch(`${META_BASE}/send/enviar-midia-arquivo`, { method: "POST", body: fd });
+        const data = await r.json();
+        // Wolf Meta responde com { success/sucesso, erro? } — adapta pro formato esperado
+        if (!(data.success || data.sucesso)) {
+          alert("Erro ao enviar arquivo: " + (data.erro || data.error || "desconhecido"));
+        } else {
+          cancelarEnvioArquivo();
+        }
       } else {
-        cancelarEnvioArquivo();
+        // 🐺 WhatsApp (webjs/waba) — fluxo original via wolf-whatsapp
+        const fd = new FormData();
+        fd.append("arquivo", arquivoSelecionado);
+        fd.append("numero", atendimentoAtivo.numero);
+        fd.append("canalId", String(atendimentoAtivo.canal_id));
+        // 🔒 MULTI-TENANT: workspaceId obrigatório (proxy /api/whatsapp-midia repassa o FormData inteiro)
+        fd.append("workspaceId", String(wsId));
+        if (legendaArquivo) fd.append("legenda", legendaArquivo);
+        const resp = await fetch(`${WA_BASE}/enviar-midia`, { method: "POST", body: fd });
+        const data = await resp.json();
+        if (!data.success) {
+          alert("Erro ao enviar arquivo: " + (data.error || "desconhecido"));
+        } else {
+          cancelarEnvioArquivo();
+        }
       }
     } catch (e: any) {
       alert("Erro ao enviar arquivo: " + e.message);
@@ -2586,13 +2679,13 @@ export function ChatSection() {
                         <div style={{ maxWidth, padding: ehMidia ? "4px 4px 6px" : "6px 10px 8px", borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px", background: isCliente ? "#202c33" : "#005c4b", boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)" }}>
                           {!isCliente && !ehAudio && !ehMidia && <p style={{ color: "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>}
 
-                          {ehAudio && <AudioPlayer src={audioUrl(audioFilename(msg.mensagem))} isOwn={!isCliente} />}
+                          {ehAudio && <AudioPlayer src={audioUrl(audioFilename(msg.mensagem), msg.canal_id)} isOwn={!isCliente} />}
 
                           {/* 🆕 Imagem inline — clique abre em nova aba */}
                           {midia.tipo === "img" && (
                             <div>
-                              <a href={audioUrl(midia.filename)} target="_blank" rel="noreferrer">
-                                <img src={audioUrl(midia.filename)} alt={midia.filename}
+                              <a href={audioUrl(midia.filename, msg.canal_id)} target="_blank" rel="noreferrer">
+                                <img src={audioUrl(midia.filename, msg.canal_id)} alt={midia.filename}
                                   style={{ display: "block", maxWidth: "100%", maxHeight: 320, borderRadius: 6, cursor: "pointer", objectFit: "cover" }} />
                               </a>
                               {midia.legenda && <p style={{ color: "#e9edef", fontSize: 13.5, margin: "6px 6px 0", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{midia.legenda}</p>}
@@ -2602,7 +2695,7 @@ export function ChatSection() {
                           {/* 🆕 Vídeo inline — com controles nativos */}
                           {midia.tipo === "video" && (
                             <div>
-                              <video src={audioUrl(midia.filename)} controls preload="metadata"
+                              <video src={audioUrl(midia.filename, msg.canal_id)} controls preload="metadata"
                                 style={{ display: "block", maxWidth: "100%", maxHeight: 320, borderRadius: 6 }} />
                               {midia.legenda && <p style={{ color: "#e9edef", fontSize: 13.5, margin: "6px 6px 0", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{midia.legenda}</p>}
                             </div>
@@ -2611,7 +2704,7 @@ export function ChatSection() {
                           {/* 🆕 Arquivo genérico (PDF, Excel, etc) — ícone + nome + botão download */}
                           {midia.tipo === "file" && (
                             <div>
-                              <a href={audioUrl(midia.filename)} target="_blank" rel="noreferrer" download
+                              <a href={audioUrl(midia.filename, msg.canal_id)} target="_blank" rel="noreferrer" download
                                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: isCliente ? "#1f2a31" : "#00604f", borderRadius: 6, textDecoration: "none" }}>
                                 <span style={{ fontSize: 32 }}>{iconePorExtensao(midia.filename)}</span>
                                 <div style={{ flex: 1, minWidth: 0 }}>
