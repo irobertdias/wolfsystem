@@ -510,6 +510,12 @@ export function ConexoesSection() {
   };
 
   const salvarCanal = async () => {
+    // 🆕 Guard - tipo meta_oauth na criação NÃO usa esta função.
+    // Os canais Instagram/Messenger já foram criados via OAuth/backend.
+    if (!editandoId && form.tipo === "meta_oauth") {
+      alert("Canal Meta já foi conectado pelo Facebook. Clique em 'Concluir' pra fechar este modal.");
+      return;
+    }
     if (!wsId) { alert("Aguarde o workspace carregar!"); return; }
     if (!form.nome.trim()) { alert("Digite o nome do canal!"); return; }
     if (!form.fila) { alert("Selecione uma fila!\n\nSe não tiver fila cadastrada, vá em Configurações → Filas e crie uma."); return; } // 🆕
@@ -1026,7 +1032,17 @@ export function ConexoesSection() {
             </div>
             <div style={{ padding: "16px 28px", borderTop: "1px solid #1f2937", display: "flex", gap: 12, justifyContent: "flex-end" }}>
               <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={salvarCanal} disabled={salvandoCanal} style={{ background: salvandoCanal ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{salvandoCanal ? "⏳ Salvando..." : editandoId ? "💾 Salvar" : "✅ Criar Canal"}</button>
+              {/* 🆕 Pra meta_oauth (criação): não mostra "Criar Canal" — canais já foram criados pelo OAuth */}
+              {!editandoId && form.tipo === "meta_oauth" ? (
+                <button
+                  onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); setResultadoMeta(null); setPagesDisponiveis([]); setPagesSelecionadas(new Set()); }}
+                  style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}
+                >
+                  ✅ Concluir
+                </button>
+              ) : (
+                <button onClick={salvarCanal} disabled={salvandoCanal} style={{ background: salvandoCanal ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{salvandoCanal ? "⏳ Salvando..." : editandoId ? "💾 Salvar" : "✅ Criar Canal"}</button>
+              )}
             </div>
           </div>
         </div>
