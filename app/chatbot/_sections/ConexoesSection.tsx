@@ -391,6 +391,25 @@ export function ConexoesSection() {
     fetchFluxos(); fetchFilas(); // 🆕 recarrega filas ao abrir pra editar
   };
 
+  // 🆕 Liga/desliga Instagram ou Messenger num canal Meta
+  const toggleMetaFlag = async (canal: any, flag: "instagram_ativo" | "messenger_ativo") => {
+    try {
+      const novoValor = !canal[flag];
+      const { error } = await supabase
+        .from("conexoes")
+        .update({ [flag]: novoValor })
+        .eq("id", canal.id)
+        .eq("workspace_id", canal.workspace_id);
+      if (error) {
+        alert("Erro ao atualizar: " + error.message);
+        return;
+      }
+      await fetchConexoes();
+    } catch (err: any) {
+      alert("Erro de rede: " + (err.message || "desconhecido"));
+    }
+  };
+
   // 🆕 Inicia OAuth, lista pages e abre modal de seleção (cliente decide quais conectar)
   const conectarMeta = () => {
     if (!wsId) {
@@ -1078,10 +1097,12 @@ export function ConexoesSection() {
             <div key={c.id} style={{ background: "#111", borderRadius: 12, padding: 24, border: `1px solid ${c.status === "conectado" ? "#16a34a44" : "#1f2937"}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 28 }}>{c.tipo === "webjs" ? "📱" : "🔗"}</span>
+                  <span style={{ fontSize: 28 }}>{c.tipo === "webjs" ? "📱" : c.tipo === "meta" ? "📲" : "🔗"}</span>
                   <div>
                     <p style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>{c.nome}</p>
-                    <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{c.tipo === "webjs" ? "WhatsApp Web" : "API Meta (WABA)"} • ID {c.id}</p>
+                    <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
+                      {c.tipo === "webjs" ? "WhatsApp Web" : c.tipo === "waba" ? "API Meta (WABA)" : c.tipo === "meta" ? "Facebook · Instagram" : c.tipo} • ID {c.id}
+                    </p>
                   </div>
                 </div>
                 <span style={{ background: c.status === "conectado" ? "#16a34a22" : "#dc262622", color: c.status === "conectado" ? "#16a34a" : "#dc2626", fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.status === "conectado" ? "🟢 Conectado" : "🔴 Desconectado"}</span>
@@ -1102,6 +1123,40 @@ export function ConexoesSection() {
                 {c.tipo === "waba" && (c.status === "conectado"
                   ? <button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>🔗 API Conectada</button>
                   : <button onClick={() => registrarNumeroWaba(c)} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🟢 Ativar Número na Meta</button>
+                )}
+                {c.tipo === "meta" && (
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <button
+                      onClick={() => toggleMetaFlag(c, "messenger_ativo")}
+                      style={{
+                        background: c.messenger_ativo ? "#1877f222" : "#1f2937",
+                        color: c.messenger_ativo ? "#1877f2" : "#6b7280",
+                        border: `1px solid ${c.messenger_ativo ? "#1877f244" : "#374151"}`,
+                        borderRadius: 8, padding: "7px 10px", fontSize: 12, cursor: "pointer",
+                        fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center",
+                      }}
+                    >
+                      <span>💬 Messenger</span>
+                      <span>{c.messenger_ativo ? "🟢 Ligado" : "⚫ Desligado"}</span>
+                    </button>
+                    {c.instagram_business_id ? (
+                      <button
+                        onClick={() => toggleMetaFlag(c, "instagram_ativo")}
+                        style={{
+                          background: c.instagram_ativo ? "#e1306c22" : "#1f2937",
+                          color: c.instagram_ativo ? "#e1306c" : "#6b7280",
+                          border: `1px solid ${c.instagram_ativo ? "#e1306c44" : "#374151"}`,
+                          borderRadius: 8, padding: "7px 10px", fontSize: 12, cursor: "pointer",
+                          fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center",
+                        }}
+                      >
+                        <span>📷 Instagram{c.instagram_username ? ` @${c.instagram_username}` : ""}</span>
+                        <span>{c.instagram_ativo ? "🟢 Ligado" : "⚫ Desligado"}</span>
+                      </button>
+                    ) : (
+                      <div style={{ background: "#1f2937", color: "#6b7280", border: "1px solid #374151", borderRadius: 8, padding: "7px 10px", fontSize: 11, fontStyle: "italic" }}>📷 Sem Instagram vinculado</div>
+                    )}
+                  </div>
                 )}
                 <div style={{ position: "relative" }}>
                   <button onClick={() => setShowMenuEngrenagem(showMenuEngrenagem === c.id ? null : c.id)} disabled={encerrandoMassa || registrandoWaba}
