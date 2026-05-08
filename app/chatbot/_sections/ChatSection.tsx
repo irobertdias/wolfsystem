@@ -9,6 +9,8 @@ type Atendimento = {
   id: number; created_at: string; updated_at?: string; numero: string; nome: string; mensagem: string;
   status: string; fila: string; atendente: string; workspace_id: string;
   canal_id?: number;
+  // 🆕 origem da conversa (canal Meta): 'instagram' | 'messenger' | null
+  origem?: string | null;
   email?: string; notas?: string; avaliacao?: number;
   bloqueado_ia?: boolean; bloqueado_fluxo?: boolean; bloqueado_typebot?: boolean; bloqueado_contato?: boolean;
   // 🆕 BLOQUEIO PÓS-FINALIZAÇÃO 24h
@@ -20,7 +22,7 @@ type Atendimento = {
   // Usado pra contar mensagens "não lidas" (mensagens do cliente com created_at > visualizado_em).
   visualizado_em?: string | null;
 };
-type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; canal_id?: number; };
+type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; canal_id?: number; origem?: string; };
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
 type UsuarioWs = { email: string; nome: string; fila?: string | null; };
 type CanalInfo = { id: number; nome: string; tipo: string; };
@@ -684,16 +686,30 @@ export function ChatSection() {
     return emailOrBot.split("@")[0];
   };
 
-  const nomeDoCanal = (canalId?: number): string => {
+  const nomeDoCanal = (canalId?: number, origem?: string | null): string => {
     if (!canalId) return "—";
     const c = canais.find(ch => ch.id === canalId);
-    return c ? c.nome : `Canal ${canalId}`;
+    if (!c) return `Canal ${canalId}`;
+    // 🆕 Canal Meta: mostra "Instagram" ou "Messenger" baseado na origem
+    if (c.tipo === "meta" && origem === "instagram") return "Instagram";
+    if (c.tipo === "meta" && origem === "messenger") return "Messenger";
+    if (c.tipo === "instagram") return "Instagram";
+    if (c.tipo === "messenger") return "Messenger";
+    return c.nome;
   };
 
-  const iconeCanal = (canalId?: number): string => {
+  const iconeCanal = (canalId?: number, origem?: string | null): string => {
     if (!canalId) return "📱";
     const c = canais.find(ch => ch.id === canalId);
-    return c?.tipo === "waba" ? "🔗" : "📱";
+    if (!c) return "📱";
+    // 🆕 Canal Meta: ícone baseado em origem
+    if (c.tipo === "meta" && origem === "instagram") return "📷";
+    if (c.tipo === "meta" && origem === "messenger") return "💬";
+    if (c.tipo === "instagram") return "📷";
+    if (c.tipo === "messenger") return "💬";
+    if (c.tipo === "waba") return "🔗";
+    if (c.tipo === "meta") return "📲"; // canal meta sem origem ainda
+    return "📱";
   };
 
   const fetchCanais = async () => {
@@ -1478,14 +1494,27 @@ export function ChatSection() {
       const mensagemFinal = nomeHeader + mensagem;
 
       // 🆕 ROTEAMENTO POR TIPO DO CANAL
-      // - instagram/messenger → wolf-meta (porta 3002, /send/texto)
+      // - meta/instagram/messenger → wolf-meta (porta 3002, /send/texto)
       // - webjs/waba → wolf-whatsapp (fluxo atual via /api/whatsapp)
       const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
       const tipoCanal = canalAtual?.tipo;
       let resp: any;
 
-      if (tipoCanal === "instagram" || tipoCanal === "messenger") {
-        // Wolf Meta — POST direto na VPS
+      if (tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger") {
+        // 🆕 Wolf Meta — POST direto na VPS
+        // Pra canal tipo='meta', precisa saber a origem (Instagram ou Messenger)
+        // Estratégia: usa atendimento.origem (preenchido pelo handler ao criar)
+        // Fallback: olha a última mensagem do cliente no histórico
+        let origem: string | undefined;
+        if (tipoCanal === "instagram") origem = "instagram";
+        else if (tipoCanal === "messenger") origem = "messenger";
+        else if (atendimentoAtivo.origem) origem = atendimentoAtivo.origem;
+        else {
+          const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem);
+          if (ultimaCliente?.origem) origem = ultimaCliente.origem;
+          else origem = "messenger"; // último fallback
+        }
+
         const r = await fetch(`${META_BASE}/send/texto`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1494,7 +1523,8 @@ export function ChatSection() {
             canalId: atendimentoAtivo.canal_id,
             recipientId: atendimentoAtivo.numero,
             texto: mensagemFinal,
-            atendimentoId: atendimentoAtivo.id
+            atendimentoId: atendimentoAtivo.id,
+            origem: origem
           })
         });
         const data = await r.json();
@@ -2211,7 +2241,7 @@ export function ChatSection() {
                     </div>
                     <p style={{ color: "#8696a0", fontSize: 12, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {/* 🆕 Sempre mostra canal ao lado do número (antes só mostrava se canais.length > 1) */}
-                      📱 {numeroSanitizado(a.numero)}{a.canal_id && <span style={{ color: "#00a884" }}> • {iconeCanal(a.canal_id)} {nomeDoCanal(a.canal_id)}</span>}
+                      📱 {numeroSanitizado(a.numero)}{a.canal_id && <span style={{ color: "#00a884" }}> • {iconeCanal(a.canal_id, a.origem)} {nomeDoCanal(a.canal_id, a.origem)}</span>}
                     </p>
                     {/* Última mensagem em branco/negrito quando tem não lidas */}
                     <p style={{ color: temNaoLidas ? tema.textoForte : tema.textoFraco, fontSize: 12, fontWeight: temNaoLidas ? "bold" : "normal", margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -2317,7 +2347,7 @@ export function ChatSection() {
                   <h3 style={{ color: "#e9edef", fontSize: 15, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{atendimentoAtivo.nome}</h3>
                   <p style={{ color: "#8696a0", fontSize: 11, margin: 0 }}>
                     {atendimentoAtivo.fila || "—"} • {atendimentoAtivo.numero}
-                    {atendimentoAtivo.canal_id && canais.length > 1 && <> • {iconeCanal(atendimentoAtivo.canal_id)} {nomeDoCanal(atendimentoAtivo.canal_id)}</>}
+                    {atendimentoAtivo.canal_id && canais.length > 1 && <> • {iconeCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)} {nomeDoCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)}</>}
                     {atendimentoAtivo.atendente && atendimentoAtivo.atendente !== "BOT" && <> • 👨‍💼 {nomeDoAtendente(atendimentoAtivo.atendente)}</>}
                   </p>
                   {/* 🆕 INDICADOR DE BLOQUEIO — só aparece se atendimento está finalizado e bloqueado_ate ainda no futuro */}
@@ -3068,7 +3098,7 @@ export function ChatSection() {
                 </div>
                 <div>
                   <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Canal</label>
-                  <input value={atendimentoAtivo.canal_id ? `${iconeCanal(atendimentoAtivo.canal_id)} ${nomeDoCanal(atendimentoAtivo.canal_id)}` : "—"} disabled style={{ ...inputSm, opacity: 0.6 }} />
+                  <input value={atendimentoAtivo.canal_id ? `${iconeCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)} ${nomeDoCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)}` : "—"} disabled style={{ ...inputSm, opacity: 0.6 }} />
                 </div>
                 <div>
                   <label style={{ color: "#8696a0", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>E-mail</label>
