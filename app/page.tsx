@@ -273,6 +273,7 @@ export default function Site() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <a href="/privacidade" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>🔒 Política de Privacidade</a>
                 <a href="/termos" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>📄 Termos de Uso</a>
+                <a href="/excluir-dados" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>🗑️ Excluir Meus Dados</a>
                 <a href="/privacidade#seus-direitos" style={{ color: "#9ca3af", fontSize: 13, textDecoration: "none" }}>⚖️ LGPD — Seus Direitos</a>
               </div>
             </div>
@@ -290,7 +291,7 @@ export default function Site() {
 
           <div style={{ borderTop: "1px solid #1f2937", paddingTop: 20, display: "flex", flexDirection: "column", gap: 8, textAlign: "center" }}>
             <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>
-              © {new Date().getFullYear()} Wolf System. Todos os direitos reservados.
+              © {new Date().getFullYear()} Wolf System (ABC CALL E SERVICOS DIGITAIS LTDA — CNPJ 62.007.374/0001-96). Todos os direitos reservados.
             </p>
             <p style={{ color: "#4b5563", fontSize: 11, margin: 0 }}>
               Em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018).
