@@ -178,6 +178,7 @@ export default function ConexoesVoipSection() {
       if (modoEdicao) {
         resp = await wa("voip/conexao/atualizar", {
           conexaoId: modoEdicao.id,
+          workspaceId: wsId,
           campos: { nome, ...config }
         });
       } else {
@@ -204,7 +205,7 @@ export default function ConexoesVoipSection() {
   };
 
   const testarConexao = async (c: ConexaoVoip) => {
-    const resp = await wa("voip/conexao/testar", { conexaoId: c.id });
+    const resp = await wa("voip/conexao/testar", { conexaoId: c.id, workspaceId: wsId });
     if (resp.success) {
       const info = resp.info || {};
       alert(`✅ Conexão OK!\n\n${c.provider === "twilio" ? `Conta: ${info.nome_conta}\nStatus: ${info.status_conta}` : `Email: ${info.email}\nSaldo: R$ ${info.saldo || "?"}`}`);
@@ -216,7 +217,7 @@ export default function ConexoesVoipSection() {
 
   const deletar = async (c: ConexaoVoip) => {
     if (!confirm(`Deletar conexão "${c.nome}"?\n\nIsso remove as credenciais. Ligações antigas continuam no histórico.`)) return;
-    const resp = await wa("voip/conexao/deletar", { conexaoId: c.id });
+    const resp = await wa("voip/conexao/deletar", { conexaoId: c.id, workspaceId: wsId });
     if (resp.success) fetchConexoes();
     else alert("Erro ao deletar: " + resp.error);
   };

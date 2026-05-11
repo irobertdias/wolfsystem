@@ -1,0 +1,27 @@
+﻿app\chatbot\disparos\page.tsx:206: const resp = await wa("disparos/criar", {
+app\chatbot\disparos\page.tsx:243: const resp = await wa("disparos/criar-waba", {
+app\chatbot\disparos\page.tsx:265: const pausarDisparo = async (id: number) => { await wa("disparos/pausar", { disparoId: id }); fetchDisparos(); };
+app\chatbot\disparos\page.tsx:266: const retomarDisparo = async (id: number) => { await wa("disparos/retomar", { disparoId: id }); fetchDisparos(); };
+app\chatbot\disparos\page.tsx:269: await wa("disparos/cancelar", { disparoId: id });
+app\chatbot\templates\page.tsx:139: const resp = await wa("templates/criar", {
+app\chatbot\templates\page.tsx:164: const resp = await wa("templates/deletar", { templateId: t.id, workspaceId: wsId });
+app\chatbot\templates\page.tsx:201: const resp: any = await wa("templates/sincronizar", { canalId: canalPrincipal.id, workspaceId: wsId });
+app\chatbot\_sections\ChatSection.tsx:1549: resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
+app\chatbot\_sections\ChatSection.tsx:1806: const resp = await wa("enviar-template", {
+app\chatbot\_sections\ChatSection.tsx:1930: await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId, atendenteEmail: user.email });
+app\chatbot\_sections\ChatSection.tsx:1943: await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId, atendenteEmail: user.email });
+app\chatbot\_sections\ChatSection.tsx:1953: await wa("assumir", { numero, canalId, workspaceId: wsId, atendenteEmail: user.email });
+app\chatbot\_sections\ChatSection.tsx:1966: await wa("finalizar", { numero, canalId, workspaceId: wsId, quemFinalizou: user?.email });
+app\chatbot\_sections\ChatSection.tsx:1972: await wa("devolver", { numero, canalId, workspaceId: wsId });
+app\chatbot\_sections\ChatSection.tsx:2001: await wa("assumir", { numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id, workspaceId: wsId, atendenteEmail: user.email });
+app\chatbot\_sections\ConexoesSection.tsx:586: try { await wa("configurar-ia", { canalId: editandoId, workspaceId: wsId, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo }); } catch (e) {}
+app\chatbot\_sections\ConexoesSection.tsx:611: try { await wa("canal/criar", { canalId: novoId, workspaceId: wsId }); } catch (e) { console.error("Erro ao criar sessão no VPS:", e); }
+app\chatbot\_sections\ConexoesSection.tsx:628: try { await wa("resetar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {}
+app\chatbot\_sections\ConexoesSection.tsx:650: const data = await wa("reconectar", { canalId: c.id, workspaceId: c.workspace_id });
+app\chatbot\_sections\ConexoesSection.tsx:679: await wa("desconectar", { canalId: c.id, workspaceId: c.workspace_id });
+app\chatbot\_sections\ConexoesSection.tsx:693: if (canal.tipo === "webjs") { try { await wa("desconectar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {} }
+app\components\ConexoesVoipSection.tsx:89: const resp = await wa(`voip/conexoes/listar&workspaceId=${wsId}`);
+app\components\ConexoesVoipSection.tsx:179: resp = await wa("voip/conexao/atualizar", {
+app\components\ConexoesVoipSection.tsx:184: resp = await wa("voip/conexao/criar", {
+app\components\ConexoesVoipSection.tsx:207: const resp = await wa("voip/conexao/testar", { conexaoId: c.id });
+app\components\ConexoesVoipSection.tsx:219: const resp = await wa("voip/conexao/deletar", { conexaoId: c.id });
