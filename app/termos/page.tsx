@@ -14,6 +14,7 @@ export default function TermosPage() {
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <Link href="/" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>← Voltar</Link>
           <Link href="/privacidade" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>Privacidade</Link>
+          <Link href="/excluir-dados" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>Excluir Dados</Link>
         </div>
       </nav>
 
@@ -25,11 +26,11 @@ export default function TermosPage() {
             <span style={{ color: "#3b82f6", fontSize: 13, fontWeight: "bold" }}>📄 Termos de Uso</span>
           </div>
           <h1 style={{ fontSize: 42, fontWeight: "bold", margin: "0 0 12px 0", lineHeight: 1.2 }}>Termos de Uso</h1>
-          <p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Última atualização: 24 de abril de 2026</p>
+          <p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Última atualização: 11 de maio de 2026</p>
         </div>
 
         <Section>
-          <p>Estes Termos de Uso ("Termos") regulam o uso da plataforma <strong>Wolf CRM</strong>, fornecida pela <strong>Wolf System</strong> ([PREENCHER razão social e CNPJ]), doravante "WOLF", "nós" ou "Plataforma".</p>
+          <p>Estes Termos de Uso ("Termos") regulam o uso da plataforma <strong>Wolf CRM</strong>, fornecida pela <strong>ABC CALL E SERVICOS DIGITAIS LTDA</strong>, CNPJ <strong>62.007.374/0001-96</strong>, com sede em Goiânia/GO, doravante denominada <strong>"WOLF"</strong>, <strong>"Wolf System"</strong>, <strong>"nós"</strong> ou <strong>"Plataforma"</strong>.</p>
           <p>Ao cadastrar-se e usar a Plataforma, você ("USUÁRIO", "CLIENTE") concorda integralmente com estes Termos. Se não concordar, não use a Plataforma.</p>
         </Section>
 
@@ -37,7 +38,7 @@ export default function TermosPage() {
         <Section>
           <p>O Wolf CRM é uma plataforma SaaS de relacionamento com o cliente que oferece, entre outras funcionalidades:</p>
           <ul style={listaStyle}>
-            <li>Atendimento via WhatsApp (WebJS e WhatsApp Business API)</li>
+            <li>Atendimento centralizado via WhatsApp (WebJS e WhatsApp Business API), Facebook Messenger e Instagram Direct</li>
             <li>Distribuição automática de leads (roleta)</li>
             <li>Chatbot com Inteligência Artificial e fluxos</li>
             <li>Disparos de mensagens em massa via templates aprovados</li>
@@ -106,7 +107,7 @@ export default function TermosPage() {
 
         <H3>4.1 Uso permitido</H3>
         <Section>
-          <p>Usar o Wolf para comunicação comercial legítima com seus contatos, respeitando a LGPD, o Código de Defesa do Consumidor e as políticas do WhatsApp.</p>
+          <p>Usar o Wolf para comunicação comercial legítima com seus contatos, respeitando a LGPD, o Código de Defesa do Consumidor e as políticas da Meta (WhatsApp, Messenger, Instagram).</p>
         </Section>
 
         <H3>4.2 Uso PROIBIDO</H3>
@@ -145,10 +146,11 @@ export default function TermosPage() {
         <Section>
           <p>Wolf não se responsabiliza por:</p>
           <ul style={listaStyle}>
-            <li>Mudanças nas políticas ou APIs do WhatsApp, Meta, Twilio, Zenvia</li>
+            <li>Mudanças nas políticas ou APIs da Meta (WhatsApp, Messenger, Instagram), Twilio, Zenvia ou demais fornecedores</li>
             <li>Banimentos ou suspensões impostas por esses terceiros</li>
             <li>Qualidade de entrega das mensagens (que depende das plataformas subjacentes)</li>
             <li>Custos cobrados por esses terceiros (você paga Twilio/Zenvia diretamente quando usa BYOC)</li>
+            <li>Rejeição ou revogação de aprovações de App Review da Meta para conexões Facebook/Instagram</li>
           </ul>
         </Section>
 
@@ -183,7 +185,7 @@ export default function TermosPage() {
 
         <H2>7. Proteção de dados (LGPD)</H2>
         <Section>
-          <p>O tratamento de dados pessoais pela Plataforma está descrito em nossa <Link href="/privacidade" style={linkVerde}>Política de Privacidade</Link>, que é parte integrante destes Termos.</p>
+          <p>O tratamento de dados pessoais pela Plataforma está descrito em nossa <Link href="/privacidade" style={linkVerde}>Política de Privacidade</Link>, que é parte integrante destes Termos. Para solicitar a exclusão dos seus dados, acesse a página <Link href="/excluir-dados" style={linkVerde}>Excluir Meus Dados</Link>.</p>
           <p><strong>Papel das partes:</strong></p>
           <ul style={listaStyle}>
             <li>Wolf é <strong>Controladora</strong> dos dados dos Clientes</li>
@@ -199,7 +201,7 @@ export default function TermosPage() {
 
         <H2>9. Foro e legislação</H2>
         <Section>
-          <p>Estes Termos são regidos pelas leis brasileiras. Fica eleito o foro da Comarca de <strong>[PREENCHER cidade/UF do seu CNPJ]</strong> para dirimir qualquer controvérsia, renunciando as partes a qualquer outro, por mais privilegiado que seja.</p>
+          <p>Estes Termos são regidos pelas leis brasileiras. Fica eleito o foro da Comarca de <strong>Goiânia/GO</strong> para dirimir qualquer controvérsia, renunciando as partes a qualquer outro, por mais privilegiado que seja.</p>
         </Section>
 
         <H2>10. Contato</H2>
@@ -208,6 +210,7 @@ export default function TermosPage() {
             <li><strong>Suporte:</strong> <a href="mailto:suporte@wolfgyn.com.br" style={linkVerde}>suporte@wolfgyn.com.br</a></li>
             <li><strong>Comercial:</strong> <a href="mailto:comercial@wolfgyn.com.br" style={linkVerde}>comercial@wolfgyn.com.br</a></li>
             <li><strong>Privacidade/LGPD:</strong> <a href="mailto:privacidade@wolfgyn.com.br" style={linkVerde}>privacidade@wolfgyn.com.br</a></li>
+            <li><strong>Excluir meus dados:</strong> <Link href="/excluir-dados" style={linkVerde}>wolfgyn.com.br/excluir-dados</Link></li>
             <li><strong>Site:</strong> <a href="https://www.wolfgyn.com.br" style={linkVerde}>https://www.wolfgyn.com.br</a></li>
           </ul>
         </Section>
@@ -225,7 +228,7 @@ export default function TermosPage() {
       </article>
 
       <footer style={{ padding: "32px", textAlign: "center", borderTop: "1px solid #1f2937" }}>
-        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>© {new Date().getFullYear()} Wolf System. Todos os direitos reservados.</p>
+        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>© {new Date().getFullYear()} Wolf System (ABC CALL E SERVICOS DIGITAIS LTDA — CNPJ 62.007.374/0001-96). Todos os direitos reservados.</p>
       </footer>
     </div>
   );
