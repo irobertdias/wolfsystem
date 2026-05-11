@@ -262,11 +262,11 @@ export default function DisparosPage() {
     else iniciarDisparoWaba();
   };
 
-  const pausarDisparo = async (id: number) => { await wa("disparos/pausar", { disparoId: id }); fetchDisparos(); };
-  const retomarDisparo = async (id: number) => { await wa("disparos/retomar", { disparoId: id }); fetchDisparos(); };
+  const pausarDisparo = async (id: number) => { await wa("disparos/pausar", { disparoId: id, workspaceId: wsId }); fetchDisparos(); };
+  const retomarDisparo = async (id: number) => { await wa("disparos/retomar", { disparoId: id, workspaceId: wsId }); fetchDisparos(); };
   const cancelarDisparo = async (id: number) => {
     if (!confirm("Cancelar esse disparo?")) return;
-    await wa("disparos/cancelar", { disparoId: id });
+    await wa("disparos/cancelar", { disparoId: id, workspaceId: wsId });
     fetchDisparos();
   };
 
