@@ -571,6 +571,14 @@ export function ConexoesSection() {
       if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
 
       if (editandoId) {
+        // 🆕 Edit WABA: adiciona credenciais ao payload (sem isso, troca de token/WABA ID não salva)
+        if (form.tipo === "waba") {
+          if (form.phoneNumberId) payload.phone_number_id = form.phoneNumberId;
+          if (form.wabaId) payload.waba_id = form.wabaId;
+          if (form.webhookToken) payload.webhook_token = form.webhookToken;
+          // 🔒 Token só atualiza se o usuário tocou no campo (UX: deixar em branco = mantém atual)
+          if (tokenTocado && form.token) payload.token_waba = form.token;
+        }
         // 🔒 MULTI-TENANT: defesa em profundidade — só edita canal deste workspace
         await supabase.from("conexoes").update(payload).eq("id", editandoId).in("workspace_id", wsIdsRef.current);
         setEditandoId(null);
@@ -881,13 +889,13 @@ export function ConexoesSection() {
                   </div>
                 </div>
               )}
-              {!editandoId && form.tipo === "waba" && (
+              {form.tipo === "waba" && (
                 <div>
-                  <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>3. Credenciais da API Meta</p>
+                  <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>{editandoId ? "2" : "3"}. Credenciais da API Meta</p>
                   <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
                     <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Phone Number ID *</label><input placeholder="123456789012345" value={form.phoneNumberId} onChange={e => setForm(p => ({ ...p, phoneNumberId: e.target.value }))} style={IS} /></div>
                     <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>WABA ID</label><input placeholder="123456789012345" value={form.wabaId} onChange={e => setForm(p => ({ ...p, wabaId: e.target.value }))} style={IS} /></div>
-                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token Permanente *</label><input type="password" placeholder="EAAxxxxx..." value={form.token} onChange={e => { setForm(p => ({ ...p, token: e.target.value })); setTokenTocado(true); }} style={IS} /></div>
+                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token Permanente {editandoId ? "" : "*"}</label><input type="password" placeholder={editandoId ? "Deixe em branco pra manter o token atual" : "EAAxxxxx..."} value={form.token} onChange={e => { setForm(p => ({ ...p, token: e.target.value })); setTokenTocado(true); }} style={IS} /></div>
                     <button onClick={testarWABA} disabled={testandoWABA} style={{ background: testandoWABA ? "#1d4ed8" : "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{testandoWABA ? "⏳ Testando..." : "🔍 Testar Conexão"}</button>
                     {wabaTeste && <div style={{ background: wabaTeste.success ? "#16a34a22" : "#dc262622", border: `1px solid ${wabaTeste.success ? "#16a34a33" : "#dc262633"}`, borderRadius: 8, padding: 10 }}><p style={{ color: wabaTeste.success ? "#16a34a" : "#dc2626", fontSize: 13, margin: 0, fontWeight: "bold" }}>{wabaTeste.success ? `✅ ${wabaTeste.nome}` : `❌ ${wabaTeste.error}`}</p></div>}
                     <div style={{ background: "#111", borderRadius: 8, padding: 12 }}>
@@ -895,10 +903,19 @@ export function ConexoesSection() {
                       <p style={{ color: "#16a34a", fontSize: 12, fontWeight: "bold", margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/webhook/meta</p>
                     </div>
                     <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token de Verificação</label><input placeholder="meu_token_secreto" value={form.webhookToken} onChange={e => setForm(p => ({ ...p, webhookToken: e.target.value }))} style={IS} /></div>
-                    <div style={{ background: "#16a34a22", borderRadius: 8, padding: 12, border: "1px solid #16a34a33" }}>
-                      <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", margin: "0 0 4px", textTransform: "uppercase" }}>💡 Importante</p>
-                      <p style={{ color: "#86efac", fontSize: 11, margin: 0, lineHeight: 1.5 }}>Depois de criar o canal, clique em <b>🟢 Ativar Número na Meta</b> pra deixar seu número online.</p>
-                    </div>
+                    {!editandoId && (
+                      <div style={{ background: "#16a34a22", borderRadius: 8, padding: 12, border: "1px solid #16a34a33" }}>
+                        <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", margin: "0 0 4px", textTransform: "uppercase" }}>💡 Importante</p>
+                        <p style={{ color: "#86efac", fontSize: 11, margin: 0, lineHeight: 1.5 }}>Depois de criar o canal, clique em <b>🟢 Ativar Número na Meta</b> pra deixar seu número online.</p>
+                      </div>
+                    )}
+                    {editandoId && (
+                      <div style={{ background: "#f59e0b22", borderRadius: 8, padding: 12, border: "1px solid #f59e0b33" }}>
+                        <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold", margin: "0 0 6px", textTransform: "uppercase" }}>⚠️ Não está recebendo mensagens?</p>
+                        <p style={{ color: "#fde68a", fontSize: 11, margin: "0 0 6px", lineHeight: 1.5 }}>Pode faltar inscrever o app no WABA. Roda no terminal (substitua o token):</p>
+                        <code style={{ background: "#000", padding: "6px 8px", borderRadius: 4, color: "#86efac", fontSize: 10, display: "block", wordBreak: "break-all" }}>{`curl -X POST "https://graph.facebook.com/v19.0/${form.wabaId || "WABA_ID"}/subscribed_apps" -H "Authorization: Bearer SEU_TOKEN"`}</code>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
