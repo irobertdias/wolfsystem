@@ -170,11 +170,53 @@ export default function TemplatesPage() {
   const sincronizarAgora = async () => {
     setSincronizando(true);
     try {
-      for (const c of canais) {
-        await wa("templates/sincronizar", { canalId: c.id });
+      if (canais.length === 0) {
+        alert("⚠️ Nenhum canal WABA conectado. Conecte um em Conexões primeiro.");
+        setSincronizando(false);
+        return;
       }
+
+      // 🆕 Templates pertencem ao WABA, não ao canal. Se você tem 2 canais com o mesmo
+      // waba_id, eles compartilham os mesmos templates. Agrupa por waba_id pra evitar
+      // chamar a mesma sincronização 2 vezes (e dá feedback claro por WABA).
+      const porWaba = new Map<string, Canal[]>();
+      const semWaba: Canal[] = [];
+      canais.forEach(c => {
+        if (!c.waba_id) { semWaba.push(c); return; }
+        const arr = porWaba.get(c.waba_id) || [];
+        arr.push(c);
+        porWaba.set(c.waba_id, arr);
+      });
+
+      const resultados: string[] = [];
+
+      for (const [wabaId, canaisDoWaba] of porWaba) {
+        // Usa o primeiro canal do WABA como "porta de entrada" — o backend olha o
+        // waba_id e token_waba dele pra puxar templates da Meta
+        const canalPrincipal = canaisDoWaba[0];
+        const compartilhados = canaisDoWaba.length > 1
+          ? ` (compartilha com ${canaisDoWaba.slice(1).map(c => c.nome).join(", ")})`
+          : "";
+        try {
+          const resp: any = await wa("templates/sincronizar", { canalId: canalPrincipal.id });
+          const ok = resp?.success || resp?.sucesso;
+          const count = resp?.count ?? resp?.total ?? resp?.templates?.length ?? "?";
+          if (ok === false || resp?.error || resp?.erro) {
+            resultados.push(`❌ ${canalPrincipal.nome}: ${resp?.error || resp?.erro || "erro desconhecido"}`);
+          } else {
+            resultados.push(`✅ ${canalPrincipal.nome}${compartilhados}: ${count} templates da Meta`);
+          }
+        } catch (e: any) {
+          resultados.push(`❌ ${canalPrincipal.nome}: ${e.message || "falha de rede"}`);
+        }
+      }
+
+      if (semWaba.length > 0) {
+        resultados.push(`⚠️ ${semWaba.length} canal(is) sem WABA ID: ${semWaba.map(c => c.nome).join(", ")}`);
+      }
+
       await fetchTemplates();
-      alert("✅ Sincronização concluída!");
+      alert(`Sincronização concluída\n\n${resultados.join("\n")}\n\nTotal no banco: ${templates.length} templates`);
     } catch (e: any) { alert(`❌ Erro: ${e.message}`); }
     setSincronizando(false);
   };
