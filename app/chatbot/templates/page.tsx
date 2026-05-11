@@ -161,7 +161,7 @@ export default function TemplatesPage() {
   const deletarTemplate = async (t: Template) => {
     if (!confirm(`Deletar o template "${t.nome_amigavel || t.meta_template_name}"?\n\nIsso vai remover ele da Meta também.`)) return;
     try {
-      const resp = await wa("templates/deletar", { templateId: t.id });
+      const resp = await wa("templates/deletar", { templateId: t.id, workspaceId: wsId });
       if (resp.success) { alert("✅ Template deletado!"); fetchTemplates(); }
       else alert(`❌ Erro: ${resp.error}`);
     } catch (e: any) { alert(`❌ Erro: ${e.message}`); }
@@ -198,7 +198,7 @@ export default function TemplatesPage() {
           ? ` (compartilha com ${canaisDoWaba.slice(1).map(c => c.nome).join(", ")})`
           : "";
         try {
-          const resp: any = await wa("templates/sincronizar", { canalId: canalPrincipal.id });
+          const resp: any = await wa("templates/sincronizar", { canalId: canalPrincipal.id, workspaceId: wsId });
           const ok = resp?.success || resp?.sucesso;
           const count = resp?.count ?? resp?.total ?? resp?.templates?.length ?? "?";
           if (ok === false || resp?.error || resp?.erro) {
