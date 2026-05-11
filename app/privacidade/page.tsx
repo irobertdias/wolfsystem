@@ -14,6 +14,7 @@ export default function PrivacidadePage() {
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <Link href="/" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>← Voltar</Link>
           <Link href="/termos" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>Termos de Uso</Link>
+          <Link href="/excluir-dados" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>Excluir Dados</Link>
         </div>
       </nav>
 
@@ -26,19 +27,20 @@ export default function PrivacidadePage() {
             <span style={{ color: "#16a34a", fontSize: 13, fontWeight: "bold" }}>🔒 LGPD</span>
           </div>
           <h1 style={{ fontSize: 42, fontWeight: "bold", margin: "0 0 12px 0", lineHeight: 1.2 }}>Política de Privacidade</h1>
-          <p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Última atualização: 24 de abril de 2026</p>
+          <p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Última atualização: 11 de maio de 2026</p>
         </div>
 
         <Section>
-          <p>A <strong>Wolf System</strong> valoriza sua privacidade e está comprometida com a proteção de seus dados pessoais, em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — "LGPD"). Esta Política explica como coletamos, usamos, armazenamos, compartilhamos e protegemos suas informações ao usar a plataforma <strong>Wolf CRM</strong> (acessível em app.wolfgyn.com.br e domínios relacionados).</p>
+          <p>A <strong>ABC CALL E SERVICOS DIGITAIS LTDA</strong> (nome fantasia <strong>Wolf System</strong>) valoriza sua privacidade e está comprometida com a proteção de seus dados pessoais, em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — "LGPD"). Esta Política explica como coletamos, usamos, armazenamos, compartilhamos e protegemos suas informações ao usar a plataforma <strong>Wolf CRM</strong> (acessível em app.wolfgyn.com.br e domínios relacionados).</p>
           <p>Ao criar uma conta ou utilizar nossos serviços, você declara que leu, compreendeu e concorda com os termos desta Política.</p>
         </Section>
 
         <H2>1. Identificação do Controlador</H2>
         <Section>
-          <p><strong>Razão Social:</strong> [PREENCHER: nome do seu CNPJ]<br />
-            <strong>CNPJ:</strong> [PREENCHER]<br />
-            <strong>Endereço:</strong> [PREENCHER]<br />
+          <p><strong>Razão Social:</strong> ABC CALL E SERVICOS DIGITAIS LTDA<br />
+            <strong>Nome Fantasia:</strong> Wolf System<br />
+            <strong>CNPJ:</strong> 62.007.374/0001-96<br />
+            <strong>Endereço:</strong> Avenida Castelo Branco, S/N, Quadra 133, Lote 05, Sala 307, Setor Campinas, Goiânia/GO, CEP 74.513-100<br />
             <strong>E-mail do Encarregado (DPO):</strong> <a href="mailto:privacidade@wolfgyn.com.br" style={linkVerde}>privacidade@wolfgyn.com.br</a>
           </p>
           <p>Para exercer qualquer direito previsto nesta Política ou tirar dúvidas sobre proteção de dados, entre em contato pelo e-mail acima.</p>
@@ -53,7 +55,7 @@ export default function PrivacidadePage() {
             <li>Nome completo, CPF/CNPJ, razão social</li>
             <li>E-mail e telefone de contato</li>
             <li>Dados de pagamento (processados exclusivamente por gateway terceirizado — não armazenamos dados de cartão de crédito em nossos servidores)</li>
-            <li>Credenciais de integração (tokens de API do WhatsApp, Twilio, Zenvia) — criptografadas e usadas exclusivamente para viabilizar o serviço</li>
+            <li>Credenciais de integração (tokens de API do WhatsApp, Facebook, Instagram, Twilio, Zenvia) — criptografadas e usadas exclusivamente para viabilizar o serviço</li>
           </ul>
         </Section>
 
@@ -61,7 +63,8 @@ export default function PrivacidadePage() {
         <Section>
           <p>Ao utilizar o Wolf CRM para se comunicar com seus próprios clientes, você nos envia, como Controlador desses dados:</p>
           <ul style={listaStyle}>
-            <li>Números de telefone, nomes e mensagens trocadas via WhatsApp</li>
+            <li>Números de telefone, nomes e mensagens trocadas via WhatsApp, Facebook Messenger e Instagram Direct</li>
+            <li>Anexos enviados nas conversas (imagens, vídeos, áudios, documentos)</li>
             <li>Histórico de atendimentos, gravações de chamadas de voz (quando habilitado)</li>
             <li>Etiquetas, anotações e informações comerciais que você cadastrar</li>
           </ul>
@@ -99,30 +102,82 @@ export default function PrivacidadePage() {
           </Table>
         </Section>
 
-        <H2>4. Compartilhamento de dados</H2>
+        <H2>4. Integrações com plataformas da Meta (Facebook, Instagram, Messenger e WhatsApp)</H2>
+        <Section>
+          <p>O Wolf CRM se integra com plataformas da <strong>Meta Platforms, Inc.</strong> (Facebook, Instagram, Messenger e WhatsApp Business) para centralizar o atendimento ao cliente em um único painel. Para viabilizar esse atendimento, precisamos acessar dados específicos dessas plataformas, sempre com autorização explícita do Cliente, via login oficial da Meta.</p>
+
+          <H3>4.1 Permissões solicitadas à Meta</H3>
+          <p>Durante a conexão da sua conta Facebook ao Wolf CRM (via "Login com Facebook"), solicitamos as permissões abaixo. Cada uma tem finalidade específica e essencial para o funcionamento do serviço:</p>
+          <Table>
+            <thead>
+              <tr>
+                <th style={thStyle}>Permissão</th>
+                <th style={thStyle}>Finalidade</th>
+              </tr>
+            </thead>
+            <tbody>
+              <Row>pages_show_list | Listar as Fan Pages do Facebook que você administra durante o cadastro, para você escolher quais conectar ao Wolf CRM</Row>
+              <Row>pages_manage_metadata | Inscrever o Wolf CRM no webhook da sua Fan Page para receber notificações de novas mensagens em tempo real</Row>
+              <Row>pages_messaging | Enviar e receber mensagens via Facebook Messenger em nome da sua Fan Page (atendimento bidirecional)</Row>
+              <Row>pages_read_engagement | Ler informações públicas do remetente (nome, foto de perfil) para exibir no painel de atendimento</Row>
+              <Row>instagram_basic | Identificar a conta Instagram Business conectada à sua Fan Page do Facebook</Row>
+              <Row>instagram_manage_messages | Enviar e receber mensagens diretas (DMs) do Instagram em nome da sua conta Instagram Business</Row>
+              <Row>business_management | Permitir a conexão de múltiplas contas comerciais ao Wolf CRM (modelo multi-tenant — cada Cliente conecta seu próprio Business Manager)</Row>
+            </tbody>
+          </Table>
+
+          <H3>4.2 Dados acessados via Meta</H3>
+          <p>Ao usar essas integrações, processamos:</p>
+          <ul style={listaStyle}>
+            <li>Identificadores (IDs) das Fan Pages e contas Instagram Business conectadas</li>
+            <li>Mensagens recebidas e enviadas via Messenger e Instagram Direct</li>
+            <li>Nome e foto pública dos remetentes das mensagens</li>
+            <li>Anexos enviados nas conversas (imagens, vídeos, áudios, documentos)</li>
+            <li>Status de leitura e entrega das mensagens</li>
+          </ul>
+
+          <H3>4.3 Como esses dados são usados</H3>
+          <ul style={listaStyle}>
+            <li><strong>Exclusivamente para viabilizar o atendimento</strong> ao seu cliente final no painel do Wolf CRM</li>
+            <li><strong>Não vendemos</strong> esses dados a terceiros</li>
+            <li><strong>Não usamos</strong> para publicidade direcionada</li>
+            <li><strong>Não compartilhamos</strong> com outros Clientes do Wolf (isolamento multi-tenant)</li>
+            <li>Mensagens são armazenadas no banco de dados do seu workspace pelo tempo descrito na seção de Retenção</li>
+          </ul>
+
+          <H3>4.4 Tokens de acesso</H3>
+          <p>Os tokens de acesso fornecidos pela Meta são <strong>armazenados criptografados em repouso</strong> e usados exclusivamente para operar as integrações que você habilitou. Você pode <strong>revogar o acesso a qualquer momento</strong> desconectando o canal no painel do Wolf CRM ou nas configurações do seu Facebook Business Manager (Configurações da Empresa → Integrações de Negócios → Wolf System → Remover).</p>
+
+          <H3>4.5 Política da Meta</H3>
+          <p>Ao usar a integração, você também está sujeito à <a href="https://www.facebook.com/policy.php" style={linkVerde} target="_blank" rel="noopener noreferrer">Política de Privacidade da Meta</a>, aos <a href="https://developers.facebook.com/devpolicy/" style={linkVerde} target="_blank" rel="noopener noreferrer">Termos da Plataforma da Meta</a> e à <a href="https://www.whatsapp.com/legal/business-policy" style={linkVerde} target="_blank" rel="noopener noreferrer">Política Empresarial do WhatsApp</a>.</p>
+        </Section>
+
+        <H2>5. Compartilhamento de dados</H2>
         <Section>
           <p>A Wolf System <strong>não vende</strong> seus dados. Compartilhamos apenas com:</p>
           <p><strong>Operadores estritamente necessários:</strong></p>
           <ul style={listaStyle}>
-            <li>Supabase (banco de dados — armazenamento)</li>
-            <li>Vercel (hospedagem do frontend)</li>
-            <li>Meta/WhatsApp Business (integração de mensagens)</li>
-            <li>Twilio / Zenvia (telefonia VOIP — apenas se você habilitar)</li>
-            <li>Processadora de pagamentos (quando aplicável)</li>
+            <li><strong>Supabase</strong> (banco de dados — armazenamento das suas mensagens e configurações)</li>
+            <li><strong>Vercel</strong> (hospedagem do frontend e edge functions)</li>
+            <li><strong>Meta Platforms, Inc.</strong> (Facebook, Instagram, Messenger, WhatsApp Business — integração de mensagens conforme seção 4)</li>
+            <li><strong>Twilio / Zenvia</strong> (telefonia VOIP — apenas se você habilitar o módulo de chamadas)</li>
+            <li><strong>OpenAI / Anthropic / Google</strong> (provedores de IA — apenas se você habilitar o chatbot com IA; nesse caso, o conteúdo das mensagens é processado pelo provedor escolhido)</li>
+            <li><strong>Processadora de pagamentos</strong> (quando aplicável, para cobrança de mensalidades)</li>
           </ul>
           <p><strong>Autoridades públicas</strong>, mediante ordem legal, judicial ou requisição administrativa legítima.</p>
           <p>Todos os operadores contratados possuem cláusulas contratuais garantindo padrão equivalente ou superior ao desta Política.</p>
         </Section>
 
-        <H2>5. Armazenamento e segurança</H2>
+        <H2>6. Armazenamento e segurança</H2>
         <Section>
           <ul style={listaStyle}>
             <li>Dados são armazenados em servidores localizados nos <strong>Estados Unidos</strong> (Supabase, Vercel) e no <strong>Brasil</strong> (servidor VPS)</li>
             <li>Transferências internacionais seguem o disposto no art. 33 da LGPD</li>
             <li>Comunicação entre seu navegador e nossos servidores é protegida por <strong>TLS/HTTPS</strong></li>
             <li>Senhas são armazenadas com <strong>hash criptográfico</strong> (nunca em texto puro)</li>
-            <li>Credenciais sensíveis (tokens WABA, Twilio) são criptografadas em repouso</li>
+            <li>Credenciais sensíveis (tokens WABA, Meta, Twilio) são criptografadas em repouso</li>
             <li>Backups automáticos diários, com retenção mínima de 30 dias</li>
+            <li>Isolamento multi-tenant: dados de um Cliente não são acessíveis por outro Cliente</li>
           </ul>
 
           <H3>Retenção</H3>
@@ -136,6 +191,7 @@ export default function PrivacidadePage() {
             <tbody>
               <Row>Conta ativa | Enquanto durar a relação contratual</Row>
               <Row>Conta cancelada | 12 meses após o cancelamento, salvo obrigação legal maior</Row>
+              <Row>Mensagens de Messenger/Instagram/WhatsApp | Enquanto a conta estiver ativa, ou até solicitação de exclusão</Row>
               <Row>Logs de acesso | 6 meses (art. 15 do Marco Civil da Internet)</Row>
               <Row>Dados financeiros | 5 anos (legislação fiscal)</Row>
             </tbody>
@@ -143,7 +199,7 @@ export default function PrivacidadePage() {
           <p>Após esses prazos, os dados são anonimizados ou eliminados.</p>
         </Section>
 
-        <H2 id="seus-direitos">6. Seus direitos como titular</H2>
+        <H2 id="seus-direitos">7. Seus direitos como titular</H2>
         <Section>
           <p>Você pode, a qualquer momento, solicitar:</p>
           <ol style={listaStyle}>
@@ -156,10 +212,10 @@ export default function PrivacidadePage() {
             <li><strong>Informação</strong> sobre entidades com as quais compartilhamos seus dados</li>
             <li><strong>Revogação do consentimento</strong></li>
           </ol>
-          <p>Basta enviar solicitação para <a href="mailto:privacidade@wolfgyn.com.br" style={linkVerde}>privacidade@wolfgyn.com.br</a> com comprovação de identidade. Responderemos em até <strong>15 dias</strong>.</p>
+          <p>Para solicitar exclusão dos seus dados pessoais, acesse a página <Link href="/excluir-dados" style={linkVerde}>Excluir Meus Dados</Link> ou envie um e-mail para <a href="mailto:privacidade@wolfgyn.com.br" style={linkVerde}>privacidade@wolfgyn.com.br</a> com comprovação de identidade. Responderemos em até <strong>15 dias</strong>.</p>
         </Section>
 
-        <H2>7. Cookies</H2>
+        <H2>8. Cookies</H2>
         <Section>
           <p>Usamos apenas cookies essenciais para:</p>
           <ul style={listaStyle}>
@@ -170,21 +226,22 @@ export default function PrivacidadePage() {
           <p>Não utilizamos cookies de rastreamento publicitário de terceiros. Você pode desabilitar cookies no seu navegador, mas a plataforma pode não funcionar corretamente.</p>
         </Section>
 
-        <H2>8. Menores de idade</H2>
+        <H2>9. Menores de idade</H2>
         <Section>
           <p>A Wolf System <strong>não é direcionada a menores de 18 anos</strong>. Não coletamos conscientemente dados de menores. Se tomarmos conhecimento de que isso ocorreu, eliminaremos os dados imediatamente.</p>
         </Section>
 
-        <H2>9. Alterações desta Política</H2>
+        <H2>10. Alterações desta Política</H2>
         <Section>
           <p>Podemos atualizar esta Política periodicamente. Alterações materiais serão comunicadas por e-mail e/ou aviso na plataforma com, no mínimo, <strong>30 dias de antecedência</strong>. A data da última atualização está no topo do documento.</p>
         </Section>
 
-        <H2>10. Como nos contatar</H2>
+        <H2>11. Como nos contatar</H2>
         <Section>
           <ul style={listaStyle}>
             <li><strong>E-mail (LGPD/DPO):</strong> <a href="mailto:privacidade@wolfgyn.com.br" style={linkVerde}>privacidade@wolfgyn.com.br</a></li>
             <li><strong>Suporte geral:</strong> <a href="mailto:suporte@wolfgyn.com.br" style={linkVerde}>suporte@wolfgyn.com.br</a></li>
+            <li><strong>Excluir meus dados:</strong> <Link href="/excluir-dados" style={linkVerde}>wolfgyn.com.br/excluir-dados</Link></li>
             <li><strong>Site:</strong> <a href="https://www.wolfgyn.com.br" style={linkVerde}>https://www.wolfgyn.com.br</a></li>
           </ul>
           <p>Para denúncias de violação, você também pode contatar a <strong>Autoridade Nacional de Proteção de Dados (ANPD)</strong> através do site <a href="https://www.gov.br/anpd" style={linkVerde} target="_blank" rel="noopener noreferrer">gov.br/anpd</a>.</p>
