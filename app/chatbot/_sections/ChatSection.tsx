@@ -1031,6 +1031,9 @@ export function ChatSection() {
 
       // 1) Busca TODOS os candidatos paginando (1000 em 1000) — sem isso, em workspaces grandes
       //    o Supabase corta na primeira query e a gente só limpa parte.
+      // 🔧 FIX: usa OR com fallback pra created_at quando updated_at é NULL (leads antigos
+      //          criados em versões sem trigger de updated_at). Sem isso, ficavam zumbis
+      //          eternos — o botão "Limpar" deixava eles pra trás porque NULL < x = NULL.
       const PAGE_SIZE = 1000;
       let alvos: Array<{ id: number; numero: string; canal_id: number | null }> = [];
       let offset = 0;
@@ -1043,7 +1046,7 @@ export function ChatSection() {
           .select("id, numero, canal_id")
           .eq("workspace_id", wsId)
           .eq("status", "pendente")
-          .lt("updated_at", corteDate)
+          .or(`updated_at.lt.${corteDate},and(updated_at.is.null,created_at.lt.${corteDate})`)
           .order("id", { ascending: true })
           .range(offset, offset + PAGE_SIZE - 1);
         if (error) throw error;
@@ -1120,13 +1123,17 @@ export function ChatSection() {
   // 🆕 useEffect — busca contagens REAIS do banco (não limitado a 1000)
   // Roda: ao montar, ao mudar de workspace, e a cada vez que atendimentos é atualizado
   // (depois de encerrar antigos, depois de fetchAtendimentos, etc).
+  // 🔧 FIX: leads antigos podem ter updated_at = NULL (criados em versões antigas do sistema
+  //         sem trigger). Antes, .lt("updated_at", corte) ignorava silenciosamente esses
+  //         caras (PostgreSQL: NULL < x sempre é NULL ≈ falso). Resultado: usuário via
+  //         "4 pendentes há +2 dias" mas tinha dezenas. Agora usa OR com fallback pra
+  //         created_at quando updated_at é null — mesmo critério do badge "18d" do card.
   useEffect(() => {
     if (!wsId) return;
     let cancelado = false;
 
     const carregarCounts = async () => {
       const novosCounts: { [dias: number]: number } = {};
-      // Faz uma query count pra cada antiguidade (4 queries, todas leves porque count: exact + head)
       for (const dias of [1, 2, 3, 7]) {
         const corte = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
         const { count } = await supabase
@@ -1134,7 +1141,7 @@ export function ChatSection() {
           .select("id", { count: "exact", head: true })
           .eq("workspace_id", wsId)
           .eq("status", "pendente")
-          .lt("updated_at", corte);
+          .or(`updated_at.lt.${corte},and(updated_at.is.null,created_at.lt.${corte})`);
         if (cancelado) return;
         novosCounts[dias] = count || 0;
       }
