@@ -416,12 +416,40 @@ export function ChatSection() {
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
   const inputSm = { ...IS, padding: "7px 10px", fontSize: 12 };
 
-  const respostasRapidas = [
+  // 🆕 ═══════════════════════════════════════════════════════════════════
+  // RESPOSTAS RÁPIDAS — buscadas do banco (tabela respostas_rapidas)
+  // ═══════════════════════════════════════════════════════════════════════
+  // Antes era array hardcoded com 4 fixos (/oi, /planos, /aguarda, /encerrar).
+  // Bug: usuário cadastrava em Configurações → Respostas Rápidas mas o popup
+  // do chat NUNCA mostrava — ficava só nos 4 fixos do código.
+  // Agora: useState + fetch do banco filtrando por workspace_id.
+  // Fallback: se vier vazio do banco, mostra os 4 padrão (UX).
+  const respostasRapidasFallback = [
     { atalho: "/oi", mensagem: "Olá! Seja bem-vindo(a)! Como posso te ajudar hoje?" },
     { atalho: "/planos", mensagem: "Temos planos a partir de R$ 89,90. Posso te passar mais detalhes!" },
     { atalho: "/aguarda", mensagem: "Por favor, aguarde um momento que já vou te atender!" },
     { atalho: "/encerrar", mensagem: "Obrigado pelo contato! Tenha um ótimo dia!" },
   ];
+  const [respostasRapidasDB, setRespostasRapidasDB] = useState<{ atalho: string; mensagem: string }[]>([]);
+  const respostasRapidas = respostasRapidasDB.length > 0 ? respostasRapidasDB : respostasRapidasFallback;
+
+  // 🔒 Mesma fórmula de chave usada no RespostasRapidasSection — multi-tenant consistente
+  useEffect(() => {
+    const wsKey = workspace?.username || workspace?.id?.toString() || wsId;
+    if (!wsKey) return;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("respostas_rapidas")
+          .select("atalho, mensagem")
+          .eq("workspace_id", wsKey)
+          .order("created_at", { ascending: true });
+        if (!error && data) setRespostasRapidasDB(data);
+      } catch (e) {
+        console.warn("[ChatSection] erro ao buscar respostas_rapidas:", e);
+      }
+    })();
+  }, [workspace, wsId]);
 
   const WA_BASE = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
   // 🆕 Backend wolf-meta — usado pra Instagram/Messenger (rotas /send/*)
