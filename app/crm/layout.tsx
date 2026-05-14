@@ -105,6 +105,11 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     return !!permissoes[permissaoKey];          // sub-usuário precisa da permissão
   };
 
+  // 🆕 Editor de Vendas — quem pode acessar a configuração dos campos customizados
+  // Mesma regra usada no botão dentro de /crm/vendas e na própria página /crm/editor-proposta.
+  // Super admin sempre, dono do workspace sempre, sub-usuário só se for "Administrador".
+  const podeEditarCamposVendas = isSuperAdmin || isDono || perfil === "Administrador";
+
   // ═══════════════════════════════════════════════════════════════════════
   // 📋 Itens do menu — cada um respeitando a hierarquia
   // ═══════════════════════════════════════════════════════════════════════
@@ -116,6 +121,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     ...((isSuperAdmin || isDono || permissoes.dashboard) ? [{ path: "/crm/dashboard", icon: "📊", label: "Dashboard" }] : []),
     ...((isSuperAdmin || isDono || permissoes.funil || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/funil", icon: "🎯", label: "Funil de Vendas" }] : []),
     ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/vendas", icon: "💰", label: "Vendas" }] : []),
+    // 🆕 EDITOR DE CAMPOS DA PROPOSTA — só admin/dono/super-admin
+    // Aparece logo após "Vendas" porque é a configuração diretamente relacionada
+    ...(podeEditarCamposVendas ? [{ path: "/crm/editor-proposta", icon: "🛠️", label: "Editor de Vendas" }] : []),
     ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos) ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos", badge: 0 }] : []),
     ...((isSuperAdmin || isDono || permissoes.configuracoes_workspace) ? [{ path: "/crm/configuracoes", icon: "⚙️", label: "Configurações", badge: 0 }] : []),
   ];
