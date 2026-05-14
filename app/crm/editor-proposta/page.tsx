@@ -92,6 +92,9 @@ export default function EditorProposta() {
         obrigatorio: c.obrigatorio,
         visivel: c.visivel,
         ordem: c.ordem,
+        // 🆕 v3: opções e placeholder customizados
+        opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" && c.opcoes ? JSON.parse(c.opcoes) : null),
+        placeholder_custom: c.placeholder_custom,
       }));
 
       const customs: CampoCustom[] = (respCustom.data || []).map((c: any) => ({
@@ -235,13 +238,27 @@ export default function EditorProposta() {
         const obrigMudou = c.obrigatorio !== def.obrigatorioPadrao;
         const ordemMudou = c.ordem !== def.ordemPadrao;
 
+        // 🆕 v3: opções customizadas (só faz sentido pra dropdown)
+        let opcoesMudou = false;
+        let opcoesFinal: string[] | null = null;
+        if (def.tipo === "dropdown") {
+          const opcoesAtuais = (c.opcoes || []).filter(o => String(o).trim());
+          const opcoesPadrao = def.opcoes || [];
+          opcoesMudou = JSON.stringify(opcoesAtuais) !== JSON.stringify(opcoesPadrao);
+          if (opcoesMudou) opcoesFinal = opcoesAtuais;
+        }
+
+        // 🆕 v3: placeholder customizado
+        const placeholderMudou = (c.placeholder || "").trim() !== (def.placeholderPadrao || "");
+        const placeholderFinal = placeholderMudou ? (c.placeholder || null) : null;
+
         const labelCustomFinal = labelMudou ? c.label.trim() : null;
         // visivel sempre salva (pra poder ocultar/mostrar)
         const obrigatorioFinal = obrigMudou ? c.obrigatorio : null;
         const ordemFinal = ordemMudou ? c.ordem : null;
 
         // Se nada diverge e está visível → não precisa criar config
-        if (!labelMudou && !obrigMudou && !ordemMudou && c.visivel) {
+        if (!labelMudou && !obrigMudou && !ordemMudou && !opcoesMudou && !placeholderMudou && c.visivel) {
           if (c.idConfig) {
             // Mas se já tinha config no banco, deleta pra limpar
             await supabase.from("proposta_campos_padrao_config")
@@ -260,6 +277,8 @@ export default function EditorProposta() {
           obrigatorio: obrigatorioFinal,
           visivel: c.visivel,
           ordem: ordemFinal,
+          opcoes: opcoesFinal,                   // 🆕 v3
+          placeholder_custom: placeholderFinal,  // 🆕 v3
         };
 
         if (c.idConfig) {
@@ -519,8 +538,8 @@ export default function EditorProposta() {
                     </span>
                   </label>
 
-                  {/* Placeholder — só pra texto/textarea/numero/moeda */}
-                  {(campo.tipo === "texto" || campo.tipo === "textarea" || campo.tipo === "numero" || campo.tipo === "moeda") && !ehFixo && (
+                  {/* 🆕 v3: Placeholder editável pra TODOS (fixos texto/numero/etc + custom) */}
+                  {(campo.tipo === "texto" || campo.tipo === "textarea" || campo.tipo === "numero" || campo.tipo === "moeda" || campo.tipo === "telefone" || campo.tipo === "email") && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 200 }}>
                       <span style={{ color: "#9ca3af", fontSize: 11 }}>Placeholder:</span>
                       <input placeholder="Texto de exemplo (opcional)"
@@ -531,10 +550,17 @@ export default function EditorProposta() {
                   )}
                 </div>
 
-                {/* Linha 3 — Opções (só pra dropdown custom) */}
-                {campo.tipo === "dropdown" && !ehFixo && (
+                {/* 🆕 v3: Linha 3 — Opções pra TODOS dropdowns (fixos E custom) */}
+                {campo.tipo === "dropdown" && (
                   <div style={{ marginTop: 12, padding: 10, background: "#0a0a0a", borderRadius: 8, border: "1px solid #1f2937" }}>
-                    <p style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", margin: "0 0 6px", fontWeight: "bold" }}>📋 Opções</p>
+                    <p style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", margin: "0 0 6px", fontWeight: "bold" }}>
+                      📋 Opções do dropdown
+                      {ehFixo && (
+                        <span style={{ color: "#6b7280", fontSize: 10, marginLeft: 8, textTransform: "none", fontWeight: "normal", fontStyle: "italic" }}>
+                          (você pode editar a lista — vai sobrescrever a do sistema)
+                        </span>
+                      )}
+                    </p>
                     {(campo.opcoes || []).map((op, opIdx) => (
                       <div key={opIdx} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
                         <input placeholder={`Opção ${opIdx + 1}`} value={op}
@@ -548,15 +574,11 @@ export default function EditorProposta() {
                       style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 6, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold", marginTop: 2 }}>
                       ➕ Adicionar opção
                     </button>
-                  </div>
-                )}
-
-                {/* Pra dropdown fixo — só lista (opções vêm do sistema, não pode mudar) */}
-                {campo.tipo === "dropdown" && ehFixo && (
-                  <div style={{ marginTop: 10, padding: "8px 12px", background: "#0a0a0a", borderRadius: 8, border: "1px solid #1f2937" }}>
-                    <p style={{ color: "#6b7280", fontSize: 10, margin: 0, fontStyle: "italic" }}>
-                      🔒 Opções fixas do sistema: {(campo.opcoes || []).join(" · ")}
-                    </p>
+                    {ehFixo && campo.slug === "status_venda" && (
+                      <p style={{ color: "#fbbf24", fontSize: 10, margin: "8px 0 0", fontStyle: "italic" }}>
+                        ⚠️ Status novos não terão cor personalizada na lista de vendas — vão aparecer em cinza. Dashboard e Funil seguem funcionando normalmente.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

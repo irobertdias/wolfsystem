@@ -103,6 +103,9 @@ function PropostaForm() {
           obrigatorio: c.obrigatorio,
           visivel: c.visivel,
           ordem: c.ordem,
+          // 🆕 v3
+          opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" && c.opcoes ? JSON.parse(c.opcoes) : null),
+          placeholder_custom: c.placeholder_custom,
         }));
         const customs: CampoCustom[] = (respCustom.data || []).map((c: any) => ({
           id: c.id,

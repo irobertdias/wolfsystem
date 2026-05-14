@@ -101,6 +101,8 @@ export type ConfigCampoPadrao = {
   obrigatorio?: boolean | null;
   visivel: boolean;
   ordem?: number | null;
+  opcoes?: string[] | null;            // 🆕 v3: customiza lista de dropdowns
+  placeholder_custom?: string | null;  // 🆕 v3: customiza placeholder
 };
 
 export type CampoCustom = {
@@ -145,6 +147,10 @@ export function montarCamposUnificados(
   // 2. Pra cada fixo, monta versão aplicada com config
   const fixos: CampoUnificado[] = CAMPOS_FIXOS.map(f => {
     const cfg = configMap.get(f.slug);
+    // 🆕 v3: opções customizadas — se cfg.opcoes existe e tem itens, usa elas; senão padrão
+    const opcoesCustom = Array.isArray(cfg?.opcoes) && cfg.opcoes.length > 0 ? cfg.opcoes : null;
+    // 🆕 v3: placeholder customizado — se trim > 0, usa; senão padrão
+    const placeholderCustom = (cfg?.placeholder_custom && cfg.placeholder_custom.trim()) ? cfg.placeholder_custom : null;
     return {
       origem: "fixo",
       slug: f.slug,
@@ -154,8 +160,8 @@ export function montarCamposUnificados(
       obrigatorio: cfg?.obrigatorio !== null && cfg?.obrigatorio !== undefined ? !!cfg.obrigatorio : f.obrigatorioPadrao,
       visivel: cfg?.visivel !== false, // default true
       ordem: cfg?.ordem !== null && cfg?.ordem !== undefined ? cfg.ordem : f.ordemPadrao,
-      opcoes: f.opcoes,
-      placeholder: f.placeholderPadrao,
+      opcoes: opcoesCustom || f.opcoes,        // 🆕 v3
+      placeholder: placeholderCustom || f.placeholderPadrao,  // 🆕 v3
       secao: f.secaoPadrao,
       larguraTotal: f.larguraTotal,
       idConfig: cfg?.id,
