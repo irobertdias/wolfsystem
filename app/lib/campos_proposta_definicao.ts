@@ -169,6 +169,8 @@ export function montarCamposUnificados(
   });
 
   // 3. Custom — mantém como está (mas marca origem)
+  // 🆕 v3.1: usa ordem DIRETO do banco. Não força +100 (isso bloqueava
+  // customs de serem movidos pra cima dos fixos).
   const customsUnif: CampoUnificado[] = customs
     .filter(c => c.ativo !== false)
     .map(c => ({
@@ -178,8 +180,7 @@ export function montarCamposUnificados(
       tipo: c.tipo,
       obrigatorio: c.obrigatorio,
       visivel: true,
-      // Custom usa ordem >= 100 por padrão pra ficar após fixos por default
-      ordem: c.ordem >= 100 ? c.ordem : 100 + c.ordem,
+      ordem: typeof c.ordem === "number" ? c.ordem : 999,
       opcoes: c.opcoes,
       placeholder: c.placeholder,
       idCustom: c.id,
