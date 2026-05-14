@@ -14,8 +14,21 @@ type Proposta = {
   operadora: string; plano: string; workspace_id: string;
   data_agendamento?: string; periodo_instalacao?: string;
   data_instalacao?: string; data_cancelamento?: string;
+  dados_customizados?: Record<string, any>; // 🆕 valores dos campos custom
 };
 type UsuarioWs = { email: string; nome: string; };
+
+// 🆕 Tipo dos campos customizados (definidos em /crm/editor-proposta)
+type CampoCustom = {
+  id: number;
+  slug: string;
+  label: string;
+  tipo: "texto" | "textarea" | "numero" | "moeda" | "data" | "dropdown" | "checkbox";
+  obrigatorio: boolean;
+  ordem: number;
+  opcoes?: string[] | null;
+  placeholder?: string | null;
+};
 
 const statusColor: Record<string, string> = {
   PENDENTE: "#f59e0b", "AGUARDANDO AUDITORIA": "#3b82f6",
@@ -26,35 +39,34 @@ const STATUS_OPCOES = ["PENDENTE", "AGUARDANDO AUDITORIA", "CANCELADA", "INSTALA
 
 export default function Vendas() {
   const router = useRouter();
-  const { isDono, perfil, permissoes } = usePermissao(); // 🆕 agora pega permissoes tb
+  const { isDono, perfil, permissoes } = usePermissao();
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [loading, setLoading] = useState(true);
   const [workspaceId, setWorkspaceId] = useState("");
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
-  // 🆕 FILTRO DE DATA — filtra propostas por data_proposta dentro de um range.
-  // Vazio em ambos = sem filtro de data (default).
   const [filtroDataInicio, setFiltroDataInicio] = useState("");
   const [filtroDataFim, setFiltroDataFim] = useState("");
-  // 🆕 MODAL DE VISUALIZAÇÃO — readonly, abre antes de editar/excluir pra confirmar
   const [propostaVisualizando, setPropostaVisualizando] = useState<Proposta | null>(null);
-  const [userEmail, setUserEmail] = useState<string>(""); // 🆕 email do user logado
-  const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]); // 🆕 lista pra escolher vendedor no modal + mapear nomes
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
+
+  // 🆕 CAMPOS CUSTOMIZADOS — buscados no init, usados em edição e visualização
+  const [camposCustom, setCamposCustom] = useState<CampoCustom[]>([]);
 
   // Modal edição
   const [showModal, setShowModal] = useState(false);
   const [propostaEditando, setPropostaEditando] = useState<Proposta | null>(null);
   const [form, setForm] = useState<Partial<Proposta>>({});
+  // 🆕 Valores dos campos customizados sendo editados (separado do form pra ficar limpo)
+  const [dadosCustomizadosEdit, setDadosCustomizadosEdit] = useState<Record<string, any>>({});
   const [salvando, setSalvando] = useState(false);
 
-  // ✅ Só dono ou Administrador podem excluir
   const podeExcluir = isDono || perfil === "Administrador";
 
-  // 🆕 Regra central: quem pode ver vendas de todo mundo
-  //    - Dono do workspace: sempre
-  //    - Perfil "Administrador": sempre
-  //    - Usuário com permissão `vendas_equipe` marcada no grupo: sim
-  //    - Resto (Atendente, Vendedor): só vê as próprias
+  // 🆕 Quem pode editar campos customizados (mesma regra do editor)
+  const podeEditarCamposCustom = isDono || perfil === "Administrador";
+
   const podeVerTudo = isDono || perfil === "Administrador" || !!permissoes?.vendas_equipe;
 
   const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
@@ -66,10 +78,6 @@ export default function Vendas() {
   };
 
   const fetchPropostas = async (wsId: string) => {
-    // 🆕 PAGINAÇÃO ATÉ 10.000 PROPOSTAS — vendas são dado crítico, mantém histórico completo.
-    // Antes era query única → Supabase cortava em 1000 e workspaces com muitas vendas perdiam
-    // visibilidade do histórico (importante pros últimos 6 meses pelo menos).
-    // Limite alto de 10k garante histórico longo. SEM auto-limpeza — nunca mexe no banco.
     const PAGE_SIZE = 1000;
     const TOTAL_LIMITE = 10000;
     let lista: any[] = [];
@@ -85,7 +93,7 @@ export default function Vendas() {
       }
       if (!pagina || pagina.length === 0) break;
       lista = lista.concat(pagina);
-      if (pagina.length < PAGE_SIZE) break; // chegou no fim
+      if (pagina.length < PAGE_SIZE) break;
       offset += PAGE_SIZE;
     }
     setPropostas(lista);
@@ -104,23 +112,37 @@ export default function Vendas() {
     setUsuariosWs(lista);
   };
 
+  // 🆕 Busca os campos customizados ativos do workspace
+  const fetchCamposCustom = async (wsId: string) => {
+    const { data } = await supabase
+      .from("proposta_campos_customizados")
+      .select("id, slug, label, tipo, obrigatorio, ordem, opcoes, placeholder")
+      .eq("workspace_id", wsId)
+      .eq("ativo", true)
+      .order("ordem", { ascending: true });
+    const tratados = (data || []).map((c: any) => ({
+      ...c,
+      opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" ? JSON.parse(c.opcoes) : []),
+    }));
+    setCamposCustom(tratados);
+  };
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/"); return; }
       setUserEmail(user.email || "");
 
-      // Caminho 1: dono
       const { data: wsDono } = await supabase.from("workspaces").select("*").eq("owner_id", user.id).maybeSingle();
       if (wsDono?.username) {
         setWorkspaceId(wsDono.username);
         await fetchPropostas(wsDono.username);
         await fetchUsuariosWs(wsDono.username, wsDono);
+        await fetchCamposCustom(wsDono.username);
         setLoading(false);
         return;
       }
 
-      // Caminho 2: sub-usuário
       const { data: usuarioWs } = await supabase.from("usuarios_workspace")
         .select("workspace_id")
         .eq("email", user.email)
@@ -132,6 +154,7 @@ export default function Vendas() {
         setWorkspaceId(usuarioWs.workspace_id);
         await fetchPropostas(usuarioWs.workspace_id);
         await fetchUsuariosWs(usuarioWs.workspace_id);
+        await fetchCamposCustom(usuarioWs.workspace_id);
       }
       setLoading(false);
     };
@@ -144,6 +167,8 @@ export default function Vendas() {
     const ch = supabase.channel("proposta_rt_" + workspaceId)
       .on("postgres_changes", { event: "*", schema: "public", table: "proposta", filter: `workspace_id=eq.${workspaceId}` }, () => fetchPropostas(workspaceId))
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${workspaceId}` }, () => fetchUsuariosWs(workspaceId))
+      // 🆕 Quando admin altera campos custom, recarrega aqui também
+      .on("postgres_changes", { event: "*", schema: "public", table: "proposta_campos_customizados", filter: `workspace_id=eq.${workspaceId}` }, () => fetchCamposCustom(workspaceId))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [workspaceId]);
@@ -151,17 +176,33 @@ export default function Vendas() {
   const abrirEditar = (p: Proposta) => {
     setPropostaEditando(p);
     setForm({ ...p });
+    // 🆕 Inicializa estado dos campos custom com os valores salvos (ou defaults)
+    const dadosIniciais: Record<string, any> = {};
+    for (const c of camposCustom) {
+      const v = p.dados_customizados?.[c.slug];
+      dadosIniciais[c.slug] = v !== undefined ? v : (c.tipo === "checkbox" ? false : "");
+    }
+    setDadosCustomizadosEdit(dadosIniciais);
     setShowModal(true);
   };
 
   const salvar = async () => {
     if (!propostaEditando) return;
     if (!form.nome || !form.telefone1) { alert("Nome e Telefone 1 são obrigatórios!"); return; }
+
+    // 🆕 Valida campos customizados obrigatórios
+    for (const c of camposCustom) {
+      if (!c.obrigatorio) continue;
+      const v = dadosCustomizadosEdit[c.slug];
+      const vazio = c.tipo === "checkbox" ? v !== true : (v === undefined || v === null || String(v).trim() === "");
+      if (vazio) {
+        alert(`O campo "${c.label}" é obrigatório.`);
+        return;
+      }
+    }
+
     setSalvando(true);
     try {
-      // 🔒 MULTI-TENANT: confere workspace_id no WHERE pra impedir edição de propostas de outros workspaces.
-      // Antes só filtrava por id — se um vendedor descobrisse o id de uma proposta de outro cliente
-      // (CPF, RG, telefone), poderia editar via DevTools.
       const { error } = await supabase.from("proposta").update({
         data_proposta: form.data_proposta,
         nome: form.nome,
@@ -188,9 +229,11 @@ export default function Vendas() {
         data_instalacao: form.data_instalacao,
         data_cancelamento: form.data_cancelamento,
         operadora: form.operadora,
+        // 🆕 Salva os valores dos campos custom
+        dados_customizados: dadosCustomizadosEdit,
       })
         .eq("id", propostaEditando.id)
-        .eq("workspace_id", workspaceId);  // 🔒 MULTI-TENANT
+        .eq("workspace_id", workspaceId);
 
       if (error) { alert("Erro ao salvar: " + error.message); setSalvando(false); return; }
       await fetchPropostas(workspaceId);
@@ -206,9 +249,6 @@ export default function Vendas() {
     if (!confirm(`⚠️ Excluir a proposta de ${p.nome}?\n\nEsta ação NÃO pode ser desfeita.`)) return;
     if (!workspaceId) { alert("Workspace não carregado. Recarregue a página."); return; }
     try {
-      // 🔒 MULTI-TENANT CRÍTICO: confere workspace_id pra impedir delete de propostas de outros workspaces.
-      // Antes, qualquer admin de qualquer workspace que descobrisse o id de uma proposta podia deletar
-      // via DevTools — isso significa apagar dados de cliente real (CPF, RG, contrato) sem rastro.
       const { error } = await supabase.from("proposta").delete()
         .eq("id", p.id)
         .eq("workspace_id", workspaceId);
@@ -218,15 +258,38 @@ export default function Vendas() {
     } catch (e: any) { alert("Erro: " + e.message); }
   };
 
-  // 🆕 FILTRO PRINCIPAL — aplica a regra de quem pode ver o quê
-  // Se o user pode ver tudo, não filtra.
-  // Senão, só as onde vendedor === email do user logado.
+  // 🆕 Renderiza UM campo customizado no modal de edição
+  const renderCampoCustomEdit = (c: CampoCustom) => {
+    const valor = dadosCustomizadosEdit[c.slug];
+    const set = (v: any) => setDadosCustomizadosEdit(prev => ({ ...prev, [c.slug]: v }));
+    const labelComObr = `${c.label}${c.obrigatorio ? " *" : ""}`;
+    const lab = <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>{labelComObr}</label>;
+
+    if (c.tipo === "texto") return <div>{lab}<input placeholder={c.placeholder || ""} value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+    if (c.tipo === "textarea") return <div>{lab}<textarea placeholder={c.placeholder || ""} value={valor || ""} onChange={e => set(e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" as const, fontFamily: "Arial, sans-serif" }} /></div>;
+    if (c.tipo === "numero") return <div>{lab}<input type="number" placeholder={c.placeholder || ""} value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+    if (c.tipo === "moeda") return <div>{lab}<input type="number" step="0.01" placeholder={c.placeholder || "0,00"} value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+    if (c.tipo === "data") return <div>{lab}<input type="date" value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+    if (c.tipo === "dropdown") return <div>{lab}<select value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle}>
+      <option value="">Selecione...</option>
+      {(c.opcoes || []).map((op, i) => <option key={i} value={op}>{op}</option>)}
+    </select></div>;
+    if (c.tipo === "checkbox") return (
+      <div>
+        {lab}
+        <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#1f2937", borderRadius: 8, border: "1px solid #374151", cursor: "pointer" }}>
+          <input type="checkbox" checked={valor === true} onChange={e => set(e.target.checked)} style={{ accentColor: "#16a34a", width: 16, height: 16 }} />
+          <span style={{ color: "white", fontSize: 13 }}>{valor === true ? "Sim" : "Não"}</span>
+        </label>
+      </div>
+    );
+    return null;
+  };
+
   const propostasFiltradas = propostas
     .filter(p => podeVerTudo || (p.vendedor && p.vendedor.toLowerCase() === userEmail.toLowerCase()))
     .filter(p => filtroStatus === "todos" || p.status_venda === filtroStatus)
     .filter(p => !busca || p.nome?.toLowerCase().includes(busca.toLowerCase()) || p.cpf?.includes(busca) || nomeVendedor(p.vendedor).toLowerCase().includes(busca.toLowerCase()))
-    // 🆕 Filtro de data — usa data_proposta (campo de negócio, formato YYYY-MM-DD) e não created_at (técnico).
-    // Inputs vazios = sem corte. Comparação por string funciona com YYYY-MM-DD direto.
     .filter(p => {
       if (!filtroDataInicio && !filtroDataFim) return true;
       const dt = p.data_proposta || "";
@@ -265,14 +328,12 @@ export default function Vendas() {
                 </div>
                 <div>
                   <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Vendedor</label>
-                  {/* 🆕 Dropdown dinâmico (só admin/dono/com vendas_equipe pode alterar). Outros veem travado. */}
                   {podeVerTudo ? (
                     <select value={form.vendedor || ""} onChange={e => setForm({ ...form, vendedor: e.target.value })} style={inputStyle}>
                       <option value="">Selecione...</option>
                       {usuariosWs.map(u => (
                         <option key={u.email} value={u.email}>{u.nome}</option>
                       ))}
-                      {/* Se a proposta antiga tem vendedor "ROBERT" (nome literal), mostra tb pra não perder */}
                       {form.vendedor && !usuariosWs.find(u => u.email?.toLowerCase() === form.vendedor?.toLowerCase()) && (
                         <option value={form.vendedor}>⚠️ {form.vendedor} (legado)</option>
                       )}
@@ -421,6 +482,20 @@ export default function Vendas() {
               </div>
             </div>
 
+            {/* 🆕 ✨ CAMPOS PERSONALIZADOS — renderizados dinamicamente */}
+            {camposCustom.length > 0 && (
+              <div>
+                <p style={{ color: "#a855f7", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>✨ Campos Personalizados</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                  {camposCustom.map(c => (
+                    <div key={c.id} style={c.tipo === "textarea" ? { gridColumn: "1 / -1" } : undefined}>
+                      {renderCampoCustomEdit(c)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #1f2937", paddingTop: 16 }}>
               <button onClick={() => { setShowModal(false); setPropostaEditando(null); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>
                 Cancelar
@@ -438,15 +513,23 @@ export default function Vendas() {
         <div>
           <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>💰 Vendas</h1>
           <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
-            {/* 🆕 Explica quantas o user está vendo vs total */}
             {podeVerTudo
               ? `${totalGeral} proposta(s) cadastrada(s)`
               : `${totalVisivel} proposta(s) suas${totalGeral > totalVisivel ? ` · ${totalGeral - totalVisivel} de outros vendedores ocultas` : ""}`}
           </p>
         </div>
-        <button onClick={() => router.push("/crm/proposta")} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
-          📋 Nova Proposta
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {/* 🆕 Botão "Editar Campos" — só admin/dono vê */}
+          {podeEditarCamposCustom && (
+            <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos personalizados da proposta"
+              style={{ background: "#a855f722", color: "#a855f7", border: "1px solid #a855f744", borderRadius: 8, padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
+              🛠️ Editar Campos
+            </button>
+          )}
+          <button onClick={() => router.push("/crm/proposta")} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
+            📋 Nova Proposta
+          </button>
+        </div>
       </div>
 
       {/* FILTROS */}
@@ -457,7 +540,6 @@ export default function Vendas() {
           <option value="todos">Todos os status</option>
           {STATUS_OPCOES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        {/* 🆕 FILTRO DE DATA — De / Até. Filtra por data_proposta. */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "4px 10px" }}>
           <span style={{ color: "#9ca3af", fontSize: 11, whiteSpace: "nowrap" }}>📅 De:</span>
           <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)} max={filtroDataFim || undefined}
@@ -466,7 +548,6 @@ export default function Vendas() {
           <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)} min={filtroDataInicio || undefined}
             style={{ background: "transparent", border: "none", color: "white", fontSize: 12, padding: "4px 0", colorScheme: "dark" }} />
         </div>
-        {/* Botão Limpar Filtros — só aparece se algum filtro tá ativo */}
         {(busca || filtroStatus !== "todos" || filtroDataInicio || filtroDataFim) && (
           <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltroDataInicio(""); setFiltroDataFim(""); }}
             style={{ background: "#dc262622", border: "1px solid #dc262633", color: "#dc2626", borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
@@ -512,7 +593,6 @@ export default function Vendas() {
                 <td style={{ padding: "12px 16px", color: "#9ca3af", fontSize: 12 }}>{v.data_proposta ? new Date(v.data_proposta).toLocaleDateString("pt-BR") : "—"}</td>
                 <td style={{ padding: "12px 16px" }}>
                   <div style={{ display: "flex", gap: 6 }}>
-                    {/* 🆕 Visualizar — abre modal readonly com TODOS os campos da proposta */}
                     <button onClick={() => setPropostaVisualizando(v)} title="Visualizar" style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>👁️</button>
                     <button onClick={() => abrirEditar(v)} title="Editar" style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>✏️</button>
                     {podeExcluir && (
@@ -537,20 +617,12 @@ export default function Vendas() {
         </p>
       )}
 
-      {/* 🆕 ═══════════════════════════════════════════════════════════════
-          MODAL DE VISUALIZAÇÃO — readonly. Mostra TODA a proposta sem permitir edição.
-          ═══════════════════════════════════════════════════════════════
-          Útil pra:
-          - Conferir antes de editar (evita clicar em editar e errar campo)
-          - Conferir antes de excluir (evita excluir errado)
-          - Apresentar pro cliente sem risco de mudar nada acidentalmente
-          - Atendentes que não tem permissão de editar mas precisam ver detalhe */}
+      {/* MODAL DE VISUALIZAÇÃO */}
       {propostaVisualizando && (
         <div onClick={() => setPropostaVisualizando(null)}
           style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={e => e.stopPropagation()}
             style={{ background: "#111", borderRadius: 12, width: "100%", maxWidth: 720, maxHeight: "90vh", overflowY: "auto", border: "1px solid #1f2937" }}>
-            {/* Header do modal */}
             <div style={{ padding: 20, borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, background: "#111", zIndex: 1 }}>
               <div>
                 <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>
@@ -572,9 +644,7 @@ export default function Vendas() {
               </div>
             </div>
 
-            {/* Conteúdo do modal — agrupado por seções */}
             <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* Status + Valor + Vendedor (destaque no topo) */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
                 <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14, borderLeft: `3px solid ${statusColor[propostaVisualizando.status_venda] || "#6b7280"}` }}>
                   <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Status</p>
@@ -594,7 +664,6 @@ export default function Vendas() {
                 </div>
               </div>
 
-              {/* Dados pessoais */}
               <ViewSection titulo="👤 Dados Pessoais" campos={[
                 ["Nome", propostaVisualizando.nome],
                 ["CPF", propostaVisualizando.cpf],
@@ -604,7 +673,6 @@ export default function Vendas() {
                 ["Email", propostaVisualizando.email],
               ]} />
 
-              {/* Endereço */}
               <ViewSection titulo="📍 Endereço" campos={[
                 ["Endereço", propostaVisualizando.endereco],
                 ["CEP", propostaVisualizando.cep],
@@ -612,14 +680,12 @@ export default function Vendas() {
                 ["Estado", propostaVisualizando.estado],
               ]} />
 
-              {/* Contatos */}
               <ViewSection titulo="📞 Contatos" campos={[
                 ["Telefone 1", propostaVisualizando.telefone1],
                 ["Telefone 2", propostaVisualizando.telefone2],
                 ["Telefone 3", propostaVisualizando.telefone3],
               ]} />
 
-              {/* Plano e pagamento */}
               <ViewSection titulo="📦 Plano e Pagamento" campos={[
                 ["Operadora", propostaVisualizando.operadora],
                 ["Plano", propostaVisualizando.plano],
@@ -628,7 +694,6 @@ export default function Vendas() {
                 ["Forma de Pagamento", propostaVisualizando.forma_pagamento],
               ]} />
 
-              {/* Datas operacionais */}
               <ViewSection titulo="📅 Datas Operacionais" campos={[
                 ["Agendamento", propostaVisualizando.data_agendamento ? new Date(propostaVisualizando.data_agendamento + "T00:00:00").toLocaleDateString("pt-BR") : ""],
                 ["Período de Instalação", propostaVisualizando.periodo_instalacao],
@@ -636,6 +701,21 @@ export default function Vendas() {
                 ["Cancelamento", propostaVisualizando.data_cancelamento ? new Date(propostaVisualizando.data_cancelamento + "T00:00:00").toLocaleDateString("pt-BR") : ""],
                 ["Cadastrada em", propostaVisualizando.created_at ? new Date(propostaVisualizando.created_at).toLocaleString("pt-BR") : ""],
               ]} />
+
+              {/* 🆕 ✨ CAMPOS PERSONALIZADOS — só mostra se o workspace tem algum cadastrado E a proposta tem dados */}
+              {camposCustom.length > 0 && (
+                <ViewSection
+                  titulo="✨ Campos Personalizados"
+                  campos={camposCustom.map(c => {
+                    const v = propostaVisualizando.dados_customizados?.[c.slug];
+                    let valorFormatado: any = v;
+                    if (c.tipo === "checkbox") valorFormatado = v === true ? "Sim" : v === false ? "Não" : "";
+                    else if (c.tipo === "moeda" && v) valorFormatado = `R$ ${Number(v).toFixed(2).replace(".", ",")}`;
+                    else if (c.tipo === "data" && v) valorFormatado = new Date(v + "T00:00:00").toLocaleDateString("pt-BR");
+                    return [c.label, valorFormatado] as [string, any];
+                  })}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -644,12 +724,8 @@ export default function Vendas() {
   );
 }
 
-// 🆕 Componente auxiliar — renderiza uma seção do modal de visualização.
-// Mostra um título e uma grade de campos (label + valor). Se valor é vazio, mostra "—" em cinza.
-// Mantém visual consistente entre todas as seções (Dados pessoais, Endereço, etc).
 function ViewSection({ titulo, campos }: { titulo: string; campos: [string, any][] }) {
-  // Filtra campos que tem algum valor (mostra "—" só se TUDO da seção tá vazio)
-  const todosVazios = campos.every(([, v]) => !v);
+  const todosVazios = campos.every(([, v]) => !v && v !== false);
   return (
     <div>
       <h3 style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</h3>
@@ -660,8 +736,8 @@ function ViewSection({ titulo, campos }: { titulo: string; campos: [string, any]
           {campos.map(([label, valor]) => (
             <div key={label}>
               <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase" }}>{label}</p>
-              <p style={{ color: valor ? "white" : "#6b7280", fontSize: 13, margin: "2px 0 0", wordBreak: "break-word" }}>
-                {valor || "—"}
+              <p style={{ color: valor || valor === false ? "white" : "#6b7280", fontSize: 13, margin: "2px 0 0", wordBreak: "break-word" }}>
+                {valor !== "" && valor !== null && valor !== undefined ? String(valor) : "—"}
               </p>
             </div>
           ))}
