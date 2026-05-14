@@ -3,6 +3,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
+import {
+  CAMPOS_FIXOS_MAP,
+  STATUS_OPCOES,
+  montarCamposUnificados,
+  type CampoUnificado,
+  type ConfigCampoPadrao,
+  type CampoCustom,
+} from "../../lib/campos_proposta_definicao";
 
 type Proposta = {
   id: number; created_at: string; data_proposta: string; nome: string;
@@ -14,28 +22,14 @@ type Proposta = {
   operadora: string; plano: string; workspace_id: string;
   data_agendamento?: string; periodo_instalacao?: string;
   data_instalacao?: string; data_cancelamento?: string;
-  dados_customizados?: Record<string, any>; // 🆕 valores dos campos custom
+  dados_customizados?: Record<string, any>;
 };
 type UsuarioWs = { email: string; nome: string; };
-
-// 🆕 Tipo dos campos customizados (definidos em /crm/editor-proposta)
-type CampoCustom = {
-  id: number;
-  slug: string;
-  label: string;
-  tipo: "texto" | "textarea" | "numero" | "moeda" | "data" | "dropdown" | "checkbox";
-  obrigatorio: boolean;
-  ordem: number;
-  opcoes?: string[] | null;
-  placeholder?: string | null;
-};
 
 const statusColor: Record<string, string> = {
   PENDENTE: "#f59e0b", "AGUARDANDO AUDITORIA": "#3b82f6",
   CANCELADA: "#dc2626", INSTALADA: "#16a34a", GERADA: "#8b5cf6", REPROVADA: "#ef4444",
 };
-
-const STATUS_OPCOES = ["PENDENTE", "AGUARDANDO AUDITORIA", "CANCELADA", "INSTALADA", "GERADA", "REPROVADA"];
 
 export default function Vendas() {
   const router = useRouter();
@@ -51,22 +45,18 @@ export default function Vendas() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
 
-  // 🆕 CAMPOS CUSTOMIZADOS — buscados no init, usados em edição e visualização
-  const [camposCustom, setCamposCustom] = useState<CampoCustom[]>([]);
+  // 🆕 Campos unificados (config aplicada)
+  const [camposUnificados, setCamposUnificados] = useState<CampoUnificado[]>([]);
 
   // Modal edição
   const [showModal, setShowModal] = useState(false);
   const [propostaEditando, setPropostaEditando] = useState<Proposta | null>(null);
-  const [form, setForm] = useState<Partial<Proposta>>({});
-  // 🆕 Valores dos campos customizados sendo editados (separado do form pra ficar limpo)
+  const [form, setForm] = useState<Record<string, any>>({});
   const [dadosCustomizadosEdit, setDadosCustomizadosEdit] = useState<Record<string, any>>({});
   const [salvando, setSalvando] = useState(false);
 
   const podeExcluir = isDono || perfil === "Administrador";
-
-  // 🆕 Quem pode editar campos customizados (mesma regra do editor)
   const podeEditarCamposCustom = isDono || perfil === "Administrador";
-
   const podeVerTudo = isDono || perfil === "Administrador" || !!permissoes?.vendas_equipe;
 
   const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
@@ -87,10 +77,7 @@ export default function Vendas() {
         .eq("workspace_id", wsId)
         .order("created_at", { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
-      if (error) {
-        console.error("Erro fetchPropostas paginado:", error);
-        break;
-      }
+      if (error) { console.error("Erro fetchPropostas paginado:", error); break; }
       if (!pagina || pagina.length === 0) break;
       lista = lista.concat(pagina);
       if (pagina.length < PAGE_SIZE) break;
@@ -112,19 +99,30 @@ export default function Vendas() {
     setUsuariosWs(lista);
   };
 
-  // 🆕 Busca os campos customizados ativos do workspace
-  const fetchCamposCustom = async (wsId: string) => {
-    const { data } = await supabase
-      .from("proposta_campos_customizados")
-      .select("id, slug, label, tipo, obrigatorio, ordem, opcoes, placeholder")
-      .eq("workspace_id", wsId)
-      .eq("ativo", true)
-      .order("ordem", { ascending: true });
-    const tratados = (data || []).map((c: any) => ({
-      ...c,
-      opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" ? JSON.parse(c.opcoes) : []),
+  // 🆕 Busca config + customs unificados
+  const fetchCamposUnificados = async (wsId: string) => {
+    const [respConfig, respCustom] = await Promise.all([
+      supabase.from("proposta_campos_padrao_config")
+        .select("*")
+        .eq("workspace_id", wsId),
+      supabase.from("proposta_campos_customizados")
+        .select("*")
+        .eq("workspace_id", wsId)
+        .eq("ativo", true)
+        .order("ordem", { ascending: true }),
+    ]);
+    const configs: ConfigCampoPadrao[] = (respConfig.data || []).map((c: any) => ({
+      id: c.id, campo_slug: c.campo_slug, label_custom: c.label_custom,
+      obrigatorio: c.obrigatorio, visivel: c.visivel, ordem: c.ordem,
     }));
-    setCamposCustom(tratados);
+    const customs: CampoCustom[] = (respCustom.data || []).map((c: any) => ({
+      id: c.id, slug: c.slug, label: c.label, tipo: c.tipo,
+      obrigatorio: c.obrigatorio, ordem: c.ordem,
+      opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" ? JSON.parse(c.opcoes) : []),
+      placeholder: c.placeholder, ativo: c.ativo,
+    }));
+    // Mostra TODOS no modal (mesmo os ocultos no form), mas marca visibilidade
+    setCamposUnificados(montarCamposUnificados(configs, customs).filter(c => c.visivel));
   };
 
   useEffect(() => {
@@ -138,49 +136,46 @@ export default function Vendas() {
         setWorkspaceId(wsDono.username);
         await fetchPropostas(wsDono.username);
         await fetchUsuariosWs(wsDono.username, wsDono);
-        await fetchCamposCustom(wsDono.username);
+        await fetchCamposUnificados(wsDono.username);
         setLoading(false);
         return;
       }
-
       const { data: usuarioWs } = await supabase.from("usuarios_workspace")
-        .select("workspace_id")
-        .eq("email", user.email)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
+        .select("workspace_id").eq("email", user.email)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (usuarioWs?.workspace_id) {
         setWorkspaceId(usuarioWs.workspace_id);
         await fetchPropostas(usuarioWs.workspace_id);
         await fetchUsuariosWs(usuarioWs.workspace_id);
-        await fetchCamposCustom(usuarioWs.workspace_id);
+        await fetchCamposUnificados(usuarioWs.workspace_id);
       }
       setLoading(false);
     };
     init();
   }, []);
 
-  // Realtime
   useEffect(() => {
     if (!workspaceId) return;
     const ch = supabase.channel("proposta_rt_" + workspaceId)
       .on("postgres_changes", { event: "*", schema: "public", table: "proposta", filter: `workspace_id=eq.${workspaceId}` }, () => fetchPropostas(workspaceId))
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${workspaceId}` }, () => fetchUsuariosWs(workspaceId))
-      // 🆕 Quando admin altera campos custom, recarrega aqui também
-      .on("postgres_changes", { event: "*", schema: "public", table: "proposta_campos_customizados", filter: `workspace_id=eq.${workspaceId}` }, () => fetchCamposCustom(workspaceId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "proposta_campos_customizados", filter: `workspace_id=eq.${workspaceId}` }, () => fetchCamposUnificados(workspaceId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "proposta_campos_padrao_config", filter: `workspace_id=eq.${workspaceId}` }, () => fetchCamposUnificados(workspaceId))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [workspaceId]);
 
   const abrirEditar = (p: Proposta) => {
     setPropostaEditando(p);
+    // Carrega form com TODAS as colunas
     setForm({ ...p });
-    // 🆕 Inicializa estado dos campos custom com os valores salvos (ou defaults)
+    // Carrega dados custom
     const dadosIniciais: Record<string, any> = {};
-    for (const c of camposCustom) {
-      const v = p.dados_customizados?.[c.slug];
-      dadosIniciais[c.slug] = v !== undefined ? v : (c.tipo === "checkbox" ? false : "");
+    for (const c of camposUnificados) {
+      if (c.origem === "custom") {
+        const v = p.dados_customizados?.[c.slug];
+        dadosIniciais[c.slug] = v !== undefined ? v : (c.tipo === "checkbox" ? false : "");
+      }
     }
     setDadosCustomizadosEdit(dadosIniciais);
     setShowModal(true);
@@ -188,17 +183,13 @@ export default function Vendas() {
 
   const salvar = async () => {
     if (!propostaEditando) return;
-    if (!form.nome || !form.telefone1) { alert("Nome e Telefone 1 são obrigatórios!"); return; }
 
-    // 🆕 Valida campos customizados obrigatórios
-    for (const c of camposCustom) {
+    // Valida obrigatórios
+    for (const c of camposUnificados) {
       if (!c.obrigatorio) continue;
-      const v = dadosCustomizadosEdit[c.slug];
+      const v = c.origem === "fixo" ? form[c.slug] : dadosCustomizadosEdit[c.slug];
       const vazio = c.tipo === "checkbox" ? v !== true : (v === undefined || v === null || String(v).trim() === "");
-      if (vazio) {
-        alert(`O campo "${c.label}" é obrigatório.`);
-        return;
-      }
+      if (vazio) { alert(`O campo "${c.label}" é obrigatório.`); return; }
     }
 
     setSalvando(true);
@@ -229,7 +220,6 @@ export default function Vendas() {
         data_instalacao: form.data_instalacao,
         data_cancelamento: form.data_cancelamento,
         operadora: form.operadora,
-        // 🆕 Salva os valores dos campos custom
         dados_customizados: dadosCustomizadosEdit,
       })
         .eq("id", propostaEditando.id)
@@ -247,43 +237,88 @@ export default function Vendas() {
   const excluir = async (p: Proposta) => {
     if (!podeExcluir) { alert("Você não tem permissão para excluir!"); return; }
     if (!confirm(`⚠️ Excluir a proposta de ${p.nome}?\n\nEsta ação NÃO pode ser desfeita.`)) return;
-    if (!workspaceId) { alert("Workspace não carregado. Recarregue a página."); return; }
+    if (!workspaceId) { alert("Workspace não carregado."); return; }
     try {
       const { error } = await supabase.from("proposta").delete()
-        .eq("id", p.id)
-        .eq("workspace_id", workspaceId);
+        .eq("id", p.id).eq("workspace_id", workspaceId);
       if (error) { alert("Erro ao excluir: " + error.message); return; }
       await fetchPropostas(workspaceId);
       alert("✅ Proposta excluída!");
     } catch (e: any) { alert("Erro: " + e.message); }
   };
 
-  // 🆕 Renderiza UM campo customizado no modal de edição
-  const renderCampoCustomEdit = (c: CampoCustom) => {
-    const valor = dadosCustomizadosEdit[c.slug];
-    const set = (v: any) => setDadosCustomizadosEdit(prev => ({ ...prev, [c.slug]: v }));
+  // ═══════════════════════════════════════════════════════════════════
+  // Renderização dinâmica de cada campo NO MODAL DE EDIÇÃO
+  // ═══════════════════════════════════════════════════════════════════
+  const renderCampoModal = (c: CampoUnificado) => {
     const labelComObr = `${c.label}${c.obrigatorio ? " *" : ""}`;
     const lab = <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>{labelComObr}</label>;
 
-    if (c.tipo === "texto") return <div>{lab}<input placeholder={c.placeholder || ""} value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
-    if (c.tipo === "textarea") return <div>{lab}<textarea placeholder={c.placeholder || ""} value={valor || ""} onChange={e => set(e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" as const, fontFamily: "Arial, sans-serif" }} /></div>;
-    if (c.tipo === "numero") return <div>{lab}<input type="number" placeholder={c.placeholder || ""} value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
-    if (c.tipo === "moeda") return <div>{lab}<input type="number" step="0.01" placeholder={c.placeholder || "0,00"} value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
-    if (c.tipo === "data") return <div>{lab}<input type="date" value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
-    if (c.tipo === "dropdown") return <div>{lab}<select value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle}>
-      <option value="">Selecione...</option>
-      {(c.opcoes || []).map((op, i) => <option key={i} value={op}>{op}</option>)}
-    </select></div>;
+    if (c.origem === "fixo") {
+      const val = form[c.slug] ?? "";
+      const set = (v: any) => setForm({ ...form, [c.slug]: v });
+
+      // Vendedor
+      if (c.tipo === "vendedor") {
+        return (
+          <div>{lab}
+            {podeVerTudo ? (
+              <select value={val} onChange={e => set(e.target.value)} style={inputStyle}>
+                <option value="">Selecione...</option>
+                {usuariosWs.map(u => <option key={u.email} value={u.email}>{u.nome}</option>)}
+                {val && !usuariosWs.find(u => u.email?.toLowerCase() === String(val).toLowerCase()) && (
+                  <option value={val}>⚠️ {val} (legado)</option>
+                )}
+              </select>
+            ) : (
+              <input value={nomeVendedor(val)} disabled style={{ ...inputStyle, opacity: 0.6 }} />
+            )}
+          </div>
+        );
+      }
+
+      if (c.tipo === "data") return <div>{lab}<input type="date" value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+      if (c.tipo === "email") return <div>{lab}<input type="email" placeholder={c.placeholder || ""} value={val} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+      if (c.tipo === "numero") return <div>{lab}<input type="number" placeholder={c.placeholder || ""} value={val} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+      if (c.tipo === "moeda") return <div>{lab}<input type="number" step="0.01" placeholder={c.placeholder || ""} value={val} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+      if (c.tipo === "telefone") return <div>{lab}<input type="tel" placeholder={c.placeholder || ""} value={val} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+      if (c.tipo === "dropdown") {
+        const prefixoVenc = c.slug === "vencimento";
+        return (
+          <div>{lab}
+            <select value={val} onChange={e => set(e.target.value)} style={inputStyle}>
+              <option value="">Selecione...</option>
+              {(c.opcoes || []).map(op => <option key={op} value={op}>{prefixoVenc ? `Dia ${op}` : op}</option>)}
+            </select>
+          </div>
+        );
+      }
+      return <div>{lab}<input placeholder={c.placeholder || ""} value={val} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+    }
+
+    // CUSTOM
+    const val = dadosCustomizadosEdit[c.slug];
+    const set = (v: any) => setDadosCustomizadosEdit(prev => ({ ...prev, [c.slug]: v }));
+
+    if (c.tipo === "textarea") return <div>{lab}<textarea placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" as const, fontFamily: "Arial, sans-serif" }} /></div>;
+    if (c.tipo === "numero") return <div>{lab}<input type="number" placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+    if (c.tipo === "moeda") return <div>{lab}<input type="number" step="0.01" placeholder={c.placeholder || "0,00"} value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+    if (c.tipo === "data") return <div>{lab}<input type="date" value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
+    if (c.tipo === "dropdown") return (
+      <div>{lab}<select value={val || ""} onChange={e => set(e.target.value)} style={inputStyle}>
+        <option value="">Selecione...</option>
+        {(c.opcoes || []).map((op, i) => <option key={i} value={op}>{op}</option>)}
+      </select></div>
+    );
     if (c.tipo === "checkbox") return (
-      <div>
-        {lab}
+      <div>{lab}
         <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#1f2937", borderRadius: 8, border: "1px solid #374151", cursor: "pointer" }}>
-          <input type="checkbox" checked={valor === true} onChange={e => set(e.target.checked)} style={{ accentColor: "#16a34a", width: 16, height: 16 }} />
-          <span style={{ color: "white", fontSize: 13 }}>{valor === true ? "Sim" : "Não"}</span>
+          <input type="checkbox" checked={val === true} onChange={e => set(e.target.checked)} style={{ accentColor: "#16a34a", width: 16, height: 16 }} />
+          <span style={{ color: "white", fontSize: 13 }}>{val === true ? "Sim" : "Não"}</span>
         </label>
       </div>
     );
-    return null;
+    return <div>{lab}<input placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
   };
 
   const propostasFiltradas = propostas
@@ -308,193 +343,19 @@ export default function Vendas() {
       {showModal && propostaEditando && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ background: "#111", borderRadius: 16, padding: 28, width: "100%", maxWidth: 820, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 18, maxHeight: "90vh", overflowY: "auto" }}>
-
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>✏️ Editar Proposta #{propostaEditando.id}</h2>
               <button onClick={() => { setShowModal(false); setPropostaEditando(null); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
             </div>
 
-            {/* DADOS DA PROPOSTA */}
-            <div>
-              <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>📋 Dados da Proposta</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Data</label>
-                  <input type="date" value={form.data_proposta || ""} onChange={e => setForm({ ...form, data_proposta: e.target.value })} style={inputStyle} />
+            {/* 🆕 Renderização dinâmica — todos os campos respeitando ordem/config */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              {camposUnificados.map(c => (
+                <div key={`${c.origem}-${c.slug}`} style={c.larguraTotal || c.tipo === "textarea" ? { gridColumn: "1 / -1" } : undefined}>
+                  {renderCampoModal(c)}
                 </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Operadora</label>
-                  <input value={form.operadora || ""} onChange={e => setForm({ ...form, operadora: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Vendedor</label>
-                  {podeVerTudo ? (
-                    <select value={form.vendedor || ""} onChange={e => setForm({ ...form, vendedor: e.target.value })} style={inputStyle}>
-                      <option value="">Selecione...</option>
-                      {usuariosWs.map(u => (
-                        <option key={u.email} value={u.email}>{u.nome}</option>
-                      ))}
-                      {form.vendedor && !usuariosWs.find(u => u.email?.toLowerCase() === form.vendedor?.toLowerCase()) && (
-                        <option value={form.vendedor}>⚠️ {form.vendedor} (legado)</option>
-                      )}
-                    </select>
-                  ) : (
-                    <input value={nomeVendedor(form.vendedor || "")} disabled style={{ ...inputStyle, opacity: 0.6 }} />
-                  )}
-                </div>
-              </div>
+              ))}
             </div>
-
-            {/* DADOS PESSOAIS */}
-            <div>
-              <p style={{ color: "#3b82f6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>👤 Dados Pessoais</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label>
-                  <input value={form.nome || ""} onChange={e => setForm({ ...form, nome: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>CPF</label>
-                  <input value={form.cpf || ""} onChange={e => setForm({ ...form, cpf: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>RG</label>
-                  <input value={form.rg || ""} onChange={e => setForm({ ...form, rg: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Data Nascimento</label>
-                  <input type="date" value={form.data_nascimento || ""} onChange={e => setForm({ ...form, data_nascimento: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome da Mãe</label>
-                  <input value={form.nome_mae || ""} onChange={e => setForm({ ...form, nome_mae: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>E-mail</label>
-                  <input type="email" value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} style={inputStyle} />
-                </div>
-              </div>
-            </div>
-
-            {/* ENDEREÇO */}
-            <div>
-              <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>📍 Endereço</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>CEP</label>
-                  <input value={form.cep || ""} onChange={e => setForm({ ...form, cep: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Cidade</label>
-                  <input value={form.cidade || ""} onChange={e => setForm({ ...form, cidade: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>UF</label>
-                  <input value={form.estado || ""} onChange={e => setForm({ ...form, estado: e.target.value })} style={inputStyle} />
-                </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Endereço Completo</label>
-                  <input value={form.endereco || ""} onChange={e => setForm({ ...form, endereco: e.target.value })} style={inputStyle} />
-                </div>
-              </div>
-            </div>
-
-            {/* CONTATO */}
-            <div>
-              <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>📱 Contato</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Telefone 1 *</label>
-                  <input value={form.telefone1 || ""} onChange={e => setForm({ ...form, telefone1: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Telefone 2</label>
-                  <input value={form.telefone2 || ""} onChange={e => setForm({ ...form, telefone2: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Telefone 3</label>
-                  <input value={form.telefone3 || ""} onChange={e => setForm({ ...form, telefone3: e.target.value })} style={inputStyle} />
-                </div>
-              </div>
-            </div>
-
-            {/* PLANO */}
-            <div>
-              <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>💳 Plano e Pagamento</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Plano</label>
-                  <input value={form.plano || ""} onChange={e => setForm({ ...form, plano: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Valor (R$)</label>
-                  <input type="number" step="0.01" value={form.valor_plano || 0} onChange={e => setForm({ ...form, valor_plano: Number(e.target.value) })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Vencimento</label>
-                  <select value={form.vencimento || ""} onChange={e => setForm({ ...form, vencimento: e.target.value })} style={inputStyle}>
-                    <option value="">Selecione</option>
-                    {["1", "5", "7", "10", "15"].map(d => <option key={d} value={d}>Dia {d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Pagamento</label>
-                  <select value={form.forma_pagamento || ""} onChange={e => setForm({ ...form, forma_pagamento: e.target.value })} style={inputStyle}>
-                    <option value="">Selecione</option>
-                    <option value="Boleto Bancário">Boleto</option>
-                    <option value="PIX">PIX</option>
-                    <option value="Cartão de Crédito">Cartão</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* AGENDAMENTO E STATUS */}
-            <div>
-              <p style={{ color: "#dc2626", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>📅 Status e Agendamento</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Status</label>
-                  <select value={form.status_venda || ""} onChange={e => setForm({ ...form, status_venda: e.target.value })} style={inputStyle}>
-                    {STATUS_OPCOES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Data Agendamento</label>
-                  <input type="date" value={form.data_agendamento || ""} onChange={e => setForm({ ...form, data_agendamento: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Período</label>
-                  <select value={form.periodo_instalacao || ""} onChange={e => setForm({ ...form, periodo_instalacao: e.target.value })} style={inputStyle}>
-                    <option value="">Selecione</option>
-                    <option value="Manhã">Manhã</option>
-                    <option value="Tarde">Tarde</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Data Instalação</label>
-                  <input type="date" value={form.data_instalacao || ""} onChange={e => setForm({ ...form, data_instalacao: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Data Cancelamento</label>
-                  <input type="date" value={form.data_cancelamento || ""} onChange={e => setForm({ ...form, data_cancelamento: e.target.value })} style={inputStyle} />
-                </div>
-              </div>
-            </div>
-
-            {/* 🆕 ✨ CAMPOS PERSONALIZADOS — renderizados dinamicamente */}
-            {camposCustom.length > 0 && (
-              <div>
-                <p style={{ color: "#a855f7", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 10px" }}>✨ Campos Personalizados</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                  {camposCustom.map(c => (
-                    <div key={c.id} style={c.tipo === "textarea" ? { gridColumn: "1 / -1" } : undefined}>
-                      {renderCampoCustomEdit(c)}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #1f2937", paddingTop: 16 }}>
               <button onClick={() => { setShowModal(false); setPropostaEditando(null); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>
@@ -519,9 +380,8 @@ export default function Vendas() {
           </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          {/* 🆕 Botão "Editar Campos" — só admin/dono vê */}
           {podeEditarCamposCustom && (
-            <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos personalizados da proposta"
+            <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos da proposta"
               style={{ background: "#a855f722", color: "#a855f7", border: "1px solid #a855f744", borderRadius: 8, padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
               🛠️ Editar Campos
             </button>
@@ -573,11 +433,7 @@ export default function Vendas() {
               <tr><td colSpan={8} style={{ padding: 48, color: "#6b7280", textAlign: "center" }}>
                 <p style={{ fontSize: 40, margin: "0 0 8px" }}>💰</p>
                 <p style={{ fontSize: 13, margin: 0 }}>
-                  {busca || filtroStatus !== "todos"
-                    ? "Nenhum resultado pros filtros"
-                    : podeVerTudo
-                      ? "Nenhuma proposta cadastrada ainda"
-                      : "Você ainda não cadastrou nenhuma proposta"}
+                  {busca || filtroStatus !== "todos" ? "Nenhum resultado pros filtros" : podeVerTudo ? "Nenhuma proposta cadastrada ainda" : "Você ainda não cadastrou nenhuma proposta"}
                 </p>
               </td></tr>
             ) : propostasFiltradas.map((v, i) => (
@@ -607,17 +463,13 @@ export default function Vendas() {
       </div>
 
       {!podeExcluir && propostas.length > 0 && (
-        <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: 0 }}>
-          🔒 Apenas o dono do workspace ou administrador podem excluir propostas.
-        </p>
+        <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: 0 }}>🔒 Apenas o dono do workspace ou administrador podem excluir propostas.</p>
       )}
       {!podeVerTudo && (
-        <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: 0 }}>
-          👤 Você só vê suas próprias propostas. Pra ver as da equipe, peça ao admin para habilitar a permissão <b>"Ver vendas da equipe"</b> no seu grupo.
-        </p>
+        <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: 0 }}>👤 Você só vê suas próprias propostas. Pra ver as da equipe, peça ao admin para habilitar <b>"Ver vendas da equipe"</b>.</p>
       )}
 
-      {/* MODAL DE VISUALIZAÇÃO */}
+      {/* MODAL DE VISUALIZAÇÃO — dinâmico também */}
       {propostaVisualizando && (
         <div onClick={() => setPropostaVisualizando(null)}
           style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -625,26 +477,19 @@ export default function Vendas() {
             style={{ background: "#111", borderRadius: 12, width: "100%", maxWidth: 720, maxHeight: "90vh", overflowY: "auto", border: "1px solid #1f2937" }}>
             <div style={{ padding: 20, borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, background: "#111", zIndex: 1 }}>
               <div>
-                <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>
-                  👁️ Detalhes da Proposta
-                </h2>
-                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
-                  {propostaVisualizando.nome} • #{propostaVisualizando.id}
-                </p>
+                <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>👁️ Detalhes da Proposta</h2>
+                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{propostaVisualizando.nome} • #{propostaVisualizando.id}</p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => { const p = propostaVisualizando; setPropostaVisualizando(null); abrirEditar(p); }}
-                  style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: "bold", cursor: "pointer" }}>
-                  ✏️ Editar
-                </button>
+                  style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: "bold", cursor: "pointer" }}>✏️ Editar</button>
                 <button onClick={() => setPropostaVisualizando(null)}
-                  style={{ background: "#1f2937", color: "white", border: "1px solid #374151", borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer" }}>
-                  ✕ Fechar
-                </button>
+                  style={{ background: "#1f2937", color: "white", border: "1px solid #374151", borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer" }}>✕ Fechar</button>
               </div>
             </div>
 
             <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Destaques no topo (sempre) */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
                 <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14, borderLeft: `3px solid ${statusColor[propostaVisualizando.status_venda] || "#6b7280"}` }}>
                   <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Status</p>
@@ -658,64 +503,22 @@ export default function Vendas() {
                   <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Vendedor</p>
                   <p style={{ color: "white", fontSize: 14, margin: "4px 0 0", fontWeight: "bold" }}>{nomeVendedor(propostaVisualizando.vendedor)}</p>
                 </div>
-                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14, borderLeft: "3px solid #8b5cf6" }}>
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Data Proposta</p>
-                  <p style={{ color: "white", fontSize: 14, margin: "4px 0 0", fontWeight: "bold" }}>{propostaVisualizando.data_proposta ? new Date(propostaVisualizando.data_proposta + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</p>
-                </div>
               </div>
 
-              <ViewSection titulo="👤 Dados Pessoais" campos={[
-                ["Nome", propostaVisualizando.nome],
-                ["CPF", propostaVisualizando.cpf],
-                ["RG", propostaVisualizando.rg],
-                ["Data de Nascimento", propostaVisualizando.data_nascimento ? new Date(propostaVisualizando.data_nascimento + "T00:00:00").toLocaleDateString("pt-BR") : ""],
-                ["Nome da Mãe", propostaVisualizando.nome_mae],
-                ["Email", propostaVisualizando.email],
-              ]} />
-
-              <ViewSection titulo="📍 Endereço" campos={[
-                ["Endereço", propostaVisualizando.endereco],
-                ["CEP", propostaVisualizando.cep],
-                ["Cidade", propostaVisualizando.cidade],
-                ["Estado", propostaVisualizando.estado],
-              ]} />
-
-              <ViewSection titulo="📞 Contatos" campos={[
-                ["Telefone 1", propostaVisualizando.telefone1],
-                ["Telefone 2", propostaVisualizando.telefone2],
-                ["Telefone 3", propostaVisualizando.telefone3],
-              ]} />
-
-              <ViewSection titulo="📦 Plano e Pagamento" campos={[
-                ["Operadora", propostaVisualizando.operadora],
-                ["Plano", propostaVisualizando.plano],
-                ["Valor", propostaVisualizando.valor_plano ? `R$ ${Number(propostaVisualizando.valor_plano).toFixed(2).replace(".", ",")}` : ""],
-                ["Vencimento", propostaVisualizando.vencimento],
-                ["Forma de Pagamento", propostaVisualizando.forma_pagamento],
-              ]} />
-
-              <ViewSection titulo="📅 Datas Operacionais" campos={[
-                ["Agendamento", propostaVisualizando.data_agendamento ? new Date(propostaVisualizando.data_agendamento + "T00:00:00").toLocaleDateString("pt-BR") : ""],
-                ["Período de Instalação", propostaVisualizando.periodo_instalacao],
-                ["Instalação", propostaVisualizando.data_instalacao ? new Date(propostaVisualizando.data_instalacao + "T00:00:00").toLocaleDateString("pt-BR") : ""],
-                ["Cancelamento", propostaVisualizando.data_cancelamento ? new Date(propostaVisualizando.data_cancelamento + "T00:00:00").toLocaleDateString("pt-BR") : ""],
-                ["Cadastrada em", propostaVisualizando.created_at ? new Date(propostaVisualizando.created_at).toLocaleString("pt-BR") : ""],
-              ]} />
-
-              {/* 🆕 ✨ CAMPOS PERSONALIZADOS — só mostra se o workspace tem algum cadastrado E a proposta tem dados */}
-              {camposCustom.length > 0 && (
-                <ViewSection
-                  titulo="✨ Campos Personalizados"
-                  campos={camposCustom.map(c => {
-                    const v = propostaVisualizando.dados_customizados?.[c.slug];
-                    let valorFormatado: any = v;
-                    if (c.tipo === "checkbox") valorFormatado = v === true ? "Sim" : v === false ? "Não" : "";
-                    else if (c.tipo === "moeda" && v) valorFormatado = `R$ ${Number(v).toFixed(2).replace(".", ",")}`;
-                    else if (c.tipo === "data" && v) valorFormatado = new Date(v + "T00:00:00").toLocaleDateString("pt-BR");
-                    return [c.label, valorFormatado] as [string, any];
+              {/* 🆕 Lista de TODOS os campos visíveis em ordem (fixos + custom) */}
+              <ViewSection
+                titulo="📋 Informações"
+                campos={camposUnificados
+                  .filter(c => c.slug !== "status_venda" && c.slug !== "valor_plano" && c.slug !== "vendedor") // já mostrados no topo
+                  .map(c => {
+                    let v = c.origem === "fixo" ? (propostaVisualizando as any)[c.slug] : propostaVisualizando.dados_customizados?.[c.slug];
+                    if (c.tipo === "checkbox") v = v === true ? "Sim" : v === false ? "Não" : "";
+                    else if (c.tipo === "moeda" && v) v = `R$ ${Number(v).toFixed(2).replace(".", ",")}`;
+                    else if (c.tipo === "data" && v) v = new Date(v + "T00:00:00").toLocaleDateString("pt-BR");
+                    else if (c.tipo === "vendedor" && v) v = nomeVendedor(v);
+                    return [c.label, v] as [string, any];
                   })}
-                />
-              )}
+              />
             </div>
           </div>
         </div>
