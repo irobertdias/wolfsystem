@@ -413,6 +413,156 @@ export function ChatSection() {
   // canais e usuários (caso tenham mudado).
   const [atualizando, setAtualizando] = useState(false);
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // 💬 RESPONDER / EDITAR MENSAGEM
+  // ═══════════════════════════════════════════════════════════════════════
+  // respondendoMsg: msg que está sendo respondida. Quando setada, banner aparece
+  //                 acima do input. Ao enviar, concatena quote visual antes do texto.
+  // editandoMsg:    msg que está sendo editada. Atualiza o histórico interno do Wolf
+  //                 (cliente já recebeu a original — APIs do WhatsApp/Meta têm limitação
+  //                 forte pra edit; aqui é só pra correção visual no histórico interno).
+  // hoverMsgIdx:    índice da msg sob hover — controla aparição do botão ⋮.
+  // menuMsgIdx:     índice da msg com menu aberto.
+  type MensagemHist = typeof historico extends Array<infer T> ? T : never;
+  const [respondendoMsg, setRespondendoMsg] = useState<any | null>(null);
+  const [editandoMsg, setEditandoMsg] = useState<any | null>(null);
+  const [hoverMsgIdx, setHoverMsgIdx] = useState<number | null>(null);
+  const [menuMsgIdx, setMenuMsgIdx] = useState<number | null>(null);
+
+  const marcarParaResponder = (msg: any) => {
+    setRespondendoMsg(msg);
+    setEditandoMsg(null);
+    setMenuMsgIdx(null);
+  };
+
+  const marcarParaEditar = (msg: any) => {
+    setEditandoMsg(msg);
+    setRespondendoMsg(null);
+    // Tira o cabeçalho "*Nome*\n" do início (se tiver) pra editar só o conteúdo real
+    const textoSemCabecalho = String(msg.mensagem || "").replace(/^\*[^*]+\*\n/, "");
+    // Tira marcador "*(editado)*" se já tiver (evita ficar concatenando)
+    const textoLimpo = textoSemCabecalho.replace(/\s*\*\(editado\)\*\s*$/, "");
+    setMensagem(textoLimpo);
+    setMenuMsgIdx(null);
+  };
+
+  const cancelarRespostaOuEdicao = () => {
+    if (editandoMsg) setMensagem("");
+    setRespondendoMsg(null);
+    setEditandoMsg(null);
+  };
+
+  // Helper: pode editar? (só msgs próprias do atendente, enviadas há < 15min)
+  const podeEditarMsg = (msg: any): boolean => {
+    if (!msg || msg.de === "cliente" || msg.de === "bot" || msg.de === "sistema") return false;
+    if (!msg.id) return false;
+    if (!msg.created_at) return true; // sem timestamp, assume recente
+    const idade = Date.now() - new Date(msg.created_at).getTime();
+    return idade < 15 * 60 * 1000; // 15 minutos
+  };
+
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Substitui os alert() nativos do browser (que mostram "app.wolfgyn.com.br diz...")
+  // por toasts bonitos no canto da tela. Mais profissional pro cliente final ver.
+  type ToastTipo = "sucesso" | "erro" | "aviso" | "info";
+  type Toast = { id: number; msg: string; tipo: ToastTipo; subMsg?: string };
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
+
+  const notify = (msg: string, tipo: ToastTipo = "info", subMsg?: string) => {
+    const id = ++toastIdRef.current;
+    setToasts(prev => [...prev, { id, msg, tipo, subMsg }]);
+    // Toast some sozinho depois de X segundos (erros ficam mais tempo)
+    const duracao = tipo === "erro" ? 6000 : tipo === "aviso" ? 5000 : 3500;
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, duracao);
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 🌐 TRADUTOR DE ERROS TÉCNICOS → MENSAGEM AMIGÁVEL EM PT-BR
+  // ═══════════════════════════════════════════════════════════════════════
+  // Recebe a string crua do erro (axios, fetch, supabase, Meta API) e devolve
+  // algo que cliente entenda. Se não casar com nenhum padrão, devolve a string
+  // original (mas sanitizada — sem stack trace nem JSON).
+  const traduzirErro = (err: any): string => {
+    if (!err) return "Erro desconhecido. Tente novamente.";
+    let msg = typeof err === "string" ? err : (err.message || err.error || JSON.stringify(err));
+    msg = String(msg).toLowerCase();
+
+    // WhatsApp WebJS / Chromium zumbi
+    if (msg.includes("canal webjs desconectado") || msg.includes("client not ready")) {
+      return "WhatsApp desconectado — reconecte o canal em Conexões.";
+    }
+    if (msg.includes("detached frame") || msg.includes("session closed") || msg.includes("target closed")) {
+      return "WhatsApp travou momentaneamente. Tente novamente em ~20 segundos.";
+    }
+    if (msg.includes("protocoltimeout") || msg.includes("execution context was destroyed")) {
+      return "WhatsApp lento agora. Tente novamente em alguns instantes.";
+    }
+
+    // Meta API (Facebook/Instagram/WABA) — códigos comuns
+    if (msg.includes("(#100)") || msg.includes("formato não aceito") || msg.includes("attachment")) {
+      return "Formato de arquivo não aceito pela Meta. Use PDF, imagem, vídeo ou áudio.";
+    }
+    if (msg.includes("(#190)") || msg.includes("oauthexception") || msg.includes("access token")) {
+      return "Token do Facebook expirou. Reconecte o canal em Conexões.";
+    }
+    if (msg.includes("(#10)") || msg.includes("permission")) {
+      return "Permissão negada pela Meta. Verifique as configurações do canal.";
+    }
+    if (msg.includes("(#131047)") || msg.includes("re-engagement") || msg.includes("24 hour")) {
+      return "Janela de 24h expirou. Envie um template aprovado.";
+    }
+    if (msg.includes("(#131056)") || msg.includes("blocked")) {
+      return "Cliente bloqueou mensagens neste número.";
+    }
+    if (msg.includes("(#131051)") || msg.includes("message type")) {
+      return "Tipo de mensagem não suportado pelo canal.";
+    }
+
+    // HTTP genérico
+    if (msg.includes("vps 500") || msg.includes("internal server error") || msg.includes("status 500")) {
+      return "Erro no servidor. Tente novamente em alguns instantes.";
+    }
+    if (msg.includes("503") || msg.includes("service unavailable")) {
+      return "Servidor temporariamente indisponível. Tente novamente.";
+    }
+    if (msg.includes("504") || msg.includes("gateway timeout") || msg.includes("timeout")) {
+      return "Servidor demorou pra responder. Tente novamente.";
+    }
+    if (msg.includes("401") || msg.includes("unauthorized")) {
+      return "Sessão expirada. Faça login novamente.";
+    }
+    if (msg.includes("403") || msg.includes("forbidden")) {
+      return "Você não tem permissão para esta ação.";
+    }
+    if (msg.includes("404") || msg.includes("not found")) {
+      return "Recurso não encontrado.";
+    }
+    if (msg.includes("network") || msg.includes("failed to fetch") || msg.includes("err_internet")) {
+      return "Falha de conexão. Verifique sua internet.";
+    }
+
+    // Permissões do navegador
+    if (msg.includes("microfone") || msg.includes("microphone") || msg.includes("permission denied")) {
+      return "Não foi possível acessar o microfone. Verifique as permissões do navegador.";
+    }
+    if (msg.includes("popup") || msg.includes("blocked")) {
+      return "Pop-up bloqueado pelo navegador. Permita pop-ups deste site.";
+    }
+
+    // Default: devolve a mensagem original limpa (sem JSON, sem stack)
+    const original = typeof err === "string" ? err : (err.message || err.error || "Erro desconhecido");
+    // Tira JSON cru, status codes, prefixos técnicos
+    return String(original)
+      .replace(/VPS \d+: /, "")
+      .replace(/^.*"error":"([^"]+)".*$/, "$1")
+      .replace(/^\{.*\}$/, "Erro desconhecido. Tente novamente.")
+      .slice(0, 200);
+  };
+
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
   const inputSm = { ...IS, padding: "7px 10px", fontSize: 12 };
 
@@ -1002,7 +1152,7 @@ export function ChatSection() {
         await supabase.from("atendimento_etiquetas").insert([{ atendimento_id: atendimentoAtivo.id, etiqueta_id: etiquetaId }]);
         setEtiquetasAtendimento(prev => [...prev, etiquetaId]);
       }
-    } catch (e: any) { alert("Erro: " + e.message); }
+    } catch (e: any) { notify(traduzirErro(e), "erro"); }
     setSalvandoContato(false);
   };
 
@@ -1060,7 +1210,7 @@ export function ChatSection() {
       }
 
       if (alvos.length === 0) {
-        alert(`✅ Nenhum atendimento pendente com mais de ${dias} dia(s) sem interação.`);
+        notify(`Nenhum atendimento pendente há mais de ${dias} dia(s).`, "info");
         setEncerrandoAntigos(false);
         setShowEncerrarAntigos(false);
         return;
@@ -1104,12 +1254,12 @@ export function ChatSection() {
         }
       } catch (e) { /* ignora — pode não ter sessões */ }
 
-      alert(`✅ ${alvos.length} atendimento(s) encerrado(s) por inatividade!`);
+      notify(`${alvos.length} atendimento(s) encerrado(s) por inatividade.`, "sucesso");
       await fetchAtendimentos();
       setShowEncerrarAntigos(false);
     } catch (e: any) {
       console.error("Erro ao encerrar antigos:", e);
-      alert("❌ Erro ao encerrar: " + (e?.message || e));
+      notify(traduzirErro(e), "erro");
     }
     setEncerrandoAntigos(false);
   };
@@ -1532,14 +1682,67 @@ export function ChatSection() {
 
   const enviarMensagem = async () => {
     if (!mensagem || !atendimentoAtivo) return;
-    if (!atendimentoAtivo.canal_id) { alert("⚠️ Atendimento sem canal_id. Não é possível enviar."); return; }
+    if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal. Não é possível enviar.", "aviso"); return; }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ✏️ MODO EDIÇÃO — atualiza histórico interno (cliente NÃO recebe edit)
+    // ═══════════════════════════════════════════════════════════════════
+    // Limitação: APIs do WhatsApp Web/WABA/Messenger/Instagram têm restrições
+    // pesadas pra edit. Como cliente já recebeu a mensagem original, o edit
+    // aqui é apenas no histórico interno do Wolf — útil pra corrigir typo em
+    // anotação interna ou pra supervisor revisar conversa depois.
+    if (editandoMsg && editandoMsg.id) {
+      setEnviandoMsg(true);
+      try {
+        const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
+        const novoTexto = nomeHeader + mensagem.trim() + " *(editado)*";
+        const { error } = await supabase
+          .from("mensagens")
+          .update({ mensagem: novoTexto })
+          .eq("id", editandoMsg.id)
+          .eq("workspace_id", wsId); // 🔒 multi-tenant
+        if (error) {
+          notify(traduzirErro(error), "erro");
+        } else {
+          // Atualiza histórico local na hora (UX instantâneo)
+          setHistorico(h => h.map(m => m.id === editandoMsg.id ? { ...m, mensagem: novoTexto } : m));
+          notify("Mensagem editada no histórico interno.", "info", "Cliente já recebeu a original (limite da API).");
+          setMensagem("");
+          setEditandoMsg(null);
+        }
+      } catch (e: any) {
+        notify(traduzirErro(e), "erro");
+      }
+      setEnviandoMsg(false);
+      return;
+    }
+
     setEnviandoMsg(true);
     // 🆕 User enviou mensagem → ele claramente quer ver a própria msg, então volta pro fundo
     setStickyFundo(true);
     setTemMensagemNova(false);
     try {
       const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
-      const mensagemFinal = nomeHeader + mensagem;
+      let mensagemFinal = nomeHeader + mensagem;
+
+      // ═══════════════════════════════════════════════════════════════════
+      // ↪️ MODO RESPONDER — concatena quote visual antes do texto novo
+      // ═══════════════════════════════════════════════════════════════════
+      // Cliente recebe a msg com a citação no topo. Não é o reply nativo do
+      // WhatsApp (que mostra "Respondendo a..." e leva pra original), mas é
+      // visualmente claro pro cliente entender a qual msg estamos respondendo.
+      // Funciona em TODOS os canais (WebJS, WABA, Messenger, Instagram).
+      if (respondendoMsg && respondendoMsg.mensagem) {
+        const autorQuote = respondendoMsg.de === "cliente"
+          ? (atendimentoAtivo.nome || "Cliente")
+          : respondendoMsg.de === "bot" ? "BOT" : "Atendente";
+        // Tira marcador *(editado)* e cabeçalho *Nome*\n da citação pra limpar
+        const trechoCru = String(respondendoMsg.mensagem)
+          .replace(/^\*[^*]+\*\n/, "")
+          .replace(/\s*\*\(editado\)\*\s*$/, "");
+        const trecho = trechoCru.length > 100 ? trechoCru.slice(0, 100) + "..." : trechoCru;
+        mensagemFinal = `↪️ *${autorQuote}*: "${trecho}"\n\n${nomeHeader}${mensagem}`;
+      }
 
       // 🆕 ROTEAMENTO POR TIPO DO CANAL
       // - meta/instagram/messenger → wolf-meta (porta 3002, /send/texto)
@@ -1584,16 +1787,17 @@ export function ChatSection() {
         resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
       }
 
-      if (!resp.success) { alert("Erro ao enviar: " + (resp.error || "desconhecido")); }
+      if (!resp.success) { notify(traduzirErro(resp.error || "Erro ao enviar"), "erro"); }
       else {
         setMensagem("");
+        setRespondendoMsg(null); // ↪️ limpa quote após envio com sucesso
         // 🆕 Reseta altura do textarea pra 1 linha após enviar
         if (mensagemTextareaRef.current) {
           mensagemTextareaRef.current.style.height = "auto";
         }
       }
     }
-    catch { alert("Erro ao enviar!"); }
+    catch { notify("Falha ao enviar mensagem. Tente novamente.", "erro"); }
     setEnviandoMsg(false);
   };
 
@@ -1647,7 +1851,7 @@ export function ChatSection() {
         const nomeLower = file.name.toLowerCase();
         const ehPdf = nomeLower.endsWith(".pdf") || file.type === "application/pdf";
         if (!ehPdf) {
-          alert(`⚠️ Instagram aceita apenas PDF como documento\n\nO Instagram Direct (DM) só permite imagem, vídeo, áudio e PDF. Outros formatos (Word, Excel, ZIP, etc.) não podem ser enviados por aqui.\n\n💡 Converta o arquivo pra PDF, ou envie como imagem (screenshot do conteúdo), ou compartilhe um link do Google Drive na mensagem de texto.`);
+          notify("Instagram só aceita PDF como documento.", "aviso", "Word/Excel/ZIP não podem ser enviados. Converta pra PDF, ou envie como imagem.");
           if (fileUploadRef.current) fileUploadRef.current.value = "";
           return;
         }
@@ -1691,10 +1895,11 @@ export function ChatSection() {
 
     if (file.size > limiteMB * 1024 * 1024) {
       const tamanhoMB = (file.size / 1024 / 1024).toFixed(1);
-      alert(`⚠️ ${tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1)} muito grande!\n\n` +
-        `Tamanho do seu arquivo: ${tamanhoMB} MB\n` +
-        `Limite do WhatsApp pra ${tipoLabel}: ${limiteMB} MB\n\n` +
-        `💡 ${dica}`);
+      notify(
+        `${tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1)} muito grande (${tamanhoMB} MB).`,
+        "aviso",
+        `Limite do WhatsApp pra ${tipoLabel}: ${limiteMB} MB. ${dica}`
+      );
       if (fileUploadRef.current) fileUploadRef.current.value = "";
       return;
     }
@@ -1720,7 +1925,7 @@ export function ChatSection() {
 
   const enviarMidia = async () => {
     if (!arquivoSelecionado || !atendimentoAtivo) return;
-    if (!atendimentoAtivo.canal_id) { alert("⚠️ Atendimento sem canal_id."); return; }
+    if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal.", "aviso"); return; }
     setEnviandoMidia(true);
     setStickyFundo(true);
     setTemMensagemNova(false);
@@ -1756,7 +1961,7 @@ export function ChatSection() {
         const data = await r.json();
         // Wolf Meta responde com { success/sucesso, erro? } — adapta pro formato esperado
         if (!(data.success || data.sucesso)) {
-          alert("Erro ao enviar arquivo: " + (data.erro || data.error || "desconhecido"));
+          notify(traduzirErro(data.erro || data.error || "Erro ao enviar arquivo"), "erro");
         } else {
           cancelarEnvioArquivo();
         }
@@ -1772,13 +1977,13 @@ export function ChatSection() {
         const resp = await fetch(`${WA_BASE}/enviar-midia`, { method: "POST", body: fd });
         const data = await resp.json();
         if (!data.success) {
-          alert("Erro ao enviar arquivo: " + (data.error || "desconhecido"));
+          notify(traduzirErro(data.error || "Erro ao enviar arquivo"), "erro");
         } else {
           cancelarEnvioArquivo();
         }
       }
     } catch (e: any) {
-      alert("Erro ao enviar arquivo: " + e.message);
+      notify(traduzirErro(e), "erro");
     }
     setEnviandoMidia(false);
   };
@@ -1846,7 +2051,7 @@ export function ChatSection() {
         workspaceId: wsId
       });
       if (!resp.success) {
-        alert("Erro ao enviar template: " + (resp.error || "desconhecido"));
+        notify(traduzirErro(resp.error || "Erro ao enviar template"), "erro");
       } else {
         setShowTemplateModal(false);
         setTemplateEscolhido(null);
@@ -1854,7 +2059,7 @@ export function ChatSection() {
         setStickyFundo(true);
       }
     } catch (e: any) {
-      alert("Erro ao enviar template: " + e.message);
+      notify(traduzirErro(e), "erro");
     }
     setEnviandoTemplate(false);
   };
@@ -1875,7 +2080,7 @@ export function ChatSection() {
       recorder.start();
       setGravando(true); setTempoGravacao(0);
       timerRef.current = setInterval(() => setTempoGravacao(t => t + 1), 1000);
-    } catch (err: any) { alert("Não foi possível acessar o microfone.\n\n" + (err.message || "Verifique as permissões do navegador.")); }
+    } catch (err: any) { notify("Não foi possível acessar o microfone.", "erro", "Verifique as permissões do navegador."); }
   };
 
   const pararStream = () => {
@@ -1890,7 +2095,7 @@ export function ChatSection() {
 
   const enviarAudioGravado = async () => {
     if (!atendimentoAtivo || !mediaRecorderRef.current) return;
-    if (!atendimentoAtivo.canal_id) { alert("⚠️ Atendimento sem canal_id. Não é possível enviar áudio."); return; }
+    if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal. Não é possível enviar áudio.", "aviso"); return; }
     // 🆕 Áudio agora funciona em WebJS E WABA. Backend converte pra OGG opus e envia via Graph API
     // (upload + send) no caso WABA, ou MessageMedia.sendAudioAsVoice no WebJS. Ambos exibem como
     // mensagem de voz nativa pro cliente.
@@ -1939,7 +2144,7 @@ export function ChatSection() {
         const r = await fetch(`${META_BASE}/send/enviar-midia-arquivo`, { method: "POST", body: fd });
         const data = await r.json();
         if (!(data.success || data.sucesso)) {
-          alert("Erro ao enviar áudio: " + (data.erro || data.error || "desconhecido"));
+          notify(traduzirErro(data.erro || data.error || "Erro ao enviar áudio"), "erro");
         }
       } else {
         // 🐺 WhatsApp (webjs/waba) — fluxo original
@@ -1953,15 +2158,15 @@ export function ChatSection() {
         form.append("workspaceId", String(wsId));
         const resp = await fetch(`${WA_BASE}/enviar-audio`, { method: "POST", body: form });
         const data = await resp.json();
-        if (!data.success) alert("Erro ao enviar áudio: " + (data.error || "desconhecido"));
+        if (!data.success) notify(traduzirErro(data.error || "Erro ao enviar áudio"), "erro");
       }
-    } catch (e: any) { alert("Erro ao enviar áudio: " + e.message); }
+    } catch (e: any) { notify(traduzirErro(e), "erro"); }
     setEnviandoAudio(false); setTempoGravacao(0);
   };
 
   const assumirChatDaLista = async (e: React.MouseEvent, a: Atendimento) => {
     e.stopPropagation();
-    if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
+    if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
     await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId, atendenteEmail: user.email });
     await inserirMensagemSistema(a.numero, `Chat assumido por: ${meuNome}`, a.canal_id);
     await fetchAtendimentos();
@@ -1969,7 +2174,7 @@ export function ChatSection() {
 
   const pararBotDaLista = async (e: React.MouseEvent, a: Atendimento) => {
     e.stopPropagation();
-    if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
+    if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
     if (!confirm(`Parar o BOT para ${a.nome}?\n\nO BOT vai parar de responder automaticamente. Você assume o atendimento.`)) return;
     try {
       // 🔒 MULTI-TENANT: confirma workspace_id mesmo updateando por id (defesa em profundidade)
@@ -1979,12 +2184,12 @@ export function ChatSection() {
       await inserirMensagemSistema(a.numero, `BOT interrompido. Chat assumido por: ${meuNome}`, a.canal_id);
       await fetchAtendimentos();
       setAbaConversa("abertos");
-      alert("✅ BOT parado. Você assumiu o atendimento.\n\nVá na aba 💬 Abertos pra continuar.");
-    } catch (err: any) { alert("Erro: " + err.message); }
+      notify("BOT parado. Você assumiu o atendimento.", "sucesso", "Vá na aba 💬 Abertos pra continuar.");
+    } catch (err: any) { notify(traduzirErro(err), "erro"); }
   };
 
   const assumirChat = async (numero: string, canalId?: number) => {
-    if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
+    if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
     await wa("assumir", { numero, canalId, workspaceId: wsId, atendenteEmail: user.email });
     await inserirMensagemSistema(numero, `Chat assumido por: ${meuNome}`, canalId);
     fetchAtendimentos();
@@ -1993,7 +2198,7 @@ export function ChatSection() {
   const finalizarChat = async (numero: string, canalId?: number) => {
     // 🔒 PERMISSÃO
     if (!isDono && !permissoes.finalizar_chat) {
-      alert("❌ Você não tem permissão para finalizar atendimentos.");
+      notify("Você não tem permissão para finalizar atendimentos.", "erro");
       return;
     }
     // 🆕 BLOQUEIO 24h — passa email do usuário pro backend identificar que é finalização HUMANA
@@ -2014,7 +2219,7 @@ export function ChatSection() {
   // Aqui só seta as flags de bloqueio pra bot parar e salva mensagem sistema.
   const pararBotIA = async () => {
     if (!atendimentoAtivo) return;
-    if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue."); return; }
+    if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
 
     // Se o atendente atribuído pela roleta é OUTRA pessoa, pede confirmação antes de "roubar" o chat
     const ehMeu = atendimentoAtivo.atendente === user.email;
@@ -2043,22 +2248,22 @@ export function ChatSection() {
       await fetchAtendimentos();
       setAbaConversa("abertos");
     } catch (e: any) {
-      alert("Erro ao parar bot: " + e.message);
+      notify(traduzirErro(e), "erro");
     }
   };
   const transferirParaFila = async (fila: string) => {
     if (!atendimentoAtivo) return;
     // 🔒 PERMISSÃO
     if (!isDono && !permissoes.transferir_chat) {
-      alert("❌ Você não tem permissão para transferir conversas.");
+      notify("Você não tem permissão para transferir conversas.", "erro");
       return;
     }
     try {
       await supabase.from("atendimentos").update({ fila }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
       await inserirMensagemSistema(atendimentoAtivo.numero, `Chat transferido para fila: ${fila}, por: ${meuNome}`, atendimentoAtivo.canal_id);
       await fetchAtendimentos(); setShowTransferir(false);
-      alert(`✅ Transferido para fila ${fila}`);
-    } catch (e: any) { alert("Erro: " + e.message); }
+      notify(`Transferido para fila ${fila}.`, "sucesso");
+    } catch (e: any) { notify(traduzirErro(e), "erro"); }
   };
 
   // 🆕 Transferir pra um atendente específico (não pra fila)
@@ -2066,10 +2271,10 @@ export function ChatSection() {
   // Também garante que o chat saia do BOT e de "pendente"
   const transferirParaAtendente = async (emailDestino: string, nomeDestino: string) => {
     if (!atendimentoAtivo) return;
-    if (!emailDestino) { alert("Atendente sem email válido."); return; }
+    if (!emailDestino) { notify("Atendente sem email válido.", "aviso"); return; }
     // 🔒 PERMISSÃO
     if (!isDono && !permissoes.transferir_chat) {
-      alert("❌ Você não tem permissão para transferir conversas.");
+      notify("Você não tem permissão para transferir conversas.", "erro");
       return;
     }
     try {
@@ -2087,14 +2292,14 @@ export function ChatSection() {
       );
       await fetchAtendimentos();
       setShowTransferir(false);
-      alert(`✅ Transferido para ${nomeDestino}`);
-    } catch (e: any) { alert("Erro: " + e.message); }
+      notify(`Transferido para ${nomeDestino}.`, "sucesso");
+    } catch (e: any) { notify(traduzirErro(e), "erro"); }
   };
 
   // 🆕 Reabrir atendimento finalizado
   // Status volta pra "aberto", quem reabriu vira o atendente, chat aparece na aba "Abertos"
   const reabrirChat = async (a: Atendimento) => {
-    if (!user?.email) { alert("⚠️ Usuário não identificado. Recarregue a página."); return; }
+    if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
     if (!confirm(`Reabrir atendimento de ${a.nome}?\n\nO chat volta para a aba "Abertos" e você passa a ser o atendente.`)) return;
     try {
       await supabase.from("atendimentos").update({
@@ -2109,8 +2314,8 @@ export function ChatSection() {
       setAbaConversa("abertos");
       // Atualiza o atendimento ativo com o novo status pra UI reagir na hora
       setAtendimentoAtivo({ ...a, status: "aberto", atendente: user.email });
-      alert("✅ Atendimento reaberto. Você é o atendente agora.");
-    } catch (e: any) { alert("Erro: " + e.message); }
+      notify("Atendimento reaberto. Você é o atendente agora.", "sucesso");
+    } catch (e: any) { notify(traduzirErro(e), "erro"); }
   };
 
   const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroEtiqueta("todas"); setFiltroCanal("todos"); setFiltroTempo("tudo"); };
@@ -2159,17 +2364,17 @@ export function ChatSection() {
     try {
       const { error } = await supabase.from("atendimentos").update({ [campo]: valor })
         .eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
-      if (error) { alert("Erro ao salvar: " + error.message); setSalvandoContato(false); return; }
+      if (error) { notify(traduzirErro(error), "erro"); setSalvandoContato(false); return; }
       setAtendimentoAtivo({ ...atendimentoAtivo, [campo]: valor });
       setAtendimentos(prev => prev.map(a => a.id === atendimentoAtivo.id ? { ...a, [campo]: valor } : a));
-    } catch (e: any) { alert("Erro: " + e.message); }
+    } catch (e: any) { notify(traduzirErro(e), "erro"); }
     setSalvandoContato(false);
   };
 
   const exportarPDF = () => {
     if (!atendimentoAtivo) return;
     const janela = window.open("", "_blank", "width=800,height=600");
-    if (!janela) { alert("Popup bloqueado!"); return; }
+    if (!janela) { notify("Pop-up bloqueado pelo navegador. Permita pop-ups deste site.", "aviso"); return; }
     const html = `
       <html><head><title>Histórico ${atendimentoAtivo.nome}</title>
       <style>body{font-family:Arial;padding:20px}h1{color:#16a34a}.msg{padding:10px;margin:5px 0;border-radius:8px;max-width:60%}.cliente{background:#e5e7eb;margin-right:auto}.atendente{background:#dbeafe;margin-left:auto;text-align:right}.bot{background:#dcfce7;margin-left:auto;text-align:right}.sistema{background:#f3f4f6;margin:10px auto;text-align:center;font-style:italic;color:#6b7280}.meta{font-size:10px;color:#6b7280}</style>
@@ -2754,10 +2959,123 @@ export function ChatSection() {
                     const ehMidia = midia.tipo !== null;
                     // Largura máxima varia: áudio 340, imagem/vídeo 320, arquivo 300, texto 65%
                     const maxWidth = ehAudio ? 340 : midia.tipo === "img" || midia.tipo === "video" ? 320 : midia.tipo === "file" ? 300 : "65%";
+
+                    // ═══════════════════════════════════════════════════════
+                    // ↪️ DETECTA QUOTE no texto (mensagem que começa com "↪️ *Nome*: ...")
+                    // ═══════════════════════════════════════════════════════
+                    // Quando atendente responde uma msg, o texto é enviado com prefixo de citação.
+                    // Aqui parseamos pra renderizar bonito (blockquote) ao invés do texto cru.
+                    let quoteAutor: string | null = null;
+                    let quoteTexto: string | null = null;
+                    let msgTextoLimpo: string = msg.mensagem;
+                    if (!ehAudio && !ehMidia && typeof msg.mensagem === "string") {
+                      const m = msg.mensagem.match(/^↪️ \*([^*]+)\*: "([\s\S]+?)"\n\n([\s\S]*)$/);
+                      if (m) {
+                        quoteAutor = m[1];
+                        quoteTexto = m[2];
+                        msgTextoLimpo = m[3];
+                      }
+                    }
+                    // Detecta marcador "*(editado)*" pra mostrar etiqueta
+                    const foiEditada = typeof msgTextoLimpo === "string" && /\*\(editado\)\*\s*$/.test(msgTextoLimpo);
+                    if (foiEditada) msgTextoLimpo = msgTextoLimpo.replace(/\s*\*\(editado\)\*\s*$/, "");
+
                     return (
-                      <div key={i} style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end" }}>
-                        <div style={{ maxWidth, padding: ehMidia ? "4px 4px 6px" : "6px 10px 8px", borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px", background: isCliente ? "#202c33" : "#005c4b", boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)" }}>
+                      <div key={i}
+                        onMouseEnter={() => setHoverMsgIdx(i)}
+                        onMouseLeave={() => { setHoverMsgIdx(prev => prev === i ? null : prev); }}
+                        style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end", position: "relative" }}
+                      >
+                        <div style={{ maxWidth, padding: ehMidia ? "4px 4px 6px" : "6px 10px 8px", borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px", background: isCliente ? "#202c33" : "#005c4b", boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)", position: "relative" }}>
                           {!isCliente && !ehAudio && !ehMidia && <p style={{ color: "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>}
+
+                          {/* ↪️ Quote (citação) renderizado bonito */}
+                          {quoteAutor && quoteTexto && (
+                            <div style={{
+                              background: isCliente ? "#1e2a30" : "#01493b",
+                              borderLeft: "3px solid #00a884",
+                              padding: "6px 8px",
+                              borderRadius: 4,
+                              marginBottom: 6,
+                            }}>
+                              <p style={{ fontSize: 11, fontWeight: "bold", color: "#00d9a3", margin: 0 }}>{quoteAutor}</p>
+                              <p style={{ fontSize: 12, color: "#a3b8c2", margin: "2px 0 0", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 60, overflow: "hidden" }}>{quoteTexto}</p>
+                            </div>
+                          )}
+
+                          {/* 💬 Botão de menu ⋮ — aparece no hover */}
+                          {hoverMsgIdx === i && !ehAudio && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setMenuMsgIdx(menuMsgIdx === i ? null : i); }}
+                              title="Opções"
+                              style={{
+                                position: "absolute",
+                                top: 2,
+                                [isCliente ? "right" : "left"]: 2,
+                                background: "rgba(0,0,0,0.5)",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "50%",
+                                width: 22,
+                                height: 22,
+                                fontSize: 14,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                lineHeight: 1,
+                                fontWeight: "bold",
+                                opacity: 0.85,
+                              } as any}
+                            >⋮</button>
+                          )}
+
+                          {/* 💬 Menu contextual */}
+                          {menuMsgIdx === i && (
+                            <div
+                              onMouseLeave={() => setMenuMsgIdx(null)}
+                              style={{
+                                position: "absolute",
+                                top: 26,
+                                [isCliente ? "right" : "left"]: 4,
+                                background: "#233138",
+                                border: "1px solid #2a3942",
+                                borderRadius: 8,
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+                                zIndex: 100,
+                                overflow: "hidden",
+                                minWidth: 160,
+                              } as any}
+                            >
+                              <button
+                                onClick={() => marcarParaResponder(msg)}
+                                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left" }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = "#2a3942"}
+                                onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                              >
+                                <span>↪️</span> Responder
+                              </button>
+                              {podeEditarMsg(msg) && (
+                                <button
+                                  onClick={() => marcarParaEditar(msg)}
+                                  style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderTop: "1px solid #2a3942" }}
+                                  onMouseEnter={(e) => e.currentTarget.style.background = "#2a3942"}
+                                  onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                                >
+                                  <span>✏️</span> Editar
+                                </button>
+                              )}
+                              <button
+                                onClick={() => { navigator.clipboard.writeText(msgTextoLimpo || ""); setMenuMsgIdx(null); notify("Mensagem copiada.", "sucesso"); }}
+                                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderTop: "1px solid #2a3942" }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = "#2a3942"}
+                                onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                              >
+                                <span>📋</span> Copiar texto
+                              </button>
+                            </div>
+                          )}
+
 
                           {ehAudio && <AudioPlayer src={audioUrl(audioFilename(msg.mensagem), msg.canal_id)} isOwn={!isCliente} />}
 
@@ -2803,10 +3121,15 @@ export function ChatSection() {
 
                           {/* Texto comum — só se não for áudio nem mídia */}
                           {!ehAudio && !ehMidia && (
-                            <p style={{ color: "#e9edef", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.mensagem}</p>
+                            <p style={{ color: "#e9edef", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msgTextoLimpo}</p>
                           )}
 
-                          {msg.created_at && <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 10, margin: "2px 6px 0 0", textAlign: "right" }}>{horaMsg(msg.created_at)}{!isCliente && " ✓✓"}</p>}
+                          {msg.created_at && (
+                            <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 10, margin: "2px 6px 0 0", textAlign: "right" }}>
+                              {foiEditada && <span style={{ fontStyle: "italic", marginRight: 6, opacity: 0.85 }}>editada</span>}
+                              {horaMsg(msg.created_at)}{!isCliente && " ✓✓"}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
@@ -2854,6 +3177,52 @@ export function ChatSection() {
                   }} />
                 )}
               </button>
+            )}
+
+            {/* ↪️/✏️ BANNER de Responder / Editar — aparece acima do input */}
+            {(respondendoMsg || editandoMsg) && !gravando && (
+              <div style={{
+                background: "#202c33",
+                borderTop: "1px solid #2a3942",
+                padding: "10px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}>
+                <span style={{ fontSize: 18 }}>{editandoMsg ? "✏️" : "↪️"}</span>
+                <div style={{
+                  flex: 1,
+                  borderLeft: "3px solid #00a884",
+                  paddingLeft: 10,
+                  minWidth: 0,
+                }}>
+                  <p style={{ color: "#00d9a3", fontSize: 11, fontWeight: "bold", margin: 0 }}>
+                    {editandoMsg ? "Editando sua mensagem" : `Respondendo a ${
+                      (respondendoMsg?.de === "cliente"
+                        ? (atendimentoAtivo?.nome || "Cliente")
+                        : respondendoMsg?.de === "bot" ? "BOT" : "Atendente")
+                    }`}
+                  </p>
+                  <p style={{ color: "#aebac1", fontSize: 12, margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {(() => {
+                      const m = editandoMsg || respondendoMsg;
+                      if (!m) return "";
+                      const t = String(m.mensagem || "")
+                        .replace(/^↪️ \*[^*]+\*: "[\s\S]+?"\n\n/, "")
+                        .replace(/^\*[^*]+\*\n/, "")
+                        .replace(/\s*\*\(editado\)\*\s*$/, "");
+                      return t.length > 80 ? t.slice(0, 80) + "..." : t;
+                    })()}
+                  </p>
+                  {editandoMsg && (
+                    <p style={{ color: "#fbbf24", fontSize: 10, margin: "3px 0 0", fontStyle: "italic" }}>
+                      ⚠️ Edição apenas no histórico interno — cliente já recebeu a versão original.
+                    </p>
+                  )}
+                </div>
+                <button onClick={cancelarRespostaOuEdicao} title="Cancelar"
+                  style={{ background: "none", color: "#8696a0", border: "none", fontSize: 22, cursor: "pointer", padding: "4px 8px", lineHeight: 1, fontWeight: "bold" }}>×</button>
+              </div>
             )}
 
             {showRespostas && permissoes.respostas_rapidas && !gravando && (
@@ -3372,7 +3741,7 @@ export function ChatSection() {
             {abaPainel === "utils" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <button onClick={exportarPDF} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "12px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>📄 Exportar Histórico em PDF</button>
-                <button onClick={() => { navigator.clipboard.writeText(numeroSanitizado(atendimentoAtivo.numero)); alert("Copiado!"); }} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📋 Copiar número</button>
+                <button onClick={() => { navigator.clipboard.writeText(numeroSanitizado(atendimentoAtivo.numero)); notify("Número copiado.", "sucesso"); }} style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📋 Copiar número</button>
                 <button onClick={() => window.open(`https://wa.me/${numeroSanitizado(atendimentoAtivo.numero)}`, "_blank")} style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>📞 Abrir no WhatsApp Web</button>
               </div>
             )}
@@ -3470,6 +3839,70 @@ export function ChatSection() {
           </div>
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          🔔 TOAST CONTAINER — notificações elegantes no canto inferior direito
+          Substitui os alert() nativos do browser. Aparece com fade in,
+          some sozinho depois de 3-6 segundos dependendo do tipo.
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div style={{
+        position: "fixed",
+        bottom: 24,
+        right: 24,
+        zIndex: 99999,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        pointerEvents: "none",
+      }}>
+        {toasts.map(t => {
+          const cores = {
+            sucesso: { bg: "#065f46", border: "#10b981", icone: "✅" },
+            erro:    { bg: "#7f1d1d", border: "#ef4444", icone: "❌" },
+            aviso:   { bg: "#78350f", border: "#f59e0b", icone: "⚠️" },
+            info:    { bg: "#1e3a8a", border: "#3b82f6", icone: "ℹ️" },
+          }[t.tipo];
+          return (
+            <div
+              key={t.id}
+              onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
+              style={{
+                background: cores.bg,
+                border: `1px solid ${cores.border}`,
+                borderLeft: `4px solid ${cores.border}`,
+                color: "white",
+                padding: "14px 18px",
+                borderRadius: 10,
+                minWidth: 300,
+                maxWidth: 420,
+                boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+                pointerEvents: "auto",
+                cursor: "pointer",
+                animation: "wolfToastIn 0.25s ease-out",
+              }}
+              title="Clique pra fechar"
+            >
+              <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{cores.icone}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, lineHeight: 1.4 }}>{t.msg}</p>
+                {t.subMsg && (
+                  <p style={{ margin: "4px 0 0", fontSize: 12, opacity: 0.85, lineHeight: 1.4 }}>{t.subMsg}</p>
+                )}
+              </div>
+              <span style={{ color: "white", opacity: 0.5, fontSize: 16, lineHeight: 1, flexShrink: 0, fontWeight: "bold" }}>×</span>
+            </div>
+          );
+        })}
+        <style>{`
+          @keyframes wolfToastIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to   { opacity: 1; transform: translateX(0); }
+          }
+        `}</style>
+      </div>
     </div>
   );
 }
