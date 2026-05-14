@@ -16,55 +16,88 @@ export function RespostasRapidasSection() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ atalho: "", mensagem: "" });
   const [salvando, setSalvando] = useState(false);
+  const [carregando, setCarregando] = useState(false);
 
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
 
-  const fetchRespostas = async () => {
-    if (!workspace?.id) return;
-    const { data } = await supabase.from("respostas_rapidas").select("*")
-      .eq("workspace_id", workspace.username || workspace.id.toString())
-      .order("created_at", { ascending: true });
-    if (data) setRespostas(data);
-    else {
-      // Se tabela não existe ainda, usa padrão
-      setRespostas([
-        { atalho: "/oi", mensagem: "Olá! Seja bem-vindo(a)! Como posso te ajudar hoje?" },
-        { atalho: "/planos", mensagem: "Temos planos a partir de R$ 89,90. Posso te passar mais detalhes!" },
-        { atalho: "/aguarda", mensagem: "Por favor, aguarde um momento que já vou te atender!" },
-        { atalho: "/encerrar", mensagem: "Obrigado pelo contato! Tenha um ótimo dia!" },
-      ]);
-    }
+  // 🔒 MULTI-TENANT FIX: padronizar a chave de workspace usada em TODAS as queries
+  // (fetch, insert, delete). Antes, salvava com `wsId` e buscava com `workspace.username
+  // || workspace.id.toString()` — bugado pra workspaces com username diferente do id.
+  // Agora a fórmula é única e consistente.
+  const wsKey = (): string | null => {
+    return workspace?.username || workspace?.id?.toString() || wsId || null;
   };
 
-  useEffect(() => { fetchRespostas(); }, [workspace]);
+  const fetchRespostas = async () => {
+    const ws = wsKey();
+    if (!ws) return;
+    setCarregando(true);
+    try {
+      const { data, error } = await supabase
+        .from("respostas_rapidas")
+        .select("*")
+        .eq("workspace_id", ws)
+        .order("created_at", { ascending: true });
+      if (error) {
+        console.warn("[RespostasRapidas] erro no fetch:", error.message);
+        setRespostas([]);
+      } else {
+        setRespostas(data || []);
+      }
+    } catch (e) {
+      console.error("[RespostasRapidas] exceção no fetch:", e);
+      setRespostas([]);
+    }
+    setCarregando(false);
+  };
+
+  useEffect(() => { fetchRespostas(); }, [workspace, wsId]);
 
   const salvar = async () => {
     if (!form.atalho.trim() || !form.mensagem.trim()) { alert("Preencha atalho e mensagem!"); return; }
     if (!form.atalho.startsWith("/")) { alert("O atalho deve começar com /"); return; }
+    const ws = wsKey();
+    if (!ws) { alert("Workspace não carregado. Recarregue a página."); return; }
+
     setSalvando(true);
     try {
-      await supabase.from("respostas_rapidas").insert([{ atalho: form.atalho.trim(), mensagem: form.mensagem.trim(), workspace_id: wsId }]);
-      await fetchRespostas();
-      setForm({ atalho: "", mensagem: "" });
-      setShowForm(false);
-    } catch (e: any) { alert("Erro ao salvar: " + e.message); }
+      const { error } = await supabase.from("respostas_rapidas").insert([{
+        atalho: form.atalho.trim(),
+        mensagem: form.mensagem.trim(),
+        workspace_id: ws,  // ← mesma chave usada no fetch e delete
+      }]);
+      if (error) {
+        alert("Erro ao salvar: " + error.message);
+      } else {
+        await fetchRespostas();
+        setForm({ atalho: "", mensagem: "" });
+        setShowForm(false);
+      }
+    } catch (e: any) {
+      alert("Erro ao salvar: " + (e?.message || "desconhecido"));
+    }
     setSalvando(false);
   };
 
   const remover = async (r: RespostaRapida) => {
     if (!confirm(`Remover atalho ${r.atalho}?`)) return;
-    if (r.id) {
-      // 🔒 MULTI-TENANT: defesa em profundidade — só deleta se for deste workspace.
-      // Antes, qualquer um com o id da resposta podia deletar de outro workspace via DevTools.
-      const wsAlvo = workspace?.username || workspace?.id?.toString() || wsId;
-      if (!wsAlvo) { alert("Workspace não carregado. Recarregue a página."); return; }
-      await supabase.from("respostas_rapidas").delete()
-        .eq("id", r.id)
-        .eq("workspace_id", wsAlvo);
-      await fetchRespostas();
-    } else {
+    if (!r.id) {
+      // Item local (fallback) — só remove do estado
       setRespostas(respostas.filter(x => x.atalho !== r.atalho));
+      return;
     }
+    const ws = wsKey();
+    if (!ws) { alert("Workspace não carregado. Recarregue a página."); return; }
+
+    // 🔒 MULTI-TENANT: defesa em profundidade — só deleta se for deste workspace.
+    const { error } = await supabase.from("respostas_rapidas").delete()
+      .eq("id", r.id)
+      .eq("workspace_id", ws);
+    if (error) {
+      alert("Erro ao remover: " + error.message);
+      return;
+    }
+    await fetchRespostas();
   };
 
   return (
@@ -98,12 +131,17 @@ export function RespostasRapidasSection() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {respostas.length === 0 ? (
+        {carregando ? (
+          <div style={{ background: "#111", borderRadius: 12, padding: 32, textAlign: "center", border: "1px solid #1f2937" }}>
+            <p style={{ color: "#6b7280", fontSize: 13 }}>⏳ Carregando...</p>
+          </div>
+        ) : respostas.length === 0 ? (
           <div style={{ background: "#111", borderRadius: 12, padding: 32, textAlign: "center", border: "1px solid #1f2937" }}>
             <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma resposta rápida cadastrada ainda</p>
+            <p style={{ color: "#4b5563", fontSize: 12, margin: "8px 0 0" }}>Clique em "+ Nova Resposta" pra criar a primeira</p>
           </div>
         ) : respostas.map((r, i) => (
-          <div key={i} style={{ background: "#111", borderRadius: 10, padding: "16px 20px", border: "1px solid #1f2937", display: "flex", alignItems: "center", gap: 16 }}>
+          <div key={r.id || i} style={{ background: "#111", borderRadius: 10, padding: "16px 20px", border: "1px solid #1f2937", display: "flex", alignItems: "center", gap: 16 }}>
             <span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 12, padding: "4px 12px", borderRadius: 8, fontWeight: "bold", whiteSpace: "nowrap" }}>{r.atalho}</span>
             <p style={{ color: "#9ca3af", fontSize: 13, margin: 0, flex: 1 }}>{r.mensagem}</p>
             <button onClick={() => remover(r)} style={{ background: "none", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Remover</button>
