@@ -7,6 +7,18 @@ import { usePermissao } from "../../hooks/usePermissao";
 
 type UsuarioWs = { email: string; nome: string; };
 
+// 🆕 Tipo dos campos customizados (definidos pelo admin em /crm/editor-proposta)
+type CampoCustom = {
+  id: number;
+  slug: string;
+  label: string;
+  tipo: "texto" | "textarea" | "numero" | "moeda" | "data" | "dropdown" | "checkbox";
+  obrigatorio: boolean;
+  ordem: number;
+  opcoes?: string[] | null;
+  placeholder?: string | null;
+};
+
 function PropostaForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,6 +31,11 @@ function PropostaForm() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [podeEscolherVendedor, setPodeEscolherVendedor] = useState<boolean>(false);
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
+
+  // 🆕 CAMPOS CUSTOMIZADOS — buscados da tabela proposta_campos_customizados
+  // Definidos pelo dono/admin do workspace em /crm/editor-proposta
+  const [camposCustom, setCamposCustom] = useState<CampoCustom[]>([]);
+  const [dadosCustomizados, setDadosCustomizados] = useState<Record<string, any>>({});
 
   const [form, setForm] = useState({
     dataProposta: new Date().toISOString().split("T")[0], // pré-preenche com hoje
@@ -48,7 +65,7 @@ function PropostaForm() {
     operadora: "",
   });
 
-  // 🆕 Carrega usuários do workspace + define se user pode escolher qualquer vendedor
+  // 🆕 Carrega usuários do workspace + campos customizados
   useEffect(() => {
     const carregar = async () => {
       if (!workspace?.username) return;
@@ -95,9 +112,30 @@ function PropostaForm() {
         setPodeEscolherVendedor(pode);
 
         // Pré-seleciona vendedor com o email do user atual
-        // (pra atendente: trava nessa; pra admin: começa aqui mas pode trocar)
         setForm(p => ({ ...p, vendedor: user.email || "" }));
-      } catch (e) { console.error("Erro ao carregar usuários:", e); }
+
+        // 🆕 Busca campos customizados ATIVOS do workspace, ordenados
+        const { data: customs } = await supabase
+          .from("proposta_campos_customizados")
+          .select("id, slug, label, tipo, obrigatorio, ordem, opcoes, placeholder")
+          .eq("workspace_id", workspace.username)
+          .eq("ativo", true)
+          .order("ordem", { ascending: true });
+
+        const tratados = (customs || []).map((c: any) => ({
+          ...c,
+          opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" ? JSON.parse(c.opcoes) : []),
+        }));
+        setCamposCustom(tratados);
+
+        // Inicializa valores vazios (checkbox = false; resto = "")
+        const valoresIniciais: Record<string, any> = {};
+        for (const c of tratados) {
+          valoresIniciais[c.slug] = c.tipo === "checkbox" ? false : "";
+        }
+        setDadosCustomizados(valoresIniciais);
+
+      } catch (e) { console.error("Erro ao carregar usuários/campos:", e); }
       setCarregandoUsuarios(false);
     };
     carregar();
@@ -121,6 +159,18 @@ function PropostaForm() {
       alert("Workspace não encontrado!");
       return;
     }
+
+    // 🆕 Valida campos customizados obrigatórios
+    for (const c of camposCustom) {
+      if (!c.obrigatorio) continue;
+      const v = dadosCustomizados[c.slug];
+      const vazio = c.tipo === "checkbox" ? v !== true : (v === undefined || v === null || String(v).trim() === "");
+      if (vazio) {
+        alert(`O campo "${c.label}" é obrigatório.`);
+        return;
+      }
+    }
+
     setLoading(true);
 
     const { error } = await supabase.from("proposta").insert([{
@@ -144,12 +194,14 @@ function PropostaForm() {
       valor_plano: form.valorPlano ? Number(form.valorPlano) : null,
       data_agendamento: form.dataAgendamento,
       periodo_instalacao: form.periodoInstalacao,
-      vendedor: form.vendedor, // 🆕 agora é sempre um email válido
+      vendedor: form.vendedor,
       status_venda: form.statusVenda,
       data_instalacao: form.dataInstalacao,
       data_cancelamento: form.dataCancelamento,
       operadora: form.operadora,
       workspace_id: workspace.username,
+      // 🆕 Salva os valores customizados como JSONB (objeto chave-valor: { slug: valor })
+      dados_customizados: dadosCustomizados,
     }]);
 
     setLoading(false);
@@ -160,7 +212,7 @@ function PropostaForm() {
     }
 
     alert("Proposta cadastrada com sucesso!");
-    router.push("/crm/vendas"); // 🆕 volta pra Vendas ao invés do CRM genérico
+    router.push("/crm/vendas");
   };
 
   const inputStyle = {
@@ -190,6 +242,61 @@ function PropostaForm() {
     </div>
   );
 
+  // 🆕 Renderiza UM campo customizado conforme o tipo definido pelo admin
+  const renderCampoCustom = (c: CampoCustom) => {
+    const valor = dadosCustomizados[c.slug];
+    const set = (v: any) => setDadosCustomizados(prev => ({ ...prev, [c.slug]: v }));
+    const labelComObr = `${c.label}${c.obrigatorio ? " *" : ""}`;
+
+    if (c.tipo === "texto") {
+      return fieldBox(labelComObr,
+        <input placeholder={c.placeholder || ""} value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} />
+      );
+    }
+    if (c.tipo === "textarea") {
+      return fieldBox(labelComObr,
+        <textarea placeholder={c.placeholder || ""} value={valor || ""} onChange={e => set(e.target.value)} rows={3}
+          style={{ ...inputStyle, resize: "vertical" as const, fontFamily: "Arial, sans-serif" }} />
+      );
+    }
+    if (c.tipo === "numero") {
+      return fieldBox(labelComObr,
+        <input type="number" placeholder={c.placeholder || "0"} value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} />
+      );
+    }
+    if (c.tipo === "moeda") {
+      return fieldBox(labelComObr,
+        <input type="number" step="0.01" placeholder={c.placeholder || "0,00"} value={valor || ""}
+          onChange={e => set(e.target.value)} style={inputStyle} />
+      );
+    }
+    if (c.tipo === "data") {
+      return fieldBox(labelComObr,
+        <input type="date" value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle} />
+      );
+    }
+    if (c.tipo === "dropdown") {
+      return fieldBox(labelComObr,
+        <select value={valor || ""} onChange={e => set(e.target.value)} style={inputStyle}>
+          <option value="">Selecione...</option>
+          {(c.opcoes || []).map((op, i) => <option key={i} value={op}>{op}</option>)}
+        </select>
+      );
+    }
+    if (c.tipo === "checkbox") {
+      return (
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+          <label style={labelStyle}>{labelComObr}</label>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "#1f2937", borderRadius: 8, border: "1px solid #374151", cursor: "pointer" }}>
+            <input type="checkbox" checked={valor === true} onChange={e => set(e.target.checked)} style={{ accentColor: "#16a34a", width: 16, height: 16 }} />
+            <span style={{ color: "white", fontSize: 13 }}>{valor === true ? "Sim" : "Não"}</span>
+          </label>
+        </div>
+      );
+    }
+    return null;
+  };
+
   // 🆕 Renderiza o campo Vendedor: dropdown pra admin, campo bloqueado pros outros
   const renderVendedorField = () => {
     if (carregandoUsuarios) {
@@ -211,7 +318,6 @@ function PropostaForm() {
         </select>
       );
     }
-    // Atendente/Vendedor comum — mostra o próprio nome (não editável)
     const meuNome = usuariosWs.find(u => u.email?.toLowerCase() === userEmail.toLowerCase())?.nome || userEmail;
     return (
       <input
@@ -223,7 +329,7 @@ function PropostaForm() {
     );
   };
 
-  // 🔒 Sem permissão pra criar proposta — mostra tela de acesso restrito (defesa em profundidade — handleSubmit já bloqueia)
+  // 🔒 Sem permissão pra criar proposta — mostra tela de acesso restrito
   if (!isDono && !isSuperAdmin && !permissoes.proposta_criar) {
     return (
       <div style={{ minHeight: "100vh", background: "#0a0a0a", fontFamily: "Arial, sans-serif", padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -358,6 +464,22 @@ function PropostaForm() {
             {fieldBox("Data de Cancelamento", <input type="date" value={form.dataCancelamento} onChange={(e) => setForm({ ...form, dataCancelamento: e.target.value })} style={inputStyle} />)}
           </div>
         </div>
+
+        {/* 🆕 ✨ CAMPOS PERSONALIZADOS — renderizados dinamicamente conforme o admin definiu */}
+        {camposCustom.length > 0 && (
+          <div>
+            <h3 style={{ color: "#a855f7", fontSize: 13, textTransform: "uppercase", letterSpacing: 1, margin: "0 0 16px 0", borderBottom: "1px solid #1f2937", paddingBottom: 8 }}>
+              ✨ Campos Personalizados
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+              {camposCustom.map(c => (
+                <div key={c.id} style={c.tipo === "textarea" ? { gridColumn: "1 / -1" } : undefined}>
+                  {renderCampoCustom(c)}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Botões */}
         <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
