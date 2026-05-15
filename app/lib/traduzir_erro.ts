@@ -44,6 +44,22 @@ export function traduzirErro(err: any): string {
     try { msg = JSON.stringify(err); } catch { msg = String(err); }
   }
 
+  // 🆕 Subcodes específicos da Meta — sempre prioritários quando presentes
+  // (vêm no error_subcode da resposta da Graph API)
+  const subcode = Number(err?.error_subcode ?? err?.subcodigo);
+  if (subcode === 2388001) return "A conta business da Meta não atende aos requisitos de política do WhatsApp. Abra um chamado no Meta Business Suite (Recursos → Falar com suporte) com o fbtrace_id deste erro.";
+  if (subcode === 2388023) return "Display Name do WhatsApp foi rejeitado. Altere no Meta Business Manager pra um nome que represente a empresa.";
+  if (subcode === 2388092) return "Verificação da empresa pendente na Meta. Complete a Business Verification antes de registrar o número.";
+  if (subcode === 2388013) return "Número já em uso em outra conta Business da Meta. Migre o número ou use outro.";
+
+  // Título amigável que a Meta às vezes manda pronto
+  const titleMeta = err?.error_user_title;
+  const msgMeta = err?.error_user_msg;
+  if (titleMeta && typeof titleMeta === "string" && titleMeta.length < 100) {
+    // Se Meta já mandou texto amigável, usa ele (eles geralmente escrevem bem)
+    return titleMeta + (msgMeta && msgMeta.length < 300 ? ` — ${msgMeta}` : "");
+  }
+
   const m = msg.toLowerCase();
 
   // ─── 2) Códigos específicos da Meta WhatsApp Business API ────────────
