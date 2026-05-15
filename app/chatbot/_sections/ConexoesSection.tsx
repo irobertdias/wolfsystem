@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { useToast } from "../../hooks/useToast";
+import { traduzirErro } from "../../lib/traduzir_erro";
 
 // 🆕 Tipagem do Facebook SDK (carregado dinamicamente)
 declare global {
@@ -38,6 +40,7 @@ type LimitesPlano = { conexoes: number; webjs: boolean; waba: boolean; instagram
 export function ConexoesSection() {
   const router = useRouter();
   const { workspace, wsId, user } = useWorkspace();
+  const { notify } = useToast();
   // 🆕 Não usa mais isDono pra limites — dono de workspace NÃO é super admin do Wolf
   // (se precisar verificar "é dono do workspace?" pra outras regras, reabilita esta linha)
   // const { isDono } = usePermissao();
@@ -325,7 +328,7 @@ export function ConexoesSection() {
     if (!usarPinPadrao) {
       const pinCustom = prompt("Digite seu PIN de 6 dígitos (2FA):", "");
       if (!pinCustom) return;
-      if (!/^\d{6}$/.test(pinCustom)) { alert("❌ PIN deve ter exatamente 6 dígitos!"); return; }
+      if (!/^\d{6}$/.test(pinCustom)) { notify("PIN deve ter exatamente 6 dígitos", "aviso", "Digite os 6 números do seu PIN de 2 fatores"); return; }
       pin = pinCustom;
     }
     setRegistrandoWaba(true); setShowMenuEngrenagem(null);
@@ -337,7 +340,7 @@ export function ConexoesSection() {
       });
       const data = await resp.json();
       if (data.success) {
-        alert(`✅ Número ativado com sucesso na Meta!\n\nAgora ele está ONLINE e pode receber mensagens.`);
+        notify("Número ativado na Meta!", "sucesso", "Agora está ONLINE e pode receber mensagens");
         await fetchConexoes();
       } else {
         const codigo = data.codigo;
@@ -346,9 +349,9 @@ export function ConexoesSection() {
         if (codigo === 131000 || mensagemErro.includes("PIN")) dica = "\n\n💡 Dica: o número tem 2FA. Clique Cancelar no primeiro popup pra digitar PIN.";
         else if (mensagemErro.toLowerCase().includes("too many")) dica = "\n\n💡 Aguarde uns minutos antes de tentar de novo.";
         else if (codigo === 133010) dica = "\n\n💡 Número já está registrado!";
-        alert(`❌ ${mensagemErro}${dica}`);
+        notify(traduzirErro({ error: mensagemErro, codigo }), "erro", dica.replace(/^\n\n💡 ?/, "") || undefined);
       }
-    } catch (e: any) { alert("❌ Erro: " + e.message); }
+    } catch (e: any) { notify("Operação falhou", "erro", traduzirErro(e)); }
     setRegistrandoWaba(false);
   };
 
@@ -356,9 +359,9 @@ export function ConexoesSection() {
     const statusAlvo = tipo === "aguardando" ? ["pendente"] : ["aberto", "em_atendimento"];
     const labelTipo = tipo === "aguardando" ? "aguardando" : "abertos";
     const { data: atendimentos, error: errBusca } = await supabase.from("atendimentos").select("id, numero, nome").eq("workspace_id", c.workspace_id).eq("canal_id", c.id).in("status", statusAlvo);
-    if (errBusca) { alert("Erro: " + errBusca.message); return; }
+    if (errBusca) { notify("Erro ao buscar atendimentos", "erro", traduzirErro(errBusca)); return; }
     const total = atendimentos?.length || 0;
-    if (total === 0) { alert(`✅ Não há atendimentos ${labelTipo} em "${c.nome}".`); setShowMenuEngrenagem(null); return; }
+    if (total === 0) { notify(`Não há atendimentos ${labelTipo} em "${c.nome}"`, "info"); setShowMenuEngrenagem(null); return; }
     const confirmacao = confirm(`⚠️ ATENÇÃO — Canal: ${c.nome}\n\nVocê está prestes a ENCERRAR ${total} atendimento(s) ${labelTipo}.\n\nDeseja continuar?`);
     if (!confirmacao) return;
     setEncerrandoMassa(true); setShowMenuEngrenagem(null);
@@ -369,13 +372,13 @@ export function ConexoesSection() {
       const mensagensSistema = (atendimentos || []).map(a => ({ numero: a.numero, mensagem: `Chat encerrado em massa (${labelTipo}) por: ${meuNome}`, de: "sistema", workspace_id: c.workspace_id, canal_id: c.id }));
       if (mensagensSistema.length > 0) { for (let i = 0; i < mensagensSistema.length; i += 100) { const lote = mensagensSistema.slice(i, i + 100); await supabase.from("mensagens").insert(lote); } }
       try { await supabase.from("fluxo_sessoes").update({ status: "finalizado" }).eq("workspace_id", c.workspace_id).eq("status", "ativo"); } catch (e) {}
-      alert(`✅ ${total} atendimento(s) ${labelTipo} encerrado(s)!`);
-    } catch (e: any) { alert("❌ Erro: " + e.message); }
+      notify(`${total} atendimento(s) ${labelTipo} encerrado(s)`, "sucesso");
+    } catch (e: any) { notify("Operação falhou", "erro", traduzirErro(e)); }
     setEncerrandoMassa(false);
   };
 
   const testarWABA = async () => {
-    if (!form.phoneNumberId || !form.token) { alert("Preencha Phone Number ID e Token!"); return; }
+    if (!form.phoneNumberId || !form.token) { notify("Preencha Phone Number ID e Token", "aviso"); return; }
     setTestandoWABA(true); setWabaTeste(null);
     try {
       const resp = await fetch(`/api/whatsapp?rota=waba/testar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phoneNumberId: form.phoneNumberId, token: form.token }) });
@@ -401,23 +404,23 @@ export function ConexoesSection() {
         .eq("id", canal.id)
         .eq("workspace_id", canal.workspace_id);
       if (error) {
-        alert("Erro ao atualizar: " + error.message);
+        notify("Falha ao atualizar canal", "erro", traduzirErro(error));
         return;
       }
       await fetchConexoes();
     } catch (err: any) {
-      alert("Erro de rede: " + (err.message || "desconhecido"));
+      notify("Falha de rede", "erro", traduzirErro(err));
     }
   };
 
   // 🆕 Inicia OAuth, lista pages e abre modal de seleção (cliente decide quais conectar)
   const conectarMeta = () => {
     if (!wsId) {
-      alert("Workspace não identificado. Recarregue a página.");
+      notify("Workspace não identificado", "aviso", "Recarregue a página (F5)");
       return;
     }
     if (!window.FB) {
-      alert("Facebook SDK ainda carregando. Aguarde 2s e tente de novo.");
+      notify("Sistema do Facebook carregando", "aviso", "Aguarde 2 segundos e tente novamente");
       return;
     }
 
@@ -490,7 +493,7 @@ export function ConexoesSection() {
   // 🆕 Confirma seleção e chama backend pra criar canais
   const confirmarSelecaoPages = async () => {
     if (pagesSelecionadas.size === 0) {
-      alert("Selecione pelo menos 1 fan page.");
+      notify("Selecione ao menos 1 fan page", "aviso");
       return;
     }
     const pagesEscolhidas = pagesDisponiveis.filter(p => pagesSelecionadas.has(p.id));
@@ -532,28 +535,28 @@ export function ConexoesSection() {
     // 🆕 Guard - tipo meta_oauth na criação NÃO usa esta função.
     // Os canais Instagram/Messenger já foram criados via OAuth/backend.
     if (!editandoId && form.tipo === "meta_oauth") {
-      alert("Canal Meta já foi conectado pelo Facebook. Clique em 'Concluir' pra fechar este modal.");
+      notify("Canal Meta já conectado", "info", "Clique em 'Concluir' pra fechar este modal");
       return;
     }
-    if (!wsId) { alert("Aguarde o workspace carregar!"); return; }
-    if (!form.nome.trim()) { alert("Digite o nome do canal!"); return; }
-    if (!form.fila) { alert("Selecione uma fila!\n\nSe não tiver fila cadastrada, vá em Configurações → Filas e crie uma."); return; } // 🆕
-    if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { alert("Preencha Phone Number ID e Token!"); return; }
-    if (!editandoId && form.modo === "ia" && !form.apiKey) { alert("Digite a API Key da IA!"); return; }
+    if (!wsId) { notify("Aguarde o workspace carregar", "aviso"); return; }
+    if (!form.nome.trim()) { notify("Digite o nome do canal", "aviso"); return; }
+    if (!form.fila) { notify("Selecione uma fila", "aviso", "Se não tem fila cadastrada, vá em Configurações → Filas"); return; } // 🆕
+    if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { notify("Preencha Phone Number ID e Token", "aviso"); return; }
+    if (!editandoId && form.modo === "ia" && !form.apiKey) { notify("Digite a API Key da IA", "aviso"); return; }
     // 🆕 TYPEBOT — exige URL pra criar
     if (form.modo === "typebot" && !form.typebot_url?.trim()) {
-      alert("Cole a URL de publicação do Typebot!");
+      notify("Cole a URL de publicação do Typebot", "aviso");
       return;
     }
 
     // 🆕 Validação de limite do plano — APENAS super admin Wolf bypassa (dono de workspace respeita plano)
     if (!editandoId && !isSuperAdmin) {
       if (conexoes.length >= limites.conexoes) {
-        alert(`❌ Limite do plano atingido!\n\nSeu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}.\n\nFaça upgrade pra criar mais canais.`);
+        notify("Limite do plano atingido", "erro", `Seu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}. Faça upgrade pra criar mais.`);
         return;
       }
-      if (form.tipo === "webjs" && !limites.webjs) { alert("❌ Seu plano não inclui WhatsApp Web!"); return; }
-      if (form.tipo === "waba" && !limites.waba) { alert("❌ Seu plano não inclui API Meta (WABA)!\n\nFaça upgrade pro plano Intermediário ou Ultra."); return; }
+      if (form.tipo === "webjs" && !limites.webjs) { notify("Seu plano não inclui WhatsApp Web", "erro", "Faça upgrade pra usar este canal"); return; }
+      if (form.tipo === "waba" && !limites.waba) { notify("Seu plano não inclui API Meta (WABA)", "erro", "Faça upgrade pro plano Intermediário ou Ultra"); return; }
     }
 
     setSalvandoCanal(true);
@@ -584,7 +587,7 @@ export function ConexoesSection() {
         setEditandoId(null);
         // 🔒 MULTI-TENANT: backend exige workspaceId pra validar que canal pertence ao workspace.
         try { await wa("configurar-ia", { canalId: editandoId, workspaceId: wsId, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo }); } catch (e) {}
-        alert("✅ Canal atualizado!");
+        notify("Canal atualizado", "sucesso");
       } else {
         let novoId: number | null = null;
         if (form.tipo === "waba") {
@@ -610,12 +613,12 @@ export function ConexoesSection() {
           // 🔒 MULTI-TENANT: backend exige workspaceId
           try { await wa("canal/criar", { canalId: novoId, workspaceId: wsId }); } catch (e) { console.error("Erro ao criar sessão no VPS:", e); }
         }
-        alert("✅ Canal criado com sucesso!");
+        notify("Canal criado", "sucesso");
       }
       await fetchConexoes();
       setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null);
       setApiKeyTocada(false); setTokenTocado(false);
-    } catch (e: any) { alert("Erro: " + e.message); }
+    } catch (e: any) { notify("Operação falhou", "erro", traduzirErro(e)); }
     setSalvandoCanal(false);
   };
 
@@ -649,7 +652,7 @@ export function ConexoesSection() {
       // 🔒 MULTI-TENANT: backend exige workspaceId
       const data = await wa("reconectar", { canalId: c.id, workspaceId: c.workspace_id });
       if (!data.success) {
-        alert(`❌ Falha ao reconectar: ${data.error || "erro desconhecido"}`);
+        notify("Falha ao reconectar", "erro", traduzirErro(data));
         return;
       }
       // Atualiza status local pra mostrar que tá reconectando
@@ -659,16 +662,16 @@ export function ConexoesSection() {
 
       if (data.sessao_salva === false) {
         // Sem sessão salva — vai precisar escanear QR mesmo. Abre modal automaticamente.
-        alert(`⚠️ ${c.nome} não tem sessão salva no servidor.\n\nVou abrir o QR Code pra você escanear.`);
+        notify(`${c.nome} não tem sessão salva`, "aviso", "Vou abrir o QR Code pra você escanear");
         // Reusa o fluxo do QR
         setQrCanalId(c.id); setResetando(false); setShowModalQR(true);
         setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0);
         setQrPolling(true);
       } else {
-        alert(`✅ ${c.nome} reconectando...\n\nO login do WhatsApp será restaurado automaticamente em alguns segundos.\nNão precisa escanear QR.`);
+        notify(`${c.nome} reconectando...`, "sucesso", "O login será restaurado automaticamente. Não precisa escanear QR");
       }
     } catch (e: any) {
-      alert("Erro ao reconectar: " + (e?.message || e));
+      notify("Falha ao reconectar", "erro", traduzirErro(e));
     }
   };
 
@@ -681,14 +684,14 @@ export function ConexoesSection() {
       await supabase.from("conexoes").update({ status: "desconectado", numero: "" })
         .eq("id", c.id).eq("workspace_id", c.workspace_id);
       await fetchConexoes();
-      alert("✅ Desconectado!");
-    } catch (e: any) { alert("Erro: " + e.message); }
+      notify("Canal desconectado", "sucesso");
+    } catch (e: any) { notify("Operação falhou", "erro", traduzirErro(e)); }
   };
 
   const excluirCanal = async (id: number) => {
     if (!confirm("Excluir esse canal?\n\nTodo o histórico vai ser preservado mas o canal será removido.")) return;
     const canal = conexoes.find(c => c.id === id);
-    if (!canal) { alert("Canal não encontrado."); return; }
+    if (!canal) { notify("Canal não encontrado", "erro"); return; }
     // 🔒 MULTI-TENANT: backend exige workspaceId
     if (canal.tipo === "webjs") { try { await wa("desconectar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {} }
     // 🔒 MULTI-TENANT CRÍTICO: delete só passa se canal for deste workspace.
@@ -756,9 +759,9 @@ export function ConexoesSection() {
                         setQrConectado(true); setQrNumero(data.numero || "");
                         setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
                       } else {
-                        alert(`Backend ainda não reconheceu a conexão.\n\nStatus atual: ${data.status}\n\nTenta de novo ou recria o QR.`);
+                        notify("Backend ainda não reconheceu a conexão", "aviso", `Status atual: ${data.status}. Tenta de novo ou recria o QR.`);
                       }
-                    } catch (e: any) { alert("Erro ao verificar: " + (e?.message || e)); }
+                    } catch (e: any) { notify("Falha ao verificar QR", "erro", traduzirErro(e)); }
                   }}
                   style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: "bold" }}
                 >
