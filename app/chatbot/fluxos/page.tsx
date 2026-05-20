@@ -68,17 +68,40 @@ const IS: React.CSSProperties = {width:"100%",background:"#0a0a0a",border:"1px s
 const LS: React.CSSProperties = {color:"#9ca3af",fontSize:10,textTransform:"uppercase",display:"block",marginBottom:4,letterSpacing:1};
 
 // ✅ ATUALIZADO — pega username do workspace (nunca o id numérico)
+// 🆕 v18: padronizado com o useWorkspace.ts pra funcionar igual pra sub-usuário.
+// Antes, dois bugs faziam Admin sub-usuário receber null:
+//   1) .maybeSingle() sem .order().limit(1) quebra com erro 406 se houver duplicata
+//   2) .or(username.eq.X, id.eq.X) com X=texto faz Postgres rejeitar com erro 400
+//      porque a coluna `id` é INT — qualquer comparação `id.eq.abccompany` falha.
 async function getWsUsername(): Promise<string|null> {
   const {data:{user}} = await supabase.auth.getUser();
   if (!user) return null;
   // 1. Dono do workspace
   const {data: wsDono} = await supabase.from("workspaces").select("username").eq("owner_id", user.id).maybeSingle();
   if (wsDono?.username) return wsDono.username;
-  // 2. Sub-usuário
-  const {data: uw} = await supabase.from("usuarios_workspace").select("workspace_id").eq("email", user.email).maybeSingle();
-  if (uw) {
-    const {data: wsSub} = await supabase.from("workspaces").select("username").or(`username.eq.${uw.workspace_id},id.eq.${uw.workspace_id}`).maybeSingle();
+  // 2. Sub-usuário — busca a linha mais recente (limit 1) pra evitar erro 406 em duplicatas
+  const {data: uw} = await supabase.from("usuarios_workspace")
+    .select("workspace_id")
+    .eq("email", user.email)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (uw?.workspace_id) {
+    // 2a. Tenta como username (caso novo — workspace_id é string tipo "abccompany")
+    const {data: wsSub} = await supabase.from("workspaces")
+      .select("username")
+      .eq("username", uw.workspace_id)
+      .maybeSingle();
     if (wsSub?.username) return wsSub.username;
+    // 2b. Fallback legacy — só tenta como id numérico SE workspace_id for só dígitos
+    //     (proteção contra erro 400 "invalid input syntax for integer")
+    if (/^\d+$/.test(uw.workspace_id)) {
+      const {data: wsLegado} = await supabase.from("workspaces")
+        .select("username")
+        .eq("id", parseInt(uw.workspace_id))
+        .maybeSingle();
+      if (wsLegado?.username) return wsLegado.username;
+    }
   }
   return null;
 }
@@ -675,7 +698,37 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         {VarPill("Salvar resposta em", "variavel", "ex: avaliacao")}
       </>;
     case "input_pagamento":
-      return <>{F("Valor (R$)","valor","number","0")}{F("Descrição","descricao")}</>;
+      // 🆕 v18: aviso de feature parcial — backend ainda não tem integração com gateway
+      return <>
+        <p style={{color:"#f59e0b",fontSize:11,margin:"0 0 6px",lineHeight:1.4}}>
+          ⚠️ <b>Em desenvolvimento</b> — sem integração com gateway de pagamento (Pix/Stripe/Mercado Pago).
+          As saídas "Aprovado/Recusado" não disparam ainda. Use com cautela.
+        </p>
+        {F("Valor (R$)","valor","number","0")}
+        {F("Descrição","descricao")}
+      </>;
+    case "input_selecao_imagem":
+      // 🆕 v18: case implementado — antes caía no default ("Sem propriedades.") e o bloco ficava inútil.
+      return <div>
+        {TVar("Pergunta","texto","Selecione uma opção:",60)}
+        <label style={LS}>Imagens (URL|Título, uma por linha)</label>
+        <textarea
+          value={(d.itens||[]).map((it:any) => `${it.url||""}|${it.titulo||""}`).join("\n")}
+          onChange={e => {
+            const itens = e.target.value.split("\n").filter(Boolean).map((l:string) => {
+              const [url,titulo] = l.split("|");
+              return {url: url?.trim()||"", titulo: titulo?.trim()||""};
+            });
+            u({itens});
+          }}
+          style={{...IS, height:100, resize:"vertical", fontFamily:"monospace", fontSize:11}}
+          placeholder={"https://exemplo.com/produto1.jpg|Produto 1\nhttps://exemplo.com/produto2.jpg|Produto 2"}
+        />
+        <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0", lineHeight:1.3}}>
+          💡 Cliente recebe as imagens e escolhe uma. O título da opção escolhida é salvo na variável abaixo.
+        </p>
+        {VarPill("Salvar opção escolhida em", "variavel", "ex: produto_escolhido")}
+      </div>;
     case "input_botao":
       return <>
         {TVar("Texto","texto","Escolha:",60)}
@@ -989,7 +1042,35 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         {VarPill("Salvar status em", "variavel_status", "ex: status_api")}
       </>;
     case "pular": case "retornar":
-      return <>{F("ID do nó alvo","alvo","text","ID do bloco destino")}</>;
+      // 🆕 v18: dropdown selecionando nó (antes era input texto livre exigindo conhecer UID aleatório).
+      // O usuário escolhe pelo label/preview do bloco; o que vai pro banco continua sendo o id (UID).
+      return <div>
+        <label style={LS}>{noSel.tipo === "pular" ? "Pular PARA o bloco:" : "Retornar PARA o bloco:"}</label>
+        <select value={d.alvo||""} onChange={e => u({alvo: e.target.value})} style={IS}>
+          <option value="">— Selecione um bloco —</option>
+          {nos
+            .filter(n => n.id !== noSel.id)
+            .map(n => {
+              const cfg = B[n.tipo];
+              const preview = getPreview(n).slice(0, 35);
+              return (
+                <option key={n.id} value={n.id}>
+                  {cfg?.icone} {cfg?.label} — {preview}
+                </option>
+              );
+            })}
+        </select>
+        {d.alvo && !nos.find(n => n.id === d.alvo) && (
+          <p style={{color:"#dc2626", fontSize:10, margin:"4px 0 0"}}>
+            ⚠️ Bloco alvo não existe mais (pode ter sido excluído). Selecione outro.
+          </p>
+        )}
+        <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0", lineHeight:1.3}}>
+          {noSel.tipo === "pular"
+            ? "💡 Pula a execução direto pro bloco escolhido (atalho/jump)."
+            : "💡 Volta a execução pro bloco escolhido (loop/retry)."}
+        </p>
+      </div>;
     case "google_sheets":
       return <>
         <p style={{color:"#f59e0b",fontSize:11,margin:"0 0 6px"}}>⚠️ Em desenvolvimento — ainda não funcional.</p>
@@ -1492,6 +1573,35 @@ export default function FluxosPage() {
                   <input placeholder="oi, olá" value={form.trigger_valor} onChange={e=>setForm({...form,trigger_valor:e.target.value})} style={{...IS,background:"#1f2937"}}/>
                 </div>
               )}
+              {/* 🆕 v18: campos de horário pro trigger "fora_horario".
+                  trigger_valor salva como JSON {"hora_inicio":"08:00","hora_fim":"18:00"}
+                  pra backend decidir se hora atual está fora dessa faixa. */}
+              {form.trigger_tipo==="fora_horario" && (() => {
+                let cfg = {hora_inicio:"08:00", hora_fim:"18:00"};
+                try { if (form.trigger_valor) cfg = {...cfg, ...JSON.parse(form.trigger_valor)}; } catch {}
+                const setCfg = (patch: any) => {
+                  const novo = {...cfg, ...patch};
+                  setForm({...form, trigger_valor: JSON.stringify(novo)});
+                };
+                return (
+                  <div>
+                    <label style={{...LS,fontSize:11}}>Horário de funcionamento (dispara FORA dessa faixa)</label>
+                    <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                      <input type="time" value={cfg.hora_inicio}
+                        onChange={e=>setCfg({hora_inicio:e.target.value})}
+                        style={{...IS,background:"#1f2937",flex:1}}/>
+                      <span style={{color:"#6b7280",fontSize:12}}>até</span>
+                      <input type="time" value={cfg.hora_fim}
+                        onChange={e=>setCfg({hora_fim:e.target.value})}
+                        style={{...IS,background:"#1f2937",flex:1}}/>
+                    </div>
+                    <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+                      💡 O fluxo dispara quando o cliente manda mensagem FORA do horário {cfg.hora_inicio}–{cfg.hora_fim}.
+                      Ex: pra resposta automática noturna ou de fim de semana.
+                    </p>
+                  </div>
+                );
+              })()}
               <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
                 <button onClick={()=>setShowNovo(false)} style={{background:"none",color:"#9ca3af",border:"1px solid #374151",borderRadius:8,padding:"10px 20px",fontSize:13,cursor:"pointer"}}>Cancelar</button>
                 <button onClick={criarFluxo} disabled={criando} style={{background:criando?"#6b21a8":"#8b5cf6",color:"white",border:"none",borderRadius:8,padding:"10px 24px",fontSize:13,cursor:criando?"wait":"pointer",fontWeight:"bold"}}>

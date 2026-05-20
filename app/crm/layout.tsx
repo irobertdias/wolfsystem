@@ -10,7 +10,8 @@ import { useModulos } from "../hooks/useModulos";
 //
 //   👑 Super Admin Wolf → vê TUDO sempre (bypass)
 //   🏢 Dono do workspace → vê o que o PLANO libera
-//   👤 Sub-usuário → vê (PLANO libera) E (grupo de permissão libera)
+//   👔 Administrador sub-usuário → vê IGUAL ao Dono (PLANO libera)
+//   👤 Sub-usuário comum → vê (PLANO libera) E (grupo de permissão libera)
 // ═══════════════════════════════════════════════════════════════════════
 
 const ADMIN_EMAIL = "robert.dias@live.com";
@@ -32,24 +33,27 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
       if (!user) { router.push("/"); return; }
       setUserEmail(user.email || "");
 
-      const { data: ws } = await supabase
+      // 🆕 v18: refatorado pra resolver workspace+owner_email num caminho único
+      // que funciona tanto pro DONO quanto pro SUB-USUÁRIO (Admin/Supervisor/Atendente).
+      // ANTES, usuariosCount e limiteUsuarios só carregavam dentro do if(ws), então
+      // sub-usuário ficava com counters em 0/9999 e o card "Plano" não mostrava nada útil.
+      let wsId: string | null = null;
+      let ownerEmail: string | null = null;
+      let workspaceNomeLocal: string | null = null;
+
+      // 1. Tenta como DONO
+      const { data: wsDono } = await supabase
         .from("workspaces")
         .select("*")
         .eq("owner_id", user.id)
         .maybeSingle();
 
-      if (ws) {
-        setWorkspaceNome(ws.nome);
-        const wsId = ws.username;
-        if (wsId) {
-          const { count } = await supabase.from("usuarios_workspace").select("*", { count: "exact", head: true }).eq("workspace_id", wsId);
-          setUsuariosCount(count || 0);
-        }
-        if (!isSuperAdmin) {
-          const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).maybeSingle();
-          if (cadastro) setLimiteUsuarios(cadastro.usuarios_liberados || 1);
-        }
+      if (wsDono) {
+        workspaceNomeLocal = wsDono.nome;
+        wsId = wsDono.username;
+        ownerEmail = wsDono.owner_email;
       } else {
+        // 2. Tenta como SUB-USUÁRIO
         const { data: usuarioWs } = await supabase
           .from("usuarios_workspace")
           .select("workspace_id")
@@ -59,23 +63,50 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           .maybeSingle();
 
         if (usuarioWs?.workspace_id) {
+          // 2a. Busca pelo username (caso novo)
           const { data: wsData } = await supabase
             .from("workspaces")
-            .select("nome")
+            .select("nome, username, owner_email")
             .eq("username", usuarioWs.workspace_id)
             .maybeSingle();
 
           if (wsData) {
-            setWorkspaceNome(wsData.nome);
+            workspaceNomeLocal = wsData.nome;
+            wsId = wsData.username;
+            ownerEmail = wsData.owner_email;
           } else if (/^\d+$/.test(usuarioWs.workspace_id)) {
+            // 2b. Fallback legacy — só tenta id numérico se workspace_id for dígitos
             const { data: wsLegado } = await supabase
               .from("workspaces")
-              .select("nome")
+              .select("nome, username, owner_email")
               .eq("id", parseInt(usuarioWs.workspace_id))
               .maybeSingle();
-            if (wsLegado) setWorkspaceNome(wsLegado.nome);
+            if (wsLegado) {
+              workspaceNomeLocal = wsLegado.nome;
+              wsId = wsLegado.username;
+              ownerEmail = wsLegado.owner_email;
+            }
           }
         }
+      }
+
+      if (workspaceNomeLocal) setWorkspaceNome(workspaceNomeLocal);
+
+      // 3. Conta sub-usuários do workspace (vale pra Dono E sub-usuário)
+      if (wsId) {
+        const { count } = await supabase.from("usuarios_workspace")
+          .select("*", { count: "exact", head: true })
+          .eq("workspace_id", wsId);
+        setUsuariosCount(count || 0);
+      }
+
+      // 4. Busca limite de usuários do plano via owner_email (vale pra Dono E sub-usuário)
+      if (!isSuperAdmin && ownerEmail) {
+        const { data: cadastro } = await supabase.from("cadastros")
+          .select("usuarios_liberados")
+          .eq("email", ownerEmail)
+          .maybeSingle();
+        if (cadastro) setLimiteUsuarios(cadastro.usuarios_liberados || 1);
       }
 
       if (isSuperAdmin) {
@@ -94,35 +125,35 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   // Super admin sempre vê tudo
   // Dono respeita só o módulo do plano
-  // Sub-usuário respeita (módulo) E (permissão granular)
+  // Administrador sub-usuário respeita o módulo (igual o Dono)
+  // Sub-usuário comum respeita (módulo) E (permissão granular)
   const podeVerComHierarquia = (
     moduloAtivo: boolean,
     permissaoKey: keyof typeof permissoes
   ): boolean => {
     if (isSuperAdmin) return true;
-    if (!moduloAtivo) return false;            // plano não inclui → ninguém vê
-    if (isDono) return true;                    // dono respeita só o plano
-    return !!permissoes[permissaoKey];          // sub-usuário precisa da permissão
+    if (!moduloAtivo) return false;                              // plano não inclui → ninguém vê
+    if (isDono) return true;                                      // dono respeita só o plano
+    if (perfil === "Administrador") return true;                  // 🆕 Admin sub-usuário = igual Dono
+    return !!permissoes[permissaoKey];                            // demais sub-usuários: precisa da permissão
   };
 
   // 🆕 Editor de Vendas — quem pode acessar a configuração dos campos customizados
-  // Mesma regra usada no botão dentro de /crm/vendas e na própria página /crm/editor-proposta.
   // Super admin sempre, dono do workspace sempre, sub-usuário só se for "Administrador".
   const podeEditarCamposVendas = isSuperAdmin || isDono || perfil === "Administrador";
+
+  // 🆕 v18: pra mostrar o card de Plano (usuariosCount/limiteUsuarios) pro Admin sub-usuário também
+  const ehDonoOuAdmin = isDono || perfil === "Administrador";
 
   // ═══════════════════════════════════════════════════════════════════════
   // 📋 Itens do menu — cada um respeitando a hierarquia
   // ═══════════════════════════════════════════════════════════════════════
-
-  // Super admin tem item especial "Clientes Wolf" (não disponível pra outros)
-  // Dashboard, Funil, Vendas: básicos do CRM, sempre liberados (não dependem de módulo)
   const menuItems = [
     ...(isSuperAdmin ? [{ path: "/crm/clientes", icon: "👥", label: "Clientes Wolf", badge: cadastrosCount }] : []),
     ...((isSuperAdmin || isDono || permissoes.dashboard) ? [{ path: "/crm/dashboard", icon: "📊", label: "Dashboard" }] : []),
     ...((isSuperAdmin || isDono || permissoes.funil || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/funil", icon: "🎯", label: "Funil de Vendas" }] : []),
     ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/vendas", icon: "💰", label: "Vendas" }] : []),
     // 🆕 EDITOR DE CAMPOS DA PROPOSTA — só admin/dono/super-admin
-    // Aparece logo após "Vendas" porque é a configuração diretamente relacionada
     ...(podeEditarCamposVendas ? [{ path: "/crm/editor-proposta", icon: "🛠️", label: "Editor de Vendas" }] : []),
     ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos) ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos", badge: 0 }] : []),
     ...((isSuperAdmin || isDono || permissoes.configuracoes_workspace) ? [{ path: "/crm/configuracoes", icon: "⚙️", label: "Configurações", badge: 0 }] : []),
@@ -130,7 +161,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   const isActive = (path: string) => pathname === path;
 
-  // 📞 TELEFONIA — respeita hierarquia: super admin sempre / dono se plano tem / sub-usuário se plano tem E permissão
+  // 📞 TELEFONIA — respeita hierarquia: super admin sempre / dono+admin se plano tem / sub-usuário se plano tem E permissão
   const podeVerTelefonia = podeVerComHierarquia(modulos.voip, "voip_usar");
 
   // Botão Chatbot - super admin OU dono OU quem tem chat_proprio/chat_todos
@@ -160,7 +191,8 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           <p style={{ color: "#6b7280", fontSize: 10, margin: "2px 0 0" }}>{perfilLabel}</p>
         </div>
 
-        {isDono && !isSuperAdmin && (
+        {/* 🆕 v18: card de Plano agora aparece pra Admin sub-usuário também (não só Dono) */}
+        {ehDonoOuAdmin && !isSuperAdmin && (
           <div style={{ background: "#1f293788", borderRadius: 8, padding: "8px 12px", marginBottom: 4 }}>
             <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 2px" }}>Plano</p>
             <span style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold" }}>👥 {usuariosCount}/{limiteUsuarios} usuários</span>

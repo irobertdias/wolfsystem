@@ -56,48 +56,31 @@ export function useModulos() {
           return;
         }
 
-        // 1. Busca o workspace pra achar o owner_id
+        // 🆕 v18: Busca workspace pegando owner_id E owner_email no mesmo SELECT.
+        // ─────────────────────────────────────────────────────────────────
+        // BUG ANTERIOR: a versão antiga só pegava owner_id, e pro sub-usuário
+        // tentava descobrir o email do dono via:
+        //   1) usuarios_workspace WHERE perfil='Dono' — mas Dono NÃO está nessa
+        //      tabela (ela só lista sub-usuários como Atendente/Supervisor/Admin)
+        //   2) cadastros WHERE workspace_id=X — mas a coluna workspace_id não
+        //      existe em cadastros (essa tabela usa email como chave única)
+        // Resultado: ownerEmail virava null pro Fenix/Marcelo/Hélio → módulos
+        // todos false → Telefonia some, Roleta some, etc.
+        // ─────────────────────────────────────────────────────────────────
         const { data: ws } = await supabase.from("workspaces")
-          .select("owner_id")
+          .select("owner_id, owner_email")
           .eq("username", wsId)
           .maybeSingle();
 
-        if (!ws?.owner_id) {
+        if (!ws?.owner_email) {
           if (!cancelado) { setModulos(MODULOS_BLOQUEADOS_DEFAULT); setCarregado(true); }
           return;
         }
 
-        // 2. Busca email do owner via auth (pra cruzar com cadastros)
-        //    Se o user logado JÁ É o dono, pega direto o email dele
-        let ownerEmail: string | null = null;
-        if (user?.id === ws.owner_id) {
-          ownerEmail = user.email || null;
-        } else {
-          // Sub-usuário: precisa descobrir o email do dono
-          // Jeito mais garantido: buscar por usuarios_workspace do dono
-          const { data: ownerUser } = await supabase.from("usuarios_workspace")
-            .select("email")
-            .eq("workspace_id", wsId)
-            .eq("perfil", "Dono")
-            .maybeSingle();
-          ownerEmail = ownerUser?.email || null;
+        // Email do owner: usa direto da tabela workspaces (funciona pra dono E sub-usuário)
+        const ownerEmail = ws.owner_email;
 
-          // Fallback: tenta direto na cadastros se tiver owner_id armazenado lá
-          if (!ownerEmail) {
-            const { data: cadByOwner } = await supabase.from("cadastros")
-              .select("email")
-              .eq("workspace_id", wsId)
-              .maybeSingle();
-            ownerEmail = cadByOwner?.email || null;
-          }
-        }
-
-        if (!ownerEmail) {
-          if (!cancelado) { setModulos(MODULOS_BLOQUEADOS_DEFAULT); setCarregado(true); }
-          return;
-        }
-
-        // 3. Busca os módulos na tabela cadastros
+        // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
           .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, plano")
           .eq("email", ownerEmail)
