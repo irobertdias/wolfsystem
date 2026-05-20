@@ -47,8 +47,43 @@ export async function POST(req: NextRequest) {
     }
 
     const ehDono = ws.owner_id === authUser.id || ws.owner_email?.toLowerCase() === chamadorEmail;
+
+    // 🆕 FIX (sessão 18): também aceita SUB-USUÁRIO com perfil "Administrador"
+    // ─────────────────────────────────────────────────────────────────────
+    // Antes a API só permitia Dono ou Super Admin Wolf. Mas o perfil
+    // "Administrador" (sub-usuário com poderes de dono) tava sendo barrado
+    // com 403 mesmo o frontend liberando o botão.
+    //
+    // Agora consulta usuarios_workspace pra confirmar que o chamador é
+    // Administrador DESSE workspace especificamente (não basta ser admin
+    // de outro workspace e enviar workspace_id arbitrário).
+    let ehAdminSubUsuario = false;
     if (!ehDono && !isAdminMaster) {
+      const { data: subUser } = await supabase
+        .from("usuarios_workspace")
+        .select("perfil")
+        .eq("email", chamadorEmail)
+        .eq("workspace_id", workspace_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (subUser?.perfil === "Administrador") {
+        ehAdminSubUsuario = true;
+      }
+    }
+
+    if (!ehDono && !isAdminMaster && !ehAdminSubUsuario) {
       return NextResponse.json({ success: false, error: "Você não tem permissão para criar usuários neste workspace" }, { status: 403 });
+    }
+
+    // 🛡️ Hardening de segurança: Administrador sub-usuário NÃO pode criar
+    // outro "Administrador" (pra evitar escalada de privilégios em chain).
+    // Só o Dono ou Super Admin Wolf podem criar Administradores.
+    if (ehAdminSubUsuario && !ehDono && !isAdminMaster && perfil === "Administrador") {
+      return NextResponse.json({
+        success: false,
+        error: "Apenas o dono do workspace pode criar Administradores. Você pode criar Supervisor ou Atendente.",
+      }, { status: 403 });
     }
 
     // ═══ 3. VALIDAÇÃO DE LIMITE — servidor (não tem como burlar) ═══
