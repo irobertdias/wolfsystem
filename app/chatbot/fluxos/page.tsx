@@ -12,7 +12,8 @@ type TipoNo =
   | "condicao" | "variavel" | "redirecionar" | "script" | "espera"
   | "teste_ab" | "webhook" | "pular" | "retornar"
   | "google_sheets" | "http_request" | "openai" | "claude_ai" | "gmail"
-  | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar";
+  | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar"
+  | "enviar_venda"; // 🆕 v18: cria proposta no CRM com as variáveis salvas + aplica etiqueta
 
 type No = { id: string; tipo: TipoNo; x: number; y: number; dados: Record<string,any>; saidas: string[]; };
 type Aresta = { id: string; de: string; saidaIndex: number; para: string; };
@@ -59,9 +60,12 @@ const B: Record<TipoNo, BC> = {
   invalido:             {label:"Inválido",        icone:"❌", cor:"#dc2626", saidas:["Próximo"],                     grupo:"Eventos"},
   transferir:           {label:"Transferir",      icone:"👤", cor:"#dc2626", saidas:["Próximo"],                     grupo:"Eventos"},
   finalizar:            {label:"Finalizar",       icone:"🏁", cor:"#dc2626", saidas:[],                              grupo:"Eventos"},
+  // 🆕 v18: bloco que cria proposta no /crm/vendas usando variáveis salvas + aplica etiqueta
+  enviar_venda:         {label:"Enviar Venda",    icone:"💰", cor:"#16a34a", saidas:["Sucesso","Erro"],              grupo:"CRM"},
 };
 
-const GRUPOS = ["Bubbles","Inputs","Lógica","Integrações","Eventos"];
+// 🆕 v18: novo grupo "CRM" no sidebar pro bloco "Enviar Venda"
+const GRUPOS = ["Bubbles","Inputs","Lógica","Integrações","Eventos","CRM"];
 const uid = () => Math.random().toString(36).slice(2,10);
 
 const IS: React.CSSProperties = {width:"100%",background:"#0a0a0a",border:"1px solid #374151",borderRadius:6,padding:"8px 10px",color:"white",fontSize:12,boxSizing:"border-box"};
@@ -139,6 +143,16 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     invalido:{mensagem:"Não entendi."},
     transferir:{fila:"",mensagem:"Transferindo..."}, // 🆕 fila vazia, usuário seleciona
     finalizar:{mensagem:"Atendimento finalizado. Obrigado!"},
+    // 🆕 v18: bloco enviar_venda — defaults
+    enviar_venda:{
+      modo_mapeamento: "automatico",          // "automatico" (por nome) ou "manual" (define cada campo)
+      mapeamento: {},                         // só usado se modo_mapeamento === "manual": { campo_proposta: "nome_variavel" }
+      etiqueta: "proposta_finalizada",        // tag aplicada ao atendimento ao criar a proposta
+      aplicar_etiqueta: true,                 // se false, só cria proposta sem aplicar tag
+      status_inicial: "aguardando",           // status da proposta criada
+      mensagem_sucesso: "✅ Sua proposta foi registrada! Em breve nossa equipe entra em contato.",
+      mensagem_erro: "⚠️ Não consegui registrar agora, mas seu atendente vai te ajudar.",
+    },
   };
   return m[tipo]||{};
 }
@@ -187,6 +201,12 @@ function getPreview(no: No): string {
     case "invalido": return d.mensagem||"Inválido";
     case "transferir": return d.fila ? `→ ${d.fila}` : "⚠️ Sem fila selecionada"; // 🆕
     case "finalizar": return d.mensagem||"Finalizar";
+    // 🆕 v18: preview do bloco "Enviar Venda"
+    case "enviar_venda": {
+      const modo = d.modo_mapeamento === "manual" ? "manual" : "auto";
+      const tag = d.aplicar_etiqueta !== false ? ` 🏷️ ${d.etiqueta||"proposta_finalizada"}` : "";
+      return `💰 Cria proposta (${modo})${tag}`;
+    }
     default: return "";
   }
 }
@@ -1155,6 +1175,158 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
       </>;
 
     case "finalizar": return <>{T("Mensagem de encerramento","mensagem","Obrigado pelo contato!",80)}</>;
+
+    // 🆕 v18: bloco "Enviar Venda" — cria proposta no /crm/vendas automaticamente
+    // ─────────────────────────────────────────────────────────────────────────
+    // FRONTEND: configuração do bloco (este case)
+    // BACKEND: o executor de fluxo na VPS precisa, ao processar este tipo de bloco:
+    //   1. Carregar `variaveis` da fluxo_sessoes do contato atual
+    //   2. Resolver o mapeamento (automático por nome OU manual)
+    //   3. INSERT em `propostas` (workspace_id, contato_id, status, dados JSON)
+    //   4. Se aplicar_etiqueta=true: INSERT em `atendimento_etiquetas` com nome da tag
+    //   5. Enviar `mensagem_sucesso` ao cliente (se preenchida) e seguir saída "Sucesso"
+    //   6. Em erro: enviar `mensagem_erro` e seguir saída "Erro"
+    // ─────────────────────────────────────────────────────────────────────────
+    case "enviar_venda": {
+      const modoMap = d.modo_mapeamento || "automatico";
+      // Lista padrão de campos da proposta (igual ao Editor de Vendas v3).
+      // Em produção, o ideal é carregar de proposta_campos_padrao_config do workspace,
+      // mas essa lista cobre 95% dos casos e funciona como fallback.
+      const camposPropostaPadrao = [
+        { key: "nome", label: "Nome do cliente" },
+        { key: "cpf", label: "CPF" },
+        { key: "rg", label: "RG" },
+        { key: "data_nascimento", label: "Data de nascimento" },
+        { key: "nome_mae", label: "Nome da mãe" },
+        { key: "email", label: "E-mail" },
+        { key: "telefone", label: "Telefone" },
+        { key: "endereco", label: "Endereço completo" },
+        { key: "plano", label: "Plano escolhido" },
+        { key: "valor", label: "Valor" },
+        { key: "vencimento", label: "Dia de vencimento" },
+        { key: "forma_pagamento", label: "Forma de pagamento" },
+        { key: "data_instalacao", label: "Data de instalação" },
+        { key: "periodo_instalacao", label: "Período de instalação" },
+        { key: "observacoes", label: "Observações" },
+      ];
+      const mapeamento: Record<string,string> = d.mapeamento || {};
+      const updateMap = (campo: string, varName: string) => {
+        const novo = { ...mapeamento };
+        if (!varName) delete novo[campo]; else novo[campo] = varName;
+        u({ mapeamento: novo });
+      };
+      return <>
+        <div style={{background:"#16a34a11",border:"1px solid #16a34a33",borderRadius:8,padding:12,marginBottom:8}}>
+          <p style={{color:"#16a34a",fontSize:12,fontWeight:"bold",margin:"0 0 4px"}}>💰 Enviar Venda pro CRM</p>
+          <p style={{color:"#9ca3af",fontSize:11,margin:0,lineHeight:1.4}}>
+            Quando o fluxo chegar nesse bloco, o sistema cria <b>automaticamente uma proposta</b> no
+            <b> /crm/vendas</b> com as variáveis que você capturou no fluxo + aplica uma etiqueta
+            no atendimento. O vendedor já abre o chat com a venda pronta.
+          </p>
+        </div>
+
+        {/* Toggle modo automático / manual */}
+        <div>
+          <label style={LS}>Mapeamento das variáveis</label>
+          <div style={{display:"flex",gap:6,marginBottom:8}}>
+            {[
+              {key:"automatico",label:"🔮 Automático",hint:"Variável com mesmo nome do campo já mapeia. Ex: variável 'nome' → campo 'nome' da proposta."},
+              {key:"manual",label:"🎯 Manual",hint:"Você define qual variável vai pra cada campo."},
+            ].map(opt => (
+              <button key={opt.key} onClick={() => u({modo_mapeamento: opt.key})}
+                style={{
+                  flex:1,
+                  background: modoMap === opt.key ? "#16a34a22" : "#1f2937",
+                  border: `1px solid ${modoMap === opt.key ? "#16a34a" : "#374151"}`,
+                  color: modoMap === opt.key ? "#16a34a" : "white",
+                  borderRadius:8, padding:"8px 10px", fontSize:11, cursor:"pointer", fontWeight:"bold"
+                }}
+                title={opt.hint}
+              >{opt.label}</button>
+            ))}
+          </div>
+          {modoMap === "automatico" && (
+            <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+              💡 O sistema vai pegar todas as variáveis salvas no fluxo e tentar mapear pelo nome.
+              <br/>Ex: variável <code style={{color:"#16a34a"}}>nome</code> → campo "Nome do cliente";
+              variável <code style={{color:"#16a34a"}}>cpf_limpo</code> → campo "CPF" (usa nome similar).
+            </p>
+          )}
+        </div>
+
+        {/* Mapeamento manual — só aparece quando o modo é manual */}
+        {modoMap === "manual" && (
+          <div>
+            <label style={LS}>Defina qual variável preenche cada campo</label>
+            <p style={{color:"#6b7280",fontSize:10,margin:"-2px 0 8px",lineHeight:1.3}}>
+              Deixe em branco os campos que não quer preencher. O sistema só cria os que você mapear.
+            </p>
+            <div style={{display:"flex",flexDirection:"column",gap:6,background:"#0a0a0a",border:"1px solid #1f2937",borderRadius:8,padding:10,maxHeight:300,overflowY:"auto"}}>
+              {camposPropostaPadrao.map(c => (
+                <div key={c.key} style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{color:"#9ca3af",fontSize:11,flex:"0 0 130px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
+                    title={c.label}>{c.label}</span>
+                  <span style={{color:"#374151",fontSize:11}}>←</span>
+                  <select value={mapeamento[c.key] || ""} onChange={e => updateMap(c.key, e.target.value)}
+                    style={{...IS,flex:1,fontSize:11,padding:"5px 8px"}}>
+                    <option value="">— sem mapeamento —</option>
+                    {variaveisDoFluxo.map(v => (
+                      <option key={v} value={v}>{`{{${v}}}`}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+            {Object.keys(mapeamento).length > 0 && (
+              <p style={{color:"#16a34a",fontSize:10,margin:"6px 0 0"}}>
+                ✅ {Object.keys(mapeamento).length} campo(s) mapeado(s)
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Etiqueta a aplicar */}
+        <div style={{borderTop:"1px solid #1f2937",paddingTop:12,marginTop:6}}>
+          <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,cursor:"pointer"}}>
+            <input type="checkbox" checked={d.aplicar_etiqueta !== false}
+              onChange={e => u({aplicar_etiqueta: e.target.checked})}
+              style={{accentColor:"#16a34a"}}/>
+            <span style={{color:"white",fontSize:12,fontWeight:"bold"}}>🏷️ Aplicar etiqueta ao atendimento</span>
+          </label>
+          {d.aplicar_etiqueta !== false && (
+            <>
+              {F("Nome da etiqueta","etiqueta","text","proposta_finalizada")}
+              <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+                💡 A etiqueta é criada automaticamente se ainda não existir.
+                Útil pra filtrar atendimentos com proposta criada no chatbot.
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Status inicial da proposta */}
+        <div style={{borderTop:"1px solid #1f2937",paddingTop:12,marginTop:6}}>
+          {S("Status inicial da proposta","status_inicial",[
+            {value:"aguardando",label:"⏳ Aguardando análise"},
+            {value:"em_analise",label:"🔍 Em análise"},
+            {value:"aprovada",label:"✅ Aprovada"},
+            {value:"agendada",label:"📅 Agendada"},
+          ])}
+        </div>
+
+        {/* Mensagens enviadas ao cliente */}
+        <div style={{borderTop:"1px solid #1f2937",paddingTop:12,marginTop:6}}>
+          {TVar("Mensagem ao cliente (sucesso)","mensagem_sucesso","✅ Sua proposta foi registrada!",70)}
+          {TVar("Mensagem ao cliente (erro)","mensagem_erro","⚠️ Não consegui registrar, atendente vai te ajudar.",70)}
+        </div>
+
+        <p style={{color:"#6b7280",fontSize:10,margin:"8px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
+          ⚠️ Saídas: <span style={{color:"#16a34a"}}>0=Sucesso</span> (proposta criada) /{" "}
+          <span style={{color:"#dc2626"}}>1=Erro</span> (falha ao salvar — conecte aqui um bloco "Transferir" como fallback).
+        </p>
+      </>;
+    }
+
     default: return <p style={{color:"#6b7280",fontSize:12}}>Sem propriedades.</p>;
   }
 }
