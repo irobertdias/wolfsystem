@@ -13,7 +13,12 @@ import { supabase } from "../lib/supabase";
 //      → Pode tudo dentro do workspace dele
 //      → MAS respeita o limite do plano que paga
 //
-//   👤 Supervisor / Atendente = "Ministros"
+//   👔 Administrador = "Ministro de Estado"
+//      → Sub-usuário com PODERES IGUAIS AO DONO
+//      → IGNORA qualquer grupo de permissão atribuído (acesso total sempre)
+//      → Pra ter "admin com restrições", use perfil Supervisor + grupo
+//
+//   🔍 Supervisor / 👤 Atendente = "Ministros comuns"
 //      → Respeita o grupo de permissão configurado pelo Dono
 //      → Respeita o plano do workspace
 // ═══════════════════════════════════════════════════════════════════════
@@ -134,7 +139,7 @@ export function usePermissao() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      // 🆕 Detecta SUPER ADMIN Wolf — bypass total em qualquer workspace
+      // Detecta SUPER ADMIN Wolf — bypass total em qualquer workspace
       const ehSuperAdmin = (user.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
       setIsSuperAdmin(ehSuperAdmin);
 
@@ -150,7 +155,7 @@ export function usePermissao() {
         return;
       }
 
-      // 🆕 Se é super admin mas não é dono desse workspace, ainda assim libera tudo
+      // Se é super admin mas não é dono desse workspace, ainda assim libera tudo
       // (super admin entra em workspace alheio pra dar suporte, deve poder fazer tudo)
       if (ehSuperAdmin) {
         setIsDono(false);
@@ -171,7 +176,21 @@ export function usePermissao() {
       if (usuarioWs) {
         setPerfil(usuarioWs.perfil || "Atendente");
 
-        // Tem grupo customizado?
+        // 🆕 FIX (sessão 18): Administrador SEMPRE tem acesso total, IGNORA grupo.
+        // ─────────────────────────────────────────────────────────────────────
+        // Antes essa checagem vinha DEPOIS de "if (usuarioWs.grupo_id)" — então
+        // qualquer Admin com grupo atribuído pegava as permissões do grupo
+        // (geralmente incompletas) e perdia acesso a coisas que deveria ter.
+        //
+        // Por design: "Administrador" implica acesso TOTAL, igual ao Dono.
+        // Pra criar "admin com restrições", use perfil Supervisor + grupo.
+        if (usuarioWs.perfil === "Administrador") {
+          setPermissoes({ ...PERMISSOES_DONO, administrador: true });
+          setLoading(false);
+          return;
+        }
+
+        // Tem grupo customizado? (vale pra Supervisor e Atendente)
         if (usuarioWs.grupo_id) {
           const { data: grupo } = await supabase.from("grupos_permissao")
             .select("permissoes").eq("id", usuarioWs.grupo_id).maybeSingle();
@@ -186,9 +205,7 @@ export function usePermissao() {
         }
 
         // Sem grupo — usa padrão por perfil
-        if (usuarioWs.perfil === "Administrador") {
-          setPermissoes({ ...PERMISSOES_DONO, administrador: true });
-        } else if (usuarioWs.perfil === "Supervisor") {
+        if (usuarioWs.perfil === "Supervisor") {
           setPermissoes(PERMISSOES_SUPERVISOR);
         } else {
           setPermissoes(PERMISSOES_ATENDENTE);
