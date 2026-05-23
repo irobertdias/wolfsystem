@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSoftphone } from "../hooks/useSoftphone";
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -10,19 +10,33 @@ import { useSoftphone } from "../hooks/useSoftphone";
 // - Expandido (card): mostra chamada ativa OU teclado discador
 // ═══════════════════════════════════════════════════════════════════════
 
-// 🆕 POSIÇÃO BASE — valor único que controla o "bottom" tanto da bolinha minimizada
-// quanto do card expandido. Antes era 24px e ficava colidindo com o input de mensagem
-// no chat (que também fica no canto inferior). 100px deixa o softphone bem acima do
-// input de mensagem, do botão de áudio e do botão de enviar, sem encostar em nenhum.
-const SOFTPHONE_BOTTOM = 100;
-const SOFTPHONE_RIGHT = 24;
+// 🆕 FASE 1.6 MOBILE — bolha menor e mais alta no celular (sai de cima do input),
+// card expandido com largura responsiva (não estoura a tela).
+// Desktop continua igual: bolha 56px com bottom 100, card 320px.
+const SOFTPHONE_BOTTOM_DESKTOP = 100;
+const SOFTPHONE_BOTTOM_MOBILE = 180;   // bem mais alto pra não cobrir o input do chat
+const SOFTPHONE_RIGHT_DESKTOP = 24;
+const SOFTPHONE_RIGHT_MOBILE = 12;
 
 export function Softphone() {
   const { chamada, aberto, setAberto, iniciarChamada, encerrarChamada, toggleMudo, enviarDTMF, segundosConectado } = useSoftphone();
   const [numeroDigitado, setNumeroDigitado] = useState("");
   const [modoTeclado, setModoTeclado] = useState(true); // true = mostrando teclado, false = mostrando chamada ativa
 
+  // 🆕 FASE 1.6 — detecta mobile pra ajustar tamanho/posição da bolha + card
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const temChamada = chamada && chamada.status !== "ocioso";
+
+  // Posições dinâmicas: mobile usa valores próprios pra não sobrepor o input do chat
+  const bottomFinal = isMobile ? SOFTPHONE_BOTTOM_MOBILE : SOFTPHONE_BOTTOM_DESKTOP;
+  const rightFinal = isMobile ? SOFTPHONE_RIGHT_MOBILE : SOFTPHONE_RIGHT_DESKTOP;
 
   // Status em português
   const labelStatus = (s: string) => ({
@@ -85,25 +99,31 @@ export function Softphone() {
 
   // ═══════ MODO MINIMIZADO ═══════
   if (!aberto) {
+    // 🆕 FASE 1.6 — Bolha menor (44px) e semitransparente no mobile quando não há chamada
+    // Desktop continua 56px opaca. Em chamada ativa, fica opaca + maior pra dar destaque.
+    const tamanho = isMobile ? (temChamada ? 50 : 44) : 56;
+    const opacity = isMobile && !temChamada ? 0.55 : 1;
     return (
       <button
         onClick={() => setAberto(true)}
         title="Abrir discador"
         style={{
           position: "fixed",
-          bottom: SOFTPHONE_BOTTOM,
-          right: SOFTPHONE_RIGHT,
-          width: 56,
-          height: 56,
+          bottom: bottomFinal,
+          right: rightFinal,
+          width: tamanho,
+          height: tamanho,
           borderRadius: "50%",
           background: temChamada ? "#16a34a" : "#202c33",
           border: "2px solid #16a34a",
           cursor: "pointer",
           boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
           zIndex: 9000,
-          fontSize: 24,
+          fontSize: isMobile ? 18 : 24,
           color: "white",
+          opacity,
           animation: temChamada ? "pulse 1.5s infinite" : "none",
+          transition: "opacity 0.2s",
         }}
       >
         📞
@@ -117,6 +137,8 @@ export function Softphone() {
   }
 
   // ═══════ MODO EXPANDIDO ═══════
+  // 🆕 FASE 1.6 — Card responsivo: no mobile usa min(320px, calc(100vw - 24px))
+  // Pra não estourar a borda direita da tela em celulares estreitos.
   return (
     <>
       <style>{`
@@ -128,9 +150,9 @@ export function Softphone() {
       `}</style>
       <div style={{
         position: "fixed",
-        bottom: SOFTPHONE_BOTTOM,
-        right: SOFTPHONE_RIGHT,
-        width: 320,
+        bottom: bottomFinal,
+        right: rightFinal,
+        width: isMobile ? "min(320px, calc(100vw - 24px))" : 320,
         background: "#111",
         border: "1px solid #1f2937",
         borderRadius: 16,

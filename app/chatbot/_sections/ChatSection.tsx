@@ -280,6 +280,9 @@ export function ChatSection() {
   const [showTransferir, setShowTransferir] = useState(false);
   const [showChatInterno, setShowChatInterno] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
+  // 🆕 FASE 1.6 — menu ⋮ que aparece no mobile, agrupa botões secundários do header do chat
+  // (Ver dados, Atualizar, Encaminhar, Finalizar Venda, Finalizar) — desktop continua mostrando tudo na toolbar
+  const [showMenuMobileChat, setShowMenuMobileChat] = useState(false);
 
   // 🆕 Emoji picker — abre painel fixo acima do input, estilo WhatsApp
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -2753,7 +2756,7 @@ export function ChatSection() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h3 style={{ color: "#e9edef", fontSize: 15, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{atendimentoAtivo.nome}</h3>
-                  <p style={{ color: "#8696a0", fontSize: 11, margin: 0 }}>
+                  <p style={{ color: "#8696a0", fontSize: 11, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {atendimentoAtivo.fila || "—"} • {atendimentoAtivo.numero}
                     {atendimentoAtivo.canal_id && canais.length > 1 && <> • {iconeCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)} {nomeDoCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)}</>}
                     {atendimentoAtivo.atendente && atendimentoAtivo.atendente !== "BOT" && <> • 👨‍💼 {nomeDoAtendente(atendimentoAtivo.atendente)}</>}
@@ -2797,13 +2800,17 @@ export function ChatSection() {
                     style={{ ...botaoToolbar("#16a34a"), background: "#16a34a22", border: "1px solid #16a34a44" }}>📞</button>
                 )}
 
-                {/* 👁️ Ver dados do contato — abre o painel à direita (novo, dedicado) */}
-                <button onClick={() => setShowPainelContato(true)}
-                  title="Ver dados do contato" style={botaoToolbar()}>👁️</button>
+                {/* 👁️ Ver dados do contato — DESKTOP ONLY (no mobile vai pro menu ⋮) */}
+                {!isMobile && (
+                  <button onClick={() => setShowPainelContato(true)}
+                    title="Ver dados do contato" style={botaoToolbar()}>👁️</button>
+                )}
 
-                {/* 🔄 Atualizar — sempre visível */}
-                <button onClick={() => fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
-                  title="Atualizar mensagens" style={botaoToolbar()}>🔄</button>
+                {/* 🔄 Atualizar — DESKTOP ONLY (no mobile vai pro menu ⋮) */}
+                {!isMobile && (
+                  <button onClick={() => fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
+                    title="Atualizar mensagens" style={botaoToolbar()}>🔄</button>
+                )}
 
                 {atendimentoAtivo.status === "resolvido" ? (
                   /* 🆕 ATENDIMENTO FINALIZADO → mostra SÓ o botão de Reabrir (destaque laranja) */
@@ -2859,15 +2866,15 @@ export function ChatSection() {
                       );
                     })()}
 
-                    {/* ↗️ Encaminhar (fila ou atendente) — só pra quem tem permissão transferir_chat */}
-                    {(isDono || permissoes.transferir_chat) && (
+                    {/* ↗️ Encaminhar (fila ou atendente) — DESKTOP ONLY (no mobile vai pro menu ⋮) */}
+                    {!isMobile && (isDono || permissoes.transferir_chat) && (
                       <button onClick={() => setShowTransferir(!showTransferir)}
                         title="Encaminhar para fila ou atendente"
                         style={{ ...botaoToolbar(showTransferir ? "#00a884" : "#aebac1"), background: showTransferir ? "#00a88422" : "none" }}>↗️</button>
                     )}
 
-                    {/* 💰 FINALIZAR VENDA — destaque */}
-                    {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
+                    {/* 💰 FINALIZAR VENDA — DESKTOP ONLY (no mobile vai pro menu ⋮ porque ocupa muito espaço) */}
+                    {!isMobile && (permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
                       <button
                         onClick={() => window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank")}
                         title="Finalizar venda — abre a tela de proposta em nova aba"
@@ -2893,8 +2900,8 @@ export function ChatSection() {
                       </button>
                     )}
 
-                    {/* ✓ Finalizar atendimento — só pra quem tem permissão finalizar_chat */}
-                    {(isDono || permissoes.finalizar_chat) && (
+                    {/* ✓ Finalizar atendimento — DESKTOP ONLY (no mobile vai pro menu ⋮) */}
+                    {!isMobile && (isDono || permissoes.finalizar_chat) && (
                       <button
                         onClick={() => {
                           if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`))
@@ -2904,6 +2911,75 @@ export function ChatSection() {
                         style={{ ...botaoToolbar("#dc2626"), fontSize: 18, fontWeight: "bold" }}
                       >✓</button>
                     )}
+                  </>
+                )}
+
+                {/* 🆕 FASE 1.6 — BOTÃO ⋮ MOBILE ONLY — agrupa botões secundários
+                    (👁️ Ver dados, 🔄 Atualizar, ↗️ Encaminhar, 💰 Finalizar Venda, ✓ Finalizar) */}
+                {isMobile && atendimentoAtivo.status !== "resolvido" && (
+                  <button onClick={() => setShowMenuMobileChat(!showMenuMobileChat)}
+                    title="Mais opções"
+                    style={{ ...botaoToolbar(showMenuMobileChat ? "#00a884" : "#aebac1"), background: showMenuMobileChat ? "#00a88422" : "none", fontSize: 20, fontWeight: "bold" }}>⋮</button>
+                )}
+
+                {/* 🆕 FASE 1.6 — DROPDOWN do menu ⋮ mobile */}
+                {isMobile && showMenuMobileChat && atendimentoAtivo.status !== "resolvido" && (
+                  <>
+                    {/* Overlay invisível pra fechar clicando fora */}
+                    <div onClick={() => setShowMenuMobileChat(false)}
+                      style={{ position: "fixed", inset: 0, zIndex: 109 }} />
+                    <div style={{ position: "absolute", top: 44, right: 0, background: "#233138", border: "1px solid #2a3942", borderRadius: 8, padding: 6, zIndex: 110, minWidth: 220, boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}>
+                      {/* 👁️ Ver dados */}
+                      <button onClick={() => { setShowPainelContato(true); setShowMenuMobileChat(false); }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6 }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#2a3942"}
+                        onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                        <span style={{ fontSize: 16 }}>👁️</span> Ver dados do contato
+                      </button>
+
+                      {/* 🔄 Atualizar */}
+                      <button onClick={() => { fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuMobileChat(false); }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6 }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#2a3942"}
+                        onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                        <span style={{ fontSize: 16 }}>🔄</span> Atualizar mensagens
+                      </button>
+
+                      {/* ↗️ Encaminhar */}
+                      {(isDono || permissoes.transferir_chat) && (
+                        <button onClick={() => { setShowTransferir(true); setShowMenuMobileChat(false); }}
+                          style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#e9edef", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6 }}
+                          onMouseEnter={e => e.currentTarget.style.background = "#2a3942"}
+                          onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                          <span style={{ fontSize: 16 }}>↗️</span> Encaminhar
+                        </button>
+                      )}
+
+                      {/* 💰 Finalizar Venda */}
+                      {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
+                        <button onClick={() => { window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank"); setShowMenuMobileChat(false); }}
+                          style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "#16a34a22", border: "none", color: "#16a34a", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: "bold", marginTop: 4 }}
+                          onMouseEnter={e => e.currentTarget.style.background = "#16a34a44"}
+                          onMouseLeave={e => e.currentTarget.style.background = "#16a34a22"}>
+                          <span style={{ fontSize: 16 }}>💰</span> Finalizar Venda
+                        </button>
+                      )}
+
+                      {/* ✓ Finalizar atendimento */}
+                      {(isDono || permissoes.finalizar_chat) && (
+                        <button onClick={() => {
+                          if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`)) {
+                            finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
+                            setShowMenuMobileChat(false);
+                          }
+                        }}
+                          style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#dc2626", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: "bold", marginTop: 4, borderTop: "1px solid #2a3942" }}
+                          onMouseEnter={e => e.currentTarget.style.background = "#dc262622"}
+                          onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                          <span style={{ fontSize: 16 }}>✓</span> Finalizar atendimento
+                        </button>
+                      )}
+                    </div>
                   </>
                 )}
 
@@ -3379,7 +3455,7 @@ export function ChatSection() {
 
                   <textarea
                     ref={mensagemTextareaRef}
-                    placeholder={meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem"}
+                    placeholder={isMobile ? "Mensagem" : (meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem")}
                     value={mensagem}
                     onChange={e => {
                       setMensagem(e.target.value);
