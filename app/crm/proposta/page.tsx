@@ -30,6 +30,15 @@ function PropostaForm() {
   // 🆕 Campos unificados (fixos com config aplicada + custom)
   const [camposUnificados, setCamposUnificados] = useState<CampoUnificado[]>([]);
 
+  // 🆕 FASE 3 MOBILE — detecta tela < 768px
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   // 🆕 Form com chaves = slug do campo (snake_case, compatível com nome das colunas)
   const [form, setForm] = useState<Record<string, any>>({
     data_proposta: new Date().toISOString().split("T")[0],
@@ -360,29 +369,29 @@ function PropostaForm() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0a", fontFamily: "Arial, sans-serif", padding: 32 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <img src="/logo1.png" alt="Wolf" style={{ width: 48, filter: "brightness(0) invert(1)" }} />
-          <div>
-            <h1 style={{ color: "white", fontSize: 20, fontWeight: "bold", margin: 0 }}>Nova Proposta</h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>Wolf CRM — {workspace?.nome}</p>
+    <div style={{ minHeight: "100vh", background: "#0a0a0a", fontFamily: "Arial, sans-serif", padding: isMobile ? 12 : 32 }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", marginBottom: isMobile ? 16 : 32, gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
+          <img src="/logo1.png" alt="Wolf" style={{ width: isMobile ? 36 : 48, filter: "brightness(0) invert(1)", flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ color: "white", fontSize: isMobile ? 17 : 20, fontWeight: "bold", margin: 0 }}>Nova Proposta</h1>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Wolf CRM — {workspace?.nome}</p>
           </div>
         </div>
         <button onClick={() => router.push("/crm/vendas")} style={{
           background: "#1f2937", color: "#9ca3af", border: "1px solid #374151",
-          borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer"
+          borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap"
         }}>
           ← Voltar para Vendas
         </button>
       </div>
 
-      <div style={{ background: "#111", borderRadius: 16, padding: 32, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 22 }}>
+      <div style={{ background: "#111", borderRadius: 16, padding: isMobile ? 16 : 32, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: isMobile ? 16 : 22 }}>
 
         {camposUnificados.length === 0 ? (
           <p style={{ color: "#6b7280", fontSize: 13, textAlign: "center", padding: 32 }}>⏳ Carregando formulário...</p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: isMobile ? 12 : 16 }}>
             {camposUnificados.map(c => (
               <div key={`${c.origem}-${c.slug}`} style={c.larguraTotal || c.tipo === "textarea" ? { gridColumn: "1 / -1" } : undefined}>
                 {renderCampo(c)}
@@ -392,7 +401,7 @@ function PropostaForm() {
         )}
 
         {/* Botões */}
-        <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column-reverse" : "row", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
           <button onClick={() => router.push("/crm/vendas")} style={{
             background: "none", color: "#9ca3af", border: "1px solid #374151",
             borderRadius: 8, padding: "12px 24px", fontSize: 14, cursor: "pointer"

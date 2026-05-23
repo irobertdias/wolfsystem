@@ -13,6 +13,15 @@ export default function Contatos() {
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [buscaContato, setBuscaContato] = useState("");
 
+  // 🆕 FASE 3 MOBILE — detecta tela < 768px
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -54,19 +63,40 @@ export default function Contatos() {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>👥 Meus Contatos</h1>
+          <h1 style={{ color: "white", fontSize: isMobile ? 18 : 22, fontWeight: "bold", margin: 0 }}>👥 Meus Contatos</h1>
           <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0 0" }}>Leads que chegaram pelo WhatsApp — {atendimentos.length} contato(s)</p>
         </div>
       </div>
-      <input placeholder="🔍 Buscar por nome ou número..." value={buscaContato} onChange={e => setBuscaContato(e.target.value)} style={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "8px 14px", color: "white", fontSize: 13, maxWidth: 380 }} />
+      <input placeholder="🔍 Buscar por nome ou número..." value={buscaContato} onChange={e => setBuscaContato(e.target.value)} style={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "8px 14px", color: "white", fontSize: 13, maxWidth: isMobile ? "100%" : 380, boxSizing: "border-box" }} />
       {atendimentos.length === 0 ? (
         <div style={{ background: "#111", borderRadius: 12, padding: 48, textAlign: "center", border: "1px solid #1f2937" }}>
           <p style={{ fontSize: 48, margin: "0 0 16px 0" }}>👥</p>
           <h3 style={{ color: "white", fontSize: 16, fontWeight: "bold", margin: "0 0 8px 0" }}>Nenhum contato ainda</h3>
           <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Os leads que chegarem pelo WhatsApp aparecerão aqui automaticamente!</p>
+        </div>
+      ) : isMobile ? (
+        /* 🆕 FASE 3 MOBILE — cards em vez de tabela (tabela não cabe em celular) */
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {contatosFiltrados.map(a => (
+            <div key={a.id} onClick={() => router.push("/chatbot")} style={{ background: "#111", borderRadius: 10, border: "1px solid #1f2937", padding: 14, cursor: "pointer", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#3b82f622", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>👤</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nome}</p>
+                  <p style={{ color: "#9ca3af", fontSize: 12, margin: "2px 0 0" }}>📱 {a.numero}</p>
+                </div>
+              </div>
+              <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.mensagem}</p>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 10, padding: "3px 8px", borderRadius: 10 }}>{a.fila}</span>
+                <span style={{ background: a.atendente === "BOT" ? "#8b5cf622" : "#16a34a22", color: a.atendente === "BOT" ? "#8b5cf6" : "#16a34a", fontSize: 10, padding: "3px 8px", borderRadius: 10 }}>{a.atendente === "BOT" ? "🤖 BOT" : "👤 " + a.atendente}</span>
+                <span style={{ background: a.status === "resolvido" ? "#16a34a22" : a.status === "em_atendimento" ? "#f59e0b22" : "#3b82f622", color: a.status === "resolvido" ? "#16a34a" : a.status === "em_atendimento" ? "#f59e0b" : "#3b82f6", fontSize: 10, padding: "3px 8px", borderRadius: 10, fontWeight: "bold" }}>{a.status}</span>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>

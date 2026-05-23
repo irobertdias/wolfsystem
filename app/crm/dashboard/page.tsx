@@ -19,6 +19,15 @@ export default function Dashboard() {
   const [workspaceNome, setWorkspaceNome] = useState("");
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]); // 🆕 mapa pra converter email → nome
 
+  // 🆕 FASE 3 MOBILE — detecta tela < 768px
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -127,22 +136,22 @@ export default function Dashboard() {
   }));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 24 }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 12 }}>
         <div>
-          <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Dashboard</h1>
+          <h1 style={{ color: "white", fontSize: isMobile ? 18 : 22, fontWeight: "bold", margin: 0 }}>Dashboard</h1>
           <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0 0" }}>Workspace: {workspaceNome}</p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {["diario", "semanal", "mensal"].map(f => (
-            <button key={f} onClick={() => setFiltro(f)} style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: "bold", background: filtro === f ? "#16a34a" : "#1f2937", color: filtro === f ? "white" : "#9ca3af" }}>{filtroLabel[f]}</button>
+            <button key={f} onClick={() => setFiltro(f)} style={{ flex: isMobile ? 1 : "0 0 auto", padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: "bold", background: filtro === f ? "#16a34a" : "#1f2937", color: filtro === f ? "white" : "#9ca3af" }}>{filtroLabel[f]}</button>
           ))}
         </div>
       </div>
 
       {loading ? <p style={{ color: "#6b7280" }}>Carregando dados...</p> : (
         <>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: isMobile ? 10 : 16, flexWrap: "wrap" }}>
             {[
               { label: "Total Receita", value: `R$ ${totalReceita.toLocaleString("pt-BR")}`, color: "#16a34a", icon: "💰" },
               { label: "Instaladas", value: totalInstaladas, color: "#16a34a", icon: "✅" },
@@ -151,35 +160,35 @@ export default function Dashboard() {
               { label: "Auditoria", value: totalAuditoria, color: "#3b82f6", icon: "🔍" },
               { label: "Canceladas", value: totalCanceladas, color: "#dc2626", icon: "❌" },
             ].map(card => (
-              <div key={card.label} style={{ flex: "1 1 140px", background: "#111", borderRadius: 12, padding: 20, border: `1px solid ${card.color}33` }}>
-                <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 8px 0", textTransform: "uppercase" }}>{card.icon} {card.label}</p>
-                <p style={{ color: card.color, fontSize: 26, fontWeight: "bold", margin: 0 }}>{card.value}</p>
+              <div key={card.label} style={{ flex: isMobile ? "1 1 calc(50% - 5px)" : "1 1 140px", minWidth: 0, background: "#111", borderRadius: 12, padding: isMobile ? 14 : 20, border: `1px solid ${card.color}33` }}>
+                <p style={{ color: "#9ca3af", fontSize: isMobile ? 10 : 11, margin: "0 0 8px 0", textTransform: "uppercase" }}>{card.icon} {card.label}</p>
+                <p style={{ color: card.color, fontSize: isMobile ? 20 : 26, fontWeight: "bold", margin: 0, wordBreak: "break-word" }}>{card.value}</p>
                 <p style={{ color: "#6b7280", fontSize: 11, margin: "4px 0 0 0" }}>{filtroLabel[filtro]}</p>
               </div>
             ))}
           </div>
 
-          <div style={{ background: "#111", borderRadius: 12, padding: 24, border: "1px solid #1f2937" }}>
-            <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: "0 0 20px 0" }}>🏆 Ranking de Receita por Vendedor — {filtroLabel[filtro]}</h3>
+          <div style={{ background: "#111", borderRadius: 12, padding: isMobile ? 14 : 24, border: "1px solid #1f2937" }}>
+            <h3 style={{ color: "white", fontSize: isMobile ? 13 : 15, fontWeight: "bold", margin: "0 0 20px 0" }}>🏆 Ranking de Receita por Vendedor — {filtroLabel[filtro]}</h3>
             {rankingVendedores.length === 0 ? <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma proposta neste período.</p> : (
               <>
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={rankingVendedores}>
+                <ResponsiveContainer width="100%" height={isMobile ? 180 : 220}>
+                  <BarChart data={rankingVendedores} margin={isMobile ? { top: 5, right: 5, left: -10, bottom: 0 } : undefined}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                    <XAxis dataKey="nome" stroke="#6b7280" fontSize={12} />
-                    <YAxis stroke="#6b7280" fontSize={12} tickFormatter={v => `R$${v}`} />
+                    <XAxis dataKey="nome" stroke="#6b7280" fontSize={isMobile ? 10 : 12} interval={0} angle={isMobile ? -30 : 0} textAnchor={isMobile ? "end" : "middle"} height={isMobile ? 50 : 30} />
+                    <YAxis stroke="#6b7280" fontSize={isMobile ? 10 : 12} tickFormatter={v => `R$${v}`} />
                     <Tooltip contentStyle={{ background: "#1f2937", border: "none", borderRadius: 8, color: "white" }} formatter={(value: any) => [`R$ ${value.toLocaleString("pt-BR")}`, "Receita"]} />
                     <Bar dataKey="valor" fill="#16a34a" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 20 }}>
                   {rankingVendedores.map((v, i) => (
-                    <div key={v.nome + i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0d0d0d", borderRadius: 8, padding: "12px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <span style={{ fontWeight: "bold", fontSize: 16 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}</span>
-                        <span style={{ color: "white", fontSize: 14, fontWeight: "bold" }}>{v.nome}</span>
+                    <div key={v.nome + i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0d0d0d", borderRadius: 8, padding: isMobile ? "10px 12px" : "12px 16px", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+                        <span style={{ fontWeight: "bold", fontSize: 16, flexShrink: 0 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}</span>
+                        <span style={{ color: "white", fontSize: isMobile ? 12 : 14, fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.nome}</span>
                       </div>
-                      <span style={{ color: "#16a34a", fontSize: 14, fontWeight: "bold" }}>R$ {v.valor.toLocaleString("pt-BR")}</span>
+                      <span style={{ color: "#16a34a", fontSize: isMobile ? 12 : 14, fontWeight: "bold", flexShrink: 0, whiteSpace: "nowrap" }}>R$ {v.valor.toLocaleString("pt-BR")}</span>
                     </div>
                   ))}
                 </div>
@@ -187,9 +196,36 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div style={{ background: "#111", borderRadius: 12, padding: 24, border: "1px solid #1f2937" }}>
-            <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: "0 0 20px 0" }}>🎯 Funil por Vendedor — {filtroLabel[filtro]}</h3>
-            {funilVendedores.length === 0 ? <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma proposta neste período.</p> : (
+          <div style={{ background: "#111", borderRadius: 12, padding: isMobile ? 14 : 24, border: "1px solid #1f2937" }}>
+            <h3 style={{ color: "white", fontSize: isMobile ? 13 : 15, fontWeight: "bold", margin: "0 0 20px 0" }}>🎯 Funil por Vendedor — {filtroLabel[filtro]}</h3>
+            {funilVendedores.length === 0 ? <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma proposta neste período.</p> : isMobile ? (
+              /* 🆕 FASE 3 MOBILE — cards em vez de tabela */
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {funilVendedores.map((v, i) => (
+                  <div key={v.vendedor + i} style={{ background: "#0d0d0d", borderRadius: 8, padding: 14 }}>
+                    <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 10px 0" }}>{v.vendedor}</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      <div style={{ background: "#16a34a11", borderRadius: 6, padding: "6px 10px" }}>
+                        <p style={{ color: "#9ca3af", fontSize: 10, margin: 0 }}>✅ Instaladas</p>
+                        <p style={{ color: "#16a34a", fontSize: 16, fontWeight: "bold", margin: 0 }}>{(v as any).INSTALADA || 0}</p>
+                      </div>
+                      <div style={{ background: "#8b5cf611", borderRadius: 6, padding: "6px 10px" }}>
+                        <p style={{ color: "#9ca3af", fontSize: 10, margin: 0 }}>📄 Geradas</p>
+                        <p style={{ color: "#8b5cf6", fontSize: 16, fontWeight: "bold", margin: 0 }}>{(v as any).GERADA || 0}</p>
+                      </div>
+                      <div style={{ background: "#f59e0b11", borderRadius: 6, padding: "6px 10px" }}>
+                        <p style={{ color: "#9ca3af", fontSize: 10, margin: 0 }}>⏳ Pendentes</p>
+                        <p style={{ color: "#f59e0b", fontSize: 16, fontWeight: "bold", margin: 0 }}>{(v as any).PENDENTE || 0}</p>
+                      </div>
+                      <div style={{ background: "#dc262611", borderRadius: 6, padding: "6px 10px" }}>
+                        <p style={{ color: "#9ca3af", fontSize: 10, margin: 0 }}>❌ Canceladas</p>
+                        <p style={{ color: "#dc2626", fontSize: 16, fontWeight: "bold", margin: 0 }}>{(v as any).CANCELADA || 0}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr style={{ background: "#0d0d0d" }}>{["Vendedor", "✅ Instaladas", "📄 Geradas", "⏳ Pendentes", "❌ Canceladas"].map(h => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
                 <tbody>{funilVendedores.map((v, i) => (<tr key={v.vendedor + i} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}><td style={{ padding: "14px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{v.vendedor}</td><td style={{ padding: "14px 16px", color: "#16a34a", fontSize: 13, fontWeight: "bold" }}>{(v as any).INSTALADA || 0}</td><td style={{ padding: "14px 16px", color: "#8b5cf6", fontSize: 13, fontWeight: "bold" }}>{(v as any).GERADA || 0}</td><td style={{ padding: "14px 16px", color: "#f59e0b", fontSize: 13, fontWeight: "bold" }}>{(v as any).PENDENTE || 0}</td><td style={{ padding: "14px 16px", color: "#dc2626", fontSize: 13, fontWeight: "bold" }}>{(v as any).CANCELADA || 0}</td></tr>))}</tbody>

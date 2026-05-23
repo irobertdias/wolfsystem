@@ -48,6 +48,15 @@ export default function Vendas() {
   // 🆕 Campos unificados (config aplicada)
   const [camposUnificados, setCamposUnificados] = useState<CampoUnificado[]>([]);
 
+  // 🆕 FASE 3 MOBILE — detecta tela < 768px
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   // Modal edição
   const [showModal, setShowModal] = useState(false);
   const [propostaEditando, setPropostaEditando] = useState<Proposta | null>(null);
@@ -352,7 +361,7 @@ export default function Vendas() {
             </div>
 
             {/* 🆕 Renderização dinâmica — todos os campos respeitando ordem/config */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 10 }}>
               {camposUnificados.map(c => (
                 <div key={`${c.origem}-${c.slug}`} style={c.larguraTotal || c.tipo === "textarea" ? { gridColumn: "1 / -1" } : undefined}>
                   {renderCampoModal(c)}
@@ -373,23 +382,23 @@ export default function Vendas() {
       )}
 
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 12 }}>
         <div>
-          <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>💰 Vendas</h1>
+          <h1 style={{ color: "white", fontSize: isMobile ? 18 : 22, fontWeight: "bold", margin: 0 }}>💰 Vendas</h1>
           <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
             {podeVerTudo
               ? `${totalGeral} proposta(s) cadastrada(s)`
               : `${totalVisivel} proposta(s) suas${totalGeral > totalVisivel ? ` · ${totalGeral - totalVisivel} de outros vendedores ocultas` : ""}`}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {podeEditarCamposCustom && (
             <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos da proposta"
-              style={{ background: "#a855f722", color: "#a855f7", border: "1px solid #a855f744", borderRadius: 8, padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
+              style={{ flex: isMobile ? 1 : "0 0 auto", background: "#a855f722", color: "#a855f7", border: "1px solid #a855f744", borderRadius: 8, padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>
               🛠️ Editar Campos
             </button>
           )}
-          <button onClick={() => router.push("/crm/proposta")} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
+          <button onClick={() => router.push("/crm/proposta")} style={{ flex: isMobile ? 1 : "0 0 auto", background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>
             📋 Nova Proposta
           </button>
         </div>
@@ -421,7 +430,8 @@ export default function Vendas() {
 
       {/* TABELA */}
       <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
           <thead>
             <tr style={{ background: "#0d0d0d" }}>
               {["Cliente", "CPF", "Vendedor", "Plano", "Valor", "Status", "Data", "Ações"].map(h => (
@@ -463,6 +473,7 @@ export default function Vendas() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {!podeExcluir && propostas.length > 0 && (

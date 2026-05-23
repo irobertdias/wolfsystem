@@ -17,6 +17,15 @@ export default function Funil() {
   const [filtro, setFiltro] = useState("diario");
   const [propostas, setPropostas] = useState<Proposta[]>([]);
 
+  // 🆕 FASE 3 MOBILE — detecta tela < 768px
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -61,25 +70,25 @@ export default function Funil() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>Funil de Vendas</h1>
-        <div style={{ display: "flex", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 24 }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 12 }}>
+        <h1 style={{ color: "white", fontSize: isMobile ? 18 : 22, fontWeight: "bold", margin: 0 }}>Funil de Vendas</h1>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {["diario", "semanal", "mensal"].map(f => (
-            <button key={f} onClick={() => setFiltro(f)} style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: "bold", background: filtro === f ? "#16a34a" : "#1f2937", color: filtro === f ? "white" : "#9ca3af" }}>{filtroLabel[f]}</button>
+            <button key={f} onClick={() => setFiltro(f)} style={{ flex: isMobile ? 1 : "0 0 auto", padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: "bold", background: filtro === f ? "#16a34a" : "#1f2937", color: filtro === f ? "white" : "#9ca3af" }}>{filtroLabel[f]}</button>
           ))}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 16 }}>
+      <div style={{ display: "flex", gap: isMobile ? 10 : 16, flexWrap: "wrap" }}>
         {[
           { stage: "Instaladas", count: totalInstaladas, color: "#16a34a" },
           { stage: "Geradas", count: totalGeradas, color: "#8b5cf6" },
           { stage: "Pendentes", count: totalPendentes, color: "#f59e0b" },
           { stage: "Canceladas", count: totalCanceladas, color: "#dc2626" },
         ].map(f => (
-          <div key={f.stage} style={{ flex: 1, background: "#111", borderRadius: 12, padding: 24, border: `1px solid ${f.color}33`, textAlign: "center" }}>
-            <p style={{ color: "#9ca3af", fontSize: 12, textTransform: "uppercase", margin: "0 0 12px 0" }}>{f.stage}</p>
-            <p style={{ color: f.color, fontSize: 40, fontWeight: "bold", margin: 0 }}>{f.count}</p>
+          <div key={f.stage} style={{ flex: isMobile ? "1 1 calc(50% - 5px)" : 1, minWidth: isMobile ? 0 : 140, background: "#111", borderRadius: 12, padding: isMobile ? 16 : 24, border: `1px solid ${f.color}33`, textAlign: "center" }}>
+            <p style={{ color: "#9ca3af", fontSize: isMobile ? 10 : 12, textTransform: "uppercase", margin: "0 0 12px 0" }}>{f.stage}</p>
+            <p style={{ color: f.color, fontSize: isMobile ? 30 : 40, fontWeight: "bold", margin: 0 }}>{f.count}</p>
           </div>
         ))}
       </div>

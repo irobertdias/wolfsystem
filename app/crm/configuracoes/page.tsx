@@ -132,6 +132,15 @@ export default function Configuracoes() {
     CATEGORIAS_PERMISSAO.reduce((acc, c) => { acc[c.nome] = true; return acc; }, {} as Record<string, boolean>)
   );
 
+  // 🆕 FASE 3 MOBILE — detecta tela < 768px
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 14, boxSizing: "border-box" as const };
 
   const getToken = async (): Promise<string | null> => {
@@ -396,8 +405,8 @@ export default function Configuracoes() {
   }).length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-      <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>⚙️ Configurações do Workspace</h1>
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 20 : 32 }}>
+      <h1 style={{ color: "white", fontSize: isMobile ? 18 : 22, fontWeight: "bold", margin: 0 }}>⚙️ Configurações do Workspace</h1>
 
       {/* 🔒 Fallback — usuário entrou na página mas não tem permissão pra NENHUMA seção */}
       {!isDono && !isSuperAdmin && !permissoes.usuarios_gerenciar && !permissoes.filas && !permissoes.grupos_permissao && !permissoes.configuracoes_workspace && (
@@ -443,7 +452,7 @@ export default function Configuracoes() {
         {showFormUsuario && (
           <div style={{ padding: 20, borderBottom: "1px solid #1f2937", background: "#0d0d0d" }}>
             <p style={{ color: "#3b82f6", fontSize: 12, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 12px" }}>{editandoUsuario ? "✏️ Editar Usuário" : "➕ Novo Usuário"}</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label><input placeholder="Nome completo" value={formUsuario.nome} onChange={e => setFormUsuario({ ...formUsuario, nome: e.target.value })} style={IS} /></div>
               <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>E-mail *</label><input type="email" placeholder="email@exemplo.com" value={formUsuario.email} onChange={e => setFormUsuario({ ...formUsuario, email: e.target.value })} disabled={!!editandoUsuario} style={{ ...IS, opacity: editandoUsuario ? 0.5 : 1 }} /></div>
               <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Perfil</label>
@@ -559,7 +568,8 @@ export default function Configuracoes() {
         {usuarios.length === 0 ? (
           <div style={{ padding: 32, textAlign: "center" }}><p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum usuário cadastrado ainda</p></div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
             <thead>
               <tr style={{ background: "#0d0d0d" }}>
                 {["Nome", "E-mail", "Perfil", "Fila", "Grupo Permissão", "Status", "Ações"].map(h => (
@@ -596,6 +606,7 @@ export default function Configuracoes() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
       )}
@@ -624,7 +635,8 @@ export default function Configuracoes() {
             <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Nenhuma fila cadastrada ainda</p>
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 520 : "auto" }}>
             <thead><tr style={{ background: "#0d0d0d" }}>{["Fila", "Conexão", "Usuários", "Ações"].map(h => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
             <tbody>{filas.map((f, i) => (
               <tr key={f.id} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
@@ -637,6 +649,7 @@ export default function Configuracoes() {
               </tr>
             ))}</tbody>
           </table>
+          </div>
         )}
       </div>
       )}
@@ -655,7 +668,7 @@ export default function Configuracoes() {
         {showFormGrupo && (
           <div style={{ padding: 24, borderBottom: "1px solid #1f2937", background: "#0d0d0d", display: "flex", flexDirection: "column", gap: 20 }}>
             <p style={{ color: "#8b5cf6", fontSize: 12, fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>{editandoGrupo ? "✏️ Editar Grupo" : "➕ Novo Grupo"}</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
               <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label><input placeholder="Ex: Atendente Vendas" value={formGrupo.nome} onChange={e => setFormGrupo({ ...formGrupo, nome: e.target.value })} style={IS} /></div>
               <div><label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Descrição</label><input placeholder="Ex: Acesso às vendas e chat" value={formGrupo.descricao} onChange={e => setFormGrupo({ ...formGrupo, descricao: e.target.value })} style={IS} /></div>
             </div>
@@ -682,7 +695,7 @@ export default function Configuracoes() {
                       </button>
                     </div>
                     {aberta && (
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: 10 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 6, padding: 10 }}>
                         {cat.permissoes.map(p => (
                           <label key={p.key} style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d0d0d", borderRadius: 6, padding: "8px 12px", cursor: "pointer", border: `1px solid ${formGrupo.permissoes[p.key] ? cat.cor + "55" : "#1f2937"}` }}>
                             <input type="checkbox" checked={!!formGrupo.permissoes[p.key]}
