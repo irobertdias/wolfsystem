@@ -1,5 +1,5 @@
 "use client";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { usePermissao } from "../hooks/usePermissao";
@@ -18,6 +18,29 @@ function ChatbotInner() {
   const { workspace } = useWorkspace();
   const { permissoes, isDono } = usePermissao();
   const [menuAberto, setMenuAberto] = useState<string | null>("atendimentos");
+
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // FASE 1.5 MOBILE — sidebar vira drawer/hambúrguer no celular
+  // ═══════════════════════════════════════════════════════════════════════
+  // - isMobile: detecta tela < 768px
+  // - menuMobileAberto: controla se o drawer está aberto no mobile
+  // - No desktop o sidebar continua igual (240px fixo). No mobile ele esconde
+  //   pra esquerda (translateX -100%) e abre quando user clica no ☰
+  const [isMobile, setIsMobile] = useState(false);
+  const [menuMobileAberto, setMenuMobileAberto] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // 🆕 Helper: navega pra uma rota e (no mobile) fecha o drawer automaticamente
+  // Substituiu o router.push direto nos onClick dos subitens.
+  const navegarPara = (path: string) => {
+    router.push(path);
+    if (isMobile) setMenuMobileAberto(false);
+  };
 
   // 🆕 Agora usando as permissões granulares ao invés de só "isDono" em tudo.
   // Isso faz com que um Administrador ou um Supervisor com grupo customizado
@@ -66,16 +89,91 @@ function ChatbotInner() {
   ];
 
   return (
-    <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#0a0a0a" }}>
+    <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#0a0a0a", position: "relative" }}>
 
-      {/* SIDEBAR */}
-      <div style={{ width: 240, background: "#111", borderRight: "1px solid #1f2937", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-        <div style={{ padding: 16, borderBottom: "1px solid #1f2937", display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/logo1.png" alt="Wolf" style={{ width: 32, filter: "brightness(0) invert(1)" }} />
-          <div>
-            <span style={{ color: "white", fontWeight: "bold", fontSize: 14, display: "block" }}>Wolf Chatbot</span>
-            <span style={{ color: "#16a34a", fontSize: 10 }}>{workspace?.nome || "Carregando..."}</span>
+      {/* 🆕 BOTÃO HAMBÚRGUER ☰ — só aparece no mobile, fixo no canto superior esquerdo.
+          Z-index 999 pra ficar visível sobre o conteúdo do ChatSection.
+          Esconde quando o drawer já está aberto (pra dar lugar ao botão ✕ dentro do drawer). */}
+      {isMobile && !menuMobileAberto && (
+        <button
+          onClick={() => setMenuMobileAberto(true)}
+          title="Abrir menu"
+          style={{
+            position: "fixed",
+            top: 8,
+            left: 8,
+            zIndex: 999,
+            background: "#1f2937",
+            border: "1px solid #374151",
+            color: "white",
+            borderRadius: 8,
+            padding: "6px 12px",
+            fontSize: 18,
+            cursor: "pointer",
+            lineHeight: 1,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
+          }}
+        >☰</button>
+      )}
+
+      {/* 🆕 OVERLAY escuro — só aparece no mobile quando drawer está aberto.
+          Clique fecha o drawer (UX padrão de drawer em mobile). */}
+      {isMobile && menuMobileAberto && (
+        <div
+          onClick={() => setMenuMobileAberto(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 999,
+          }}
+        />
+      )}
+
+      {/* SIDEBAR — desktop: coluna 240px fixa na esquerda.
+          Mobile: drawer que entra/sai com transform/translateX, ocupa tela cheia. */}
+      <div style={{
+        width: isMobile ? 280 : 240,
+        background: "#111",
+        borderRight: "1px solid #1f2937",
+        display: "flex",
+        flexDirection: "column",
+        overflowY: "auto",
+        // 🆕 No mobile, vira drawer FIXO que abre/fecha por cima do conteúdo
+        position: isMobile ? "fixed" : "relative",
+        top: isMobile ? 0 : "auto",
+        left: isMobile ? 0 : "auto",
+        bottom: isMobile ? 0 : "auto",
+        height: isMobile ? "100vh" : "auto",
+        zIndex: isMobile ? 1000 : "auto",
+        transform: isMobile && !menuMobileAberto ? "translateX(-100%)" : "translateX(0)",
+        transition: "transform 0.25s ease",
+      }}>
+        <div style={{ padding: 16, borderBottom: "1px solid #1f2937", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+            <img src="/logo1.png" alt="Wolf" style={{ width: 32, filter: "brightness(0) invert(1)", flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}>
+              <span style={{ color: "white", fontWeight: "bold", fontSize: 14, display: "block" }}>Wolf Chatbot</span>
+              <span style={{ color: "#16a34a", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{workspace?.nome || "Carregando..."}</span>
+            </div>
           </div>
+          {/* 🆕 Botão de FECHAR drawer — só aparece no mobile, no topo do menu */}
+          {isMobile && (
+            <button
+              onClick={() => setMenuMobileAberto(false)}
+              title="Fechar menu"
+              style={{
+                background: "none",
+                border: "none",
+                color: "#9ca3af",
+                fontSize: 22,
+                cursor: "pointer",
+                padding: 4,
+                lineHeight: 1,
+                flexShrink: 0,
+              }}
+            >✕</button>
+          )}
         </div>
         <div style={{ padding: 8, flex: 1 }}>
           {menus.map(menu => (
@@ -88,7 +186,7 @@ function ChatbotInner() {
               {menuAberto === menu.key && (
                 <div style={{ paddingLeft: 12, marginBottom: 4 }}>
                   {menu.subitens.map(sub => (
-                    <button key={sub.key} onClick={() => router.push((sub as any).path || `/chatbot?aba=${sub.key}`)}
+                    <button key={sub.key} onClick={() => navegarPara((sub as any).path || `/chatbot?aba=${sub.key}`)}
                       style={{ display: "block", width: "100%", padding: "8px 12px", background: aba === sub.key ? "#3b82f622" : "none", border: "none", borderRadius: 8, cursor: "pointer", color: aba === sub.key ? "#3b82f6" : "#6b7280", fontSize: 12, textAlign: "left", fontWeight: aba === sub.key ? "bold" : "normal" }}>
                       {sub.label}
                     </button>
@@ -99,12 +197,12 @@ function ChatbotInner() {
           ))}
         </div>
         <div style={{ padding: 12, borderTop: "1px solid #1f2937" }}>
-          <button onClick={() => router.push("/crm")} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 12px", background: "none", border: "none", borderRadius: 8, cursor: "pointer", color: "#6b7280", fontSize: 12 }}>← Voltar ao CRM</button>
+          <button onClick={() => navegarPara("/crm")} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 12px", background: "none", border: "none", borderRadius: 8, cursor: "pointer", color: "#6b7280", fontSize: 12 }}>← Voltar ao CRM</button>
         </div>
       </div>
 
-      {/* CONTEÚDO */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* CONTEÚDO — desktop: ocupa o que sobra. Mobile: 100% da tela (sidebar é overlay) */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", width: isMobile ? "100%" : "auto", minWidth: 0 }}>
         {aba === "chat" && <ChatSection />}
         {aba === "dashboard_atendimentos" && permissoes.dashboard && <DashboardSection />}
         {aba === "conexoes" && !permissoes.conexoes && (
