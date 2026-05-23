@@ -242,6 +242,18 @@ export function ChatSection() {
   // mesmo com o bot ainda respondendo. Clicando, ele assume e o bot para.
   const [roletaAtiva, setRoletaAtiva] = useState(false);
 
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // FASE 1 MOBILE — detecta tela < 768px pra alternar layout split (desktop)
+  // pra fullscreen (mobile, estilo WhatsApp: lista → clica → chat fullscreen)
+  // ═══════════════════════════════════════════════════════════════════════
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   // 🔔 ═══════════════════════════════════════════════════════════════════════════
   // SISTEMA DE NOTIFICAÇÕES (estilo WhatsApp)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -2442,8 +2454,8 @@ export function ChatSection() {
         }
       `}</style>
 
-      {/* LISTA ESQUERDA */}
-      <div style={{ width: 340, background: tema.sidebarBg, borderRight: `1px solid ${tema.bordaSutil}`, display: "flex", flexDirection: "column" }}>
+      {/* LISTA ESQUERDA — mobile: 100% largura quando nenhum chat aberto, esconde quando chat aberto */}
+      <div style={{ width: isMobile ? "100%" : 340, background: tema.sidebarBg, borderRight: `1px solid ${tema.bordaSutil}`, display: isMobile && atendimentoAtivo ? "none" : "flex", flexDirection: "column" }}>
         <div style={{ padding: "12px 14px", background: tema.headerBg, borderBottom: `1px solid ${tema.bordaSutil}`, display: "flex", gap: 8, alignItems: "center" }}>
           <div style={{ flex: 1, position: "relative" }}>
             <input
@@ -2690,8 +2702,8 @@ export function ChatSection() {
         </div>
       </div>
 
-      {/* ÁREA DO CHAT */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: ehClaro ? "none" : WA_BG_DARK, backgroundRepeat: "repeat", position: "relative" }}>
+      {/* ÁREA DO CHAT — mobile: esconde quando nenhum chat aberto (mostra só a lista) */}
+      <div style={{ flex: 1, display: isMobile && !atendimentoAtivo ? "none" : "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: ehClaro ? "none" : WA_BG_DARK, backgroundRepeat: "repeat", position: "relative", width: isMobile ? "100%" : "auto" }}>
         {atendimentoAtivo ? (
           <>
             {/* 🆕 HEADER REFORMULADO
@@ -2701,6 +2713,24 @@ export function ChatSection() {
                 - Finalizar Venda ganhou destaque (botão verde com texto)
             */}
             <div style={{ padding: "10px 16px", borderBottom: `1px solid ${tema.bordaSutil}`, background: tema.headerBg, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              {/* 🆕 BOTÃO VOLTAR — só aparece em mobile. Fecha o chat ativo e volta pra lista */}
+              {isMobile && (
+                <button
+                  onClick={() => setAtendimentoAtivo(null)}
+                  title="Voltar para a lista"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#aebac1",
+                    cursor: "pointer",
+                    fontSize: 24,
+                    padding: "4px 8px",
+                    marginLeft: -8,
+                    flexShrink: 0,
+                    lineHeight: 1,
+                  }}
+                >←</button>
+              )}
               {/* BLOCO CLICÁVEL: Avatar + Nome + Info → abre painel do contato
                   O clique ainda funciona, mas sem tooltip "Ver dados do contato" (que era gigante
                   e aparecia sobre o chat atrapalhando a leitura). Pra descobrabilidade, tem um
@@ -3600,9 +3630,23 @@ export function ChatSection() {
         </div>
       )}
 
-      {/* PAINEL DADOS DO CONTATO */}
+      {/* PAINEL DADOS DO CONTATO — mobile: fullscreen overlay; desktop: sidebar 340px */}
       {atendimentoAtivo && showPainelContato && (
-        <div style={{ width: 340, background: "#111b21", borderLeft: "1px solid #222d34", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{
+          width: isMobile ? "100%" : 340,
+          background: "#111b21",
+          borderLeft: "1px solid #222d34",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          position: isMobile ? "fixed" : "relative",
+          top: isMobile ? 0 : "auto",
+          left: isMobile ? 0 : "auto",
+          right: isMobile ? 0 : "auto",
+          bottom: isMobile ? 0 : "auto",
+          zIndex: isMobile ? 100 : "auto",
+          height: isMobile ? "100vh" : "auto",
+        }}>
           <div style={{ padding: "14px 16px", borderBottom: "1px solid #222d34", background: "#202c33", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <h3 style={{ color: "#e9edef", fontSize: 14, fontWeight: "bold", margin: 0 }}>👤 Dados do Contato</h3>
