@@ -27,6 +27,30 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const [usuariosCount, setUsuariosCount] = useState(0);
   const [limiteUsuarios, setLimiteUsuarios] = useState(9999);
 
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // FASE 2 MOBILE — sidebar do CRM vira drawer/hambúrguer no celular
+  // ═══════════════════════════════════════════════════════════════════════
+  // Mesmo padrão da Fase 1.5 (Chatbot):
+  // - isMobile: detecta tela < 768px
+  // - menuMobileAberto: controla se o drawer está aberto no mobile
+  // - No desktop o sidebar continua igual (220px fixo). No mobile ele esconde
+  //   pra esquerda (translateX -100%) e abre quando user clica no ☰
+  const [isMobile, setIsMobile] = useState(false);
+  const [menuMobileAberto, setMenuMobileAberto] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // 🆕 Helper: navega pra uma rota e (no mobile) fecha o drawer automaticamente.
+  // Substituiu o router.push direto nos onClick dos botões do menu.
+  const navegarPara = (path: string) => {
+    router.push(path);
+    if (isMobile) setMenuMobileAberto(false);
+  };
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -175,14 +199,94 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     : "👤 Atendente";
 
   return (
-    <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#0a0a0a" }}>
-      <div style={{ width: 220, background: "#111", borderRight: "1px solid #1f2937", display: "flex", flexDirection: "column", padding: 16, gap: 8, flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <img src="/logo1.png" alt="Wolf" style={{ width: 36, filter: "brightness(0) invert(1)" }} />
-          <div>
-            <span style={{ color: "white", fontWeight: "bold", fontSize: 13, display: "block" }}>Wolf CRM</span>
-            <span style={{ color: "#16a34a", fontSize: 10 }}>{workspaceNome || "Carregando..."}</span>
+    <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#0a0a0a", position: "relative" }}>
+
+      {/* 🆕 FASE 2 — BOTÃO HAMBÚRGUER ☰ — só aparece no mobile, fixo no canto superior esquerdo.
+          Z-index 999 pra ficar visível sobre o conteúdo do CRM.
+          Esconde quando o drawer já está aberto (pra dar lugar ao botão ✕ dentro do drawer). */}
+      {isMobile && !menuMobileAberto && (
+        <button
+          onClick={() => setMenuMobileAberto(true)}
+          title="Abrir menu"
+          style={{
+            position: "fixed",
+            top: 8,
+            left: 8,
+            zIndex: 999,
+            background: "#1f2937",
+            border: "1px solid #374151",
+            color: "white",
+            borderRadius: 8,
+            padding: "6px 12px",
+            fontSize: 18,
+            cursor: "pointer",
+            lineHeight: 1,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
+          }}
+        >☰</button>
+      )}
+
+      {/* 🆕 FASE 2 — OVERLAY escuro — só aparece no mobile quando drawer está aberto.
+          Clique fecha o drawer (UX padrão de drawer em mobile). */}
+      {isMobile && menuMobileAberto && (
+        <div
+          onClick={() => setMenuMobileAberto(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 999,
+          }}
+        />
+      )}
+
+      {/* SIDEBAR — desktop: coluna 220px fixa na esquerda.
+          Mobile: drawer 280px que entra/sai com transform/translateX, ocupa tela cheia. */}
+      <div style={{
+        width: isMobile ? 280 : 220,
+        background: "#111",
+        borderRight: "1px solid #1f2937",
+        display: "flex",
+        flexDirection: "column",
+        padding: 16,
+        gap: 8,
+        flexShrink: 0,
+        overflowY: "auto",
+        // 🆕 No mobile, vira drawer FIXO que abre/fecha por cima do conteúdo
+        position: isMobile ? "fixed" : "relative",
+        top: isMobile ? 0 : "auto",
+        left: isMobile ? 0 : "auto",
+        bottom: isMobile ? 0 : "auto",
+        height: isMobile ? "100vh" : "auto",
+        zIndex: isMobile ? 1000 : "auto",
+        transform: isMobile && !menuMobileAberto ? "translateX(-100%)" : "translateX(0)",
+        transition: "transform 0.25s ease",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+            <img src="/logo1.png" alt="Wolf" style={{ width: 36, filter: "brightness(0) invert(1)", flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}>
+              <span style={{ color: "white", fontWeight: "bold", fontSize: 13, display: "block" }}>Wolf CRM</span>
+              <span style={{ color: "#16a34a", fontSize: 10, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{workspaceNome || "Carregando..."}</span>
+            </div>
           </div>
+          {/* 🆕 FASE 2 — Botão FECHAR drawer (só no mobile) */}
+          {isMobile && (
+            <button
+              onClick={() => setMenuMobileAberto(false)}
+              title="Fechar menu"
+              style={{
+                background: "none",
+                border: "none",
+                color: "#9ca3af",
+                fontSize: 22,
+                cursor: "pointer",
+                padding: 4,
+                lineHeight: 1,
+                flexShrink: 0,
+              }}
+            >✕</button>
+          )}
         </div>
 
         <div style={{ background: "#1f2937", borderRadius: 8, padding: "8px 12px", marginBottom: 4 }}>
@@ -200,7 +304,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         )}
 
         {menuItems.map(item => (
-          <button key={item.path} onClick={() => router.push(item.path)}
+          <button key={item.path} onClick={() => navegarPara(item.path)}
             style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: isActive(item.path) ? "#16a34a22" : "none", border: "none", borderRadius: 8, cursor: "pointer", color: isActive(item.path) ? "#16a34a" : "#9ca3af", fontSize: 13, fontWeight: isActive(item.path) ? "bold" : "normal", textAlign: "left" }}>
             <span>{item.icon}</span>
             {item.label}
@@ -210,14 +314,14 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
         <div style={{ borderTop: "1px solid #1f2937", marginTop: 8, paddingTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
           {podeVerChatbot && (
-            <button onClick={() => router.push("/chatbot")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#3b82f622", border: "1px solid #3b82f633", borderRadius: 8, cursor: "pointer", color: "#3b82f6", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
+            <button onClick={() => navegarPara("/chatbot")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#3b82f622", border: "1px solid #3b82f633", borderRadius: 8, cursor: "pointer", color: "#3b82f6", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
               <span>💬</span> Chatbot
             </button>
           )}
 
           {/* 📞 TELEFONIA — só aparece se passa na hierarquia (módulo + permissão) */}
           {modulosCarregados && podeVerTelefonia && (
-            <button onClick={() => router.push("/crm/telefonia")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: isActive("/crm/telefonia") ? "#16a34a33" : "#16a34a22", border: `1px solid ${isActive("/crm/telefonia") ? "#16a34a" : "#16a34a33"}`, borderRadius: 8, cursor: "pointer", color: "#16a34a", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
+            <button onClick={() => navegarPara("/crm/telefonia")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: isActive("/crm/telefonia") ? "#16a34a33" : "#16a34a22", border: `1px solid ${isActive("/crm/telefonia") ? "#16a34a" : "#16a34a33"}`, borderRadius: 8, cursor: "pointer", color: "#16a34a", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
               <span>📞</span> Telefonia
             </button>
           )}
@@ -229,7 +333,14 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: 32 }}>
+      {/* CONTEÚDO — desktop: ocupa o que sobra com padding 32. Mobile: 100% da tela com padding menor */}
+      <div style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: isMobile ? "56px 12px 16px" : 32,   // 🆕 padding-top maior no mobile pra não ficar atrás do botão ☰
+        width: isMobile ? "100%" : "auto",
+        minWidth: 0,
+      }}>
         {children}
       </div>
     </div>
