@@ -32,6 +32,11 @@ type Conexao = {
   workspace_id: string;
   // 🆕 Typebot
   typebot_url?: string; typebot_msg_invalida?: string; typebot_msg_boas_vindas?: string;
+  // 🆕 Meta flags
+  messenger_ativo?: boolean;
+  instagram_ativo?: boolean;
+  instagram_business_id?: string;
+  instagram_username?: string;
 };
 type FluxoItem = { id: number; nome: string; ativo: boolean; };
 type FilaItem = { id: number; nome: string; conexao?: string; };
@@ -41,16 +46,13 @@ export function ConexoesSection() {
   const router = useRouter();
   const { workspace, wsId, user } = useWorkspace();
   const { notify } = useToast();
-  // 🆕 Não usa mais isDono pra limites — dono de workspace NÃO é super admin do Wolf
-  // (se precisar verificar "é dono do workspace?" pra outras regras, reabilita esta linha)
-  // const { isDono } = usePermissao();
 
   // 🔒 Só o super admin do Wolf tem bypass de limites — dono de workspace respeita plano
   const isSuperAdmin = (user?.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
   const [fluxos, setFluxos] = useState<FluxoItem[]>([]);
-  const [filasBanco, setFilasBanco] = useState<FilaItem[]>([]); // 🆕 Filas vindas do CRM
+  const [filasBanco, setFilasBanco] = useState<FilaItem[]>([]);
   const [showModalQR, setShowModalQR] = useState(false);
   const [showMenuEngrenagem, setShowMenuEngrenagem] = useState<number | null>(null);
   const [qrCanalId, setQrCanalId] = useState<number | null>(null);
@@ -59,13 +61,10 @@ export function ConexoesSection() {
   const [qrPolling, setQrPolling] = useState(false);
   const [qrConectado, setQrConectado] = useState(false);
   const [qrNumero, setQrNumero] = useState("");
-  // 🆕 Contador de tentativas do polling — depois de 30s sem detectar, mostra aviso pro user
   const [qrTentativas, setQrTentativas] = useState(0);
   const [showModalNovoCanal, setShowModalNovoCanal] = useState(false);
-  // 🆕 Estado da conexão Meta (Facebook/Instagram via OAuth)
   const [conectandoMeta, setConectandoMeta] = useState(false);
   const [resultadoMeta, setResultadoMeta] = useState<{ sucesso?: boolean; mensagem?: string; pages?: any[] } | null>(null);
-  // 🆕 Modal de seleção de pages (entre OAuth e criação dos canais)
   const [pagesDisponiveis, setPagesDisponiveis] = useState<any[]>([]);
   const [pagesSelecionadas, setPagesSelecionadas] = useState<Set<string>>(new Set());
   const [showSelecaoPages, setShowSelecaoPages] = useState(false);
@@ -86,46 +85,21 @@ export function ConexoesSection() {
   const [tokenTocado, setTokenTocado] = useState(false);
 
   const wsIdsRef = useRef<string[]>([]);
+
   // 🆕 Carrega Facebook SDK uma vez (necessário pro popup OAuth)
-
   useEffect(() => {
-
     if (window.FB) return;
-
     if (document.getElementById("facebook-jssdk")) return;
-
-
     window.fbAsyncInit = function () {
-
-      window.FB.init({
-
-        appId: FB_APP_ID,
-
-        cookie: true,
-
-        xfbml: false,
-
-        version: "v21.0",
-
-      });
-
+      window.FB.init({ appId: FB_APP_ID, cookie: true, xfbml: false, version: "v21.0" });
     };
-
-
     const script = document.createElement("script");
-
     script.id = "facebook-jssdk";
-
     script.src = "https://connect.facebook.net/pt_BR/sdk.js";
-
     script.async = true;
-
     script.defer = true;
-
     document.body.appendChild(script);
-
   }, []);
-
 
   useEffect(() => {
     const ids: string[] = [];
@@ -134,8 +108,17 @@ export function ConexoesSection() {
     wsIdsRef.current = ids;
   }, [workspace]);
 
-  const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
+  // 🎨 ESTILOS LIGHT TECH
+  const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
   const TA = { ...IS, height: 90, resize: "vertical" as const };
+
+  const cardStyle = {
+    background: "#ffffff",
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+    transition: "all 0.15s",
+  };
 
   const wa = async (rota: string, body?: object) => {
     if (body !== undefined) {
@@ -177,7 +160,6 @@ export function ConexoesSection() {
     setFluxos(data || []);
   };
 
-  // 🆕 Busca filas cadastradas no CRM (em Configurações → Filas)
   const fetchFilas = async () => {
     const ids = wsIdsRef.current;
     if (ids.length === 0) return;
@@ -190,7 +172,6 @@ export function ConexoesSection() {
     }
   };
 
-  // 🔒 MULTI-TENANT: passa workspaceId no query — backend exige pra confirmar que canal é do workspace.
   const verificarStatusWaba = async (canalId: number, workspaceIdDoCanal: string) => {
     try {
       const resp = await fetch(`https://api.wolfgyn.com.br/waba/verificar-status?canalId=${canalId}&workspaceId=${encodeURIComponent(workspaceIdDoCanal)}`);
@@ -202,13 +183,9 @@ export function ConexoesSection() {
     if (!workspace?.id) return;
     fetchConexoes();
     fetchFluxos();
-    fetchFilas(); // 🆕
+    fetchFilas();
     fetchLimites();
 
-    // 🔒 MULTI-TENANT: filter no postgres_changes pra só receber eventos deste workspace.
-    // Antes ouvia mudanças de TODOS workspaces e disparava fetch (desperdício + risco de listar
-    // canais errados se algum bug deixasse passar). Como wsId pode estar como username ou id numérico,
-    // usa o `wsId` (string canônica que useWorkspace retorna).
     const channelName = `conexoes_rt_${wsId || "anon"}`;
     const ch = supabase.channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes", filter: `workspace_id=eq.${wsId}` }, () => fetchConexoes())
@@ -217,8 +194,6 @@ export function ConexoesSection() {
 
     const interval = setInterval(async () => {
       try {
-        // 🔒 MULTI-TENANT: backend exige workspaceId — só retorna sessões deste workspace.
-        // Se wsId ainda não carregou, pula esta iteração (evita chamada com workspaceId vazio).
         if (!wsId) return;
         const resp = await fetch(`https://api.wolfgyn.com.br/status?workspaceId=${encodeURIComponent(wsId)}`);
         const data = await resp.json();
@@ -234,7 +209,6 @@ export function ConexoesSection() {
               const statusReal = sessaoVPS.status === "conectado" ? "conectado" : "desconectado";
               const numeroReal = sessaoVPS.numero || "";
               if (c.status !== statusReal || (statusReal === "conectado" && c.numero !== numeroReal)) {
-                // 🔒 MULTI-TENANT: confirma workspace_id mesmo updateando por id (defesa em profundidade)
                 await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal })
                   .eq("id", c.id).eq("workspace_id", c.workspace_id);
               }
@@ -244,7 +218,6 @@ export function ConexoesSection() {
                 const statusReal = wabaStatus.status;
                 const numeroReal = wabaStatus.numero || c.numero;
                 if (c.status !== statusReal || c.numero !== numeroReal) {
-                  // 🔒 MULTI-TENANT: confirma workspace_id (defesa em profundidade)
                   await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal })
                     .eq("id", c.id).eq("workspace_id", c.workspace_id);
                 }
@@ -259,10 +232,7 @@ export function ConexoesSection() {
     return () => { supabase.removeChannel(ch); clearInterval(interval); };
   }, [workspace, user?.email]);
 
-  // 🆕 POLLING RÁPIDO + DETECÇÃO VIA ESTADO — três camadas de segurança pra fechar o modal:
-  //   1. Poll agressivo em /qr-data a cada 1.5s (era 3s)
-  //   2. Logs no console pra debug caso o poll falhe silenciosamente
-  //   3. Contador — depois de 30s sem detectar, mostra o aviso visual no modal
+  // 🆕 POLLING RÁPIDO + DETECÇÃO VIA ESTADO
   useEffect(() => {
     if (!qrPolling || !showModalQR || !qrCanalId) return;
     let tentativas = 0;
@@ -270,13 +240,8 @@ export function ConexoesSection() {
       tentativas++;
       setQrTentativas(tentativas);
       try {
-        // 🔒 MULTI-TENANT: backend exige workspaceId pra retornar QR (vazamento crítico — atacante poderia
-        // pegar QR alheio e conectar o WhatsApp do cliente ao próprio celular).
         const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store" });
-        if (!resp.ok) {
-          console.warn(`[QR poll] status HTTP ${resp.status} — tentativa ${tentativas}`);
-          return;
-        }
+        if (!resp.ok) { console.warn(`[QR poll] status HTTP ${resp.status} — tentativa ${tentativas}`); return; }
         const data = await resp.json();
         if (data.qr && data.qr !== qrImageUrl) setQrImageUrl(data.qr);
         console.log(`[QR poll #${tentativas}] canal=${qrCanalId} status=${data.status} numero=${data.numero || "—"}`);
@@ -285,25 +250,17 @@ export function ConexoesSection() {
           setQrConectado(true);
           setQrNumero(data.numero || "");
           setQrPolling(false);
-          // Atualiza o banco também (redundante mas garante)
-          // 🔒 MULTI-TENANT: defesa em profundidade — só updateia se canal for deste workspace
           await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" })
             .eq("id", qrCanalId).in("workspace_id", wsIdsRef.current);
           await fetchConexoes();
-          // Fecha modal depois de 800ms pro user ver o ✅ WhatsApp Conectado!
           setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
         }
-      } catch (e: any) {
-        console.warn(`[QR poll] erro fetch:`, e?.message || e);
-      }
+      } catch (e: any) { console.warn(`[QR poll] erro fetch:`, e?.message || e); }
     }, 1500);
     return () => clearInterval(interval);
   }, [qrPolling, showModalQR, qrCanalId]);
 
-  // 🆕 PLANO B — observa o estado `conexoes` (alimentado por Supabase Realtime)
-  // Se o backend atualizou a tabela (via atualizarStatusCanal no evento `ready`) e o poll do qr-data
-  // falhar por qualquer motivo (CORS, timeout, firewall), esse useEffect fecha o modal baseado
-  // no banco de dados. É a rede de segurança mais confiável.
+  // 🆕 PLANO B — observa estado `conexoes` via Realtime
   useEffect(() => {
     if (!showModalQR || !qrCanalId || qrConectado) return;
     const canal = conexoes.find(c => c.id === qrCanalId);
@@ -317,13 +274,7 @@ export function ConexoesSection() {
   }, [conexoes, showModalQR, qrCanalId, qrConectado]);
 
   const registrarNumeroWaba = async (c: Conexao) => {
-    const usarPinPadrao = confirm(
-      `🟢 Ativar o número na Meta?\n\n` +
-      `Canal: ${c.nome}\n` +
-      `Número: ${c.numero}\n\n` +
-      `Clique OK pra usar o PIN padrão (000000).\n` +
-      `Clique CANCELAR se você configurou um PIN personalizado (2FA).`
-    );
+    const usarPinPadrao = confirm(`🟢 Ativar o número na Meta?\n\nCanal: ${c.nome}\nNúmero: ${c.numero}\n\nClique OK pra usar o PIN padrão (000000).\nClique CANCELAR se você configurou um PIN personalizado (2FA).`);
     let pin = "000000";
     if (!usarPinPadrao) {
       const pinCustom = prompt("Digite seu PIN de 6 dígitos (2FA):", "");
@@ -333,7 +284,6 @@ export function ConexoesSection() {
     }
     setRegistrandoWaba(true); setShowMenuEngrenagem(null);
     try {
-      // 🔒 MULTI-TENANT: backend exige workspaceId pra confirmar que canal pertence ao workspace.
       const resp = await fetch(`/api/whatsapp?rota=waba/registrar`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ canalId: c.id, pin, workspaceId: c.workspace_id }),
@@ -391,170 +341,71 @@ export function ConexoesSection() {
     setEditandoId(c.id);
     setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila || "", pararSeAtendente: c.parar_se_atendente, typebot_url: c.typebot_url || "", typebot_msg_invalida: c.typebot_msg_invalida || "", typebot_msg_boas_vindas: c.typebot_msg_boas_vindas || "" });
     setApiKeyTocada(false); setTokenTocado(false); setShowModalNovoCanal(true); setShowMenuEngrenagem(null);
-    fetchFluxos(); fetchFilas(); // 🆕 recarrega filas ao abrir pra editar
+    fetchFluxos(); fetchFilas();
   };
 
-  // 🆕 Liga/desliga Instagram ou Messenger num canal Meta
   const toggleMetaFlag = async (canal: any, flag: "instagram_ativo" | "messenger_ativo") => {
     try {
       const novoValor = !canal[flag];
-      const { error } = await supabase
-        .from("conexoes")
-        .update({ [flag]: novoValor })
-        .eq("id", canal.id)
-        .eq("workspace_id", canal.workspace_id);
-      if (error) {
-        notify("Falha ao atualizar canal", "erro", traduzirErro(error));
-        return;
-      }
+      const { error } = await supabase.from("conexoes").update({ [flag]: novoValor }).eq("id", canal.id).eq("workspace_id", canal.workspace_id);
+      if (error) { notify("Falha ao atualizar canal", "erro", traduzirErro(error)); return; }
       await fetchConexoes();
-    } catch (err: any) {
-      notify("Falha de rede", "erro", traduzirErro(err));
-    }
+    } catch (err: any) { notify("Falha de rede", "erro", traduzirErro(err)); }
   };
 
-  // 🆕 Inicia OAuth, lista pages e abre modal de seleção (cliente decide quais conectar)
   const conectarMeta = () => {
-    if (!wsId) {
-      notify("Workspace não identificado", "aviso", "Recarregue a página (F5)");
-      return;
-    }
-    if (!window.FB) {
-      notify("Sistema do Facebook carregando", "aviso", "Aguarde 2 segundos e tente novamente");
-      return;
-    }
-
+    if (!wsId) { notify("Workspace não identificado", "aviso", "Recarregue a página (F5)"); return; }
+    if (!window.FB) { notify("Sistema do Facebook carregando", "aviso", "Aguarde 2 segundos e tente novamente"); return; }
     setConectandoMeta(true);
     setResultadoMeta(null);
-
     window.FB.login(
       (response: any) => {
-        if (!response.authResponse) {
-          setConectandoMeta(false);
-          setResultadoMeta({ sucesso: false, mensagem: "Você cancelou a conexão." });
-          return;
-        }
-
+        if (!response.authResponse) { setConectandoMeta(false); setResultadoMeta({ sucesso: false, mensagem: "Você cancelou a conexão." }); return; }
         const accessToken = response.authResponse.accessToken;
-
         (async () => {
           try {
-            const r = await fetch(`${META_BASE}/auth/listar-pages`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ accessToken }),
-            });
+            const r = await fetch(`${META_BASE}/auth/listar-pages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accessToken }) });
             const data = await r.json();
-
             if (data.sucesso && Array.isArray(data.pages)) {
-              if (data.pages.length === 0) {
-                setResultadoMeta({
-                  sucesso: false,
-                  mensagem: "Nenhuma fan page encontrada nessa conta Facebook.",
-                });
-              } else {
-                setPagesDisponiveis(data.pages);
-                setPagesSelecionadas(new Set());
-                setShowSelecaoPages(true);
-              }
-            } else {
-              setResultadoMeta({
-                sucesso: false,
-                mensagem: data.erro || "Erro ao listar pages.",
-              });
-            }
-          } catch (err: any) {
-            setResultadoMeta({
-              sucesso: false,
-              mensagem: "Erro de rede: " + (err.message || "desconhecido"),
-            });
-          } finally {
-            setConectandoMeta(false);
-          }
+              if (data.pages.length === 0) { setResultadoMeta({ sucesso: false, mensagem: "Nenhuma fan page encontrada nessa conta Facebook." }); }
+              else { setPagesDisponiveis(data.pages); setPagesSelecionadas(new Set()); setShowSelecaoPages(true); }
+            } else { setResultadoMeta({ sucesso: false, mensagem: data.erro || "Erro ao listar pages." }); }
+          } catch (err: any) { setResultadoMeta({ sucesso: false, mensagem: "Erro de rede: " + (err.message || "desconhecido") }); }
+          finally { setConectandoMeta(false); }
         })();
       },
-      {
-        config_id: FB_CONFIG_ID,
-        response_type: "token",
-      }
+      { config_id: FB_CONFIG_ID, response_type: "token" }
     );
   };
 
-  // 🆕 Toggle de seleção de uma page no modal
   const togglePage = (pageId: string) => {
-    setPagesSelecionadas(prev => {
-      const novo = new Set(prev);
-      if (novo.has(pageId)) novo.delete(pageId);
-      else novo.add(pageId);
-      return novo;
-    });
+    setPagesSelecionadas(prev => { const novo = new Set(prev); if (novo.has(pageId)) novo.delete(pageId); else novo.add(pageId); return novo; });
   };
 
-  // 🆕 Confirma seleção e chama backend pra criar canais
   const confirmarSelecaoPages = async () => {
-    if (pagesSelecionadas.size === 0) {
-      notify("Selecione ao menos 1 fan page", "aviso");
-      return;
-    }
+    if (pagesSelecionadas.size === 0) { notify("Selecione ao menos 1 fan page", "aviso"); return; }
     const pagesEscolhidas = pagesDisponiveis.filter(p => pagesSelecionadas.has(p.id));
     setConectandoMeta(true);
-
     try {
-      const r = await fetch(`${META_BASE}/auth/conectar-pages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId: wsId, pages: pagesEscolhidas }),
-      });
+      const r = await fetch(`${META_BASE}/auth/conectar-pages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: wsId, pages: pagesEscolhidas }) });
       const data = await r.json();
-
-      if (data.sucesso) {
-        setResultadoMeta({
-          sucesso: true,
-          mensagem: `${data.pages_processadas} fan page(s) conectada(s)!`,
-          pages: data.resultados,
-        });
-        await fetchConexoes();
-        setShowSelecaoPages(false);
-      } else {
-        setResultadoMeta({
-          sucesso: false,
-          mensagem: data.erro || "Erro ao conectar pages.",
-        });
-      }
-    } catch (err: any) {
-      setResultadoMeta({
-        sucesso: false,
-        mensagem: "Erro de rede: " + (err.message || "desconhecido"),
-      });
-    } finally {
-      setConectandoMeta(false);
-    }
+      if (data.sucesso) { setResultadoMeta({ sucesso: true, mensagem: `${data.pages_processadas} fan page(s) conectada(s)!`, pages: data.resultados }); await fetchConexoes(); setShowSelecaoPages(false); }
+      else { setResultadoMeta({ sucesso: false, mensagem: data.erro || "Erro ao conectar pages." }); }
+    } catch (err: any) { setResultadoMeta({ sucesso: false, mensagem: "Erro de rede: " + (err.message || "desconhecido") }); }
+    finally { setConectandoMeta(false); }
   };
 
   const salvarCanal = async () => {
-    // 🆕 Guard - tipo meta_oauth na criação NÃO usa esta função.
-    // Os canais Instagram/Messenger já foram criados via OAuth/backend.
-    if (!editandoId && form.tipo === "meta_oauth") {
-      notify("Canal Meta já conectado", "info", "Clique em 'Concluir' pra fechar este modal");
-      return;
-    }
+    if (!editandoId && form.tipo === "meta_oauth") { notify("Canal Meta já conectado", "info", "Clique em 'Concluir' pra fechar este modal"); return; }
     if (!wsId) { notify("Aguarde o workspace carregar", "aviso"); return; }
     if (!form.nome.trim()) { notify("Digite o nome do canal", "aviso"); return; }
-    if (!form.fila) { notify("Selecione uma fila", "aviso", "Se não tem fila cadastrada, vá em Configurações → Filas"); return; } // 🆕
+    if (!form.fila) { notify("Selecione uma fila", "aviso", "Se não tem fila cadastrada, vá em Configurações → Filas"); return; }
     if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { notify("Preencha Phone Number ID e Token", "aviso"); return; }
     if (!editandoId && form.modo === "ia" && !form.apiKey) { notify("Digite a API Key da IA", "aviso"); return; }
-    // 🆕 TYPEBOT — exige URL pra criar
-    if (form.modo === "typebot" && !form.typebot_url?.trim()) {
-      notify("Cole a URL de publicação do Typebot", "aviso");
-      return;
-    }
+    if (form.modo === "typebot" && !form.typebot_url?.trim()) { notify("Cole a URL de publicação do Typebot", "aviso"); return; }
 
-    // 🆕 Validação de limite do plano — APENAS super admin Wolf bypassa (dono de workspace respeita plano)
     if (!editandoId && !isSuperAdmin) {
-      if (conexoes.length >= limites.conexoes) {
-        notify("Limite do plano atingido", "erro", `Seu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}. Faça upgrade pra criar mais.`);
-        return;
-      }
+      if (conexoes.length >= limites.conexoes) { notify("Limite do plano atingido", "erro", `Seu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}. Faça upgrade pra criar mais.`); return; }
       if (form.tipo === "webjs" && !limites.webjs) { notify("Seu plano não inclui WhatsApp Web", "erro", "Faça upgrade pra usar este canal"); return; }
       if (form.tipo === "waba" && !limites.waba) { notify("Seu plano não inclui API Meta (WABA)", "erro", "Faça upgrade pro plano Intermediário ou Ultra"); return; }
     }
@@ -562,11 +413,9 @@ export function ConexoesSection() {
     setSalvandoCanal(true);
     try {
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
-
       const payload: any = {
         nome: form.nome, modo: form.modo, ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
         fila: form.fila, prompt: form.prompt, parar_se_atendente: form.pararSeAtendente,
-        // 🆕 TYPEBOT — sempre salva (mesmo vazio) pra consistência
         typebot_url: form.typebot_url || "",
         typebot_msg_invalida: form.typebot_msg_invalida || "Desculpe, não entendi sua resposta. Pode tentar de novo?",
         typebot_msg_boas_vindas: form.typebot_msg_boas_vindas || "",
@@ -574,18 +423,14 @@ export function ConexoesSection() {
       if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
 
       if (editandoId) {
-        // 🆕 Edit WABA: adiciona credenciais ao payload (sem isso, troca de token/WABA ID não salva)
         if (form.tipo === "waba") {
           if (form.phoneNumberId) payload.phone_number_id = form.phoneNumberId;
           if (form.wabaId) payload.waba_id = form.wabaId;
           if (form.webhookToken) payload.webhook_token = form.webhookToken;
-          // 🔒 Token só atualiza se o usuário tocou no campo (UX: deixar em branco = mantém atual)
           if (tokenTocado && form.token) payload.token_waba = form.token;
         }
-        // 🔒 MULTI-TENANT: defesa em profundidade — só edita canal deste workspace
         await supabase.from("conexoes").update(payload).eq("id", editandoId).in("workspace_id", wsIdsRef.current);
         setEditandoId(null);
-        // 🔒 MULTI-TENANT: backend exige workspaceId pra validar que canal pertence ao workspace.
         try { await wa("configurar-ia", { canalId: editandoId, workspaceId: wsId, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo }); } catch (e) {}
         notify("Canal atualizado", "sucesso");
       } else {
@@ -608,11 +453,7 @@ export function ConexoesSection() {
           if (insErr) throw insErr;
           novoId = inserted.id;
         }
-
-        if (novoId) {
-          // 🔒 MULTI-TENANT: backend exige workspaceId
-          try { await wa("canal/criar", { canalId: novoId, workspaceId: wsId }); } catch (e) { console.error("Erro ao criar sessão no VPS:", e); }
-        }
+        if (novoId) { try { await wa("canal/criar", { canalId: novoId, workspaceId: wsId }); } catch (e) { console.error("Erro ao criar sessão no VPS:", e); } }
         notify("Canal criado", "sucesso");
       }
       await fetchConexoes();
@@ -627,62 +468,35 @@ export function ConexoesSection() {
     if (!canal) return;
     setQrCanalId(id); setResetando(true); setShowModalQR(true);
     setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0);
-    // 🔒 MULTI-TENANT: backend exige workspaceId. canal.workspace_id já é o desse workspace.
     try { await wa("resetar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {}
-    // 🔒 MULTI-TENANT: defesa em profundidade — confirma que canal pertence a este workspace
-    await supabase.from("conexoes").update({ status: "desconectado", numero: "" })
-      .eq("id", id).eq("workspace_id", canal.workspace_id);
+    await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", id).eq("workspace_id", canal.workspace_id);
     await fetchConexoes(); setResetando(false); setQrPolling(true);
   };
 
-  // 🆕 RECONECTAR — preserva sessão LocalAuth, NÃO pede QR de novo.
-  // Usa quando: canal travou ("detached frame"), reconectar após queda, etc.
-  // Diferença vs Resetar:
-  //   - Reconectar: destrói cliente + recria, login do WhatsApp PERSISTE no disco → sem QR
-  //   - Resetar: destrói cliente + APAGA pasta de sessão → precisa escanear QR de novo
   const reconectarCanal = async (c: Conexao) => {
-    if (!confirm(
-      `🔄 Reconectar ${c.nome}?\n\n` +
-      `Vai destruir a conexão atual e recriar SEM perder o login do WhatsApp.\n` +
-      `Use isso quando o canal travou ou está com erro.\n\n` +
-      `(Se quiser trocar o número/conta, use "Resetar" no menu da engrenagem.)`
-    )) return;
+    if (!confirm(`🔄 Reconectar ${c.nome}?\n\nVai destruir a conexão atual e recriar SEM perder o login do WhatsApp.\nUse isso quando o canal travou ou está com erro.\n\n(Se quiser trocar o número/conta, use "Resetar" no menu da engrenagem.)`)) return;
     setShowMenuEngrenagem(null);
     try {
-      // 🔒 MULTI-TENANT: backend exige workspaceId
       const data = await wa("reconectar", { canalId: c.id, workspaceId: c.workspace_id });
-      if (!data.success) {
-        notify("Falha ao reconectar", "erro", traduzirErro(data));
-        return;
-      }
-      // Atualiza status local pra mostrar que tá reconectando
-      await supabase.from("conexoes").update({ status: "desconectado" })
-        .eq("id", c.id).eq("workspace_id", c.workspace_id);
+      if (!data.success) { notify("Falha ao reconectar", "erro", traduzirErro(data)); return; }
+      await supabase.from("conexoes").update({ status: "desconectado" }).eq("id", c.id).eq("workspace_id", c.workspace_id);
       await fetchConexoes();
-
       if (data.sessao_salva === false) {
-        // Sem sessão salva — vai precisar escanear QR mesmo. Abre modal automaticamente.
         notify(`${c.nome} não tem sessão salva`, "aviso", "Vou abrir o QR Code pra você escanear");
-        // Reusa o fluxo do QR
         setQrCanalId(c.id); setResetando(false); setShowModalQR(true);
         setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0);
         setQrPolling(true);
       } else {
         notify(`${c.nome} reconectando...`, "sucesso", "O login será restaurado automaticamente. Não precisa escanear QR");
       }
-    } catch (e: any) {
-      notify("Falha ao reconectar", "erro", traduzirErro(e));
-    }
+    } catch (e: any) { notify("Falha ao reconectar", "erro", traduzirErro(e)); }
   };
 
   const desconectarCanal = async (c: Conexao) => {
     if (!confirm(`Desconectar ${c.nome}? Isso vai desconectar o WhatsApp.`)) return;
     try {
-      // 🔒 MULTI-TENANT: backend exige workspaceId
       await wa("desconectar", { canalId: c.id, workspaceId: c.workspace_id });
-      // 🔒 MULTI-TENANT: c.workspace_id já vem do banco filtrado por este workspace
-      await supabase.from("conexoes").update({ status: "desconectado", numero: "" })
-        .eq("id", c.id).eq("workspace_id", c.workspace_id);
+      await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", c.id).eq("workspace_id", c.workspace_id);
       await fetchConexoes();
       notify("Canal desconectado", "sucesso");
     } catch (e: any) { notify("Operação falhou", "erro", traduzirErro(e)); }
@@ -692,10 +506,7 @@ export function ConexoesSection() {
     if (!confirm("Excluir esse canal?\n\nTodo o histórico vai ser preservado mas o canal será removido.")) return;
     const canal = conexoes.find(c => c.id === id);
     if (!canal) { notify("Canal não encontrado", "erro"); return; }
-    // 🔒 MULTI-TENANT: backend exige workspaceId
     if (canal.tipo === "webjs") { try { await wa("desconectar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {} }
-    // 🔒 MULTI-TENANT CRÍTICO: delete só passa se canal for deste workspace.
-    // Antes, qualquer um com o id podia deletar canais de outro workspace via DevTools.
     await supabase.from("conexoes").delete().eq("id", id).eq("workspace_id", canal.workspace_id);
     await fetchConexoes(); setShowMenuEngrenagem(null);
   };
@@ -704,8 +515,8 @@ export function ConexoesSection() {
   const iaLabel: Record<string, string> = { gpt: "ChatGPT", claude: "Claude AI", gemini: "Gemini", deepseek: "DeepSeek" };
 
   const Toggle = ({ value, onChange }: { value: boolean; onChange: () => void }) => (
-    <button onClick={onChange} style={{ width: 44, height: 24, background: value ? "#16a34a" : "#374151", borderRadius: 12, cursor: "pointer", border: "none", position: "relative", flexShrink: 0 }}>
-      <div style={{ width: 18, height: 18, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s" }} />
+    <button onClick={onChange} style={{ width: 44, height: 24, background: value ? "#16a34a" : "#d1d5db", borderRadius: 12, cursor: "pointer", border: "none", position: "relative", flexShrink: 0, transition: "background 0.2s", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)" }}>
+      <div style={{ width: 18, height: 18, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
     </button>
   );
 
@@ -714,119 +525,116 @@ export function ConexoesSection() {
   const wabaPermitido = isSuperAdmin || limites.waba;
   const instagramPermitido = isSuperAdmin || limites.instagram;
 
-  return (
-    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto", height: "100vh" }}>
+  // Helper pra fechar modal novo canal
+  const fecharModalNovoCanal = () => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); setResultadoMeta(null); setPagesDisponiveis([]); setPagesSelecionadas(new Set()); };
 
+  return (
+    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto", height: "100vh", background: "#f8fafc" }}>
+
+      {/* ═══ MODAL QR CODE ═══ */}
       {showModalQR && (
-        <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ background: "#111", borderRadius: 16, padding: 32, width: 400, border: "1px solid #1f2937", textAlign: "center" }}>
-            <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: "0 0 8px" }}>📱 Conectar WhatsApp</h2>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ ...cardStyle, padding: 32, width: 420, textAlign: "center" }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 16px", boxShadow: "0 8px 20px rgba(22,163,74,0.25)" }}>
+              <span style={{ filter: "saturate(0) brightness(2)" }}>📱</span>
+            </div>
+            <h2 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Conectar WhatsApp</h2>
             <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Escaneie o QR Code com seu WhatsApp</p>
-            <div style={{ background: "#0a0a0a", borderRadius: 12, padding: 16, minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-              {resetando ? <p style={{ color: "#f59e0b", fontSize: 14 }}>⏳ Iniciando sessão...</p>
-                : qrConectado ? <div><p style={{ fontSize: 48, margin: "0 0 8px" }}>✅</p><p style={{ color: "#16a34a", fontSize: 16, fontWeight: "bold", margin: 0 }}>WhatsApp Conectado!</p>{qrNumero && <p style={{ color: "#9ca3af", fontSize: 13, margin: "8px 0 0" }}>{qrNumero}</p>}</div>
+            <div style={{ background: "#f9fafb", borderRadius: 14, padding: 16, minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, border: "1px solid #e5e7eb" }}>
+              {resetando ? <p style={{ color: "#f59e0b", fontSize: 14, fontWeight: 600 }}>⏳ Iniciando sessão...</p>
+                : qrConectado ? <div><p style={{ fontSize: 48, margin: "0 0 8px" }}>✅</p><p style={{ color: "#16a34a", fontSize: 16, fontWeight: 700, margin: 0 }}>WhatsApp Conectado!</p>{qrNumero && <p style={{ color: "#6b7280", fontSize: 13, margin: "8px 0 0" }}>{qrNumero}</p>}</div>
                 : qrImageUrl ? <img src={qrImageUrl} alt="QR Code" style={{ width: 220, height: 220, borderRadius: 8 }} />
-                : <div><p style={{ color: "#9ca3af", fontSize: 14, margin: "0 0 8px" }}>⏳ Gerando QR Code...</p><p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>}
+                : <div><p style={{ color: "#6b7280", fontSize: 14, margin: "0 0 8px" }}>⏳ Gerando QR Code...</p><p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>}
             </div>
 
-            {/* 🆕 Indicador de polling ativo (mostra que o sistema tá tentando detectar) */}
             {qrPolling && !qrConectado && qrTentativas > 0 && (
-              <p style={{ color: "#6b7280", fontSize: 11, margin: "0 0 10px" }}>
-                🔄 Verificando conexão... ({qrTentativas}x)
-              </p>
+              <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 10px" }}>🔄 Verificando conexão... ({qrTentativas}x)</p>
             )}
 
-            {/* 🆕 AVISO DE TIMEOUT — depois de 20 tentativas (≈30s) */}
             {qrPolling && !qrConectado && qrTentativas >= 20 && (
-              <div style={{ background: "#422006", border: "1px solid #f59e0b44", borderRadius: 8, padding: 12, marginBottom: 14, textAlign: "left" }}>
-                <p style={{ color: "#f59e0b", fontSize: 12, fontWeight: "bold", margin: "0 0 6px" }}>⚠️ Tá demorando mais que o normal</p>
-                <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 10px", lineHeight: 1.4 }}>
+              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 14, marginBottom: 14, textAlign: "left" }}>
+                <p style={{ color: "#92400e", fontSize: 12, fontWeight: 700, margin: "0 0 6px" }}>⚠️ Tá demorando mais que o normal</p>
+                <p style={{ color: "#78350f", fontSize: 11, margin: "0 0 10px", lineHeight: 1.4 }}>
                   Se já aparece conectado no celular, clica em <b>Já Conectei!</b> pra atualizar. Senão, tenta gerar um novo QR.
                 </p>
                 <button
                   onClick={async () => {
                     if (!qrCanalId) return;
-                    // Força checagem imediata no backend, ignorando o intervalo
                     try {
-                      // 🔒 MULTI-TENANT: workspaceId obrigatório
                       const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store" });
                       const data = await resp.json();
                       if (data.status === "conectado") {
-                        // 🔒 MULTI-TENANT: defesa em profundidade
-                        await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" })
-                          .eq("id", qrCanalId).in("workspace_id", wsIdsRef.current);
+                        await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrCanalId).in("workspace_id", wsIdsRef.current);
                         await fetchConexoes();
                         setQrConectado(true); setQrNumero(data.numero || "");
                         setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
-                      } else {
-                        notify("Backend ainda não reconheceu a conexão", "aviso", `Status atual: ${data.status}. Tenta de novo ou recria o QR.`);
-                      }
+                      } else { notify("Backend ainda não reconheceu a conexão", "aviso", `Status atual: ${data.status}. Tenta de novo ou recria o QR.`); }
                     } catch (e: any) { notify("Falha ao verificar QR", "erro", traduzirErro(e)); }
                   }}
-                  style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: "bold" }}
-                >
+                  style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
                   🔍 Verificar agora
                 </button>
               </div>
             )}
 
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button onClick={() => { setShowModalQR(false); setQrPolling(false); setQrImageUrl(""); setQrTentativas(0); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Fechar</button>
-              {!qrConectado && <button onClick={async () => { if (qrCanalId) { /* 🔒 MULTI-TENANT */ await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrCanalId).in("workspace_id", wsIdsRef.current); await fetchConexoes(); } setShowModalQR(false); setQrPolling(false); setQrTentativas(0); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>✅ Já Conectei!</button>}
+              <button onClick={() => { setShowModalQR(false); setQrPolling(false); setQrImageUrl(""); setQrTentativas(0); }} style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Fechar</button>
+              {!qrConectado && <button onClick={async () => { if (qrCanalId) { await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrCanalId).in("workspace_id", wsIdsRef.current); await fetchConexoes(); } setShowModalQR(false); setQrPolling(false); setQrTentativas(0); }} style={{ background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>✅ Já Conectei!</button>}
             </div>
           </div>
         </div>
       )}
 
+      {/* ═══ MODAL NOVO/EDITAR CANAL ═══ */}
       {showModalNovoCanal && (
-        <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#111", borderRadius: 16, width: "100%", maxWidth: 640, border: "1px solid #1f2937", display: "flex", flexDirection: "column", maxHeight: "92vh", overflow: "hidden" }}>
-            <div style={{ padding: "20px 28px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ ...cardStyle, width: "100%", maxWidth: 640, display: "flex", flexDirection: "column", maxHeight: "92vh", overflow: "hidden" }}>
+            <div style={{ padding: "20px 28px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>{editandoId ? "✏️ Editar Canal" : "➕ Novo Canal"}</h2>
+                <h2 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: 0 }}>{editandoId ? "✏️ Editar Canal" : "➕ Novo Canal"}</h2>
                 <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
                   {editandoId ? "Altere as configurações" : isSuperAdmin ? `${conexoes.length} canais (ilimitado 👑)` : `${conexoes.length} de ${limites.conexoes} canais usados`}
                 </p>
               </div>
-              <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); setResultadoMeta(null); setPagesDisponiveis([]); setPagesSelecionadas(new Set()); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
+              <button onClick={fecharModalNovoCanal} style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
             <div style={{ overflowY: "auto", padding: "24px 28px", display: "flex", flexDirection: "column", gap: 24 }}>
               {!editandoId && (
                 <div>
-                  <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>1. Tipo de Canal</p>
+                  <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>1. Tipo de Canal</p>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                     {[
-                      { key: "webjs", icon: "📱", label: "WhatsApp Web", desc: "Conexão via QR Code", disabled: !webjsPermitido },
-                      { key: "waba", icon: "🔗", label: "API Meta (WABA)", desc: "API oficial do WhatsApp", disabled: !wabaPermitido },
-                      { key: "meta_oauth", icon: "📲", label: "Facebook / Instagram", desc: "Login com Facebook (Direct + Messenger)", disabled: !instagramPermitido }
+                      { key: "webjs", icon: "📱", label: "WhatsApp Web", desc: "Conexão via QR Code", disabled: !webjsPermitido, cor: "#16a34a" },
+                      { key: "waba", icon: "🔗", label: "API Meta (WABA)", desc: "API oficial do WhatsApp", disabled: !wabaPermitido, cor: "#3b82f6" },
+                      { key: "meta_oauth", icon: "📲", label: "Facebook / Instagram", desc: "Login com Facebook", disabled: !instagramPermitido, cor: "#e1306c" }
                     ].map(t => (
                       <button key={t.key}
                         onClick={() => !t.disabled && setForm(p => ({ ...p, tipo: t.key }))}
                         disabled={t.disabled}
                         title={t.disabled ? "Seu plano não inclui esse tipo" : ""}
                         style={{
-                          background: form.tipo === t.key ? "#16a34a22" : "#1f2937",
-                          border: `2px solid ${form.tipo === t.key ? "#16a34a" : "#374151"}`,
-                          borderRadius: 10, padding: "14px 16px",
+                          background: form.tipo === t.key ? `${t.cor}10` : "#f9fafb",
+                          border: `2px solid ${form.tipo === t.key ? t.cor : "#e5e7eb"}`,
+                          borderRadius: 12, padding: "14px 16px",
                           cursor: t.disabled ? "not-allowed" : "pointer",
-                          textAlign: "left", opacity: t.disabled ? 0.4 : 1
+                          textAlign: "left", opacity: t.disabled ? 0.4 : 1,
+                          transition: "all 0.15s",
                         }}>
-                        <p style={{ color: "white", fontSize: 20, margin: "0 0 4px" }}>{t.icon}</p>
-                        <p style={{ color: form.tipo === t.key ? "#16a34a" : "white", fontSize: 13, fontWeight: "bold", margin: "0 0 2px" }}>{t.label}</p>
-                        <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{t.disabled ? "🔒 Upgrade necessário" : t.desc}</p>
+                        <p style={{ fontSize: 20, margin: "0 0 4px" }}>{t.icon}</p>
+                        <p style={{ color: form.tipo === t.key ? t.cor : "#1f2937", fontSize: 13, fontWeight: 700, margin: "0 0 2px" }}>{t.label}</p>
+                        <p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>{t.disabled ? "🔒 Upgrade necessário" : t.desc}</p>
                       </button>
                     ))}
                   </div>
                 </div>
               )}
               <div>
-                <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>{editandoId ? "1" : "2"}. Nome do Canal</p>
+                <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px" }}>{editandoId ? "1" : "2"}. Nome do Canal</p>
                 <input placeholder="Ex: WhatsApp Vendas..." value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} style={IS} />
               </div>
-              {/* 🆕 Info quando editando canal Instagram/Messenger */}
               {editandoId && (form.tipo === "instagram" || form.tipo === "messenger") && (
-                <div style={{ background: "#1f2937", borderRadius: 10, padding: 14, border: "1px solid #374151" }}>
-                  <p style={{ color: "#86efac", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+                <div style={{ background: "#f0fdf4", borderRadius: 12, padding: 14, border: "1px solid #bbf7d0" }}>
+                  <p style={{ color: "#15803d", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
                     {form.tipo === "instagram" ? "📷 Canal Instagram" : "💬 Canal Messenger"} conectado via Login com Facebook.
                   </p>
                   <p style={{ color: "#6b7280", fontSize: 11, margin: "6px 0 0", lineHeight: 1.4 }}>
@@ -834,50 +642,27 @@ export function ConexoesSection() {
                   </p>
                 </div>
               )}
-              {/* 🆕 Bloco especial pra Facebook/Instagram via OAuth */}
               {!editandoId && form.tipo === "meta_oauth" && (
                 <div>
-                  <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>3. Conectar conta Facebook</p>
-                  <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-                    <p style={{ color: "#86efac", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>3. Conectar conta Facebook</p>
+                  <div style={{ background: "#f9fafb", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 14, border: "1px solid #e5e7eb" }}>
+                    <p style={{ color: "#374151", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
                       Vamos conectar todas as suas <b>fan pages do Facebook</b> e respectivas contas do <b>Instagram Business</b> automaticamente.
                     </p>
-                    <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+                    <p style={{ color: "#6b7280", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
                       Você logará no Facebook (popup oficial), autorizará as permissões necessárias e o sistema criará os canais sozinho.
                     </p>
-                    <button
-                      onClick={conectarMeta}
-                      disabled={conectandoMeta}
-                      style={{
-                        background: conectandoMeta ? "#1d4ed8" : "#1877f2",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 8,
-                        padding: "12px 16px",
-                        fontSize: 14,
-                        fontWeight: "bold",
-                        cursor: conectandoMeta ? "not-allowed" : "pointer",
-                      }}
-                    >
+                    <button onClick={conectarMeta} disabled={conectandoMeta}
+                      style={{ background: conectandoMeta ? "#1d4ed8" : "#1877f2", color: "white", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 14, fontWeight: 700, cursor: conectandoMeta ? "not-allowed" : "pointer", boxShadow: "0 4px 12px rgba(24,119,242,0.3)" }}>
                       {conectandoMeta ? "⏳ Conectando..." : "📲 Conectar com Facebook"}
                     </button>
                     {resultadoMeta && (
-                      <div style={{
-                        background: resultadoMeta.sucesso ? "#16a34a22" : "#dc262622",
-                        border: `1px solid ${resultadoMeta.sucesso ? "#16a34a33" : "#dc262633"}`,
-                        borderRadius: 8,
-                        padding: 12,
-                      }}>
-                        <p style={{
-                          color: resultadoMeta.sucesso ? "#16a34a" : "#dc2626",
-                          fontSize: 13,
-                          margin: "0 0 6px",
-                          fontWeight: "bold",
-                        }}>
+                      <div style={{ background: resultadoMeta.sucesso ? "#f0fdf4" : "#fef2f2", border: `1px solid ${resultadoMeta.sucesso ? "#bbf7d0" : "#fecaca"}`, borderRadius: 10, padding: 14 }}>
+                        <p style={{ color: resultadoMeta.sucesso ? "#15803d" : "#dc2626", fontSize: 13, margin: "0 0 6px", fontWeight: 700 }}>
                           {resultadoMeta.sucesso ? "✅ " : "❌ "}{resultadoMeta.mensagem}
                         </p>
                         {resultadoMeta.pages && resultadoMeta.pages.length > 0 && (
-                          <ul style={{ margin: "8px 0 0", padding: "0 0 0 18px", color: "#86efac", fontSize: 12 }}>
+                          <ul style={{ margin: "8px 0 0", padding: "0 0 0 18px", color: "#15803d", fontSize: 12 }}>
                             {resultadoMeta.pages.map((p: any, i: number) => (
                               <li key={i}>
                                 <b>{p.page_name}</b>
@@ -894,310 +679,287 @@ export function ConexoesSection() {
               )}
               {form.tipo === "waba" && (
                 <div>
-                  <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>{editandoId ? "2" : "3"}. Credenciais da API Meta</p>
-                  <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Phone Number ID *</label><input placeholder="123456789012345" value={form.phoneNumberId} onChange={e => setForm(p => ({ ...p, phoneNumberId: e.target.value }))} style={IS} /></div>
-                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>WABA ID</label><input placeholder="123456789012345" value={form.wabaId} onChange={e => setForm(p => ({ ...p, wabaId: e.target.value }))} style={IS} /></div>
-                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token Permanente {editandoId ? "" : "*"}</label><input type="password" placeholder={editandoId ? "Deixe em branco pra manter o token atual" : "EAAxxxxx..."} value={form.token} onChange={e => { setForm(p => ({ ...p, token: e.target.value })); setTokenTocado(true); }} style={IS} /></div>
-                    <button onClick={testarWABA} disabled={testandoWABA} style={{ background: testandoWABA ? "#1d4ed8" : "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 8, padding: 9, fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{testandoWABA ? "⏳ Testando..." : "🔍 Testar Conexão"}</button>
-                    {wabaTeste && <div style={{ background: wabaTeste.success ? "#16a34a22" : "#dc262622", border: `1px solid ${wabaTeste.success ? "#16a34a33" : "#dc262633"}`, borderRadius: 8, padding: 10 }}><p style={{ color: wabaTeste.success ? "#16a34a" : "#dc2626", fontSize: 13, margin: 0, fontWeight: "bold" }}>{wabaTeste.success ? `✅ ${wabaTeste.nome}` : `❌ ${wabaTeste.error}`}</p></div>}
-                    <div style={{ background: "#111", borderRadius: 8, padding: 12 }}>
-                      <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 4px", textTransform: "uppercase" }}>URL do Webhook</p>
-                      <p style={{ color: "#16a34a", fontSize: 12, fontWeight: "bold", margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/webhook/meta</p>
+                  <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>{editandoId ? "2" : "3"}. Credenciais da API Meta</p>
+                  <div style={{ background: "#f9fafb", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 12, border: "1px solid #e5e7eb" }}>
+                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Phone Number ID *</label><input placeholder="123456789012345" value={form.phoneNumberId} onChange={e => setForm(p => ({ ...p, phoneNumberId: e.target.value }))} style={IS} /></div>
+                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>WABA ID</label><input placeholder="123456789012345" value={form.wabaId} onChange={e => setForm(p => ({ ...p, wabaId: e.target.value }))} style={IS} /></div>
+                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Token Permanente {editandoId ? "" : "*"}</label><input type="password" placeholder={editandoId ? "Deixe em branco pra manter o token atual" : "EAAxxxxx..."} value={form.token} onChange={e => { setForm(p => ({ ...p, token: e.target.value })); setTokenTocado(true); }} style={IS} /></div>
+                    <button onClick={testarWABA} disabled={testandoWABA} style={{ background: testandoWABA ? "#2563eb" : "#3b82f615", color: "#3b82f6", border: "1px solid #3b82f630", borderRadius: 10, padding: 10, fontSize: 13, cursor: "pointer", fontWeight: 700 }}>{testandoWABA ? "⏳ Testando..." : "🔍 Testar Conexão"}</button>
+                    {wabaTeste && <div style={{ background: wabaTeste.success ? "#f0fdf4" : "#fef2f2", border: `1px solid ${wabaTeste.success ? "#bbf7d0" : "#fecaca"}`, borderRadius: 10, padding: 12 }}><p style={{ color: wabaTeste.success ? "#15803d" : "#dc2626", fontSize: 13, margin: 0, fontWeight: 700 }}>{wabaTeste.success ? `✅ ${wabaTeste.nome}` : `❌ ${wabaTeste.error}`}</p></div>}
+                    <div style={{ background: "#ffffff", borderRadius: 10, padding: 12, border: "1px solid #e5e7eb" }}>
+                      <p style={{ color: "#6b7280", fontSize: 11, margin: "0 0 4px", textTransform: "uppercase", fontWeight: 600 }}>URL do Webhook</p>
+                      <p style={{ color: "#16a34a", fontSize: 12, fontWeight: 700, margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/webhook/meta</p>
                     </div>
-                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Token de Verificação</label><input placeholder="meu_token_secreto" value={form.webhookToken} onChange={e => setForm(p => ({ ...p, webhookToken: e.target.value }))} style={IS} /></div>
+                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Token de Verificação</label><input placeholder="meu_token_secreto" value={form.webhookToken} onChange={e => setForm(p => ({ ...p, webhookToken: e.target.value }))} style={IS} /></div>
                     {!editandoId && (
-                      <div style={{ background: "#16a34a22", borderRadius: 8, padding: 12, border: "1px solid #16a34a33" }}>
-                        <p style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold", margin: "0 0 4px", textTransform: "uppercase" }}>💡 Importante</p>
-                        <p style={{ color: "#86efac", fontSize: 11, margin: 0, lineHeight: 1.5 }}>Depois de criar o canal, clique em <b>🟢 Ativar Número na Meta</b> pra deixar seu número online.</p>
+                      <div style={{ background: "#f0fdf4", borderRadius: 10, padding: 12, border: "1px solid #bbf7d0" }}>
+                        <p style={{ color: "#15803d", fontSize: 11, fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase" }}>💡 Importante</p>
+                        <p style={{ color: "#166534", fontSize: 11, margin: 0, lineHeight: 1.5 }}>Depois de criar o canal, clique em <b>🟢 Ativar Número na Meta</b> pra deixar seu número online.</p>
                       </div>
                     )}
                     {editandoId && (
-                      <div style={{ background: "#f59e0b22", borderRadius: 8, padding: 12, border: "1px solid #f59e0b33" }}>
-                        <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold", margin: "0 0 6px", textTransform: "uppercase" }}>⚠️ Não está recebendo mensagens?</p>
-                        <p style={{ color: "#fde68a", fontSize: 11, margin: "0 0 6px", lineHeight: 1.5 }}>Pode faltar inscrever o app no WABA. Roda no terminal (substitua o token):</p>
-                        <code style={{ background: "#000", padding: "6px 8px", borderRadius: 4, color: "#86efac", fontSize: 10, display: "block", wordBreak: "break-all" }}>{`curl -X POST "https://graph.facebook.com/v19.0/${form.wabaId || "WABA_ID"}/subscribed_apps" -H "Authorization: Bearer SEU_TOKEN"`}</code>
+                      <div style={{ background: "#fffbeb", borderRadius: 10, padding: 12, border: "1px solid #fde68a" }}>
+                        <p style={{ color: "#92400e", fontSize: 11, fontWeight: 700, margin: "0 0 6px", textTransform: "uppercase" }}>⚠️ Não está recebendo mensagens?</p>
+                        <p style={{ color: "#78350f", fontSize: 11, margin: "0 0 6px", lineHeight: 1.5 }}>Pode faltar inscrever o app no WABA. Roda no terminal (substitua o token):</p>
+                        <code style={{ background: "#f3f4f6", padding: "6px 8px", borderRadius: 6, color: "#1f2937", fontSize: 10, display: "block", wordBreak: "break-all", border: "1px solid #e5e7eb" }}>{`curl -X POST "https://graph.facebook.com/v19.0/${form.wabaId || "WABA_ID"}/subscribed_apps" -H "Authorization: Bearer SEU_TOKEN"`}</code>
                       </div>
                     )}
                   </div>
                 </div>
               )}
               <div>
-                <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>{editandoId ? "2" : form.tipo === "waba" ? "4" : "3"}. Automação</p>
+                <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>{editandoId ? "2" : form.tipo === "waba" ? "4" : "3"}. Automação</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
                   {[
-                    { key: "nenhum", icon: "🚫", label: "Sem automação", desc: "Só humano" },
-                    { key: "ia", icon: "🤖", label: "Usar IA", desc: "Claude, GPT..." },
-                    { key: "fluxo", icon: "🔀", label: "Usar Fluxo", desc: "Chatbot visual" },
-                    { key: "typebot", icon: "🎯", label: "Typebot", desc: "URL do Typebot" },
+                    { key: "nenhum", icon: "🚫", label: "Sem automação", desc: "Só humano", cor: "#6b7280" },
+                    { key: "ia", icon: "🤖", label: "Usar IA", desc: "Claude, GPT...", cor: "#10b981" },
+                    { key: "fluxo", icon: "🔀", label: "Usar Fluxo", desc: "Chatbot visual", cor: "#8b5cf6" },
+                    { key: "typebot", icon: "🎯", label: "Typebot", desc: "URL do Typebot", cor: "#a78bfa" },
                   ].map(m => (
-                    <button key={m.key} onClick={() => setForm(p => ({ ...p, modo: m.key }))} style={{ background: form.modo === m.key ? "#8b5cf622" : "#1f2937", border: `2px solid ${form.modo === m.key ? "#8b5cf6" : "#374151"}`, borderRadius: 10, padding: "12px 10px", cursor: "pointer", textAlign: "center" }}>
-                      <p style={{ color: "white", fontSize: 22, margin: "0 0 4px" }}>{m.icon}</p>
-                      <p style={{ color: form.modo === m.key ? "#8b5cf6" : "white", fontSize: 12, fontWeight: "bold", margin: "0 0 2px" }}>{m.label}</p>
-                      <p style={{ color: "#6b7280", fontSize: 10, margin: 0 }}>{m.desc}</p>
+                    <button key={m.key} onClick={() => setForm(p => ({ ...p, modo: m.key }))} style={{
+                      background: form.modo === m.key ? `${m.cor}10` : "#f9fafb",
+                      border: `2px solid ${form.modo === m.key ? m.cor : "#e5e7eb"}`,
+                      borderRadius: 12, padding: "12px 10px", cursor: "pointer", textAlign: "center", transition: "all 0.15s",
+                    }}>
+                      <p style={{ fontSize: 22, margin: "0 0 4px" }}>{m.icon}</p>
+                      <p style={{ color: form.modo === m.key ? m.cor : "#1f2937", fontSize: 12, fontWeight: 700, margin: "0 0 2px" }}>{m.label}</p>
+                      <p style={{ color: "#9ca3af", fontSize: 10, margin: 0 }}>{m.desc}</p>
                     </button>
                   ))}
                 </div>
                 {form.modo === "ia" && (
-                  <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-                    <p style={{ color: "#10b981", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>🤖 Configurar IA</p>
+                  <div style={{ background: "#f9fafb", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 12, border: "1px solid #e5e7eb" }}>
+                    <p style={{ color: "#10b981", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: 0 }}>🤖 Configurar IA</p>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                       {[{ key: "gpt", label: "💬 ChatGPT", sub: "OpenAI", cor: "#10b981" }, { key: "claude", label: "🧠 Claude AI", sub: "Anthropic", cor: "#8b5cf6" }, { key: "gemini", label: "✨ Gemini", sub: "Google", cor: "#f59e0b" }, { key: "deepseek", label: "🔍 DeepSeek", sub: "DeepSeek AI", cor: "#3b82f6" }].map(ia => (
-                        <button key={ia.key} onClick={() => { setForm(p => ({ ...p, ia: ia.key, apiKey: "" })); setApiKeyTocada(true); }} style={{ background: form.ia === ia.key ? `${ia.cor}22` : "#111", border: `2px solid ${form.ia === ia.key ? ia.cor : "#374151"}`, borderRadius: 8, padding: "10px 12px", cursor: "pointer", textAlign: "left" }}>
-                          <p style={{ color: form.ia === ia.key ? ia.cor : "white", fontSize: 13, fontWeight: "bold", margin: "0 0 2px" }}>{ia.label}</p>
-                          <p style={{ color: "#6b7280", fontSize: 10, margin: 0 }}>{ia.sub}</p>
+                        <button key={ia.key} onClick={() => { setForm(p => ({ ...p, ia: ia.key, apiKey: "" })); setApiKeyTocada(true); }} style={{
+                          background: form.ia === ia.key ? `${ia.cor}10` : "#ffffff",
+                          border: `2px solid ${form.ia === ia.key ? ia.cor : "#e5e7eb"}`,
+                          borderRadius: 10, padding: "10px 12px", cursor: "pointer", textAlign: "left", transition: "all 0.15s",
+                        }}>
+                          <p style={{ color: form.ia === ia.key ? ia.cor : "#1f2937", fontSize: 13, fontWeight: 700, margin: "0 0 2px" }}>{ia.label}</p>
+                          <p style={{ color: "#9ca3af", fontSize: 10, margin: 0 }}>{ia.sub}</p>
                         </button>
                       ))}
                     </div>
                     <div>
-                      <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>
+                      <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>
                         API Key {editandoId && !apiKeyTocada && <span style={{ color: "#10b981", fontSize: 10 }}>(já salva)</span>}
                       </label>
                       <input type="password" placeholder={editandoId ? "Deixe vazio pra manter" : "Cole sua API Key"} value={form.apiKey} onChange={e => { setForm(p => ({ ...p, apiKey: e.target.value })); setApiKeyTocada(true); }} style={IS} />
                     </div>
-                    <div><label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>Prompt do sistema</label><textarea placeholder="Ex: Você é um atendente virtual..." value={form.prompt} onChange={e => setForm(p => ({ ...p, prompt: e.target.value }))} style={TA} /></div>
+                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Prompt do sistema</label><textarea placeholder="Ex: Você é um atendente virtual..." value={form.prompt} onChange={e => setForm(p => ({ ...p, prompt: e.target.value }))} style={TA} /></div>
                   </div>
                 )}
                 {form.modo === "fluxo" && (
-                  <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-                    <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>🔀 Selecionar Fluxo</p>
+                  <div style={{ background: "#f9fafb", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 12, border: "1px solid #e5e7eb" }}>
+                    <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: 0 }}>🔀 Selecionar Fluxo</p>
                     {fluxos.length === 0 ? (
-                      <div style={{ background: "#111", borderRadius: 8, padding: 16, textAlign: "center" }}>
+                      <div style={{ background: "#ffffff", borderRadius: 10, padding: 16, textAlign: "center", border: "1px solid #e5e7eb" }}>
                         <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 10px" }}>Nenhum fluxo criado ainda</p>
-                        <button onClick={() => { router.push("/chatbot/fluxos"); setShowModalNovoCanal(false); }} style={{ background: "#8b5cf6", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🔀 Criar Fluxo</button>
+                        <button onClick={() => { router.push("/chatbot/fluxos"); setShowModalNovoCanal(false); }} style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(139,92,246,0.3)" }}>🔀 Criar Fluxo</button>
                       </div>
                     ) : fluxos.map(f => (
-                      <button key={f.id} onClick={() => setForm(p => ({ ...p, fluxoId: f.id.toString() }))} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: form.fluxoId === f.id.toString() ? "#8b5cf622" : "#111", border: `2px solid ${form.fluxoId === f.id.toString() ? "#8b5cf6" : "#374151"}`, borderRadius: 8, padding: "12px 16px", cursor: "pointer", textAlign: "left" }}>
+                      <button key={f.id} onClick={() => setForm(p => ({ ...p, fluxoId: f.id.toString() }))} style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        background: form.fluxoId === f.id.toString() ? "#8b5cf610" : "#ffffff",
+                        border: `2px solid ${form.fluxoId === f.id.toString() ? "#8b5cf6" : "#e5e7eb"}`,
+                        borderRadius: 10, padding: "12px 16px", cursor: "pointer", textAlign: "left", transition: "all 0.15s",
+                      }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span style={{ fontSize: 18 }}>🔀</span>
                           <div>
-                            <p style={{ color: form.fluxoId === f.id.toString() ? "#8b5cf6" : "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>{f.nome}</p>
+                            <p style={{ color: form.fluxoId === f.id.toString() ? "#8b5cf6" : "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{f.nome}</p>
                             <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{f.ativo ? "🟢 Ativo" : "⚫ Inativo"}</p>
                           </div>
                         </div>
-                        {form.fluxoId === f.id.toString() && <span style={{ color: "#8b5cf6", fontSize: 18 }}>✓</span>}
+                        {form.fluxoId === f.id.toString() && <span style={{ color: "#8b5cf6", fontSize: 18, fontWeight: 700 }}>✓</span>}
                       </button>
                     ))}
                   </div>
                 )}
-                {/* 🆕 TYPEBOT — campos de configuração quando modo é typebot */}
                 {form.modo === "typebot" && (
-                  <div style={{ background: "#1f2937", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-                    <p style={{ color: "#a78bfa", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>🎯 Configurar Typebot</p>
-                    <p style={{ color: "#9ca3af", fontSize: 11, margin: "-4px 0 0", lineHeight: 1.4 }}>
+                  <div style={{ background: "#f9fafb", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 12, border: "1px solid #e5e7eb" }}>
+                    <p style={{ color: "#a78bfa", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: 0 }}>🎯 Configurar Typebot</p>
+                    <p style={{ color: "#6b7280", fontSize: 11, margin: "-4px 0 0", lineHeight: 1.4 }}>
                       Cole a URL de publicação do seu Typebot. O sistema vai usar a API dele pra processar os atendimentos automaticamente.
                     </p>
                     <div>
-                      <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>
-                        URL do Typebot *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="https://typebot.io/meu-bot ou https://seu-typebot.com.br/atendimento"
-                        value={form.typebot_url || ""}
-                        onChange={e => setForm(p => ({ ...p, typebot_url: e.target.value }))}
-                        style={IS}
-                      />
-                      <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>
-                        Cole a URL completa de publicação. Aceita typebot.io e self-hosted.
-                      </p>
+                      <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>URL do Typebot *</label>
+                      <input type="text" placeholder="https://typebot.io/meu-bot ou https://seu-typebot.com.br/atendimento" value={form.typebot_url || ""} onChange={e => setForm(p => ({ ...p, typebot_url: e.target.value }))} style={IS} />
+                      <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Cole a URL completa de publicação. Aceita typebot.io e self-hosted.</p>
                     </div>
                     <div>
-                      <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>
-                        Mensagem de boas-vindas (opcional)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Ex: Olá! Vou te ajudar agora 😊"
-                        value={form.typebot_msg_boas_vindas || ""}
-                        onChange={e => setForm(p => ({ ...p, typebot_msg_boas_vindas: e.target.value }))}
-                        style={IS}
-                      />
+                      <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Mensagem de boas-vindas (opcional)</label>
+                      <input type="text" placeholder="Ex: Olá! Vou te ajudar agora 😊" value={form.typebot_msg_boas_vindas || ""} onChange={e => setForm(p => ({ ...p, typebot_msg_boas_vindas: e.target.value }))} style={IS} />
                     </div>
                     <div>
-                      <label style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>
-                        Mensagem quando resposta é inválida
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Desculpe, não entendi sua resposta. Pode tentar de novo?"
-                        value={form.typebot_msg_invalida || ""}
-                        onChange={e => setForm(p => ({ ...p, typebot_msg_invalida: e.target.value }))}
-                        style={IS}
-                      />
-                      <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>
-                        Mostrada quando o cliente manda algo que o bloco do Typebot não aceita (ex: bot pede CEP e ele responde "oi").
-                      </p>
+                      <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Mensagem quando resposta é inválida</label>
+                      <input type="text" placeholder="Desculpe, não entendi sua resposta. Pode tentar de novo?" value={form.typebot_msg_invalida || ""} onChange={e => setForm(p => ({ ...p, typebot_msg_invalida: e.target.value }))} style={IS} />
+                      <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Mostrada quando o cliente manda algo que o bloco do Typebot não aceita.</p>
                     </div>
                   </div>
                 )}
               </div>
-              {/* 🆕 FILA / DEPARTAMENTO — agora puxa do CRM */}
               <div>
-                <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 8px" }}>{editandoId ? "3" : form.tipo === "waba" ? "5" : "4"}. Fila / Departamento</p>
+                <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px" }}>{editandoId ? "3" : form.tipo === "waba" ? "5" : "4"}. Fila / Departamento</p>
                 {filasBanco.length === 0 ? (
-                  <div style={{ background: "#1f2937", border: "1px solid #f59e0b33", borderRadius: 10, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
                     <span style={{ fontSize: 22 }}>⚠️</span>
                     <div style={{ flex: 1 }}>
-                      <p style={{ color: "#f59e0b", fontSize: 13, fontWeight: "bold", margin: "0 0 2px" }}>Nenhuma fila cadastrada</p>
-                      <p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>Crie filas em <b>Configurações → Filas</b> antes de criar o canal.</p>
+                      <p style={{ color: "#92400e", fontSize: 13, fontWeight: 700, margin: "0 0 2px" }}>Nenhuma fila cadastrada</p>
+                      <p style={{ color: "#78350f", fontSize: 11, margin: 0 }}>Crie filas em <b>Configurações → Filas</b> antes de criar o canal.</p>
                     </div>
-                    <button onClick={() => { setShowModalNovoCanal(false); router.push("/crm/configuracoes"); }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>Criar fila</button>
+                    <button onClick={() => { setShowModalNovoCanal(false); router.push("/crm/configuracoes"); }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>Criar fila</button>
                   </div>
                 ) : (
                   <select value={form.fila} onChange={e => setForm(p => ({ ...p, fila: e.target.value }))} style={IS}>
                     <option value="">Selecione uma fila...</option>
-                    {filasBanco.map(f => (
-                      <option key={f.id} value={f.nome}>
-                        📋 {f.nome}{f.conexao ? ` (${f.conexao})` : ""}
-                      </option>
-                    ))}
+                    {filasBanco.map(f => (<option key={f.id} value={f.nome}>📋 {f.nome}{f.conexao ? ` (${f.conexao})` : ""}</option>))}
                   </select>
                 )}
-                <p style={{ color: "#6b7280", fontSize: 11, margin: "6px 0 0" }}>
-                  💡 Filas são gerenciadas em <b>Configurações → Filas</b> do CRM.
-                </p>
+                <p style={{ color: "#9ca3af", fontSize: 11, margin: "6px 0 0" }}>Filas são gerenciadas em <b>Configurações → Filas</b> do CRM.</p>
               </div>
               <div>
-                <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1, margin: "0 0 12px" }}>{editandoId ? "4" : form.tipo === "waba" ? "6" : "5"}. Comportamento</p>
-                <div style={{ background: "#1f2937", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>{editandoId ? "4" : form.tipo === "waba" ? "6" : "5"}. Comportamento</p>
+                <div style={{ background: "#f9fafb", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #e5e7eb" }}>
                   <div>
-                    <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0 }}>🛑 Parar automação quando atendente assumir</p>
+                    <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>🛑 Parar automação quando atendente assumir</p>
                     <p style={{ color: "#6b7280", fontSize: 11, margin: "4px 0 0" }}>A IA e o fluxo param automaticamente</p>
                   </div>
                   <Toggle value={form.pararSeAtendente} onChange={() => setForm(p => ({ ...p, pararSeAtendente: !p.pararSeAtendente }))} />
                 </div>
               </div>
             </div>
-            <div style={{ padding: "16px 28px", borderTop: "1px solid #1f2937", display: "flex", gap: 12, justifyContent: "flex-end" }}>
-              <button onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
-              {/* 🆕 Pra meta_oauth (criação): não mostra "Criar Canal" — canais já foram criados pelo OAuth */}
+            <div style={{ padding: "16px 28px", borderTop: "1px solid #e5e7eb", display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button onClick={fecharModalNovoCanal} style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
               {!editandoId && form.tipo === "meta_oauth" ? (
-                <button
-                  onClick={() => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); setResultadoMeta(null); setPagesDisponiveis([]); setPagesSelecionadas(new Set()); }}
-                  style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}
-                >
-                  ✅ Concluir
-                </button>
+                <button onClick={fecharModalNovoCanal} style={{ background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>✅ Concluir</button>
               ) : (
-                <button onClick={salvarCanal} disabled={salvandoCanal} style={{ background: salvandoCanal ? "#1d4ed8" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>{salvandoCanal ? "⏳ Salvando..." : editandoId ? "💾 Salvar" : "✅ Criar Canal"}</button>
+                <button onClick={salvarCanal} disabled={salvandoCanal} style={{ background: salvandoCanal ? "#2563eb" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>{salvandoCanal ? "⏳ Salvando..." : editandoId ? "💾 Salvar" : "✅ Criar Canal"}</button>
               )}
             </div>
           </div>
         </div>
       )}
 
+      {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>
-            📱 Conexões {isSuperAdmin && <span style={{ fontSize: 12, color: "#f59e0b", marginLeft: 8 }}>👑 Super Admin</span>}
-          </h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>
-            Workspace: {workspace?.nome || "Carregando..."} • {isSuperAdmin ? `${conexoes.length} canais (ilimitado)` : `${conexoes.length} de ${limites.conexoes} canais`}
-          </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 8px 20px rgba(22,163,74,0.25)" }}>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>📱</span>
+          </div>
+          <div>
+            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>
+              Conexões {isSuperAdmin && <span style={{ fontSize: 12, color: "#f59e0b", marginLeft: 8 }}>👑 Super Admin</span>}
+            </h1>
+            <p style={{ color: "#6b7280", fontSize: 13, margin: "2px 0 0" }}>
+              {workspace?.nome || "Carregando..."} · {isSuperAdmin ? `${conexoes.length} canais (ilimitado)` : `${conexoes.length} de ${limites.conexoes} canais`}
+            </p>
+          </div>
         </div>
         <button
           onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); }}
           disabled={limiteAtingido}
-          style={{ background: limiteAtingido ? "#374151" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: limiteAtingido ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+          style={{
+            background: limiteAtingido ? "#e5e7eb" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+            color: limiteAtingido ? "#9ca3af" : "white",
+            border: "none", borderRadius: 12, padding: "12px 22px", fontSize: 13,
+            cursor: limiteAtingido ? "not-allowed" : "pointer", fontWeight: 700,
+            boxShadow: limiteAtingido ? "none" : "0 4px 12px rgba(22,163,74,0.3)",
+          }}>
           + Novo Canal {limiteAtingido && "(limite)"}
         </button>
       </div>
 
+      {/* ═══ CARDS DE CONEXÕES ═══ */}
       {conexoes.length === 0 ? (
-        <div style={{ background: "#111", borderRadius: 12, padding: 48, textAlign: "center", border: "1px solid #1f2937" }}>
-          <p style={{ fontSize: 48, margin: "0 0 16px" }}>📱</p>
-          <h3 style={{ color: "white", fontSize: 16, fontWeight: "bold", margin: "0 0 8px" }}>Nenhum canal conectado</h3>
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
+          <div style={{ width: 80, height: 80, borderRadius: 20, background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, margin: "0 auto 16px", boxShadow: "0 12px 24px rgba(22,163,74,0.25)" }}>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>📱</span>
+          </div>
+          <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Nenhum canal conectado</h3>
           <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Crie seu primeiro canal pra começar</p>
-          <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); }} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Novo Canal</button>
+          <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); }} style={{ background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 12, padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>+ Novo Canal</button>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
           {conexoes.map(c => (
-            <div key={c.id} style={{ background: "#111", borderRadius: 12, padding: 24, border: `1px solid ${c.status === "conectado" ? "#16a34a44" : "#1f2937"}` }}>
+            <div key={c.id} style={{
+              ...cardStyle,
+              padding: 24,
+              borderTop: `3px solid ${c.status === "conectado" ? "#16a34a" : "#ef4444"}`,
+            }}
+              onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 20px ${c.status === "conectado" ? "rgba(22,163,74,0.12)" : "rgba(239,68,68,0.08)"}`;  e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}
+            >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 28 }}>{c.tipo === "webjs" ? "📱" : c.tipo === "meta" ? "📲" : "🔗"}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: c.tipo === "webjs" ? "#16a34a15" : c.tipo === "meta" ? "#e1306c15" : "#3b82f615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+                    {c.tipo === "webjs" ? "📱" : c.tipo === "meta" ? "📲" : "🔗"}
+                  </div>
                   <div>
-                    <p style={{ color: "white", fontSize: 14, fontWeight: "bold", margin: 0 }}>{c.nome}</p>
-                    <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
-                      {c.tipo === "webjs" ? "WhatsApp Web" : c.tipo === "waba" ? "API Meta (WABA)" : c.tipo === "meta" ? "Facebook · Instagram" : c.tipo} • ID {c.id}
+                    <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: 0 }}>{c.nome}</p>
+                    <p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>
+                      {c.tipo === "webjs" ? "WhatsApp Web" : c.tipo === "waba" ? "API Meta (WABA)" : c.tipo === "meta" ? "Facebook · Instagram" : c.tipo} · ID {c.id}
                     </p>
                   </div>
                 </div>
-                <span style={{ background: c.status === "conectado" ? "#16a34a22" : "#dc262622", color: c.status === "conectado" ? "#16a34a" : "#dc2626", fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: "bold" }}>{c.status === "conectado" ? "🟢 Conectado" : "🔴 Desconectado"}</span>
+                <span style={{
+                  background: c.status === "conectado" ? "#f0fdf4" : "#fef2f2",
+                  color: c.status === "conectado" ? "#16a34a" : "#dc2626",
+                  border: `1px solid ${c.status === "conectado" ? "#bbf7d0" : "#fecaca"}`,
+                  fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: 700
+                }}>{c.status === "conectado" ? "🟢 Conectado" : "🔴 Desconectado"}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: "bold" }}>{c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxo_nome}` : c.modo === "typebot" ? `🎯 Typebot` : "🚫 Sem automação"}</span></div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Fila:</span><span style={{ color: "#3b82f6", fontSize: 12 }}>{c.fila || "—"}</span></div>
-                {c.numero && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Número:</span><span style={{ color: "white", fontSize: 12 }}>{c.numero}</span></div>}
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: 700 }}>{c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxo_nome}` : c.modo === "typebot" ? `🎯 Typebot` : "🚫 Sem automação"}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Fila:</span><span style={{ color: "#3b82f6", fontSize: 12, fontWeight: 600 }}>{c.fila || "—"}</span></div>
+                {c.numero && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Número:</span><span style={{ color: "#1f2937", fontSize: 12, fontWeight: 600 }}>{c.numero}</span></div>}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {c.tipo === "webjs" && (c.status === "desconectado"
                   ? <>
-                      <button onClick={() => reconectarCanal(c)} title="Tenta reconectar SEM apagar o login. Use isso primeiro." style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🔄 Reconectar</button>
-                      <button onClick={() => abrirQR(c.id)} title="Apaga sessão salva e gera QR novo. Use só pra trocar de número." style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", fontSize: 12, cursor: "pointer" }}>📷 QR</button>
+                      <button onClick={() => reconectarCanal(c)} title="Tenta reconectar SEM apagar o login" style={{ flex: 1, background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 2px 8px rgba(22,163,74,0.25)" }}>🔄 Reconectar</button>
+                      <button onClick={() => abrirQR(c.id)} title="Apaga sessão salva e gera QR novo" style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>📷 QR</button>
                     </>
-                  : <><button onClick={() => reconectarCanal(c)} title="Reconectar caso esteja com erro tipo detached frame" style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold", cursor: "pointer" }}>✅ Conectado · 🔄</button><button onClick={() => desconectarCanal(c)} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "9px 14px", fontSize: 12, cursor: "pointer" }}>Desconectar</button></>
+                  : <><button onClick={() => reconectarCanal(c)} title="Reconectar caso esteja com erro" style={{ flex: 1, background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 10, padding: 9, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>✅ Conectado · 🔄</button><button onClick={() => desconectarCanal(c)} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "9px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>Desconectar</button></>
                 )}
                 {c.tipo === "waba" && (c.status === "conectado"
-                  ? <button disabled style={{ flex: 1, background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 8, padding: 9, fontSize: 12, fontWeight: "bold" }}>🔗 API Conectada</button>
-                  : <button onClick={() => registrarNumeroWaba(c)} style={{ flex: 1, background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>🟢 Ativar Número na Meta</button>
+                  ? <button disabled style={{ flex: 1, background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 10, padding: 9, fontSize: 12, fontWeight: 700 }}>🔗 API Conectada</button>
+                  : <button onClick={() => registrarNumeroWaba(c)} style={{ flex: 1, background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 2px 8px rgba(22,163,74,0.25)" }}>🟢 Ativar Número na Meta</button>
                 )}
                 {c.tipo === "meta" && (
                   <div style={{ flex: 1, display: "flex", gap: 6 }}>
-                    <button
-                      onClick={() => toggleMetaFlag(c, "messenger_ativo")}
-                      title={c.messenger_ativo ? "Messenger ligado — clique para desligar" : "Messenger desligado — clique para ligar"}
-                      style={{
-                        flex: 1,
-                        background: c.messenger_ativo ? "#1877f2" : "#1f2937",
-                        color: c.messenger_ativo ? "white" : "#6b7280",
-                        border: `1px solid ${c.messenger_ativo ? "#1877f2" : "#374151"}`,
-                        borderRadius: 8, padding: "9px 4px", fontSize: 13, cursor: "pointer",
-                        fontWeight: "bold", textAlign: "center",
-                        opacity: c.messenger_ativo ? 1 : 0.6,
-                        transition: "all 0.15s",
-                      }}
-                    >
+                    <button onClick={() => toggleMetaFlag(c, "messenger_ativo")} title={c.messenger_ativo ? "Messenger ligado" : "Messenger desligado"}
+                      style={{ flex: 1, background: c.messenger_ativo ? "#1877f2" : "#f9fafb", color: c.messenger_ativo ? "white" : "#6b7280", border: `1px solid ${c.messenger_ativo ? "#1877f2" : "#e5e7eb"}`, borderRadius: 10, padding: "9px 4px", fontSize: 13, cursor: "pointer", fontWeight: 700, textAlign: "center", opacity: c.messenger_ativo ? 1 : 0.6, transition: "all 0.15s" }}>
                       💬 Messenger
                     </button>
                     {c.instagram_business_id ? (
-                      <button
-                        onClick={() => toggleMetaFlag(c, "instagram_ativo")}
-                        title={c.instagram_ativo ? `Instagram @${c.instagram_username} ligado — clique para desligar` : `Instagram @${c.instagram_username} desligado — clique para ligar`}
-                        style={{
-                          flex: 1,
-                          background: c.instagram_ativo ? "#e1306c" : "#1f2937",
-                          color: c.instagram_ativo ? "white" : "#6b7280",
-                          border: `1px solid ${c.instagram_ativo ? "#e1306c" : "#374151"}`,
-                          borderRadius: 8, padding: "9px 4px", fontSize: 13, cursor: "pointer",
-                          fontWeight: "bold", textAlign: "center",
-                          opacity: c.instagram_ativo ? 1 : 0.6,
-                          transition: "all 0.15s",
-                        }}
-                      >
+                      <button onClick={() => toggleMetaFlag(c, "instagram_ativo")} title={c.instagram_ativo ? "Instagram ligado" : "Instagram desligado"}
+                        style={{ flex: 1, background: c.instagram_ativo ? "#e1306c" : "#f9fafb", color: c.instagram_ativo ? "white" : "#6b7280", border: `1px solid ${c.instagram_ativo ? "#e1306c" : "#e5e7eb"}`, borderRadius: 10, padding: "9px 4px", fontSize: 13, cursor: "pointer", fontWeight: 700, textAlign: "center", opacity: c.instagram_ativo ? 1 : 0.6, transition: "all 0.15s" }}>
                         📷 Instagram
                       </button>
                     ) : (
-                      <div style={{ flex: 1, background: "#1f2937", color: "#6b7280", border: "1px solid #374151", borderRadius: 8, padding: "9px 4px", fontSize: 11, fontStyle: "italic", textAlign: "center" }}>📷 sem IG</div>
+                      <div style={{ flex: 1, background: "#f9fafb", color: "#9ca3af", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 4px", fontSize: 11, fontStyle: "italic", textAlign: "center" }}>📷 sem IG</div>
                     )}
                   </div>
                 )}
                 <div style={{ position: "relative" }}>
                   <button onClick={() => setShowMenuEngrenagem(showMenuEngrenagem === c.id ? null : c.id)} disabled={encerrandoMassa || registrandoWaba}
-                    style={{ background: "#1f2937", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", fontSize: 14, cursor: (encerrandoMassa || registrandoWaba) ? "wait" : "pointer" }}>
+                    style={{ background: "#f9fafb", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 12px", fontSize: 14, cursor: (encerrandoMassa || registrandoWaba) ? "wait" : "pointer", transition: "all 0.15s" }}>
                     {(encerrandoMassa || registrandoWaba) ? "⏳" : "⚙️"}
                   </button>
                   {showMenuEngrenagem === c.id && (
-                    <div style={{ position: "absolute", bottom: 44, right: 0, background: "#1f2937", border: "1px solid #374151", borderRadius: 10, overflow: "hidden", zIndex: 100, minWidth: 240 }}>
-                      <button onClick={() => abrirEditar(c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>✏️ Editar Canal</button>
-                      {c.tipo === "webjs" && <button onClick={() => reconectarCanal(c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: "bold" }}>🔄 Reconectar (preserva login)</button>}
-                      {c.tipo === "webjs" && <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "white", fontSize: 13, cursor: "pointer", textAlign: "left" }}>📷 Resetar e Escanear QR</button>}
-                      {c.tipo === "waba" && <button onClick={() => registrarNumeroWaba(c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: "bold" }}>🟢 Ativar Número na Meta</button>}
-                      <button onClick={() => encerrarAtendimentosEmMassa("aguardando", c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#f59e0b", fontSize: 13, cursor: "pointer", textAlign: "left" }}>⏳ Encerrar Aguardando</button>
-                      <button onClick={() => encerrarAtendimentosEmMassa("abertos", c)} style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: "1px solid #374151", padding: "10px 16px", color: "#3b82f6", fontSize: 13, cursor: "pointer", textAlign: "left" }}>💬 Encerrar Abertos</button>
-                      <button onClick={() => excluirCanal(c.id)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#dc2626", fontSize: 13, cursor: "pointer", textAlign: "left" }}>🗑️ Excluir Canal</button>
+                    <div style={{ position: "absolute", bottom: 44, right: 0, ...cardStyle, overflow: "hidden", zIndex: 100, minWidth: 240, padding: 4 }}>
+                      <button onClick={() => abrirEditar(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#1f2937", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "none"}>✏️ Editar Canal</button>
+                      {c.tipo === "webjs" && <button onClick={() => reconectarCanal(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f0fdf4"} onMouseLeave={e => e.currentTarget.style.background = "none"}>🔄 Reconectar (preserva login)</button>}
+                      {c.tipo === "webjs" && <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#1f2937", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "none"}>📷 Resetar e Escanear QR</button>}
+                      {c.tipo === "waba" && <button onClick={() => registrarNumeroWaba(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f0fdf4"} onMouseLeave={e => e.currentTarget.style.background = "none"}>🟢 Ativar Número na Meta</button>}
+                      <button onClick={() => encerrarAtendimentosEmMassa("aguardando", c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#f59e0b", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#fffbeb"} onMouseLeave={e => e.currentTarget.style.background = "none"}>⏳ Encerrar Aguardando</button>
+                      <button onClick={() => encerrarAtendimentosEmMassa("abertos", c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#3b82f6", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#eff6ff"} onMouseLeave={e => e.currentTarget.style.background = "none"}>💬 Encerrar Abertos</button>
+                      <div style={{ height: 1, background: "#e5e7eb", margin: "4px 0" }} />
+                      <button onClick={() => excluirCanal(c.id)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#dc2626", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"} onMouseLeave={e => e.currentTarget.style.background = "none"}>🗑️ Excluir Canal</button>
                     </div>
                   )}
                 </div>
@@ -1206,12 +968,13 @@ export function ConexoesSection() {
           ))}
         </div>
       )}
-      {/* 🆕 Modal de seleção de pages */}
+
+      {/* ═══ MODAL SELEÇÃO DE PAGES ═══ */}
       {showSelecaoPages && (
-        <div style={{ position: "fixed", inset: 0, background: "#000000dd", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#111", borderRadius: 16, width: "100%", maxWidth: 600, border: "1px solid #1f2937", display: "flex", flexDirection: "column", maxHeight: "85vh", overflow: "hidden" }}>
-            <div style={{ padding: "20px 28px", borderBottom: "1px solid #1f2937" }}>
-              <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>📲 Escolha as fan pages</h2>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ ...cardStyle, width: "100%", maxWidth: 600, display: "flex", flexDirection: "column", maxHeight: "85vh", overflow: "hidden" }}>
+            <div style={{ padding: "20px 28px", borderBottom: "1px solid #e5e7eb" }}>
+              <h2 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: 0 }}>📲 Escolha as fan pages</h2>
               <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>Marque quais Facebook pages você quer conectar. Cada page com Instagram Business vai gerar 2 canais (Messenger + Instagram).</p>
             </div>
             <div style={{ overflowY: "auto", padding: "16px 28px", flex: 1 }}>
@@ -1220,26 +983,19 @@ export function ConexoesSection() {
               ) : pagesDisponiveis.map((p: any) => {
                 const selecionada = pagesSelecionadas.has(p.id);
                 return (
-                  <button key={p.id}
-                    onClick={() => togglePage(p.id)}
+                  <button key={p.id} onClick={() => togglePage(p.id)}
                     style={{
                       display: "flex", width: "100%", alignItems: "center", gap: 12,
-                      background: selecionada ? "#16a34a22" : "#1f2937",
-                      border: `2px solid ${selecionada ? "#16a34a" : "#374151"}`,
-                      borderRadius: 10, padding: "12px 14px", marginBottom: 10,
-                      cursor: "pointer", textAlign: "left",
+                      background: selecionada ? "#f0fdf4" : "#f9fafb",
+                      border: `2px solid ${selecionada ? "#16a34a" : "#e5e7eb"}`,
+                      borderRadius: 12, padding: "12px 14px", marginBottom: 10,
+                      cursor: "pointer", textAlign: "left", transition: "all 0.15s",
                     }}>
-                    <div style={{
-                      width: 22, height: 22, borderRadius: 4,
-                      background: selecionada ? "#16a34a" : "transparent",
-                      border: `2px solid ${selecionada ? "#16a34a" : "#6b7280"}`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      flexShrink: 0,
-                    }}>
-                      {selecionada && <span style={{ color: "white", fontSize: 14, fontWeight: "bold" }}>✓</span>}
+                    <div style={{ width: 22, height: 22, borderRadius: 6, background: selecionada ? "#16a34a" : "transparent", border: `2px solid ${selecionada ? "#16a34a" : "#d1d5db"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {selecionada && <span style={{ color: "white", fontSize: 14, fontWeight: 700 }}>✓</span>}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                      <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
                       <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>
                         💬 Messenger
                         {p.instagram_username && <span> · 📷 @{p.instagram_username}</span>}
@@ -1250,11 +1006,11 @@ export function ConexoesSection() {
                 );
               })}
             </div>
-            <div style={{ padding: "16px 28px", borderTop: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-              <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>{pagesSelecionadas.size} de {pagesDisponiveis.length} selecionada(s)</p>
+            <div style={{ padding: "16px 28px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>{pagesSelecionadas.size} de {pagesDisponiveis.length} selecionada(s)</p>
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => { setShowSelecaoPages(false); setPagesSelecionadas(new Set()); }} disabled={conectandoMeta} style={{ background: "#1f2937", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, cursor: conectandoMeta ? "not-allowed" : "pointer" }}>Cancelar</button>
-                <button onClick={confirmarSelecaoPages} disabled={conectandoMeta || pagesSelecionadas.size === 0} style={{ background: conectandoMeta ? "#1d4ed8" : "#1877f2", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: "bold", cursor: (conectandoMeta || pagesSelecionadas.size === 0) ? "not-allowed" : "pointer" }}>{conectandoMeta ? "⏳ Conectando..." : `📲 Conectar (${pagesSelecionadas.size})`}</button>
+                <button onClick={() => { setShowSelecaoPages(false); setPagesSelecionadas(new Set()); }} disabled={conectandoMeta} style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 16px", fontSize: 13, cursor: conectandoMeta ? "not-allowed" : "pointer", fontWeight: 600 }}>Cancelar</button>
+                <button onClick={confirmarSelecaoPages} disabled={conectandoMeta || pagesSelecionadas.size === 0} style={{ background: conectandoMeta ? "#1d4ed8" : "#1877f2", color: "white", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: (conectandoMeta || pagesSelecionadas.size === 0) ? "not-allowed" : "pointer", boxShadow: "0 4px 12px rgba(24,119,242,0.3)" }}>{conectandoMeta ? "⏳ Conectando..." : `📲 Conectar (${pagesSelecionadas.size})`}</button>
               </div>
             </div>
           </div>
