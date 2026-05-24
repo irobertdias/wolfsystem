@@ -18,7 +18,14 @@ export function RespostasRapidasSection() {
   const [salvando, setSalvando] = useState(false);
   const [carregando, setCarregando] = useState(false);
 
-  const IS = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "10px 14px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
+  const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
+
+  const cardStyle = {
+    background: "#ffffff",
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  };
 
   // 🔒 MULTI-TENANT FIX: padronizar a chave de workspace usada em TODAS as queries
   // (fetch, insert, delete). Antes, salvava com `wsId` e buscava com `workspace.username
@@ -64,7 +71,7 @@ export function RespostasRapidasSection() {
       const { error } = await supabase.from("respostas_rapidas").insert([{
         atalho: form.atalho.trim(),
         mensagem: form.mensagem.trim(),
-        workspace_id: ws,  // ← mesma chave usada no fetch e delete
+        workspace_id: ws,
       }]);
       if (error) {
         alert("Erro ao salvar: " + error.message);
@@ -82,7 +89,6 @@ export function RespostasRapidasSection() {
   const remover = async (r: RespostaRapida) => {
     if (!confirm(`Remover atalho ${r.atalho}?`)) return;
     if (!r.id) {
-      // Item local (fallback) — só remove do estado
       setRespostas(respostas.filter(x => x.atalho !== r.atalho));
       return;
     }
@@ -101,50 +107,126 @@ export function RespostasRapidasSection() {
   };
 
   return (
-    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>⚡ Respostas Rápidas</h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 0" }}>Digite / no chat para usar</p>
+    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#f8fafc", minHeight: "100vh" }}>
+
+      {/* ═══ HEADER ═══ */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 24, boxShadow: "0 8px 20px rgba(245,158,11,0.25)",
+          }}>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>⚡</span>
+          </div>
+          <div>
+            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Respostas Rápidas</h1>
+            <p style={{ color: "#6b7280", fontSize: 13, margin: "2px 0 0" }}>
+              Digite <code style={{ background: "#f3f4f6", color: "#3b82f6", padding: "1px 6px", borderRadius: 4, fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}>/</code> no chat para usar
+            </p>
+          </div>
         </div>
-        <button onClick={() => setShowForm(!showForm)} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>+ Nova Resposta</button>
+        <button onClick={() => setShowForm(!showForm)}
+          style={{
+            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            color: "white", border: "none", borderRadius: 12,
+            padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
+            boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+          }}>
+          + Nova Resposta
+        </button>
       </div>
 
+      {/* ═══ FORM ═══ */}
       {showForm && (
-        <div style={{ background: "#111", borderRadius: 12, padding: 20, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 12 }}>
-          <p style={{ color: "#3b82f6", fontSize: 12, fontWeight: "bold", textTransform: "uppercase", margin: 0 }}>➕ Nova Resposta Rápida</p>
+        <div style={{ ...cardStyle, padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: "#3b82f615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>➕</div>
+            <p style={{ color: "#3b82f6", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Nova Resposta Rápida</p>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 12 }}>
             <div>
-              <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Atalho *</label>
-              <input placeholder="/oi" value={form.atalho} onChange={e => setForm({ ...form, atalho: e.target.value })} style={IS} />
+              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Atalho *</label>
+              <input placeholder="/oi" value={form.atalho} onChange={e => setForm({ ...form, atalho: e.target.value })} style={{ ...IS, fontFamily: "monospace", fontWeight: 600 }} />
             </div>
             <div>
-              <label style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Mensagem *</label>
+              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Mensagem *</label>
               <input placeholder="Olá! Como posso te ajudar?" value={form.mensagem} onChange={e => setForm({ ...form, mensagem: e.target.value })} style={IS} />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button onClick={() => { setShowForm(false); setForm({ atalho: "", mensagem: "" }); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "8px 16px", fontSize: 12, cursor: "pointer" }}>Cancelar</button>
-            <button onClick={salvar} disabled={salvando} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>{salvando ? "⏳ Salvando..." : "💾 Salvar"}</button>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
+            <button onClick={() => { setShowForm(false); setForm({ atalho: "", mensagem: "" }); }}
+              style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              Cancelar
+            </button>
+            <button onClick={salvar} disabled={salvando}
+              style={{
+                background: salvando ? "#2563eb" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                color: "white", border: "none", borderRadius: 10,
+                padding: "9px 22px", fontSize: 12, cursor: "pointer", fontWeight: 700,
+                boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+              }}>
+              {salvando ? "⏳ Salvando..." : "💾 Salvar"}
+            </button>
           </div>
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* ═══ LISTA ═══ */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {carregando ? (
-          <div style={{ background: "#111", borderRadius: 12, padding: 32, textAlign: "center", border: "1px solid #1f2937" }}>
+          <div style={{ ...cardStyle, padding: 32, textAlign: "center" }}>
             <p style={{ color: "#6b7280", fontSize: 13 }}>⏳ Carregando...</p>
           </div>
         ) : respostas.length === 0 ? (
-          <div style={{ background: "#111", borderRadius: 12, padding: 32, textAlign: "center", border: "1px solid #1f2937" }}>
-            <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma resposta rápida cadastrada ainda</p>
-            <p style={{ color: "#4b5563", fontSize: 12, margin: "8px 0 0" }}>Clique em "+ Nova Resposta" pra criar a primeira</p>
+          <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: 20,
+              background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 40, margin: "0 auto 16px",
+              boxShadow: "0 12px 24px rgba(245,158,11,0.25)",
+            }}>
+              <span style={{ filter: "saturate(0) brightness(2)" }}>⚡</span>
+            </div>
+            <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Nenhuma resposta rápida cadastrada ainda</h3>
+            <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Clique em <b>+ Nova Resposta</b> pra criar a primeira</p>
           </div>
         ) : respostas.map((r, i) => (
-          <div key={r.id || i} style={{ background: "#111", borderRadius: 10, padding: "16px 20px", border: "1px solid #1f2937", display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ background: "#3b82f622", color: "#3b82f6", fontSize: 12, padding: "4px 12px", borderRadius: 8, fontWeight: "bold", whiteSpace: "nowrap" }}>{r.atalho}</span>
-            <p style={{ color: "#9ca3af", fontSize: 13, margin: 0, flex: 1 }}>{r.mensagem}</p>
-            <button onClick={() => remover(r)} style={{ background: "none", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Remover</button>
+          <div key={r.id || i}
+            style={{
+              ...cardStyle,
+              padding: "14px 20px",
+              display: "flex", alignItems: "center", gap: 16,
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(59,130,246,0.10)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}
+          >
+            <span style={{
+              background: "#3b82f615",
+              color: "#3b82f6",
+              border: "1px solid #3b82f630",
+              fontSize: 12, padding: "5px 12px",
+              borderRadius: 8, fontWeight: 700,
+              whiteSpace: "nowrap",
+              fontFamily: "monospace",
+            }}>
+              {r.atalho}
+            </span>
+            <p style={{ color: "#4b5563", fontSize: 13, margin: 0, flex: 1 }}>{r.mensagem}</p>
+            <button onClick={() => remover(r)}
+              style={{
+                background: "#fef2f2", color: "#dc2626",
+                border: "1px solid #fecaca", borderRadius: 8,
+                padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600,
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "#fee2e2"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "#fef2f2"}>
+              Remover
+            </button>
           </div>
         ))}
       </div>
