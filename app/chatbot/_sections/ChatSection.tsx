@@ -3853,8 +3853,8 @@ export function ChatSection() {
             {abaPainel === "etiquetas" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {etiquetasWorkspace.length === 0 ? (
-                  <div style={{ background: "#dcfce7", borderRadius: 8, padding: 24, textAlign: "center" }}>
-                    <p style={{ color: "#6b7280", fontSize: 12 }}>Nenhuma etiqueta criada. Vá em Cadastros → Etiquetas.</p>
+                  <div style={{ background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: 10, padding: 24, textAlign: "center" }}>
+                    <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>Nenhuma etiqueta criada. Vá em Cadastros → Etiquetas.</p>
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -3862,10 +3862,35 @@ export function ChatSection() {
                       const marcada = etiquetasAtendimento.includes(et.id);
                       return (
                         <button key={et.id} onClick={() => toggleEtiqueta(et.id)}
-                          style={{ background: marcada ? et.cor + "22" : "#dcfce7", border: `2px solid ${marcada ? et.cor : "#374151"}`, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", opacity: marcada ? 1 : 0.6 }}>
-                          <div style={{ background: et.cor + "33", borderRadius: 6, padding: "4px 8px", fontSize: 16 }}>{et.icone || "🏷️"}</div>
-                          <span style={{ flex: 1, color: marcada ? et.cor : "white", fontSize: 13, fontWeight: "bold", textAlign: "left" }}>{et.nome}</span>
-                          {marcada && <span style={{ background: et.cor, color: "#1f2937", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>✓</span>}
+                          style={{
+                            background: marcada ? `${et.cor}15` : "#ffffff",
+                            border: `1px solid ${marcada ? et.cor : "#e5e7eb"}`,
+                            borderRadius: 10,
+                            padding: "10px 12px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            cursor: "pointer",
+                            transition: "all 0.15s",
+                            boxShadow: marcada ? `0 2px 6px ${et.cor}25` : "0 1px 2px rgba(0,0,0,0.03)",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!marcada) {
+                              e.currentTarget.style.background = "#f9fafb";
+                              e.currentTarget.style.borderColor = "#d1d5db";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!marcada) {
+                              e.currentTarget.style.background = "#ffffff";
+                              e.currentTarget.style.borderColor = "#e5e7eb";
+                            }
+                          }}>
+                          <div style={{ background: marcada ? et.cor : `${et.cor}20`, borderRadius: 7, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0, transition: "background 0.15s" }}>
+                            <span style={{ filter: marcada ? "saturate(0) brightness(2)" : "none" }}>{et.icone || "🏷️"}</span>
+                          </div>
+                          <span style={{ flex: 1, color: marcada ? et.cor : "#1f2937", fontSize: 13, fontWeight: marcada ? 700 : 600, textAlign: "left" }}>{et.nome}</span>
+                          {marcada && <span style={{ background: et.cor, color: "#ffffff", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, boxShadow: `0 2px 6px ${et.cor}50` }}>✓</span>}
                         </button>
                       );
                     })}
