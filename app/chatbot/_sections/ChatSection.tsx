@@ -2417,18 +2417,21 @@ export function ChatSection() {
     return null;
   };
 
-  // 🆕 Helper pros botões-ícone da toolbar do header — mesmo estilo em todos
-  const botaoToolbar = (cor: string = "#aebac1") => ({
-    background: "none" as const,
-    border: "none" as const,
+  // 🎨 Helper pros botões-ícone da toolbar do header — visual tech light com container
+  const botaoToolbar = (cor: string = "#6b7280") => ({
+    background: cor === "#6b7280" ? "#f3f4f6" : `${cor}15`,
+    border: cor === "#6b7280" ? "1px solid #e5e7eb" : `1px solid ${cor}30`,
     color: cor,
     cursor: "pointer" as const,
-    fontSize: 16,
-    padding: 8,
-    borderRadius: 6,
+    fontSize: 15,
+    width: 36,
+    height: 36,
+    padding: 0,
+    borderRadius: 10,
     display: "flex" as const,
     alignItems: "center" as const,
     justifyContent: "center" as const,
+    transition: "all 0.15s" as const,
   });
 
   return (
@@ -2742,10 +2745,10 @@ export function ChatSection() {
                   borderRadius: 8,
                   transition: "background 0.15s",
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#2a3942")}
+                onMouseEnter={e => (e.currentTarget.style.background = "#f3f4f6")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
               >
-                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#1f2937", fontWeight: "bold", fontSize: 14 }}>
+                <div style={{ width: 42, height: 42, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#ffffff", fontWeight: "bold", fontSize: 16, boxShadow: "0 4px 10px rgba(59, 130, 246, 0.25)" }}>
                   {atendimentoAtivo.nome?.charAt(0).toUpperCase() || "?"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -3103,21 +3106,21 @@ export function ChatSection() {
                             </div>
                           )}
 
-                          {/* 💬 Botão de menu ⋮ — aparece no hover */}
+                          {/* 💬 Setinha ⌄ estilo WhatsApp — aparece no hover, no canto superior direito da bolha */}
                           {hoverMsgIdx === i && !ehAudio && (
                             <button
                               onClick={(e) => { e.stopPropagation(); setMenuMsgIdx(menuMsgIdx === i ? null : i); }}
-                              title="Opções"
+                              title="Opções da mensagem"
                               style={{
                                 position: "absolute",
-                                top: 2,
-                                [isCliente ? "right" : "left"]: 2,
-                                background: "rgba(0,0,0,0.5)",
-                                color: "#1f2937",
+                                top: 4,
+                                right: 4,
+                                background: isCliente ? "rgba(220, 252, 231, 0.95)" : "rgba(219, 234, 254, 0.95)",
+                                color: "#374151",
                                 border: "none",
                                 borderRadius: "50%",
-                                width: 22,
-                                height: 22,
+                                width: 24,
+                                height: 24,
                                 fontSize: 14,
                                 cursor: "pointer",
                                 display: "flex",
@@ -3125,53 +3128,61 @@ export function ChatSection() {
                                 justifyContent: "center",
                                 lineHeight: 1,
                                 fontWeight: "bold",
-                                opacity: 0.85,
+                                boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+                                transition: "all 0.15s",
+                                paddingTop: 2,
                               } as any}
-                            >⋮</button>
+                              onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 4px 10px rgba(0,0,0,0.18)"; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(0,0,0,0.12)"; }}
+                            >⌄</button>
                           )}
 
-                          {/* 💬 Menu contextual */}
+                          {/* 💬 Menu contextual — visual tech light */}
                           {menuMsgIdx === i && (
                             <div
                               onMouseLeave={() => setMenuMsgIdx(null)}
                               style={{
                                 position: "absolute",
-                                top: 26,
-                                [isCliente ? "right" : "left"]: 4,
-                                background: "#f3f4f6",
-                                border: "1px solid #2a3942",
-                                borderRadius: 8,
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+                                top: 30,
+                                right: 4,
+                                background: "#ffffff",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: 10,
+                                boxShadow: "0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.06)",
                                 zIndex: 100,
                                 overflow: "hidden",
-                                minWidth: 160,
+                                minWidth: 170,
+                                padding: 4,
                               } as any}
                             >
                               <button
                                 onClick={() => marcarParaResponder(msg)}
-                                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left" }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = "#2a3942"}
+                                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "9px 12px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: 500 }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
                                 onMouseLeave={(e) => e.currentTarget.style.background = "none"}
                               >
-                                <span>↪️</span> Responder
+                                <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>↪️</span>
+                                Responder
                               </button>
                               {podeEditarMsg(msg) && (
                                 <button
                                   onClick={() => marcarParaEditar(msg)}
-                                  style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderTop: "1px solid #2a3942" }}
-                                  onMouseEnter={(e) => e.currentTarget.style.background = "#2a3942"}
+                                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "9px 12px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: 500 }}
+                                  onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
                                   onMouseLeave={(e) => e.currentTarget.style.background = "none"}
                                 >
-                                  <span>✏️</span> Editar
+                                  <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>✏️</span>
+                                  Editar
                                 </button>
                               )}
                               <button
                                 onClick={() => { navigator.clipboard.writeText(msgTextoLimpo || ""); setMenuMsgIdx(null); notify("Mensagem copiada.", "sucesso"); }}
-                                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderTop: "1px solid #2a3942" }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = "#2a3942"}
+                                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "9px 12px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: 500 }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
                                 onMouseLeave={(e) => e.currentTarget.style.background = "none"}
                               >
-                                <span>📋</span> Copiar texto
+                                <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>📋</span>
+                                Copiar
                               </button>
                             </div>
                           )}
@@ -3273,7 +3284,7 @@ export function ChatSection() {
                     height: 12,
                     background: "#dc2626",
                     borderRadius: "50%",
-                    border: "2px solid #0b141a",
+                    border: "2px solid #ffffff",
                   }} />
                 )}
               </button>
@@ -3496,11 +3507,25 @@ export function ChatSection() {
             )}
           </>
         ) : (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, background: "#222e35" }}>
-            <span style={{ fontSize: 80, opacity: 0.5 }}>💬</span>
-            <h2 style={{ color: "#1f2937", fontSize: 28, fontWeight: "300", margin: 0 }}>Wolf Chatbot</h2>
-            <p style={{ color: "#6b7280", fontSize: 14, margin: 0, maxWidth: 400, textAlign: "center" }}>Selecione uma conversa à esquerda pra começar a atender</p>
-            {meuNome && <p style={{ color: "#00a884", fontSize: 12, margin: 0 }}>👋 Olá, {meuNome}!</p>}
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 18, background: "#f8fafc" }}>
+            {/* 💬 Ícone em container gradient — mesma vibe dos blocos do editor */}
+            <div style={{
+              width: 96, height: 96, borderRadius: 24,
+              background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 48,
+              boxShadow: "0 12px 24px rgba(59, 130, 246, 0.25), 0 4px 8px rgba(59, 130, 246, 0.15)"
+            }}>
+              <span style={{ filter: "saturate(0) brightness(2)" }}>💬</span>
+            </div>
+            <h2 style={{ color: "#1f2937", fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Wolf Chatbot</h2>
+            <p style={{ color: "#6b7280", fontSize: 14, margin: 0, maxWidth: 400, textAlign: "center", lineHeight: 1.5 }}>Selecione uma conversa à esquerda pra começar a atender</p>
+            {meuNome && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "#22c55e15", border: "1px solid #22c55e40", borderRadius: 20 }}>
+                <span style={{ fontSize: 13 }}>👋</span>
+                <span style={{ color: "#15803d", fontSize: 12, fontWeight: 600 }}>Olá, {meuNome}!</span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -3705,7 +3730,7 @@ export function ChatSection() {
         <div style={{
           width: isMobile ? "100%" : 340,
           background: "#ffffff",
-          borderLeft: "1px solid #222d34",
+          borderLeft: "1px solid #e5e7eb",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -3717,31 +3742,46 @@ export function ChatSection() {
           zIndex: isMobile ? 100 : "auto",
           height: isMobile ? "100vh" : "auto",
         }}>
-          <div style={{ padding: "14px 16px", borderBottom: "1px solid #222d34", background: "#dcfce7", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "16px 18px", borderBottom: "1px solid #e5e7eb", background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
             <div>
-              <h3 style={{ color: "#1f2937", fontSize: 14, fontWeight: "bold", margin: 0 }}>👤 Dados do Contato</h3>
-              <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>{salvandoContato ? "💾 Salvando..." : "Auto-salvo"}</p>
+              <h3 style={{ color: "#ffffff", fontSize: 15, fontWeight: 700, margin: 0, letterSpacing: 0.2 }}>👤 Dados do Contato</h3>
+              <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 11, margin: "3px 0 0", fontWeight: 500 }}>{salvandoContato ? "💾 Salvando..." : "Auto-salvo"}</p>
             </div>
-            <button onClick={() => setShowPainelContato(false)} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 20, cursor: "pointer" }}>✕</button>
+            <button onClick={() => setShowPainelContato(false)} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#ffffff", fontSize: 14, cursor: "pointer", width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }} onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.3)"} onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}>✕</button>
           </div>
 
-          <div style={{ display: "flex", borderBottom: "1px solid #222d34", background: "#ffffff" }}>
-            {[{ key: "perfil", icon: "👤" }, { key: "protocolo", icon: "📋" }, { key: "funil", icon: "🎯" }, { key: "etiquetas", icon: "🏷️" }, { key: "ia", icon: "🤖" }, { key: "utils", icon: "🔧" }].map(a => (
-              <button key={a.key} onClick={() => setAbaPainel(a.key as any)}
-                style={{ flex: 1, padding: "10px 4px", background: abaPainel === a.key ? "#2a3942" : "none", border: "none", borderBottom: abaPainel === a.key ? "2px solid #00a884" : "2px solid transparent", color: abaPainel === a.key ? "#00a884" : "#8696a0", fontSize: 15, cursor: "pointer", position: "relative" }}>
-                {a.icon}
-                {a.key === "etiquetas" && etiquetasAtendimento.length > 0 && (
-                  <span style={{ position: "absolute", top: 4, right: 4, background: "#dc2626", color: "#1f2937", borderRadius: "50%", width: 14, height: 14, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>{etiquetasAtendimento.length}</span>
-                )}
-              </button>
-            ))}
+          {/* 🎨 ABAS DO PAINEL — visual tech com containers coloridos */}
+          <div style={{ display: "flex", borderBottom: "1px solid #e5e7eb", background: "#ffffff", padding: "8px 6px", gap: 4 }}>
+            {[
+              { key: "perfil",    icon: "👤", label: "Perfil",    cor: "#3b82f6" },
+              { key: "protocolo", icon: "📋", label: "Protocolo", cor: "#10b981" },
+              { key: "funil",     icon: "🎯", label: "Funil",     cor: "#f59e0b" },
+              { key: "etiquetas", icon: "🏷️", label: "Tags",      cor: "#ec4899" },
+              { key: "ia",        icon: "🤖", label: "IA",        cor: "#8b5cf6" },
+              { key: "utils",     icon: "🔧", label: "Utils",     cor: "#6b7280" },
+            ].map(a => {
+              const ativa = abaPainel === a.key;
+              return (
+                <button key={a.key} onClick={() => setAbaPainel(a.key as any)}
+                  title={a.label}
+                  style={{ flex: 1, padding: "6px 2px", background: ativa ? `${a.cor}12` : "transparent", border: "none", borderRadius: 8, cursor: "pointer", position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "all 0.15s" }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: ativa ? a.cor : `${a.cor}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, boxShadow: ativa ? `0 3px 8px ${a.cor}40` : "none", transition: "all 0.15s" }}>
+                    <span style={{ filter: ativa ? "saturate(0) brightness(2)" : "none" }}>{a.icon}</span>
+                  </div>
+                  <span style={{ color: ativa ? a.cor : "#9ca3af", fontSize: 9, fontWeight: ativa ? 700 : 500 }}>{a.label}</span>
+                  {a.key === "etiquetas" && etiquetasAtendimento.length > 0 && (
+                    <span style={{ position: "absolute", top: 2, right: 4, background: "#ec4899", color: "#ffffff", borderRadius: 10, minWidth: 14, height: 14, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, padding: "0 4px", boxShadow: "0 2px 4px rgba(236,72,153,0.4)" }}>{etiquetasAtendimento.length}</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
             {abaPainel === "perfil" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ textAlign: "center", padding: "10px 0" }}>
-                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#00a88422", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 10px" }}>👤</div>
+                  <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38, margin: "0 auto 12px", boxShadow: "0 8px 20px rgba(59,130,246,0.25)" }}><span style={{ filter: "saturate(0) brightness(2)" }}>👤</span></div>
                   <p style={{ color: "#1f2937", fontSize: 14, fontWeight: "bold", margin: 0 }}>{atendimentoAtivo.nome}</p>
                 </div>
                 <div>
