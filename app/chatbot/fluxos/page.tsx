@@ -527,9 +527,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
   // dropdown com lista das variáveis existentes + opção de criar nova.
   const VarPill = (label: string | null, key: string, placeholder = "Selecionar variável") => {
     const valor = d[key] || "";
-    const dropdownId = `varpill-${id}-${key}`;
     return (
-      <div key={dropdownId}>
+      <div key={`${id}-${key}-varpill`}>
         {label && <label style={LS}>{label}</label>}
         <details className="var-pill-dropdown" style={{ position: "relative" }}>
           <summary style={{
@@ -546,8 +545,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
           }}>
             {valor ? (
               <span style={{
-                background: "#8b5cf622",
-                color: "#a78bfa",
+                background: "#ede9fe",
+                color: "#6d28d9",
                 padding: "3px 10px",
                 borderRadius: 12,
                 fontSize: 12,
@@ -596,20 +595,19 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                 {variaveisDoFluxo.map(v => (
                   <button
                     key={v}
-                    onClick={() => {
+                    onClick={(e) => {
                       u({ [key]: v });
-                      // Fecha o details
-                      const det = document.getElementById(dropdownId)?.closest("details");
-                      det?.removeAttribute("open");
+                      // 🆕 Fix: usa closest do elemento clicado (antes buscava por ID que não existia)
+                      (e.currentTarget as HTMLElement).closest("details")?.removeAttribute("open");
                     }}
                     style={{
-                      background: v === valor ? "#8b5cf633" : "transparent",
+                      background: v === valor ? "#ddd6fe" : "transparent",
                       border: "none",
                       borderRadius: 6,
                       padding: "6px 10px",
                       cursor: "pointer",
                       textAlign: "left",
-                      color: "#a78bfa",
+                      color: "#6d28d9",
                       fontSize: 12,
                       fontWeight: "bold",
                       display: "flex",
@@ -618,10 +616,11 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                     }}
                   >
                     <span style={{
-                      background: "#8b5cf622",
+                      background: "#ede9fe",
                       padding: "2px 8px",
                       borderRadius: 10,
                       fontSize: 11,
+                      color: "#6d28d9",
                     }}>{`{{${v}}}`}</span>
                   </button>
                 ))}
@@ -630,7 +629,10 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
             {/* Botão limpar */}
             {valor && (
               <button
-                onClick={() => u({ [key]: "" })}
+                onClick={(e) => {
+                  u({ [key]: "" });
+                  (e.currentTarget as HTMLElement).closest("details")?.removeAttribute("open");
+                }}
                 style={{
                   width: "100%", marginTop: 6, padding: 6, background: "transparent",
                   border: "1px dashed #e5e7eb", borderRadius: 6, color: "#6b7280",
@@ -1913,14 +1915,14 @@ export default function FluxosPage() {
             <h1 style={{color:"#1f2937",fontSize:22,fontWeight:"bold",margin:0}}>🤖 Meus Fluxos</h1>
             <p style={{color:"#6b7280",fontSize:13,margin:"4px 0 0"}}>{fluxos.length} fluxo(s)</p>
           </div>
-          <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"#1f2937",border:"none",borderRadius:8,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"bold"}}>+ Novo Fluxo</button>
+          <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"#ffffff",border:"none",borderRadius:8,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"bold"}}>+ Novo Fluxo</button>
         </div>
         {fluxos.length===0 ? (
           <div style={{background:"#f8fafc",borderRadius:12,padding:64,textAlign:"center",border:"1px solid #ffffff"}}>
             <p style={{fontSize:64,margin:"0 0 16px"}}>🤖</p>
             <h3 style={{color:"#1f2937",fontSize:18,fontWeight:"bold",margin:"0 0 8px"}}>Nenhum fluxo criado</h3>
             <p style={{color:"#6b7280",fontSize:14,margin:"0 0 24px"}}>Crie fluxos de atendimento automático</p>
-            <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"#1f2937",border:"none",borderRadius:8,padding:"12px 28px",fontSize:14,cursor:"pointer",fontWeight:"bold"}}>+ Criar Primeiro Fluxo</button>
+            <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"#ffffff",border:"none",borderRadius:8,padding:"12px 28px",fontSize:14,cursor:"pointer",fontWeight:"bold"}}>+ Criar Primeiro Fluxo</button>
           </div>
         ) : (
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:16}}>
@@ -2182,7 +2184,7 @@ export default function FluxosPage() {
             {noEditando.tipo !== "inicio" && (
               <div style={{
                 padding: "12px 18px",
-                borderTop: "1px solid #ffffff",
+                borderTop: "1px solid #e5e7eb",
                 display: "flex",
                 gap: 8,
                 flexShrink: 0,
@@ -2190,9 +2192,9 @@ export default function FluxosPage() {
                 <button
                   onClick={() => { excluirNo(noEditando.id); setNoEditando(null); }}
                   style={{
-                    background: "#ef444411",
+                    background: "#fef2f2",
                     color: "#ef4444",
-                    border: "1px solid #ef444433",
+                    border: "1px solid #fecaca",
                     borderRadius: 8,
                     padding: "10px 16px",
                     fontSize: 12,
@@ -2205,7 +2207,7 @@ export default function FluxosPage() {
                   onClick={() => setNoEditando(null)}
                   style={{
                     background: "#3b82f6",
-                    color: "#1f2937",
+                    color: "#ffffff",
                     border: "none",
                     borderRadius: 8,
                     padding: "10px 24px",
