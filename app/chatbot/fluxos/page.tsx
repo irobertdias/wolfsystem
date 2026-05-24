@@ -13,7 +13,8 @@ type TipoNo =
   | "teste_ab" | "webhook" | "pular" | "retornar"
   | "google_sheets" | "http_request" | "openai" | "claude_ai" | "gmail"
   | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar"
-  | "enviar_venda"; // 🆕 v18: cria proposta no CRM com as variáveis salvas + aplica etiqueta
+  | "enviar_venda"  // 🆕 v18: cria proposta no CRM com as variáveis salvas + aplica etiqueta
+  | "etiqueta";    // 🆕 v19: aplica/remove etiqueta no atendimento ativo
 
 type No = { id: string; tipo: TipoNo; x: number; y: number; dados: Record<string,any>; saidas: string[]; };
 type Aresta = { id: string; de: string; saidaIndex: number; para: string; };
@@ -62,6 +63,8 @@ const B: Record<TipoNo, BC> = {
   finalizar:            {label:"Finalizar",       icone:"🏁", cor:"#dc2626", saidas:[],                              grupo:"Eventos"},
   // 🆕 v18: bloco que cria proposta no /crm/vendas usando variáveis salvas + aplica etiqueta
   enviar_venda:         {label:"Enviar Venda",    icone:"💰", cor:"#16a34a", saidas:["Sucesso","Erro"],              grupo:"CRM"},
+  // 🆕 v19: aplica/remove etiqueta no atendimento ativo (use no meio do fluxo, não só no final)
+  etiqueta:             {label:"Aplicar Etiqueta",icone:"🏷️", cor:"#16a34a", saidas:["Próximo"],                     grupo:"CRM"},
 };
 
 // 🆕 v18: novo grupo "CRM" no sidebar pro bloco "Enviar Venda"
@@ -153,6 +156,13 @@ function defaultD(tipo: TipoNo): Record<string,any> {
       mensagem_sucesso: "✅ Sua proposta foi registrada! Em breve nossa equipe entra em contato.",
       mensagem_erro: "⚠️ Não consegui registrar agora, mas seu atendente vai te ajudar.",
     },
+    // 🆕 v19: bloco etiqueta — aplica/remove etiqueta no atendimento ativo
+    etiqueta:{
+      acao: "aplicar",        // "aplicar" ou "remover"
+      nome: "",               // nome da etiqueta (cria se não existir)
+      cor: "#3b82f6",         // cor da etiqueta (se for criada nova)
+      icone: "🏷️",            // ícone da etiqueta (se for criada nova)
+    },
   };
   return m[tipo]||{};
 }
@@ -206,6 +216,12 @@ function getPreview(no: No): string {
       const modo = d.modo_mapeamento === "manual" ? "manual" : "auto";
       const tag = d.aplicar_etiqueta !== false ? ` 🏷️ ${d.etiqueta||"proposta_finalizada"}` : "";
       return `💰 Cria proposta (${modo})${tag}`;
+    }
+    // 🆕 v19: preview do bloco "Aplicar Etiqueta"
+    case "etiqueta": {
+      const acao = d.acao === "remover" ? "Remove" : "Aplica";
+      const ico = d.icone || "🏷️";
+      return `${ico} ${acao}: ${d.nome || "(sem nome)"}`;
     }
     default: return "";
   }
@@ -1333,6 +1349,101 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         <p style={{color:"#6b7280",fontSize:10,margin:"8px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
           ⚠️ Saídas: <span style={{color:"#16a34a"}}>0=Sucesso</span> (proposta criada) /{" "}
           <span style={{color:"#dc2626"}}>1=Erro</span> (falha ao salvar — conecte aqui um bloco "Transferir" como fallback).
+        </p>
+      </>;
+    }
+
+    // 🆕 v19: editor do bloco "Aplicar Etiqueta"
+    case "etiqueta": {
+      const iconesComuns = ["🏷️","⭐","🔥","💎","✅","❌","⚠️","💰","📌","🎯","🚀","💼","📋","🔔"];
+      const coresComuns = [
+        { hex: "#3b82f6", nome: "Azul" },
+        { hex: "#16a34a", nome: "Verde" },
+        { hex: "#dc2626", nome: "Vermelho" },
+        { hex: "#f59e0b", nome: "Laranja" },
+        { hex: "#8b5cf6", nome: "Roxo" },
+        { hex: "#ec4899", nome: "Rosa" },
+        { hex: "#06b6d4", nome: "Ciano" },
+        { hex: "#6b7280", nome: "Cinza" },
+      ];
+      return <>
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          {/* Ação: aplicar ou remover */}
+          <div>
+            <label style={{display:"block",color:"#9ca3af",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+              Ação
+            </label>
+            <div style={{display:"flex",gap:6}}>
+              {[
+                { v: "aplicar", label: "✅ Aplicar etiqueta" },
+                { v: "remover", label: "🗑️ Remover etiqueta" },
+              ].map(o => (
+                <button key={o.v} type="button" onClick={()=>u({acao:o.v})}
+                  style={{flex:1,padding:"8px 10px",background:d.acao===o.v?"#3b82f6":"#1f2937",
+                    color:d.acao===o.v?"#fff":"#9ca3af",border:"1px solid #374151",borderRadius:8,
+                    fontSize:12,cursor:"pointer",fontWeight:d.acao===o.v?"bold":"normal"}}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Nome da etiqueta */}
+          {T("Nome da etiqueta","nome","Ex.: Cliente VIP, Aguardando documento, Interessado","")}
+
+          {/* Cor e ícone (só importam se for criar etiqueta nova) */}
+          {d.acao !== "remover" && (
+            <>
+              <div>
+                <label style={{display:"block",color:"#9ca3af",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+                  Cor da etiqueta
+                </label>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {coresComuns.map(c => (
+                    <button key={c.hex} type="button" onClick={()=>u({cor:c.hex})}
+                      title={c.nome}
+                      style={{width:32,height:32,background:c.hex,border:d.cor===c.hex?"3px solid #fff":"1px solid #374151",
+                        borderRadius:6,cursor:"pointer"}} />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{display:"block",color:"#9ca3af",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+                  Ícone
+                </label>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                  {iconesComuns.map(ic => (
+                    <button key={ic} type="button" onClick={()=>u({icone:ic})}
+                      style={{width:34,height:34,background:d.icone===ic?"#3b82f6":"#1f2937",
+                        border:"1px solid #374151",borderRadius:6,fontSize:18,cursor:"pointer"}}>
+                      {ic}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Preview */}
+          {d.nome && (
+            <div>
+              <label style={{display:"block",color:"#9ca3af",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+                Preview
+              </label>
+              <span style={{
+                display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",
+                background:`${d.cor||"#3b82f6"}22`,color:d.cor||"#3b82f6",border:`1px solid ${d.cor||"#3b82f6"}55`,
+                borderRadius:20,fontSize:12,fontWeight:"bold"
+              }}>
+                {d.icone||"🏷️"} {d.nome}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <p style={{color:"#6b7280",fontSize:10,margin:"12px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
+          💡 Use este bloco em qualquer ponto do fluxo pra marcar atendimentos.
+          Se a etiqueta não existir no workspace, será criada automaticamente.
         </p>
       </>;
     }
