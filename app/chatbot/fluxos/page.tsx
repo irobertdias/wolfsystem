@@ -1520,27 +1520,35 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
   return (
     <div
       ref={divRef}
-      style={{position:"absolute", left:no.x, top:no.y, width:220,
-        background:"#ffffff", borderRadius:12,
+      style={{position:"absolute", left:no.x, top:no.y, width:230,
+        background:"#ffffff", borderRadius:14,
         border:`1px solid ${sel ? cfg.cor : "#e5e7eb"}`,
         boxShadow: sel
-          ? `0 0 0 3px ${cfg.cor}33, 0 4px 12px rgba(0,0,0,.12), 0 2px 4px rgba(0,0,0,.06)`
-          : "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04)",
+          ? `0 0 0 3px ${cfg.cor}33, 0 12px 24px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06)`
+          : "0 4px 12px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04)",
         userSelect:"none", zIndex:sel?10:1, touchAction:"none", cursor: "grab",
         transition: "box-shadow .15s ease, transform .15s ease",
-        transform: sel ? "translateY(-1px)" : "none"}}
+        transform: sel ? "translateY(-2px)" : "none",
+        overflow: "hidden"}}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onDoubleClick={onDoubleClickHandler}
       onMouseUp={e => {e.stopPropagation(); onConectarEntrada(no.id);}}
     >
-      <div style={{background:cfg.cor, borderRadius:"11px 11px 0 0", padding:"8px 10px",
-        display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"grab"}}>
-        <div style={{display:"flex", alignItems:"center", gap:6, pointerEvents:"none"}}>
-          <span style={{fontSize:13}}>{cfg.icone}</span>
-          <span style={{color:"#ffffff", fontSize:11, fontWeight:"bold"}}>{cfg.label}</span>
-          <span style={{background:"rgba(255,255,255,.25)", color:"#ffffff", fontSize:9, padding:"1px 6px", borderRadius:10, fontWeight:"500"}}>{cfg.grupo}</span>
+      <div style={{background:`linear-gradient(135deg, ${cfg.cor} 0%, ${cfg.cor}dd 100%)`, padding:"9px 12px",
+        display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"grab",
+        boxShadow:"inset 0 -1px 0 rgba(0,0,0,.08)"}}>
+        <div style={{display:"flex", alignItems:"center", gap:7, pointerEvents:"none"}}>
+          <span style={{
+            fontSize:13,
+            display:"inline-flex",alignItems:"center",justifyContent:"center",
+            width:22,height:22,
+            background:"rgba(255,255,255,.25)",
+            borderRadius:6
+          }}>{cfg.icone}</span>
+          <span style={{color:"#ffffff", fontSize:12, fontWeight:"700", textShadow:"0 1px 2px rgba(0,0,0,.15)"}}>{cfg.label}</span>
+          <span style={{background:"rgba(255,255,255,.22)", color:"#ffffff", fontSize:9, padding:"2px 7px", borderRadius:10, fontWeight:"600", letterSpacing:.3}}>{cfg.grupo}</span>
         </div>
         {no.tipo!=="inicio" && (
           <button
@@ -1958,31 +1966,64 @@ export default function FluxosPage() {
   return (
     <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#f8fafc",color:"#1f2937",overflow:"hidden"}}>
 
-      <div style={{width:210,background:"#f8fafc",borderRight:"1px solid #ffffff",display:"flex",flexDirection:"column",flexShrink:0}}>
-        <div style={{padding:"10px 14px",borderBottom:"1px solid #ffffff",display:"flex",alignItems:"center",gap:8}}>
-          <button onClick={()=>setView("lista")} style={{background:"none",border:"none",color:"#9ca3af",fontSize:11,cursor:"pointer",padding:0}}>←</button>
-          <h3 style={{color:"#1f2937",fontSize:12,fontWeight:"bold",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{fluxoAtivo?.nome}</h3>
+      <div style={{width:220,background:"#ffffff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0,boxShadow:"2px 0 8px rgba(0,0,0,0.04)"}}>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",gap:8}}>
+          <button onClick={()=>setView("lista")} style={{
+            background:"#f3f4f6",border:"none",color:"#6b7280",fontSize:14,
+            cursor:"pointer",padding:"4px 8px",borderRadius:6,
+            transition:"background .15s"
+          }}
+          onMouseEnter={e=>(e.currentTarget.style.background="#e5e7eb")}
+          onMouseLeave={e=>(e.currentTarget.style.background="#f3f4f6")}>←</button>
+          <h3 style={{color:"#1f2937",fontSize:13,fontWeight:"bold",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{fluxoAtivo?.nome}</h3>
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:"8px 0"}}>
+        <div style={{flex:1,overflowY:"auto",padding:"12px 0"}}>
           {GRUPOS.map(grupo => {
             const tipos = (Object.entries(B) as [TipoNo,BC][]).filter(([,c])=>c.grupo===grupo);
             const ab = grupoAberto===grupo;
             return (
-              <div key={grupo}>
+              <div key={grupo} style={{marginBottom:6}}>
                 <button onClick={()=>setGrupoAberto(ab?"":grupo)}
-                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"7px 14px",background:"none",border:"none",cursor:"pointer",color:ab?"#8b5cf6":"#9ca3af",fontSize:11,fontWeight:"bold",textTransform:"uppercase",letterSpacing:1}}>
-                  <span>{grupo}</span><span style={{fontSize:9}}>{ab?"▼":"▶"}</span>
+                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"8px 16px",background:"none",border:"none",cursor:"pointer",color:ab?"#1f2937":"#6b7280",fontSize:10,fontWeight:"800",textTransform:"uppercase",letterSpacing:1.2}}>
+                  <span>{grupo}</span>
+                  <span style={{fontSize:8,color:ab?"#8b5cf6":"#9ca3af",transition:"transform .2s",transform:ab?"rotate(0deg)":"rotate(-90deg)"}}>▼</span>
                 </button>
                 {ab && (
-                  <div style={{padding:"2px 8px 8px"}}>
+                  <div style={{padding:"4px 10px 6px",display:"flex",flexDirection:"column",gap:4}}>
                     {tipos.map(([tipo,cfg]) => (
                       <button key={tipo} onClick={()=>adicionarNo(tipo)}
-                        style={{display:"flex",alignItems:"center",gap:8,width:"100%",background:"#ffffff",border:"1px solid #ffffff",borderRadius:6,padding:"6px 10px",color:"#1f2937",fontSize:11,cursor:"pointer",marginBottom:3,textAlign:"left"}}
-                        onMouseEnter={e=>(e.currentTarget.style.background="#ffffff")}
-                        onMouseLeave={e=>(e.currentTarget.style.background="#ffffff")}>
-                        <span style={{fontSize:14,width:20,textAlign:"center"}}>{cfg.icone}</span>
+                        style={{
+                          display:"flex",alignItems:"center",gap:10,width:"100%",
+                          background:"#ffffff",
+                          border:"1px solid #e5e7eb",
+                          borderRadius:8,
+                          padding:"7px 10px",
+                          color:"#1f2937",
+                          fontSize:12,
+                          fontWeight:"500",
+                          cursor:"pointer",
+                          textAlign:"left",
+                          boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
+                          transition:"transform .12s ease, box-shadow .12s ease, border-color .12s ease",
+                        }}
+                        onMouseEnter={e=>{
+                          e.currentTarget.style.transform="translateY(-1px)";
+                          e.currentTarget.style.boxShadow=`0 4px 12px ${cfg.cor}22, 0 1px 3px rgba(0,0,0,0.06)`;
+                          e.currentTarget.style.borderColor=`${cfg.cor}55`;
+                        }}
+                        onMouseLeave={e=>{
+                          e.currentTarget.style.transform="translateY(0)";
+                          e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)";
+                          e.currentTarget.style.borderColor="#e5e7eb";
+                        }}>
+                        <span style={{
+                          display:"inline-flex",alignItems:"center",justifyContent:"center",
+                          width:26,height:26,
+                          background:`${cfg.cor}15`,
+                          borderRadius:7,
+                          fontSize:14,flexShrink:0
+                        }}>{cfg.icone}</span>
                         <span style={{flex:1}}>{cfg.label}</span>
-                        <span style={{width:8,height:8,borderRadius:"50%",background:cfg.cor,flexShrink:0}}/>
                       </button>
                     ))}
                   </div>
@@ -1991,14 +2032,41 @@ export default function FluxosPage() {
             );
           })}
         </div>
-        <div style={{padding:10,borderTop:"1px solid #ffffff"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#ffffff",borderRadius:8,padding:"7px 10px",marginBottom:8}}>
-            <span style={{color:fluxoAtivo?.ativo?"#8b5cf6":"#6b7280",fontSize:11,fontWeight:"bold"}}>{fluxoAtivo?.ativo?"🟢 Ativo":"⚫ Inativo"}</span>
-            <button onClick={toggleAtivo} style={{width:34,height:18,background:fluxoAtivo?.ativo?"#8b5cf6":"#e5e7eb",borderRadius:9,cursor:"pointer",border:"none",position:"relative"}}>
-              <div style={{width:12,height:12,background:"white",borderRadius:"50%",position:"absolute",top:3,left:fluxoAtivo?.ativo?19:3,transition:"left 0.2s"}}/>
+        <div style={{padding:12,borderTop:"1px solid #e5e7eb",background:"#fafbfc"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#ffffff",border:"1px solid #e5e7eb",borderRadius:10,padding:"9px 12px",marginBottom:10,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
+            <span style={{color:fluxoAtivo?.ativo?"#16a34a":"#6b7280",fontSize:12,fontWeight:"600",display:"flex",alignItems:"center",gap:6}}>
+              <span style={{width:8,height:8,borderRadius:"50%",background:fluxoAtivo?.ativo?"#22c55e":"#9ca3af",boxShadow:fluxoAtivo?.ativo?"0 0 0 3px #22c55e22":"none"}}/>
+              {fluxoAtivo?.ativo?"Ativo":"Inativo"}
+            </span>
+            <button onClick={toggleAtivo} style={{width:38,height:22,background:fluxoAtivo?.ativo?"#22c55e":"#d1d5db",borderRadius:11,cursor:"pointer",border:"none",position:"relative",transition:"background .2s",boxShadow:"inset 0 1px 2px rgba(0,0,0,0.1)"}}>
+              <div style={{width:16,height:16,background:"white",borderRadius:"50%",position:"absolute",top:3,left:fluxoAtivo?.ativo?19:3,transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
             </button>
           </div>
-          <button onClick={salvar} disabled={salvando} style={{width:"100%",background:salvando?"#6b21a8":"#8b5cf6",color:"#1f2937",border:"none",borderRadius:8,padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>
+          <button onClick={salvar} disabled={salvando} style={{
+            width:"100%",
+            background: salvando
+              ? "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"
+              : "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+            color:"#ffffff",
+            border:"none",
+            borderRadius:10,
+            padding:"11px",
+            fontSize:13,
+            cursor:salvando?"not-allowed":"pointer",
+            fontWeight:"700",
+            boxShadow: salvando ? "none" : "0 4px 12px rgba(139, 92, 246, 0.35), 0 1px 3px rgba(139, 92, 246, 0.2)",
+            transition:"transform .12s ease, box-shadow .12s ease",
+          }}
+          onMouseEnter={e=>{
+            if (!salvando) {
+              e.currentTarget.style.transform="translateY(-1px)";
+              e.currentTarget.style.boxShadow="0 6px 16px rgba(139, 92, 246, 0.45), 0 2px 4px rgba(139, 92, 246, 0.25)";
+            }
+          }}
+          onMouseLeave={e=>{
+            e.currentTarget.style.transform="translateY(0)";
+            if (!salvando) e.currentTarget.style.boxShadow="0 4px 12px rgba(139, 92, 246, 0.35), 0 1px 3px rgba(139, 92, 246, 0.2)";
+          }}>
             {salvando?"Salvando...":"💾 Salvar Fluxo"}
           </button>
         </div>
