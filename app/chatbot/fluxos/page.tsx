@@ -1841,34 +1841,92 @@ export default function FluxosPage() {
 
   if(view==="lista") return (
     <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#f8fafc",color:"#1f2937"}}>
-      <div style={{width:220,background:"#f8fafc",borderRight:"1px solid #ffffff",display:"flex",flexDirection:"column",padding:16,gap:8}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-          <img src="/logo1.png" alt="Wolf" style={{width:32,filter:"brightness(0) invert(1)"}}/>
-          <span style={{color:"#1f2937",fontWeight:"bold",fontSize:14}}>Wolf Chatbot</span>
+      <div style={{width:230,background:"#ffffff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",padding:14,gap:6,boxShadow:"2px 0 8px rgba(0,0,0,0.04)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"4px 8px"}}>
+          <img src="/logo1.png" alt="Wolf" style={{width:32}}/>
+          <span style={{color:"#1f2937",fontWeight:"700",fontSize:14}}>Wolf Chatbot</span>
         </div>
-        <button onClick={()=>router.push("/chatbot")} style={{background:"#3b82f622",border:"1px solid #3b82f633",borderRadius:8,padding:"10px 14px",color:"#3b82f6",fontSize:13,fontWeight:"bold",cursor:"pointer",textAlign:"left"}}>💬 Conversas</button>
-        <button style={{background:"#8b5cf622",border:"1px solid #8b5cf633",borderRadius:8,padding:"10px 14px",color:"#8b5cf6",fontSize:13,fontWeight:"bold",cursor:"pointer",textAlign:"left"}}>🤖 Fluxos</button>
-        <button onClick={()=>router.push("/crm")} style={{background:"none",border:"none",borderRadius:8,padding:"10px 14px",color:"#6b7280",fontSize:13,cursor:"pointer",textAlign:"left",marginTop:"auto"}}>← CRM</button>
+        <button onClick={()=>router.push("/chatbot")}
+          style={{
+            display:"flex",alignItems:"center",gap:10,
+            background:"#ffffff",border:"1px solid #e5e7eb",borderRadius:10,
+            padding:"10px 12px",color:"#374151",fontSize:13,fontWeight:"600",cursor:"pointer",
+            textAlign:"left",
+            boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
+            transition:"transform .12s, box-shadow .12s, border-color .12s",
+          }}
+          onMouseEnter={e=>{
+            e.currentTarget.style.transform="translateY(-1px)";
+            e.currentTarget.style.boxShadow="0 4px 12px rgba(59,130,246,0.15)";
+            e.currentTarget.style.borderColor="#93c5fd";
+          }}
+          onMouseLeave={e=>{
+            e.currentTarget.style.transform="translateY(0)";
+            e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)";
+            e.currentTarget.style.borderColor="#e5e7eb";
+          }}>
+          <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"#3b82f615",borderRadius:8,fontSize:14}}>💬</span>
+          Conversas
+        </button>
+        <button
+          style={{
+            display:"flex",alignItems:"center",gap:10,
+            background:"#8b5cf615",border:"1px solid #8b5cf6",borderRadius:10,
+            padding:"10px 12px",color:"#8b5cf6",fontSize:13,fontWeight:"700",cursor:"pointer",
+            textAlign:"left",
+            boxShadow:"0 2px 6px rgba(139,92,246,0.15)",
+          }}>
+          <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"#8b5cf6",borderRadius:8,fontSize:14,filter:"saturate(0) brightness(2)",boxShadow:"0 2px 6px rgba(139,92,246,0.4)"}}>🤖</span>
+          Fluxos
+        </button>
+        <div style={{flex:1}}/>
+        <button onClick={()=>router.push("/crm")}
+          style={{
+            display:"flex",alignItems:"center",gap:8,
+            background:"#ffffff",border:"1px solid #e5e7eb",borderRadius:10,
+            padding:"10px 12px",color:"#6b7280",fontSize:12,fontWeight:"600",cursor:"pointer",
+            textAlign:"left",
+            boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
+            transition:"transform .12s, box-shadow .12s, border-color .12s",
+          }}
+          onMouseEnter={e=>{
+            e.currentTarget.style.transform="translateY(-1px)";
+            e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.06)";
+            e.currentTarget.style.borderColor="#d1d5db";
+          }}
+          onMouseLeave={e=>{
+            e.currentTarget.style.transform="translateY(0)";
+            e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)";
+            e.currentTarget.style.borderColor="#e5e7eb";
+          }}>← Voltar ao CRM</button>
       </div>
       <div style={{flex:1,padding:32,overflowY:"auto"}}>
         {showNovo && (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <div style={{background:"#f8fafc",borderRadius:16,padding:32,width:500,border:"1px solid #ffffff",display:"flex",flexDirection:"column",gap:16}}>
-              <div style={{display:"flex",justifyContent:"space-between"}}>
-                <h2 style={{color:"#1f2937",fontSize:18,fontWeight:"bold",margin:0}}>➕ Novo Fluxo</h2>
-                <button onClick={()=>setShowNovo(false)} style={{background:"none",border:"none",color:"#6b7280",fontSize:22,cursor:"pointer"}}>✕</button>
+          <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.4)",backdropFilter:"blur(2px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{background:"#ffffff",borderRadius:16,padding:28,width:500,border:"1px solid #e5e7eb",display:"flex",flexDirection:"column",gap:16,boxShadow:"0 20px 60px rgba(0,0,0,0.15)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{
+                    width:40,height:40,borderRadius:10,
+                    background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,
+                    boxShadow:"0 4px 12px rgba(139,92,246,0.3)"
+                  }}>➕</div>
+                  <h2 style={{color:"#1f2937",fontSize:18,fontWeight:"700",margin:0}}>Novo Fluxo</h2>
+                </div>
+                <button onClick={()=>setShowNovo(false)} style={{background:"#f3f4f6",border:"none",color:"#6b7280",fontSize:18,cursor:"pointer",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
               </div>
               <div><label style={{...LS,fontSize:11}}>Nome *</label>
                 <input autoFocus placeholder="Ex: Fluxo de Vendas" value={form.nome}
                   onChange={e=>setForm({...form,nome:e.target.value})}
                   onKeyDown={e=>e.key==="Enter"&&criarFluxo()}
-                  style={{...IS,fontSize:14,padding:"10px 14px",background:"#ffffff"}}/>
+                  style={{...IS,fontSize:14,padding:"10px 14px"}}/>
               </div>
               <div><label style={{...LS,fontSize:11}}>Descrição</label>
-                <input placeholder="Objetivo" value={form.descricao} onChange={e=>setForm({...form,descricao:e.target.value})} style={{...IS,background:"#ffffff"}}/>
+                <input placeholder="Objetivo" value={form.descricao} onChange={e=>setForm({...form,descricao:e.target.value})} style={IS}/>
               </div>
               <div><label style={{...LS,fontSize:11}}>Quando Ativar</label>
-                <select value={form.trigger_tipo} onChange={e=>setForm({...form,trigger_tipo:e.target.value})} style={{...IS,background:"#ffffff"}}>
+                <select value={form.trigger_tipo} onChange={e=>setForm({...form,trigger_tipo:e.target.value})} style={IS}>
                   <option value="qualquer_mensagem">Qualquer mensagem</option>
                   <option value="palavra_chave">Palavra-chave</option>
                   <option value="primeiro_contato">Primeiro contato</option>
@@ -1877,12 +1935,9 @@ export default function FluxosPage() {
               </div>
               {form.trigger_tipo==="palavra_chave" && (
                 <div><label style={{...LS,fontSize:11}}>Palavra-chave</label>
-                  <input placeholder="oi, olá" value={form.trigger_valor} onChange={e=>setForm({...form,trigger_valor:e.target.value})} style={{...IS,background:"#ffffff"}}/>
+                  <input placeholder="oi, olá" value={form.trigger_valor} onChange={e=>setForm({...form,trigger_valor:e.target.value})} style={IS}/>
                 </div>
               )}
-              {/* 🆕 v18: campos de horário pro trigger "fora_horario".
-                  trigger_valor salva como JSON {"hora_inicio":"08:00","hora_fim":"18:00"}
-                  pra backend decidir se hora atual está fora dessa faixa. */}
               {form.trigger_tipo==="fora_horario" && (() => {
                 let cfg = {hora_inicio:"08:00", hora_fim:"18:00"};
                 try { if (form.trigger_valor) cfg = {...cfg, ...JSON.parse(form.trigger_valor)}; } catch {}
@@ -1896,22 +1951,26 @@ export default function FluxosPage() {
                     <div style={{display:"flex",gap:10,alignItems:"center"}}>
                       <input type="time" value={cfg.hora_inicio}
                         onChange={e=>setCfg({hora_inicio:e.target.value})}
-                        style={{...IS,background:"#ffffff",flex:1}}/>
+                        style={{...IS,flex:1}}/>
                       <span style={{color:"#6b7280",fontSize:12}}>até</span>
                       <input type="time" value={cfg.hora_fim}
                         onChange={e=>setCfg({hora_fim:e.target.value})}
-                        style={{...IS,background:"#ffffff",flex:1}}/>
+                        style={{...IS,flex:1}}/>
                     </div>
                     <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
                       💡 O fluxo dispara quando o cliente manda mensagem FORA do horário {cfg.hora_inicio}–{cfg.hora_fim}.
-                      Ex: pra resposta automática noturna ou de fim de semana.
                     </p>
                   </div>
                 );
               })()}
-              <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-                <button onClick={()=>setShowNovo(false)} style={{background:"none",color:"#9ca3af",border:"1px solid #e5e7eb",borderRadius:8,padding:"10px 20px",fontSize:13,cursor:"pointer"}}>Cancelar</button>
-                <button onClick={criarFluxo} disabled={criando} style={{background:criando?"#6b21a8":"#8b5cf6",color:"#1f2937",border:"none",borderRadius:8,padding:"10px 24px",fontSize:13,cursor:criando?"wait":"pointer",fontWeight:"bold"}}>
+              <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
+                <button onClick={()=>setShowNovo(false)} style={{background:"#ffffff",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"600"}}>Cancelar</button>
+                <button onClick={criarFluxo} disabled={criando} style={{
+                  background:criando?"linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)":"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                  color:"#ffffff",border:"none",borderRadius:10,padding:"10px 24px",fontSize:13,
+                  cursor:criando?"wait":"pointer",fontWeight:"700",
+                  boxShadow:criando?"none":"0 4px 12px rgba(139,92,246,0.35)"
+                }}>
                   {criando?"⏳ Criando...":"🤖 Criar Fluxo"}
                 </button>
               </div>
@@ -1919,41 +1978,134 @@ export default function FluxosPage() {
           </div>
         )}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
-          <div>
-            <h1 style={{color:"#1f2937",fontSize:22,fontWeight:"bold",margin:0}}>🤖 Meus Fluxos</h1>
-            <p style={{color:"#6b7280",fontSize:13,margin:"4px 0 0"}}>{fluxos.length} fluxo(s)</p>
+          <div style={{display:"flex",alignItems:"center",gap:14}}>
+            <div style={{
+              width:48,height:48,borderRadius:12,
+              background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+              display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,
+              boxShadow:"0 8px 16px rgba(139,92,246,0.25)"
+            }}>🤖</div>
+            <div>
+              <h1 style={{color:"#1f2937",fontSize:22,fontWeight:"700",margin:0}}>Meus Fluxos</h1>
+              <p style={{color:"#6b7280",fontSize:13,margin:"2px 0 0"}}>{fluxos.length} fluxo(s) cadastrado(s)</p>
+            </div>
           </div>
-          <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"#ffffff",border:"none",borderRadius:8,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"bold"}}>+ Novo Fluxo</button>
+          <button onClick={()=>setShowNovo(true)} style={{
+            background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+            color:"#ffffff",border:"none",borderRadius:10,
+            padding:"11px 22px",fontSize:13,cursor:"pointer",fontWeight:"700",
+            boxShadow:"0 4px 12px rgba(139,92,246,0.35), 0 1px 3px rgba(139,92,246,0.2)",
+            transition:"transform .12s, box-shadow .12s",
+          }}
+          onMouseEnter={e=>{
+            e.currentTarget.style.transform="translateY(-1px)";
+            e.currentTarget.style.boxShadow="0 6px 16px rgba(139,92,246,0.45)";
+          }}
+          onMouseLeave={e=>{
+            e.currentTarget.style.transform="translateY(0)";
+            e.currentTarget.style.boxShadow="0 4px 12px rgba(139,92,246,0.35), 0 1px 3px rgba(139,92,246,0.2)";
+          }}>+ Novo Fluxo</button>
         </div>
         {fluxos.length===0 ? (
-          <div style={{background:"#f8fafc",borderRadius:12,padding:64,textAlign:"center",border:"1px solid #ffffff"}}>
-            <p style={{fontSize:64,margin:"0 0 16px"}}>🤖</p>
-            <h3 style={{color:"#1f2937",fontSize:18,fontWeight:"bold",margin:"0 0 8px"}}>Nenhum fluxo criado</h3>
-            <p style={{color:"#6b7280",fontSize:14,margin:"0 0 24px"}}>Crie fluxos de atendimento automático</p>
-            <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"#ffffff",border:"none",borderRadius:8,padding:"12px 28px",fontSize:14,cursor:"pointer",fontWeight:"bold"}}>+ Criar Primeiro Fluxo</button>
+          <div style={{background:"#ffffff",borderRadius:16,padding:64,textAlign:"center",border:"1px solid #e5e7eb",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+            <div style={{
+              display:"inline-flex",alignItems:"center",justifyContent:"center",
+              width:96,height:96,borderRadius:24,
+              background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+              fontSize:48,margin:"0 auto 20px",
+              boxShadow:"0 12px 24px rgba(139,92,246,0.25)"
+            }}>🤖</div>
+            <h3 style={{color:"#1f2937",fontSize:18,fontWeight:"700",margin:"0 0 8px"}}>Nenhum fluxo criado</h3>
+            <p style={{color:"#6b7280",fontSize:14,margin:"0 0 24px"}}>Crie fluxos de atendimento automático pra seu chatbot</p>
+            <button onClick={()=>setShowNovo(true)} style={{
+              background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+              color:"#ffffff",border:"none",borderRadius:12,
+              padding:"14px 32px",fontSize:14,cursor:"pointer",fontWeight:"700",
+              boxShadow:"0 4px 12px rgba(139,92,246,0.35)"
+            }}>+ Criar Primeiro Fluxo</button>
           </div>
         ) : (
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:16}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:18}}>
             {fluxos.map(f => (
-              <div key={f.id} style={{background:"#f8fafc",borderRadius:12,padding:24,border:`1px solid ${f.ativo?"#8b5cf644":"#ffffff"}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                  <div>
-                    <h3 style={{color:"#1f2937",fontSize:15,fontWeight:"bold",margin:0}}>{f.nome}</h3>
-                    {f.descricao&&<p style={{color:"#6b7280",fontSize:12,margin:"4px 0 0"}}>{f.descricao}</p>}
+              <div key={f.id} style={{
+                background:"#ffffff",borderRadius:14,padding:20,
+                border:`1px solid ${f.ativo?"#22c55e44":"#e5e7eb"}`,
+                boxShadow:"0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)",
+                transition:"transform .15s, box-shadow .15s, border-color .15s",
+                cursor:"default",
+              }}
+              onMouseEnter={e=>{
+                e.currentTarget.style.transform="translateY(-2px)";
+                e.currentTarget.style.boxShadow="0 8px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)";
+              }}
+              onMouseLeave={e=>{
+                e.currentTarget.style.transform="translateY(0)";
+                e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)";
+              }}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,flex:1,minWidth:0}}>
+                    <div style={{
+                      width:38,height:38,borderRadius:10,
+                      background:f.ativo?"linear-gradient(135deg, #22c55e 0%, #16a34a 100%)":"#f3f4f6",
+                      display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,
+                      boxShadow:f.ativo?"0 4px 8px rgba(34,197,94,0.25)":"none",
+                      flexShrink:0
+                    }}>{f.ativo?"🚀":"⏸️"}</div>
+                    <div style={{minWidth:0,flex:1}}>
+                      <h3 style={{color:"#1f2937",fontSize:15,fontWeight:"700",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.nome}</h3>
+                      {f.descricao && <p style={{color:"#6b7280",fontSize:11,margin:"3px 0 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.descricao}</p>}
+                    </div>
                   </div>
-                  <span style={{background:f.ativo?"#8b5cf622":"#ffffff",color:f.ativo?"#8b5cf6":"#6b7280",fontSize:11,padding:"3px 10px",borderRadius:20,fontWeight:"bold",whiteSpace:"nowrap"}}>
-                    {f.ativo?"🟢 Ativo":"⚫ Inativo"}
+                  <span style={{
+                    display:"inline-flex",alignItems:"center",gap:4,
+                    background:f.ativo?"#dcfce7":"#f3f4f6",
+                    color:f.ativo?"#16a34a":"#6b7280",
+                    fontSize:10,padding:"3px 9px",borderRadius:20,fontWeight:"700",whiteSpace:"nowrap",
+                    border:f.ativo?"1px solid #86efac":"1px solid #e5e7eb",
+                    flexShrink:0
+                  }}>
+                    <span style={{width:6,height:6,borderRadius:"50%",background:f.ativo?"#22c55e":"#9ca3af",boxShadow:f.ativo?"0 0 0 2px #22c55e33":"none"}}/>
+                    {f.ativo?"Ativo":"Inativo"}
                   </span>
                 </div>
-                <div style={{display:"flex",gap:8,marginBottom:16}}>
-                  <span style={{background:"#ffffff",color:"#9ca3af",fontSize:11,padding:"3px 8px",borderRadius:6}}>{f.nos?.length||0} blocos</span>
-                  <span style={{background:"#ffffff",color:"#9ca3af",fontSize:11,padding:"3px 8px",borderRadius:6}}>
-                    {f.trigger_tipo==="qualquer_mensagem"?"📨 Qualquer":f.trigger_tipo==="palavra_chave"?`🔑 "${f.trigger_valor}"`:f.trigger_tipo==="primeiro_contato"?"👋 1º":"🕐 Fora horário"}
+                <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f3f4f6",color:"#4b5563",fontSize:11,padding:"4px 10px",borderRadius:6,fontWeight:"500"}}>
+                    🧩 {f.nos?.length||0} blocos
+                  </span>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f3f4f6",color:"#4b5563",fontSize:11,padding:"4px 10px",borderRadius:6,fontWeight:"500"}}>
+                    {f.trigger_tipo==="qualquer_mensagem"?"📨 Qualquer":f.trigger_tipo==="palavra_chave"?`🔑 "${f.trigger_valor}"`:f.trigger_tipo==="primeiro_contato"?"👋 1º contato":"🕐 Fora horário"}
                   </span>
                 </div>
                 <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>abrirEditor(f)} style={{flex:1,background:"#8b5cf622",color:"#8b5cf6",border:"1px solid #8b5cf633",borderRadius:8,padding:"8px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>✏️ Editar</button>
-                  <button onClick={()=>excluirFluxo(f.id!, f.nome)} style={{background:"#ef444422",color:"#ef4444",border:"1px solid #ef444433",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>🗑️</button>
+                  <button onClick={()=>abrirEditor(f)} style={{
+                    flex:1,
+                    background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                    color:"#ffffff",border:"none",borderRadius:10,
+                    padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"700",
+                    boxShadow:"0 2px 6px rgba(139,92,246,0.25)",
+                    transition:"transform .12s, box-shadow .12s",
+                  }}
+                  onMouseEnter={e=>{
+                    e.currentTarget.style.transform="translateY(-1px)";
+                    e.currentTarget.style.boxShadow="0 4px 12px rgba(139,92,246,0.4)";
+                  }}
+                  onMouseLeave={e=>{
+                    e.currentTarget.style.transform="translateY(0)";
+                    e.currentTarget.style.boxShadow="0 2px 6px rgba(139,92,246,0.25)";
+                  }}>✏️ Editar</button>
+                  <button onClick={()=>excluirFluxo(f.id!, f.nome)} style={{
+                    background:"#fef2f2",color:"#ef4444",border:"1px solid #fecaca",
+                    borderRadius:10,padding:"9px 14px",fontSize:13,cursor:"pointer",
+                    transition:"background .12s, border-color .12s",
+                  }}
+                  onMouseEnter={e=>{
+                    e.currentTarget.style.background="#fee2e2";
+                    e.currentTarget.style.borderColor="#fca5a5";
+                  }}
+                  onMouseLeave={e=>{
+                    e.currentTarget.style.background="#fef2f2";
+                    e.currentTarget.style.borderColor="#fecaca";
+                  }}>🗑️</button>
                 </div>
               </div>
             ))}
