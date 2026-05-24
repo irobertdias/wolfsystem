@@ -1191,25 +1191,33 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
     // ─────────────────────────────────────────────────────────────────────────
     case "enviar_venda": {
       const modoMap = d.modo_mapeamento || "automatico";
-      // Lista padrão de campos da proposta (igual ao Editor de Vendas v3).
-      // Em produção, o ideal é carregar de proposta_campos_padrao_config do workspace,
-      // mas essa lista cobre 95% dos casos e funciona como fallback.
+      // Campos REAIS da tabela `proposta` no Supabase (espelha o schema do CRM).
+      // Se a tabela ganhar/perder colunas no banco, atualizar aqui também.
       const camposPropostaPadrao = [
-        { key: "nome", label: "Nome do cliente" },
+        { key: "nome", label: "Nome completo" },
         { key: "cpf", label: "CPF" },
         { key: "rg", label: "RG" },
         { key: "data_nascimento", label: "Data de nascimento" },
         { key: "nome_mae", label: "Nome da mãe" },
         { key: "email", label: "E-mail" },
-        { key: "telefone", label: "Telefone" },
         { key: "endereco", label: "Endereço completo" },
+        { key: "cep", label: "CEP" },
+        { key: "cidade", label: "Cidade" },
+        { key: "estado", label: "Estado" },
+        { key: "telefone1", label: "Telefone principal" },
+        { key: "telefone2", label: "Telefone 2" },
+        { key: "telefone3", label: "Telefone 3" },
         { key: "plano", label: "Plano escolhido" },
-        { key: "valor", label: "Valor" },
+        { key: "valor_plano", label: "Valor do plano (R$)" },
         { key: "vencimento", label: "Dia de vencimento" },
         { key: "forma_pagamento", label: "Forma de pagamento" },
-        { key: "data_instalacao", label: "Data de instalação" },
+        { key: "data_agendamento", label: "Data de agendamento" },
         { key: "periodo_instalacao", label: "Período de instalação" },
-        { key: "observacoes", label: "Observações" },
+        { key: "data_instalacao", label: "Data de instalação" },
+        { key: "data_cancelamento", label: "Data de cancelamento" },
+        { key: "operadora", label: "Operadora" },
+        { key: "vendedor", label: "Vendedor" },
+        { key: "data_proposta", label: "Data da proposta" },
       ];
       const mapeamento: Record<string,string> = d.mapeamento || {};
       const updateMap = (campo: string, varName: string) => {
