@@ -28,19 +28,19 @@ const B: Record<TipoNo, BC> = {
   video:                {label:"Vídeo",           icone:"🎥", cor:"#8b5cf6", saidas:["Próximo"],                     grupo:"Bubbles"},
   audio:                {label:"Áudio",           icone:"🎵", cor:"#ec4899", saidas:["Próximo"],                     grupo:"Bubbles"},
   embed:                {label:"Incorporar",      icone:"🔗", cor:"#f97316", saidas:["Próximo"],                     grupo:"Bubbles"},
-  input_texto:          {label:"Texto",           icone:"✏️", cor:"#16a34a", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_numero:         {label:"Número",          icone:"🔢", cor:"#16a34a", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_email:          {label:"Email",           icone:"📧", cor:"#16a34a", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_website:        {label:"Website",         icone:"🌐", cor:"#16a34a", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_data:           {label:"Data",            icone:"📅", cor:"#16a34a", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_hora:           {label:"Hora",            icone:"🕐", cor:"#16a34a", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_telefone:       {label:"Telefone",        icone:"📱", cor:"#16a34a", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_botao:          {label:"Botão",           icone:"🔘", cor:"#16a34a", saidas:["Botão 1","Botão 2","Botão 3"], grupo:"Inputs"},
-  input_selecao_imagem: {label:"Seleção Imagem", icone:"🖼️", cor:"#16a34a", saidas:["Selecionado"],                 grupo:"Inputs"},
-  input_pagamento:      {label:"Pagamento",       icone:"💳", cor:"#16a34a", saidas:["Aprovado","Recusado"],         grupo:"Inputs"},
-  input_avaliacao:      {label:"Avaliação",       icone:"⭐", cor:"#16a34a", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_arquivo:        {label:"Arquivo",         icone:"📎", cor:"#16a34a", saidas:["Arquivo recebido"],            grupo:"Inputs"},
-  input_cards:          {label:"Cards",           icone:"🃏", cor:"#16a34a", saidas:["Selecionado"],                 grupo:"Inputs"},
+  input_texto:          {label:"Texto",           icone:"✏️", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_numero:         {label:"Número",          icone:"🔢", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_email:          {label:"Email",           icone:"📧", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_website:        {label:"Website",         icone:"🌐", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_data:           {label:"Data",            icone:"📅", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_hora:           {label:"Hora",            icone:"🕐", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_telefone:       {label:"Telefone",        icone:"📱", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_botao:          {label:"Botão",           icone:"🔘", cor:"#22c55e", saidas:["Botão 1","Botão 2","Botão 3"], grupo:"Inputs"},
+  input_selecao_imagem: {label:"Seleção Imagem", icone:"🖼️", cor:"#22c55e", saidas:["Selecionado"],                 grupo:"Inputs"},
+  input_pagamento:      {label:"Pagamento",       icone:"💳", cor:"#22c55e", saidas:["Aprovado","Recusado"],         grupo:"Inputs"},
+  input_avaliacao:      {label:"Avaliação",       icone:"⭐", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_arquivo:        {label:"Arquivo",         icone:"📎", cor:"#22c55e", saidas:["Arquivo recebido"],            grupo:"Inputs"},
+  input_cards:          {label:"Cards",           icone:"🃏", cor:"#22c55e", saidas:["Selecionado"],                 grupo:"Inputs"},
   condicao:             {label:"Condição",        icone:"🔀", cor:"#f59e0b", saidas:["Verdadeiro","Falso"],          grupo:"Lógica"},
   variavel:             {label:"Variável",        icone:"📦", cor:"#f59e0b", saidas:["Próximo"],                     grupo:"Lógica"},
   redirecionar:         {label:"Redirecionar",    icone:"↩️", cor:"#f59e0b", saidas:[],                              grupo:"Lógica"},
@@ -55,23 +55,23 @@ const B: Record<TipoNo, BC> = {
   openai:               {label:"OpenAI",          icone:"🤖", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
   claude_ai:            {label:"Claude AI",       icone:"🧠", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
   gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado"],                     grupo:"Integrações"},
-  inicio:               {label:"Início",          icone:"🚀", cor:"#16a34a", saidas:["Próximo"],                     grupo:"Eventos"},
-  comando:              {label:"Comando",         icone:"⚡", cor:"#dc2626", saidas:["Próximo"],                     grupo:"Eventos"},
-  reply:                {label:"Reply",           icone:"↩️", cor:"#dc2626", saidas:["Próximo"],                     grupo:"Eventos"},
-  invalido:             {label:"Inválido",        icone:"❌", cor:"#dc2626", saidas:["Próximo"],                     grupo:"Eventos"},
-  transferir:           {label:"Transferir",      icone:"👤", cor:"#dc2626", saidas:["Próximo"],                     grupo:"Eventos"},
-  finalizar:            {label:"Finalizar",       icone:"🏁", cor:"#dc2626", saidas:[],                              grupo:"Eventos"},
+  inicio:               {label:"Início",          icone:"🚀", cor:"#22c55e", saidas:["Próximo"],                     grupo:"Eventos"},
+  comando:              {label:"Comando",         icone:"⚡", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
+  reply:                {label:"Reply",           icone:"↩️", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
+  invalido:             {label:"Inválido",        icone:"❌", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
+  transferir:           {label:"Transferir",      icone:"👤", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
+  finalizar:            {label:"Finalizar",       icone:"🏁", cor:"#ef4444", saidas:[],                              grupo:"Eventos"},
   // 🆕 v18: bloco que cria proposta no /crm/vendas usando variáveis salvas + aplica etiqueta
-  enviar_venda:         {label:"Enviar Venda",    icone:"💰", cor:"#16a34a", saidas:["Sucesso","Erro"],              grupo:"CRM"},
+  enviar_venda:         {label:"Enviar Venda",    icone:"💰", cor:"#22c55e", saidas:["Sucesso","Erro"],              grupo:"CRM"},
   // 🆕 v19: aplica/remove etiqueta no atendimento ativo (use no meio do fluxo, não só no final)
-  etiqueta:             {label:"Aplicar Etiqueta",icone:"🏷️", cor:"#16a34a", saidas:["Próximo"],                     grupo:"CRM"},
+  etiqueta:             {label:"Aplicar Etiqueta",icone:"🏷️", cor:"#22c55e", saidas:["Próximo"],                     grupo:"CRM"},
 };
 
 // 🆕 v18: novo grupo "CRM" no sidebar pro bloco "Enviar Venda"
 const GRUPOS = ["Bubbles","Inputs","Lógica","Integrações","Eventos","CRM"];
 const uid = () => Math.random().toString(36).slice(2,10);
 
-const IS: React.CSSProperties = {width:"100%",background:"#0a0a0a",border:"1px solid #374151",borderRadius:6,padding:"8px 10px",color:"white",fontSize:12,boxSizing:"border-box"};
+const IS: React.CSSProperties = {width:"100%",background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:6,padding:"8px 10px",color:"#1f2937",fontSize:12,boxSizing:"border-box"};
 const LS: React.CSSProperties = {color:"#9ca3af",fontSize:10,textTransform:"uppercase",display:"block",marginBottom:4,letterSpacing:1};
 
 // ✅ ATUALIZADO — pega username do workspace (nunca o id numérico)
@@ -362,10 +362,10 @@ function TVarComponent({
             position: "fixed",
             left: pos.left,
             top: pos.top,
-            background: "#1f2937",
-            border: "1px solid #374151",
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
             borderRadius: 8,
-            boxShadow: "0 12px 32px #000c",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
             padding: 10,
             width: 260,
             maxHeight: 240,
@@ -389,11 +389,11 @@ function TVarComponent({
             autoFocus
             style={{
               width: "100%",
-              background: "#111",
-              border: "1px solid #374151",
+              background: "#f8fafc",
+              border: "1px solid #e5e7eb",
               borderRadius: 6,
               padding: "6px 10px",
-              color: "white",
+              color: "#1f2937",
               fontSize: 12,
               marginBottom: 8,
               outline: "none",
@@ -534,8 +534,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         <details className="var-pill-dropdown" style={{ position: "relative" }}>
           <summary style={{
             listStyle: "none",
-            background: "#1f2937",
-            border: "1px solid #374151",
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
             borderRadius: 8,
             padding: "8px 12px",
             cursor: "pointer",
@@ -560,9 +560,9 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
           </summary>
           <div style={{
             position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-            background: "#1f2937", border: "1px solid #374151", borderRadius: 8,
+            background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8,
             zIndex: 100, maxHeight: 280, overflowY: "auto", padding: 8,
-            boxShadow: "0 8px 24px #0008",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
           }}>
             {/* Input pra digitar nova variável */}
             <input
@@ -581,8 +581,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                 if (v && v !== valor) u({ [key]: v });
               }}
               style={{
-                width: "100%", background: "#111", border: "1px solid #374151",
-                borderRadius: 6, padding: "6px 10px", color: "white", fontSize: 12,
+                width: "100%", background: "#f8fafc", border: "1px solid #e5e7eb",
+                borderRadius: 6, padding: "6px 10px", color: "#1f2937", fontSize: 12,
                 marginBottom: 8, outline: "none",
               }}
             />
@@ -633,7 +633,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                 onClick={() => u({ [key]: "" })}
                 style={{
                   width: "100%", marginTop: 6, padding: 6, background: "transparent",
-                  border: "1px dashed #374151", borderRadius: 6, color: "#6b7280",
+                  border: "1px dashed #e5e7eb", borderRadius: 6, color: "#6b7280",
                   fontSize: 11, cursor: "pointer",
                 }}
               >✕ Limpar</button>
@@ -670,8 +670,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         value={valor}
         onChange={e => onChange(e.target.value)}
         style={{
-          background: "#1f2937",
-          border: "1px solid #374151",
+          background: "#ffffff",
+          border: "1px solid #e5e7eb",
           color: "#a78bfa",
           borderRadius: 8,
           padding: "8px 12px",
@@ -804,7 +804,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
     case "condicao":
       return <>
         <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 10px",lineHeight:1.4}}>
-          🔀 SE (todas/alguma) das condições forem verdadeiras → saída <b style={{color:"#16a34a"}}>Verdadeiro</b>, senão → <b style={{color:"#dc2626"}}>Falso</b>
+          🔀 SE (todas/alguma) das condições forem verdadeiras → saída <b style={{color:"#22c55e"}}>Verdadeiro</b>, senão → <b style={{color:"#ef4444"}}>Falso</b>
         </p>
         {/* Lógica AND/OR — botões grandes */}
         <label style={LS}>Lógica entre condições</label>
@@ -820,8 +820,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                 onClick={() => u({ juncao: opt.key })}
                 style={{
                   flex:1,
-                  background: ativo ? "#8b5cf622" : "#1f2937",
-                  border: `1px solid ${ativo ? "#8b5cf6" : "#374151"}`,
+                  background: ativo ? "#8b5cf622" : "#ffffff",
+                  border: `1px solid ${ativo ? "#8b5cf6" : "#e5e7eb"}`,
                   color: ativo ? "#a78bfa" : "white",
                   borderRadius:8, padding:"8px 10px", fontSize:11, cursor:"pointer", fontWeight:"bold",
                   textAlign:"center",
@@ -858,8 +858,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
               const dropdownVarId = `cond-${id}-${idx}`;
               return (
                 <div key={idx} style={{
-                  background: "#0d1418",
-                  border: "1px solid #1f2937",
+                  background: "#ffffff",
+                  border: "1px solid #ffffff",
                   borderRadius: 10,
                   padding: 12,
                   marginBottom: 8,
@@ -874,7 +874,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                       <button
                         onClick={() => removerCond(idx)}
                         style={{
-                          marginLeft: "auto", background: "#dc262622", color: "#dc2626",
+                          marginLeft: "auto", background: "#ef444422", color: "#ef4444",
                           border: "none", borderRadius: 6, padding: "3px 8px",
                           fontSize: 11, cursor: "pointer", fontWeight: "bold",
                         }}
@@ -885,8 +885,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                   <details style={{ position: "relative" }} id={dropdownVarId}>
                     <summary style={{
                       listStyle: "none",
-                      background: "#1f2937",
-                      border: "1px solid #374151",
+                      background: "#ffffff",
+                      border: "1px solid #e5e7eb",
                       borderRadius: 8,
                       padding: "8px 12px",
                       cursor: "pointer",
@@ -904,9 +904,9 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                     </summary>
                     <div style={{
                       position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-                      background: "#1f2937", border: "1px solid #374151", borderRadius: 8,
+                      background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8,
                       zIndex: 100, maxHeight: 240, overflowY: "auto", padding: 8,
-                      boxShadow: "0 8px 24px #0008",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                     }}>
                       <input
                         type="text"
@@ -923,8 +923,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                           if (v && v !== cond.variavel) updateCond(idx, { variavel: v });
                         }}
                         style={{
-                          width: "100%", background: "#111", border: "1px solid #374151",
-                          borderRadius: 6, padding: "6px 10px", color: "white", fontSize: 12,
+                          width: "100%", background: "#f8fafc", border: "1px solid #e5e7eb",
+                          borderRadius: 6, padding: "6px 10px", color: "#1f2937", fontSize: 12,
                           marginBottom: 8, outline: "none",
                         }}
                       />
@@ -963,8 +963,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                         onChange={e => updateCond(idx, { valor: e.target.value })}
                         placeholder="Valor pra comparar"
                         style={{
-                          flex: 1, background: "#1f2937", border: "1px solid #374151",
-                          borderRadius: 8, padding: "8px 12px", color: "white", fontSize: 12, outline: "none",
+                          flex: 1, background: "#ffffff", border: "1px solid #e5e7eb",
+                          borderRadius: 8, padding: "8px 12px", color: "#1f2937", fontSize: 12, outline: "none",
                         }}
                       />
                     )}
@@ -1009,8 +1009,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                 onClick={() => u({ modo_valor: opt.key })}
                 style={{
                   flex:1,
-                  background: modo === opt.key ? "#3b82f622" : "#1f2937",
-                  border: `1px solid ${modo === opt.key ? "#3b82f6" : "#374151"}`,
+                  background: modo === opt.key ? "#3b82f622" : "#ffffff",
+                  border: `1px solid ${modo === opt.key ? "#3b82f6" : "#e5e7eb"}`,
                   color: modo === opt.key ? "#3b82f6" : "white",
                   borderRadius:6, padding:"6px 8px", fontSize:11, cursor:"pointer", fontWeight:"bold"
                 }}
@@ -1061,7 +1061,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>🆕 API disponível: <code style={{color:"#3b82f6"}}>setVariable(nome, valor)</code>, <code style={{color:"#3b82f6"}}>getVariable(nome)</code>, <code style={{color:"#3b82f6"}}>fetch</code>, <code style={{color:"#3b82f6"}}>sleep(ms)</code>, <code style={{color:"#3b82f6"}}>log(...)</code></p>
         <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>{`{{variaveis}} são substituídas no código antes de executar.`}</p>
         {T("Código JavaScript","codigo",`// Exemplo:\n// const resp = await fetch("https://api.exemplo.com/cep/" + getVariable("cep"))\n// const data = await resp.json()\n// setVariable("rua", data.logradouro)`,200)}
-        <p style={{color:"#9ca3af",fontSize:10,margin:"4px 0 0"}}>Saídas: <span style={{color:"#16a34a"}}>0=sucesso</span> / <span style={{color:"#dc2626"}}>1=erro</span></p>
+        <p style={{color:"#9ca3af",fontSize:10,margin:"4px 0 0"}}>Saídas: <span style={{color:"#22c55e"}}>0=sucesso</span> / <span style={{color:"#ef4444"}}>1=erro</span></p>
       </>;
     case "espera":        return <>{F("Aguardar (segundos)","segundos","number","3")}</>;
     case "teste_ab":
@@ -1099,7 +1099,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
             })}
         </select>
         {d.alvo && !nos.find(n => n.id === d.alvo) && (
-          <p style={{color:"#dc2626", fontSize:10, margin:"4px 0 0"}}>
+          <p style={{color:"#ef4444", fontSize:10, margin:"4px 0 0"}}>
             ⚠️ Bloco alvo não existe mais (pode ter sido excluído). Selecione outro.
           </p>
         )}
@@ -1132,7 +1132,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"},{value:"gpt-3.5-turbo",label:"GPT-3.5"}])}
         {T("Prompt do sistema","prompt","Você é um assistente...",100)}
         {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_ia")}
-        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"white",fontSize:12}}>
+        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"#1f2937",fontSize:12}}>
           <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
           Enviar resposta pro cliente automaticamente
         </label>
@@ -1143,7 +1143,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         {S("Modelo","modelo",[{value:"claude-opus-4-5",label:"Claude Opus 4.5"},{value:"claude-sonnet-4-20250514",label:"Claude Sonnet 4"},{value:"claude-haiku-4-5",label:"Claude Haiku"}])}
         {T("Prompt do sistema","prompt","Você é um assistente...",100)}
         {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_ia")}
-        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"white",fontSize:12}}>
+        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"#1f2937",fontSize:12}}>
           <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
           Enviar resposta pro cliente automaticamente
         </label>
@@ -1170,7 +1170,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         <div>
           <label style={LS}>Fila de destino</label>
           {filasBanco.length === 0 ? (
-            <div style={{background:"#1f1b0a", border:"1px solid #f59e0b44", borderRadius:6, padding:10}}>
+            <div style={{background:"#fef3c7", border:"1px solid #f59e0b44", borderRadius:6, padding:10}}>
               <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>⚠️ Nenhuma fila cadastrada</p>
               <p style={{color:"#9ca3af", fontSize:10, margin:0, lineHeight:1.4}}>
                 Vá em <b>CRM → Configurações → Filas</b> e crie suas filas.<br/>
@@ -1242,8 +1242,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         u({ mapeamento: novo });
       };
       return <>
-        <div style={{background:"#16a34a11",border:"1px solid #16a34a33",borderRadius:8,padding:12,marginBottom:8}}>
-          <p style={{color:"#16a34a",fontSize:12,fontWeight:"bold",margin:"0 0 4px"}}>💰 Enviar Venda pro CRM</p>
+        <div style={{background:"#22c55e11",border:"1px solid #22c55e33",borderRadius:8,padding:12,marginBottom:8}}>
+          <p style={{color:"#22c55e",fontSize:12,fontWeight:"bold",margin:"0 0 4px"}}>💰 Enviar Venda pro CRM</p>
           <p style={{color:"#9ca3af",fontSize:11,margin:0,lineHeight:1.4}}>
             Quando o fluxo chegar nesse bloco, o sistema cria <b>automaticamente uma proposta</b> no
             <b> /crm/vendas</b> com as variáveis que você capturou no fluxo + aplica uma etiqueta
@@ -1262,9 +1262,9 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
               <button key={opt.key} onClick={() => u({modo_mapeamento: opt.key})}
                 style={{
                   flex:1,
-                  background: modoMap === opt.key ? "#16a34a22" : "#1f2937",
-                  border: `1px solid ${modoMap === opt.key ? "#16a34a" : "#374151"}`,
-                  color: modoMap === opt.key ? "#16a34a" : "white",
+                  background: modoMap === opt.key ? "#22c55e22" : "#ffffff",
+                  border: `1px solid ${modoMap === opt.key ? "#22c55e" : "#e5e7eb"}`,
+                  color: modoMap === opt.key ? "#22c55e" : "white",
                   borderRadius:8, padding:"8px 10px", fontSize:11, cursor:"pointer", fontWeight:"bold"
                 }}
                 title={opt.hint}
@@ -1274,8 +1274,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
           {modoMap === "automatico" && (
             <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
               💡 O sistema vai pegar todas as variáveis salvas no fluxo e tentar mapear pelo nome.
-              <br/>Ex: variável <code style={{color:"#16a34a"}}>nome</code> → campo "Nome do cliente";
-              variável <code style={{color:"#16a34a"}}>cpf_limpo</code> → campo "CPF" (usa nome similar).
+              <br/>Ex: variável <code style={{color:"#22c55e"}}>nome</code> → campo "Nome do cliente";
+              variável <code style={{color:"#22c55e"}}>cpf_limpo</code> → campo "CPF" (usa nome similar).
             </p>
           )}
         </div>
@@ -1287,12 +1287,12 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
             <p style={{color:"#6b7280",fontSize:10,margin:"-2px 0 8px",lineHeight:1.3}}>
               Deixe em branco os campos que não quer preencher. O sistema só cria os que você mapear.
             </p>
-            <div style={{display:"flex",flexDirection:"column",gap:6,background:"#0a0a0a",border:"1px solid #1f2937",borderRadius:8,padding:10,maxHeight:300,overflowY:"auto"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:6,background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:10,maxHeight:300,overflowY:"auto"}}>
               {camposPropostaPadrao.map(c => (
                 <div key={c.key} style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{color:"#9ca3af",fontSize:11,flex:"0 0 130px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
                     title={c.label}>{c.label}</span>
-                  <span style={{color:"#374151",fontSize:11}}>←</span>
+                  <span style={{color:"#e5e7eb",fontSize:11}}>←</span>
                   <select value={mapeamento[c.key] || ""} onChange={e => updateMap(c.key, e.target.value)}
                     style={{...IS,flex:1,fontSize:11,padding:"5px 8px"}}>
                     <option value="">— sem mapeamento —</option>
@@ -1304,7 +1304,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
               ))}
             </div>
             {Object.keys(mapeamento).length > 0 && (
-              <p style={{color:"#16a34a",fontSize:10,margin:"6px 0 0"}}>
+              <p style={{color:"#22c55e",fontSize:10,margin:"6px 0 0"}}>
                 ✅ {Object.keys(mapeamento).length} campo(s) mapeado(s)
               </p>
             )}
@@ -1312,12 +1312,12 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         )}
 
         {/* Etiqueta a aplicar */}
-        <div style={{borderTop:"1px solid #1f2937",paddingTop:12,marginTop:6}}>
+        <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
           <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,cursor:"pointer"}}>
             <input type="checkbox" checked={d.aplicar_etiqueta !== false}
               onChange={e => u({aplicar_etiqueta: e.target.checked})}
-              style={{accentColor:"#16a34a"}}/>
-            <span style={{color:"white",fontSize:12,fontWeight:"bold"}}>🏷️ Aplicar etiqueta ao atendimento</span>
+              style={{accentColor:"#22c55e"}}/>
+            <span style={{color:"#1f2937",fontSize:12,fontWeight:"bold"}}>🏷️ Aplicar etiqueta ao atendimento</span>
           </label>
           {d.aplicar_etiqueta !== false && (
             <>
@@ -1331,7 +1331,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         </div>
 
         {/* Status inicial da proposta */}
-        <div style={{borderTop:"1px solid #1f2937",paddingTop:12,marginTop:6}}>
+        <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
           {S("Status inicial da proposta","status_inicial",[
             {value:"aguardando",label:"⏳ Aguardando análise"},
             {value:"em_analise",label:"🔍 Em análise"},
@@ -1341,14 +1341,14 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
         </div>
 
         {/* Mensagens enviadas ao cliente */}
-        <div style={{borderTop:"1px solid #1f2937",paddingTop:12,marginTop:6}}>
+        <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
           {TVar("Mensagem ao cliente (sucesso)","mensagem_sucesso","✅ Sua proposta foi registrada!",70)}
           {TVar("Mensagem ao cliente (erro)","mensagem_erro","⚠️ Não consegui registrar, atendente vai te ajudar.",70)}
         </div>
 
         <p style={{color:"#6b7280",fontSize:10,margin:"8px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
-          ⚠️ Saídas: <span style={{color:"#16a34a"}}>0=Sucesso</span> (proposta criada) /{" "}
-          <span style={{color:"#dc2626"}}>1=Erro</span> (falha ao salvar — conecte aqui um bloco "Transferir" como fallback).
+          ⚠️ Saídas: <span style={{color:"#22c55e"}}>0=Sucesso</span> (proposta criada) /{" "}
+          <span style={{color:"#ef4444"}}>1=Erro</span> (falha ao salvar — conecte aqui um bloco "Transferir" como fallback).
         </p>
       </>;
     }
@@ -1358,8 +1358,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
       const iconesComuns = ["🏷️","⭐","🔥","💎","✅","❌","⚠️","💰","📌","🎯","🚀","💼","📋","🔔"];
       const coresComuns = [
         { hex: "#3b82f6", nome: "Azul" },
-        { hex: "#16a34a", nome: "Verde" },
-        { hex: "#dc2626", nome: "Vermelho" },
+        { hex: "#22c55e", nome: "Verde" },
+        { hex: "#ef4444", nome: "Vermelho" },
         { hex: "#f59e0b", nome: "Laranja" },
         { hex: "#8b5cf6", nome: "Roxo" },
         { hex: "#ec4899", nome: "Rosa" },
@@ -1379,8 +1379,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                 { v: "remover", label: "🗑️ Remover etiqueta" },
               ].map(o => (
                 <button key={o.v} type="button" onClick={()=>u({acao:o.v})}
-                  style={{flex:1,padding:"8px 10px",background:d.acao===o.v?"#3b82f6":"#1f2937",
-                    color:d.acao===o.v?"#fff":"#9ca3af",border:"1px solid #374151",borderRadius:8,
+                  style={{flex:1,padding:"8px 10px",background:d.acao===o.v?"#3b82f6":"#ffffff",
+                    color:d.acao===o.v?"#fff":"#9ca3af",border:"1px solid #e5e7eb",borderRadius:8,
                     fontSize:12,cursor:"pointer",fontWeight:d.acao===o.v?"bold":"normal"}}>
                   {o.label}
                 </button>
@@ -1402,7 +1402,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                   {coresComuns.map(c => (
                     <button key={c.hex} type="button" onClick={()=>u({cor:c.hex})}
                       title={c.nome}
-                      style={{width:32,height:32,background:c.hex,border:d.cor===c.hex?"3px solid #fff":"1px solid #374151",
+                      style={{width:32,height:32,background:c.hex,border:d.cor===c.hex?"3px solid #fff":"1px solid #e5e7eb",
                         borderRadius:6,cursor:"pointer"}} />
                   ))}
                 </div>
@@ -1414,8 +1414,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
                 <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                   {iconesComuns.map(ic => (
                     <button key={ic} type="button" onClick={()=>u({icone:ic})}
-                      style={{width:34,height:34,background:d.icone===ic?"#3b82f6":"#1f2937",
-                        border:"1px solid #374151",borderRadius:6,fontSize:18,cursor:"pointer"}}>
+                      style={{width:34,height:34,background:d.icone===ic?"#3b82f6":"#ffffff",
+                        border:"1px solid #e5e7eb",borderRadius:6,fontSize:18,cursor:"pointer"}}>
                       {ic}
                     </button>
                   ))}
@@ -1519,22 +1519,26 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
     <div
       ref={divRef}
       style={{position:"absolute", left:no.x, top:no.y, width:220,
-        background:"#111", borderRadius:10,
-        border:`2px solid ${sel ? cfg.cor : "#2d2d2d"}`,
-        boxShadow: sel ? `0 0 0 3px ${cfg.cor}33,0 4px 20px rgba(0,0,0,.5)` : "0 2px 8px rgba(0,0,0,.4)",
-        userSelect:"none", zIndex:sel?10:1, touchAction:"none", cursor: "grab"}}
+        background:"#ffffff", borderRadius:12,
+        border:`1px solid ${sel ? cfg.cor : "#e5e7eb"}`,
+        boxShadow: sel
+          ? `0 0 0 3px ${cfg.cor}33, 0 4px 12px rgba(0,0,0,.12), 0 2px 4px rgba(0,0,0,.06)`
+          : "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04)",
+        userSelect:"none", zIndex:sel?10:1, touchAction:"none", cursor: "grab",
+        transition: "box-shadow .15s ease, transform .15s ease",
+        transform: sel ? "translateY(-1px)" : "none"}}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onDoubleClick={onDoubleClickHandler}
       onMouseUp={e => {e.stopPropagation(); onConectarEntrada(no.id);}}
     >
-      <div style={{background:cfg.cor, borderRadius:"8px 8px 0 0", padding:"8px 10px",
+      <div style={{background:cfg.cor, borderRadius:"11px 11px 0 0", padding:"8px 10px",
         display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"grab"}}>
         <div style={{display:"flex", alignItems:"center", gap:6, pointerEvents:"none"}}>
           <span style={{fontSize:13}}>{cfg.icone}</span>
-          <span style={{color:"white", fontSize:11, fontWeight:"bold"}}>{cfg.label}</span>
-          <span style={{background:"rgba(0,0,0,.2)", color:"rgba(255,255,255,.6)", fontSize:9, padding:"1px 6px", borderRadius:10}}>{cfg.grupo}</span>
+          <span style={{color:"#ffffff", fontSize:11, fontWeight:"bold"}}>{cfg.label}</span>
+          <span style={{background:"rgba(255,255,255,.25)", color:"#ffffff", fontSize:9, padding:"1px 6px", borderRadius:10, fontWeight:"500"}}>{cfg.grupo}</span>
         </div>
         {no.tipo!=="inicio" && (
           <button
@@ -1543,24 +1547,24 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
             style={{background:"none", border:"none", color:"rgba(255,255,255,.7)", cursor:"pointer", fontSize:13, padding:0, lineHeight:1}}>✕</button>
         )}
       </div>
-      <div style={{padding:"7px 10px", borderBottom:cfg.saidas.length?"1px solid #1f2937":"none", pointerEvents:"none"}}>
+      <div style={{padding:"7px 10px", borderBottom:cfg.saidas.length?"1px solid #ffffff":"none", pointerEvents:"none"}}>
         <p style={{color:"#9ca3af", fontSize:10, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{getPreview(no)}</p>
       </div>
       {no.tipo!=="inicio" && (
         <div
           style={{position:"absolute", left:-7, top:48+18-7, width:14, height:14, borderRadius:"50%",
-            background:"#1f2937", border:`2px solid ${cfg.cor}`, cursor:"crosshair", zIndex:5}}
+            background:"#ffffff", border:`2px solid ${cfg.cor}`, cursor:"crosshair", zIndex:5}}
           onPointerDown={e => e.stopPropagation()}
           onMouseUp={e => {e.stopPropagation(); onConectarEntrada(no.id);}}
         />
       )}
       {no.saidas.map((saida,idx) => (
         <div key={idx} style={{display:"flex", alignItems:"center", justifyContent:"space-between",
-          padding:"0 10px", height:36, borderTop:idx>0?"1px solid #1a1a1a":"none"}}>
+          padding:"0 10px", height:36, borderTop:idx>0?"1px solid #ffffff":"none"}}>
           <span style={{color:"#6b7280", fontSize:10, pointerEvents:"none"}}>{saida}</span>
           <div
             style={{width:14, height:14, borderRadius:"50%", background:cfg.cor, cursor:"crosshair",
-              flexShrink:0, position:"relative", right:-18, border:"2px solid #111"}}
+              flexShrink:0, position:"relative", right:-18, border:"2px solid #e5e7eb"}}
             onPointerDown={e => {e.stopPropagation(); onConectarSaida(no.id,idx);}}
           />
         </div>
@@ -1826,11 +1830,11 @@ export default function FluxosPage() {
   function posE(no:No)              { return {x:no.x,     y:no.y+48+18};        }
 
   if(view==="lista") return (
-    <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#0a0a0a",color:"white"}}>
-      <div style={{width:220,background:"#111",borderRight:"1px solid #1f2937",display:"flex",flexDirection:"column",padding:16,gap:8}}>
+    <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#f8fafc",color:"#1f2937"}}>
+      <div style={{width:220,background:"#f8fafc",borderRight:"1px solid #ffffff",display:"flex",flexDirection:"column",padding:16,gap:8}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
           <img src="/logo1.png" alt="Wolf" style={{width:32,filter:"brightness(0) invert(1)"}}/>
-          <span style={{color:"white",fontWeight:"bold",fontSize:14}}>Wolf Chatbot</span>
+          <span style={{color:"#1f2937",fontWeight:"bold",fontSize:14}}>Wolf Chatbot</span>
         </div>
         <button onClick={()=>router.push("/chatbot")} style={{background:"#3b82f622",border:"1px solid #3b82f633",borderRadius:8,padding:"10px 14px",color:"#3b82f6",fontSize:13,fontWeight:"bold",cursor:"pointer",textAlign:"left"}}>💬 Conversas</button>
         <button style={{background:"#8b5cf622",border:"1px solid #8b5cf633",borderRadius:8,padding:"10px 14px",color:"#8b5cf6",fontSize:13,fontWeight:"bold",cursor:"pointer",textAlign:"left"}}>🤖 Fluxos</button>
@@ -1838,23 +1842,23 @@ export default function FluxosPage() {
       </div>
       <div style={{flex:1,padding:32,overflowY:"auto"}}>
         {showNovo && (
-          <div style={{position:"fixed",inset:0,background:"#000c",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <div style={{background:"#111",borderRadius:16,padding:32,width:500,border:"1px solid #1f2937",display:"flex",flexDirection:"column",gap:16}}>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{background:"#f8fafc",borderRadius:16,padding:32,width:500,border:"1px solid #ffffff",display:"flex",flexDirection:"column",gap:16}}>
               <div style={{display:"flex",justifyContent:"space-between"}}>
-                <h2 style={{color:"white",fontSize:18,fontWeight:"bold",margin:0}}>➕ Novo Fluxo</h2>
+                <h2 style={{color:"#1f2937",fontSize:18,fontWeight:"bold",margin:0}}>➕ Novo Fluxo</h2>
                 <button onClick={()=>setShowNovo(false)} style={{background:"none",border:"none",color:"#6b7280",fontSize:22,cursor:"pointer"}}>✕</button>
               </div>
               <div><label style={{...LS,fontSize:11}}>Nome *</label>
                 <input autoFocus placeholder="Ex: Fluxo de Vendas" value={form.nome}
                   onChange={e=>setForm({...form,nome:e.target.value})}
                   onKeyDown={e=>e.key==="Enter"&&criarFluxo()}
-                  style={{...IS,fontSize:14,padding:"10px 14px",background:"#1f2937"}}/>
+                  style={{...IS,fontSize:14,padding:"10px 14px",background:"#ffffff"}}/>
               </div>
               <div><label style={{...LS,fontSize:11}}>Descrição</label>
-                <input placeholder="Objetivo" value={form.descricao} onChange={e=>setForm({...form,descricao:e.target.value})} style={{...IS,background:"#1f2937"}}/>
+                <input placeholder="Objetivo" value={form.descricao} onChange={e=>setForm({...form,descricao:e.target.value})} style={{...IS,background:"#ffffff"}}/>
               </div>
               <div><label style={{...LS,fontSize:11}}>Quando Ativar</label>
-                <select value={form.trigger_tipo} onChange={e=>setForm({...form,trigger_tipo:e.target.value})} style={{...IS,background:"#1f2937"}}>
+                <select value={form.trigger_tipo} onChange={e=>setForm({...form,trigger_tipo:e.target.value})} style={{...IS,background:"#ffffff"}}>
                   <option value="qualquer_mensagem">Qualquer mensagem</option>
                   <option value="palavra_chave">Palavra-chave</option>
                   <option value="primeiro_contato">Primeiro contato</option>
@@ -1863,7 +1867,7 @@ export default function FluxosPage() {
               </div>
               {form.trigger_tipo==="palavra_chave" && (
                 <div><label style={{...LS,fontSize:11}}>Palavra-chave</label>
-                  <input placeholder="oi, olá" value={form.trigger_valor} onChange={e=>setForm({...form,trigger_valor:e.target.value})} style={{...IS,background:"#1f2937"}}/>
+                  <input placeholder="oi, olá" value={form.trigger_valor} onChange={e=>setForm({...form,trigger_valor:e.target.value})} style={{...IS,background:"#ffffff"}}/>
                 </div>
               )}
               {/* 🆕 v18: campos de horário pro trigger "fora_horario".
@@ -1882,11 +1886,11 @@ export default function FluxosPage() {
                     <div style={{display:"flex",gap:10,alignItems:"center"}}>
                       <input type="time" value={cfg.hora_inicio}
                         onChange={e=>setCfg({hora_inicio:e.target.value})}
-                        style={{...IS,background:"#1f2937",flex:1}}/>
+                        style={{...IS,background:"#ffffff",flex:1}}/>
                       <span style={{color:"#6b7280",fontSize:12}}>até</span>
                       <input type="time" value={cfg.hora_fim}
                         onChange={e=>setCfg({hora_fim:e.target.value})}
-                        style={{...IS,background:"#1f2937",flex:1}}/>
+                        style={{...IS,background:"#ffffff",flex:1}}/>
                     </div>
                     <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
                       💡 O fluxo dispara quando o cliente manda mensagem FORA do horário {cfg.hora_inicio}–{cfg.hora_fim}.
@@ -1896,8 +1900,8 @@ export default function FluxosPage() {
                 );
               })()}
               <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-                <button onClick={()=>setShowNovo(false)} style={{background:"none",color:"#9ca3af",border:"1px solid #374151",borderRadius:8,padding:"10px 20px",fontSize:13,cursor:"pointer"}}>Cancelar</button>
-                <button onClick={criarFluxo} disabled={criando} style={{background:criando?"#6b21a8":"#8b5cf6",color:"white",border:"none",borderRadius:8,padding:"10px 24px",fontSize:13,cursor:criando?"wait":"pointer",fontWeight:"bold"}}>
+                <button onClick={()=>setShowNovo(false)} style={{background:"none",color:"#9ca3af",border:"1px solid #e5e7eb",borderRadius:8,padding:"10px 20px",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+                <button onClick={criarFluxo} disabled={criando} style={{background:criando?"#6b21a8":"#8b5cf6",color:"#1f2937",border:"none",borderRadius:8,padding:"10px 24px",fontSize:13,cursor:criando?"wait":"pointer",fontWeight:"bold"}}>
                   {criando?"⏳ Criando...":"🤖 Criar Fluxo"}
                 </button>
               </div>
@@ -1906,40 +1910,40 @@ export default function FluxosPage() {
         )}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
           <div>
-            <h1 style={{color:"white",fontSize:22,fontWeight:"bold",margin:0}}>🤖 Meus Fluxos</h1>
+            <h1 style={{color:"#1f2937",fontSize:22,fontWeight:"bold",margin:0}}>🤖 Meus Fluxos</h1>
             <p style={{color:"#6b7280",fontSize:13,margin:"4px 0 0"}}>{fluxos.length} fluxo(s)</p>
           </div>
-          <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"white",border:"none",borderRadius:8,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"bold"}}>+ Novo Fluxo</button>
+          <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"#1f2937",border:"none",borderRadius:8,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"bold"}}>+ Novo Fluxo</button>
         </div>
         {fluxos.length===0 ? (
-          <div style={{background:"#111",borderRadius:12,padding:64,textAlign:"center",border:"1px solid #1f2937"}}>
+          <div style={{background:"#f8fafc",borderRadius:12,padding:64,textAlign:"center",border:"1px solid #ffffff"}}>
             <p style={{fontSize:64,margin:"0 0 16px"}}>🤖</p>
-            <h3 style={{color:"white",fontSize:18,fontWeight:"bold",margin:"0 0 8px"}}>Nenhum fluxo criado</h3>
+            <h3 style={{color:"#1f2937",fontSize:18,fontWeight:"bold",margin:"0 0 8px"}}>Nenhum fluxo criado</h3>
             <p style={{color:"#6b7280",fontSize:14,margin:"0 0 24px"}}>Crie fluxos de atendimento automático</p>
-            <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"white",border:"none",borderRadius:8,padding:"12px 28px",fontSize:14,cursor:"pointer",fontWeight:"bold"}}>+ Criar Primeiro Fluxo</button>
+            <button onClick={()=>setShowNovo(true)} style={{background:"#8b5cf6",color:"#1f2937",border:"none",borderRadius:8,padding:"12px 28px",fontSize:14,cursor:"pointer",fontWeight:"bold"}}>+ Criar Primeiro Fluxo</button>
           </div>
         ) : (
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:16}}>
             {fluxos.map(f => (
-              <div key={f.id} style={{background:"#111",borderRadius:12,padding:24,border:`1px solid ${f.ativo?"#8b5cf644":"#1f2937"}`}}>
+              <div key={f.id} style={{background:"#f8fafc",borderRadius:12,padding:24,border:`1px solid ${f.ativo?"#8b5cf644":"#ffffff"}`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
                   <div>
-                    <h3 style={{color:"white",fontSize:15,fontWeight:"bold",margin:0}}>{f.nome}</h3>
+                    <h3 style={{color:"#1f2937",fontSize:15,fontWeight:"bold",margin:0}}>{f.nome}</h3>
                     {f.descricao&&<p style={{color:"#6b7280",fontSize:12,margin:"4px 0 0"}}>{f.descricao}</p>}
                   </div>
-                  <span style={{background:f.ativo?"#8b5cf622":"#1f2937",color:f.ativo?"#8b5cf6":"#6b7280",fontSize:11,padding:"3px 10px",borderRadius:20,fontWeight:"bold",whiteSpace:"nowrap"}}>
+                  <span style={{background:f.ativo?"#8b5cf622":"#ffffff",color:f.ativo?"#8b5cf6":"#6b7280",fontSize:11,padding:"3px 10px",borderRadius:20,fontWeight:"bold",whiteSpace:"nowrap"}}>
                     {f.ativo?"🟢 Ativo":"⚫ Inativo"}
                   </span>
                 </div>
                 <div style={{display:"flex",gap:8,marginBottom:16}}>
-                  <span style={{background:"#1f2937",color:"#9ca3af",fontSize:11,padding:"3px 8px",borderRadius:6}}>{f.nos?.length||0} blocos</span>
-                  <span style={{background:"#1f2937",color:"#9ca3af",fontSize:11,padding:"3px 8px",borderRadius:6}}>
+                  <span style={{background:"#ffffff",color:"#9ca3af",fontSize:11,padding:"3px 8px",borderRadius:6}}>{f.nos?.length||0} blocos</span>
+                  <span style={{background:"#ffffff",color:"#9ca3af",fontSize:11,padding:"3px 8px",borderRadius:6}}>
                     {f.trigger_tipo==="qualquer_mensagem"?"📨 Qualquer":f.trigger_tipo==="palavra_chave"?`🔑 "${f.trigger_valor}"`:f.trigger_tipo==="primeiro_contato"?"👋 1º":"🕐 Fora horário"}
                   </span>
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>abrirEditor(f)} style={{flex:1,background:"#8b5cf622",color:"#8b5cf6",border:"1px solid #8b5cf633",borderRadius:8,padding:"8px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>✏️ Editar</button>
-                  <button onClick={()=>excluirFluxo(f.id!, f.nome)} style={{background:"#dc262622",color:"#dc2626",border:"1px solid #dc262633",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>🗑️</button>
+                  <button onClick={()=>excluirFluxo(f.id!, f.nome)} style={{background:"#ef444422",color:"#ef4444",border:"1px solid #ef444433",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>🗑️</button>
                 </div>
               </div>
             ))}
@@ -1950,12 +1954,12 @@ export default function FluxosPage() {
   );
 
   return (
-    <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#0a0a0a",color:"white",overflow:"hidden"}}>
+    <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#f8fafc",color:"#1f2937",overflow:"hidden"}}>
 
-      <div style={{width:210,background:"#111",borderRight:"1px solid #1f2937",display:"flex",flexDirection:"column",flexShrink:0}}>
-        <div style={{padding:"10px 14px",borderBottom:"1px solid #1f2937",display:"flex",alignItems:"center",gap:8}}>
+      <div style={{width:210,background:"#f8fafc",borderRight:"1px solid #ffffff",display:"flex",flexDirection:"column",flexShrink:0}}>
+        <div style={{padding:"10px 14px",borderBottom:"1px solid #ffffff",display:"flex",alignItems:"center",gap:8}}>
           <button onClick={()=>setView("lista")} style={{background:"none",border:"none",color:"#9ca3af",fontSize:11,cursor:"pointer",padding:0}}>←</button>
-          <h3 style={{color:"white",fontSize:12,fontWeight:"bold",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{fluxoAtivo?.nome}</h3>
+          <h3 style={{color:"#1f2937",fontSize:12,fontWeight:"bold",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{fluxoAtivo?.nome}</h3>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"8px 0"}}>
           {GRUPOS.map(grupo => {
@@ -1971,9 +1975,9 @@ export default function FluxosPage() {
                   <div style={{padding:"2px 8px 8px"}}>
                     {tipos.map(([tipo,cfg]) => (
                       <button key={tipo} onClick={()=>adicionarNo(tipo)}
-                        style={{display:"flex",alignItems:"center",gap:8,width:"100%",background:"#1a1a1a",border:"1px solid #1f2937",borderRadius:6,padding:"6px 10px",color:"white",fontSize:11,cursor:"pointer",marginBottom:3,textAlign:"left"}}
-                        onMouseEnter={e=>(e.currentTarget.style.background="#1f2937")}
-                        onMouseLeave={e=>(e.currentTarget.style.background="#1a1a1a")}>
+                        style={{display:"flex",alignItems:"center",gap:8,width:"100%",background:"#ffffff",border:"1px solid #ffffff",borderRadius:6,padding:"6px 10px",color:"#1f2937",fontSize:11,cursor:"pointer",marginBottom:3,textAlign:"left"}}
+                        onMouseEnter={e=>(e.currentTarget.style.background="#ffffff")}
+                        onMouseLeave={e=>(e.currentTarget.style.background="#ffffff")}>
                         <span style={{fontSize:14,width:20,textAlign:"center"}}>{cfg.icone}</span>
                         <span style={{flex:1}}>{cfg.label}</span>
                         <span style={{width:8,height:8,borderRadius:"50%",background:cfg.cor,flexShrink:0}}/>
@@ -1985,21 +1989,22 @@ export default function FluxosPage() {
             );
           })}
         </div>
-        <div style={{padding:10,borderTop:"1px solid #1f2937"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#1a1a1a",borderRadius:8,padding:"7px 10px",marginBottom:8}}>
+        <div style={{padding:10,borderTop:"1px solid #ffffff"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#ffffff",borderRadius:8,padding:"7px 10px",marginBottom:8}}>
             <span style={{color:fluxoAtivo?.ativo?"#8b5cf6":"#6b7280",fontSize:11,fontWeight:"bold"}}>{fluxoAtivo?.ativo?"🟢 Ativo":"⚫ Inativo"}</span>
-            <button onClick={toggleAtivo} style={{width:34,height:18,background:fluxoAtivo?.ativo?"#8b5cf6":"#374151",borderRadius:9,cursor:"pointer",border:"none",position:"relative"}}>
+            <button onClick={toggleAtivo} style={{width:34,height:18,background:fluxoAtivo?.ativo?"#8b5cf6":"#e5e7eb",borderRadius:9,cursor:"pointer",border:"none",position:"relative"}}>
               <div style={{width:12,height:12,background:"white",borderRadius:"50%",position:"absolute",top:3,left:fluxoAtivo?.ativo?19:3,transition:"left 0.2s"}}/>
             </button>
           </div>
-          <button onClick={salvar} disabled={salvando} style={{width:"100%",background:salvando?"#6b21a8":"#8b5cf6",color:"white",border:"none",borderRadius:8,padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>
+          <button onClick={salvar} disabled={salvando} style={{width:"100%",background:salvando?"#6b21a8":"#8b5cf6",color:"#1f2937",border:"none",borderRadius:8,padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>
             {salvando?"Salvando...":"💾 Salvar Fluxo"}
           </button>
         </div>
       </div>
 
       <div ref={canvasRef}
-        style={{flex:1,position:"relative",overflow:"hidden",cursor:panning.current?"grabbing":conectando?"crosshair":"default",touchAction:"none"}}
+        style={{flex:1,position:"relative",overflow:"hidden",cursor:panning.current?"grabbing":conectando?"crosshair":"default",touchAction:"none",
+          background:"#f8fafc"}}
         onPointerDown={onCanvasPointerDown}
         onPointerMove={onCanvasPointerMove}
         onPointerUp={onCanvasPointerUp}
@@ -2009,7 +2014,7 @@ export default function FluxosPage() {
         <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}>
           <defs>
             <pattern id="dots" width={24*scale} height={24*scale} patternUnits="userSpaceOnUse" x={offset.x%(24*scale)} y={offset.y%(24*scale)}>
-              <circle cx={1} cy={1} r={0.8} fill="#1f2937"/>
+              <circle cx={1} cy={1} r={0.8} fill="#cbd5e1"/>
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#dots)"/>
@@ -2061,17 +2066,17 @@ export default function FluxosPage() {
         </div>
 
         <div style={{position:"absolute",bottom:16,left:16,display:"flex",gap:8}}>
-          <div style={{background:"#111",border:"1px solid #1f2937",borderRadius:8,padding:"6px 12px"}}>
+          <div style={{background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:"6px 12px"}}>
             <p style={{color:"#6b7280",fontSize:10,margin:0}}>🖱️ Arraste blocos • Scroll zoom • ● conectar • Clique na linha para excluir</p>
           </div>
-          <div style={{background:"#111",border:"1px solid #1f2937",borderRadius:8,padding:"6px 10px",display:"flex",gap:6,alignItems:"center"}}>
+          <div style={{background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:"6px 10px",display:"flex",gap:6,alignItems:"center"}}>
             <button onClick={()=>{const s=Math.min(scaleRef.current*1.2,2.5);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:16}}>+</button>
             <span style={{color:"#6b7280",fontSize:10}}>{Math.round(scale*100)}%</span>
             <button onClick={()=>{const s=Math.max(scaleRef.current*0.8,0.2);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:16}}>−</button>
             <button onClick={()=>{scaleRef.current=1;offsetRef.current={x:80,y:80};setScale(1);setOffset({x:80,y:80});}} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:10}}>Reset</button>
           </div>
         </div>
-        <div style={{position:"absolute",top:16,right:noSel?285:16,background:"#111",border:"1px solid #1f2937",borderRadius:8,padding:"6px 12px"}}>
+        <div style={{position:"absolute",top:16,right:noSel?285:16,background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:"6px 12px"}}>
           <p style={{color:"#6b7280",fontSize:10,margin:0}}>{nos.length} blocos • {arestas.length} conexões</p>
         </div>
       </div>
@@ -2085,7 +2090,7 @@ export default function FluxosPage() {
           style={{
             position: "fixed",
             inset: 0,
-            background: "#000000cc",
+            background: "rgba(0,0,0,0.5)",
             zIndex: 1000,
             display: "flex",
             alignItems: "center",
@@ -2096,9 +2101,9 @@ export default function FluxosPage() {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: "#111",
+              background: "#f8fafc",
               borderRadius: 12,
-              border: "1px solid #1f2937",
+              border: "1px solid #ffffff",
               width: "100%",
               maxWidth: 560,
               maxHeight: "90vh",
@@ -2110,7 +2115,7 @@ export default function FluxosPage() {
             {/* Header do modal */}
             <div style={{
               padding: "14px 18px",
-              borderBottom: "1px solid #1f2937",
+              borderBottom: "1px solid #ffffff",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
@@ -2130,14 +2135,14 @@ export default function FluxosPage() {
                   {B[noEditando.tipo]?.icone}
                 </div>
                 <div>
-                  <h3 style={{ color: "white", fontSize: 15, fontWeight: "bold", margin: 0 }}>{B[noEditando.tipo]?.label}</h3>
+                  <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: "bold", margin: 0 }}>{B[noEditando.tipo]?.label}</h3>
                   <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{B[noEditando.tipo]?.grupo}</p>
                 </div>
               </div>
               <button
                 onClick={() => setNoEditando(null)}
                 style={{
-                  background: "#1f2937",
+                  background: "#ffffff",
                   border: "none",
                   borderRadius: 8,
                   color: "#9ca3af",
@@ -2177,7 +2182,7 @@ export default function FluxosPage() {
             {noEditando.tipo !== "inicio" && (
               <div style={{
                 padding: "12px 18px",
-                borderTop: "1px solid #1f2937",
+                borderTop: "1px solid #ffffff",
                 display: "flex",
                 gap: 8,
                 flexShrink: 0,
@@ -2185,9 +2190,9 @@ export default function FluxosPage() {
                 <button
                   onClick={() => { excluirNo(noEditando.id); setNoEditando(null); }}
                   style={{
-                    background: "#dc262611",
-                    color: "#dc2626",
-                    border: "1px solid #dc262633",
+                    background: "#ef444411",
+                    color: "#ef4444",
+                    border: "1px solid #ef444433",
                     borderRadius: 8,
                     padding: "10px 16px",
                     fontSize: 12,
@@ -2200,7 +2205,7 @@ export default function FluxosPage() {
                   onClick={() => setNoEditando(null)}
                   style={{
                     background: "#3b82f6",
-                    color: "white",
+                    color: "#1f2937",
                     border: "none",
                     borderRadius: 8,
                     padding: "10px 24px",
@@ -2215,7 +2220,7 @@ export default function FluxosPage() {
             {noEditando.tipo === "inicio" && (
               <div style={{
                 padding: "12px 18px",
-                borderTop: "1px solid #1f2937",
+                borderTop: "1px solid #ffffff",
                 display: "flex",
                 justifyContent: "flex-end",
                 flexShrink: 0,
@@ -2224,7 +2229,7 @@ export default function FluxosPage() {
                   onClick={() => setNoEditando(null)}
                   style={{
                     background: "#3b82f6",
-                    color: "white",
+                    color: "#1f2937",
                     border: "none",
                     borderRadius: 8,
                     padding: "10px 24px",
