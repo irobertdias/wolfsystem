@@ -643,6 +643,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
       { value: "<", label: "Menor que", icone: "<" },
       { value: ">=", label: "Maior ou igual", icone: "≥" },
       { value: "<=", label: "Menor ou igual", icone: "≤" },
+      { value: "match_regex", label: "Match Regex", icone: ".*" },
+      { value: "nao_match_regex", label: "Não match Regex", icone: "!.*" },
       { value: "preenchido", label: "Preenchido", icone: "✓" },
       { value: "vazio", label: "Vazio", icone: "∅" },
     ];
