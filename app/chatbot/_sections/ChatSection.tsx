@@ -27,6 +27,12 @@ type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
 type UsuarioWs = { email: string; nome: string; fila?: string | null; };
 type CanalInfo = { id: number; nome: string; tipo: string; };
 
+// 🆕 Papel de parede estilo WhatsApp Light — fundo bege com símbolos sutis (balões, corações, estrela, envelope, relógio, check, presente, câmera, folha)
+const WA_BG_LIGHT = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='%23000000' fill-opacity='0.05'><path d='M20 30 q0 -10 10 -10 h40 q10 0 10 10 v15 q0 10 -10 10 h-25 l-10 10 v-10 h-5 q-10 0 -10 -10 z'/><path d='M120 32 q-8 -10 -16 0 q-8 10 8 22 q16 -12 8 -22 z'/><path d='M195 25 l3 8 l9 0 l-7 5 l3 9 l-8 -5 l-8 5 l3 -9 l-7 -5 l9 0 z'/><rect x='100' y='90' width='40' height='25' rx='3' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M100 95 l20 14 l20 -14' stroke='%23000000' stroke-opacity='0.05' stroke-width='2' fill='none'/><circle cx='195' cy='105' r='12' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M195 97 v8 l5 4' stroke='%23000000' stroke-opacity='0.05' stroke-width='2' fill='none' stroke-linecap='round'/><path d='M35 95 l8 8 l16 -16' stroke='%23000000' stroke-opacity='0.05' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/><rect x='20' y='160' width='30' height='30' rx='2'/><rect x='90' y='155' width='35' height='25' rx='3' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><circle cx='107' cy='167' r='6' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M170 165 q-5 10 5 20 q10 -5 15 -15 q-5 -10 -20 -5 z'/><circle cx='60' cy='200' r='6'/></g></svg>")`;
+
+// 🆕 Papel de parede estilo WhatsApp Light — fundo bege com símbolos sutis (balões, corações, estrela, envelope, relógio, check, presente, câmera, folha)
+const WA_BG_LIGHT = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='%23000000' fill-opacity='0.05'><path d='M20 30 q0 -10 10 -10 h40 q10 0 10 10 v15 q0 10 -10 10 h-25 l-10 10 v-10 h-5 q-10 0 -10 -10 z'/><path d='M120 32 q-8 -10 -16 0 q-8 10 8 22 q16 -12 8 -22 z'/><path d='M195 25 l3 8 l9 0 l-7 5 l3 9 l-8 -5 l-8 5 l3 -9 l-7 -5 l9 0 z'/><rect x='100' y='90' width='40' height='25' rx='3' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M100 95 l20 14 l20 -14' stroke='%23000000' stroke-opacity='0.05' stroke-width='2' fill='none'/><circle cx='195' cy='105' r='12' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M195 97 v8 l5 4' stroke='%23000000' stroke-opacity='0.05' stroke-width='2' fill='none' stroke-linecap='round'/><path d='M35 95 l8 8 l16 -16' stroke='%23000000' stroke-opacity='0.05' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/><rect x='20' y='160' width='30' height='30' rx='2'/><rect x='90' y='155' width='35' height='25' rx='3' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><circle cx='107' cy='167' r='6' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M170 165 q-5 10 5 20 q10 -5 15 -15 q-5 -10 -20 -5 z'/><circle cx='60' cy='200' r='6'/></g></svg>")`;
+
 const WA_BG_DARK = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200' opacity='0.04'><g fill='%23ffffff'><path d='M40 40 l10 0 l0 10 l-10 0 z'/><circle cx='70' cy='75' r='4'/><path d='M110 35 l15 -5 l5 15 l-15 5 z' opacity='0.6'/><circle cx='150' cy='55' r='3'/><path d='M30 110 l8 8 l-8 8 l-8 -8 z'/><circle cx='80' cy='135' r='5'/><path d='M130 115 l10 0 l-5 10 z' opacity='0.7'/><circle cx='165' cy='150' r='4'/><path d='M50 170 l12 0 l-6 12 z'/><circle cx='100' cy='180' r='3'/></g></svg>")`;
 
 // 🆕 Lista de emojis organizados por categoria (estilo WhatsApp/Telegram)
@@ -380,7 +386,7 @@ export function ChatSection() {
     headerBg:     "#ffffff",
     listaItem:    "#ffffff",
     listaItemSel: "#f3f4f6",
-    chatBg:       "#f8fafc",
+    chatBg:       "#efeae2",
     inputBg:      "#ffffff",
     inputBgAlt:   "#f9fafb",
     bordaSutil:   "#e5e7eb",
@@ -2522,18 +2528,38 @@ export function ChatSection() {
         <div style={{ display: "flex", borderBottom: `1px solid ${tema.bordaSutil}`, background: "#ffffff", padding: "8px 6px", gap: 4 }}>
           {abas.map(t => {
             const ativa = abaConversa === t.key;
+            // 🆕 Limita o badge em "999+" pra não estourar layout em workspaces com muitos atendimentos
+            const badgeLabel = t.count > 999 ? "999+" : String(t.count);
             return (
               <button key={t.key} onClick={() => setAbaConversa(t.key as any)}
-                style={{ flex: 1, padding: "8px 4px", background: ativa ? `${t.color}10` : "transparent", border: "none", borderRadius: 10, color: ativa ? t.color : tema.textoFraco, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s", position: "relative" }}>
-                {/* Container do ícone — bg sólido colorido quando ativo, cinza neutro com borda da cor quando inativo
-                    (assim os emojis nativos mantêm suas cores naturais sem se perder no fundo) */}
-                <div style={{ width: 32, height: 32, borderRadius: 9, background: ativa ? t.color : "#f3f4f6", border: ativa ? "none" : `1px solid ${t.color}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, boxShadow: ativa ? `0 4px 10px ${t.color}40` : "none", transition: "all 0.15s" }}>
-                  <span style={{ filter: ativa ? "saturate(0) brightness(2)" : "none" }}>{t.icon}</span>
+                style={{ flex: 1, padding: "10px 4px 6px", background: ativa ? `${t.color}10` : "transparent", border: "none", borderRadius: 10, color: ativa ? t.color : tema.textoFraco, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s", position: "relative" }}>
+                {/* Container do ícone com badge relativo a ELE (não ao botão inteiro)
+                    — assim o badge não cobre o emoji quando o número é grande */}
+                <div style={{ position: "relative" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: ativa ? t.color : "#f3f4f6", border: ativa ? "none" : `1px solid ${t.color}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, boxShadow: ativa ? `0 4px 10px ${t.color}40` : "none", transition: "all 0.15s" }}>
+                    <span style={{ filter: ativa ? "saturate(0) brightness(2)" : "none" }}>{t.icon}</span>
+                  </div>
+                  {t.count > 0 && (
+                    <span style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -8,
+                      background: t.color,
+                      color: "#ffffff",
+                      borderRadius: 10,
+                      padding: "1px 5px",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      minWidth: 14,
+                      lineHeight: 1.3,
+                      textAlign: "center",
+                      border: "2px solid #ffffff",
+                      boxShadow: `0 2px 4px ${t.color}50`,
+                      whiteSpace: "nowrap",
+                    }}>{badgeLabel}</span>
+                  )}
                 </div>
                 <span style={{ fontSize: 10, letterSpacing: 0.2 }}>{t.label}</span>
-                {t.count > 0 && (
-                  <span style={{ position: "absolute", top: 2, right: 6, background: t.color, color: "#ffffff", borderRadius: 10, padding: "1px 6px", fontSize: 9, fontWeight: 700, minWidth: 16, lineHeight: 1.3, boxShadow: `0 2px 6px ${t.color}50` }}>{t.count}</span>
-                )}
               </button>
             );
           })}
@@ -2704,7 +2730,7 @@ export function ChatSection() {
       </div>
 
       {/* ÁREA DO CHAT — mobile: esconde quando nenhum chat aberto (mostra só a lista) */}
-      <div style={{ flex: 1, display: isMobile && !atendimentoAtivo ? "none" : "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: ehClaro ? "none" : WA_BG_DARK, backgroundRepeat: "repeat", position: "relative", width: isMobile ? "100%" : "auto" }}>
+      <div style={{ flex: 1, display: isMobile && !atendimentoAtivo ? "none" : "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: WA_BG_LIGHT, backgroundRepeat: "repeat", position: "relative", width: isMobile ? "100%" : "auto" }}>
         {atendimentoAtivo ? (
           <>
             {/* 🆕 HEADER REFORMULADO
@@ -3508,7 +3534,7 @@ export function ChatSection() {
             )}
           </>
         ) : (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 18, background: "#f8fafc" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 18, background: "transparent" }}>
             {/* 💬 Ícone em container gradient — mesma vibe dos blocos do editor */}
             <div style={{
               width: 96, height: 96, borderRadius: 24,
