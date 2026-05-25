@@ -36,6 +36,32 @@ const STATUS_LABELS: Record<string, string> = {
   em_recurso: "🔄 Em recurso", deletando: "🗑️ Deletando", deletado: "🗑️ Deletado"
 };
 
+// 🆕 Traduz motivos de rejeição da Meta (vêm em inglês via API) pra português.
+// Quando o template é APROVADO, a Meta retorna "NONE" no campo rejected_reason — ou seja,
+// "não houve motivo de rejeição". Antes esse "NONE" aparecia como se fosse um motivo real
+// poluindo todos os cards aprovados. Agora retorna null nesse caso e o componente esconde.
+const traduzirMotivoRejeicao = (motivo: string | null | undefined): string | null => {
+  if (!motivo) return null;
+  const m = String(motivo).trim().toUpperCase();
+  // "NONE" / "NULL" / vazio = template aprovado, não há motivo de rejeição → não exibe
+  if (m === "NONE" || m === "" || m === "NULL") return null;
+
+  const traducoes: Record<string, string> = {
+    "INVALID_FORMAT":           "Formato inválido (variáveis ou estrutura erradas)",
+    "ABUSIVE_CONTENT":          "Conteúdo abusivo ou ofensivo",
+    "INCORRECT_CATEGORY":       "Categoria incorreta — solicite reclassificação à Meta",
+    "TAG_CONTENT_MISMATCH":     "Conteúdo não combina com a categoria escolhida",
+    "SCAM":                     "Conteúdo suspeito de golpe/fraude",
+    "PROMOTIONAL":              "Promocional na categoria errada — use MARKETING",
+    "NON_TRANSACTIONAL_GAMBLING_CONTENT": "Conteúdo de apostas não permitido",
+    "TAX_FINANCIAL_STOCKS_CRYPTOCURRENCY": "Conteúdo financeiro/cripto restrito",
+    "TEMPLATE_REVIEW_FAILED":   "Template reprovado na revisão da Meta",
+    "PAUSED":                   "Template pausado por baixa performance ou bloqueios de usuários",
+    "DISABLED":                 "Template desativado pela Meta",
+  };
+  return traducoes[m] || `Motivo: ${motivo}`; // motivo desconhecido → mostra o código original
+};
+
 export default function TemplatesPage() {
   const router = useRouter();
   const { workspace, wsId, user } = useWorkspace();
@@ -337,6 +363,8 @@ export default function TemplatesPage() {
               const color = STATUS_COLORS[t.status] || "#6b7280";
               const bodyComp = (t.componentes || []).find((c: any) => c.type === "BODY");
               const bodyPreview = bodyComp?.text ? (bodyComp.text.length > 120 ? bodyComp.text.slice(0, 120) + "..." : bodyComp.text) : "";
+              // 🆕 Traduz motivo da rejeição (retorna null pra "NONE"/""/null → não exibe nada)
+              const motivoTraduzido = traduzirMotivoRejeicao(t.motivo_rejeicao);
               return (
                 <div key={t.id}
                   style={{
@@ -378,10 +406,20 @@ export default function TemplatesPage() {
                       {bodyPreview}
                     </p>
                   )}
-                  {t.motivo_rejeicao && (
-                    <p style={{ color: "#991b1b", fontSize: 11, margin: "0 0 12px", background: "#fef2f2", padding: "8px 12px", borderRadius: 8, border: "1px solid #fecaca" }}>
-                      ❌ <b>Motivo:</b> {t.motivo_rejeicao}
-                    </p>
+                  {/* 🆕 Só mostra o motivo se houver tradução real (NONE/vazio retorna null) */}
+                  {motivoTraduzido && (
+                    <div style={{
+                      background: "#fef2f2", border: "1px solid #fecaca",
+                      borderLeft: "3px solid #dc2626",
+                      borderRadius: 8, padding: "10px 14px", marginBottom: 12,
+                    }}>
+                      <p style={{ color: "#991b1b", fontSize: 10, margin: 0, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>
+                        ❌ Motivo da rejeição
+                      </p>
+                      <p style={{ color: "#dc2626", fontSize: 12, margin: "4px 0 0", fontWeight: 600, lineHeight: 1.4 }}>
+                        {motivoTraduzido}
+                      </p>
+                    </div>
                   )}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <button onClick={() => setDetalhe(t)}
@@ -568,12 +606,23 @@ export default function TemplatesPage() {
                   <p style={{ color: "#1f2937", fontSize: 13, margin: 0, fontWeight: 600 }}>{detalhe.idioma}</p>
                 </div>
               </div>
-              {detalhe.motivo_rejeicao && (
-                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626", borderRadius: 10, padding: 14 }}>
-                  <p style={{ color: "#991b1b", fontSize: 12, margin: 0, fontWeight: 700 }}>❌ Motivo da rejeição:</p>
-                  <p style={{ color: "#7f1d1d", fontSize: 12, margin: "4px 0 0", lineHeight: 1.5 }}>{detalhe.motivo_rejeicao}</p>
-                </div>
-              )}
+              {/* 🆕 Motivo só aparece se houver tradução real (NONE/vazio retorna null) */}
+              {(() => {
+                const motivoTraduzido = traduzirMotivoRejeicao(detalhe.motivo_rejeicao);
+                if (!motivoTraduzido) return null;
+                return (
+                  <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626", borderRadius: 10, padding: 14 }}>
+                    <p style={{ color: "#991b1b", fontSize: 11, margin: 0, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>❌ Motivo da rejeição</p>
+                    <p style={{ color: "#dc2626", fontSize: 13, margin: "5px 0 0", lineHeight: 1.5, fontWeight: 600 }}>{motivoTraduzido}</p>
+                    {/* Mostra também o código original em pequeno quando for motivo desconhecido (fallback) */}
+                    {detalhe.motivo_rejeicao && motivoTraduzido.startsWith("Motivo:") && (
+                      <p style={{ color: "#9ca3af", fontSize: 10, margin: "6px 0 0", fontFamily: "monospace" }}>
+                        Código Meta: {detalhe.motivo_rejeicao}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
               <div>
                 <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: 700, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.5 }}>Componentes</p>
                 <div style={{ background: "#1f2937", borderRadius: 10, padding: 14, fontSize: 12, fontFamily: "monospace", color: "#e5e7eb", whiteSpace: "pre-wrap", maxHeight: 300, overflowY: "auto", border: "1px solid #374151" }}>
