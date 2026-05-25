@@ -17,9 +17,8 @@ export default function Dashboard() {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [loading, setLoading] = useState(true);
   const [workspaceNome, setWorkspaceNome] = useState("");
-  const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]); // 🆕 mapa pra converter email → nome
+  const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
 
-  // 🆕 FASE 3 MOBILE — detecta tela < 768px
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -34,7 +33,6 @@ export default function Dashboard() {
       if (!user) { router.push("/"); return; }
 
       // 🆕 FIX: tenta achar workspace pelas duas vias (dono OU sub-usuário)
-      // Antes só buscava dono → sub-usuários (atendentes/vendedores) nunca viam nada no dashboard.
       let wsIds: string[] = [];
       let wsNome = "";
       let ownerEmail = "";
@@ -46,7 +44,6 @@ export default function Dashboard() {
         wsNome = wsDono.nome || "";
         ownerEmail = wsDono.owner_email || "";
       } else {
-        // Sub-usuário — busca pela tabela usuarios_workspace
         const { data: uw } = await supabase.from("usuarios_workspace")
           .select("workspace_id").eq("email", user.email)
           .order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -67,13 +64,12 @@ export default function Dashboard() {
       if (wsIds.length === 0) { setLoading(false); return; }
       setWorkspaceNome(wsNome);
 
-      // Busca TODAS as propostas do workspace — dashboard mostra de todo mundo
       const { data: props } = await supabase.from("proposta").select("*")
         .in("workspace_id", wsIds)
         .order("created_at", { ascending: false });
       setPropostas(props || []);
 
-      // 🆕 Mapa de email → nome pros rankings ficarem bonitos
+      // 🆕 Mapa email → nome
       const lista: UsuarioWs[] = [];
       if (ownerEmail) lista.push({ email: ownerEmail, nome: wsNome || "Dono" });
       const { data: subs } = await supabase.from("usuarios_workspace")
@@ -84,14 +80,11 @@ export default function Dashboard() {
         }
       }
       setUsuariosWs(lista);
-
       setLoading(false);
     };
     init();
   }, []);
 
-  // 🆕 Converte email → nome amigável. Se o vendedor for uma string livre (ex: "ROBERT"
-  // das propostas antigas), retorna ela mesma.
   const nomeVendedor = (v: string): string => {
     if (!v) return "—";
     const u = usuariosWs.find(x => x.email?.toLowerCase() === v?.toLowerCase());
@@ -116,7 +109,6 @@ export default function Dashboard() {
   const totalPendentes = pf.filter(p => p.status_venda === "PENDENTE").length;
   const totalAuditoria = pf.filter(p => p.status_venda === "AGUARDANDO AUDITORIA").length;
 
-  // 🆕 Rankings agora agrupam por vendedor e mostram NOME em vez do email
   const rankingVendedores = Object.entries(pf.reduce((acc: Record<string, number>, p) => {
     if (p.vendedor) acc[p.vendedor] = (acc[p.vendedor] || 0) + (p.valor_plano || 0);
     return acc;
@@ -135,23 +127,64 @@ export default function Dashboard() {
     ...status
   }));
 
+  // 🎨 ESTILOS LIGHT TECH
+  const cardStyle = {
+    background: "#ffffff",
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 24 }}>
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 12 }}>
-        <div>
-          <h1 style={{ color: "white", fontSize: isMobile ? 18 : 22, fontWeight: "bold", margin: 0 }}>Dashboard</h1>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0 0" }}>Workspace: {workspaceNome}</p>
+
+      {/* ═══ HEADER ═══ */}
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 24, boxShadow: "0 8px 20px rgba(22,163,74,0.25)",
+            flexShrink: 0,
+          }}>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>💰</span>
+          </div>
+          <div>
+            <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Dashboard</h1>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>Workspace: <b>{workspaceNome}</b></p>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {["diario", "semanal", "mensal"].map(f => (
-            <button key={f} onClick={() => setFiltro(f)} style={{ flex: isMobile ? 1 : "0 0 auto", padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: "bold", background: filtro === f ? "#16a34a" : "#1f2937", color: filtro === f ? "white" : "#9ca3af" }}>{filtroLabel[f]}</button>
-          ))}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {[
+            { key: "diario", label: "Hoje", color: "#16a34a" },
+            { key: "semanal", label: "Esta Semana", color: "#3b82f6" },
+            { key: "mensal", label: "Este Mês", color: "#8b5cf6" },
+          ].map(f => {
+            const ativo = filtro === f.key;
+            return (
+              <button key={f.key} onClick={() => setFiltro(f.key)}
+                style={{
+                  flex: isMobile ? 1 : "0 0 auto",
+                  padding: "9px 18px", borderRadius: 10,
+                  border: `1px solid ${ativo ? `${f.color}50` : "#e5e7eb"}`,
+                  cursor: "pointer", fontSize: 12, fontWeight: 700,
+                  background: ativo ? `${f.color}15` : "#ffffff",
+                  color: ativo ? f.color : "#6b7280",
+                  boxShadow: ativo ? `0 2px 8px ${f.color}25` : "none",
+                  transition: "all 0.15s",
+                }}>
+                {f.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {loading ? <p style={{ color: "#6b7280" }}>Carregando dados...</p> : (
         <>
-          <div style={{ display: "flex", gap: isMobile ? 10 : 16, flexWrap: "wrap" }}>
+          {/* ═══ STATS CARDS ═══ */}
+          <div style={{ display: "flex", gap: isMobile ? 10 : 14, flexWrap: "wrap" }}>
             {[
               { label: "Total Receita", value: `R$ ${totalReceita.toLocaleString("pt-BR")}`, color: "#16a34a", icon: "💰" },
               { label: "Instaladas", value: totalInstaladas, color: "#16a34a", icon: "✅" },
@@ -160,76 +193,169 @@ export default function Dashboard() {
               { label: "Auditoria", value: totalAuditoria, color: "#3b82f6", icon: "🔍" },
               { label: "Canceladas", value: totalCanceladas, color: "#dc2626", icon: "❌" },
             ].map(card => (
-              <div key={card.label} style={{ flex: isMobile ? "1 1 calc(50% - 5px)" : "1 1 140px", minWidth: 0, background: "#111", borderRadius: 12, padding: isMobile ? 14 : 20, border: `1px solid ${card.color}33` }}>
-                <p style={{ color: "#9ca3af", fontSize: isMobile ? 10 : 11, margin: "0 0 8px 0", textTransform: "uppercase" }}>{card.icon} {card.label}</p>
-                <p style={{ color: card.color, fontSize: isMobile ? 20 : 26, fontWeight: "bold", margin: 0, wordBreak: "break-word" }}>{card.value}</p>
-                <p style={{ color: "#6b7280", fontSize: 11, margin: "4px 0 0 0" }}>{filtroLabel[filtro]}</p>
+              <div key={card.label}
+                style={{
+                  flex: isMobile ? "1 1 calc(50% - 5px)" : "1 1 150px",
+                  minWidth: 0,
+                  ...cardStyle,
+                  padding: isMobile ? 14 : 18,
+                  borderTop: `3px solid ${card.color}`,
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 20px ${card.color}20`; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: `${card.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
+                    {card.icon}
+                  </div>
+                  <p style={{ color: "#6b7280", fontSize: isMobile ? 10 : 11, margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>{card.label}</p>
+                </div>
+                <p style={{ color: card.color, fontSize: isMobile ? 19 : 26, fontWeight: 800, margin: 0, wordBreak: "break-word", letterSpacing: -0.5 }}>{card.value}</p>
+                <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", fontWeight: 500 }}>{filtroLabel[filtro]}</p>
               </div>
             ))}
           </div>
 
-          <div style={{ background: "#111", borderRadius: 12, padding: isMobile ? 14 : 24, border: "1px solid #1f2937" }}>
-            <h3 style={{ color: "white", fontSize: isMobile ? 13 : 15, fontWeight: "bold", margin: "0 0 20px 0" }}>🏆 Ranking de Receita por Vendedor — {filtroLabel[filtro]}</h3>
-            {rankingVendedores.length === 0 ? <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma proposta neste período.</p> : (
+          {/* ═══ RANKING DE VENDEDORES ═══ */}
+          <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
+            <h3 style={{ color: "#1f2937", fontSize: isMobile ? 14 : 15, fontWeight: 700, margin: "0 0 18px 0", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 32, height: 32, borderRadius: 8, background: "#fffbeb", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🏆</span>
+              Ranking de Receita por Vendedor — <span style={{ color: "#16a34a" }}>{filtroLabel[filtro]}</span>
+            </h3>
+            {rankingVendedores.length === 0 ? (
+              <p style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic" }}>Nenhuma proposta neste período.</p>
+            ) : (
               <>
-                <ResponsiveContainer width="100%" height={isMobile ? 180 : 220}>
-                  <BarChart data={rankingVendedores} margin={isMobile ? { top: 5, right: 5, left: -10, bottom: 0 } : undefined}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                    <XAxis dataKey="nome" stroke="#6b7280" fontSize={isMobile ? 10 : 12} interval={0} angle={isMobile ? -30 : 0} textAnchor={isMobile ? "end" : "middle"} height={isMobile ? 50 : 30} />
+                <ResponsiveContainer width="100%" height={isMobile ? 200 : 240}>
+                  <BarChart data={rankingVendedores} margin={isMobile ? { top: 5, right: 5, left: -10, bottom: 0 } : { top: 10, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="nome" stroke="#6b7280" fontSize={isMobile ? 10 : 12} interval={0} angle={isMobile ? -30 : 0} textAnchor={isMobile ? "end" : "middle"} height={isMobile ? 60 : 30} />
                     <YAxis stroke="#6b7280" fontSize={isMobile ? 10 : 12} tickFormatter={v => `R$${v}`} />
-                    <Tooltip contentStyle={{ background: "#1f2937", border: "none", borderRadius: 8, color: "white" }} formatter={(value: any) => [`R$ ${value.toLocaleString("pt-BR")}`, "Receita"]} />
-                    <Bar dataKey="valor" fill="#16a34a" radius={[6, 6, 0, 0]} />
+                    <Tooltip
+                      contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, color: "#1f2937", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: 12 }}
+                      formatter={(value: any) => [`R$ ${value.toLocaleString("pt-BR")}`, "Receita"]}
+                      cursor={{ fill: "#f0fdf4" }}
+                    />
+                    <Bar dataKey="valor" fill="#16a34a" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 20 }}>
-                  {rankingVendedores.map((v, i) => (
-                    <div key={v.nome + i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0d0d0d", borderRadius: 8, padding: isMobile ? "10px 12px" : "12px 16px", gap: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
-                        <span style={{ fontWeight: "bold", fontSize: 16, flexShrink: 0 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}</span>
-                        <span style={{ color: "white", fontSize: isMobile ? 12 : 14, fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.nome}</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 20 }}>
+                  {rankingVendedores.map((v, i) => {
+                    const medalha = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+                    const corPos = i === 0 ? "#f59e0b" : i === 1 ? "#9ca3af" : i === 2 ? "#a16207" : "#6b7280";
+                    return (
+                      <div key={v.nome + i}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          background: "#f9fafb",
+                          border: "1px solid #e5e7eb",
+                          borderLeft: i < 3 ? `4px solid ${corPos}` : "1px solid #e5e7eb",
+                          borderRadius: 10,
+                          padding: isMobile ? "10px 14px" : "12px 18px",
+                          gap: 8,
+                          transition: "all 0.15s",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "#ffffff"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.boxShadow = "none"; }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+                          {medalha ? (
+                            <span style={{ fontSize: 20, flexShrink: 0 }}>{medalha}</span>
+                          ) : (
+                            <span style={{
+                              background: "#f3f4f6", color: "#6b7280",
+                              fontSize: 11, fontWeight: 700, padding: "3px 8px",
+                              borderRadius: 8, flexShrink: 0, minWidth: 28, textAlign: "center",
+                            }}>#{i + 1}</span>
+                          )}
+                          <span style={{ color: "#1f2937", fontSize: isMobile ? 12 : 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.nome}</span>
+                        </div>
+                        <span style={{ color: "#16a34a", fontSize: isMobile ? 13 : 15, fontWeight: 800, flexShrink: 0, whiteSpace: "nowrap", letterSpacing: -0.3 }}>
+                          R$ {v.valor.toLocaleString("pt-BR")}
+                        </span>
                       </div>
-                      <span style={{ color: "#16a34a", fontSize: isMobile ? 12 : 14, fontWeight: "bold", flexShrink: 0, whiteSpace: "nowrap" }}>R$ {v.valor.toLocaleString("pt-BR")}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}
           </div>
 
-          <div style={{ background: "#111", borderRadius: 12, padding: isMobile ? 14 : 24, border: "1px solid #1f2937" }}>
-            <h3 style={{ color: "white", fontSize: isMobile ? 13 : 15, fontWeight: "bold", margin: "0 0 20px 0" }}>🎯 Funil por Vendedor — {filtroLabel[filtro]}</h3>
-            {funilVendedores.length === 0 ? <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma proposta neste período.</p> : isMobile ? (
-              /* 🆕 FASE 3 MOBILE — cards em vez de tabela */
+          {/* ═══ FUNIL POR VENDEDOR ═══ */}
+          <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
+            <h3 style={{ color: "#1f2937", fontSize: isMobile ? 14 : 15, fontWeight: 700, margin: "0 0 18px 0", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 32, height: 32, borderRadius: 8, background: "#eff6ff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🎯</span>
+              Funil por Vendedor — <span style={{ color: "#3b82f6" }}>{filtroLabel[filtro]}</span>
+            </h3>
+            {funilVendedores.length === 0 ? (
+              <p style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic" }}>Nenhuma proposta neste período.</p>
+            ) : isMobile ? (
+              /* MOBILE: cards */
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {funilVendedores.map((v, i) => (
-                  <div key={v.vendedor + i} style={{ background: "#0d0d0d", borderRadius: 8, padding: 14 }}>
-                    <p style={{ color: "white", fontSize: 13, fontWeight: "bold", margin: "0 0 10px 0" }}>{v.vendedor}</p>
+                  <div key={v.vendedor + i} style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14 }}>
+                    <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: "0 0 10px 0" }}>{v.vendedor}</p>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      <div style={{ background: "#16a34a11", borderRadius: 6, padding: "6px 10px" }}>
-                        <p style={{ color: "#9ca3af", fontSize: 10, margin: 0 }}>✅ Instaladas</p>
-                        <p style={{ color: "#16a34a", fontSize: 16, fontWeight: "bold", margin: 0 }}>{(v as any).INSTALADA || 0}</p>
-                      </div>
-                      <div style={{ background: "#8b5cf611", borderRadius: 6, padding: "6px 10px" }}>
-                        <p style={{ color: "#9ca3af", fontSize: 10, margin: 0 }}>📄 Geradas</p>
-                        <p style={{ color: "#8b5cf6", fontSize: 16, fontWeight: "bold", margin: 0 }}>{(v as any).GERADA || 0}</p>
-                      </div>
-                      <div style={{ background: "#f59e0b11", borderRadius: 6, padding: "6px 10px" }}>
-                        <p style={{ color: "#9ca3af", fontSize: 10, margin: 0 }}>⏳ Pendentes</p>
-                        <p style={{ color: "#f59e0b", fontSize: 16, fontWeight: "bold", margin: 0 }}>{(v as any).PENDENTE || 0}</p>
-                      </div>
-                      <div style={{ background: "#dc262611", borderRadius: 6, padding: "6px 10px" }}>
-                        <p style={{ color: "#9ca3af", fontSize: 10, margin: 0 }}>❌ Canceladas</p>
-                        <p style={{ color: "#dc2626", fontSize: 16, fontWeight: "bold", margin: 0 }}>{(v as any).CANCELADA || 0}</p>
-                      </div>
+                      {[
+                        { label: "Instaladas", icon: "✅", key: "INSTALADA", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+                        { label: "Geradas", icon: "📄", key: "GERADA", color: "#8b5cf6", bg: "#f3e8ff", border: "#ddd6fe" },
+                        { label: "Pendentes", icon: "⏳", key: "PENDENTE", color: "#f59e0b", bg: "#fffbeb", border: "#fde68a" },
+                        { label: "Canceladas", icon: "❌", key: "CANCELADA", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+                      ].map(s => (
+                        <div key={s.key} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: "8px 12px" }}>
+                          <p style={{ color: "#6b7280", fontSize: 10, margin: 0, fontWeight: 600 }}>{s.icon} {s.label}</p>
+                          <p style={{ color: s.color, fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.5 }}>{(v as any)[s.key] || 0}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr style={{ background: "#0d0d0d" }}>{["Vendedor", "✅ Instaladas", "📄 Geradas", "⏳ Pendentes", "❌ Canceladas"].map(h => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase" }}>{h}</th>))}</tr></thead>
-                <tbody>{funilVendedores.map((v, i) => (<tr key={v.vendedor + i} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}><td style={{ padding: "14px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{v.vendedor}</td><td style={{ padding: "14px 16px", color: "#16a34a", fontSize: 13, fontWeight: "bold" }}>{(v as any).INSTALADA || 0}</td><td style={{ padding: "14px 16px", color: "#8b5cf6", fontSize: 13, fontWeight: "bold" }}>{(v as any).GERADA || 0}</td><td style={{ padding: "14px 16px", color: "#f59e0b", fontSize: 13, fontWeight: "bold" }}>{(v as any).PENDENTE || 0}</td><td style={{ padding: "14px 16px", color: "#dc2626", fontSize: 13, fontWeight: "bold" }}>{(v as any).CANCELADA || 0}</td></tr>))}</tbody>
-              </table>
+              /* DESKTOP: tabela */
+              <div style={{ overflow: "hidden", border: "1px solid #e5e7eb", borderRadius: 10 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: "#f9fafb" }}>
+                      {["Vendedor", "✅ Instaladas", "📄 Geradas", "⏳ Pendentes", "❌ Canceladas"].map(h => (
+                        <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {funilVendedores.map((v, i) => (
+                      <tr key={v.vendedor + i}
+                        style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#ffffff" : "#fafbfc", transition: "background 0.1s" }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc"}
+                      >
+                        <td style={{ padding: "14px 16px", color: "#1f2937", fontSize: 13, fontWeight: 700 }}>{v.vendedor}</td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <span style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", fontSize: 13, padding: "4px 12px", borderRadius: 10, fontWeight: 700 }}>
+                            {(v as any).INSTALADA || 0}
+                          </span>
+                        </td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <span style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", fontSize: 13, padding: "4px 12px", borderRadius: 10, fontWeight: 700 }}>
+                            {(v as any).GERADA || 0}
+                          </span>
+                        </td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <span style={{ background: "#fffbeb", color: "#f59e0b", border: "1px solid #fde68a", fontSize: 13, padding: "4px 12px", borderRadius: 10, fontWeight: 700 }}>
+                            {(v as any).PENDENTE || 0}
+                          </span>
+                        </td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <span style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", fontSize: 13, padding: "4px 12px", borderRadius: 10, fontWeight: 700 }}>
+                            {(v as any).CANCELADA || 0}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </>

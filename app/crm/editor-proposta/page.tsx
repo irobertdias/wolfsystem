@@ -17,14 +17,6 @@ import {
 // ═══════════════════════════════════════════════════════════════════════
 // 🛠️ EDITOR DE CAMPOS DA PROPOSTA — V2 (mostra fixos + custom unificados)
 // ═══════════════════════════════════════════════════════════════════════
-// Permite que dono/admin do workspace controle TODA a estrutura do
-// formulário de proposta. Pra cada campo (fixo ou custom):
-//
-//   FIXOS  → editar LABEL, OBRIGATORIEDADE, VISIBILIDADE, ORDEM
-//            (NÃO pode mudar TIPO nem DELETAR — só ocultar)
-//   CUSTOM → editar TUDO + REMOVER (soft delete)
-//
-// Isolamento multi-tenant: tudo filtrado por workspace.username.
 
 type TipoCustom = "texto" | "textarea" | "numero" | "moeda" | "data" | "dropdown" | "checkbox";
 
@@ -56,20 +48,26 @@ export default function EditorProposta() {
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
 
+  // 🎨 ESTILOS LIGHT TECH
   const inputStyle = {
     width: "100%",
-    background: "#1f2937",
-    border: "1px solid #374151",
-    borderRadius: 8,
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 10,
     padding: "9px 12px",
-    color: "white",
+    color: "#1f2937",
     fontSize: 13,
     boxSizing: "border-box" as const,
+    outline: "none",
+    transition: "border-color 0.15s, box-shadow 0.15s",
+  };
+  const cardStyle = {
+    background: "#ffffff",
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Fetch — busca config dos fixos + customs e monta lista unificada
-  // ═══════════════════════════════════════════════════════════════════
   const fetchCampos = async () => {
     if (!workspace?.username) return;
     setLoading(true);
@@ -92,7 +90,6 @@ export default function EditorProposta() {
         obrigatorio: c.obrigatorio,
         visivel: c.visivel,
         ordem: c.ordem,
-        // 🆕 v3: opções e placeholder customizados
         opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" && c.opcoes ? JSON.parse(c.opcoes) : null),
         placeholder_custom: c.placeholder_custom,
       }));
@@ -119,9 +116,6 @@ export default function EditorProposta() {
 
   useEffect(() => { fetchCampos(); }, [workspace]);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Ações
-  // ═══════════════════════════════════════════════════════════════════
   const adicionarCustom = () => {
     const maxOrdem = campos.reduce((m, c) => Math.max(m, c.ordem), 0);
     const novo: CampoUnificado = {
@@ -152,13 +146,11 @@ export default function EditorProposta() {
   const remover = async (idx: number) => {
     const c = campos[idx];
     if (c.origem === "fixo") {
-      // Fixo não pode ser deletado — só ocultado
       if (confirm(`Ocultar o campo "${c.label}"?\n\nEle deixa de aparecer no formulário, mas os dados das propostas existentes ficam preservados. Você pode voltar a mostrar a qualquer momento.`)) {
         atualizar(idx, { visivel: false });
       }
       return;
     }
-    // Custom — soft delete
     const msg = c.idCustom
       ? `Remover o campo "${c.label}"?\n\nOs valores já preenchidos nas propostas existentes NÃO serão excluídos.`
       : `Remover o campo "${c.label || "novo"}"?`;
@@ -197,13 +189,9 @@ export default function EditorProposta() {
     atualizar(idx, { opcoes });
   };
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Salvar — upsert nas duas tabelas
-  // ═══════════════════════════════════════════════════════════════════
   const salvar = async () => {
     if (!workspace?.username) return;
 
-    // Valida customs
     for (let i = 0; i < campos.length; i++) {
       const c = campos[i];
       if (c.origem === "custom") {
@@ -224,21 +212,16 @@ export default function EditorProposta() {
     setSalvando(true);
     try {
       // ─── 1) Salva config dos fixos ──────────────────────────────────
-      // Pra cada FIXO da lista, verifica se a config "diverge" do padrão.
-      // Se sim, upsert; se igual ao padrão, podemos deixar como está.
-      // Pra simplicidade: salva config de TODOS os fixos (idempotente).
       const fixosNaLista = campos.filter(c => c.origem === "fixo");
       for (let i = 0; i < fixosNaLista.length; i++) {
         const c = fixosNaLista[i];
         const def = CAMPOS_FIXOS_MAP[c.slug];
         if (!def) continue;
 
-        // Detecta o que mudou
         const labelMudou = c.label.trim() !== def.labelPadrao;
         const obrigMudou = c.obrigatorio !== def.obrigatorioPadrao;
         const ordemMudou = c.ordem !== def.ordemPadrao;
 
-        // 🆕 v3: opções customizadas (só faz sentido pra dropdown)
         let opcoesMudou = false;
         let opcoesFinal: string[] | null = null;
         if (def.tipo === "dropdown") {
@@ -248,19 +231,15 @@ export default function EditorProposta() {
           if (opcoesMudou) opcoesFinal = opcoesAtuais;
         }
 
-        // 🆕 v3: placeholder customizado
         const placeholderMudou = (c.placeholder || "").trim() !== (def.placeholderPadrao || "");
         const placeholderFinal = placeholderMudou ? (c.placeholder || null) : null;
 
         const labelCustomFinal = labelMudou ? c.label.trim() : null;
-        // visivel sempre salva (pra poder ocultar/mostrar)
         const obrigatorioFinal = obrigMudou ? c.obrigatorio : null;
         const ordemFinal = ordemMudou ? c.ordem : null;
 
-        // Se nada diverge e está visível → não precisa criar config
         if (!labelMudou && !obrigMudou && !ordemMudou && !opcoesMudou && !placeholderMudou && c.visivel) {
           if (c.idConfig) {
-            // Mas se já tinha config no banco, deleta pra limpar
             await supabase.from("proposta_campos_padrao_config")
               .delete()
               .eq("id", c.idConfig)
@@ -269,7 +248,6 @@ export default function EditorProposta() {
           continue;
         }
 
-        // Upsert
         const payload: any = {
           workspace_id: workspace.username,
           campo_slug: c.slug,
@@ -277,8 +255,8 @@ export default function EditorProposta() {
           obrigatorio: obrigatorioFinal,
           visivel: c.visivel,
           ordem: ordemFinal,
-          opcoes: opcoesFinal,                   // 🆕 v3
-          placeholder_custom: placeholderFinal,  // 🆕 v3
+          opcoes: opcoesFinal,
+          placeholder_custom: placeholderFinal,
         };
 
         if (c.idConfig) {
@@ -295,13 +273,11 @@ export default function EditorProposta() {
       // ─── 2) Salva customs ──────────────────────────────────────────
       const customsNaLista = campos.filter(c => c.origem === "custom");
 
-      // Gera slugs onde vazio
       const customsComSlug = customsNaLista.map(c => ({
         ...c,
         slug: (c.slug || labelToSlug(c.label)).slice(0, 50),
       }));
 
-      // Detecta slugs duplicados (entre custom)
       const slugSet = new Set<string>();
       for (const c of customsComSlug) {
         if (!c.slug) {
@@ -314,7 +290,6 @@ export default function EditorProposta() {
           setSalvando(false);
           return;
         }
-        // Conflito com slug de fixo
         if (CAMPOS_FIXOS_MAP[c.slug]) {
           alert(`O nome "${c.slug}" conflita com um campo padrão. Escolha outro nome pro campo "${c.label}".`);
           setSalvando(false);
@@ -364,19 +339,31 @@ export default function EditorProposta() {
     setSalvando(false);
   };
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Sem permissão
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══ Sem permissão ═══
   if (!podeEditar) {
     return (
-      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ background: "#dc262611", border: "1px solid #dc262633", borderRadius: 12, padding: 40, textAlign: "center", maxWidth: 480 }}>
-          <p style={{ fontSize: 56, margin: "0 0 16px" }}>🔒</p>
-          <h1 style={{ color: "#dc2626", fontSize: 18, fontWeight: "bold", margin: "0 0 8px" }}>Acesso restrito</h1>
-          <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 20px" }}>
+      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: 20,
+            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 40, margin: "0 auto 16px",
+            boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
+          }}>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
+          </div>
+          <h1 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>
             Só o dono ou administrador do workspace pode editar os campos da proposta.
           </p>
-          <button onClick={() => router.back()} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, fontWeight: "bold", cursor: "pointer" }}>
+          <button onClick={() => router.back()}
+            style={{
+              background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+              color: "white", border: "none", borderRadius: 12,
+              padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+            }}>
             ← Voltar
           </button>
         </div>
@@ -386,57 +373,70 @@ export default function EditorProposta() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* HEADER */}
+
+      {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h1 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: 0 }}>🛠️ Editor de Campos da Proposta</h1>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0", maxWidth: 820 }}>
-            Configure quais campos aparecem no formulário de proposta deste workspace. Você pode editar os campos padrão (label, obrigatório, ocultar) e adicionar quantos campos personalizados quiser. Cada workspace tem sua própria configuração.
-          </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 24, boxShadow: "0 8px 20px rgba(139,92,246,0.25)",
+            flexShrink: 0,
+          }}>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>🛠️</span>
+          </div>
+          <div>
+            <h1 style={{ color: "#1f2937", fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Editor de Campos da Proposta</h1>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0", maxWidth: 820, lineHeight: 1.5 }}>
+              Configure quais campos aparecem no formulário de proposta deste workspace. Você pode editar os campos padrão (label, obrigatório, ocultar) e adicionar quantos campos personalizados quiser. Cada workspace tem sua própria configuração.
+            </p>
+          </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => router.push("/crm/vendas")} style={{
-            background: "#1f2937", color: "#9ca3af", border: "1px solid #374151",
-            borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer"
-          }}>
+          <button onClick={() => router.push("/crm/vendas")}
+            style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             ← Voltar para Vendas
           </button>
-          <button onClick={salvar} disabled={salvando || loading} style={{
-            background: salvando ? "#15803d" : "#16a34a", color: "white", border: "none",
-            borderRadius: 8, padding: "10px 24px", fontSize: 13, fontWeight: "bold",
-            cursor: salvando || loading ? "not-allowed" : "pointer"
-          }}>
+          <button onClick={salvar} disabled={salvando || loading}
+            style={{
+              background: salvando ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+              color: "white", border: "none", borderRadius: 10,
+              padding: "10px 22px", fontSize: 13, fontWeight: 700,
+              cursor: salvando || loading ? "not-allowed" : "pointer",
+              boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+            }}>
             {salvando ? "⏳ Salvando..." : "💾 Salvar Tudo"}
           </button>
         </div>
       </div>
 
-      {/* Legenda */}
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, color: "#9ca3af" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ background: "#3b82f622", color: "#3b82f6", padding: "2px 8px", borderRadius: 12, fontWeight: "bold" }}>🔒 Padrão</span>
+      {/* ═══ LEGENDA ═══ */}
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: "#6b7280", ...cardStyle, padding: "12px 16px" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>🔒 Padrão</span>
           Campos fixos do sistema — editar label, obrigatório, visibilidade e ordem
         </span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ background: "#a855f722", color: "#a855f7", padding: "2px 8px", borderRadius: 12, fontWeight: "bold" }}>✨ Personalizado</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span style={{ background: "#f3e8ff", color: "#a855f7", border: "1px solid #ddd6fe", padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>✨ Personalizado</span>
           Campos extras criados pelo workspace — pode editar tudo + remover
         </span>
       </div>
 
-      {/* AVISO LGPD */}
-      <div style={{ background: "#f59e0b11", border: "1px solid #f59e0b44", borderRadius: 8, padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
-        <span style={{ fontSize: 18 }}>⚠️</span>
+      {/* ═══ AVISO LGPD ═══ */}
+      <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderLeft: "4px solid #f59e0b", borderRadius: 12, padding: "12px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <span style={{ fontSize: 22, lineHeight: 1 }}>⚠️</span>
         <div>
-          <p style={{ color: "#fbbf24", fontSize: 12, fontWeight: "bold", margin: 0 }}>Atenção sobre dados pessoais (LGPD)</p>
-          <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0", lineHeight: 1.5 }}>
+          <p style={{ color: "#92400e", fontSize: 12, fontWeight: 700, margin: 0 }}>Atenção sobre dados pessoais (LGPD)</p>
+          <p style={{ color: "#78350f", fontSize: 11, margin: "3px 0 0", lineHeight: 1.5 }}>
             Você é responsável pelos dados coletados nesses campos. Não cadastre informações sensíveis sem consentimento expresso do titular.
           </p>
         </div>
       </div>
 
-      {/* LISTA */}
+      {/* ═══ LISTA ═══ */}
       {loading ? (
-        <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", padding: 48, textAlign: "center", color: "#6b7280", fontSize: 13 }}>
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center", color: "#6b7280", fontSize: 13 }}>
           ⏳ Carregando campos...
         </div>
       ) : (
@@ -444,31 +444,49 @@ export default function EditorProposta() {
           {campos.map((campo, idx) => {
             const ehFixo = campo.origem === "fixo";
             const corBadge = ehFixo ? "#3b82f6" : "#a855f7";
-            const bgBadge = ehFixo ? "#3b82f622" : "#a855f722";
+            const bgBadge = ehFixo ? "#eff6ff" : "#f3e8ff";
+            const borderBadge = ehFixo ? "#bfdbfe" : "#ddd6fe";
             const labelBadge = ehFixo ? "🔒 Padrão" : "✨ Personalizado";
-            const opacidade = !campo.visivel ? 0.45 : 1;
+            const opacidade = !campo.visivel ? 0.55 : 1;
 
             return (
-              <div key={`${campo.origem}-${campo.slug}-${idx}`} style={{
-                background: "#111",
-                borderRadius: 10,
-                border: `1px solid ${campo.visivel ? "#1f2937" : "#374151"}`,
-                padding: 14,
-                opacity: opacidade,
-                transition: "opacity 0.15s"
-              }}>
-                {/* Linha 1 — Badge + Label + Ações */}
+              <div key={`${campo.origem}-${campo.slug}-${idx}`}
+                style={{
+                  ...cardStyle,
+                  padding: 16,
+                  opacity: opacidade,
+                  transition: "opacity 0.15s, box-shadow 0.15s",
+                  borderLeft: `3px solid ${corBadge}`,
+                }}>
+                {/* Linha 1 — Mover + Badge + Label + Tipo + Ações */}
                 <div style={{ display: "grid", gridTemplateColumns: "auto auto 1fr auto auto", gap: 10, alignItems: "center" }}>
                   {/* Mover */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                     <button onClick={() => mover(idx, -1)} disabled={idx === 0} title="Mover pra cima"
-                      style={{ background: "#1f2937", color: idx === 0 ? "#374151" : "#9ca3af", border: "1px solid #374151", borderRadius: 4, width: 24, height: 18, fontSize: 10, cursor: idx === 0 ? "not-allowed" : "pointer", lineHeight: 1 }}>▲</button>
+                      style={{
+                        background: "#f9fafb",
+                        color: idx === 0 ? "#d1d5db" : "#6b7280",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 6, width: 26, height: 20, fontSize: 9,
+                        cursor: idx === 0 ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
+                      }}>▲</button>
                     <button onClick={() => mover(idx, 1)} disabled={idx === campos.length - 1} title="Mover pra baixo"
-                      style={{ background: "#1f2937", color: idx === campos.length - 1 ? "#374151" : "#9ca3af", border: "1px solid #374151", borderRadius: 4, width: 24, height: 18, fontSize: 10, cursor: idx === campos.length - 1 ? "not-allowed" : "pointer", lineHeight: 1 }}>▼</button>
+                      style={{
+                        background: "#f9fafb",
+                        color: idx === campos.length - 1 ? "#d1d5db" : "#6b7280",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 6, width: 26, height: 20, fontSize: 9,
+                        cursor: idx === campos.length - 1 ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
+                      }}>▼</button>
                   </div>
 
                   {/* Badge */}
-                  <span style={{ background: bgBadge, color: corBadge, padding: "3px 8px", borderRadius: 8, fontSize: 10, fontWeight: "bold", whiteSpace: "nowrap" }}>
+                  <span style={{
+                    background: bgBadge, color: corBadge,
+                    border: `1px solid ${borderBadge}`,
+                    padding: "4px 10px", borderRadius: 10, fontSize: 10,
+                    fontWeight: 700, whiteSpace: "nowrap",
+                  }}>
                     {labelBadge}
                   </span>
 
@@ -478,19 +496,19 @@ export default function EditorProposta() {
                       value={campo.label}
                       onChange={(e) => atualizar(idx, { label: e.target.value })}
                       placeholder={ehFixo ? campo.labelPadrao : 'Ex: "CEP do Imóvel", "Operadora atual"'}
-                      style={{ ...inputStyle, fontSize: 13 }}
+                      style={{ ...inputStyle, fontSize: 13, fontWeight: 600 }}
                     />
                     {ehFixo && campo.label !== campo.labelPadrao && (
-                      <p style={{ color: "#6b7280", fontSize: 10, margin: "3px 0 0", fontStyle: "italic" }}>
-                        Padrão: {campo.labelPadrao} · slug interno: <code style={{ color: "#9ca3af" }}>{campo.slug}</code>
+                      <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>
+                        Padrão: {campo.labelPadrao} · slug interno: <code style={{ color: "#6b7280", background: "#f3f4f6", padding: "1px 5px", borderRadius: 4, border: "1px solid #e5e7eb" }}>{campo.slug}</code>
                       </p>
                     )}
                   </div>
 
-                  {/* Tipo (read-only pra fixos, editável pra custom) */}
+                  {/* Tipo */}
                   {ehFixo ? (
                     <div style={{ minWidth: 160 }}>
-                      <span style={{ background: "#1f2937", color: "#9ca3af", padding: "9px 12px", borderRadius: 8, fontSize: 12, display: "block", textAlign: "center" }}>
+                      <span style={{ background: "#f3f4f6", color: "#4b5563", border: "1px solid #e5e7eb", padding: "9px 14px", borderRadius: 10, fontSize: 12, display: "block", textAlign: "center", fontWeight: 600 }}>
                         {campo.tipo === "vendedor" ? "👤 Vendedor" : campo.tipo === "telefone" ? "📞 Telefone" : campo.tipo === "email" ? "📧 E-mail" : campo.tipo === "data" ? "📅 Data" : campo.tipo === "moeda" ? "💰 Valor (R$)" : campo.tipo === "dropdown" ? "📋 Seleção" : "📝 Texto"}
                       </span>
                     </div>
@@ -504,7 +522,7 @@ export default function EditorProposta() {
                           opcoes: novoTipo === "dropdown" ? (campo.opcoes || [""]) : []
                         });
                       }}
-                      style={{ ...inputStyle, minWidth: 160 }}
+                      style={{ ...inputStyle, minWidth: 170 }}
                     >
                       {TIPOS_CUSTOM.map(t => (
                         <option key={t.valor} value={t.valor}>{t.icone} {t.label}</option>
@@ -515,33 +533,51 @@ export default function EditorProposta() {
                   {/* Botão remover/ocultar */}
                   <button onClick={() => remover(idx)}
                     title={ehFixo ? "Ocultar campo (não pode ser deletado)" : "Remover campo"}
-                    style={{ background: ehFixo ? "#f59e0b22" : "#dc262622", color: ehFixo ? "#f59e0b" : "#dc2626", border: `1px solid ${ehFixo ? "#f59e0b33" : "#dc262633"}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap" }}>
+                    style={{
+                      background: ehFixo ? "#fffbeb" : "#fef2f2",
+                      color: ehFixo ? "#f59e0b" : "#dc2626",
+                      border: `1px solid ${ehFixo ? "#fde68a" : "#fecaca"}`,
+                      borderRadius: 10, padding: "9px 12px", fontSize: 14,
+                      cursor: "pointer", height: 38, whiteSpace: "nowrap", fontWeight: 600,
+                    }}>
                     {ehFixo ? "👁️‍🗨️" : "🗑️"}
                   </button>
                 </div>
 
                 {/* Linha 2 — Toggles */}
-                <div style={{ display: "flex", gap: 16, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                <div style={{ display: "flex", gap: 14, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
+                  <label style={{
+                    display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                    background: campo.obrigatorio ? "#f0fdf4" : "#f9fafb",
+                    border: `1px solid ${campo.obrigatorio ? "#bbf7d0" : "#e5e7eb"}`,
+                    padding: "5px 12px", borderRadius: 8,
+                    transition: "all 0.15s",
+                  }}>
                     <input type="checkbox" checked={campo.obrigatorio}
                       onChange={(e) => atualizar(idx, { obrigatorio: e.target.checked })}
-                      style={{ accentColor: "#16a34a", width: 16, height: 16, cursor: "pointer" }} />
-                    <span style={{ color: "#d1d5db", fontSize: 12 }}>⭐ Obrigatório</span>
+                      style={{ accentColor: "#16a34a", width: 15, height: 15, cursor: "pointer" }} />
+                    <span style={{ color: campo.obrigatorio ? "#16a34a" : "#6b7280", fontSize: 12, fontWeight: 600 }}>⭐ Obrigatório</span>
                   </label>
 
-                  <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                  <label style={{
+                    display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                    background: campo.visivel ? "#eff6ff" : "#f3f4f6",
+                    border: `1px solid ${campo.visivel ? "#bfdbfe" : "#e5e7eb"}`,
+                    padding: "5px 12px", borderRadius: 8,
+                    transition: "all 0.15s",
+                  }}>
                     <input type="checkbox" checked={campo.visivel}
                       onChange={(e) => atualizar(idx, { visivel: e.target.checked })}
-                      style={{ accentColor: campo.visivel ? "#16a34a" : "#6b7280", width: 16, height: 16, cursor: "pointer" }} />
-                    <span style={{ color: campo.visivel ? "#d1d5db" : "#9ca3af", fontSize: 12 }}>
+                      style={{ accentColor: campo.visivel ? "#3b82f6" : "#9ca3af", width: 15, height: 15, cursor: "pointer" }} />
+                    <span style={{ color: campo.visivel ? "#3b82f6" : "#6b7280", fontSize: 12, fontWeight: 600 }}>
                       {campo.visivel ? "👁️ Visível" : "🙈 Oculto"}
                     </span>
                   </label>
 
-                  {/* 🆕 v3: Placeholder editável pra TODOS (fixos texto/numero/etc + custom) */}
+                  {/* Placeholder */}
                   {(campo.tipo === "texto" || campo.tipo === "textarea" || campo.tipo === "numero" || campo.tipo === "moeda" || campo.tipo === "telefone" || campo.tipo === "email") && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 200 }}>
-                      <span style={{ color: "#9ca3af", fontSize: 11 }}>Placeholder:</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 220 }}>
+                      <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>Placeholder:</span>
                       <input placeholder="Texto de exemplo (opcional)"
                         value={campo.placeholder || ""}
                         onChange={(e) => atualizar(idx, { placeholder: e.target.value })}
@@ -550,13 +586,13 @@ export default function EditorProposta() {
                   )}
                 </div>
 
-                {/* 🆕 v3: Linha 3 — Opções pra TODOS dropdowns (fixos E custom) */}
+                {/* Linha 3 — Opções pra dropdowns */}
                 {campo.tipo === "dropdown" && (
-                  <div style={{ marginTop: 12, padding: 10, background: "#0a0a0a", borderRadius: 8, border: "1px solid #1f2937" }}>
-                    <p style={{ color: "#9ca3af", fontSize: 11, textTransform: "uppercase", margin: "0 0 6px", fontWeight: "bold" }}>
+                  <div style={{ marginTop: 12, padding: 12, background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+                    <p style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px", fontWeight: 700 }}>
                       📋 Opções do dropdown
                       {ehFixo && (
-                        <span style={{ color: "#6b7280", fontSize: 10, marginLeft: 8, textTransform: "none", fontWeight: "normal", fontStyle: "italic" }}>
+                        <span style={{ color: "#9ca3af", fontSize: 10, marginLeft: 8, textTransform: "none", fontWeight: 500, fontStyle: "italic" }}>
                           (você pode editar a lista — vai sobrescrever a do sistema)
                         </span>
                       )}
@@ -565,17 +601,17 @@ export default function EditorProposta() {
                       <div key={opIdx} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
                         <input placeholder={`Opção ${opIdx + 1}`} value={op}
                           onChange={(e) => atualizarOpcao(idx, opIdx, e.target.value)}
-                          style={{ ...inputStyle, padding: "6px 10px", fontSize: 12 }} />
+                          style={{ ...inputStyle, padding: "7px 12px", fontSize: 12 }} />
                         <button onClick={() => removerOpcao(idx, opIdx)}
-                          style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>✕</button>
+                          style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✕</button>
                       </div>
                     ))}
                     <button onClick={() => adicionarOpcao(idx)}
-                      style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 6, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: "bold", marginTop: 2 }}>
+                      style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "7px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, marginTop: 4 }}>
                       ➕ Adicionar opção
                     </button>
                     {ehFixo && campo.slug === "status_venda" && (
-                      <p style={{ color: "#fbbf24", fontSize: 10, margin: "8px 0 0", fontStyle: "italic" }}>
+                      <p style={{ color: "#92400e", fontSize: 10, margin: "10px 0 0", fontStyle: "italic", background: "#fffbeb", padding: "6px 10px", borderRadius: 6, border: "1px solid #fde68a" }}>
                         ⚠️ Status novos não terão cor personalizada na lista de vendas — vão aparecer em cinza. Dashboard e Funil seguem funcionando normalmente.
                       </p>
                     )}
@@ -587,7 +623,16 @@ export default function EditorProposta() {
 
           {/* Botão adicionar custom */}
           <button onClick={adicionarCustom}
-            style={{ background: "transparent", color: "#a855f7", border: "1px dashed #a855f7", borderRadius: 12, padding: "14px 24px", fontSize: 13, cursor: "pointer", fontWeight: "bold", marginTop: 4 }}>
+            style={{
+              background: "#ffffff",
+              color: "#a855f7",
+              border: "2px dashed #ddd6fe",
+              borderRadius: 14, padding: "16px 24px",
+              fontSize: 13, cursor: "pointer", fontWeight: 700, marginTop: 6,
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "#f3e8ff"; e.currentTarget.style.borderColor = "#a855f7"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#ffffff"; e.currentTarget.style.borderColor = "#ddd6fe"; }}>
             ➕ Adicionar campo personalizado
           </button>
         </div>

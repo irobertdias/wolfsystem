@@ -14,16 +14,15 @@ import { useSoftphone } from "../hooks/useSoftphone";
 // card expandido com largura responsiva (não estoura a tela).
 // Desktop continua igual: bolha 56px com bottom 100, card 320px.
 const SOFTPHONE_BOTTOM_DESKTOP = 100;
-const SOFTPHONE_BOTTOM_MOBILE = 180;   // bem mais alto pra não cobrir o input do chat
+const SOFTPHONE_BOTTOM_MOBILE = 180;
 const SOFTPHONE_RIGHT_DESKTOP = 24;
 const SOFTPHONE_RIGHT_MOBILE = 12;
 
 export function Softphone() {
   const { chamada, aberto, setAberto, iniciarChamada, encerrarChamada, toggleMudo, enviarDTMF, segundosConectado } = useSoftphone();
   const [numeroDigitado, setNumeroDigitado] = useState("");
-  const [modoTeclado, setModoTeclado] = useState(true); // true = mostrando teclado, false = mostrando chamada ativa
+  const [modoTeclado, setModoTeclado] = useState(true);
 
-  // 🆕 FASE 1.6 — detecta mobile pra ajustar tamanho/posição da bolha + card
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -34,11 +33,9 @@ export function Softphone() {
 
   const temChamada = chamada && chamada.status !== "ocioso";
 
-  // Posições dinâmicas: mobile usa valores próprios pra não sobrepor o input do chat
   const bottomFinal = isMobile ? SOFTPHONE_BOTTOM_MOBILE : SOFTPHONE_BOTTOM_DESKTOP;
   const rightFinal = isMobile ? SOFTPHONE_RIGHT_MOBILE : SOFTPHONE_RIGHT_DESKTOP;
 
-  // Status em português
   const labelStatus = (s: string) => ({
     iniciando: "Iniciando...",
     chamando: "Chamando...",
@@ -67,7 +64,6 @@ export function Softphone() {
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   };
 
-  // Formata número pra exibição: +5562981519991 → +55 62 9 8151-9991
   const formatarNumeroExibicao = (n: string) => {
     if (!n) return "";
     const limpo = n.replace(/\D/g, "");
@@ -99,10 +95,8 @@ export function Softphone() {
 
   // ═══════ MODO MINIMIZADO ═══════
   if (!aberto) {
-    // 🆕 FASE 1.6 — Bolha menor (44px) e semitransparente no mobile quando não há chamada
-    // Desktop continua 56px opaca. Em chamada ativa, fica opaca + maior pra dar destaque.
     const tamanho = isMobile ? (temChamada ? 50 : 44) : 56;
-    const opacity = isMobile && !temChamada ? 0.55 : 1;
+    const opacity = isMobile && !temChamada ? 0.75 : 1;
     return (
       <button
         onClick={() => setAberto(true)}
@@ -114,21 +108,33 @@ export function Softphone() {
           width: tamanho,
           height: tamanho,
           borderRadius: "50%",
-          background: temChamada ? "#16a34a" : "#202c33",
-          border: "2px solid #16a34a",
+          background: temChamada
+            ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
+            : "#ffffff",
+          border: temChamada ? "none" : "1px solid #e5e7eb",
           cursor: "pointer",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+          boxShadow: temChamada
+            ? "0 8px 24px rgba(22,163,74,0.45), 0 0 0 4px rgba(22,163,74,0.15)"
+            : "0 4px 16px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06)",
           zIndex: 9000,
           fontSize: isMobile ? 18 : 24,
-          color: "white",
+          color: temChamada ? "white" : "#16a34a",
           opacity,
           animation: temChamada ? "pulse 1.5s infinite" : "none",
-          transition: "opacity 0.2s",
+          transition: "opacity 0.2s, transform 0.15s",
         }}
+        onMouseEnter={e => { if (!temChamada) e.currentTarget.style.transform = "scale(1.08)"; }}
+        onMouseLeave={e => { if (!temChamada) e.currentTarget.style.transform = "scale(1)"; }}
       >
         📞
         {temChamada && (
-          <span style={{ position: "absolute", top: -4, right: -4, background: "#dc2626", color: "white", fontSize: 10, padding: "2px 6px", borderRadius: 10, fontWeight: "bold" }}>
+          <span style={{
+            position: "absolute", top: -3, right: -3,
+            background: "#dc2626", color: "white", fontSize: 10,
+            padding: "2px 6px", borderRadius: 10, fontWeight: 700,
+            border: "2px solid #ffffff",
+            boxShadow: "0 2px 6px rgba(220,38,38,0.4)",
+          }}>
             •
           </span>
         )}
@@ -137,15 +143,13 @@ export function Softphone() {
   }
 
   // ═══════ MODO EXPANDIDO ═══════
-  // 🆕 FASE 1.6 — Card responsivo: no mobile usa min(320px, calc(100vw - 24px))
-  // Pra não estourar a borda direita da tela em celulares estreitos.
   return (
     <>
       <style>{`
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         @keyframes ring {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
-          50% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45); }
+          50% { box-shadow: 0 0 0 14px rgba(245, 158, 11, 0); }
         }
       `}</style>
       <div style={{
@@ -153,23 +157,38 @@ export function Softphone() {
         bottom: bottomFinal,
         right: rightFinal,
         width: isMobile ? "min(320px, calc(100vw - 24px))" : 320,
-        background: "#111",
-        border: "1px solid #1f2937",
-        borderRadius: 16,
-        boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+        background: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: 18,
+        boxShadow: "0 20px 50px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.06)",
         zIndex: 9000,
         overflow: "hidden",
         fontFamily: "Arial, sans-serif",
       }}>
         {/* HEADER */}
-        <div style={{ background: "#0a0a0a", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1f2937" }}>
+        <div style={{
+          background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+          padding: "12px 16px",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+        }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>📞</span>
-            <span style={{ color: "white", fontSize: 13, fontWeight: "bold" }}>Discador</span>
-            <span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 9, padding: "2px 6px", borderRadius: 6, fontWeight: "bold" }}>MOCK</span>
+            <span style={{ color: "white", fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>Discador</span>
+            <span style={{
+              background: "rgba(255,255,255,0.25)", color: "white",
+              fontSize: 9, padding: "2px 7px", borderRadius: 6, fontWeight: 700,
+              backdropFilter: "blur(4px)",
+            }}>MOCK</span>
           </div>
           <button onClick={() => setAberto(false)} title="Minimizar"
-            style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1 }}>
+            style={{
+              background: "rgba(255,255,255,0.2)", border: "none",
+              color: "white", fontSize: 18, cursor: "pointer",
+              padding: 0, lineHeight: 1,
+              width: 24, height: 24, borderRadius: 6,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontWeight: 700,
+            }}>
             −
           </button>
         </div>
@@ -207,36 +226,42 @@ export function Softphone() {
 function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, formatTempo, formatarNumero, toggleMudo, encerrar, enviarDTMF, adicionarDigito }: any) {
   const [mostrarTeclado, setMostrarTeclado] = useState(false);
   const tocando = chamada.status === "chamando" || chamada.status === "iniciando";
+  const cor = corStatus(chamada.status);
 
   return (
-    <div style={{ padding: 20, textAlign: "center" }}>
+    <div style={{ padding: 24, textAlign: "center", background: "#ffffff" }}>
       {/* Avatar / Nome / Número */}
       <div style={{
-        width: 80, height: 80, borderRadius: "50%",
-        background: corStatus(chamada.status) + "33",
-        border: `3px solid ${corStatus(chamada.status)}`,
-        margin: "0 auto 12px",
+        width: 84, height: 84, borderRadius: "50%",
+        background: `linear-gradient(135deg, ${cor} 0%, ${cor}dd 100%)`,
+        margin: "0 auto 14px",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 32, fontWeight: "bold", color: "white",
+        fontSize: 34, fontWeight: 700, color: "white",
+        boxShadow: `0 8px 24px ${cor}40`,
         animation: tocando ? "ring 1.4s infinite" : "none",
+        border: "3px solid #ffffff",
       }}>
         {chamada.nome?.charAt(0).toUpperCase() || "?"}
       </div>
 
-      <p style={{ color: "white", fontSize: 16, fontWeight: "bold", margin: "0 0 4px" }}>
+      <p style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 4px" }}>
         {chamada.nome || "Sem nome"}
       </p>
-      <p style={{ color: "#9ca3af", fontSize: 12, margin: "0 0 12px", fontFamily: "monospace" }}>
+      <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 14px", fontFamily: "monospace" }}>
         {formatarNumero(chamada.numero)}
       </p>
 
       {/* Status + Timer */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
-        <span style={{ width: 8, height: 8, borderRadius: "50%", background: corStatus(chamada.status), animation: tocando ? "pulse 1s infinite" : "none" }} />
-        <span style={{ color: corStatus(chamada.status), fontSize: 13, fontWeight: "bold" }}>{labelStatus(chamada.status)}</span>
+      <div style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+        marginBottom: 22, padding: "5px 12px",
+        background: `${cor}10`, border: `1px solid ${cor}30`, borderRadius: 20,
+      }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: cor, animation: tocando ? "pulse 1s infinite" : "none" }} />
+        <span style={{ color: cor, fontSize: 12, fontWeight: 700 }}>{labelStatus(chamada.status)}</span>
         {chamada.status === "conectado" && (
-          <span style={{ color: "#9ca3af", fontSize: 13, fontFamily: "monospace", marginLeft: 4 }}>
-            {formatTempo(segundosConectado)}
+          <span style={{ color: cor, fontSize: 12, fontFamily: "monospace", marginLeft: 2, fontWeight: 700 }}>
+            · {formatTempo(segundosConectado)}
           </span>
         )}
       </div>
@@ -253,17 +278,46 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
         {chamada.status === "conectado" && (
           <>
             <button onClick={toggleMudo} title={chamada.mudo ? "Ativar microfone" : "Mutar"}
-              style={{ width: 50, height: 50, borderRadius: "50%", background: chamada.mudo ? "#dc2626" : "#374151", border: "none", color: "white", fontSize: 18, cursor: "pointer" }}>
+              style={{
+                width: 50, height: 50, borderRadius: "50%",
+                background: chamada.mudo
+                  ? "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)"
+                  : "#f3f4f6",
+                border: chamada.mudo ? "none" : "1px solid #e5e7eb",
+                color: chamada.mudo ? "white" : "#1f2937",
+                fontSize: 18, cursor: "pointer",
+                boxShadow: chamada.mudo ? "0 4px 12px rgba(220,38,38,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
+                transition: "all 0.15s",
+              }}>
               {chamada.mudo ? "🔇" : "🎤"}
             </button>
             <button onClick={() => setMostrarTeclado(!mostrarTeclado)} title="Teclado"
-              style={{ width: 50, height: 50, borderRadius: "50%", background: mostrarTeclado ? "#3b82f6" : "#374151", border: "none", color: "white", fontSize: 18, cursor: "pointer" }}>
+              style={{
+                width: 50, height: 50, borderRadius: "50%",
+                background: mostrarTeclado
+                  ? "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"
+                  : "#f3f4f6",
+                border: mostrarTeclado ? "none" : "1px solid #e5e7eb",
+                color: mostrarTeclado ? "white" : "#1f2937",
+                fontSize: 18, cursor: "pointer",
+                boxShadow: mostrarTeclado ? "0 4px 12px rgba(59,130,246,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
+                transition: "all 0.15s",
+              }}>
               🔢
             </button>
           </>
         )}
         <button onClick={encerrar} title="Desligar"
-          style={{ width: 58, height: 58, borderRadius: "50%", background: "#dc2626", border: "none", color: "white", fontSize: 24, cursor: "pointer", boxShadow: "0 4px 12px rgba(220,38,38,0.4)" }}>
+          style={{
+            width: 60, height: 60, borderRadius: "50%",
+            background: "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)",
+            border: "none", color: "white", fontSize: 26, cursor: "pointer",
+            boxShadow: "0 8px 20px rgba(220,38,38,0.4)",
+            transform: "rotate(135deg)",
+            transition: "transform 0.15s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = "rotate(135deg) scale(1.05)"}
+          onMouseLeave={e => e.currentTarget.style.transform = "rotate(135deg) scale(1)"}>
           📞
         </button>
       </div>
@@ -274,10 +328,23 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
 // ─── Vista do teclado (pra digitar manual e ligar) ─────────────────────
 function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNumero }: any) {
   return (
-    <div style={{ padding: 16 }}>
+    <div style={{ padding: 18, background: "#ffffff" }}>
       {/* Display do número */}
-      <div style={{ background: "#0a0a0a", borderRadius: 10, padding: "14px 12px", marginBottom: 14, textAlign: "center", minHeight: 56, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #1f2937" }}>
-        <span style={{ color: numero ? "white" : "#6b7280", fontSize: numero ? 20 : 13, fontFamily: "monospace", letterSpacing: 1 }}>
+      <div style={{
+        background: "#f9fafb",
+        borderRadius: 12, padding: "16px 14px",
+        marginBottom: 14, textAlign: "center",
+        minHeight: 56,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        border: "1px solid #e5e7eb",
+      }}>
+        <span style={{
+          color: numero ? "#1f2937" : "#9ca3af",
+          fontSize: numero ? 21 : 13,
+          fontFamily: "monospace",
+          letterSpacing: numero ? 1 : 0,
+          fontWeight: numero ? 700 : 400,
+        }}>
           {numero ? formatarNumero(numero) : "Digite o número..."}
         </span>
       </div>
@@ -287,11 +354,33 @@ function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNum
       {/* Botões inferiores */}
       <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
         <button onClick={apagar} disabled={!numero}
-          style={{ flex: 1, padding: 12, background: "#374151", border: "none", borderRadius: 10, cursor: numero ? "pointer" : "not-allowed", color: "white", fontSize: 14, opacity: numero ? 1 : 0.4 }}>
+          style={{
+            flex: 1, padding: 13,
+            background: numero ? "#f3f4f6" : "#f9fafb",
+            border: `1px solid ${numero ? "#e5e7eb" : "#f3f4f6"}`,
+            borderRadius: 12,
+            cursor: numero ? "pointer" : "not-allowed",
+            color: numero ? "#374151" : "#9ca3af",
+            fontSize: 14, fontWeight: 600,
+            opacity: numero ? 1 : 0.5,
+            transition: "all 0.15s",
+          }}>
           ⌫ Apagar
         </button>
         <button onClick={chamar} disabled={!numero}
-          style={{ flex: 2, padding: 12, background: numero ? "#16a34a" : "#374151", border: "none", borderRadius: 10, cursor: numero ? "pointer" : "not-allowed", color: "white", fontSize: 14, fontWeight: "bold", opacity: numero ? 1 : 0.4 }}>
+          style={{
+            flex: 2, padding: 13,
+            background: numero
+              ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
+              : "#f3f4f6",
+            border: "none", borderRadius: 12,
+            cursor: numero ? "pointer" : "not-allowed",
+            color: numero ? "white" : "#9ca3af",
+            fontSize: 14, fontWeight: 700,
+            opacity: numero ? 1 : 0.5,
+            boxShadow: numero ? "0 4px 12px rgba(22,163,74,0.3)" : "none",
+            transition: "all 0.15s",
+          }}>
           📞 Ligar
         </button>
       </div>
@@ -308,8 +397,8 @@ function TecladoNumerico({ adicionar, compacto = false }: { adicionar: (d: strin
     ["*", ""], ["0", "+"], ["#", ""],
   ];
 
-  const tamanho = compacto ? 40 : 56;
-  const fontePrimaria = compacto ? 16 : 20;
+  const tamanho = compacto ? 42 : 58;
+  const fontePrimaria = compacto ? 16 : 21;
   const fonteSecundaria = compacto ? 8 : 9;
 
   return (
@@ -318,20 +407,33 @@ function TecladoNumerico({ adicionar, compacto = false }: { adicionar: (d: strin
         <button key={num} onClick={() => adicionar(num)}
           style={{
             height: tamanho,
-            background: "#1f2937",
-            border: "1px solid #2a3942",
-            borderRadius: 10,
-            color: "white",
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: 12,
+            color: "#1f2937",
             cursor: "pointer",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             transition: "all 0.1s",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
           }}
-          onMouseDown={e => e.currentTarget.style.background = "#374151"}
-          onMouseUp={e => e.currentTarget.style.background = "#1f2937"}
-          onMouseLeave={e => e.currentTarget.style.background = "#1f2937"}
+          onMouseDown={e => {
+            e.currentTarget.style.background = "#f0fdf4";
+            e.currentTarget.style.borderColor = "#16a34a";
+            e.currentTarget.style.transform = "scale(0.96)";
+          }}
+          onMouseUp={e => {
+            e.currentTarget.style.background = "#ffffff";
+            e.currentTarget.style.borderColor = "#e5e7eb";
+            e.currentTarget.style.transform = "scale(1)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "#ffffff";
+            e.currentTarget.style.borderColor = "#e5e7eb";
+            e.currentTarget.style.transform = "scale(1)";
+          }}
         >
-          <span style={{ fontSize: fontePrimaria, fontWeight: "bold" }}>{num}</span>
-          {letras && <span style={{ fontSize: fonteSecundaria, color: "#6b7280", marginTop: -2 }}>{letras}</span>}
+          <span style={{ fontSize: fontePrimaria, fontWeight: 700, color: "#1f2937" }}>{num}</span>
+          {letras && <span style={{ fontSize: fonteSecundaria, color: "#9ca3af", marginTop: -2, fontWeight: 600, letterSpacing: 0.5 }}>{letras}</span>}
         </button>
       ))}
     </div>
