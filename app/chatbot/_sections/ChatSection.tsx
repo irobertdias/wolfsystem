@@ -2525,8 +2525,9 @@ export function ChatSection() {
             return (
               <button key={t.key} onClick={() => setAbaConversa(t.key as any)}
                 style={{ flex: 1, padding: "8px 4px", background: ativa ? `${t.color}10` : "transparent", border: "none", borderRadius: 10, color: ativa ? t.color : tema.textoFraco, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s", position: "relative" }}>
-                {/* Container do ícone — bg colorido quando ativo, cinza claro quando inativo */}
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: ativa ? t.color : `${t.color}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, boxShadow: ativa ? `0 4px 10px ${t.color}40` : "none", transition: "all 0.15s", filter: ativa ? "saturate(1) brightness(1.05)" : "none" }}>
+                {/* Container do ícone — bg sólido colorido quando ativo, cinza neutro com borda da cor quando inativo
+                    (assim os emojis nativos mantêm suas cores naturais sem se perder no fundo) */}
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: ativa ? t.color : "#f3f4f6", border: ativa ? "none" : `1px solid ${t.color}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, boxShadow: ativa ? `0 4px 10px ${t.color}40` : "none", transition: "all 0.15s" }}>
                   <span style={{ filter: ativa ? "saturate(0) brightness(2)" : "none" }}>{t.icon}</span>
                 </div>
                 <span style={{ fontSize: 10, letterSpacing: 0.2 }}>{t.label}</span>
@@ -2539,18 +2540,18 @@ export function ChatSection() {
         </div>
 
         {abaConversa === "finalizados" && podeVerTudo && (
-          <div style={{ background: "#0d1418", borderBottom: "1px solid #222d34", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <div style={{ background: "#eff6ff", borderBottom: "1px solid #bfdbfe", borderLeft: "3px solid #3b82f6", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ color: "#1f2937", fontSize: 12, fontWeight: "bold", margin: 0 }}>
+              <p style={{ color: "#1e40af", fontSize: 12, fontWeight: 700, margin: 0 }}>
                 {mostrarTodosFinalizados ? "👁️ Todos os finalizados" : "👤 Só os meus finalizados"}
               </p>
-              <p style={{ color: "#6b7280", fontSize: 10, margin: "2px 0 0" }}>
+              <p style={{ color: "#3b82f6", fontSize: 10, margin: "2px 0 0", fontWeight: 500 }}>
                 {mostrarTodosFinalizados ? "Visualizando de todos os atendentes" : "Ative pra ver os de outros atendentes"}
               </p>
             </div>
             <button onClick={() => setMostrarTodosFinalizados(!mostrarTodosFinalizados)}
-              style={{ width: 40, height: 22, background: mostrarTodosFinalizados ? "#00a884" : "#374151", borderRadius: 11, cursor: "pointer", border: "none", position: "relative", flexShrink: 0 }}>
-              <div style={{ width: 16, height: 16, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: mostrarTodosFinalizados ? 21 : 3, transition: "left 0.2s" }} />
+              style={{ width: 40, height: 22, background: mostrarTodosFinalizados ? "#16a34a" : "#d1d5db", borderRadius: 11, cursor: "pointer", border: "none", position: "relative", flexShrink: 0, boxShadow: "inset 0 1px 2px rgba(0,0,0,0.08)" }}>
+              <div style={{ width: 16, height: 16, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: mostrarTodosFinalizados ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
             </button>
           </div>
         )}
