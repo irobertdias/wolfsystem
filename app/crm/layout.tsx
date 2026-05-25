@@ -6,12 +6,11 @@ import { usePermissao } from "../hooks/usePermissao";
 import { useModulos } from "../hooks/useModulos";
 
 // ═══════════════════════════════════════════════════════════════════════
-// 🏛️ HIERARQUIA APLICADA NESTE LAYOUT:
-//
-//   👑 Super Admin Wolf → vê TUDO sempre (bypass)
-//   🏢 Dono do workspace → vê o que o PLANO libera
-//   👔 Administrador sub-usuário → vê IGUAL ao Dono (PLANO libera)
-//   👤 Sub-usuário comum → vê (PLANO libera) E (grupo de permissão libera)
+// 🏛️ HIERARQUIA:
+//   👑 Super Admin Wolf → bypass total
+//   🏢 Dono → respeita plano
+//   👔 Admin sub-usuário → respeita plano (igual Dono)
+//   👤 Sub-usuário comum → respeita plano E grupo de permissão
 // ═══════════════════════════════════════════════════════════════════════
 
 const ADMIN_EMAIL = "robert.dias@live.com";
@@ -27,14 +26,6 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const [usuariosCount, setUsuariosCount] = useState(0);
   const [limiteUsuarios, setLimiteUsuarios] = useState(9999);
 
-  // 🆕 ═══════════════════════════════════════════════════════════════════════
-  // FASE 2 MOBILE — sidebar do CRM vira drawer/hambúrguer no celular
-  // ═══════════════════════════════════════════════════════════════════════
-  // Mesmo padrão da Fase 1.5 (Chatbot):
-  // - isMobile: detecta tela < 768px
-  // - menuMobileAberto: controla se o drawer está aberto no mobile
-  // - No desktop o sidebar continua igual (220px fixo). No mobile ele esconde
-  //   pra esquerda (translateX -100%) e abre quando user clica no ☰
   const [isMobile, setIsMobile] = useState(false);
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
   useEffect(() => {
@@ -44,8 +35,6 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // 🆕 Helper: navega pra uma rota e (no mobile) fecha o drawer automaticamente.
-  // Substituiu o router.push direto nos onClick dos botões do menu.
   const navegarPara = (path: string) => {
     router.push(path);
     if (isMobile) setMenuMobileAberto(false);
@@ -57,54 +46,36 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
       if (!user) { router.push("/"); return; }
       setUserEmail(user.email || "");
 
-      // 🆕 v18: refatorado pra resolver workspace+owner_email num caminho único
-      // que funciona tanto pro DONO quanto pro SUB-USUÁRIO (Admin/Supervisor/Atendente).
-      // ANTES, usuariosCount e limiteUsuarios só carregavam dentro do if(ws), então
-      // sub-usuário ficava com counters em 0/9999 e o card "Plano" não mostrava nada útil.
       let wsId: string | null = null;
       let ownerEmail: string | null = null;
       let workspaceNomeLocal: string | null = null;
 
-      // 1. Tenta como DONO
       const { data: wsDono } = await supabase
-        .from("workspaces")
-        .select("*")
-        .eq("owner_id", user.id)
-        .maybeSingle();
+        .from("workspaces").select("*").eq("owner_id", user.id).maybeSingle();
 
       if (wsDono) {
         workspaceNomeLocal = wsDono.nome;
         wsId = wsDono.username;
         ownerEmail = wsDono.owner_email;
       } else {
-        // 2. Tenta como SUB-USUÁRIO
         const { data: usuarioWs } = await supabase
-          .from("usuarios_workspace")
-          .select("workspace_id")
+          .from("usuarios_workspace").select("workspace_id")
           .eq("email", user.email)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
         if (usuarioWs?.workspace_id) {
-          // 2a. Busca pelo username (caso novo)
           const { data: wsData } = await supabase
-            .from("workspaces")
-            .select("nome, username, owner_email")
-            .eq("username", usuarioWs.workspace_id)
-            .maybeSingle();
+            .from("workspaces").select("nome, username, owner_email")
+            .eq("username", usuarioWs.workspace_id).maybeSingle();
 
           if (wsData) {
             workspaceNomeLocal = wsData.nome;
             wsId = wsData.username;
             ownerEmail = wsData.owner_email;
           } else if (/^\d+$/.test(usuarioWs.workspace_id)) {
-            // 2b. Fallback legacy — só tenta id numérico se workspace_id for dígitos
             const { data: wsLegado } = await supabase
-              .from("workspaces")
-              .select("nome, username, owner_email")
-              .eq("id", parseInt(usuarioWs.workspace_id))
-              .maybeSingle();
+              .from("workspaces").select("nome, username, owner_email")
+              .eq("id", parseInt(usuarioWs.workspace_id)).maybeSingle();
             if (wsLegado) {
               workspaceNomeLocal = wsLegado.nome;
               wsId = wsLegado.username;
@@ -116,7 +87,6 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
       if (workspaceNomeLocal) setWorkspaceNome(workspaceNomeLocal);
 
-      // 3. Conta sub-usuários do workspace (vale pra Dono E sub-usuário)
       if (wsId) {
         const { count } = await supabase.from("usuarios_workspace")
           .select("*", { count: "exact", head: true })
@@ -124,12 +94,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         setUsuariosCount(count || 0);
       }
 
-      // 4. Busca limite de usuários do plano via owner_email (vale pra Dono E sub-usuário)
       if (!isSuperAdmin && ownerEmail) {
         const { data: cadastro } = await supabase.from("cadastros")
-          .select("usuarios_liberados")
-          .eq("email", ownerEmail)
-          .maybeSingle();
+          .select("usuarios_liberados").eq("email", ownerEmail).maybeSingle();
         if (cadastro) setLimiteUsuarios(cadastro.usuarios_liberados || 1);
       }
 
@@ -143,41 +110,25 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => { await supabase.auth.signOut(); router.push("/"); };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // 🔧 HELPERS de hierarquia
-  // ═══════════════════════════════════════════════════════════════════════
-
-  // Super admin sempre vê tudo
-  // Dono respeita só o módulo do plano
-  // Administrador sub-usuário respeita o módulo (igual o Dono)
-  // Sub-usuário comum respeita (módulo) E (permissão granular)
   const podeVerComHierarquia = (
     moduloAtivo: boolean,
     permissaoKey: keyof typeof permissoes
   ): boolean => {
     if (isSuperAdmin) return true;
-    if (!moduloAtivo) return false;                              // plano não inclui → ninguém vê
-    if (isDono) return true;                                      // dono respeita só o plano
-    if (perfil === "Administrador") return true;                  // 🆕 Admin sub-usuário = igual Dono
-    return !!permissoes[permissaoKey];                            // demais sub-usuários: precisa da permissão
+    if (!moduloAtivo) return false;
+    if (isDono) return true;
+    if (perfil === "Administrador") return true;
+    return !!permissoes[permissaoKey];
   };
 
-  // 🆕 Editor de Vendas — quem pode acessar a configuração dos campos customizados
-  // Super admin sempre, dono do workspace sempre, sub-usuário só se for "Administrador".
   const podeEditarCamposVendas = isSuperAdmin || isDono || perfil === "Administrador";
-
-  // 🆕 v18: pra mostrar o card de Plano (usuariosCount/limiteUsuarios) pro Admin sub-usuário também
   const ehDonoOuAdmin = isDono || perfil === "Administrador";
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // 📋 Itens do menu — cada um respeitando a hierarquia
-  // ═══════════════════════════════════════════════════════════════════════
   const menuItems = [
     ...(isSuperAdmin ? [{ path: "/crm/clientes", icon: "👥", label: "Clientes Wolf", badge: cadastrosCount }] : []),
     ...((isSuperAdmin || isDono || permissoes.dashboard) ? [{ path: "/crm/dashboard", icon: "📊", label: "Dashboard" }] : []),
     ...((isSuperAdmin || isDono || permissoes.funil || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/funil", icon: "🎯", label: "Funil de Vendas" }] : []),
     ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/vendas", icon: "💰", label: "Vendas" }] : []),
-    // 🆕 EDITOR DE CAMPOS DA PROPOSTA — só admin/dono/super-admin
     ...(podeEditarCamposVendas ? [{ path: "/crm/editor-proposta", icon: "🛠️", label: "Editor de Vendas" }] : []),
     ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos) ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos", badge: 0 }] : []),
     ...((isSuperAdmin || isDono || permissoes.configuracoes_workspace) ? [{ path: "/crm/configuracoes", icon: "⚙️", label: "Configurações", badge: 0 }] : []),
@@ -185,13 +136,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   const isActive = (path: string) => pathname === path;
 
-  // 📞 TELEFONIA — respeita hierarquia: super admin sempre / dono+admin se plano tem / sub-usuário se plano tem E permissão
   const podeVerTelefonia = podeVerComHierarquia(modulos.voip, "voip_usar");
-
-  // Botão Chatbot - super admin OU dono OU quem tem chat_proprio/chat_todos
   const podeVerChatbot = isSuperAdmin || isDono || permissoes.chat_proprio || permissoes.chat_todos;
 
-  // Mostra label do perfil pro usuário
   const perfilLabel = isSuperAdmin ? "👑 Super Admin Wolf"
     : isDono ? "🏢 Dono do Workspace"
     : perfil === "Supervisor" ? "🔍 Supervisor"
@@ -199,60 +146,49 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     : "👤 Atendente";
 
   return (
-    <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#0a0a0a", position: "relative" }}>
+    <div style={{
+      display: "flex", height: "100vh", fontFamily: "Arial, sans-serif",
+      background: "#f8fafc", position: "relative",
+    }}>
 
-      {/* 🆕 FASE 2 — BOTÃO HAMBÚRGUER ☰ — só aparece no mobile, fixo no canto superior esquerdo.
-          Z-index 999 pra ficar visível sobre o conteúdo do CRM.
-          Esconde quando o drawer já está aberto (pra dar lugar ao botão ✕ dentro do drawer). */}
+      {/* ═══ BOTÃO HAMBÚRGUER (mobile) ═══ */}
       {isMobile && !menuMobileAberto && (
         <button
           onClick={() => setMenuMobileAberto(true)}
           title="Abrir menu"
           style={{
-            position: "fixed",
-            top: 8,
-            left: 8,
-            zIndex: 999,
-            background: "#1f2937",
-            border: "1px solid #374151",
-            color: "white",
-            borderRadius: 8,
-            padding: "6px 12px",
-            fontSize: 18,
-            cursor: "pointer",
-            lineHeight: 1,
-            boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
+            position: "fixed", top: 8, left: 8, zIndex: 999,
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
+            color: "#1f2937",
+            borderRadius: 10, padding: "8px 14px",
+            fontSize: 18, cursor: "pointer", lineHeight: 1,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)",
+            fontWeight: 700,
           }}
         >☰</button>
       )}
 
-      {/* 🆕 FASE 2 — OVERLAY escuro — só aparece no mobile quando drawer está aberto.
-          Clique fecha o drawer (UX padrão de drawer em mobile). */}
+      {/* ═══ OVERLAY (mobile) ═══ */}
       {isMobile && menuMobileAberto && (
         <div
           onClick={() => setMenuMobileAberto(false)}
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
+            position: "fixed", inset: 0,
+            background: "rgba(15,23,42,0.5)",
+            backdropFilter: "blur(4px)",
             zIndex: 999,
           }}
         />
       )}
 
-      {/* SIDEBAR — desktop: coluna 220px fixa na esquerda.
-          Mobile: drawer 280px que entra/sai com transform/translateX, ocupa tela cheia. */}
+      {/* ═══ SIDEBAR ═══ */}
       <div style={{
         width: isMobile ? 280 : 220,
-        background: "#111",
-        borderRight: "1px solid #1f2937",
-        display: "flex",
-        flexDirection: "column",
-        padding: 16,
-        gap: 8,
-        flexShrink: 0,
-        overflowY: "auto",
-        // 🆕 No mobile, vira drawer FIXO que abre/fecha por cima do conteúdo
+        background: "#ffffff",
+        borderRight: "1px solid #e5e7eb",
+        display: "flex", flexDirection: "column",
+        padding: 16, gap: 6, flexShrink: 0, overflowY: "auto",
         position: isMobile ? "fixed" : "relative",
         top: isMobile ? 0 : "auto",
         left: isMobile ? 0 : "auto",
@@ -261,83 +197,164 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         zIndex: isMobile ? 1000 : "auto",
         transform: isMobile && !menuMobileAberto ? "translateX(-100%)" : "translateX(0)",
         transition: "transform 0.25s ease",
+        boxShadow: isMobile ? "4px 0 16px rgba(0,0,0,0.08)" : "none",
       }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
+        {/* Logo + nome workspace */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-            <img src="/logo1.png" alt="Wolf" style={{ width: 36, filter: "brightness(0) invert(1)", flexShrink: 0 }} />
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 4px 12px rgba(31,41,55,0.2)",
+              padding: 5, flexShrink: 0,
+            }}>
+              <img src="/logo1.png" alt="Wolf"
+                style={{ width: "100%", height: "100%", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+            </div>
             <div style={{ minWidth: 0 }}>
-              <span style={{ color: "white", fontWeight: "bold", fontSize: 13, display: "block" }}>Wolf CRM</span>
-              <span style={{ color: "#16a34a", fontSize: 10, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{workspaceNome || "Carregando..."}</span>
+              <span style={{ color: "#1f2937", fontWeight: 700, fontSize: 13, display: "block", letterSpacing: -0.2 }}>Wolf CRM</span>
+              <span style={{ color: "#16a34a", fontSize: 10, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>
+                {workspaceNome || "Carregando..."}
+              </span>
             </div>
           </div>
-          {/* 🆕 FASE 2 — Botão FECHAR drawer (só no mobile) */}
           {isMobile && (
             <button
               onClick={() => setMenuMobileAberto(false)}
               title="Fechar menu"
               style={{
-                background: "none",
-                border: "none",
-                color: "#9ca3af",
-                fontSize: 22,
-                cursor: "pointer",
-                padding: 4,
-                lineHeight: 1,
+                background: "#f3f4f6", border: "none", color: "#6b7280",
+                fontSize: 16, cursor: "pointer", width: 30, height: 30,
+                borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0,
               }}
             >✕</button>
           )}
         </div>
 
-        <div style={{ background: "#1f2937", borderRadius: 8, padding: "8px 12px", marginBottom: 4 }}>
-          <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 2px" }}>Logado como</p>
-          <p style={{ color: "white", fontSize: 11, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userEmail}</p>
-          <p style={{ color: "#6b7280", fontSize: 10, margin: "2px 0 0" }}>{perfilLabel}</p>
+        {/* Card "Logado como" */}
+        <div style={{
+          background: "#f9fafb", border: "1px solid #e5e7eb",
+          borderRadius: 10, padding: "9px 12px", marginBottom: 6,
+        }}>
+          <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 2px", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>Logado como</p>
+          <p style={{ color: "#1f2937", fontSize: 11, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>{userEmail}</p>
+          <p style={{ color: "#6b7280", fontSize: 10, margin: "3px 0 0", fontWeight: 500 }}>{perfilLabel}</p>
         </div>
 
-        {/* 🆕 v18: card de Plano agora aparece pra Admin sub-usuário também (não só Dono) */}
+        {/* Card do Plano */}
         {ehDonoOuAdmin && !isSuperAdmin && (
-          <div style={{ background: "#1f293788", borderRadius: 8, padding: "8px 12px", marginBottom: 4 }}>
-            <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 2px" }}>Plano</p>
-            <span style={{ color: "#f59e0b", fontSize: 11, fontWeight: "bold" }}>👥 {usuariosCount}/{limiteUsuarios} usuários</span>
+          <div style={{
+            background: "#fffbeb", border: "1px solid #fde68a",
+            borderLeft: "3px solid #f59e0b",
+            borderRadius: 10, padding: "9px 12px", marginBottom: 6,
+          }}>
+            <p style={{ color: "#92400e", fontSize: 10, margin: "0 0 2px", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>Plano</p>
+            <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>👥 {usuariosCount}/{limiteUsuarios} usuários</span>
           </div>
         )}
 
-        {menuItems.map(item => (
-          <button key={item.path} onClick={() => navegarPara(item.path)}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: isActive(item.path) ? "#16a34a22" : "none", border: "none", borderRadius: 8, cursor: "pointer", color: isActive(item.path) ? "#16a34a" : "#9ca3af", fontSize: 13, fontWeight: isActive(item.path) ? "bold" : "normal", textAlign: "left" }}>
-            <span>{item.icon}</span>
-            {item.label}
-            {(item as any).badge > 0 && <span style={{ background: "#16a34a", color: "white", borderRadius: 10, padding: "1px 6px", fontSize: 10, marginLeft: "auto" }}>{(item as any).badge}</span>}
-          </button>
-        ))}
+        {/* Itens do menu */}
+        {menuItems.map(item => {
+          const ativo = isActive(item.path);
+          return (
+            <button key={item.path} onClick={() => navegarPara(item.path)}
+              onMouseEnter={(e) => { if (!ativo) e.currentTarget.style.background = "#f3f4f6"; }}
+              onMouseLeave={(e) => { if (!ativo) e.currentTarget.style.background = "transparent"; }}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "9px 14px",
+                background: ativo ? "#f0fdf4" : "transparent",
+                border: "none",
+                borderLeft: ativo ? "3px solid #16a34a" : "3px solid transparent",
+                borderRadius: ativo ? "0 8px 8px 0" : 8,
+                cursor: "pointer",
+                color: ativo ? "#16a34a" : "#4b5563",
+                fontSize: 13, fontWeight: ativo ? 700 : 500,
+                textAlign: "left",
+                transition: "background 0.1s",
+                marginLeft: ativo ? -3 : 0,
+              }}>
+              <span>{item.icon}</span>
+              {item.label}
+              {(item as any).badge > 0 && (
+                <span style={{
+                  background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                  color: "white",
+                  borderRadius: 10, padding: "1px 8px", fontSize: 10,
+                  marginLeft: "auto", fontWeight: 700,
+                  boxShadow: "0 2px 4px rgba(22,163,74,0.25)",
+                }}>{(item as any).badge}</span>
+              )}
+            </button>
+          );
+        })}
 
-        <div style={{ borderTop: "1px solid #1f2937", marginTop: 8, paddingTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+        {/* Separador + atalhos (Chatbot, Telefonia) */}
+        <div style={{ borderTop: "1px solid #e5e7eb", marginTop: 10, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
           {podeVerChatbot && (
-            <button onClick={() => navegarPara("/chatbot")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#3b82f622", border: "1px solid #3b82f633", borderRadius: 8, cursor: "pointer", color: "#3b82f6", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
+            <button onClick={() => navegarPara("/chatbot")}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px",
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                borderRadius: 10, cursor: "pointer",
+                color: "#3b82f6", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#dbeafe"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(59,130,246,0.15)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#eff6ff"; e.currentTarget.style.boxShadow = "none"; }}
+            >
               <span>💬</span> Chatbot
             </button>
           )}
 
-          {/* 📞 TELEFONIA — só aparece se passa na hierarquia (módulo + permissão) */}
           {modulosCarregados && podeVerTelefonia && (
-            <button onClick={() => navegarPara("/crm/telefonia")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: isActive("/crm/telefonia") ? "#16a34a33" : "#16a34a22", border: `1px solid ${isActive("/crm/telefonia") ? "#16a34a" : "#16a34a33"}`, borderRadius: 8, cursor: "pointer", color: "#16a34a", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
+            <button onClick={() => navegarPara("/crm/telefonia")}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px",
+                background: isActive("/crm/telefonia") ? "#dcfce7" : "#f0fdf4",
+                border: `1px solid ${isActive("/crm/telefonia") ? "#16a34a" : "#bbf7d0"}`,
+                borderRadius: 10, cursor: "pointer",
+                color: "#16a34a", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!isActive("/crm/telefonia")) { e.currentTarget.style.background = "#dcfce7"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(22,163,74,0.15)"; } }}
+              onMouseLeave={(e) => { if (!isActive("/crm/telefonia")) { e.currentTarget.style.background = "#f0fdf4"; e.currentTarget.style.boxShadow = "none"; } }}
+            >
               <span>📞</span> Telefonia
             </button>
           )}
         </div>
-        <div style={{ marginTop: "auto", borderTop: "1px solid #1f2937", paddingTop: 8 }}>
-          <button onClick={signOut} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#dc262622", border: "1px solid #dc262633", borderRadius: 8, cursor: "pointer", color: "#dc2626", fontSize: 13, fontWeight: "bold", textAlign: "left", width: "100%" }}>
+
+        {/* Botão Sair (fundo) */}
+        <div style={{ marginTop: "auto", borderTop: "1px solid #e5e7eb", paddingTop: 10 }}>
+          <button onClick={signOut}
+            style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "10px 14px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 10, cursor: "pointer",
+              color: "#dc2626", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(220,38,38,0.15)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.boxShadow = "none"; }}
+          >
             <span>🚪</span> Sair
           </button>
         </div>
       </div>
 
-      {/* CONTEÚDO — desktop: ocupa o que sobra com padding 32. Mobile: 100% da tela com padding menor */}
+      {/* ═══ CONTEÚDO ═══ */}
       <div style={{
         flex: 1,
         overflowY: "auto",
-        padding: isMobile ? "56px 12px 16px" : 32,   // 🆕 padding-top maior no mobile pra não ficar atrás do botão ☰
+        padding: isMobile ? "56px 12px 16px" : 32,
         width: isMobile ? "100%" : "auto",
         minWidth: 0,
       }}>

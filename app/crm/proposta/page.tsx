@@ -21,16 +21,13 @@ function PropostaForm() {
   const { isDono, isSuperAdmin, permissoes } = usePermissao();
   const [loading, setLoading] = useState(false);
 
-  // 🆕 Estados pro vendedor
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
   const [userEmail, setUserEmail] = useState<string>("");
   const [podeEscolherVendedor, setPodeEscolherVendedor] = useState<boolean>(false);
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
 
-  // 🆕 Campos unificados (fixos com config aplicada + custom)
   const [camposUnificados, setCamposUnificados] = useState<CampoUnificado[]>([]);
 
-  // 🆕 FASE 3 MOBILE — detecta tela < 768px
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -39,7 +36,6 @@ function PropostaForm() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // 🆕 Form com chaves = slug do campo (snake_case, compatível com nome das colunas)
   const [form, setForm] = useState<Record<string, any>>({
     data_proposta: new Date().toISOString().split("T")[0],
     nome: searchParams.get("nome") || "",
@@ -47,10 +43,8 @@ function PropostaForm() {
     status_venda: "PENDENTE",
   });
 
-  // 🆕 Campos customizados separados (vão pro JSONB dados_customizados)
   const [dadosCustomizados, setDadosCustomizados] = useState<Record<string, any>>({});
 
-  // Carrega usuários + campos unificados
   useEffect(() => {
     const carregar = async () => {
       if (!workspace?.username) return;
@@ -60,7 +54,6 @@ function PropostaForm() {
         if (!user) { setCarregandoUsuarios(false); return; }
         setUserEmail(user.email || "");
 
-        // Workspace + sub-usuários
         const { data: ws } = await supabase.from("workspaces")
           .select("owner_id, owner_email, nome, username, id")
           .or(`username.eq.${workspace.username},id.eq.${workspace.username}`)
@@ -93,7 +86,6 @@ function PropostaForm() {
 
         setForm(p => ({ ...p, vendedor: user.email || "" }));
 
-        // 🆕 Busca config dos fixos + customs
         const [respConfig, respCustom] = await Promise.all([
           supabase.from("proposta_campos_padrao_config")
             .select("*")
@@ -112,7 +104,6 @@ function PropostaForm() {
           obrigatorio: c.obrigatorio,
           visivel: c.visivel,
           ordem: c.ordem,
-          // 🆕 v3
           opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" && c.opcoes ? JSON.parse(c.opcoes) : null),
           placeholder_custom: c.placeholder_custom,
         }));
@@ -128,11 +119,9 @@ function PropostaForm() {
           ativo: c.ativo,
         }));
 
-        // Só campos visíveis
         const lista2 = montarCamposUnificados(configs, customs).filter(c => c.visivel);
         setCamposUnificados(lista2);
 
-        // Inicializa valores dos customs (vazio/false)
         const initDados: Record<string, any> = {};
         for (const c of lista2) {
           if (c.origem === "custom") {
@@ -152,7 +141,6 @@ function PropostaForm() {
       return;
     }
 
-    // Valida campos obrigatórios (fixos + custom)
     for (const c of camposUnificados) {
       if (!c.obrigatorio) continue;
       const valor = c.origem === "fixo" ? form[c.slug] : dadosCustomizados[c.slug];
@@ -170,7 +158,6 @@ function PropostaForm() {
 
     setLoading(true);
 
-    // Monta payload dos fixos (todas as colunas da tabela proposta)
     const payload: any = {
       data_proposta: form.data_proposta || null,
       nome: form.nome || "",
@@ -212,31 +199,39 @@ function PropostaForm() {
     router.push("/crm/vendas");
   };
 
+  // 🎨 ESTILOS LIGHT TECH
   const inputStyle = {
     width: "100%",
-    background: "#1f2937",
-    border: "1px solid #374151",
-    borderRadius: 8,
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 10,
     padding: "10px 14px",
-    color: "white",
+    color: "#1f2937",
     fontSize: 14,
     boxSizing: "border-box" as const,
+    outline: "none",
+    transition: "border-color 0.15s, box-shadow 0.15s",
   };
   const labelStyle = {
-    color: "#9ca3af",
+    color: "#6b7280",
     fontSize: 11,
     textTransform: "uppercase" as const,
-    letterSpacing: 1,
-    marginBottom: 4,
+    letterSpacing: 0.5,
+    marginBottom: 6,
     display: "block" as const,
+    fontWeight: 700,
+  };
+  const cardStyle = {
+    background: "#ffffff",
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 🆕 Renderização DINÂMICA de cada campo
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══ Renderização DINÂMICA ═══
   const renderCampoVendedor = () => {
     if (carregandoUsuarios) {
-      return <input value="⏳ Carregando vendedores..." disabled style={{ ...inputStyle, opacity: 0.5 }} />;
+      return <input value="⏳ Carregando vendedores..." disabled style={{ ...inputStyle, background: "#f3f4f6", color: "#9ca3af", opacity: 0.7 }} />;
     }
     if (podeEscolherVendedor) {
       return (
@@ -253,30 +248,33 @@ function PropostaForm() {
     const meuNome = usuariosWs.find(u => u.email?.toLowerCase() === userEmail.toLowerCase())?.nome || userEmail;
     return (
       <input value={`${meuNome} (você)`} disabled
-        style={{ ...inputStyle, opacity: 0.7, cursor: "not-allowed" }}
+        style={{ ...inputStyle, background: "#f3f4f6", color: "#6b7280", cursor: "not-allowed" }}
         title="Você só pode cadastrar propostas em seu próprio nome" />
     );
   };
 
   const renderCampo = (c: CampoUnificado) => {
-    const labelComObr = `${c.label}${c.obrigatorio ? " *" : ""}`;
+    const labelComObr = (
+      <>
+        {c.label}
+        {c.obrigatorio && <span style={{ color: "#dc2626", marginLeft: 4 }}>*</span>}
+      </>
+    );
 
     // ── FIXOS ──
     if (c.origem === "fixo") {
       const val = form[c.slug];
       const set = (v: any) => setForm({ ...form, [c.slug]: v });
 
-      // Caso especial: campo Vendedor tem renderização própria
       if (c.tipo === "vendedor") {
         return (
-          <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
             <label style={labelStyle}>{labelComObr}</label>
             {renderCampoVendedor()}
           </div>
         );
       }
 
-      // Status venda — default "PENDENTE"
       const valorEfetivo = c.slug === "status_venda" ? (val || "PENDENTE") : (val ?? "");
 
       let input;
@@ -305,7 +303,7 @@ function PropostaForm() {
         input = <input placeholder={c.placeholder || ""} value={valorEfetivo} onChange={e => set(e.target.value)} style={inputStyle} />;
       }
       return (
-        <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
           <label style={labelStyle}>{labelComObr}</label>
           {input}
         </div>
@@ -319,7 +317,7 @@ function PropostaForm() {
     let input;
     if (c.tipo === "textarea") {
       input = <textarea placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} rows={3}
-        style={{ ...inputStyle, resize: "vertical" as const, fontFamily: "Arial, sans-serif" }} />;
+        style={{ ...inputStyle, resize: "vertical" as const, fontFamily: "inherit" }} />;
     } else if (c.tipo === "numero") {
       input = <input type="number" placeholder={c.placeholder || "0"} value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} />;
     } else if (c.tipo === "moeda") {
@@ -334,12 +332,21 @@ function PropostaForm() {
         </select>
       );
     } else if (c.tipo === "checkbox") {
+      const marcado = val === true;
       return (
-        <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
           <label style={labelStyle}>{labelComObr}</label>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "#1f2937", borderRadius: 8, border: "1px solid #374151", cursor: "pointer" }}>
-            <input type="checkbox" checked={val === true} onChange={e => set(e.target.checked)} style={{ accentColor: "#16a34a", width: 16, height: 16 }} />
-            <span style={{ color: "white", fontSize: 13 }}>{val === true ? "Sim" : "Não"}</span>
+          <label style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "10px 14px",
+            background: marcado ? "#f0fdf4" : "#ffffff",
+            borderRadius: 10,
+            border: `1px solid ${marcado ? "#bbf7d0" : "#e5e7eb"}`,
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}>
+            <input type="checkbox" checked={marcado} onChange={e => set(e.target.checked)} style={{ accentColor: "#16a34a", width: 17, height: 17, cursor: "pointer" }} />
+            <span style={{ color: marcado ? "#16a34a" : "#6b7280", fontSize: 13, fontWeight: 600 }}>{marcado ? "Sim" : "Não"}</span>
           </label>
         </div>
       );
@@ -347,51 +354,85 @@ function PropostaForm() {
       input = <input placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} />;
     }
     return (
-      <div style={{ display: "flex", flexDirection: "column" as const, gap: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
         <label style={labelStyle}>{labelComObr}</label>
         {input}
       </div>
     );
   };
 
-  // Sem permissão
+  // ═══ Sem permissão ═══
   if (!isDono && !isSuperAdmin && !permissoes.proposta_criar) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0a0a0a", padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ background: "#dc262611", border: "1px solid #dc262633", borderRadius: 12, padding: 40, textAlign: "center", maxWidth: 480 }}>
-          <p style={{ fontSize: 56, margin: "0 0 16px" }}>🔒</p>
-          <h1 style={{ color: "#dc2626", fontSize: 18, fontWeight: "bold", margin: "0 0 8px" }}>Acesso restrito</h1>
-          <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 20px" }}>Você não tem permissão para criar propostas.</p>
-          <button onClick={() => router.back()} style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 13, fontWeight: "bold", cursor: "pointer" }}>← Voltar</button>
+      <div style={{ minHeight: "100vh", background: "#f8fafc", padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: 20,
+            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 40, margin: "0 auto 16px",
+            boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
+          }}>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
+          </div>
+          <h1 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>Você não tem permissão para criar propostas.</p>
+          <button onClick={() => router.back()}
+            style={{
+              background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+              color: "white", border: "none", borderRadius: 12,
+              padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+            }}>
+            ← Voltar
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0a", fontFamily: "Arial, sans-serif", padding: isMobile ? 12 : 32 }}>
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", marginBottom: isMobile ? 16 : 32, gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
-          <img src="/logo1.png" alt="Wolf" style={{ width: isMobile ? 36 : 48, filter: "brightness(0) invert(1)", flexShrink: 0 }} />
+    <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "Arial, sans-serif", padding: isMobile ? 12 : 32 }}>
+
+      {/* ═══ HEADER ═══ */}
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", marginBottom: isMobile ? 16 : 28, gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+          <div style={{
+            width: isMobile ? 44 : 52, height: isMobile ? 44 : 52, borderRadius: 14,
+            background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 8px 20px rgba(31,41,55,0.25)",
+            flexShrink: 0, padding: 6,
+          }}>
+            <img src="/logo1.png" alt="Wolf" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+          </div>
           <div style={{ minWidth: 0 }}>
-            <h1 style={{ color: "white", fontSize: isMobile ? 17 : 20, fontWeight: "bold", margin: 0 }}>Nova Proposta</h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Wolf CRM — {workspace?.nome}</p>
+            <h1 style={{ color: "#1f2937", fontSize: isMobile ? 18 : 22, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Nova Proposta</h1>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              Wolf CRM · <b>{workspace?.nome}</b>
+            </p>
           </div>
         </div>
-        <button onClick={() => router.push("/crm/vendas")} style={{
-          background: "#1f2937", color: "#9ca3af", border: "1px solid #374151",
-          borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap"
-        }}>
+        <button onClick={() => router.push("/crm/vendas")}
+          style={{
+            background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb",
+            borderRadius: 10, padding: "9px 18px", fontSize: 13, cursor: "pointer",
+            whiteSpace: "nowrap", fontWeight: 600,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          }}>
           ← Voltar para Vendas
         </button>
       </div>
 
-      <div style={{ background: "#111", borderRadius: 16, padding: isMobile ? 16 : 32, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: isMobile ? 16 : 22 }}>
+      {/* ═══ FORM CARD ═══ */}
+      <div style={{ ...cardStyle, padding: isMobile ? 18 : 32, display: "flex", flexDirection: "column", gap: isMobile ? 18 : 24 }}>
 
         {camposUnificados.length === 0 ? (
-          <p style={{ color: "#6b7280", fontSize: 13, textAlign: "center", padding: 32 }}>⏳ Carregando formulário...</p>
+          <div style={{ padding: 40, textAlign: "center" }}>
+            <p style={{ color: "#6b7280", fontSize: 13 }}>⏳ Carregando formulário...</p>
+          </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: isMobile ? 12 : 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: isMobile ? 14 : 18 }}>
             {camposUnificados.map(c => (
               <div key={`${c.origem}-${c.slug}`} style={c.larguraTotal || c.tipo === "textarea" ? { gridColumn: "1 / -1" } : undefined}>
                 {renderCampo(c)}
@@ -400,20 +441,27 @@ function PropostaForm() {
           </div>
         )}
 
+        {/* Divisor */}
+        <div style={{ height: 1, background: "#e5e7eb", margin: "4px 0" }} />
+
         {/* Botões */}
-        <div style={{ display: "flex", flexDirection: isMobile ? "column-reverse" : "row", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
-          <button onClick={() => router.push("/crm/vendas")} style={{
-            background: "none", color: "#9ca3af", border: "1px solid #374151",
-            borderRadius: 8, padding: "12px 24px", fontSize: 14, cursor: "pointer"
-          }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column-reverse" : "row", gap: 10, justifyContent: "flex-end" }}>
+          <button onClick={() => router.push("/crm/vendas")}
+            style={{
+              background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb",
+              borderRadius: 10, padding: "11px 24px", fontSize: 14, cursor: "pointer", fontWeight: 600,
+            }}>
             Cancelar
           </button>
-          <button onClick={handleSubmit} disabled={loading} style={{
-            background: loading ? "#15803d" : "#16a34a", color: "white", border: "none",
-            borderRadius: 8, padding: "12px 32px", fontSize: 14, fontWeight: "bold",
-            cursor: loading ? "not-allowed" : "pointer"
-          }}>
-            {loading ? "Salvando..." : "💾 Salvar Proposta"}
+          <button onClick={handleSubmit} disabled={loading}
+            style={{
+              background: loading ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+              color: "white", border: "none", borderRadius: 10,
+              padding: "11px 32px", fontSize: 14, fontWeight: 700,
+              cursor: loading ? "not-allowed" : "pointer",
+              boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+            }}>
+            {loading ? "⏳ Salvando..." : "💾 Salvar Proposta"}
           </button>
         </div>
       </div>
@@ -423,7 +471,11 @@ function PropostaForm() {
 
 export default function NovaProposta() {
   return (
-    <Suspense fallback={<div style={{ background: "#0a0a0a", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "white" }}>Carregando...</p></div>}>
+    <Suspense fallback={
+      <div style={{ background: "#f8fafc", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "#6b7280" }}>Carregando...</p>
+      </div>
+    }>
       <PropostaForm />
     </Suspense>
   );

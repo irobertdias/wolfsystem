@@ -27,8 +27,12 @@ type Proposta = {
 type UsuarioWs = { email: string; nome: string; };
 
 const statusColor: Record<string, string> = {
-  PENDENTE: "#f59e0b", "AGUARDANDO AUDITORIA": "#3b82f6",
-  CANCELADA: "#dc2626", INSTALADA: "#16a34a", GERADA: "#8b5cf6", REPROVADA: "#ef4444",
+  PENDENTE: "#f59e0b",
+  "AGUARDANDO AUDITORIA": "#3b82f6",
+  CANCELADA: "#dc2626",
+  INSTALADA: "#16a34a",
+  GERADA: "#8b5cf6",
+  REPROVADA: "#ef4444",
 };
 
 export default function Vendas() {
@@ -45,10 +49,8 @@ export default function Vendas() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
 
-  // 🆕 Campos unificados (config aplicada)
   const [camposUnificados, setCamposUnificados] = useState<CampoUnificado[]>([]);
 
-  // 🆕 FASE 3 MOBILE — detecta tela < 768px
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -68,7 +70,18 @@ export default function Vendas() {
   const podeEditarCamposCustom = isDono || perfil === "Administrador";
   const podeVerTudo = isDono || perfil === "Administrador" || !!permissoes?.vendas_equipe;
 
-  const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "9px 12px", color: "white", fontSize: 13, boxSizing: "border-box" as const };
+  // 🎨 ESTILOS LIGHT TECH
+  const inputStyle = {
+    width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10,
+    padding: "9px 12px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const,
+    outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
+  };
+  const cardStyle = {
+    background: "#ffffff",
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  };
 
   const nomeVendedor = (v: string): string => {
     if (!v) return "—";
@@ -108,7 +121,6 @@ export default function Vendas() {
     setUsuariosWs(lista);
   };
 
-  // 🆕 Busca config + customs unificados
   const fetchCamposUnificados = async (wsId: string) => {
     const [respConfig, respCustom] = await Promise.all([
       supabase.from("proposta_campos_padrao_config")
@@ -123,7 +135,6 @@ export default function Vendas() {
     const configs: ConfigCampoPadrao[] = (respConfig.data || []).map((c: any) => ({
       id: c.id, campo_slug: c.campo_slug, label_custom: c.label_custom,
       obrigatorio: c.obrigatorio, visivel: c.visivel, ordem: c.ordem,
-      // 🆕 v3
       opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" && c.opcoes ? JSON.parse(c.opcoes) : null),
       placeholder_custom: c.placeholder_custom,
     }));
@@ -133,7 +144,6 @@ export default function Vendas() {
       opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" ? JSON.parse(c.opcoes) : []),
       placeholder: c.placeholder, ativo: c.ativo,
     }));
-    // Mostra TODOS no modal (mesmo os ocultos no form), mas marca visibilidade
     setCamposUnificados(montarCamposUnificados(configs, customs).filter(c => c.visivel));
   };
 
@@ -179,9 +189,7 @@ export default function Vendas() {
 
   const abrirEditar = (p: Proposta) => {
     setPropostaEditando(p);
-    // Carrega form com TODAS as colunas
     setForm({ ...p });
-    // Carrega dados custom
     const dadosIniciais: Record<string, any> = {};
     for (const c of camposUnificados) {
       if (c.origem === "custom") {
@@ -195,48 +203,29 @@ export default function Vendas() {
 
   const salvar = async () => {
     if (!propostaEditando) return;
-
-    // Valida obrigatórios
     for (const c of camposUnificados) {
       if (!c.obrigatorio) continue;
       const v = c.origem === "fixo" ? form[c.slug] : dadosCustomizadosEdit[c.slug];
       const vazio = c.tipo === "checkbox" ? v !== true : (v === undefined || v === null || String(v).trim() === "");
       if (vazio) { alert(`O campo "${c.label}" é obrigatório.`); return; }
     }
-
     setSalvando(true);
     try {
       const { error } = await supabase.from("proposta").update({
-        data_proposta: form.data_proposta,
-        nome: form.nome,
-        cpf: form.cpf,
-        rg: form.rg,
-        data_nascimento: form.data_nascimento,
-        nome_mae: form.nome_mae,
-        email: form.email,
-        endereco: form.endereco,
-        cep: form.cep,
-        cidade: form.cidade,
-        estado: form.estado,
-        telefone1: form.telefone1,
-        telefone2: form.telefone2,
-        telefone3: form.telefone3,
-        vencimento: form.vencimento,
-        forma_pagamento: form.forma_pagamento,
-        plano: form.plano,
+        data_proposta: form.data_proposta, nome: form.nome, cpf: form.cpf, rg: form.rg,
+        data_nascimento: form.data_nascimento, nome_mae: form.nome_mae, email: form.email,
+        endereco: form.endereco, cep: form.cep, cidade: form.cidade, estado: form.estado,
+        telefone1: form.telefone1, telefone2: form.telefone2, telefone3: form.telefone3,
+        vencimento: form.vencimento, forma_pagamento: form.forma_pagamento, plano: form.plano,
         valor_plano: form.valor_plano ? Number(form.valor_plano) : null,
-        data_agendamento: form.data_agendamento,
-        periodo_instalacao: form.periodo_instalacao,
-        vendedor: form.vendedor,
-        status_venda: form.status_venda,
-        data_instalacao: form.data_instalacao,
-        data_cancelamento: form.data_cancelamento,
+        data_agendamento: form.data_agendamento, periodo_instalacao: form.periodo_instalacao,
+        vendedor: form.vendedor, status_venda: form.status_venda,
+        data_instalacao: form.data_instalacao, data_cancelamento: form.data_cancelamento,
         operadora: form.operadora,
         dados_customizados: dadosCustomizadosEdit,
       })
         .eq("id", propostaEditando.id)
         .eq("workspace_id", workspaceId);
-
       if (error) { alert("Erro ao salvar: " + error.message); setSalvando(false); return; }
       await fetchPropostas(workspaceId);
       setShowModal(false);
@@ -259,18 +248,24 @@ export default function Vendas() {
     } catch (e: any) { alert("Erro: " + e.message); }
   };
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Renderização dinâmica de cada campo NO MODAL DE EDIÇÃO
-  // ═══════════════════════════════════════════════════════════════════
+  // ═══ Renderização dinâmica de campos no modal ═══
   const renderCampoModal = (c: CampoUnificado) => {
-    const labelComObr = `${c.label}${c.obrigatorio ? " *" : ""}`;
-    const lab = <label style={{ color: "#9ca3af", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>{labelComObr}</label>;
+    const labelComObr = (
+      <>
+        {c.label}
+        {c.obrigatorio && <span style={{ color: "#dc2626", marginLeft: 4 }}>*</span>}
+      </>
+    );
+    const lab = (
+      <label style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5, fontWeight: 700 }}>
+        {labelComObr}
+      </label>
+    );
 
     if (c.origem === "fixo") {
       const val = form[c.slug] ?? "";
       const set = (v: any) => setForm({ ...form, [c.slug]: v });
 
-      // Vendedor
       if (c.tipo === "vendedor") {
         return (
           <div>{lab}
@@ -283,7 +278,7 @@ export default function Vendas() {
                 )}
               </select>
             ) : (
-              <input value={nomeVendedor(val)} disabled style={{ ...inputStyle, opacity: 0.6 }} />
+              <input value={nomeVendedor(val)} disabled style={{ ...inputStyle, background: "#f3f4f6", color: "#6b7280", cursor: "not-allowed" }} />
             )}
           </div>
         );
@@ -312,7 +307,7 @@ export default function Vendas() {
     const val = dadosCustomizadosEdit[c.slug];
     const set = (v: any) => setDadosCustomizadosEdit(prev => ({ ...prev, [c.slug]: v }));
 
-    if (c.tipo === "textarea") return <div>{lab}<textarea placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" as const, fontFamily: "Arial, sans-serif" }} /></div>;
+    if (c.tipo === "textarea") return <div>{lab}<textarea placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" as const, fontFamily: "inherit" }} /></div>;
     if (c.tipo === "numero") return <div>{lab}<input type="number" placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
     if (c.tipo === "moeda") return <div>{lab}<input type="number" step="0.01" placeholder={c.placeholder || "0,00"} value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
     if (c.tipo === "data") return <div>{lab}<input type="date" value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
@@ -322,14 +317,25 @@ export default function Vendas() {
         {(c.opcoes || []).map((op, i) => <option key={i} value={op}>{op}</option>)}
       </select></div>
     );
-    if (c.tipo === "checkbox") return (
-      <div>{lab}
-        <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#1f2937", borderRadius: 8, border: "1px solid #374151", cursor: "pointer" }}>
-          <input type="checkbox" checked={val === true} onChange={e => set(e.target.checked)} style={{ accentColor: "#16a34a", width: 16, height: 16 }} />
-          <span style={{ color: "white", fontSize: 13 }}>{val === true ? "Sim" : "Não"}</span>
-        </label>
-      </div>
-    );
+    if (c.tipo === "checkbox") {
+      const marcado = val === true;
+      return (
+        <div>{lab}
+          <label style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "9px 14px",
+            background: marcado ? "#f0fdf4" : "#ffffff",
+            borderRadius: 10,
+            border: `1px solid ${marcado ? "#bbf7d0" : "#e5e7eb"}`,
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}>
+            <input type="checkbox" checked={marcado} onChange={e => set(e.target.checked)} style={{ accentColor: "#16a34a", width: 16, height: 16, cursor: "pointer" }} />
+            <span style={{ color: marcado ? "#16a34a" : "#6b7280", fontSize: 13, fontWeight: 600 }}>{marcado ? "Sim" : "Não"}</span>
+          </label>
+        </div>
+      );
+    }
     return <div>{lab}<input placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
   };
 
@@ -349,181 +355,277 @@ export default function Vendas() {
   const totalGeral = propostas.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
 
-      {/* MODAL EDITAR */}
+      {/* ═══ MODAL EDITAR ═══ */}
       {showModal && propostaEditando && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#111", borderRadius: 16, padding: 28, width: "100%", maxWidth: 820, border: "1px solid #1f2937", display: "flex", flexDirection: "column", gap: 18, maxHeight: "90vh", overflowY: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>✏️ Editar Proposta #{propostaEditando.id}</h2>
-              <button onClick={() => { setShowModal(false); setPropostaEditando(null); }} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: "pointer" }}>✕</button>
+        <div onClick={() => { setShowModal(false); setPropostaEditando(null); }}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{
+              ...cardStyle,
+              width: "100%", maxWidth: 860, maxHeight: "92vh",
+              display: "flex", flexDirection: "column", overflow: "hidden",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.08)",
+            }}>
+            <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✏️</div>
+                <h2 style={{ color: "#1f2937", fontSize: 17, fontWeight: 700, margin: 0 }}>Editar Proposta <span style={{ color: "#9ca3af", fontWeight: 500 }}>#{propostaEditando.id}</span></h2>
+              </div>
+              <button onClick={() => { setShowModal(false); setPropostaEditando(null); }}
+                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
 
-            {/* 🆕 Renderização dinâmica — todos os campos respeitando ordem/config */}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 10 }}>
-              {camposUnificados.map(c => (
-                <div key={`${c.origem}-${c.slug}`} style={c.larguraTotal || c.tipo === "textarea" ? { gridColumn: "1 / -1" } : undefined}>
-                  {renderCampoModal(c)}
-                </div>
-              ))}
+            <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
+                {camposUnificados.map(c => (
+                  <div key={`${c.origem}-${c.slug}`} style={c.larguraTotal || c.tipo === "textarea" ? { gridColumn: "1 / -1" } : undefined}>
+                    {renderCampoModal(c)}
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #1f2937", paddingTop: 16 }}>
-              <button onClick={() => { setShowModal(false); setPropostaEditando(null); }} style={{ background: "none", color: "#9ca3af", border: "1px solid #374151", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer" }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 24px", borderTop: "1px solid #e5e7eb", background: "#f9fafb" }}>
+              <button onClick={() => { setShowModal(false); setPropostaEditando(null); }}
+                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
-              <button onClick={salvar} disabled={salvando} style={{ background: salvando ? "#15803d" : "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>
-                {salvando ? "Salvando..." : "💾 Salvar"}
+              <button onClick={salvar} disabled={salvando}
+                style={{
+                  background: salvando ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                  color: "white", border: "none", borderRadius: 10,
+                  padding: "10px 28px", fontSize: 13, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
+                  boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                }}>
+                {salvando ? "⏳ Salvando..." : "💾 Salvar"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* HEADER */}
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 12 }}>
-        <div>
-          <h1 style={{ color: "white", fontSize: isMobile ? 18 : 22, fontWeight: "bold", margin: 0 }}>💰 Vendas</h1>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
-            {podeVerTudo
-              ? `${totalGeral} proposta(s) cadastrada(s)`
-              : `${totalVisivel} proposta(s) suas${totalGeral > totalVisivel ? ` · ${totalGeral - totalVisivel} de outros vendedores ocultas` : ""}`}
-          </p>
+      {/* ═══ HEADER ═══ */}
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 24, boxShadow: "0 8px 20px rgba(22,163,74,0.25)",
+            flexShrink: 0,
+          }}>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>💰</span>
+          </div>
+          <div>
+            <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Vendas</h1>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+              {podeVerTudo
+                ? <><b style={{ color: "#16a34a" }}>{totalGeral}</b> proposta(s) cadastrada(s)</>
+                : <><b style={{ color: "#16a34a" }}>{totalVisivel}</b> proposta(s) suas{totalGeral > totalVisivel ? <> · {totalGeral - totalVisivel} de outros vendedores ocultas</> : ""}</>}
+            </p>
+          </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {podeEditarCamposCustom && (
             <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos da proposta"
-              style={{ flex: isMobile ? 1 : "0 0 auto", background: "#a855f722", color: "#a855f7", border: "1px solid #a855f744", borderRadius: 8, padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>
+              style={{
+                flex: isMobile ? 1 : "0 0 auto",
+                background: "#f3e8ff", color: "#a855f7", border: "1px solid #ddd6fe",
+                borderRadius: 10, padding: "10px 18px", fontSize: 13,
+                cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap",
+              }}>
               🛠️ Editar Campos
             </button>
           )}
-          <button onClick={() => router.push("/crm/proposta")} style={{ flex: isMobile ? 1 : "0 0 auto", background: "#16a34a", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>
+          <button onClick={() => router.push("/crm/proposta")}
+            style={{
+              flex: isMobile ? 1 : "0 0 auto",
+              background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+              color: "white", border: "none", borderRadius: 10,
+              padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
+              whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+            }}>
             📋 Nova Proposta
           </button>
         </div>
       </div>
 
-      {/* FILTROS */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      {/* ═══ FILTROS ═══ */}
+      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <input placeholder="🔍 Buscar por nome, CPF, vendedor..." value={busca} onChange={e => setBusca(e.target.value)}
-          style={{ ...inputStyle, maxWidth: 360, padding: "8px 14px" }} />
-        <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={{ ...inputStyle, maxWidth: 220, padding: "8px 14px" }}>
-          <option value="todos">Todos os status</option>
+          style={{ ...inputStyle, maxWidth: 360, flex: "1 1 200px", borderRadius: 20 }} />
+        <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={{ ...inputStyle, maxWidth: 220 }}>
+          <option value="todos">Status: Todos</option>
           {STATUS_OPCOES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#1f2937", border: "1px solid #374151", borderRadius: 8, padding: "4px 10px" }}>
-          <span style={{ color: "#9ca3af", fontSize: 11, whiteSpace: "nowrap" }}>📅 De:</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10, padding: "5px 12px" }}>
+          <span style={{ color: "#6b7280", fontSize: 11, whiteSpace: "nowrap", fontWeight: 600 }}>📅 De:</span>
           <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)} max={filtroDataFim || undefined}
-            style={{ background: "transparent", border: "none", color: "white", fontSize: 12, padding: "4px 0", colorScheme: "dark" }} />
-          <span style={{ color: "#9ca3af", fontSize: 11, whiteSpace: "nowrap" }}>Até:</span>
+            style={{ background: "transparent", border: "none", color: "#1f2937", fontSize: 12, padding: "5px 0", outline: "none", fontWeight: 600 }} />
+          <span style={{ color: "#6b7280", fontSize: 11, whiteSpace: "nowrap", fontWeight: 600 }}>Até:</span>
           <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)} min={filtroDataInicio || undefined}
-            style={{ background: "transparent", border: "none", color: "white", fontSize: 12, padding: "4px 0", colorScheme: "dark" }} />
+            style={{ background: "transparent", border: "none", color: "#1f2937", fontSize: 12, padding: "5px 0", outline: "none", fontWeight: 600 }} />
         </div>
         {(busca || filtroStatus !== "todos" || filtroDataInicio || filtroDataFim) && (
           <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltroDataInicio(""); setFiltroDataFim(""); }}
-            style={{ background: "#dc262622", border: "1px solid #dc262633", color: "#dc2626", borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>
-            ✕ Limpar
+            style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+            ✕ Limpar filtros
           </button>
         )}
       </div>
 
-      {/* TABELA */}
-      <div style={{ background: "#111", borderRadius: 12, border: "1px solid #1f2937", overflow: "hidden" }}>
+      {/* ═══ TABELA ═══ */}
+      <div style={{ ...cardStyle, overflow: "hidden" }}>
         <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
-          <thead>
-            <tr style={{ background: "#0d0d0d" }}>
-              {["Cliente", "CPF", "Vendedor", "Plano", "Valor", "Status", "Data", "Ações"].map(h => (
-                <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={8} style={{ padding: 32, color: "#6b7280", textAlign: "center" }}>Carregando...</td></tr>
-            ) : propostasFiltradas.length === 0 ? (
-              <tr><td colSpan={8} style={{ padding: 48, color: "#6b7280", textAlign: "center" }}>
-                <p style={{ fontSize: 40, margin: "0 0 8px" }}>💰</p>
-                <p style={{ fontSize: 13, margin: 0 }}>
-                  {busca || filtroStatus !== "todos" ? "Nenhum resultado pros filtros" : podeVerTudo ? "Nenhuma proposta cadastrada ainda" : "Você ainda não cadastrou nenhuma proposta"}
-                </p>
-              </td></tr>
-            ) : propostasFiltradas.map((v, i) => (
-              <tr key={v.id} style={{ borderTop: "1px solid #1f2937", background: i % 2 === 0 ? "#111" : "#0d0d0d" }}>
-                <td style={{ padding: "12px 16px", color: "white", fontSize: 13, fontWeight: "bold" }}>{v.nome}</td>
-                <td style={{ padding: "12px 16px", color: "#9ca3af", fontSize: 12 }}>{v.cpf || "—"}</td>
-                <td style={{ padding: "12px 16px", color: "#9ca3af", fontSize: 12 }}>{nomeVendedor(v.vendedor)}</td>
-                <td style={{ padding: "12px 16px", color: "#9ca3af", fontSize: 12 }}>{v.plano || "—"}</td>
-                <td style={{ padding: "12px 16px", color: "#16a34a", fontSize: 13, fontWeight: "bold" }}>R$ {(v.valor_plano || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td style={{ padding: "12px 16px" }}>
-                  <span style={{ background: `${statusColor[v.status_venda] || "#6b7280"}22`, color: statusColor[v.status_venda] || "#6b7280", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: "bold", whiteSpace: "nowrap" }}>{v.status_venda}</span>
-                </td>
-                <td style={{ padding: "12px 16px", color: "#9ca3af", fontSize: 12 }}>{v.data_proposta ? new Date(v.data_proposta).toLocaleDateString("pt-BR") : "—"}</td>
-                <td style={{ padding: "12px 16px" }}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setPropostaVisualizando(v)} title="Visualizar" style={{ background: "#16a34a22", color: "#16a34a", border: "1px solid #16a34a33", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>👁️</button>
-                    <button onClick={() => abrirEditar(v)} title="Editar" style={{ background: "#3b82f622", color: "#3b82f6", border: "1px solid #3b82f633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>✏️</button>
-                    {podeExcluir && (
-                      <button onClick={() => excluir(v)} title="Excluir" style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>🗑️</button>
-                    )}
-                  </div>
-                </td>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Cliente", "CPF", "Vendedor", "Plano", "Valor", "Status", "Data", "Ações"].map(h => (
+                  <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={8} style={{ padding: 32, color: "#6b7280", textAlign: "center", fontSize: 13 }}>⏳ Carregando...</td></tr>
+              ) : propostasFiltradas.length === 0 ? (
+                <tr><td colSpan={8} style={{ padding: 48, textAlign: "center" }}>
+                  <div style={{
+                    width: 72, height: 72, borderRadius: 18,
+                    background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 36, margin: "0 auto 14px",
+                    boxShadow: "0 12px 24px rgba(22,163,74,0.25)",
+                  }}>
+                    <span style={{ filter: "saturate(0) brightness(2)" }}>💰</span>
+                  </div>
+                  <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>
+                    {busca || filtroStatus !== "todos" ? "Nenhum resultado pros filtros" : podeVerTudo ? "Nenhuma proposta cadastrada ainda" : "Você ainda não cadastrou nenhuma proposta"}
+                  </p>
+                </td></tr>
+              ) : propostasFiltradas.map((v, i) => {
+                const cor = statusColor[v.status_venda] || "#6b7280";
+                return (
+                  <tr key={v.id}
+                    style={{
+                      borderTop: "1px solid #f3f4f6",
+                      background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                      transition: "background 0.1s",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc"}
+                  >
+                    <td style={{ padding: "12px 16px", color: "#1f2937", fontSize: 13, fontWeight: 700 }}>{v.nome}</td>
+                    <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12, fontFamily: "monospace" }}>{v.cpf || <span style={{ color: "#d1d5db" }}>—</span>}</td>
+                    <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>{nomeVendedor(v.vendedor)}</td>
+                    <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>{v.plano || <span style={{ color: "#d1d5db" }}>—</span>}</td>
+                    <td style={{ padding: "12px 16px", color: "#16a34a", fontSize: 13, fontWeight: 800, letterSpacing: -0.2, whiteSpace: "nowrap" }}>
+                      R$ {(v.valor_plano || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span style={{
+                        background: `${cor}15`, color: cor, border: `1px solid ${cor}40`,
+                        padding: "3px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap",
+                      }}>{v.status_venda}</span>
+                    </td>
+                    <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12, whiteSpace: "nowrap" }}>
+                      {v.data_proposta ? new Date(v.data_proposta).toLocaleDateString("pt-BR") : <span style={{ color: "#d1d5db" }}>—</span>}
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => setPropostaVisualizando(v)} title="Visualizar"
+                          style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>👁️</button>
+                        <button onClick={() => abrirEditar(v)} title="Editar"
+                          style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
+                        {podeExcluir && (
+                          <button onClick={() => excluir(v)} title="Excluir"
+                            style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
+      {/* Avisos rodapé */}
       {!podeExcluir && propostas.length > 0 && (
-        <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: 0 }}>🔒 Apenas o dono do workspace ou administrador podem excluir propostas.</p>
+        <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>🔒 Apenas o dono do workspace ou administrador podem excluir propostas.</p>
       )}
       {!podeVerTudo && (
-        <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: 0 }}>👤 Você só vê suas próprias propostas. Pra ver as da equipe, peça ao admin para habilitar <b>"Ver vendas da equipe"</b>.</p>
+        <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>👤 Você só vê suas próprias propostas. Pra ver as da equipe, peça ao admin para habilitar <b style={{ color: "#6b7280" }}>"Ver vendas da equipe"</b>.</p>
       )}
 
-      {/* MODAL DE VISUALIZAÇÃO — dinâmico também */}
+      {/* ═══ MODAL DE VISUALIZAÇÃO ═══ */}
       {propostaVisualizando && (
         <div onClick={() => setPropostaVisualizando(null)}
-          style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={e => e.stopPropagation()}
-            style={{ background: "#111", borderRadius: 12, width: "100%", maxWidth: 720, maxHeight: "90vh", overflowY: "auto", border: "1px solid #1f2937" }}>
-            <div style={{ padding: 20, borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, background: "#111", zIndex: 1 }}>
-              <div>
-                <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: 0 }}>👁️ Detalhes da Proposta</h2>
-                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{propostaVisualizando.nome} • #{propostaVisualizando.id}</p>
+            style={{
+              ...cardStyle,
+              width: "100%", maxWidth: 760, maxHeight: "92vh",
+              display: "flex", flexDirection: "column", overflow: "hidden",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.08)",
+            }}>
+            <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#ffffff" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>👁️</div>
+                <div>
+                  <h2 style={{ color: "#1f2937", fontSize: 17, fontWeight: 700, margin: 0 }}>Detalhes da Proposta</h2>
+                  <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>{propostaVisualizando.nome} <span style={{ color: "#d1d5db" }}>·</span> #{propostaVisualizando.id}</p>
+                </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => { const p = propostaVisualizando; setPropostaVisualizando(null); abrirEditar(p); }}
-                  style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: "bold", cursor: "pointer" }}>✏️ Editar</button>
+                  style={{
+                    background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                    color: "white", border: "none", borderRadius: 10,
+                    padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+                  }}>✏️ Editar</button>
                 <button onClick={() => setPropostaVisualizando(null)}
-                  style={{ background: "#1f2937", color: "white", border: "1px solid #374151", borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer" }}>✕ Fechar</button>
+                  style={{ background: "#f3f4f6", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✕ Fechar</button>
               </div>
             </div>
 
-            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* Destaques no topo (sempre) */}
+            <div style={{ padding: 24, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Destaques no topo */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14, borderLeft: `3px solid ${statusColor[propostaVisualizando.status_venda] || "#6b7280"}` }}>
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Status</p>
-                  <p style={{ color: statusColor[propostaVisualizando.status_venda] || "white", fontSize: 14, margin: "4px 0 0", fontWeight: "bold" }}>{propostaVisualizando.status_venda || "—"}</p>
+                <div style={{
+                  background: "#f9fafb", borderRadius: 12, padding: 14,
+                  border: "1px solid #e5e7eb",
+                  borderLeft: `4px solid ${statusColor[propostaVisualizando.status_venda] || "#6b7280"}`,
+                }}>
+                  <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Status</p>
+                  <p style={{ color: statusColor[propostaVisualizando.status_venda] || "#1f2937", fontSize: 14, margin: "5px 0 0", fontWeight: 700 }}>{propostaVisualizando.status_venda || "—"}</p>
                 </div>
-                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14, borderLeft: "3px solid #16a34a" }}>
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Valor</p>
-                  <p style={{ color: "#16a34a", fontSize: 14, margin: "4px 0 0", fontWeight: "bold" }}>R$ {Number(propostaVisualizando.valor_plano || 0).toFixed(2).replace(".", ",")}</p>
+                <div style={{
+                  background: "#f0fdf4", borderRadius: 12, padding: 14,
+                  border: "1px solid #bbf7d0",
+                  borderLeft: "4px solid #16a34a",
+                }}>
+                  <p style={{ color: "#15803d", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Valor</p>
+                  <p style={{ color: "#16a34a", fontSize: 16, margin: "5px 0 0", fontWeight: 800, letterSpacing: -0.3 }}>R$ {Number(propostaVisualizando.valor_plano || 0).toFixed(2).replace(".", ",")}</p>
                 </div>
-                <div style={{ background: "#0d0d0d", borderRadius: 8, padding: 14, borderLeft: "3px solid #3b82f6" }}>
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: "bold" }}>Vendedor</p>
-                  <p style={{ color: "white", fontSize: 14, margin: "4px 0 0", fontWeight: "bold" }}>{nomeVendedor(propostaVisualizando.vendedor)}</p>
+                <div style={{
+                  background: "#eff6ff", borderRadius: 12, padding: 14,
+                  border: "1px solid #bfdbfe",
+                  borderLeft: "4px solid #3b82f6",
+                }}>
+                  <p style={{ color: "#1e40af", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Vendedor</p>
+                  <p style={{ color: "#1e40af", fontSize: 14, margin: "5px 0 0", fontWeight: 700 }}>{nomeVendedor(propostaVisualizando.vendedor)}</p>
                 </div>
               </div>
 
-              {/* 🆕 Lista de TODOS os campos visíveis em ordem (fixos + custom) */}
               <ViewSection
                 titulo="📋 Informações"
                 campos={camposUnificados
-                  .filter(c => c.slug !== "status_venda" && c.slug !== "valor_plano" && c.slug !== "vendedor") // já mostrados no topo
+                  .filter(c => c.slug !== "status_venda" && c.slug !== "valor_plano" && c.slug !== "vendedor")
                   .map(c => {
                     let v = c.origem === "fixo" ? (propostaVisualizando as any)[c.slug] : propostaVisualizando.dados_customizados?.[c.slug];
                     if (c.tipo === "checkbox") v = v === true ? "Sim" : v === false ? "Não" : "";
@@ -545,15 +647,23 @@ function ViewSection({ titulo, campos }: { titulo: string; campos: [string, any]
   const todosVazios = campos.every(([, v]) => !v && v !== false);
   return (
     <div>
-      <h3 style={{ color: "#9ca3af", fontSize: 11, fontWeight: "bold", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</h3>
+      <h3 style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</h3>
       {todosVazios ? (
-        <p style={{ color: "#6b7280", fontSize: 12, margin: 0, fontStyle: "italic" }}>Nenhuma informação cadastrada</p>
+        <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, fontStyle: "italic" }}>Nenhuma informação cadastrada</p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, background: "#0d0d0d", padding: 14, borderRadius: 8 }}>
+        <div style={{
+          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 14, background: "#f9fafb", padding: 16, borderRadius: 12,
+          border: "1px solid #e5e7eb",
+        }}>
           {campos.map(([label, valor]) => (
             <div key={label}>
-              <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase" }}>{label}</p>
-              <p style={{ color: valor || valor === false ? "white" : "#6b7280", fontSize: 13, margin: "2px 0 0", wordBreak: "break-word" }}>
+              <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 700 }}>{label}</p>
+              <p style={{
+                color: valor || valor === false ? "#1f2937" : "#d1d5db",
+                fontSize: 13, margin: "3px 0 0", wordBreak: "break-word",
+                fontWeight: valor || valor === false ? 600 : 400,
+              }}>
                 {valor !== "" && valor !== null && valor !== undefined ? String(valor) : "—"}
               </p>
             </div>
