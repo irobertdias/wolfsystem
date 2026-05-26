@@ -155,7 +155,7 @@ export default function Login() {
         <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", height: "100%" }}>
           {/* Logo no topo */}
           <div className="slide-up" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img src="/logo.png" alt="Wolf System" style={{ height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+            <img src="/logo.png" alt="Wolf System" style={{ height: 56, objectFit: "contain" }} />
           </div>
 
           {/* Headline central */}
