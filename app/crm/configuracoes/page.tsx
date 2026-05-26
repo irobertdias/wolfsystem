@@ -947,12 +947,25 @@ function ConfigGeraisWorkspace() {
     const { error } = await supabase.from("workspaces")
       .update({ bloqueio_pos_finalizacao_horas: horasBloqueio })
       .eq("username", wsId);
+
+    // 🔧 FIX: se desativou (0h), limpa TODOS os bloqueios existentes imediatamente
+    if (!error && horasBloqueio === 0) {
+      await supabase.from("atendimentos")
+        .update({ bloqueado_ate: null, atendente_finalizou: null })
+        .eq("workspace_id", wsId)
+        .eq("status", "resolvido")
+        .not("bloqueado_ate", "is", null);
+    }
+
     setSalvando(false);
     if (error) {
       alert("❌ Erro ao salvar: " + error.message);
     } else {
       setEditado(false);
-      alert("✅ Configuração salva!");
+      alert(horasBloqueio === 0
+        ? "✅ Bloqueio desativado! Todos os contatos bloqueados foram liberados."
+        : "✅ Configuração salva!"
+      );
     }
   };
 
