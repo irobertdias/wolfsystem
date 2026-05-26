@@ -946,7 +946,7 @@ function ConfigGeraisWorkspace() {
     setSalvando(true);
     const { error } = await supabase.from("workspaces")
       .update({ bloqueio_pos_finalizacao_horas: horasBloqueio })
-      .eq("id", wsId);
+      .eq("username", wsId);
     setSalvando(false);
     if (error) {
       alert("❌ Erro ao salvar: " + error.message);
