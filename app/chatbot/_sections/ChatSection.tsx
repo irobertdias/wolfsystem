@@ -1154,9 +1154,19 @@ export function ChatSection() {
       if (jaTem) {
         await supabase.from("atendimento_etiquetas").delete().eq("atendimento_id", atendimentoAtivo.id).eq("etiqueta_id", etiquetaId);
         setEtiquetasAtendimento(prev => prev.filter(id => id !== etiquetaId));
+        // 🔧 FIX: atualiza mapa da lista lateral imediatamente (sem esperar realtime)
+        setEtiquetasPorAtendimento(prev => ({
+          ...prev,
+          [atendimentoAtivo.id]: (prev[atendimentoAtivo.id] || []).filter(id => id !== etiquetaId)
+        }));
       } else {
         await supabase.from("atendimento_etiquetas").insert([{ atendimento_id: atendimentoAtivo.id, etiqueta_id: etiquetaId }]);
         setEtiquetasAtendimento(prev => [...prev, etiquetaId]);
+        // 🔧 FIX: atualiza mapa da lista lateral imediatamente (sem esperar realtime)
+        setEtiquetasPorAtendimento(prev => ({
+          ...prev,
+          [atendimentoAtivo.id]: [...(prev[atendimentoAtivo.id] || []), etiquetaId]
+        }));
       }
     } catch (e: any) { notify(traduzirErro(e), "erro"); }
     setSalvandoContato(false);
@@ -1515,6 +1525,26 @@ export function ChatSection() {
     const polling = setInterval(() => fetchHistorico(num, cId), 3000);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
   }, [atendimentoAtivo?.numero, atendimentoAtivo?.id, atendimentoAtivo?.canal_id]);
+// 🔧 FIX: SINCRONIZA atendimentoAtivo COM DADOS MAIS RECENTES DO ARRAY atendimentos
+  // Antes: ao clicar "Parar BOT", "Assumir", etc, o DB atualizava e fetchAtendimentos()
+  // trazia os dados novos pro array, MAS atendimentoAtivo era um state separado que ficava
+  // com dados antigos (stale). Header mostrava atendente=BOT mesmo após assumir → F5 pra ver.
+  // Agora: sincroniza automaticamente sempre que atendimentos muda.
+  useEffect(() => {
+    if (!atendimentoAtivo) return;
+    const atualizado = atendimentos.find(a => a.id === atendimentoAtivo.id);
+    if (!atualizado) return;
+    const camposChave: (keyof Atendimento)[] = [
+      'status', 'atendente', 'fila', 'nome', 'mensagem', 'bloqueado_ia', 'bloqueado_fluxo',
+      'bloqueado_typebot', 'bloqueado_contato', 'bloqueado_ate', 'atendente_finalizou',
+      'funil_etapa', 'kanban_coluna', 'demanda', 'valor', 'email', 'notas', 'avaliacao',
+      'origem', 'updated_at'
+    ];
+    const mudou = camposChave.some(campo => atualizado[campo] !== atendimentoAtivo[campo]);
+    if (mudou) {
+      setAtendimentoAtivo(prev => prev ? { ...prev, ...atualizado } : prev);
+    }
+  }, [atendimentos]);
 
   // 🆕 Ref que espelha o state de stickyFundo — necessário porque o listener do realtime
   // é criado uma vez e capturaria o valor inicial de stickyFundo no closure (stale state).
