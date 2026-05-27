@@ -11,7 +11,6 @@ type Usuario = { id?: number; nome: string; email: string; perfil: string; fila:
 type GrupoPermissao = { id: number; nome: string; descricao: string; permissoes: Record<string, boolean>; };
 type Fila = { id: number; nome: string; conexao: string; workspace_id: string; };
 
-// 🆕 Permissões organizadas em 8 categorias
 const CATEGORIAS_PERMISSAO = [
   {
     nome: "💬 Atendimento",
@@ -136,7 +135,6 @@ export default function Configuracoes() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // 🎨 ESTILOS LIGHT TECH
   const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 14, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
   const cardStyle = {
     background: "#ffffff",
@@ -326,7 +324,6 @@ export default function Configuracoes() {
     }
     if (!confirm(`Excluir a fila "${f.nome}"?`)) return;
     if (!workspaceId) { alert("Workspace não carregado."); return; }
-    // 🔒 MULTI-TENANT CRÍTICO
     const { error } = await supabase.from("filas").delete()
       .eq("id", f.id)
       .eq("workspace_id", workspaceId);
@@ -350,7 +347,6 @@ export default function Configuracoes() {
     if (!formGrupo.nome) { alert("Digite o nome do grupo!"); return; }
     if (!workspaceId) { alert("Workspace não carregado."); return; }
     if (editandoGrupo) {
-      // 🔒 MULTI-TENANT
       await supabase.from("grupos_permissao")
         .update({ nome: formGrupo.nome, descricao: formGrupo.descricao, permissoes: formGrupo.permissoes })
         .eq("id", editandoGrupo.id)
@@ -377,7 +373,6 @@ export default function Configuracoes() {
     }
     if (!confirm("Excluir este grupo?")) return;
     if (!workspaceId) { alert("Workspace não carregado."); return; }
-    // 🔒 MULTI-TENANT CRÍTICO
     await supabase.from("grupos_permissao").delete()
       .eq("id", id)
       .eq("workspace_id", workspaceId);
@@ -392,7 +387,6 @@ export default function Configuracoes() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 20 : 28 }}>
 
-      {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{
           width: 48, height: 48, borderRadius: 14,
@@ -405,7 +399,6 @@ export default function Configuracoes() {
         <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Configurações do Workspace</h1>
       </div>
 
-      {/* 🔒 Fallback */}
       {!isDono && !isSuperAdmin && !permissoes.usuarios_gerenciar && !permissoes.filas && !permissoes.grupos_permissao && !permissoes.configuracoes_workspace && (
         <div style={{ ...cardStyle, padding: 32, textAlign: "center", borderLeft: "4px solid #dc2626", background: "#fef2f2", borderColor: "#fecaca" }}>
           <div style={{
@@ -422,7 +415,6 @@ export default function Configuracoes() {
         </div>
       )}
 
-      {/* ═══ USUÁRIOS ═══ */}
       {(isDono || isSuperAdmin || permissoes.usuarios_gerenciar) && (
       <div style={{ ...cardStyle, overflow: "hidden" }}>
         <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
@@ -672,7 +664,6 @@ export default function Configuracoes() {
       </div>
       )}
 
-      {/* ═══ FILAS ═══ */}
       {(isDono || isSuperAdmin || permissoes.filas) && (
       <div style={{ ...cardStyle, overflow: "hidden" }}>
         <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
@@ -751,7 +742,6 @@ export default function Configuracoes() {
       </div>
       )}
 
-      {/* ═══ GRUPOS DE PERMISSÃO ═══ */}
       {(isDono || isSuperAdmin || permissoes.grupos_permissao) && (
       <div style={{ ...cardStyle, overflow: "hidden" }}>
         <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
@@ -910,12 +900,10 @@ export default function Configuracoes() {
       </div>
       )}
 
-      {/* ═══ CONFIGURAÇÕES GERAIS ═══ */}
       {(isDono || isSuperAdmin || permissoes.configuracoes_workspace) && (
         <ConfigGeraisWorkspace />
       )}
 
-      {/* 🚫 Roleta foi removida — vai pra Chatbot */}
       <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderLeft: "4px solid #3b82f6", borderRadius: 12, padding: "14px 18px" }}>
         <p style={{ color: "#1e40af", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
           💡 <b>A Roleta de Distribuição</b> agora fica em <b>Chatbot → Configurações → Roleta</b>, já que está mais relacionada ao fluxo de atendimento do que à configuração do workspace.
@@ -925,8 +913,8 @@ export default function Configuracoes() {
   );
 }
 
-// 🆕 ═══════════════════════════════════════════════════════════════════════
-// COMPONENTE: ConfigGeraisWorkspace
+// ═══════════════════════════════════════════════════════════════════════
+// CONFIG GERAIS DO WORKSPACE — bloqueio pós-finalização
 // ═══════════════════════════════════════════════════════════════════════
 function ConfigGeraisWorkspace() {
   const { workspace, wsId } = useWorkspace();
@@ -944,16 +932,19 @@ function ConfigGeraisWorkspace() {
   const salvar = async () => {
     if (!wsId) return;
     setSalvando(true);
+
+    // 1. Atualiza config do workspace
     const { error } = await supabase.from("workspaces")
       .update({ bloqueio_pos_finalizacao_horas: horasBloqueio })
       .eq("username", wsId);
 
-    // 🔧 FIX: se desativou (0h), limpa TODOS os bloqueios existentes imediatamente
+    // 2. Se desativou (0h), limpa TODOS os bloqueios existentes IMEDIATAMENTE
+    //    e reabre os atendimentos que estavam bloqueados (status volta pra "aberto"
+    //    se tinha atendente, ou "pendente" se não tinha).
     if (!error && horasBloqueio === 0) {
       await supabase.from("atendimentos")
         .update({ bloqueado_ate: null, atendente_finalizou: null })
         .eq("workspace_id", wsId)
-        .eq("status", "resolvido")
         .not("bloqueado_ate", "is", null);
     }
 
@@ -1029,7 +1020,6 @@ function ConfigGeraisWorkspace() {
             </button>
           )}
         </div>
-        {/* Atalhos rápidos */}
         <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
           {[0, 12, 24, 48, 72, 168].map(h => {
             const ativo = horasBloqueio === h;
