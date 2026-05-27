@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
@@ -52,6 +52,24 @@ export default function Vendas() {
   const [camposUnificados, setCamposUnificados] = useState<CampoUnificado[]>([]);
   const [slugsNaLista, setSlugsNaLista] = useState<Set<string>>(new Set());
 
+  // 🔎 Filtros dinâmicos por coluna (slug → valor)
+  const [filtrosColuna, setFiltrosColuna] = useState<Record<string, string>>({});
+
+  // 📏 Refs pro scrollbar superior sincronizado com o de baixo
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const topScrollerRef = useRef<HTMLDivElement>(null);
+  const tableInnerRef = useRef<HTMLTableElement>(null);
+  const [topInnerWidth, setTopInnerWidth] = useState(0);
+  const sincronizando = useRef(false);
+
+  // ⬆️⬇️ Botões flutuantes — mostra "topo" só quando rolou um pouco
+  const [scrollY, setScrollY] = useState(0);
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -59,6 +77,24 @@ export default function Vendas() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  // 📏 Mede a tabela pra dimensionar o scrollbar superior e ver se transborda
+  const [tabelaTransborda, setTabelaTransborda] = useState(false);
+  useEffect(() => {
+    const medir = () => {
+      if (tableContainerRef.current && tableInnerRef.current) {
+        const innerW = tableInnerRef.current.offsetWidth;
+        const containerW = tableContainerRef.current.offsetWidth;
+        setTopInnerWidth(innerW);
+        setTabelaTransborda(innerW > containerW + 1);
+      }
+    };
+    medir();
+    // Mede depois do paint também (cobre primeira renderização da tabela)
+    const t = setTimeout(medir, 50);
+    window.addEventListener("resize", medir);
+    return () => { clearTimeout(t); window.removeEventListener("resize", medir); };
+  });
 
   // Modal edição
   const [showModal, setShowModal] = useState(false);
@@ -151,6 +187,112 @@ export default function Vendas() {
     }
 
     return <span style={{ color: "#4b5563", fontSize: 12 }}>{String(raw)}</span>;
+  };
+
+  // ═══ Filtro por coluna — input apropriado por tipo ═══
+  const filtroInputStyle = {
+    width: "100%",
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 6,
+    padding: "4px 8px",
+    color: "#1f2937",
+    fontSize: 11,
+    boxSizing: "border-box" as const,
+    outline: "none",
+    fontWeight: 500,
+  };
+
+  const setarFiltroColuna = (slug: string, valor: string) => {
+    setFiltrosColuna(prev => {
+      const novo = { ...prev };
+      if (!valor) delete novo[slug];
+      else novo[slug] = valor;
+      return novo;
+    });
+  };
+
+  const renderFiltroColuna = (c: CampoUnificado): ReactNode => {
+    const val = filtrosColuna[c.slug] ?? "";
+
+    // Vendedor → dropdown com a lista de usuários do workspace
+    if (c.slug === "vendedor" || c.tipo === "vendedor") {
+      return (
+        <select value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle}>
+          <option value="">Todos</option>
+          {usuariosWs.map(u => <option key={u.email} value={u.email}>{u.nome}</option>)}
+        </select>
+      );
+    }
+
+    // Dropdowns em geral (status_venda, vencimento, e custom dropdowns)
+    if (c.tipo === "dropdown") {
+      const prefixoVenc = c.slug === "vencimento";
+      return (
+        <select value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle}>
+          <option value="">Todos</option>
+          {(c.opcoes || []).map(op => (
+            <option key={op} value={op}>{prefixoVenc ? `Dia ${op}` : op}</option>
+          ))}
+        </select>
+      );
+    }
+
+    // Checkbox → Sim / Não / Todos
+    if (c.tipo === "checkbox") {
+      return (
+        <select value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle}>
+          <option value="">Todos</option>
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option>
+        </select>
+      );
+    }
+
+    // Data → date input (filtra por data exata)
+    if (c.tipo === "data") {
+      return <input type="date" value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle} />;
+    }
+
+    // Default → texto contém
+    return <input placeholder="filtrar..." value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle} />;
+  };
+
+  // Aplica TODOS os filtros de coluna sobre uma proposta
+  const passaFiltrosColuna = (p: Proposta): boolean => {
+    for (const [slug, valor] of Object.entries(filtrosColuna)) {
+      if (!valor) continue;
+      const campo = camposUnificados.find(c => c.slug === slug);
+      if (!campo) continue;
+
+      const raw = campo.origem === "fixo"
+        ? (p as any)[slug]
+        : p.dados_customizados?.[slug];
+
+      // Checkbox: compara booleano
+      if (campo.tipo === "checkbox") {
+        const esperado = valor === "sim";
+        if (!!raw !== esperado) return false;
+        continue;
+      }
+
+      // Dropdown e Vendedor: igualdade exata
+      if (campo.tipo === "dropdown" || campo.tipo === "vendedor" || slug === "vendedor") {
+        if (String(raw ?? "") !== valor) return false;
+        continue;
+      }
+
+      // Data: igualdade exata (formato YYYY-MM-DD)
+      if (campo.tipo === "data") {
+        if (String(raw ?? "") !== valor) return false;
+        continue;
+      }
+
+      // Padrão: contém (case-insensitive). Pra vendedor também tenta pelo nome amigável.
+      const txt = String(raw ?? "").toLowerCase();
+      if (!txt.includes(valor.toLowerCase())) return false;
+    }
+    return true;
   };
 
   const fetchPropostas = async (wsId: string) => {
@@ -424,7 +566,8 @@ export default function Vendas() {
       if (filtroDataInicio && dt < filtroDataInicio) return false;
       if (filtroDataFim && dt > filtroDataFim) return false;
       return true;
-    });
+    })
+    .filter(p => passaFiltrosColuna(p));
 
   // 📊 Colunas a renderizar na tabela:
   //    - se o editor marcou pelo menos 1 campo, usa apenas os marcados
@@ -551,8 +694,8 @@ export default function Vendas() {
           <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)} min={filtroDataInicio || undefined}
             style={{ background: "transparent", border: "none", color: "#1f2937", fontSize: 12, padding: "5px 0", outline: "none", fontWeight: 600 }} />
         </div>
-        {(busca || filtroStatus !== "todos" || filtroDataInicio || filtroDataFim) && (
-          <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltroDataInicio(""); setFiltroDataFim(""); }}
+        {(busca || filtroStatus !== "todos" || filtroDataInicio || filtroDataFim || Object.keys(filtrosColuna).length > 0) && (
+          <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltroDataInicio(""); setFiltroDataFim(""); setFiltrosColuna({}); }}
             style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
             ✕ Limpar filtros
           </button>
@@ -561,8 +704,37 @@ export default function Vendas() {
 
       {/* ═══ TABELA ═══ */}
       <div style={{ ...cardStyle, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
+        {/* 📏 Scrollbar superior sincronizado — só aparece se a tabela transborda */}
+        {tabelaTransborda && (
+          <div ref={topScrollerRef}
+            onScroll={() => {
+              if (sincronizando.current) return;
+              sincronizando.current = true;
+              if (tableContainerRef.current && topScrollerRef.current) {
+                tableContainerRef.current.scrollLeft = topScrollerRef.current.scrollLeft;
+              }
+              sincronizando.current = false;
+            }}
+            style={{
+              overflowX: "auto", overflowY: "hidden",
+              height: 14, borderBottom: "1px solid #f3f4f6",
+            }}>
+            <div style={{ width: topInnerWidth || "100%", height: 1 }} />
+          </div>
+        )}
+
+        <div ref={tableContainerRef}
+          onScroll={() => {
+            if (sincronizando.current) return;
+            sincronizando.current = true;
+            if (tableContainerRef.current && topScrollerRef.current) {
+              topScrollerRef.current.scrollLeft = tableContainerRef.current.scrollLeft;
+            }
+            sincronizando.current = false;
+          }}
+          style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table ref={tableInnerRef}
+            style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
             <thead>
               <tr style={{ background: "#f9fafb" }}>
                 {colunasTabela.map(c => (
@@ -575,6 +747,16 @@ export default function Vendas() {
                   style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>
                   Ações
                 </th>
+              </tr>
+              {/* 🔎 Linha de filtros por coluna */}
+              <tr style={{ background: "#fbfbfc" }}>
+                {colunasTabela.map(c => (
+                  <th key={`fil-${c.origem}-${c.slug}`}
+                    style={{ padding: "6px 12px", borderBottom: "1px solid #e5e7eb" }}>
+                    {renderFiltroColuna(c)}
+                  </th>
+                ))}
+                <th key="fil-acoes" style={{ padding: "6px 12px", borderBottom: "1px solid #e5e7eb" }}></th>
               </tr>
             </thead>
             <tbody>
@@ -717,6 +899,35 @@ export default function Vendas() {
           </div>
         </div>
       )}
+
+      {/* ═══ BOTÕES FLUTUANTES ↑↓ ═══ */}
+      <div style={{
+        position: "fixed", right: 16, bottom: 20, zIndex: 1500,
+        display: "flex", flexDirection: "column", gap: 6,
+      }}>
+        {scrollY > 200 && (
+          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            title="Ir para o topo"
+            style={{
+              width: 42, height: 42, borderRadius: "50%",
+              background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+              color: "white", border: "none", cursor: "pointer", fontSize: 18,
+              boxShadow: "0 6px 16px rgba(22,163,74,0.35)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontWeight: 700,
+            }}>↑</button>
+        )}
+        <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}
+          title="Ir para o fim"
+          style={{
+            width: 42, height: 42, borderRadius: "50%",
+            background: "#ffffff",
+            color: "#16a34a", border: "1px solid #bbf7d0", cursor: "pointer", fontSize: 18,
+            boxShadow: "0 6px 16px rgba(0,0,0,0.10)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontWeight: 700,
+          }}>↓</button>
+      </div>
     </div>
   );
 }
