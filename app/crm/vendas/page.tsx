@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
@@ -87,6 +87,69 @@ export default function Vendas() {
     if (!v) return "—";
     const u = usuariosWs.find(x => x.email?.toLowerCase() === v?.toLowerCase());
     return u?.nome || v;
+  };
+
+  // ═══ Renderização dinâmica de cada célula da tabela (respeita config do Editor) ═══
+  const renderCelulaTabela = (c: CampoUnificado, v: Proposta): ReactNode => {
+    const raw = c.origem === "fixo"
+      ? (v as any)[c.slug]
+      : v.dados_customizados?.[c.slug];
+
+    // Estilizações especiais por slug (mantêm visual original)
+    if (c.slug === "status_venda") {
+      const cor = statusColor[raw] || "#6b7280";
+      return raw ? (
+        <span style={{
+          background: `${cor}15`, color: cor, border: `1px solid ${cor}40`,
+          padding: "3px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap",
+        }}>{raw}</span>
+      ) : <span style={{ color: "#d1d5db" }}>—</span>;
+    }
+    if (c.slug === "valor_plano") {
+      return (
+        <span style={{ color: "#16a34a", fontSize: 13, fontWeight: 800, letterSpacing: -0.2, whiteSpace: "nowrap" }}>
+          R$ {Number(raw || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
+      );
+    }
+    if (c.slug === "vendedor") {
+      return <span style={{ color: "#4b5563", fontSize: 12 }}>{nomeVendedor(raw)}</span>;
+    }
+    if (c.slug === "nome") {
+      return <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 700 }}>{raw || <span style={{ color: "#d1d5db" }}>—</span>}</span>;
+    }
+    if (c.slug === "cpf") {
+      return <span style={{ color: "#6b7280", fontSize: 12, fontFamily: "monospace" }}>{raw || <span style={{ color: "#d1d5db" }}>—</span>}</span>;
+    }
+
+    // Vazios genéricos
+    if (raw === undefined || raw === null || raw === "") {
+      return <span style={{ color: "#d1d5db" }}>—</span>;
+    }
+
+    // Formatação por tipo
+    if (c.tipo === "data") {
+      try {
+        return <span style={{ color: "#6b7280", fontSize: 12, whiteSpace: "nowrap" }}>
+          {new Date(raw + "T00:00:00").toLocaleDateString("pt-BR")}
+        </span>;
+      } catch { return <span style={{ color: "#4b5563", fontSize: 12 }}>{String(raw)}</span>; }
+    }
+    if (c.tipo === "moeda") {
+      return <span style={{ color: "#4b5563", fontSize: 12, whiteSpace: "nowrap" }}>
+        R$ {Number(raw).toFixed(2).replace(".", ",")}
+      </span>;
+    }
+    if (c.tipo === "checkbox") {
+      return <span style={{ color: raw === true ? "#16a34a" : "#9ca3af", fontSize: 12, fontWeight: 600 }}>
+        {raw === true ? "✓ Sim" : "Não"}
+      </span>;
+    }
+    if (c.slug === "vencimento") {
+      return <span style={{ color: "#4b5563", fontSize: 12 }}>Dia {String(raw)}</span>;
+    }
+
+    return <span style={{ color: "#4b5563", fontSize: 12 }}>{String(raw)}</span>;
   };
 
   const fetchPropostas = async (wsId: string) => {
@@ -482,16 +545,23 @@ export default function Vendas() {
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
             <thead>
               <tr style={{ background: "#f9fafb" }}>
-                {["Cliente", "CPF", "Vendedor", "Plano", "Valor", "Status", "Data", "Ações"].map(h => (
-                  <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                {camposUnificados.map(c => (
+                  <th key={`th-${c.origem}-${c.slug}`}
+                    style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>
+                    {c.label}
+                  </th>
                 ))}
+                <th key="th-acoes"
+                  style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} style={{ padding: 32, color: "#6b7280", textAlign: "center", fontSize: 13 }}>⏳ Carregando...</td></tr>
+                <tr><td colSpan={camposUnificados.length + 1} style={{ padding: 32, color: "#6b7280", textAlign: "center", fontSize: 13 }}>⏳ Carregando...</td></tr>
               ) : propostasFiltradas.length === 0 ? (
-                <tr><td colSpan={8} style={{ padding: 48, textAlign: "center" }}>
+                <tr><td colSpan={camposUnificados.length + 1} style={{ padding: 48, textAlign: "center" }}>
                   <div style={{
                     width: 72, height: 72, borderRadius: 18,
                     background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
@@ -506,7 +576,6 @@ export default function Vendas() {
                   </p>
                 </td></tr>
               ) : propostasFiltradas.map((v, i) => {
-                const cor = statusColor[v.status_venda] || "#6b7280";
                 return (
                   <tr key={v.id}
                     style={{
@@ -517,22 +586,11 @@ export default function Vendas() {
                     onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
                     onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc"}
                   >
-                    <td style={{ padding: "12px 16px", color: "#1f2937", fontSize: 13, fontWeight: 700 }}>{v.nome}</td>
-                    <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12, fontFamily: "monospace" }}>{v.cpf || <span style={{ color: "#d1d5db" }}>—</span>}</td>
-                    <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>{nomeVendedor(v.vendedor)}</td>
-                    <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>{v.plano || <span style={{ color: "#d1d5db" }}>—</span>}</td>
-                    <td style={{ padding: "12px 16px", color: "#16a34a", fontSize: 13, fontWeight: 800, letterSpacing: -0.2, whiteSpace: "nowrap" }}>
-                      R$ {(v.valor_plano || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <span style={{
-                        background: `${cor}15`, color: cor, border: `1px solid ${cor}40`,
-                        padding: "3px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap",
-                      }}>{v.status_venda}</span>
-                    </td>
-                    <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12, whiteSpace: "nowrap" }}>
-                      {v.data_proposta ? new Date(v.data_proposta).toLocaleDateString("pt-BR") : <span style={{ color: "#d1d5db" }}>—</span>}
-                    </td>
+                    {camposUnificados.map(c => (
+                      <td key={`td-${c.origem}-${c.slug}`} style={{ padding: "12px 16px" }}>
+                        {renderCelulaTabela(c, v)}
+                      </td>
+                    ))}
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={() => setPropostaVisualizando(v)} title="Visualizar"
