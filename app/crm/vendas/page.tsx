@@ -667,17 +667,6 @@ export default function Vendas() {
           {podeVerTudo && <EquipeSelector />}
 
           {podeEditarCamposCustom && (
-            <button onClick={() => router.push("/crm/equipes")} title="Gerenciar equipes"
-              style={{
-                flex: isMobile ? 1 : "0 0 auto",
-                background: "#f3e8ff", color: "#a855f7", border: "1px solid #ddd6fe",
-                borderRadius: 10, padding: "10px 18px", fontSize: 13,
-                cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap",
-              }}>
-              👥 Equipes
-            </button>
-          )}
-          {podeEditarCamposCustom && (
             <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos da proposta"
               style={{
                 flex: isMobile ? 1 : "0 0 auto",
