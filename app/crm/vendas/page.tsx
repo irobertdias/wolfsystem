@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
+import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
 import {
   CAMPOS_FIXOS_MAP,
   STATUS_OPCOES,
@@ -23,8 +24,9 @@ type Proposta = {
   data_agendamento?: string; periodo_instalacao?: string;
   data_instalacao?: string; data_cancelamento?: string;
   dados_customizados?: Record<string, any>;
+  equipe_id?: string | null;
 };
-type UsuarioWs = { email: string; nome: string; };
+type UsuarioWs = { email: string; nome: string; equipe_id?: string | null; };
 
 const statusColor: Record<string, string> = {
   PENDENTE: "#f59e0b",
@@ -41,6 +43,9 @@ export default function Vendas() {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [loading, setLoading] = useState(true);
   const [workspaceId, setWorkspaceId] = useState("");
+
+  // 👥 Filtro por equipe (dropdown que aparece pro admin)
+  const { equipes, equipeId, EquipeSelector } = useEquipeFiltro(workspaceId);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroDataInicio, setFiltroDataInicio] = useState("");
@@ -215,12 +220,15 @@ export default function Vendas() {
   const renderFiltroColuna = (c: CampoUnificado): ReactNode => {
     const val = filtrosColuna[c.slug] ?? "";
 
-    // Vendedor → dropdown com a lista de usuários do workspace
+    // Vendedor → dropdown com a lista de usuários do workspace (filtrada por equipe se houver)
     if (c.slug === "vendedor" || c.tipo === "vendedor") {
+      const vendedoresVisiveis = equipeId
+        ? usuariosWs.filter(u => u.equipe_id === equipeId)
+        : usuariosWs;
       return (
         <select value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle}>
           <option value="">Todos</option>
-          {usuariosWs.map(u => <option key={u.email} value={u.email}>{u.nome}</option>)}
+          {vendedoresVisiveis.map(u => <option key={u.email} value={u.email}>{u.nome}</option>)}
         </select>
       );
     }
@@ -317,11 +325,11 @@ export default function Vendas() {
   const fetchUsuariosWs = async (wsId: string, wsData?: any) => {
     const lista: UsuarioWs[] = [];
     const ws = wsData || (await supabase.from("workspaces").select("nome, owner_email, username, id").or(`username.eq.${wsId},id.eq.${wsId}`).maybeSingle()).data;
-    if (ws?.owner_email) lista.push({ email: ws.owner_email, nome: ws.nome || "Dono" });
-    const { data: subs } = await supabase.from("usuarios_workspace").select("email, nome").eq("workspace_id", wsId);
+    if (ws?.owner_email) lista.push({ email: ws.owner_email, nome: ws.nome || "Dono", equipe_id: null });
+    const { data: subs } = await supabase.from("usuarios_workspace").select("email, nome, equipe_id").eq("workspace_id", wsId);
     for (const s of (subs || [])) {
       if (s.email && !lista.find(x => x.email?.toLowerCase() === s.email?.toLowerCase())) {
-        lista.push({ email: s.email, nome: s.nome || s.email });
+        lista.push({ email: s.email, nome: s.nome || s.email, equipe_id: s.equipe_id });
       }
     }
     setUsuariosWs(lista);
@@ -558,6 +566,7 @@ export default function Vendas() {
 
   const propostasFiltradas = propostas
     .filter(p => podeVerTudo || (p.vendedor && p.vendedor.toLowerCase() === userEmail.toLowerCase()))
+    .filter(p => !equipeId || p.equipe_id === equipeId)
     .filter(p => filtroStatus === "todos" || p.status_venda === filtroStatus)
     .filter(p => !busca || p.nome?.toLowerCase().includes(busca.toLowerCase()) || p.cpf?.includes(busca) || nomeVendedor(p.vendedor).toLowerCase().includes(busca.toLowerCase()))
     .filter(p => {
@@ -653,7 +662,21 @@ export default function Vendas() {
             </p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          {/* 👥 Seletor de Equipe — só pra quem pode ver tudo, e só se houver equipes */}
+          {podeVerTudo && <EquipeSelector />}
+
+          {podeEditarCamposCustom && (
+            <button onClick={() => router.push("/crm/equipes")} title="Gerenciar equipes"
+              style={{
+                flex: isMobile ? 1 : "0 0 auto",
+                background: "#f3e8ff", color: "#a855f7", border: "1px solid #ddd6fe",
+                borderRadius: 10, padding: "10px 18px", fontSize: 13,
+                cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap",
+              }}>
+              👥 Equipes
+            </button>
+          )}
           {podeEditarCamposCustom && (
             <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos da proposta"
               style={{
