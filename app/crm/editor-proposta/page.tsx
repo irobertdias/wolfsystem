@@ -107,7 +107,23 @@ export default function EditorProposta() {
       }));
 
       const lista = montarCamposUnificados(configs, customs);
-      setCampos(lista);
+
+      // 📊 Enriquece cada campo com mostrar_na_lista (lido das tabelas brutas)
+      const mostrarFixoMap = new Map<string, boolean>();
+      for (const c of (respConfig.data || [])) {
+        mostrarFixoMap.set(c.campo_slug, !!c.mostrar_na_lista);
+      }
+      const mostrarCustomMap = new Map<string, boolean>();
+      for (const c of (respCustom.data || [])) {
+        mostrarCustomMap.set(c.slug, !!c.mostrar_na_lista);
+      }
+      const enriquecida = lista.map(c => ({
+        ...c,
+        mostrar_na_lista: c.origem === "fixo"
+          ? !!mostrarFixoMap.get(c.slug)
+          : !!mostrarCustomMap.get(c.slug),
+      }));
+      setCampos(enriquecida as any);
     } catch (e) {
       console.error("[EditorProposta] erro fetch:", e);
     }
@@ -128,7 +144,7 @@ export default function EditorProposta() {
       ordem: maxOrdem + 1,
       opcoes: [],
     };
-    setCampos([...campos, novo]);
+    setCampos([...campos, { ...novo, mostrar_na_lista: true } as any]);
   };
 
   const atualizar = (idx: number, patch: Partial<CampoUnificado>) => {
@@ -234,11 +250,15 @@ export default function EditorProposta() {
         const placeholderMudou = (c.placeholder || "").trim() !== (def.placeholderPadrao || "");
         const placeholderFinal = placeholderMudou ? (c.placeholder || null) : null;
 
+        // 📊 Detecta mudança no "mostrar na tela principal"
+        const mostrarNaListaAtual = !!(c as any).mostrar_na_lista;
+        const mostrarMudou = mostrarNaListaAtual !== false; // default é false
+
         const labelCustomFinal = labelMudou ? c.label.trim() : null;
         const obrigatorioFinal = obrigMudou ? c.obrigatorio : null;
         const ordemFinal = ordemMudou ? c.ordem : null;
 
-        if (!labelMudou && !obrigMudou && !ordemMudou && !opcoesMudou && !placeholderMudou && c.visivel) {
+        if (!labelMudou && !obrigMudou && !ordemMudou && !opcoesMudou && !placeholderMudou && !mostrarMudou && c.visivel) {
           if (c.idConfig) {
             await supabase.from("proposta_campos_padrao_config")
               .delete()
@@ -257,6 +277,7 @@ export default function EditorProposta() {
           ordem: ordemFinal,
           opcoes: opcoesFinal,
           placeholder_custom: placeholderFinal,
+          mostrar_na_lista: mostrarNaListaAtual,
         };
 
         if (c.idConfig) {
@@ -306,6 +327,7 @@ export default function EditorProposta() {
 
       for (const c of customsComSlug) {
         const existeId = slugsExistentes.get(c.slug);
+        const mostrarNaLista = !!(c as any).mostrar_na_lista;
         if (existeId) {
           await supabase.from("proposta_campos_customizados").update({
             label: c.label,
@@ -315,6 +337,7 @@ export default function EditorProposta() {
             opcoes: c.tipo === "dropdown" ? (c.opcoes || []).filter(o => o.trim()) : null,
             ativo: true,
             placeholder: c.placeholder || null,
+            mostrar_na_lista: mostrarNaLista,
           }).eq("id", existeId).eq("workspace_id", workspace.username);
         } else {
           await supabase.from("proposta_campos_customizados").insert([{
@@ -327,6 +350,7 @@ export default function EditorProposta() {
             opcoes: c.tipo === "dropdown" ? (c.opcoes || []).filter(o => o.trim()) : null,
             ativo: true,
             placeholder: c.placeholder || null,
+            mostrar_na_lista: mostrarNaLista,
           }]);
         }
       }
@@ -573,6 +597,27 @@ export default function EditorProposta() {
                       {campo.visivel ? "👁️ Visível" : "🙈 Oculto"}
                     </span>
                   </label>
+
+                  {/* 📊 Visualizar na tela principal (lista de Vendas) */}
+                  {(() => {
+                    const mostraNaLista = !!(campo as any).mostrar_na_lista;
+                    return (
+                      <label style={{
+                        display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                        background: mostraNaLista ? "#f0fdf4" : "#f9fafb",
+                        border: `1px solid ${mostraNaLista ? "#bbf7d0" : "#e5e7eb"}`,
+                        padding: "5px 12px", borderRadius: 8,
+                        transition: "all 0.15s",
+                      }}>
+                        <input type="checkbox" checked={mostraNaLista}
+                          onChange={(e) => atualizar(idx, { mostrar_na_lista: e.target.checked } as any)}
+                          style={{ accentColor: "#16a34a", width: 15, height: 15, cursor: "pointer" }} />
+                        <span style={{ color: mostraNaLista ? "#16a34a" : "#6b7280", fontSize: 12, fontWeight: 600 }}>
+                          📊 Visualizar na tela principal
+                        </span>
+                      </label>
+                    );
+                  })()}
 
                   {/* Placeholder */}
                   {(campo.tipo === "texto" || campo.tipo === "textarea" || campo.tipo === "numero" || campo.tipo === "moeda" || campo.tipo === "telefone" || campo.tipo === "email") && (

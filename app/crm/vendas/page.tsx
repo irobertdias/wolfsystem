@@ -50,6 +50,7 @@ export default function Vendas() {
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
 
   const [camposUnificados, setCamposUnificados] = useState<CampoUnificado[]>([]);
+  const [slugsNaLista, setSlugsNaLista] = useState<Set<string>>(new Set());
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -207,6 +208,17 @@ export default function Vendas() {
       opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" ? JSON.parse(c.opcoes) : []),
       placeholder: c.placeholder, ativo: c.ativo,
     }));
+
+    // 📊 Slugs marcados pelo editor pra aparecer na tabela principal
+    const slugs = new Set<string>();
+    for (const c of (respConfig.data || [])) {
+      if (c.mostrar_na_lista) slugs.add(c.campo_slug);
+    }
+    for (const c of (respCustom.data || [])) {
+      if (c.mostrar_na_lista) slugs.add(c.slug);
+    }
+    setSlugsNaLista(slugs);
+
     setCamposUnificados(montarCamposUnificados(configs, customs).filter(c => c.visivel));
   };
 
@@ -414,6 +426,14 @@ export default function Vendas() {
       return true;
     });
 
+  // 📊 Colunas a renderizar na tabela:
+  //    - se o editor marcou pelo menos 1 campo, usa apenas os marcados
+  //    - se ninguém marcou nada (workspace recém-migrado), cai nos 7 clássicos
+  const COLUNAS_LEGADO = ["nome", "cpf", "vendedor", "plano", "valor_plano", "status_venda", "data_proposta"];
+  const colunasTabela = slugsNaLista.size > 0
+    ? camposUnificados.filter(c => slugsNaLista.has(c.slug))
+    : camposUnificados.filter(c => COLUNAS_LEGADO.includes(c.slug));
+
   const totalVisivel = propostasFiltradas.length;
   const totalGeral = propostas.length;
 
@@ -545,7 +565,7 @@ export default function Vendas() {
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
             <thead>
               <tr style={{ background: "#f9fafb" }}>
-                {camposUnificados.map(c => (
+                {colunasTabela.map(c => (
                   <th key={`th-${c.origem}-${c.slug}`}
                     style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>
                     {c.label}
@@ -559,9 +579,9 @@ export default function Vendas() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={camposUnificados.length + 1} style={{ padding: 32, color: "#6b7280", textAlign: "center", fontSize: 13 }}>⏳ Carregando...</td></tr>
+                <tr><td colSpan={colunasTabela.length + 1} style={{ padding: 32, color: "#6b7280", textAlign: "center", fontSize: 13 }}>⏳ Carregando...</td></tr>
               ) : propostasFiltradas.length === 0 ? (
-                <tr><td colSpan={camposUnificados.length + 1} style={{ padding: 48, textAlign: "center" }}>
+                <tr><td colSpan={colunasTabela.length + 1} style={{ padding: 48, textAlign: "center" }}>
                   <div style={{
                     width: 72, height: 72, borderRadius: 18,
                     background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
@@ -586,7 +606,7 @@ export default function Vendas() {
                     onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
                     onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc"}
                   >
-                    {camposUnificados.map(c => (
+                    {colunasTabela.map(c => (
                       <td key={`td-${c.origem}-${c.slug}`} style={{ padding: "12px 16px" }}>
                         {renderCelulaTabela(c, v)}
                       </td>
