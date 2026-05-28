@@ -73,6 +73,8 @@ export default function TemplatesPage() {
   const [enviando, setEnviando] = useState(false);
   const [detalhe, setDetalhe] = useState<Template | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
+  // 🆕 Filtro de canal — ids dos canais marcados pra exibição (vazio = mostra todos)
+  const [canaisSelecionados, setCanaisSelecionados] = useState<number[]>([]);
 
   const podeAcessar = isDono;
 
@@ -255,6 +257,12 @@ export default function TemplatesPage() {
     setForm(p => ({ ...p, botoes: p.botoes.map((b, idx) => idx === i ? { ...b, [campo]: valor } : b) }));
   };
 
+  // 🆕 Filtro de canal — helpers
+  const toggleCanalFiltro = (id: number) => {
+    setCanaisSelecionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const contarTemplatesCanal = (id: number) => templates.filter(t => t.canal_id === id).length;
+
   // 🎨 ESTILOS LIGHT TECH
   const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
   const cardStyle = {
@@ -287,6 +295,11 @@ export default function TemplatesPage() {
   // Contagem de variáveis detectadas no body
   const varsBody = (form.body.match(/\{\{\d+\}\}/g) || []).length;
 
+  // 🆕 Templates exibidos conforme os canais marcados no filtro (vazio = todos)
+  const templatesFiltrados = canaisSelecionados.length === 0
+    ? templates
+    : templates.filter(t => canaisSelecionados.includes(t.canal_id));
+
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#f8fafc", minHeight: "100vh" }}>
 
@@ -316,7 +329,7 @@ export default function TemplatesPage() {
           style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: sincronizando ? "wait" : "pointer", fontWeight: 700 }}>
           {sincronizando ? "⏳ Sincronizando..." : "🔄 Sincronizar agora"}
         </button>
-        <button onClick={() => { setForm(formInicial); setShowModal(true); }}
+        <button onClick={() => { setForm({ ...formInicial, canalId: canaisSelecionados.length === 1 ? String(canaisSelecionados[0]) : "" }); setShowModal(true); }}
           style={{
             background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
             color: "white", border: "none", borderRadius: 12,
@@ -346,9 +359,61 @@ export default function TemplatesPage() {
         </div>
       )}
 
+      {/* ═══ 🆕 FILTRO DE CANAL ═══ */}
+      {canais.length > 1 && (
+        <div style={{ ...cardStyle, padding: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+            <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>📡 Filtrar por canal</span>
+            {canaisSelecionados.length > 0 && (
+              <span style={{ color: "#3b82f6", fontSize: 11, fontWeight: 600 }}>
+                · mostrando {templatesFiltrados.length} de {templates.length} template(s)
+              </span>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {/* Todos */}
+            <button onClick={() => setCanaisSelecionados([])}
+              style={{
+                background: canaisSelecionados.length === 0 ? "#3b82f615" : "#f9fafb",
+                color: canaisSelecionados.length === 0 ? "#3b82f6" : "#6b7280",
+                border: `1px solid ${canaisSelecionados.length === 0 ? "#3b82f650" : "#e5e7eb"}`,
+                borderRadius: 10, padding: "8px 16px", fontSize: 12,
+                fontWeight: canaisSelecionados.length === 0 ? 700 : 600, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
+                transition: "all 0.15s",
+                boxShadow: canaisSelecionados.length === 0 ? "0 2px 8px #3b82f625" : "none",
+              }}>
+              📡 Todos ({templates.length})
+            </button>
+            {/* Um por canal */}
+            {canais.map(c => {
+              const ativo = canaisSelecionados.includes(c.id);
+              const n = contarTemplatesCanal(c.id);
+              return (
+                <button key={c.id} onClick={() => toggleCanalFiltro(c.id)}
+                  style={{
+                    background: ativo ? "#16a34a15" : "#f9fafb",
+                    color: ativo ? "#16a34a" : "#6b7280",
+                    border: `1px solid ${ativo ? "#16a34a50" : "#e5e7eb"}`,
+                    borderRadius: 10, padding: "8px 16px", fontSize: 12,
+                    fontWeight: ativo ? 700 : 600, cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
+                    transition: "all 0.15s",
+                    boxShadow: ativo ? "0 2px 8px #16a34a25" : "none",
+                  }}>
+                  {ativo ? "✅" : "📱"} {c.nome} ({n})
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ═══ LISTA DE TEMPLATES ═══ */}
       <div style={{ ...cardStyle, padding: 24 }}>
-        <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 18px" }}>📋 Meus Templates ({templates.length})</h2>
+        <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 18px" }}>
+          📋 Meus Templates ({canaisSelecionados.length === 0 ? templates.length : `${templatesFiltrados.length} de ${templates.length}`})
+        </h2>
         {templates.length === 0 ? (
           <div style={{ textAlign: "center", padding: 32 }}>
             <p style={{ fontSize: 40, margin: "0 0 10px" }}>📭</p>
@@ -356,9 +421,20 @@ export default function TemplatesPage() {
               Nenhum template cadastrado ainda. Clique em <b>+ Novo Template</b> pra começar.
             </p>
           </div>
+        ) : templatesFiltrados.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 32 }}>
+            <p style={{ fontSize: 40, margin: "0 0 10px" }}>🔍</p>
+            <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 14px" }}>
+              Nenhum template nos canais selecionados.
+            </p>
+            <button onClick={() => setCanaisSelecionados([])}
+              style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 10, padding: "8px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+              📡 Ver todos os canais
+            </button>
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {templates.map(t => {
+            {templatesFiltrados.map(t => {
               const canal = canais.find(c => c.id === t.canal_id);
               const color = STATUS_COLORS[t.status] || "#6b7280";
               const bodyComp = (t.componentes || []).find((c: any) => c.type === "BODY");

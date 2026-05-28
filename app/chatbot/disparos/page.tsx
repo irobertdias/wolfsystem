@@ -18,8 +18,27 @@ type Disparo = {
   pausado_motivo?: string; erro_msg?: string;
   tipo?: string; template_name?: string;
   iniciado_em?: string; finalizado_em?: string; created_at: string;
+  // 🗓️ Agendamento (timestamp em UTC). Se preenchido e no futuro, o worker
+  // ignora o disparo até a hora marcada. Ver migration-disparos-agendamento.sql.
+  agendado_para?: string;
 };
 type ContatoWaba = { numero: string; vars: Record<string, string>; };
+
+// 🗓️ Helpers de agendamento
+// Retorna "YYYY-MM-DDTHH:MM" pra <input type="datetime-local"> em hora LOCAL.
+const formatarDatetimeLocal = (d: Date): string => {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+// Default sugerido quando ligam o agendamento: amanhã 00:00 (era o exemplo do user).
+const proxAmanhaMidnight = (): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(0, 0, 0, 0);
+  return formatarDatetimeLocal(d);
+};
+// "agora" formatado pra o atributo `min` do input (não deixa escolher passado).
+const agoraDatetimeLocal = (): string => formatarDatetimeLocal(new Date());
 
 export default function DisparosPage() {
   const router = useRouter();
@@ -48,6 +67,11 @@ export default function DisparosPage() {
   const [contatosDetalhe, setContatosDetalhe] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 🗓️ Estado do agendamento
+  // agendarAtivo = checkbox "agendar pra mais tarde". agendarPara = string datetime-local.
+  const [agendarAtivo, setAgendarAtivo] = useState(false);
+  const [agendarPara, setAgendarPara] = useState("");
+
   // 🆕 FIX PERMISSÃO:
   // Antes: `isDono || permissoes.supervisor` → "supervisor" não existe no tipo Permissoes, SEMPRE bloqueava.
   // Agora: respeita a permissão granular `disparo_enviar` OU perfil Administrador OU dono do workspace.
@@ -70,6 +94,11 @@ export default function DisparosPage() {
     setContatosWaba([]);
     setNumerosTexto("");
   }, [tipoDisparo]);
+
+  // 🗓️ Quando liga o agendamento e ainda não definiu horário, preenche "amanhã 00:00"
+  useEffect(() => {
+    if (agendarAtivo && !agendarPara) setAgendarPara(proxAmanhaMidnight());
+  }, [agendarAtivo, agendarPara]);
 
   const wa = async (rota: string, body?: object) => {
     if (body !== undefined) {
@@ -147,6 +176,17 @@ export default function DisparosPage() {
     return Array.from(vars).sort((a, b) => parseInt(a) - parseInt(b));
   };
 
+  // 🗓️ Valida e converte agendarPara pra ISO (UTC) — ou null se desligado.
+  // Retorna { ok, iso, erro } pra os handlers tratarem antes do confirm.
+  const resolverAgendamento = (): { ok: boolean; iso: string | null; erro?: string } => {
+    if (!agendarAtivo) return { ok: true, iso: null };
+    if (!agendarPara) return { ok: false, iso: null, erro: "Defina a data e hora do agendamento." };
+    const dt = new Date(agendarPara); // datetime-local é interpretado em hora LOCAL
+    if (isNaN(dt.getTime())) return { ok: false, iso: null, erro: "Data/hora inválida." };
+    if (dt.getTime() <= Date.now() + 30_000) return { ok: false, iso: null, erro: "O agendamento precisa ser pelo menos 30s no futuro." };
+    return { ok: true, iso: dt.toISOString() };
+  };
+
   const handleCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -197,20 +237,32 @@ export default function DisparosPage() {
     if (delayMin < 30) return alert("Delay mínimo deve ser pelo menos 30 segundos");
     if (delayMin > delayMax) return alert("Delay mínimo não pode ser maior que o máximo");
 
+    // 🗓️ valida agendamento (se ativo)
+    const ag = resolverAgendamento();
+    if (!ag.ok) return alert("⚠️ " + ag.erro);
+
     const avisoDelay = delayMin < 60 ? `\n\n⚠️ ATENÇÃO: Delay abaixo de 60s aumenta MUITO o risco de banimento!` : "";
     const tempoEstimadoMin = Math.ceil((numeros.length * (delayMin + delayMax) / 2) / 60);
-    if (!confirm(`Iniciar disparo WebJS?\n\n📱 Números: ${numeros.length}\n⏱️ Delay: ${delayMin}-${delayMax}s\n⏳ Estimado: ~${tempoEstimadoMin}min${avisoDelay}`)) return;
+    const linhaAgenda = ag.iso ? `\n🗓️ Agendado pra: ${new Date(ag.iso).toLocaleString("pt-BR")}` : "";
+    if (!confirm(`Iniciar disparo WebJS?\n\n📱 Números: ${numeros.length}\n⏱️ Delay: ${delayMin}-${delayMax}s\n⏳ Estimado: ~${tempoEstimadoMin}min${linhaAgenda}${avisoDelay}`)) return;
 
     setEnviando(true);
     try {
       const resp = await wa("disparos/criar", {
         workspaceId: wsId, canalId: canalSelecionado, criadoPor: user?.email,
         nome: nome || null, mensagem, numeros,
-        delayMinSeg: delayMin, delayMaxSeg: delayMax
+        delayMinSeg: delayMin, delayMaxSeg: delayMax,
+        // 🗓️ Backend deve salvar em disparos.agendado_para. Se preenchido e
+        // no futuro, o worker NÃO inicia até o horário chegar.
+        agendarPara: ag.iso,
       });
       if (resp.success) {
-        alert(`✅ Disparo iniciado!\n\n${resp.totalContatos} números na fila.`);
+        const msgOk = ag.iso
+          ? `✅ Disparo agendado!\n\n${resp.totalContatos} números na fila.\n🗓️ Vai começar em: ${new Date(ag.iso).toLocaleString("pt-BR")}`
+          : `✅ Disparo iniciado!\n\n${resp.totalContatos} números na fila.`;
+        alert(msgOk);
         setMensagem(""); setNumerosTexto(""); setNome("");
+        setAgendarAtivo(false); setAgendarPara("");
         fetchDisparos();
       } else alert("❌ Erro: " + (resp.error || "desconhecido"));
     } catch (e: any) { alert("❌ Erro: " + e.message); }
@@ -236,7 +288,12 @@ export default function DisparosPage() {
       if (!confirm(`⚠️ As variáveis {{${varsSemValor.join("}}, {{")}}} não têm valor definido.\n\nElas serão enviadas LITERALMENTE ({{1}}, etc) se não tiverem valor. Continuar mesmo assim?`)) return;
     }
 
-    if (!confirm(`Iniciar disparo WABA?\n\n📱 Contatos: ${contatosFinal.length}\n📋 Template: ${templates.find(t => t.id === templateSelecionado)?.nome_amigavel}\n⏱️ Delay: ${delayMin}-${delayMax}s`)) return;
+    // 🗓️ valida agendamento (se ativo)
+    const ag = resolverAgendamento();
+    if (!ag.ok) return alert("⚠️ " + ag.erro);
+
+    const linhaAgenda = ag.iso ? `\n🗓️ Agendado pra: ${new Date(ag.iso).toLocaleString("pt-BR")}` : "";
+    if (!confirm(`Iniciar disparo WABA?\n\n📱 Contatos: ${contatosFinal.length}\n📋 Template: ${templates.find(t => t.id === templateSelecionado)?.nome_amigavel}\n⏱️ Delay: ${delayMin}-${delayMax}s${linhaAgenda}`)) return;
 
     setEnviando(true);
     try {
@@ -246,11 +303,17 @@ export default function DisparosPage() {
         templateId: templateSelecionado,
         varsFixas,
         contatos: contatosFinal,
-        delayMinSeg: delayMin, delayMaxSeg: delayMax
+        delayMinSeg: delayMin, delayMaxSeg: delayMax,
+        // 🗓️ Mesmo padrão: backend salva em disparos.agendado_para e adia o worker.
+        agendarPara: ag.iso,
       });
       if (resp.success) {
-        alert(`✅ Disparo WABA iniciado!\n\n${resp.totalContatos} contatos na fila.`);
+        const msgOk = ag.iso
+          ? `✅ Disparo WABA agendado!\n\n${resp.totalContatos} contatos na fila.\n🗓️ Vai começar em: ${new Date(ag.iso).toLocaleString("pt-BR")}`
+          : `✅ Disparo WABA iniciado!\n\n${resp.totalContatos} contatos na fila.`;
+        alert(msgOk);
         setNome(""); setVarsFixas({}); setContatosWaba([]); setNumerosTexto("");
+        setAgendarAtivo(false); setAgendarPara("");
         fetchDisparos();
       } else alert("❌ Erro: " + (resp.error || "desconhecido"));
     } catch (e: any) { alert("❌ Erro: " + e.message); }
@@ -280,11 +343,22 @@ export default function DisparosPage() {
 
   const statusColor: Record<string, string> = {
     pendente: "#f59e0b", rodando: "#3b82f6", pausado: "#f59e0b",
-    concluido: "#16a34a", cancelado: "#6b7280", erro: "#dc2626"
+    concluido: "#16a34a", cancelado: "#6b7280", erro: "#dc2626",
+    // 🗓️ Novo status visual pra disparo aguardando o horário marcado
+    agendado: "#8b5cf6"
   };
   const statusLabel: Record<string, string> = {
     pendente: "⏳ Pendente", rodando: "🚀 Enviando", pausado: "⏸️ Pausado",
-    concluido: "✅ Concluído", cancelado: "🛑 Cancelado", erro: "❌ Erro"
+    concluido: "✅ Concluído", cancelado: "🛑 Cancelado", erro: "❌ Erro",
+    agendado: "🗓️ Agendado"
+  };
+
+  // 🗓️ Status "efetivo" pra exibição: se a linha tá pendente E tem agendado_para
+  // no futuro, mostramos como "agendado" (mesmo que o backend ainda use "pendente").
+  // Assim o user vê "🗓️ Agendado" no histórico mesmo com backend antigo.
+  const statusEfetivo = (d: Disparo): string => {
+    if (d.agendado_para && d.status === "pendente" && new Date(d.agendado_para).getTime() > Date.now()) return "agendado";
+    return d.status;
   };
 
   // 🎨 ESTILOS LIGHT TECH
@@ -560,8 +634,70 @@ export default function DisparosPage() {
           )}
         </div>
 
+        {/* ═══ 🗓️ AGENDAMENTO ═══ */}
+        <div style={{
+          background: agendarAtivo ? "#faf5ff" : "#f9fafb",
+          border: `1px solid ${agendarAtivo ? "#a855f750" : "#e5e7eb"}`,
+          borderLeft: `4px solid ${agendarAtivo ? "#a855f7" : "#d1d5db"}`,
+          borderRadius: 12, padding: 16, marginBottom: 16,
+          transition: "all 0.15s",
+        }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+            <input type="checkbox" checked={agendarAtivo} onChange={e => setAgendarAtivo(e.target.checked)}
+              style={{ accentColor: "#a855f7", width: 16, height: 16 }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>🗓️ Agendar pra mais tarde</p>
+              <p style={{ color: "#6b7280", fontSize: 11, margin: "3px 0 0", lineHeight: 1.4 }}>
+                Ex.: subir a lista agora e disparar à 00h de amanhã. Sem isso marcado, o disparo começa na hora.
+              </p>
+            </div>
+          </label>
+
+          {agendarAtivo && (
+            <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 240px", minWidth: 220 }}>
+                <label style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>Data e hora de início</label>
+                <input type="datetime-local"
+                  value={agendarPara}
+                  min={agoraDatetimeLocal()}
+                  onChange={e => setAgendarPara(e.target.value)}
+                  style={{ ...IS, colorScheme: "light" }} />
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button onClick={() => setAgendarPara(proxAmanhaMidnight())}
+                  style={{ background: "#faf5ff", color: "#a855f7", border: "1px solid #a855f730", borderRadius: 8, padding: "8px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+                  Amanhã 00:00
+                </button>
+                <button onClick={() => { const d = new Date(); d.setHours(d.getHours()+1, 0, 0, 0); setAgendarPara(formatarDatetimeLocal(d)); }}
+                  style={{ background: "#faf5ff", color: "#a855f7", border: "1px solid #a855f730", borderRadius: 8, padding: "8px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+                  Próxima hora cheia
+                </button>
+                <button onClick={() => { const d = new Date(); d.setDate(d.getDate()+1); d.setHours(9, 0, 0, 0); setAgendarPara(formatarDatetimeLocal(d)); }}
+                  style={{ background: "#faf5ff", color: "#a855f7", border: "1px solid #a855f730", borderRadius: 8, padding: "8px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+                  Amanhã 09:00
+                </button>
+              </div>
+            </div>
+          )}
+
+          {agendarAtivo && agendarPara && (() => {
+            const dt = new Date(agendarPara);
+            if (isNaN(dt.getTime())) return null;
+            const diffMs = dt.getTime() - Date.now();
+            if (diffMs <= 0) {
+              return <p style={{ color: "#dc2626", fontSize: 11, margin: "10px 0 0", fontWeight: 600 }}>⚠️ Horário no passado — escolha um momento no futuro.</p>;
+            }
+            const horas = Math.floor(diffMs / 3_600_000);
+            const minutos = Math.floor((diffMs % 3_600_000) / 60_000);
+            const quando = horas >= 1 ? `daqui a ${horas}h ${minutos}min` : `daqui a ${minutos}min`;
+            return <p style={{ color: "#7e22ce", fontSize: 12, margin: "10px 0 0", fontWeight: 600 }}>
+              ⏰ Vai começar {quando} ({dt.toLocaleString("pt-BR")}).
+            </p>;
+          })()}
+        </div>
+
         <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
-          <button onClick={() => { setMensagem(""); setNumerosTexto(""); setNome(""); setVarsFixas({}); setContatosWaba([]); }}
+          <button onClick={() => { setMensagem(""); setNumerosTexto(""); setNome(""); setVarsFixas({}); setContatosWaba([]); setAgendarAtivo(false); setAgendarPara(""); }}
             style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
             🗑️ Limpar
           </button>
@@ -569,15 +705,21 @@ export default function DisparosPage() {
             style={{
               background: enviando || !canalConectado
                 ? "#9ca3af"
-                : (tipoDisparo === "waba"
-                  ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
-                  : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"),
+                : (agendarAtivo
+                  ? "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)"
+                  : (tipoDisparo === "waba"
+                    ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
+                    : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)")),
               color: "white", border: "none", borderRadius: 10,
               padding: "10px 28px", fontSize: 13,
               cursor: (enviando || !canalConectado) ? "not-allowed" : "pointer", fontWeight: 700,
-              boxShadow: (enviando || !canalConectado) ? "none" : (tipoDisparo === "waba" ? "0 4px 12px rgba(22,163,74,0.3)" : "0 4px 12px rgba(59,130,246,0.3)"),
+              boxShadow: (enviando || !canalConectado) ? "none" : (agendarAtivo ? "0 4px 12px rgba(168,85,247,0.3)" : (tipoDisparo === "waba" ? "0 4px 12px rgba(22,163,74,0.3)" : "0 4px 12px rgba(59,130,246,0.3)")),
             }}>
-            {enviando ? "⏳ Criando..." : `🚀 ENVIAR ${tipoDisparo === "waba" ? "WABA" : "WEBJS"}`}
+            {enviando
+              ? "⏳ Criando..."
+              : agendarAtivo
+                ? `🗓️ AGENDAR ${tipoDisparo === "waba" ? "WABA" : "WEBJS"}`
+                : `🚀 ENVIAR ${tipoDisparo === "waba" ? "WABA" : "WEBJS"}`}
           </button>
         </div>
       </div>
@@ -596,7 +738,10 @@ export default function DisparosPage() {
             {disparos.map(d => {
               const progresso = d.total_contatos ? Math.round(((d.total_enviados + d.total_falhas) / d.total_contatos) * 100) : 0;
               const ehWaba = d.tipo === "waba";
-              const cor = statusColor[d.status] || "#6b7280";
+              // 🗓️ Usa status "efetivo" — se pendente + agendado_para no futuro, vira "agendado"
+              const stat = statusEfetivo(d);
+              const cor = statusColor[stat] || "#6b7280";
+              const estaAgendado = stat === "agendado" && d.agendado_para;
               return (
                 <div key={d.id}
                   style={{
@@ -617,13 +762,19 @@ export default function DisparosPage() {
                       <p style={{ color: "#6b7280", fontSize: 11, margin: "4px 0 0" }}>
                         {ehWaba ? `Template: ${d.template_name}` : "Texto livre"} · 👤 {d.criado_por} · 🕐 {new Date(d.created_at).toLocaleString("pt-BR")}
                       </p>
+                      {/* 🗓️ Linha de "agendado pra" quando aplicável */}
+                      {estaAgendado && (
+                        <p style={{ color: "#7e22ce", fontSize: 12, margin: "6px 0 0", fontWeight: 700, background: "#faf5ff", border: "1px solid #a855f730", padding: "4px 10px", borderRadius: 8, display: "inline-block" }}>
+                          🗓️ Vai começar em {new Date(d.agendado_para!).toLocaleString("pt-BR")}
+                        </p>
+                      )}
                     </div>
                     <span style={{
                       background: `${cor}15`, color: cor,
                       border: `1px solid ${cor}40`,
                       fontSize: 11, padding: "5px 12px", borderRadius: 12, fontWeight: 700, whiteSpace: "nowrap",
                     }}>
-                      {statusLabel[d.status]}
+                      {statusLabel[stat] || stat}
                     </span>
                   </div>
                   <div style={{ background: "#f3f4f6", borderRadius: 20, height: 8, overflow: "hidden", marginBottom: 10 }}>
@@ -643,7 +794,7 @@ export default function DisparosPage() {
                     {d.status === "pausado" && <button onClick={() => retomarDisparo(d.id)}
                       style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>▶️ Retomar</button>}
                     {["rodando", "pausado", "pendente"].includes(d.status) && <button onClick={() => cancelarDisparo(d.id)}
-                      style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🛑 Cancelar</button>}
+                      style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🛑 {estaAgendado ? "Cancelar agendamento" : "Cancelar"}</button>}
                   </div>
                 </div>
               );
@@ -666,6 +817,12 @@ export default function DisparosPage() {
             </div>
 
             <div style={{ padding: "16px 22px", borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
+              {/* 🗓️ Se agendado, destaque no topo do modal */}
+              {disparoDetalhe.agendado_para && new Date(disparoDetalhe.agendado_para).getTime() > Date.now() && disparoDetalhe.status === "pendente" && (
+                <p style={{ color: "#7e22ce", fontSize: 12, margin: "0 0 10px", fontWeight: 700, background: "#faf5ff", border: "1px solid #a855f730", padding: "6px 12px", borderRadius: 8, display: "inline-block" }}>
+                  🗓️ Agendado pra começar em {new Date(disparoDetalhe.agendado_para).toLocaleString("pt-BR")}
+                </p>
+              )}
               <p style={{ color: "#1f2937", fontSize: 13, margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
                 {disparoDetalhe.tipo === "waba" ? `📋 Template: ${disparoDetalhe.template_name}\n\n` : ""}
                 {disparoDetalhe.mensagem}
