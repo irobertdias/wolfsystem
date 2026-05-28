@@ -4,11 +4,14 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useSoftphone } from "../../hooks/useSoftphone";
+import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
+import { montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom } from "../../lib/campos_proposta_definicao";
 
 type Atendimento = {
   id: number; created_at: string; updated_at?: string; numero: string; nome: string; mensagem: string;
   status: string; fila: string; atendente: string; workspace_id: string;
   canal_id?: number;
+  equipe_id?: string | null; // 🆕 equipe dona do atendimento (filtro de Equipes)
   // 🆕 origem da conversa (canal Meta): 'instagram' | 'messenger' | null
   origem?: string | null;
   email?: string; notas?: string; avaliacao?: number;
@@ -231,6 +234,11 @@ export function ChatSection() {
   const { permissoes, isDono } = usePermissao();
   // 🆕 Softphone — botão de ligar chama iniciarChamada(numero, nome)
   const { iniciarChamada } = useSoftphone();
+  // 👥 Filtro de equipe (mesmo padrão de Vendas / Contatos / Dashboard)
+  const { equipeId, EquipeSelector } = useEquipeFiltro(wsId || "");
+  // 🎯 Etapas do funil configuradas no workspace (mesma fonte do Funil de Vendas — multi-vertical).
+  // Cada item: { opcao, tipo } onde tipo = 'ganho' | 'perdido' | 'pipeline'. Vazio = usa fallback fixo.
+  const [funilEtapas, setFunilEtapas] = useState<{ opcao: string; tipo: "ganho" | "perdido" | "pipeline" }[]>([]);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   // 🆕 Ref do container de mensagens — usado pra ler scrollTop e saber se o user tá no fundo
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -606,6 +614,64 @@ export function ChatSection() {
       }
     })();
   }, [workspace, wsId]);
+
+  // 🎯 ═══════════════════════════════════════════════════════════════════════
+  // ETAPAS DO FUNIL CONFIGURADAS NO WORKSPACE (multi-vertical)
+  // ═══════════════════════════════════════════════════════════════════════
+  // Lê a MESMA config que o Funil de Vendas usa (proposta_campos_padrao_config +
+  // proposta_campos_customizados → montarCamposUnificados). Acha o campo de status
+  // (o salvo na config do funil em localStorage, ou por heurística), pega as opções
+  // dele e classifica cada uma em ganho/perdido/pipeline. Assim a aba "Funil" do
+  // contato fala a MESMA língua do Funil de Vendas. Se nada estiver configurado,
+  // a aba cai no fallback fixo (Novo Lead, etc).
+  const REGEX_GANHO_FUNIL = /instal|ganho|conclu|fechad|aprovad|pago|ativ|sucesso|vendid|efetiv|finaliz/i;
+  const REGEX_PERDIDO_FUNIL = /cancel|perd|recus|reprovad|inativ|desist|inadimpl/i;
+  useEffect(() => {
+    if (!wsId) return;
+    let cancel = false;
+    (async () => {
+      try {
+        const [respConfig, respCustom] = await Promise.all([
+          supabase.from("proposta_campos_padrao_config").select("*").eq("workspace_id", wsId),
+          supabase.from("proposta_campos_customizados").select("*").eq("workspace_id", wsId).eq("ativo", true).order("ordem", { ascending: true }),
+        ]);
+        const configs: ConfigCampoPadrao[] = (respConfig.data || []).map((c: any) => ({
+          id: c.id, campo_slug: c.campo_slug, label_custom: c.label_custom,
+          obrigatorio: c.obrigatorio, visivel: c.visivel, ordem: c.ordem,
+          opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" && c.opcoes ? JSON.parse(c.opcoes) : null),
+          placeholder_custom: c.placeholder_custom,
+        }));
+        const customs: CampoCustom[] = (respCustom.data || []).map((c: any) => ({
+          id: c.id, slug: c.slug, label: c.label, tipo: c.tipo,
+          obrigatorio: c.obrigatorio, ordem: c.ordem,
+          opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" ? JSON.parse(c.opcoes) : []),
+          placeholder: c.placeholder, ativo: c.ativo,
+        }));
+        const campos = montarCamposUnificados(configs, customs) as any[];
+        let cfg: any = null;
+        try { const raw = localStorage.getItem(`funil_config_v1__${wsId}`); cfg = raw ? JSON.parse(raw) : null; } catch {}
+        const dropdowns = campos.filter(c => c.tipo === "dropdown" && c.visivel !== false);
+        const statusField =
+          (cfg?.campoStatus && campos.find(c => c.slug === cfg.campoStatus)) ||
+          dropdowns.find(c => /status|situac|fase|etapa|estagio|estágio/i.test(c.slug) || /status|situac|fase|etapa/i.test(c.label)) ||
+          dropdowns[0];
+        const opcoes: string[] = (statusField?.opcoes || []) as string[];
+        const ganho: string[] = cfg?.statusGanho || [];
+        const perdido: string[] = cfg?.statusPerdido || [];
+        const etapas = opcoes.map(o => {
+          const tipo: "ganho" | "perdido" | "pipeline" =
+            (ganho.includes(o) || (ganho.length === 0 && REGEX_GANHO_FUNIL.test(o))) ? "ganho" :
+            (perdido.includes(o) || (perdido.length === 0 && REGEX_PERDIDO_FUNIL.test(o))) ? "perdido" :
+            "pipeline";
+          return { opcao: o, tipo };
+        });
+        if (!cancel) setFunilEtapas(etapas);
+      } catch (e) {
+        console.warn("[ChatSection] não consegui carregar etapas do funil (usa fallback fixo):", e);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [wsId]);
 
   const WA_BASE = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
   // 🆕 Backend wolf-meta — usado pra Instagram/Messenger (rotas /send/*)
@@ -1538,7 +1604,7 @@ export function ChatSection() {
       'status', 'atendente', 'fila', 'nome', 'mensagem', 'bloqueado_ia', 'bloqueado_fluxo',
       'bloqueado_typebot', 'bloqueado_contato', 'bloqueado_ate', 'atendente_finalizou',
       'funil_etapa', 'kanban_coluna', 'demanda', 'valor', 'email', 'notas', 'avaliacao',
-      'origem', 'updated_at'
+      'origem', 'updated_at', 'equipe_id'
     ];
     const mudou = camposChave.some(campo => atualizado[campo] !== atendimentoAtivo[campo]);
     if (mudou) {
@@ -1656,6 +1722,8 @@ export function ChatSection() {
   atendimentos.forEach(a => {
     const aba = classificarAba(a);
     if (!podeVerAtendimento(a, aba)) return;
+    // 👥 respeita o filtro de equipe (mesma regra da lista)
+    if (equipeId && a.equipe_id && a.equipe_id !== equipeId) return;
     contadoresAbas[aba]++;
   });
 
@@ -1703,6 +1771,9 @@ export function ChatSection() {
     .filter(a => filtroFila === "todas" || a.fila === filtroFila)
     .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente)
     .filter(a => filtroCanal === "todos" || String(a.canal_id) === filtroCanal)
+    // 👥 FILTRO DE EQUIPE — mostra os da equipe selecionada + os SEM equipe (pool não atribuído).
+    // Esconde só os de OUTRAS equipes. Assim "Aguardando" não fica vazia.
+    .filter(a => !equipeId || a.equipe_id === equipeId || !a.equipe_id)
     // 🆕 FILTRO DE TEMPO — aplicado por último pra não quebrar a lógica das abas
     .filter(a => {
       if (filtroTempo === "tudo") return true;
@@ -1725,261 +1796,38 @@ export function ChatSection() {
   const enviarMensagem = async () => {
     if (!mensagem || !atendimentoAtivo) return;
     if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal. Não é possível enviar.", "aviso"); return; }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // ✏️ MODO EDIÇÃO — atualiza histórico interno (cliente NÃO recebe edit)
-    // ═══════════════════════════════════════════════════════════════════
-    // Limitação: APIs do WhatsApp Web/WABA/Messenger/Instagram têm restrições
-    // pesadas pra edit. Como cliente já recebeu a mensagem original, o edit
-    // aqui é apenas no histórico interno do Wolf — útil pra corrigir typo em
-    // anotação interna ou pra supervisor revisar conversa depois.
     if (editandoMsg && editandoMsg.id) {
       setEnviandoMsg(true);
       try {
         const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
         const novoTexto = nomeHeader + mensagem.trim() + " *(editado)*";
-        const { error } = await supabase
-          .from("mensagens")
-          .update({ mensagem: novoTexto })
-          .eq("id", editandoMsg.id)
-          .eq("workspace_id", wsId); // 🔒 multi-tenant
-        if (error) {
-          notify(traduzirErro(error), "erro");
-        } else {
-          // Atualiza histórico local na hora (UX instantâneo)
+        const { error } = await supabase.from("mensagens").update({ mensagem: novoTexto }).eq("id", editandoMsg.id).eq("workspace_id", wsId);
+        if (error) { notify(traduzirErro(error), "erro"); }
+        else {
           setHistorico(h => h.map(m => m.id === editandoMsg.id ? { ...m, mensagem: novoTexto } : m));
           notify("Mensagem editada no histórico interno.", "info", "Cliente já recebeu a original (limite da API).");
-          setMensagem("");
-          setEditandoMsg(null);
+          setMensagem(""); setEditandoMsg(null);
         }
-      } catch (e: any) {
-        notify(traduzirErro(e), "erro");
-      }
+      } catch (e: any) { notify(traduzirErro(e), "erro"); }
       setEnviandoMsg(false);
       return;
     }
-
     setEnviandoMsg(true);
-    // 🆕 User enviou mensagem → ele claramente quer ver a própria msg, então volta pro fundo
     setStickyFundo(true);
     setTemMensagemNova(false);
     try {
       const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
       let mensagemFinal = nomeHeader + mensagem;
-
-      // ═══════════════════════════════════════════════════════════════════
-      // ↪️ MODO RESPONDER — concatena quote visual antes do texto novo
-      // ═══════════════════════════════════════════════════════════════════
-      // Cliente recebe a msg com a citação no topo. Não é o reply nativo do
-      // WhatsApp (que mostra "Respondendo a..." e leva pra original), mas é
-      // visualmente claro pro cliente entender a qual msg estamos respondendo.
-      // Funciona em TODOS os canais (WebJS, WABA, Messenger, Instagram).
       if (respondendoMsg && respondendoMsg.mensagem) {
-        const autorQuote = respondendoMsg.de === "cliente"
-          ? (atendimentoAtivo.nome || "Cliente")
-          : respondendoMsg.de === "bot" ? "BOT" : "Atendente";
-        // Tira marcador *(editado)* e cabeçalho *Nome*\n da citação pra limpar
-        const trechoCru = String(respondendoMsg.mensagem)
-          .replace(/^\*[^*]+\*\n/, "")
-          .replace(/\s*\*\(editado\)\*\s*$/, "");
+        const autorQuote = respondendoMsg.de === "cliente" ? (atendimentoAtivo.nome || "Cliente") : respondendoMsg.de === "bot" ? "BOT" : "Atendente";
+        const trechoCru = String(respondendoMsg.mensagem).replace(/^\*[^*]+\*\n/, "").replace(/\s*\*\(editado\)\*\s*$/, "");
         const trecho = trechoCru.length > 100 ? trechoCru.slice(0, 100) + "..." : trechoCru;
         mensagemFinal = `↪️ *${autorQuote}*: "${trecho}"\n\n${nomeHeader}${mensagem}`;
       }
-
-      // 🆕 ROTEAMENTO POR TIPO DO CANAL
-      // - meta/instagram/messenger → wolf-meta (porta 3002, /send/texto)
-      // - webjs/waba → wolf-whatsapp (fluxo atual via /api/whatsapp)
       const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
       const tipoCanal = canalAtual?.tipo;
       let resp: any;
-
       if (tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger") {
-        // 🆕 Wolf Meta — POST direto na VPS
-        // Pra canal tipo='meta', precisa saber a origem (Instagram ou Messenger)
-        // Estratégia: usa atendimento.origem (preenchido pelo handler ao criar)
-        // Fallback: olha a última mensagem do cliente no histórico
-        let origem: string | undefined;
-        if (tipoCanal === "instagram") origem = "instagram";
-        else if (tipoCanal === "messenger") origem = "messenger";
-        else if (atendimentoAtivo.origem) origem = atendimentoAtivo.origem;
-        else {
-          const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem);
-          if (ultimaCliente?.origem) origem = ultimaCliente.origem;
-          else origem = "messenger"; // último fallback
-        }
-
-        const r = await fetch(`${META_BASE}/send/texto`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workspaceId: wsId,
-            canalId: atendimentoAtivo.canal_id,
-            recipientId: atendimentoAtivo.numero,
-            texto: mensagemFinal,
-            atendimentoId: atendimentoAtivo.id,
-            origem: origem
-          })
-        });
-        const data = await r.json();
-        // wolf-meta retorna { sucesso, message_id } ou { erro } — adapta pro formato esperado
-        resp = data.sucesso ? { success: true } : { success: false, error: data.erro || "Erro no envio" };
-      } else {
-        // WhatsApp (webjs/waba) — fluxo original via wolf-whatsapp
-        // 🔒 MULTI-TENANT: workspaceId é OBRIGATÓRIO no backend agora.
-        resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
-      }
-
-      if (!resp.success) { notify(traduzirErro(resp.error || "Erro ao enviar"), "erro"); }
-      else {
-        setMensagem("");
-        setRespondendoMsg(null); // ↪️ limpa quote após envio com sucesso
-        // 🆕 Reseta altura do textarea pra 1 linha após enviar
-        if (mensagemTextareaRef.current) {
-          mensagemTextareaRef.current.style.height = "auto";
-        }
-      }
-    }
-    catch { notify("Falha ao enviar mensagem. Tente novamente.", "erro"); }
-    setEnviandoMsg(false);
-  };
-
-  // 🆕 EMOJI PICKER — insere emoji no texto da mensagem no cursor
-  const inserirEmoji = (emoji: string) => {
-    setMensagem(prev => prev + emoji);
-  };
-
-  // Filtra emojis pela busca (procura pelo char mesmo ou deixa passar todos se busca vazia)
-  const emojisVisiveis = (() => {
-    const cat = EMOJIS_CATEGORIAS.find(c => c.id === emojiCategoria);
-    if (!cat) return [];
-    if (!emojiBusca.trim()) return cat.emojis;
-    // Busca simples: se o char do emoji contém o texto, retorna
-    // (limitação: emojis não têm nome, então busca só filtra por aparência parcial)
-    return cat.emojis.filter(e => e.includes(emojiBusca));
-  })();
-
-  // 🆕 UPLOAD DE MÍDIA — quando user clica em 📎 e escolhe um arquivo
-  const handleArquivoSelecionado = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // 🆕 Detecta tipo do canal ATIVO pra escolher os limites corretos.
-    // - WhatsApp (webjs/waba): limites por tipo (5/16/16/100 MB) — Meta Cloud API
-    // - Wolf Meta (meta/instagram/messenger): 25 MB pra TODOS os tipos — Meta DM
-    //   E Instagram DM NÃO aceita documentos (só image/video/audio).
-    const canalAtual = canais.find(c => c.id === atendimentoAtivo?.canal_id);
-    const tipoCanal = canalAtual?.tipo;
-    const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
-
-    // Detecta tipo do arquivo
-    const ehVideo = file.type.startsWith("video/");
-    const ehImagem = file.type.startsWith("image/");
-    const ehAudio = file.type.startsWith("audio/");
-    const ehDocumento = !ehVideo && !ehImagem && !ehAudio;
-
-    // 🆕 BLOQUEIO INSTAGRAM: Instagram DM aceita imagem, vídeo, áudio E PDF.
-    // NÃO aceita .docx, .xlsx, .ppt, .zip, etc — só PDF entre os documentos.
-    // Doc oficial: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api/
-    if (ehCanalMeta && ehDocumento) {
-      let origemAtendimento: string | undefined;
-      if (tipoCanal === "instagram") origemAtendimento = "instagram";
-      else if (tipoCanal === "messenger") origemAtendimento = "messenger";
-      else if (atendimentoAtivo?.origem) origemAtendimento = atendimentoAtivo.origem;
-      else {
-        const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem);
-        origemAtendimento = ultimaCliente?.origem;
-      }
-      if (origemAtendimento === "instagram") {
-        const nomeLower = file.name.toLowerCase();
-        const ehPdf = nomeLower.endsWith(".pdf") || file.type === "application/pdf";
-        if (!ehPdf) {
-          notify("Instagram só aceita PDF como documento.", "aviso", "Word/Excel/ZIP não podem ser enviados. Converta pra PDF, ou envie como imagem.");
-          if (fileUploadRef.current) fileUploadRef.current.value = "";
-          return;
-        }
-      }
-    }
-
-    let limiteMB: number;
-    let tipoLabel: string;
-    let dica: string;
-
-    if (ehCanalMeta) {
-      // 🆕 Wolf Meta (Messenger/Instagram): 25 MB pra todos os tipos
-      limiteMB = 25;
-      tipoLabel = ehVideo ? "vídeo" : ehImagem ? "imagem" : ehAudio ? "áudio" : "documento";
-      dica = ehVideo
-        ? "Comprima o vídeo ou envie um link no texto."
-        : ehImagem
-        ? "Reduza a resolução ou converta pra JPEG."
-        : "Reduza o tamanho do arquivo.";
-    } else {
-      // 🐺 WhatsApp (webjs/waba): limites originais por tipo
-      // Fonte: https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#supported-media-types
-      if (ehVideo) {
-        limiteMB = 16;
-        tipoLabel = "vídeo";
-        dica = "Comprima o vídeo (apps como Video Compressor) ou envie um link do YouTube/Drive.";
-      } else if (ehImagem) {
-        limiteMB = 5;
-        tipoLabel = "imagem";
-        dica = "Reduza a resolução ou converta pra JPEG.";
-      } else if (ehAudio) {
-        limiteMB = 16;
-        tipoLabel = "áudio";
-        dica = "Áudio muito longo? Divida em partes ou envie como documento.";
-      } else {
-        limiteMB = 100;
-        tipoLabel = "documento";
-        dica = "Reduza o tamanho do arquivo ou envie pelo Google Drive.";
-      }
-    }
-
-    if (file.size > limiteMB * 1024 * 1024) {
-      const tamanhoMB = (file.size / 1024 / 1024).toFixed(1);
-      notify(
-        `${tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1)} muito grande (${tamanhoMB} MB).`,
-        "aviso",
-        `Limite do WhatsApp pra ${tipoLabel}: ${limiteMB} MB. ${dica}`
-      );
-      if (fileUploadRef.current) fileUploadRef.current.value = "";
-      return;
-    }
-
-    setArquivoSelecionado(file);
-    // Cria preview URL pra imagens/vídeos
-    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
-      const url = URL.createObjectURL(file);
-      setArquivoPreviewUrl(url);
-    } else {
-      setArquivoPreviewUrl("");
-    }
-    setLegendaArquivo("");
-    if (fileUploadRef.current) fileUploadRef.current.value = "";
-  };
-
-  const cancelarEnvioArquivo = () => {
-    if (arquivoPreviewUrl) URL.revokeObjectURL(arquivoPreviewUrl);
-    setArquivoSelecionado(null);
-    setArquivoPreviewUrl("");
-    setLegendaArquivo("");
-  };
-
-  const enviarMidia = async () => {
-    if (!arquivoSelecionado || !atendimentoAtivo) return;
-    if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal.", "aviso"); return; }
-    setEnviandoMidia(true);
-    setStickyFundo(true);
-    setTemMensagemNova(false);
-    try {
-      // 🆕 ROTEAMENTO POR TIPO DO CANAL (mesmo padrão do enviarMensagem)
-      const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
-      const tipoCanal = canalAtual?.tipo;
-      const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
-
-      if (ehCanalMeta) {
-        // 🆕 Wolf Meta — manda FormData pra /send/enviar-midia-arquivo
-        // Detecta origem (instagram/messenger), igual o enviarMensagem faz
         let origem: string | undefined;
         if (tipoCanal === "instagram") origem = "instagram";
         else if (tipoCanal === "messenger") origem = "messenger";
@@ -1989,7 +1837,102 @@ export function ChatSection() {
           if (ultimaCliente?.origem) origem = ultimaCliente.origem;
           else origem = "messenger";
         }
+        const r = await fetch(`${META_BASE}/send/texto`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspaceId: wsId, canalId: atendimentoAtivo.canal_id, recipientId: atendimentoAtivo.numero, texto: mensagemFinal, atendimentoId: atendimentoAtivo.id, origem: origem })
+        });
+        const data = await r.json();
+        resp = data.sucesso ? { success: true } : { success: false, error: data.erro || "Erro no envio" };
+      } else {
+        resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
+      }
+      if (!resp.success) { notify(traduzirErro(resp.error || "Erro ao enviar"), "erro"); }
+      else {
+        setMensagem("");
+        setRespondendoMsg(null);
+        if (mensagemTextareaRef.current) { mensagemTextareaRef.current.style.height = "auto"; }
+      }
+    }
+    catch { notify("Falha ao enviar mensagem. Tente novamente.", "erro"); }
+    setEnviandoMsg(false);
+  };
 
+  const inserirEmoji = (emoji: string) => { setMensagem(prev => prev + emoji); };
+
+  const emojisVisiveis = (() => {
+    const cat = EMOJIS_CATEGORIAS.find(c => c.id === emojiCategoria);
+    if (!cat) return [];
+    if (!emojiBusca.trim()) return cat.emojis;
+    return cat.emojis.filter(e => e.includes(emojiBusca));
+  })();
+
+  const handleArquivoSelecionado = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const canalAtual = canais.find(c => c.id === atendimentoAtivo?.canal_id);
+    const tipoCanal = canalAtual?.tipo;
+    const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
+    const ehVideo = file.type.startsWith("video/");
+    const ehImagem = file.type.startsWith("image/");
+    const ehAudio = file.type.startsWith("audio/");
+    const ehDocumento = !ehVideo && !ehImagem && !ehAudio;
+    if (ehCanalMeta && ehDocumento) {
+      let origemAtendimento: string | undefined;
+      if (tipoCanal === "instagram") origemAtendimento = "instagram";
+      else if (tipoCanal === "messenger") origemAtendimento = "messenger";
+      else if (atendimentoAtivo?.origem) origemAtendimento = atendimentoAtivo.origem;
+      else { const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem); origemAtendimento = ultimaCliente?.origem; }
+      if (origemAtendimento === "instagram") {
+        const nomeLower = file.name.toLowerCase();
+        const ehPdf = nomeLower.endsWith(".pdf") || file.type === "application/pdf";
+        if (!ehPdf) {
+          notify("Instagram só aceita PDF como documento.", "aviso", "Word/Excel/ZIP não podem ser enviados. Converta pra PDF, ou envie como imagem.");
+          if (fileUploadRef.current) fileUploadRef.current.value = ""; return;
+        }
+      }
+    }
+    let limiteMB: number; let tipoLabel: string; let dica: string;
+    if (ehCanalMeta) {
+      limiteMB = 25;
+      tipoLabel = ehVideo ? "vídeo" : ehImagem ? "imagem" : ehAudio ? "áudio" : "documento";
+      dica = ehVideo ? "Comprima o vídeo ou envie um link no texto." : ehImagem ? "Reduza a resolução ou converta pra JPEG." : "Reduza o tamanho do arquivo.";
+    } else {
+      if (ehVideo) { limiteMB = 16; tipoLabel = "vídeo"; dica = "Comprima o vídeo (apps como Video Compressor) ou envie um link do YouTube/Drive."; }
+      else if (ehImagem) { limiteMB = 5; tipoLabel = "imagem"; dica = "Reduza a resolução ou converta pra JPEG."; }
+      else if (ehAudio) { limiteMB = 16; tipoLabel = "áudio"; dica = "Áudio muito longo? Divida em partes ou envie como documento."; }
+      else { limiteMB = 100; tipoLabel = "documento"; dica = "Reduza o tamanho do arquivo ou envie pelo Google Drive."; }
+    }
+    if (file.size > limiteMB * 1024 * 1024) {
+      const tamanhoMB = (file.size / 1024 / 1024).toFixed(1);
+      notify(`${tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1)} muito grande (${tamanhoMB} MB).`, "aviso", `Limite do WhatsApp pra ${tipoLabel}: ${limiteMB} MB. ${dica}`);
+      if (fileUploadRef.current) fileUploadRef.current.value = ""; return;
+    }
+    setArquivoSelecionado(file);
+    if (file.type.startsWith("image/") || file.type.startsWith("video/")) { const url = URL.createObjectURL(file); setArquivoPreviewUrl(url); }
+    else { setArquivoPreviewUrl(""); }
+    setLegendaArquivo("");
+    if (fileUploadRef.current) fileUploadRef.current.value = "";
+  };
+
+  const cancelarEnvioArquivo = () => {
+    if (arquivoPreviewUrl) URL.revokeObjectURL(arquivoPreviewUrl);
+    setArquivoSelecionado(null); setArquivoPreviewUrl(""); setLegendaArquivo("");
+  };
+
+  const enviarMidia = async () => {
+    if (!arquivoSelecionado || !atendimentoAtivo) return;
+    if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal.", "aviso"); return; }
+    setEnviandoMidia(true); setStickyFundo(true); setTemMensagemNova(false);
+    try {
+      const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
+      const tipoCanal = canalAtual?.tipo;
+      const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
+      if (ehCanalMeta) {
+        let origem: string | undefined;
+        if (tipoCanal === "instagram") origem = "instagram";
+        else if (tipoCanal === "messenger") origem = "messenger";
+        else if (atendimentoAtivo.origem) origem = atendimentoAtivo.origem;
+        else { const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem); if (ultimaCliente?.origem) origem = ultimaCliente.origem; else origem = "messenger"; }
         const fd = new FormData();
         fd.append("arquivo", arquivoSelecionado);
         fd.append("recipientId", atendimentoAtivo.numero);
@@ -1998,53 +1941,33 @@ export function ChatSection() {
         fd.append("atendimentoId", String(atendimentoAtivo.id));
         fd.append("origem", origem);
         if (legendaArquivo) fd.append("legenda", legendaArquivo);
-
         const r = await fetch(`${META_BASE}/send/enviar-midia-arquivo`, { method: "POST", body: fd });
         const data = await r.json();
-        // Wolf Meta responde com { success/sucesso, erro? } — adapta pro formato esperado
-        if (!(data.success || data.sucesso)) {
-          notify(traduzirErro(data.erro || data.error || "Erro ao enviar arquivo"), "erro");
-        } else {
-          cancelarEnvioArquivo();
-        }
+        if (!(data.success || data.sucesso)) { notify(traduzirErro(data.erro || data.error || "Erro ao enviar arquivo"), "erro"); }
+        else { cancelarEnvioArquivo(); }
       } else {
-        // 🐺 WhatsApp (webjs/waba) — fluxo original via wolf-whatsapp
         const fd = new FormData();
         fd.append("arquivo", arquivoSelecionado);
         fd.append("numero", atendimentoAtivo.numero);
         fd.append("canalId", String(atendimentoAtivo.canal_id));
-        // 🔒 MULTI-TENANT: workspaceId obrigatório (proxy /api/whatsapp-midia repassa o FormData inteiro)
         fd.append("workspaceId", String(wsId));
         if (legendaArquivo) fd.append("legenda", legendaArquivo);
         const resp = await fetch(`${WA_BASE}/enviar-midia`, { method: "POST", body: fd });
         const data = await resp.json();
-        if (!data.success) {
-          notify(traduzirErro(data.error || "Erro ao enviar arquivo"), "erro");
-        } else {
-          cancelarEnvioArquivo();
-        }
+        if (!data.success) { notify(traduzirErro(data.error || "Erro ao enviar arquivo"), "erro"); }
+        else { cancelarEnvioArquivo(); }
       }
-    } catch (e: any) {
-      notify(traduzirErro(e), "erro");
-    }
+    } catch (e: any) { notify(traduzirErro(e), "erro"); }
     setEnviandoMidia(false);
   };
 
-  // 🆕 TEMPLATE WABA — calcula se passou 24h da última mensagem do cliente
-  // Só faz sentido em canais WABA (WebJS não tem limite de janela)
   const canalAtivo = canais.find(c => c.id === atendimentoAtivo?.canal_id);
   const ehCanalWaba = canalAtivo?.tipo === "waba";
 
   const { janelaExpirada, horasDesdeUltimaMsgCliente } = (() => {
-    if (!ehCanalWaba || historico.length === 0) {
-      return { janelaExpirada: false, horasDesdeUltimaMsgCliente: 0 };
-    }
-    // Pega a mensagem mais recente VINDA DO CLIENTE
+    if (!ehCanalWaba || historico.length === 0) { return { janelaExpirada: false, horasDesdeUltimaMsgCliente: 0 }; }
     const msgsCliente = historico.filter(m => m.de === "cliente");
-    if (msgsCliente.length === 0) {
-      // Nunca recebeu mensagem do cliente → janela nunca abriu → considera expirada
-      return { janelaExpirada: true, horasDesdeUltimaMsgCliente: 9999 };
-    }
+    if (msgsCliente.length === 0) { return { janelaExpirada: true, horasDesdeUltimaMsgCliente: 9999 }; }
     const ultimaMsgCliente = msgsCliente[msgsCliente.length - 1];
     const tempoMs = Date.now() - new Date(ultimaMsgCliente.created_at).getTime();
     const horas = tempoMs / (1000 * 60 * 60);
@@ -2054,16 +1977,11 @@ export function ChatSection() {
   const abrirModalTemplate = async () => {
     if (!atendimentoAtivo?.canal_id || !wsId) return;
     setShowTemplateModal(true);
-    // Busca templates aprovados do canal no Supabase direto (mais rápido que passar pelo backend)
-    const { data } = await supabase.from("templates_waba")
-      .select("*").eq("workspace_id", wsId).eq("canal_id", atendimentoAtivo.canal_id).eq("status", "aprovado")
-      .order("created_at", { ascending: false });
+    const { data } = await supabase.from("templates_waba").select("*").eq("workspace_id", wsId).eq("canal_id", atendimentoAtivo.canal_id).eq("status", "aprovado").order("created_at", { ascending: false });
     setTemplatesDoCanal(data || []);
-    setTemplateEscolhido(null);
-    setTemplateVars({});
+    setTemplateEscolhido(null); setTemplateVars({});
   };
 
-  // Extrai variáveis {{1}}, {{2}} etc do template selecionado
   const variaveisDoTemplate = (() => {
     if (!templateEscolhido) return [] as string[];
     const vars = new Set<string>();
@@ -2078,31 +1996,16 @@ export function ChatSection() {
 
   const enviarTemplateWaba = async () => {
     if (!templateEscolhido || !atendimentoAtivo) return;
-    // Valida que todas as variáveis estão preenchidas
     const faltando = variaveisDoTemplate.filter(v => !templateVars[v]?.trim());
     if (faltando.length > 0) {
       if (!confirm(`⚠️ Variáveis sem valor: ${faltando.map(v => `{{${v}}}`).join(", ")}.\n\nElas vão ser enviadas literalmente. Continuar?`)) return;
     }
     setEnviandoTemplate(true);
     try {
-      const resp = await wa("enviar-template", {
-        numero: atendimentoAtivo.numero,
-        canalId: atendimentoAtivo.canal_id,
-        templateId: templateEscolhido.id,
-        variaveis: templateVars,
-        workspaceId: wsId
-      });
-      if (!resp.success) {
-        notify(traduzirErro(resp.error || "Erro ao enviar template"), "erro");
-      } else {
-        setShowTemplateModal(false);
-        setTemplateEscolhido(null);
-        setTemplateVars({});
-        setStickyFundo(true);
-      }
-    } catch (e: any) {
-      notify(traduzirErro(e), "erro");
-    }
+      const resp = await wa("enviar-template", { numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id, templateId: templateEscolhido.id, variaveis: templateVars, workspaceId: wsId });
+      if (!resp.success) { notify(traduzirErro(resp.error || "Erro ao enviar template"), "erro"); }
+      else { setShowTemplateModal(false); setTemplateEscolhido(null); setTemplateVars({}); setStickyFundo(true); }
+    } catch (e: any) { notify(traduzirErro(e), "erro"); }
     setEnviandoTemplate(false);
   };
 
@@ -2111,10 +2014,7 @@ export function ChatSection() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioStreamRef.current = stream;
-      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus"
-                 : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm"
-                 : MediaRecorder.isTypeSupported("audio/ogg;codecs=opus") ? "audio/ogg;codecs=opus"
-                 : "";
+      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : MediaRecorder.isTypeSupported("audio/ogg;codecs=opus") ? "audio/ogg;codecs=opus" : "";
       const recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
@@ -2138,43 +2038,23 @@ export function ChatSection() {
   const enviarAudioGravado = async () => {
     if (!atendimentoAtivo || !mediaRecorderRef.current) return;
     if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal. Não é possível enviar áudio.", "aviso"); return; }
-    // 🆕 Áudio agora funciona em WebJS E WABA. Backend converte pra OGG opus e envia via Graph API
-    // (upload + send) no caso WABA, ou MessageMedia.sendAudioAsVoice no WebJS. Ambos exibem como
-    // mensagem de voz nativa pro cliente.
-    //
-    // ⚠️ Limitação WABA: respeita janela de 24h. Se passou, Meta rejeita e o erro vem no alert.
-    // 🆕 v4.1: também roteia pra Wolf Meta (Messenger) quando canal é tipo='meta'/'messenger'.
-    //          Backend wolf-meta converte webm → m4a com ffmpeg antes de enviar pra Meta API.
-    //          Instagram DM NÃO aceita áudio (limitação da plataforma) — bloqueia aqui.
-
     const recorder = mediaRecorderRef.current;
     setEnviandoAudio(true);
     await new Promise<void>((resolve) => { recorder.onstop = () => resolve(); try { recorder.stop(); } catch { resolve(); } });
     pararStream(); setGravando(false);
     try {
-      // 🆕 ROTEAMENTO POR TIPO DO CANAL (mesmo padrão do enviarMidia/enviarMensagem)
       const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
       const tipoCanal = canalAtual?.tipo;
       const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
-
       if (ehCanalMeta) {
-        // Detecta origem (Instagram ou Messenger)
         let origem: string | undefined;
         if (tipoCanal === "instagram") origem = "instagram";
         else if (tipoCanal === "messenger") origem = "messenger";
         else if (atendimentoAtivo.origem) origem = atendimentoAtivo.origem;
-        else {
-          const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem);
-          origem = ultimaCliente?.origem || "messenger";
-        }
-
-        // Wolf Meta (Messenger ou Instagram) — manda FormData pra /send/enviar-midia-arquivo
-        // O backend converte webm → m4a com ffmpeg antes de enviar pra Meta
-        // (Meta DM aceita aac/m4a/wav/mp4 — webm do navegador nao serve, por isso converte)
+        else { const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem); origem = ultimaCliente?.origem || "messenger"; }
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         audioChunksRef.current = [];
         const fd = new FormData();
-        // Nome do arquivo ajuda o backend a determinar a extensão correta
         const file = new File([blob], `audio_${Date.now()}.webm`, { type: blob.type });
         fd.append("arquivo", file);
         fd.append("recipientId", atendimentoAtivo.numero);
@@ -2182,21 +2062,16 @@ export function ChatSection() {
         fd.append("workspaceId", String(wsId));
         fd.append("atendimentoId", String(atendimentoAtivo.id));
         fd.append("origem", origem);
-
         const r = await fetch(`${META_BASE}/send/enviar-midia-arquivo`, { method: "POST", body: fd });
         const data = await r.json();
-        if (!(data.success || data.sucesso)) {
-          notify(traduzirErro(data.erro || data.error || "Erro ao enviar áudio"), "erro");
-        }
+        if (!(data.success || data.sucesso)) { notify(traduzirErro(data.erro || data.error || "Erro ao enviar áudio"), "erro"); }
       } else {
-        // 🐺 WhatsApp (webjs/waba) — fluxo original
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         audioChunksRef.current = [];
         const form = new FormData();
         form.append("audio", blob);
         form.append("numero", atendimentoAtivo.numero);
         form.append("canalId", String(atendimentoAtivo.canal_id));
-        // 🔒 MULTI-TENANT: workspaceId obrigatório (proxy /api/whatsapp-audio repassa o FormData inteiro)
         form.append("workspaceId", String(wsId));
         const resp = await fetch(`${WA_BASE}/enviar-audio`, { method: "POST", body: form });
         const data = await resp.json();
@@ -2219,9 +2094,7 @@ export function ChatSection() {
     if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
     if (!confirm(`Parar o BOT para ${a.nome}?\n\nO BOT vai parar de responder automaticamente. Você assume o atendimento.`)) return;
     try {
-      // 🔒 MULTI-TENANT: confirma workspace_id mesmo updateando por id (defesa em profundidade)
-      await supabase.from("atendimentos").update({ bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true })
-        .eq("id", a.id).eq("workspace_id", wsId);
+      await supabase.from("atendimentos").update({ bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true }).eq("id", a.id).eq("workspace_id", wsId);
       await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId, atendenteEmail: user.email });
       await inserirMensagemSistema(a.numero, `BOT interrompido. Chat assumido por: ${meuNome}`, a.canal_id);
       await fetchAtendimentos();
@@ -2238,13 +2111,7 @@ export function ChatSection() {
     setAbaConversa("abertos");
   };
   const finalizarChat = async (numero: string, canalId?: number) => {
-    // 🔒 PERMISSÃO
-    if (!isDono && !permissoes.finalizar_chat) {
-      notify("Você não tem permissão para finalizar atendimentos.", "erro");
-      return;
-    }
-    // 🆕 BLOQUEIO 24h — passa email do usuário pro backend identificar que é finalização HUMANA
-    // (sistema/bot/inatividade não passa quemFinalizou → não aplica bloqueio).
+    if (!isDono && !permissoes.finalizar_chat) { notify("Você não tem permissão para finalizar atendimentos.", "erro"); return; }
     await wa("finalizar", { numero, canalId, workspaceId: wsId, quemFinalizou: user?.email });
     await inserirMensagemSistema(numero, `Chat finalizado por: ${meuNome}`, canalId);
     fetchAtendimentos();
@@ -2256,105 +2123,54 @@ export function ChatSection() {
     fetchAtendimentos();
   };
 
-  // 🆕 Para o BOT/IA e assume o chat — usado quando roleta atribui atendente mas bot ainda tá respondendo.
-  // Diferente do "assumir" tradicional porque o atendente JÁ é o dono do chat (atribuído pela roleta).
-  // Aqui só seta as flags de bloqueio pra bot parar e salva mensagem sistema.
   const pararBotIA = async () => {
     if (!atendimentoAtivo) return;
     if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
-
-    // Se o atendente atribuído pela roleta é OUTRA pessoa, pede confirmação antes de "roubar" o chat
     const ehMeu = atendimentoAtivo.atendente === user.email;
     if (!ehMeu) {
       const nomeDono = usuariosWs.find(u => u.email === atendimentoAtivo.atendente)?.nome || atendimentoAtivo.atendente;
       if (!confirm(`Esse chat foi atribuído pela roleta a ${nomeDono}.\n\nDeseja assumir mesmo assim? (${nomeDono} vai perder o lead)`)) return;
     }
-
     try {
-      await supabase.from("atendimentos").update({
-        bloqueado_ia: true,
-        bloqueado_fluxo: true,
-        bloqueado_typebot: true,
-        atendente: user.email,
-        status: "aberto"
-      }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
-
-      // Também avisa o backend pra limpar sessão de IA na RAM (evita bot responder mais uma vez)
+      await supabase.from("atendimentos").update({ bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true, atendente: user.email, status: "aberto" }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);
       await wa("assumir", { numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id, workspaceId: wsId, atendenteEmail: user.email });
-
-      await inserirMensagemSistema(
-        atendimentoAtivo.numero,
-        `🛑 BOT/IA interrompido. Chat assumido por: ${meuNome}`,
-        atendimentoAtivo.canal_id
-      );
+      await inserirMensagemSistema(atendimentoAtivo.numero, `🛑 BOT/IA interrompido. Chat assumido por: ${meuNome}`, atendimentoAtivo.canal_id);
       await fetchAtendimentos();
       setAbaConversa("abertos");
-    } catch (e: any) {
-      notify(traduzirErro(e), "erro");
-    }
+    } catch (e: any) { notify(traduzirErro(e), "erro"); }
   };
   const transferirParaFila = async (fila: string) => {
     if (!atendimentoAtivo) return;
-    // 🔒 PERMISSÃO
-    if (!isDono && !permissoes.transferir_chat) {
-      notify("Você não tem permissão para transferir conversas.", "erro");
-      return;
-    }
+    if (!isDono && !permissoes.transferir_chat) { notify("Você não tem permissão para transferir conversas.", "erro"); return; }
     try {
-      await supabase.from("atendimentos").update({ fila }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
+      await supabase.from("atendimentos").update({ fila }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);
       await inserirMensagemSistema(atendimentoAtivo.numero, `Chat transferido para fila: ${fila}, por: ${meuNome}`, atendimentoAtivo.canal_id);
       await fetchAtendimentos(); setShowTransferir(false);
       notify(`Transferido para fila ${fila}.`, "sucesso");
     } catch (e: any) { notify(traduzirErro(e), "erro"); }
   };
 
-  // 🆕 Transferir pra um atendente específico (não pra fila)
-  // Grava o email do atendente no campo `atendente` → quem recebeu vê o chat na aba "Abertos" dele
-  // Também garante que o chat saia do BOT e de "pendente"
   const transferirParaAtendente = async (emailDestino: string, nomeDestino: string) => {
     if (!atendimentoAtivo) return;
     if (!emailDestino) { notify("Atendente sem email válido.", "aviso"); return; }
-    // 🔒 PERMISSÃO
-    if (!isDono && !permissoes.transferir_chat) {
-      notify("Você não tem permissão para transferir conversas.", "erro");
-      return;
-    }
+    if (!isDono && !permissoes.transferir_chat) { notify("Você não tem permissão para transferir conversas.", "erro"); return; }
     try {
-      await supabase.from("atendimentos").update({
-        atendente: emailDestino,
-        status: "aberto",
-        bloqueado_ia: true,
-        bloqueado_fluxo: true,
-        bloqueado_typebot: true,
-      }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
-      await inserirMensagemSistema(
-        atendimentoAtivo.numero,
-        `Chat transferido para: ${nomeDestino}, por: ${meuNome}`,
-        atendimentoAtivo.canal_id
-      );
+      await supabase.from("atendimentos").update({ atendente: emailDestino, status: "aberto", bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);
+      await inserirMensagemSistema(atendimentoAtivo.numero, `Chat transferido para: ${nomeDestino}, por: ${meuNome}`, atendimentoAtivo.canal_id);
       await fetchAtendimentos();
       setShowTransferir(false);
       notify(`Transferido para ${nomeDestino}.`, "sucesso");
     } catch (e: any) { notify(traduzirErro(e), "erro"); }
   };
 
-  // 🆕 Reabrir atendimento finalizado
-  // Status volta pra "aberto", quem reabriu vira o atendente, chat aparece na aba "Abertos"
   const reabrirChat = async (a: Atendimento) => {
     if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
     if (!confirm(`Reabrir atendimento de ${a.nome}?\n\nO chat volta para a aba "Abertos" e você passa a ser o atendente.`)) return;
     try {
-      await supabase.from("atendimentos").update({
-        status: "aberto",
-        atendente: user.email,
-        bloqueado_ia: true,
-        bloqueado_fluxo: true,
-        bloqueado_typebot: true,
-      }).eq("id", a.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
+      await supabase.from("atendimentos").update({ status: "aberto", atendente: user.email, bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true }).eq("id", a.id).eq("workspace_id", wsId);
       await inserirMensagemSistema(a.numero, `Atendimento REABERTO por: ${meuNome}`, a.canal_id);
       await fetchAtendimentos();
       setAbaConversa("abertos");
-      // Atualiza o atendimento ativo com o novo status pra UI reagir na hora
       setAtendimentoAtivo({ ...a, status: "aberto", atendente: user.email });
       notify("Atendimento reaberto. Você é o atendente agora.", "sucesso");
     } catch (e: any) { notify(traduzirErro(e), "erro"); }
@@ -2362,37 +2178,16 @@ export function ChatSection() {
 
   const limparFiltros = () => { setFiltroFila("todas"); setFiltroAtendente("todos"); setFiltroEtiqueta("todas"); setFiltroCanal("todos"); setFiltroTempo("tudo"); };
 
-  // 🔔 Abre um atendimento + MARCA COMO VISUALIZADO no banco
-  // Usado quando atendente clica no card da lista. Atualiza visualizado_em = NOW() e
-  // limpa o badge de não lidas localmente (otimista, sem esperar realtime).
   const abrirAtendimento = async (a: Atendimento) => {
     setAtendimentoAtivo(a);
     setHistorico([]);
     fetchHistorico(a.numero, a.canal_id);
-
-    // Limpa badge local de imediato (sem esperar query)
-    setNaoLidasPorAtendimento(prev => {
-      const novo = { ...prev };
-      delete novo[a.id];
-      return novo;
-    });
-    // Atualiza ref pra evitar re-toque de som no próximo cálculo
-    if (ultimaQtdNaoLidasRef.current[a.id]) {
-      ultimaQtdNaoLidasRef.current = { ...ultimaQtdNaoLidasRef.current, [a.id]: 0 };
-    }
-
-    // Marca visualizado_em no banco — UPDATE simples por ID (zero risco)
-    // 🔒 MULTI-TENANT: confirma workspace_id pra defender em profundidade
+    setNaoLidasPorAtendimento(prev => { const novo = { ...prev }; delete novo[a.id]; return novo; });
+    if (ultimaQtdNaoLidasRef.current[a.id]) { ultimaQtdNaoLidasRef.current = { ...ultimaQtdNaoLidasRef.current, [a.id]: 0 }; }
     try {
-      await supabase.from("atendimentos")
-        .update({ visualizado_em: new Date().toISOString() })
-        .eq("id", a.id)
-        .eq("workspace_id", wsId);
-      // Atualiza local também pra próxima leitura ficar consistente
+      await supabase.from("atendimentos").update({ visualizado_em: new Date().toISOString() }).eq("id", a.id).eq("workspace_id", wsId);
       setAtendimentos(prev => prev.map(x => x.id === a.id ? { ...x, visualizado_em: new Date().toISOString() } : x));
-    } catch (e) {
-      console.warn("Falha ao marcar visualizado_em (não bloqueia uso):", e);
-    }
+    } catch (e) { console.warn("Falha ao marcar visualizado_em (não bloqueia uso):", e); }
   };
 
   const tempoRelativo = (data: string) => { const d = Math.floor((Date.now() - new Date(data).getTime()) / 60000); return d < 1 ? "agora" : d < 60 ? `${d}min` : d < 1440 ? `${Math.floor(d/60)}h` : `${Math.floor(d/1440)}d`; };
@@ -2404,8 +2199,7 @@ export function ChatSection() {
     if (!atendimentoAtivo) return;
     setSalvandoContato(true);
     try {
-      const { error } = await supabase.from("atendimentos").update({ [campo]: valor })
-        .eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);  // 🔒 MULTI-TENANT
+      const { error } = await supabase.from("atendimentos").update({ [campo]: valor }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);
       if (error) { notify(traduzirErro(error), "erro"); setSalvandoContato(false); return; }
       setAtendimentoAtivo({ ...atendimentoAtivo, [campo]: valor });
       setAtendimentos(prev => prev.map(a => a.id === atendimentoAtivo.id ? { ...a, [campo]: valor } : a));
@@ -2417,18 +2211,14 @@ export function ChatSection() {
     if (!atendimentoAtivo) return;
     const janela = window.open("", "_blank", "width=800,height=600");
     if (!janela) { notify("Pop-up bloqueado pelo navegador. Permita pop-ups deste site.", "aviso"); return; }
-    const html = `
-      <html><head><title>Histórico ${atendimentoAtivo.nome}</title>
-      <style>body{font-family:Arial;padding:20px}h1{color:#16a34a}.msg{padding:10px;margin:5px 0;border-radius:8px;max-width:60%}.cliente{background:#e5e7eb;margin-right:auto}.atendente{background:#dbeafe;margin-left:auto;text-align:right}.bot{background:#dcfce7;margin-left:auto;text-align:right}.sistema{background:#f3f4f6;margin:10px auto;text-align:center;font-style:italic;color:#6b7280}.meta{font-size:10px;color:#6b7280}</style>
-      </head><body>
-      <h1>📄 Histórico — ${atendimentoAtivo.nome}</h1>
-      <p><b>Número:</b> ${atendimentoAtivo.numero}<br><b>Canal:</b> ${nomeDoCanal(atendimentoAtivo.canal_id)}<br><b>Fila:</b> ${atendimentoAtivo.fila || "—"}<br><b>Exportado em:</b> ${new Date().toLocaleString("pt-BR")}</p>
-      <hr>
-      ${historico.map(m => `<div class="msg ${m.de === "cliente" ? "cliente" : m.de === "bot" ? "bot" : m.de === "sistema" ? "sistema" : "atendente"}">
-        <div>${isAudioMsg(m.mensagem) ? "🎤 [Áudio]" : (m.mensagem || "").replace(/</g, "&lt;")}</div>
-        <div class="meta">${m.de === "cliente" ? "Cliente" : m.de === "bot" ? "BOT" : m.de === "sistema" ? "Sistema" : "Atendente"} • ${m.created_at ? new Date(m.created_at).toLocaleString("pt-BR") : ""}</div>
-      </div>`).join("")}
-      </body></html>`;
+    const linhas = historico.map(m => {
+      const cls = m.de === "cliente" ? "cliente" : m.de === "bot" ? "bot" : m.de === "sistema" ? "sistema" : "atendente";
+      const quem = m.de === "cliente" ? "Cliente" : m.de === "bot" ? "BOT" : m.de === "sistema" ? "Sistema" : "Atendente";
+      const corpo = isAudioMsg(m.mensagem) ? "🎤 [Áudio]" : (m.mensagem || "").replace(/</g, "&lt;");
+      const quando = m.created_at ? new Date(m.created_at).toLocaleString("pt-BR") : "";
+      return `<div class="msg ${cls}"><div>${corpo}</div><div class="meta">${quem} • ${quando}</div></div>`;
+    }).join("");
+    const html = `<html><head><title>Histórico ${atendimentoAtivo.nome}</title><style>body{font-family:Arial;padding:20px}h1{color:#16a34a}.msg{padding:10px;margin:5px 0;border-radius:8px;max-width:60%}.cliente{background:#e5e7eb;margin-right:auto}.atendente{background:#dbeafe;margin-left:auto;text-align:right}.bot{background:#dcfce7;margin-left:auto;text-align:right}.sistema{background:#f3f4f6;margin:10px auto;text-align:center;font-style:italic;color:#6b7280}.meta{font-size:10px;color:#6b7280}</style></head><body><h1>📄 Histórico — ${atendimentoAtivo.nome}</h1><p><b>Número:</b> ${atendimentoAtivo.numero}<br><b>Canal:</b> ${nomeDoCanal(atendimentoAtivo.canal_id)}<br><b>Fila:</b> ${atendimentoAtivo.fila || "—"}<br><b>Exportado em:</b> ${new Date().toLocaleString("pt-BR")}</p><hr>${linhas}</body></html>`;
     janela.document.write(html); janela.document.close();
     setTimeout(() => janela.print(), 500);
   };
@@ -2447,30 +2237,15 @@ export function ChatSection() {
     const aba = classificarAba(a);
     if (aba === "automatico") return <button onClick={(e) => pararBotDaLista(e, a)} title="Parar BOT e assumir" style={{ background: "#dc2626", color: "#1f2937", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>⏹ Parar BOT</button>;
     if (aba === "aguardando") return <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir atendimento" style={{ background: "#f59e0b", color: "#1f2937", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>Atender</button>;
-    // 🆕 Botão Reabrir direto da lista (aba Finalizados)
-    if (aba === "finalizados") return <button
-      onClick={(e) => { e.stopPropagation(); reabrirChat(a); }}
-      title="Reabrir esta conversa"
-      style={{ background: "#f59e0b", color: "#1f2937", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}
-    >🔓 Reabrir</button>;
+    if (aba === "finalizados") return <button onClick={(e) => { e.stopPropagation(); reabrirChat(a); }} title="Reabrir esta conversa" style={{ background: "#f59e0b", color: "#1f2937", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>🔓 Reabrir</button>;
     return null;
   };
 
-  // 🎨 Helper pros botões-ícone da toolbar do header — visual tech light com container
   const botaoToolbar = (cor: string = "#6b7280") => ({
     background: cor === "#6b7280" ? "#f3f4f6" : `${cor}15`,
     border: cor === "#6b7280" ? "1px solid #e5e7eb" : `1px solid ${cor}30`,
-    color: cor,
-    cursor: "pointer" as const,
-    fontSize: 15,
-    width: 36,
-    height: 36,
-    padding: 0,
-    borderRadius: 10,
-    display: "flex" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    transition: "all 0.15s" as const,
+    color: cor, cursor: "pointer" as const, fontSize: 15, width: 36, height: 36, padding: 0, borderRadius: 10,
+    display: "flex" as const, alignItems: "center" as const, justifyContent: "center" as const, transition: "all 0.15s" as const,
   });
 
   return (
@@ -2521,6 +2296,14 @@ export function ChatSection() {
           </button>
         </div>
 
+        {/* 👥 Seletor de equipe — só pra quem vê tudo (dono/supervisor) */}
+        {podeVerTudo && (
+          <div style={{ padding: "8px 14px", borderBottom: `1px solid ${tema.bordaSutil}`, background: tema.sidebarBg, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "#a855f7", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>👥 Equipe</span>
+            <div style={{ flex: 1, minWidth: 0 }}><EquipeSelector /></div>
+          </div>
+        )}
+
         {showFiltros && (
           <div style={{ background: tema.sidebarBg, borderBottom: `1px solid ${tema.bordaSutil}`, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2561,35 +2344,16 @@ export function ChatSection() {
         <div style={{ display: "flex", borderBottom: `1px solid ${tema.bordaSutil}`, background: "#ffffff", padding: "8px 6px", gap: 4 }}>
           {abas.map(t => {
             const ativa = abaConversa === t.key;
-            // 🆕 Limita o badge em "999+" pra não estourar layout em workspaces com muitos atendimentos
             const badgeLabel = t.count > 999 ? "999+" : String(t.count);
             return (
               <button key={t.key} onClick={() => setAbaConversa(t.key as any)}
                 style={{ flex: 1, padding: "10px 4px 6px", background: ativa ? `${t.color}10` : "transparent", border: "none", borderRadius: 10, color: ativa ? t.color : tema.textoFraco, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s", position: "relative" }}>
-                {/* Container do ícone com badge relativo a ELE (não ao botão inteiro)
-                    — assim o badge não cobre o emoji quando o número é grande */}
                 <div style={{ position: "relative" }}>
                   <div style={{ width: 32, height: 32, borderRadius: 9, background: ativa ? t.color : "#f3f4f6", border: ativa ? "none" : `1px solid ${t.color}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, boxShadow: ativa ? `0 4px 10px ${t.color}40` : "none", transition: "all 0.15s" }}>
                     <span style={{ filter: ativa ? "saturate(0) brightness(2)" : "none" }}>{t.icon}</span>
                   </div>
                   {t.count > 0 && (
-                    <span style={{
-                      position: "absolute",
-                      top: -6,
-                      right: -8,
-                      background: t.color,
-                      color: "#ffffff",
-                      borderRadius: 10,
-                      padding: "1px 5px",
-                      fontSize: 9,
-                      fontWeight: 700,
-                      minWidth: 14,
-                      lineHeight: 1.3,
-                      textAlign: "center",
-                      border: "2px solid #ffffff",
-                      boxShadow: `0 2px 4px ${t.color}50`,
-                      whiteSpace: "nowrap",
-                    }}>{badgeLabel}</span>
+                    <span style={{ position: "absolute", top: -6, right: -8, background: t.color, color: "#ffffff", borderRadius: 10, padding: "1px 5px", fontSize: 9, fontWeight: 700, minWidth: 14, lineHeight: 1.3, textAlign: "center", border: "2px solid #ffffff", boxShadow: `0 2px 4px ${t.color}50`, whiteSpace: "nowrap" }}>{badgeLabel}</span>
                   )}
                 </div>
                 <span style={{ fontSize: 10, letterSpacing: 0.2 }}>{t.label}</span>
@@ -2618,7 +2382,7 @@ export function ChatSection() {
         {/* 🆕 Aba Aguardando — botão pra limpar pendentes antigos (só dono/supervisor pode) */}
         {abaConversa === "aguardando" && podeVerTudo && (() => {
           const qtde2dias = contarPendentesAntigos(2);
-          if (qtde2dias === 0) return null; // nada pra limpar, esconde
+          if (qtde2dias === 0) return null;
           return (
             <div style={{ background: ehClaro ? "#fff8e1" : "#0d1418", borderBottom: `1px solid ${tema.bordaSutil}`, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -2657,26 +2421,13 @@ export function ChatSection() {
             </div>
           ) : atendimentosFiltrados.map(a => {
             const aba = classificarAba(a);
-            // 🔔 Não lidas pra esse atendimento (0 = sem badge)
             const naoLidas = naoLidasPorAtendimento[a.id] || 0;
             const temNaoLidas = naoLidas > 0 && atendimentoAtivo?.id !== a.id;
             return (
               <div key={a.id} onClick={() => abrirAtendimento(a)}
                 style={{ padding: "12px 14px", borderBottom: `1px solid ${tema.bordaSutil}`, cursor: "pointer", background: atendimentoAtivo?.id === a.id ? tema.listaItemSel : "transparent", position: "relative" }}>
-                {/* 🔔 Bolinha azul piscando — indica chat com mensagem não lida (canto esquerdo) */}
                 {temNaoLidas && (
-                  <span style={{
-                    position: "absolute",
-                    left: 4,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    width: 6,
-                    height: 6,
-                    background: tema.accent,
-                    borderRadius: "50%",
-                    animation: "pulseBlue 1.5s ease-in-out infinite",
-                    zIndex: 1,
-                  }} />
+                  <span style={{ position: "absolute", left: 4, top: "50%", transform: "translateY(-50%)", width: 6, height: 6, background: tema.accent, borderRadius: "50%", animation: "pulseBlue 1.5s ease-in-out infinite", zIndex: 1 }} />
                 )}
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <div style={{ width: 38, height: 38, borderRadius: "50%", background: ehClaro ? "#9ca3af" : "#6b7280", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#1f2937", fontWeight: "bold", fontSize: 14 }}>
@@ -2684,21 +2435,15 @@ export function ChatSection() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2, gap: 8 }}>
-                      {/* Nome em negrito sempre, mas se tem não lidas fica branco mais forte */}
                       <span style={{ color: temNaoLidas ? (ehClaro ? "#000" : "#ffffff") : tema.textoForte, fontSize: 14, fontWeight: temNaoLidas ? 700 : "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{a.nome}</span>
-                      {/* Hora em VERDE quando tem não lidas (igual WhatsApp) */}
                       <span style={{ color: temNaoLidas ? "#00a884" : "#8696a0", fontSize: 11, fontWeight: temNaoLidas ? "bold" : "normal", flexShrink: 0 }}>{tempoRelativo(a.updated_at || a.created_at)}</span>
                     </div>
                     <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {/* 🆕 Sempre mostra canal ao lado do número (antes só mostrava se canais.length > 1) */}
                       📱 {numeroSanitizado(a.numero)}{a.canal_id && <span style={{ color: "#00a884" }}> • {iconeCanal(a.canal_id, a.origem)} {nomeDoCanal(a.canal_id, a.origem)}</span>}
                     </p>
-                    {/* Última mensagem em branco/negrito quando tem não lidas */}
                     <p style={{ color: temNaoLidas ? tema.textoForte : tema.textoFraco, fontSize: 12, fontWeight: temNaoLidas ? "bold" : "normal", margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {isAudioMsg(a.mensagem) ? "🎤 Mensagem de áudio" : a.mensagem}
                     </p>
-                    {/* 🆕 ETIQUETAS CUSTOMIZADAS DO WORKSPACE — usa cor e ícone reais que o cliente cadastrou.
-                        Filtra do array etiquetasWorkspace as que estão em etiquetasPorAtendimento[a.id]. */}
                     {(() => {
                       const ids = etiquetasPorAtendimento[a.id] || [];
                       if (ids.length === 0) return null;
@@ -2707,15 +2452,7 @@ export function ChatSection() {
                       return (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
                           {etiqs.map(et => (
-                            <span key={et.id} style={{
-                              background: (et.cor || "#3b82f6") + "22",
-                              color: et.cor || "#3b82f6",
-                              fontSize: 10,
-                              padding: "2px 7px",
-                              borderRadius: 10,
-                              fontWeight: "bold",
-                              whiteSpace: "nowrap",
-                            }}>
+                            <span key={et.id} style={{ background: (et.cor || "#3b82f6") + "22", color: et.cor || "#3b82f6", fontSize: 10, padding: "2px 7px", borderRadius: 10, fontWeight: "bold", whiteSpace: "nowrap" }}>
                               {et.icone ? `${et.icone} ` : ""}{et.nome}
                             </span>
                           ))}
@@ -2733,21 +2470,8 @@ export function ChatSection() {
                             <span style={{ background: "#16a34a22", color: "#16a34a", fontSize: 10, padding: "1px 7px", borderRadius: 10 }}>👨‍💼 {nomeDoAtendente(a.atendente)}</span>
                           </>
                         )}
-                        {/* 🔔 BOLINHA VERDE COM NÚMERO DE NÃO LIDAS — igual WhatsApp */}
                         {temNaoLidas && (
-                          <span style={{
-                            background: "#00a884",
-                            color: "#1f2937",
-                            fontSize: 10,
-                            fontWeight: "bold",
-                            padding: "0 6px",
-                            minWidth: 18,
-                            height: 18,
-                            borderRadius: 9,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}>
+                          <span style={{ background: "#00a884", color: "#1f2937", fontSize: 10, fontWeight: "bold", padding: "0 6px", minWidth: 18, height: 18, borderRadius: 9, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                             {naoLidas > 99 ? "99+" : naoLidas}
                           </span>
                         )}
@@ -2766,48 +2490,15 @@ export function ChatSection() {
       <div style={{ flex: 1, display: isMobile && !atendimentoAtivo ? "none" : "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: WA_BG_LIGHT, backgroundRepeat: "repeat", position: "relative", width: isMobile ? "100%" : "auto" }}>
         {atendimentoAtivo ? (
           <>
-            {/* 🆕 HEADER REFORMULADO
-                - Avatar+nome viraram CLICÁVEIS (abrem painel Dados do Contato)
-                - Removemos o menu de 3 pontinhos (showMenuTresPontos)
-                - Todos os botões ficam VISÍVEIS na toolbar pra agilizar o atendimento
-                - Finalizar Venda ganhou destaque (botão verde com texto)
-            */}
             <div style={{ padding: "10px 16px", borderBottom: `1px solid ${tema.bordaSutil}`, background: tema.headerBg, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-              {/* 🆕 BOTÃO VOLTAR — só aparece em mobile. Fecha o chat ativo e volta pra lista */}
               {isMobile && (
-                <button
-                  onClick={() => setAtendimentoAtivo(null)}
-                  title="Voltar para a lista"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#4b5563",
-                    cursor: "pointer",
-                    fontSize: 24,
-                    padding: "4px 8px",
-                    marginLeft: -8,
-                    flexShrink: 0,
-                    lineHeight: 1,
-                  }}
-                >←</button>
+                <button onClick={() => setAtendimentoAtivo(null)} title="Voltar para a lista"
+                  style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer", fontSize: 24, padding: "4px 8px", marginLeft: -8, flexShrink: 0, lineHeight: 1 }}>←</button>
               )}
-              {/* BLOCO CLICÁVEL: Avatar + Nome + Info → abre painel do contato
-                  O clique ainda funciona, mas sem tooltip "Ver dados do contato" (que era gigante
-                  e aparecia sobre o chat atrapalhando a leitura). Pra descobrabilidade, tem um
-                  botão 👁️ dedicado na toolbar do lado direito. */}
-              <div
-                onClick={() => setShowPainelContato(true)}
-                style={{
-                  display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0,
-                  cursor: "pointer",
-                  padding: "4px 8px",
-                  margin: "-4px -8px",
-                  borderRadius: 8,
-                  transition: "background 0.15s",
-                }}
+              <div onClick={() => setShowPainelContato(true)}
+                style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0, cursor: "pointer", padding: "4px 8px", margin: "-4px -8px", borderRadius: 8, transition: "background 0.15s" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "#f3f4f6")}
-                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-              >
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                 <div style={{ width: 42, height: 42, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#ffffff", fontWeight: "bold", fontSize: 16, boxShadow: "0 4px 10px rgba(59, 130, 246, 0.25)" }}>
                   {atendimentoAtivo.nome?.charAt(0).toUpperCase() || "?"}
                 </div>
@@ -2818,11 +2509,10 @@ export function ChatSection() {
                     {atendimentoAtivo.canal_id && canais.length > 1 && <> • {iconeCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)} {nomeDoCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)}</>}
                     {atendimentoAtivo.atendente && atendimentoAtivo.atendente !== "BOT" && <> • 👨‍💼 {nomeDoAtendente(atendimentoAtivo.atendente)}</>}
                   </p>
-                  {/* 🆕 INDICADOR DE BLOQUEIO — só aparece se atendimento está finalizado e bloqueado_ate ainda no futuro */}
                   {atendimentoAtivo.status === "resolvido" && atendimentoAtivo.bloqueado_ate && (() => {
                     const fim = new Date(atendimentoAtivo.bloqueado_ate).getTime();
                     const agora = Date.now();
-                    if (agora >= fim) return null; // já expirou, não mostra
+                    if (agora >= fim) return null;
                     const minutosRest = Math.ceil((fim - agora) / 60000);
                     const horas = Math.floor(minutosRest / 60);
                     const min = minutosRest % 60;
@@ -2848,231 +2538,114 @@ export function ChatSection() {
                 </div>
               </div>
 
-              {/* TOOLBAR DE AÇÕES — muda conforme o status do atendimento */}
               <div style={{ display: "flex", gap: 4, alignItems: "center", position: "relative", flexShrink: 0 }}>
-                {/* 📞 Ligar — inicia chamada VOIP pro número do lead */}
                 {permissoes.voip_usar !== false && (
-                  <button onClick={() => iniciarChamada(atendimentoAtivo.numero, atendimentoAtivo.nome)}
-                    title="📞 Ligar pro lead via softphone"
+                  <button onClick={() => iniciarChamada(atendimentoAtivo.numero, atendimentoAtivo.nome)} title="📞 Ligar pro lead via softphone"
                     style={{ ...botaoToolbar("#16a34a"), background: "#16a34a22", border: "1px solid #16a34a44" }}>📞</button>
                 )}
-
-                {/* 👁️ Ver dados do contato — DESKTOP ONLY (no mobile vai pro menu ⋮) */}
                 {!isMobile && (
-                  <button onClick={() => setShowPainelContato(true)}
-                    title="Ver dados do contato" style={botaoToolbar()}>👁️</button>
+                  <button onClick={() => setShowPainelContato(true)} title="Ver dados do contato" style={botaoToolbar()}>👁️</button>
                 )}
-
-                {/* 🔄 Atualizar — DESKTOP ONLY (no mobile vai pro menu ⋮) */}
                 {!isMobile && (
-                  <button onClick={() => fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
-                    title="Atualizar mensagens" style={botaoToolbar()}>🔄</button>
+                  <button onClick={() => fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id)} title="Atualizar mensagens" style={botaoToolbar()}>🔄</button>
                 )}
-
                 {atendimentoAtivo.status === "resolvido" ? (
-                  /* 🆕 ATENDIMENTO FINALIZADO → mostra SÓ o botão de Reabrir (destaque laranja) */
-                  <button
-                    onClick={() => reabrirChat(atendimentoAtivo)}
-                    title="Reabrir esta conversa — volta pra aba Abertos"
-                    style={{
-                      background: "#f59e0b",
-                      border: "none",
-                      color: "#1f2937",
-                      cursor: "pointer",
-                      fontSize: 12,
-                      fontWeight: "bold",
-                      padding: "8px 14px",
-                      borderRadius: 6,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      whiteSpace: "nowrap",
-                      marginLeft: 4,
-                    }}
+                  <button onClick={() => reabrirChat(atendimentoAtivo)} title="Reabrir esta conversa — volta pra aba Abertos"
+                    style={{ background: "#f59e0b", border: "none", color: "#1f2937", cursor: "pointer", fontSize: 12, fontWeight: "bold", padding: "8px 14px", borderRadius: 6, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", marginLeft: 4 }}
                     onMouseEnter={e => (e.currentTarget.style.background = "#d97706")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "#f59e0b")}
-                  >
+                    onMouseLeave={e => (e.currentTarget.style.background = "#f59e0b")}>
                     🔓 Reabrir Conversa
                   </button>
                 ) : (
-                  /* ATENDIMENTO ATIVO → mostra todas as ações */
                   <>
-                    {/* 👤 Assumir / 🛑 Parar BOT/IA / 🤖 Devolver Bot — logo após o atualizar (mais acessível) */}
                     {(() => {
                       const atendenteEhEmailReal = !!atendimentoAtivo.atendente && !["BOT", "Humano"].includes(atendimentoAtivo.atendente);
                       const botAtivo = !atendimentoAtivo.bloqueado_ia && !atendimentoAtivo.bloqueado_fluxo;
-
                       if (atendimentoAtivo.atendente === "BOT" || (!atendenteEhEmailReal && atendimentoAtivo.status === "pendente")) {
-                        return (
-                          <button onClick={() => assumirChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
-                            title="Assumir atendimento (parar o bot)"
-                            style={botaoToolbar("#f59e0b")}>👤</button>
-                        );
+                        return <button onClick={() => assumirChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id)} title="Assumir atendimento (parar o bot)" style={botaoToolbar("#f59e0b")}>👤</button>;
                       }
                       if (atendenteEhEmailReal && botAtivo) {
-                        return (
-                          <button onClick={pararBotIA}
-                            title="🛑 Parar BOT/IA e assumir a conversa"
-                            style={{ ...botaoToolbar("#dc2626"), background: "#dc262622", border: "1px solid #dc262644" }}>🛑</button>
-                        );
+                        return <button onClick={pararBotIA} title="🛑 Parar BOT/IA e assumir a conversa" style={{ ...botaoToolbar("#dc2626"), background: "#dc262622", border: "1px solid #dc262644" }}>🛑</button>;
                       }
-                      return (
-                        <button onClick={() => devolverBot(atendimentoAtivo.numero, atendimentoAtivo.canal_id)}
-                          title="Devolver para o BOT"
-                          style={botaoToolbar("#8b5cf6")}>🤖</button>
-                      );
+                      return <button onClick={() => devolverBot(atendimentoAtivo.numero, atendimentoAtivo.canal_id)} title="Devolver para o BOT" style={botaoToolbar("#8b5cf6")}>🤖</button>;
                     })()}
-
-                    {/* ↗️ Encaminhar (fila ou atendente) — DESKTOP ONLY (no mobile vai pro menu ⋮) */}
                     {!isMobile && (isDono || permissoes.transferir_chat) && (
-                      <button onClick={() => setShowTransferir(!showTransferir)}
-                        title="Encaminhar para fila ou atendente"
+                      <button onClick={() => setShowTransferir(!showTransferir)} title="Encaminhar para fila ou atendente"
                         style={{ ...botaoToolbar(showTransferir ? "#00a884" : "#aebac1"), background: showTransferir ? "#00a88422" : "none" }}>↗️</button>
                     )}
-
-                    {/* 💰 FINALIZAR VENDA — DESKTOP ONLY (no mobile vai pro menu ⋮ porque ocupa muito espaço) */}
                     {!isMobile && (permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
-                      <button
-                        onClick={() => window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank")}
+                      <button onClick={() => window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank")}
                         title="Finalizar venda — abre a tela de proposta em nova aba"
-                        style={{
-                          background: "#16a34a",
-                          border: "none",
-                          color: "#1f2937",
-                          cursor: "pointer",
-                          fontSize: 12,
-                          fontWeight: "bold",
-                          padding: "8px 14px",
-                          borderRadius: 6,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          whiteSpace: "nowrap",
-                          marginLeft: 4,
-                        }}
+                        style={{ background: "#16a34a", border: "none", color: "#1f2937", cursor: "pointer", fontSize: 12, fontWeight: "bold", padding: "8px 14px", borderRadius: 6, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", marginLeft: 4 }}
                         onMouseEnter={e => (e.currentTarget.style.background = "#15803d")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "#16a34a")}
-                      >
+                        onMouseLeave={e => (e.currentTarget.style.background = "#16a34a")}>
                         💰 Finalizar Venda
                       </button>
                     )}
-
-                    {/* ✓ Finalizar atendimento — DESKTOP ONLY (no mobile vai pro menu ⋮) */}
                     {!isMobile && (isDono || permissoes.finalizar_chat) && (
-                      <button
-                        onClick={() => {
-                          if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`))
-                            finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
-                        }}
-                        title="Finalizar atendimento"
-                        style={{ ...botaoToolbar("#dc2626"), fontSize: 18, fontWeight: "bold" }}
-                      >✓</button>
+                      <button onClick={() => { if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`)) finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id); }}
+                        title="Finalizar atendimento" style={{ ...botaoToolbar("#dc2626"), fontSize: 18, fontWeight: "bold" }}>✓</button>
                     )}
                   </>
                 )}
-
-                {/* 🆕 FASE 1.6 — BOTÃO ⋮ MOBILE ONLY — agrupa botões secundários
-                    (👁️ Ver dados, 🔄 Atualizar, ↗️ Encaminhar, 💰 Finalizar Venda, ✓ Finalizar) */}
                 {isMobile && atendimentoAtivo.status !== "resolvido" && (
-                  <button onClick={() => setShowMenuMobileChat(!showMenuMobileChat)}
-                    title="Mais opções"
+                  <button onClick={() => setShowMenuMobileChat(!showMenuMobileChat)} title="Mais opções"
                     style={{ ...botaoToolbar(showMenuMobileChat ? "#00a884" : "#aebac1"), background: showMenuMobileChat ? "#00a88422" : "none", fontSize: 20, fontWeight: "bold" }}>⋮</button>
                 )}
-
-                {/* 🆕 FASE 1.6 — DROPDOWN do menu ⋮ mobile */}
                 {isMobile && showMenuMobileChat && atendimentoAtivo.status !== "resolvido" && (
                   <>
-                    {/* Overlay invisível pra fechar clicando fora */}
-                    <div onClick={() => setShowMenuMobileChat(false)}
-                      style={{ position: "fixed", inset: 0, zIndex: 109 }} />
+                    <div onClick={() => setShowMenuMobileChat(false)} style={{ position: "fixed", inset: 0, zIndex: 109 }} />
                     <div style={{ position: "absolute", top: 44, right: 0, background: "#f3f4f6", border: "1px solid #2a3942", borderRadius: 8, padding: 6, zIndex: 110, minWidth: 220, boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}>
-                      {/* 👁️ Ver dados */}
                       <button onClick={() => { setShowPainelContato(true); setShowMenuMobileChat(false); }}
                         style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6 }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#2a3942"}
-                        onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                        onMouseEnter={e => e.currentTarget.style.background = "#2a3942"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
                         <span style={{ fontSize: 16 }}>👁️</span> Ver dados do contato
                       </button>
-
-                      {/* 🔄 Atualizar */}
                       <button onClick={() => { fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuMobileChat(false); }}
                         style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6 }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#2a3942"}
-                        onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                        onMouseEnter={e => e.currentTarget.style.background = "#2a3942"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
                         <span style={{ fontSize: 16 }}>🔄</span> Atualizar mensagens
                       </button>
-
-                      {/* ↗️ Encaminhar */}
                       {(isDono || permissoes.transferir_chat) && (
                         <button onClick={() => { setShowTransferir(true); setShowMenuMobileChat(false); }}
                           style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6 }}
-                          onMouseEnter={e => e.currentTarget.style.background = "#2a3942"}
-                          onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                          onMouseEnter={e => e.currentTarget.style.background = "#2a3942"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
                           <span style={{ fontSize: 16 }}>↗️</span> Encaminhar
                         </button>
                       )}
-
-                      {/* 💰 Finalizar Venda */}
                       {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
                         <button onClick={() => { window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank"); setShowMenuMobileChat(false); }}
                           style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "#16a34a22", border: "none", color: "#16a34a", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: "bold", marginTop: 4 }}
-                          onMouseEnter={e => e.currentTarget.style.background = "#16a34a44"}
-                          onMouseLeave={e => e.currentTarget.style.background = "#16a34a22"}>
+                          onMouseEnter={e => e.currentTarget.style.background = "#16a34a44"} onMouseLeave={e => e.currentTarget.style.background = "#16a34a22"}>
                           <span style={{ fontSize: 16 }}>💰</span> Finalizar Venda
                         </button>
                       )}
-
-                      {/* ✓ Finalizar atendimento */}
                       {(isDono || permissoes.finalizar_chat) && (
-                        <button onClick={() => {
-                          if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`)) {
-                            finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
-                            setShowMenuMobileChat(false);
-                          }
-                        }}
+                        <button onClick={() => { if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`)) { finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id); setShowMenuMobileChat(false); } }}
                           style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#dc2626", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: "bold", marginTop: 4, borderTop: "1px solid #2a3942" }}
-                          onMouseEnter={e => e.currentTarget.style.background = "#dc262622"}
-                          onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                          onMouseEnter={e => e.currentTarget.style.background = "#dc262622"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
                           <span style={{ fontSize: 16 }}>✓</span> Finalizar atendimento
                         </button>
                       )}
                     </div>
                   </>
                 )}
-
-                {/* 🆕 Dropdown de transferir — agora com DUAS SEÇÕES: Filas E Atendentes */}
                 {showTransferir && (
                   <div style={{ position: "absolute", top: 44, right: 0, background: "#f3f4f6", border: "1px solid #2a3942", borderRadius: 8, padding: 12, zIndex: 110, width: 260, maxHeight: 440, overflowY: "auto" }}>
-                    {/* Seção FILAS */}
-                    <p style={{ color: "#00a884", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px", letterSpacing: 0.5 }}>
-                      📋 Encaminhar para fila
-                    </p>
+                    <p style={{ color: "#00a884", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px", letterSpacing: 0.5 }}>📋 Encaminhar para fila</p>
                     {filas.length === 0 ? (
                       <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: "0 0 10px" }}>Nenhuma fila cadastrada.</p>
                     ) : (
                       filas.map(f => (
                         <button key={"fila-" + f} onClick={() => transferirParaFila(f)}
-                          style={{ display: "block", width: "100%", background: "#ffffff", border: "1px solid #2a3942", borderRadius: 6, padding: "8px 12px", color: "#1f2937", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 4 }}>
-                          📋 {f}
-                        </button>
+                          style={{ display: "block", width: "100%", background: "#ffffff", border: "1px solid #2a3942", borderRadius: 6, padding: "8px 12px", color: "#1f2937", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 4 }}>📋 {f}</button>
                       ))
                     )}
-
-                    {/* Separador */}
                     <div style={{ height: 1, background: "#f3f4f6", margin: "12px 0" }} />
-
-                    {/* Seção ATENDENTES */}
-                    <p style={{ color: "#f59e0b", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px", letterSpacing: 0.5 }}>
-                      👥 Encaminhar para atendente
-                    </p>
+                    <p style={{ color: "#f59e0b", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px", letterSpacing: 0.5 }}>👥 Encaminhar para atendente</p>
                     {(() => {
-                      // Filtra: remove o próprio usuário e entradas sem email válido
-                      const outrosAtendentes = usuariosWs.filter(u =>
-                        u.email && u.email.toLowerCase() !== user?.email?.toLowerCase()
-                      );
-                      if (outrosAtendentes.length === 0) {
-                        return <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: "0 0 8px" }}>Nenhum outro atendente no workspace.</p>;
-                      }
+                      const outrosAtendentes = usuariosWs.filter(u => u.email && u.email.toLowerCase() !== user?.email?.toLowerCase());
+                      if (outrosAtendentes.length === 0) { return <p style={{ color: "#6b7280", fontSize: 11, fontStyle: "italic", margin: "0 0 8px" }}>Nenhum outro atendente no workspace.</p>; }
                       return outrosAtendentes.map((u, idx) => (
                         <button key={"user-" + u.email + idx} onClick={() => transferirParaAtendente(u.email, u.nome || u.email.split("@")[0])}
                           style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "#ffffff", border: "1px solid #2a3942", borderRadius: 6, padding: "8px 12px", color: "#1f2937", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 4 }}>
@@ -3080,27 +2653,18 @@ export function ChatSection() {
                             {(u.nome || u.email).charAt(0).toUpperCase()}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ color: "#1f2937", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {u.nome || u.email.split("@")[0]}
-                            </p>
-                            <p style={{ color: "#6b7280", fontSize: 9, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {u.email}
-                            </p>
+                            <p style={{ color: "#1f2937", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nome || u.email.split("@")[0]}</p>
+                            <p style={{ color: "#6b7280", fontSize: 9, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</p>
                           </div>
                         </button>
                       ));
                     })()}
-
-                    <button onClick={() => setShowTransferir(false)}
-                      style={{ background: "none", color: "#6b7280", border: "none", padding: "6px", fontSize: 11, cursor: "pointer", width: "100%", marginTop: 6 }}>
-                      Cancelar
-                    </button>
+                    <button onClick={() => setShowTransferir(false)} style={{ background: "none", color: "#6b7280", border: "none", padding: "6px", fontSize: 11, cursor: "pointer", width: "100%", marginTop: 6 }}>Cancelar</button>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* 🆕 Container de mensagens agora com ref + onScroll pra detectar posição do user */}
             <div ref={scrollContainerRef} onScroll={onScrollChat} style={{ flex: 1, overflowY: "auto", padding: "16px 8%", display: "flex", flexDirection: "column", gap: 6 }}>
               {historico.length === 0
                 ? <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma mensagem ainda</p></div>
@@ -3117,184 +2681,88 @@ export function ChatSection() {
                     }
                     const isCliente = msg.de === "cliente"; const isBot = msg.de === "bot";
                     const ehAudio = isAudioMsg(msg.mensagem);
-                    // 🆕 Detecta se é mídia nova (img/video/file)
                     const midia = parseMidia(msg.mensagem);
                     const ehMidia = midia.tipo !== null;
-                    // Largura máxima varia: áudio 340, imagem/vídeo 320, arquivo 300, texto 65%
                     const maxWidth = ehAudio ? 340 : midia.tipo === "img" || midia.tipo === "video" ? 320 : midia.tipo === "file" ? 300 : "65%";
-
-                    // ═══════════════════════════════════════════════════════
-                    // ↪️ DETECTA QUOTE no texto (mensagem que começa com "↪️ *Nome*: ...")
-                    // ═══════════════════════════════════════════════════════
-                    // Quando atendente responde uma msg, o texto é enviado com prefixo de citação.
-                    // Aqui parseamos pra renderizar bonito (blockquote) ao invés do texto cru.
                     let quoteAutor: string | null = null;
                     let quoteTexto: string | null = null;
                     let msgTextoLimpo: string = msg.mensagem;
                     if (!ehAudio && !ehMidia && typeof msg.mensagem === "string") {
                       const m = msg.mensagem.match(/^↪️ \*([^*]+)\*: "([\s\S]+?)"\n\n([\s\S]*)$/);
-                      if (m) {
-                        quoteAutor = m[1];
-                        quoteTexto = m[2];
-                        msgTextoLimpo = m[3];
-                      }
+                      if (m) { quoteAutor = m[1]; quoteTexto = m[2]; msgTextoLimpo = m[3]; }
                     }
-                    // Detecta marcador "*(editado)*" pra mostrar etiqueta
                     const foiEditada = typeof msgTextoLimpo === "string" && /\*\(editado\)\*\s*$/.test(msgTextoLimpo);
                     if (foiEditada) msgTextoLimpo = msgTextoLimpo.replace(/\s*\*\(editado\)\*\s*$/, "");
-
                     return (
-                      <div key={i}
-                        onMouseEnter={() => setHoverMsgIdx(i)}
-                        onMouseLeave={() => { setHoverMsgIdx(prev => prev === i ? null : prev); }}
-                        style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end", position: "relative" }}
-                      >
+                      <div key={i} onMouseEnter={() => setHoverMsgIdx(i)} onMouseLeave={() => { setHoverMsgIdx(prev => prev === i ? null : prev); }}
+                        style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end", position: "relative" }}>
                         <div style={{ maxWidth, padding: ehMidia ? "4px 4px 6px" : "6px 10px 8px", borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px", background: isCliente ? "#dcfce7" : "#dbeafe", boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)", position: "relative" }}>
                           {!isCliente && !ehAudio && !ehMidia && <p style={{ color: "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>}
-
-                          {/* ↪️ Quote (citação) renderizado bonito */}
                           {quoteAutor && quoteTexto && (
-                            <div style={{
-                              background: isCliente ? "#1e2a30" : "#01493b",
-                              borderLeft: "3px solid #00a884",
-                              padding: "6px 8px",
-                              borderRadius: 4,
-                              marginBottom: 6,
-                            }}>
+                            <div style={{ background: isCliente ? "#1e2a30" : "#01493b", borderLeft: "3px solid #00a884", padding: "6px 8px", borderRadius: 4, marginBottom: 6 }}>
                               <p style={{ fontSize: 11, fontWeight: "bold", color: "#00d9a3", margin: 0 }}>{quoteAutor}</p>
                               <p style={{ fontSize: 12, color: "#a3b8c2", margin: "2px 0 0", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 60, overflow: "hidden" }}>{quoteTexto}</p>
                             </div>
                           )}
-
-                          {/* 💬 Setinha ⌄ estilo WhatsApp — aparece no hover, no canto superior direito da bolha */}
                           {hoverMsgIdx === i && !ehAudio && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setMenuMsgIdx(menuMsgIdx === i ? null : i); }}
-                              title="Opções da mensagem"
-                              style={{
-                                position: "absolute",
-                                top: 4,
-                                right: 4,
-                                background: isCliente ? "rgba(220, 252, 231, 0.95)" : "rgba(219, 234, 254, 0.95)",
-                                color: "#374151",
-                                border: "none",
-                                borderRadius: "50%",
-                                width: 24,
-                                height: 24,
-                                fontSize: 14,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                lineHeight: 1,
-                                fontWeight: "bold",
-                                boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
-                                transition: "all 0.15s",
-                                paddingTop: 2,
-                              } as any}
+                            <button onClick={(e) => { e.stopPropagation(); setMenuMsgIdx(menuMsgIdx === i ? null : i); }} title="Opções da mensagem"
+                              style={{ position: "absolute", top: 4, right: 4, background: isCliente ? "rgba(220, 252, 231, 0.95)" : "rgba(219, 234, 254, 0.95)", color: "#374151", border: "none", borderRadius: "50%", width: 24, height: 24, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, fontWeight: "bold", boxShadow: "0 2px 6px rgba(0,0,0,0.12)", transition: "all 0.15s", paddingTop: 2 } as any}
                               onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 4px 10px rgba(0,0,0,0.18)"; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(0,0,0,0.12)"; }}
-                            >⌄</button>
+                              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(0,0,0,0.12)"; }}>⌄</button>
                           )}
-
-                          {/* 💬 Menu contextual — visual tech light */}
                           {menuMsgIdx === i && (
-                            <div
-                              onMouseLeave={() => setMenuMsgIdx(null)}
-                              style={{
-                                position: "absolute",
-                                top: 30,
-                                right: 4,
-                                background: "#ffffff",
-                                border: "1px solid #e5e7eb",
-                                borderRadius: 10,
-                                boxShadow: "0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.06)",
-                                zIndex: 100,
-                                overflow: "hidden",
-                                minWidth: 170,
-                                padding: 4,
-                              } as any}
-                            >
-                              <button
-                                onClick={() => marcarParaResponder(msg)}
+                            <div onMouseLeave={() => setMenuMsgIdx(null)}
+                              style={{ position: "absolute", top: 30, right: 4, background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.06)", zIndex: 100, overflow: "hidden", minWidth: 170, padding: 4 } as any}>
+                              <button onClick={() => marcarParaResponder(msg)}
                                 style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "9px 12px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: 500 }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
-                                onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-                              >
-                                <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>↪️</span>
-                                Responder
+                                onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"} onMouseLeave={(e) => e.currentTarget.style.background = "none"}>
+                                <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>↪️</span> Responder
                               </button>
                               {podeEditarMsg(msg) && (
-                                <button
-                                  onClick={() => marcarParaEditar(msg)}
+                                <button onClick={() => marcarParaEditar(msg)}
                                   style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "9px 12px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: 500 }}
-                                  onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
-                                  onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-                                >
-                                  <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>✏️</span>
-                                  Editar
+                                  onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"} onMouseLeave={(e) => e.currentTarget.style.background = "none"}>
+                                  <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>✏️</span> Editar
                                 </button>
                               )}
-                              <button
-                                onClick={() => { navigator.clipboard.writeText(msgTextoLimpo || ""); setMenuMsgIdx(null); notify("Mensagem copiada.", "sucesso"); }}
+                              <button onClick={() => { navigator.clipboard.writeText(msgTextoLimpo || ""); setMenuMsgIdx(null); notify("Mensagem copiada.", "sucesso"); }}
                                 style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#1f2937", padding: "9px 12px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: 500 }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
-                                onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-                              >
-                                <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>📋</span>
-                                Copiar
+                                onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"} onMouseLeave={(e) => e.currentTarget.style.background = "none"}>
+                                <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>📋</span> Copiar
                               </button>
                             </div>
                           )}
-
-
                           {ehAudio && <AudioPlayer src={audioUrl(audioFilename(msg.mensagem), msg.canal_id)} isOwn={!isCliente} />}
-
-                          {/* 🆕 Imagem inline — clique abre em nova aba */}
                           {midia.tipo === "img" && (
                             <div>
                               <a href={audioUrl(midia.filename, msg.canal_id)} target="_blank" rel="noreferrer">
-                                <img src={audioUrl(midia.filename, msg.canal_id)} alt={midia.filename}
-                                  style={{ display: "block", maxWidth: "100%", maxHeight: 320, borderRadius: 6, cursor: "pointer", objectFit: "cover" }} />
+                                <img src={audioUrl(midia.filename, msg.canal_id)} alt={midia.filename} style={{ display: "block", maxWidth: "100%", maxHeight: 320, borderRadius: 6, cursor: "pointer", objectFit: "cover" }} />
                               </a>
                               {midia.legenda && <p style={{ color: "#1f2937", fontSize: 13.5, margin: "6px 6px 0", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{midia.legenda}</p>}
                             </div>
                           )}
-
-                          {/* 🆕 Vídeo inline — com controles nativos */}
                           {midia.tipo === "video" && (
                             <div>
-                              <video src={audioUrl(midia.filename, msg.canal_id)} controls preload="metadata"
-                                style={{ display: "block", maxWidth: "100%", maxHeight: 320, borderRadius: 6 }} />
+                              <video src={audioUrl(midia.filename, msg.canal_id)} controls preload="metadata" style={{ display: "block", maxWidth: "100%", maxHeight: 320, borderRadius: 6 }} />
                               {midia.legenda && <p style={{ color: "#1f2937", fontSize: 13.5, margin: "6px 6px 0", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{midia.legenda}</p>}
                             </div>
                           )}
-
-                          {/* 🆕 Arquivo genérico (PDF, Excel, etc) — ícone + nome + botão download */}
                           {midia.tipo === "file" && (
                             <div>
                               <a href={audioUrl(midia.filename, msg.canal_id)} target="_blank" rel="noreferrer" download
                                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: isCliente ? "#1f2a31" : "#00604f", borderRadius: 6, textDecoration: "none" }}>
                                 <span style={{ fontSize: 32 }}>{iconePorExtensao(midia.filename)}</span>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <p style={{ color: "#1f2937", fontSize: 13, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {/* Remove o prefixo midia_TIMESTAMP_RAND_ pra mostrar só o nome original */}
-                                    {midia.filename.replace(/^midia_\d+_[a-z0-9]+_/, "")}
-                                  </p>
-                                  <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 11, margin: "2px 0 0" }}>
-                                    {(midia.filename.split(".").pop() || "arquivo").toUpperCase()} · clique p/ baixar
-                                  </p>
+                                  <p style={{ color: "#1f2937", fontSize: 13, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{midia.filename.replace(/^midia_\d+_[a-z0-9]+_/, "")}</p>
+                                  <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 11, margin: "2px 0 0" }}>{(midia.filename.split(".").pop() || "arquivo").toUpperCase()} · clique p/ baixar</p>
                                 </div>
                               </a>
                               {midia.legenda && <p style={{ color: "#1f2937", fontSize: 13.5, margin: "6px 6px 0", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{midia.legenda}</p>}
                             </div>
                           )}
-
-                          {/* Texto comum — só se não for áudio nem mídia */}
                           {!ehAudio && !ehMidia && (
                             <p style={{ color: "#1f2937", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msgTextoLimpo}</p>
                           )}
-
                           {msg.created_at && (
                             <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 10, margin: "2px 6px 0 0", textAlign: "right" }}>
                               {foiEditada && <span style={{ fontStyle: "italic", marginRight: 6, opacity: 0.85 }}>editada</span>}
@@ -3308,91 +2776,27 @@ export function ChatSection() {
               <div ref={chatBottomRef} />
             </div>
 
-            {/* 🆕 Botão flutuante "↓ Nova mensagem" — aparece quando o user tá scrollado pra cima
-                e chega msg nova. Clicando, leva pro fundo. Evita arrastar o user à força. */}
             {!stickyFundo && (
-              <button
-                onClick={irParaFundo}
-                title={temMensagemNova ? "Nova mensagem recebida — clique pra ver" : "Ir para a última mensagem"}
-                style={{
-                  position: "absolute",
-                  right: 20,
-                  bottom: 90, // acima do input de texto
-                  width: 42,
-                  height: 42,
-                  borderRadius: "50%",
-                  background: temMensagemNova ? "#00a884" : "#2a3942",
-                  border: "1px solid " + (temMensagemNova ? "#00a884" : "#3b4a54"),
-                  color: "#1f2937",
-                  fontSize: 18,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-                  zIndex: 10,
-                  fontWeight: "bold",
-                }}
-              >
+              <button onClick={irParaFundo} title={temMensagemNova ? "Nova mensagem recebida — clique pra ver" : "Ir para a última mensagem"}
+                style={{ position: "absolute", right: 20, bottom: 90, width: 42, height: 42, borderRadius: "50%", background: temMensagemNova ? "#00a884" : "#2a3942", border: "1px solid " + (temMensagemNova ? "#00a884" : "#3b4a54"), color: "#1f2937", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.4)", zIndex: 10, fontWeight: "bold" }}>
                 ↓
-                {temMensagemNova && (
-                  <span style={{
-                    position: "absolute",
-                    top: -4,
-                    right: -4,
-                    width: 12,
-                    height: 12,
-                    background: "#dc2626",
-                    borderRadius: "50%",
-                    border: "2px solid #ffffff",
-                  }} />
-                )}
+                {temMensagemNova && <span style={{ position: "absolute", top: -4, right: -4, width: 12, height: 12, background: "#dc2626", borderRadius: "50%", border: "2px solid #ffffff" }} />}
               </button>
             )}
 
-            {/* ↪️/✏️ BANNER de Responder / Editar — aparece acima do input */}
             {(respondendoMsg || editandoMsg) && !gravando && (
-              <div style={{
-                background: "#dcfce7",
-                borderTop: "1px solid #2a3942",
-                padding: "10px 14px",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-              }}>
+              <div style={{ background: "#dcfce7", borderTop: "1px solid #2a3942", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 18 }}>{editandoMsg ? "✏️" : "↪️"}</span>
-                <div style={{
-                  flex: 1,
-                  borderLeft: "3px solid #00a884",
-                  paddingLeft: 10,
-                  minWidth: 0,
-                }}>
+                <div style={{ flex: 1, borderLeft: "3px solid #00a884", paddingLeft: 10, minWidth: 0 }}>
                   <p style={{ color: "#00d9a3", fontSize: 11, fontWeight: "bold", margin: 0 }}>
-                    {editandoMsg ? "Editando sua mensagem" : `Respondendo a ${
-                      (respondendoMsg?.de === "cliente"
-                        ? (atendimentoAtivo?.nome || "Cliente")
-                        : respondendoMsg?.de === "bot" ? "BOT" : "Atendente")
-                    }`}
+                    {editandoMsg ? "Editando sua mensagem" : `Respondendo a ${(respondendoMsg?.de === "cliente" ? (atendimentoAtivo?.nome || "Cliente") : respondendoMsg?.de === "bot" ? "BOT" : "Atendente")}`}
                   </p>
                   <p style={{ color: "#4b5563", fontSize: 12, margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {(() => {
-                      const m = editandoMsg || respondendoMsg;
-                      if (!m) return "";
-                      const t = String(m.mensagem || "")
-                        .replace(/^↪️ \*[^*]+\*: "[\s\S]+?"\n\n/, "")
-                        .replace(/^\*[^*]+\*\n/, "")
-                        .replace(/\s*\*\(editado\)\*\s*$/, "");
-                      return t.length > 80 ? t.slice(0, 80) + "..." : t;
-                    })()}
+                    {(() => { const m = editandoMsg || respondendoMsg; if (!m) return ""; const t = String(m.mensagem || "").replace(/^↪️ \*[^*]+\*: "[\s\S]+?"\n\n/, "").replace(/^\*[^*]+\*\n/, "").replace(/\s*\*\(editado\)\*\s*$/, ""); return t.length > 80 ? t.slice(0, 80) + "..." : t; })()}
                   </p>
-                  {editandoMsg && (
-                    <p style={{ color: "#fbbf24", fontSize: 10, margin: "3px 0 0", fontStyle: "italic" }}>
-                      ⚠️ Edição apenas no histórico interno — cliente já recebeu a versão original.
-                    </p>
-                  )}
+                  {editandoMsg && <p style={{ color: "#fbbf24", fontSize: 10, margin: "3px 0 0", fontStyle: "italic" }}>⚠️ Edição apenas no histórico interno — cliente já recebeu a versão original.</p>}
                 </div>
-                <button onClick={cancelarRespostaOuEdicao} title="Cancelar"
-                  style={{ background: "none", color: "#6b7280", border: "none", fontSize: 22, cursor: "pointer", padding: "4px 8px", lineHeight: 1, fontWeight: "bold" }}>×</button>
+                <button onClick={cancelarRespostaOuEdicao} title="Cancelar" style={{ background: "none", color: "#6b7280", border: "none", fontSize: 22, cursor: "pointer", padding: "4px 8px", lineHeight: 1, fontWeight: "bold" }}>×</button>
               </div>
             )}
 
@@ -3423,14 +2827,11 @@ export function ChatSection() {
               </div>
             ) : (
               <>
-                {/* 🆕 BANNER de aviso de janela 24h expirada (só pra WABA) */}
                 {ehCanalWaba && janelaExpirada && (
                   <div style={{ background: "#f59e0b22", borderTop: "1px solid #f59e0b66", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 18 }}>⚠️</span>
                     <div style={{ flex: 1 }}>
-                      <p style={{ color: "#fbbf24", fontSize: 12, margin: 0, fontWeight: "bold" }}>
-                        Janela de 24h expirada
-                      </p>
+                      <p style={{ color: "#fbbf24", fontSize: 12, margin: 0, fontWeight: "bold" }}>Janela de 24h expirada</p>
                       <p style={{ color: "#fde68a", fontSize: 11, margin: "2px 0 0" }}>
                         {horasDesdeUltimaMsgCliente > 9000 ? "Esse contato nunca te enviou mensagem." : `Última mensagem do cliente há ${Math.floor(horasDesdeUltimaMsgCliente)}h.`} Só é possível enviar via Template aprovado.
                       </p>
@@ -3438,123 +2839,53 @@ export function ChatSection() {
                     <button onClick={abrirModalTemplate} style={{ background: "#f59e0b", color: "#1f2937", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>📋 Enviar Template</button>
                   </div>
                 )}
-
-                {/* 🆕 EMOJI PICKER — painel fixo acima do input (estilo WhatsApp) */}
                 {showEmojiPicker && (
                   <div style={{ background: "#dcfce7", borderTop: "1px solid #2a3942", maxHeight: 320, display: "flex", flexDirection: "column" }}>
-                    {/* Header: abas de categorias + busca */}
                     <div style={{ display: "flex", gap: 2, borderBottom: "1px solid #2a3942", padding: "6px 8px", overflowX: "auto" }}>
                       {EMOJIS_CATEGORIAS.map(cat => (
                         <button key={cat.id} onClick={() => setEmojiCategoria(cat.id)} title={cat.label}
-                          style={{
-                            background: emojiCategoria === cat.id ? "#00a88433" : "transparent",
-                            border: "none",
-                            borderRadius: 6,
-                            padding: "6px 10px",
-                            fontSize: 18,
-                            cursor: "pointer",
-                            flexShrink: 0,
-                            borderBottom: emojiCategoria === cat.id ? "2px solid #00a884" : "2px solid transparent"
-                          }}>
+                          style={{ background: emojiCategoria === cat.id ? "#00a88433" : "transparent", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 18, cursor: "pointer", flexShrink: 0, borderBottom: emojiCategoria === cat.id ? "2px solid #00a884" : "2px solid transparent" }}>
                           {cat.icone}
                         </button>
                       ))}
                       <input placeholder="🔍 Buscar..." value={emojiBusca} onChange={e => setEmojiBusca(e.target.value)}
                         style={{ flex: 1, minWidth: 100, background: "#ffffff", border: "1px solid #2a3942", borderRadius: 6, padding: "4px 10px", color: "#1f2937", fontSize: 12, marginLeft: 8 }} />
                     </div>
-                    {/* Grid de emojis */}
                     <div style={{ flex: 1, overflowY: "auto", padding: 8, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(36px, 1fr))", gap: 2 }}>
                       {emojisVisiveis.length === 0 ? (
-                        <div style={{ gridColumn: "1 / -1", textAlign: "center", color: "#6b7280", fontSize: 12, padding: 20 }}>
-                          Nenhum emoji encontrado
-                        </div>
+                        <div style={{ gridColumn: "1 / -1", textAlign: "center", color: "#6b7280", fontSize: 12, padding: 20 }}>Nenhum emoji encontrado</div>
                       ) : emojisVisiveis.map((emoji, i) => (
                         <button key={`${emojiCategoria}-${i}`} onClick={() => inserirEmoji(emoji)}
                           style={{ background: "none", border: "none", fontSize: 22, padding: 4, cursor: "pointer", borderRadius: 4, lineHeight: 1 }}
-                          onMouseEnter={e => e.currentTarget.style.background = "#2a3942"}
-                          onMouseLeave={e => e.currentTarget.style.background = "none"}>
-                          {emoji}
-                        </button>
+                          onMouseEnter={e => e.currentTarget.style.background = "#2a3942"} onMouseLeave={e => e.currentTarget.style.background = "none"}>{emoji}</button>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* TOOLBAR do input */}
                 <div style={{ background: "#dcfce7", padding: "8px 12px", display: "flex", gap: 8, alignItems: "center" }}>
                   {permissoes.respostas_rapidas && (
                     <button onClick={() => setShowRespostas(!showRespostas)} title="Respostas rápidas"
                       style={{ background: showRespostas ? "#00a88422" : "none", color: showRespostas ? "#00a884" : "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 18, cursor: "pointer" }}>⚡</button>
                   )}
-
-                  {/* 🆕 Botão EMOJI — abre/fecha picker */}
                   <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="Emoji"
                     style={{ background: showEmojiPicker ? "#00a88422" : "none", color: showEmojiPicker ? "#00a884" : "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 20, cursor: "pointer" }}>😊</button>
-
-                  {/* 🆕 Botão ANEXAR — abre dialog do navegador pra escolher arquivo */}
-                  <input
-                    ref={fileUploadRef}
-                    type="file"
-                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar"
-                    onChange={handleArquivoSelecionado}
-                    style={{ display: "none" }}
-                  />
+                  <input ref={fileUploadRef} type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar" onChange={handleArquivoSelecionado} style={{ display: "none" }} />
                   <button onClick={() => fileUploadRef.current?.click()} title="Anexar arquivo"
                     style={{ background: "none", color: "#6b7280", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 18, cursor: "pointer" }}>📎</button>
-
-                  {/* 🆕 Botão TEMPLATE — só aparece em canal WABA. Amarelo se janela expirou, cinza se dentro dos 24h */}
                   {ehCanalWaba && (
                     <button onClick={abrirModalTemplate} title={janelaExpirada ? "Enviar template (janela 24h expirada)" : "Enviar template aprovado"}
-                      style={{
-                        background: janelaExpirada ? "#f59e0b" : "none",
-                        color: janelaExpirada ? "white" : "#8696a0",
-                        border: janelaExpirada ? "none" : "none",
-                        borderRadius: "50%",
-                        width: 38,
-                        height: 38,
-                        fontSize: 18,
-                        cursor: "pointer",
-                        animation: janelaExpirada ? "pulse 2s infinite" : "none"
-                      }}>📋</button>
+                      style={{ background: janelaExpirada ? "#f59e0b" : "none", color: janelaExpirada ? "white" : "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 18, cursor: "pointer", animation: janelaExpirada ? "pulse 2s infinite" : "none" }}>📋</button>
                   )}
-
-                  <textarea
-                    ref={mensagemTextareaRef}
-                    placeholder={isMobile ? "Mensagem" : (meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem")}
-                    value={mensagem}
+                  <textarea ref={mensagemTextareaRef} placeholder={isMobile ? "Mensagem" : (meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem")} value={mensagem}
                     onChange={e => {
                       setMensagem(e.target.value);
                       if (e.target.value === "/" && permissoes.respostas_rapidas) setShowRespostas(true);
                       else if (!e.target.value) setShowRespostas(false);
-                      // 🆕 Auto-resize: cresce conforme o user digita (até 6 linhas)
-                      const ta = e.target;
-                      ta.style.height = "auto";
-                      ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
+                      const ta = e.target; ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
                     }}
-                    onKeyDown={e => {
-                      // 🆕 Enter envia, Shift+Enter quebra linha (igual WhatsApp/Slack)
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        enviarMensagem();
-                      }
-                    }}
-                    onFocus={() => setShowEmojiPicker(false)}
-                    rows={1}
-                    style={{
-                      flex: 1,
-                      background: "#f3f4f6",
-                      border: "none",
-                      borderRadius: 20,
-                      padding: "10px 16px",
-                      color: "#1f2937",
-                      fontSize: 14,
-                      resize: "none",          // 🆕 sem alça de resize
-                      fontFamily: "inherit",   // 🆕 textarea por padrão usa monospace
-                      lineHeight: "1.4",
-                      maxHeight: 140,
-                      overflowY: "auto",
-                    }}
-                  />
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviarMensagem(); } }}
+                    onFocus={() => setShowEmojiPicker(false)} rows={1}
+                    style={{ flex: 1, background: "#f3f4f6", border: "none", borderRadius: 20, padding: "10px 16px", color: "#1f2937", fontSize: 14, resize: "none", fontFamily: "inherit", lineHeight: "1.4", maxHeight: 140, overflowY: "auto" }} />
                   {mensagem ? (
                     <button onClick={enviarMensagem} disabled={enviandoMsg} title="Enviar"
                       style={{ background: "#00a884", color: "#1f2937", border: "none", borderRadius: "50%", width: 42, height: 42, fontSize: 18, cursor: "pointer", fontWeight: "bold" }}>{enviandoMsg ? "…" : "➤"}</button>
@@ -3568,14 +2899,7 @@ export function ChatSection() {
           </>
         ) : (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 18, background: "transparent" }}>
-            {/* 💬 Ícone em container gradient — mesma vibe dos blocos do editor */}
-            <div style={{
-              width: 96, height: 96, borderRadius: 24,
-              background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 48,
-              boxShadow: "0 12px 24px rgba(59, 130, 246, 0.25), 0 4px 8px rgba(59, 130, 246, 0.15)"
-            }}>
+            <div style={{ width: 96, height: 96, borderRadius: 24, background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, boxShadow: "0 12px 24px rgba(59, 130, 246, 0.25), 0 4px 8px rgba(59, 130, 246, 0.15)" }}>
               <span style={{ filter: "saturate(0) brightness(2)" }}>💬</span>
             </div>
             <h2 style={{ color: "#1f2937", fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Wolf Chatbot</h2>
@@ -3601,8 +2925,6 @@ export function ChatSection() {
               <button onClick={cancelarEnvioArquivo} disabled={enviandoMidia}
                 style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: enviandoMidia ? "not-allowed" : "pointer" }}>✕</button>
             </div>
-
-            {/* Preview */}
             <div style={{ padding: 20, display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: "#f8fafc" }}>
               {arquivoPreviewUrl && arquivoSelecionado.type.startsWith("image/") ? (
                 <img src={arquivoPreviewUrl} alt="preview" style={{ maxWidth: "100%", maxHeight: 320, borderRadius: 8, objectFit: "contain" }} />
@@ -3628,42 +2950,18 @@ export function ChatSection() {
                 </p>
               </div>
             </div>
-
-            {/* Legenda + botão enviar */}
             <div style={{ padding: "12px 16px", background: "#dcfce7", display: "flex", gap: 8, alignItems: "center" }}>
               <textarea
                 placeholder="Adicione uma legenda (opcional)"
                 value={legendaArquivo}
                 onChange={e => {
                   setLegendaArquivo(e.target.value);
-                  // Auto-resize
-                  const ta = e.target;
-                  ta.style.height = "auto";
-                  ta.style.height = Math.min(ta.scrollHeight, 100) + "px";
+                  const ta = e.target; ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 100) + "px";
                 }}
-                onKeyDown={e => {
-                  // Enter envia, Shift+Enter quebra linha
-                  if (e.key === "Enter" && !e.shiftKey && !enviandoMidia) {
-                    e.preventDefault();
-                    enviarMidia();
-                  }
-                }}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !enviandoMidia) { e.preventDefault(); enviarMidia(); } }}
                 disabled={enviandoMidia}
                 rows={1}
-                style={{
-                  flex: 1,
-                  background: "#f3f4f6",
-                  border: "none",
-                  borderRadius: 20,
-                  padding: "10px 16px",
-                  color: "#1f2937",
-                  fontSize: 14,
-                  resize: "none",
-                  fontFamily: "inherit",
-                  lineHeight: "1.4",
-                  maxHeight: 100,
-                  overflowY: "auto",
-                }}
+                style={{ flex: 1, background: "#f3f4f6", border: "none", borderRadius: 20, padding: "10px 16px", color: "#1f2937", fontSize: 14, resize: "none", fontFamily: "inherit", lineHeight: "1.4", maxHeight: 100, overflowY: "auto" }}
               />
               <button onClick={enviarMidia} disabled={enviandoMidia}
                 style={{ background: enviandoMidia ? "#047857" : "#00a884", color: "#1f2937", border: "none", borderRadius: "50%", width: 44, height: 44, fontSize: 18, cursor: enviandoMidia ? "not-allowed" : "pointer", fontWeight: "bold" }}>
@@ -3685,7 +2983,6 @@ export function ChatSection() {
               <button onClick={() => setShowTemplateModal(false)} disabled={enviandoTemplate}
                 style={{ background: "none", border: "none", color: "#6b7280", fontSize: 22, cursor: enviandoTemplate ? "not-allowed" : "pointer" }}>✕</button>
             </div>
-
             {janelaExpirada && (
               <div style={{ padding: "10px 20px", background: "#f59e0b22", borderBottom: "1px solid #f59e0b44" }}>
                 <p style={{ color: "#fbbf24", fontSize: 12, margin: 0 }}>
@@ -3693,9 +2990,7 @@ export function ChatSection() {
                 </p>
               </div>
             )}
-
             <div style={{ padding: 20, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* Lista de templates */}
               <div>
                 <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, textTransform: "uppercase", fontWeight: "bold" }}>
                   Template aprovado ({templatesDoCanal.length} disponíveis)
@@ -3709,23 +3004,15 @@ export function ChatSection() {
                   </div>
                 ) : (
                   <select value={templateEscolhido?.id || ""}
-                    onChange={e => {
-                      const t = templatesDoCanal.find(tpl => tpl.id === parseInt(e.target.value));
-                      setTemplateEscolhido(t || null);
-                      setTemplateVars({});
-                    }}
+                    onChange={e => { const t = templatesDoCanal.find(tpl => tpl.id === parseInt(e.target.value)); setTemplateEscolhido(t || null); setTemplateVars({}); }}
                     style={{ width: "100%", background: "#f3f4f6", border: "1px solid #374045", borderRadius: 8, padding: "10px 12px", color: "#1f2937", fontSize: 13 }}>
                     <option value="">— Selecione um template —</option>
                     {templatesDoCanal.map(t => (
-                      <option key={t.id} value={t.id}>
-                        ✅ {t.nome_amigavel || t.meta_template_name} ({t.categoria}, {t.idioma})
-                      </option>
+                      <option key={t.id} value={t.id}>✅ {t.nome_amigavel || t.meta_template_name} ({t.categoria}, {t.idioma})</option>
                     ))}
                   </select>
                 )}
               </div>
-
-              {/* Preview do template selecionado */}
               {templateEscolhido && (
                 <div style={{ background: "#dcfce7", borderRadius: 10, padding: 14 }}>
                   <p style={{ color: "#6b7280", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>Preview</p>
@@ -3743,8 +3030,6 @@ export function ChatSection() {
                   })}
                 </div>
               )}
-
-              {/* Inputs pra variáveis {{1}}, {{2}} etc */}
               {templateEscolhido && variaveisDoTemplate.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <label style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", fontWeight: "bold" }}>
@@ -3753,28 +3038,21 @@ export function ChatSection() {
                   {variaveisDoTemplate.map(v => (
                     <div key={v}>
                       <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 2 }}>{`{{${v}}}`}</label>
-                      <input
-                        value={templateVars[v] || ""}
-                        onChange={e => setTemplateVars(p => ({ ...p, [v]: e.target.value }))}
+                      <input value={templateVars[v] || ""} onChange={e => setTemplateVars(p => ({ ...p, [v]: e.target.value }))}
                         placeholder={`Valor pra {{${v}}}`}
-                        style={{ width: "100%", background: "#f3f4f6", border: "1px solid #374045", borderRadius: 8, padding: "8px 12px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" }}
-                      />
+                        style={{ width: "100%", background: "#f3f4f6", border: "1px solid #374045", borderRadius: 8, padding: "8px 12px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" }} />
                     </div>
                   ))}
                 </div>
               )}
             </div>
-
-            {/* Footer com botão enviar */}
             <div style={{ padding: "12px 20px", borderTop: "1px solid #2a3942", background: "#dcfce7", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
               <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
                 Para: <b style={{ color: "#00a884", fontFamily: "monospace" }}>{atendimentoAtivo.numero}</b>
               </p>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => setShowTemplateModal(false)} disabled={enviandoTemplate}
-                  style={{ background: "#f3f4f6", color: "#6b7280", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: enviandoTemplate ? "not-allowed" : "pointer" }}>
-                  Cancelar
-                </button>
+                  style={{ background: "#f3f4f6", color: "#6b7280", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: enviandoTemplate ? "not-allowed" : "pointer" }}>Cancelar</button>
                 <button onClick={enviarTemplateWaba} disabled={enviandoTemplate || !templateEscolhido}
                   style={{ background: (enviandoTemplate || !templateEscolhido) ? "#047857" : "#00a884", color: "#1f2937", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, cursor: (enviandoTemplate || !templateEscolhido) ? "not-allowed" : "pointer", fontWeight: "bold" }}>
                   {enviandoTemplate ? "⏳ Enviando..." : "🚀 Enviar Template"}
@@ -3787,21 +3065,7 @@ export function ChatSection() {
 
       {/* PAINEL DADOS DO CONTATO — mobile: fullscreen overlay; desktop: sidebar 340px */}
       {atendimentoAtivo && showPainelContato && (
-        <div style={{
-          width: isMobile ? "100%" : 340,
-          background: "#ffffff",
-          borderLeft: "1px solid #e5e7eb",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          position: isMobile ? "fixed" : "relative",
-          top: isMobile ? 0 : "auto",
-          left: isMobile ? 0 : "auto",
-          right: isMobile ? 0 : "auto",
-          bottom: isMobile ? 0 : "auto",
-          zIndex: isMobile ? 100 : "auto",
-          height: isMobile ? "100vh" : "auto",
-        }}>
+        <div style={{ width: isMobile ? "100%" : 340, background: "#ffffff", borderLeft: "1px solid #e5e7eb", display: "flex", flexDirection: "column", overflow: "hidden", position: isMobile ? "fixed" : "relative", top: isMobile ? 0 : "auto", left: isMobile ? 0 : "auto", right: isMobile ? 0 : "auto", bottom: isMobile ? 0 : "auto", zIndex: isMobile ? 100 : "auto", height: isMobile ? "100vh" : "auto" }}>
           <div style={{ padding: "16px 18px", borderBottom: "1px solid #e5e7eb", background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
             <div>
               <h3 style={{ color: "#ffffff", fontSize: 15, fontWeight: 700, margin: 0, letterSpacing: 0.2 }}>👤 Dados do Contato</h3>
@@ -3822,8 +3086,7 @@ export function ChatSection() {
             ].map(a => {
               const ativa = abaPainel === a.key;
               return (
-                <button key={a.key} onClick={() => setAbaPainel(a.key as any)}
-                  title={a.label}
+                <button key={a.key} onClick={() => setAbaPainel(a.key as any)} title={a.label}
                   style={{ flex: 1, padding: "6px 2px", background: ativa ? `${a.cor}12` : "transparent", border: "none", borderRadius: 8, cursor: "pointer", position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "all 0.15s" }}>
                   <div style={{ width: 28, height: 28, borderRadius: 7, background: ativa ? a.cor : `${a.cor}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, boxShadow: ativa ? `0 3px 8px ${a.cor}40` : "none", transition: "all 0.15s" }}>
                     <span style={{ filter: ativa ? "saturate(0) brightness(2)" : "none" }}>{a.icon}</span>
@@ -3894,14 +3157,33 @@ export function ChatSection() {
                   <label style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Etapa</label>
                   <select value={atendimentoAtivo.funil_etapa || ""} onChange={e => salvarCampoContato("funil_etapa", e.target.value)} style={inputSm}>
                     <option value="">Sem etapa</option>
-                    <option value="novo">🆕 Novo Lead</option>
-                    <option value="contato">📞 Primeiro Contato</option>
-                    <option value="qualificacao">🎯 Qualificação</option>
-                    <option value="proposta">💰 Proposta</option>
-                    <option value="negociacao">🤝 Negociação</option>
-                    <option value="fechado_ganho">✅ Fechado Ganho</option>
-                    <option value="fechado_perdido">❌ Fechado Perdido</option>
+                    {funilEtapas.length > 0 ? (
+                      funilEtapas.map(et => (
+                        <option key={et.opcao} value={et.opcao}>
+                          {et.tipo === "ganho" ? "✅ " : et.tipo === "perdido" ? "❌ " : "▸ "}{et.opcao}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="novo">🆕 Novo Lead</option>
+                        <option value="contato">📞 Primeiro Contato</option>
+                        <option value="qualificacao">🎯 Qualificação</option>
+                        <option value="proposta">💰 Proposta</option>
+                        <option value="negociacao">🤝 Negociação</option>
+                        <option value="fechado_ganho">✅ Fechado Ganho</option>
+                        <option value="fechado_perdido">❌ Fechado Perdido</option>
+                      </>
+                    )}
                   </select>
+                  {funilEtapas.length > 0 ? (
+                    <p style={{ color: "#9ca3af", fontSize: 10, margin: "6px 0 0", lineHeight: 1.4 }}>
+                      🎯 Etapas sincronizadas com o seu <b>Funil de Vendas</b> (definidas no Editor de Proposta). ✅ = ganho · ❌ = perdido.
+                    </p>
+                  ) : (
+                    <p style={{ color: "#9ca3af", fontSize: 10, margin: "6px 0 0", lineHeight: 1.4 }}>
+                      💡 Configure um campo de status no <b>Editor de Proposta / Funil</b> pra estas etapas virarem as do seu negócio.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Valor (R$)</label>
@@ -3922,30 +3204,9 @@ export function ChatSection() {
                       const marcada = etiquetasAtendimento.includes(et.id);
                       return (
                         <button key={et.id} onClick={() => toggleEtiqueta(et.id)}
-                          style={{
-                            background: marcada ? `${et.cor}15` : "#ffffff",
-                            border: `1px solid ${marcada ? et.cor : "#e5e7eb"}`,
-                            borderRadius: 10,
-                            padding: "10px 12px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            cursor: "pointer",
-                            transition: "all 0.15s",
-                            boxShadow: marcada ? `0 2px 6px ${et.cor}25` : "0 1px 2px rgba(0,0,0,0.03)",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!marcada) {
-                              e.currentTarget.style.background = "#f9fafb";
-                              e.currentTarget.style.borderColor = "#d1d5db";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!marcada) {
-                              e.currentTarget.style.background = "#ffffff";
-                              e.currentTarget.style.borderColor = "#e5e7eb";
-                            }
-                          }}>
+                          style={{ background: marcada ? `${et.cor}15` : "#ffffff", border: `1px solid ${marcada ? et.cor : "#e5e7eb"}`, borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", transition: "all 0.15s", boxShadow: marcada ? `0 2px 6px ${et.cor}25` : "0 1px 2px rgba(0,0,0,0.03)" }}
+                          onMouseEnter={(e) => { if (!marcada) { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#d1d5db"; } }}
+                          onMouseLeave={(e) => { if (!marcada) { e.currentTarget.style.background = "#ffffff"; e.currentTarget.style.borderColor = "#e5e7eb"; } }}>
                           <div style={{ background: marcada ? et.cor : `${et.cor}20`, borderRadius: 7, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0, transition: "background 0.15s" }}>
                             <span style={{ filter: marcada ? "saturate(0) brightness(2)" : "none" }}>{et.icone || "🏷️"}</span>
                           </div>
@@ -3988,66 +3249,38 @@ export function ChatSection() {
         </div>
       )}
 
-      {/* 🆕 ═══════════════════════════════════════════════════════════════
-          MODAL — Encerrar atendimentos antigos por inatividade
-          ═══════════════════════════════════════════════════════════════ */}
+      {/* 🆕 MODAL — Encerrar atendimentos antigos por inatividade */}
       {showEncerrarAntigos && (
         <div onClick={() => !encerrandoAntigos && setShowEncerrarAntigos(false)}
           style={{ position: "fixed", inset: 0, background: "#000000aa", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={e => e.stopPropagation()}
             style={{ background: ehClaro ? "#ffffff" : "#111b21", borderRadius: 12, width: "100%", maxWidth: 480, padding: 24, border: `1px solid ${tema.bordaSutil}` }}>
             <div style={{ marginBottom: 16 }}>
-              <h2 style={{ color: tema.textoForte, fontSize: 18, fontWeight: "bold", margin: "0 0 6px" }}>
-                🧹 Encerrar atendimentos antigos
-              </h2>
+              <h2 style={{ color: tema.textoForte, fontSize: 18, fontWeight: "bold", margin: "0 0 6px" }}>🧹 Encerrar atendimentos antigos</h2>
               <p style={{ color: tema.textoFraco, fontSize: 13, margin: 0, lineHeight: 1.5 }}>
                 Vai marcar como <b>resolvido</b> todos os atendimentos pendentes que estão sem nova interação há mais tempo que o limite escolhido.
               </p>
             </div>
-
-            <p style={{ color: tema.textoNormal, fontSize: 12, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>
-              Encerrar pendentes há mais de:
-            </p>
+            <p style={{ color: tema.textoNormal, fontSize: 12, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>Encerrar pendentes há mais de:</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
               {[1, 2, 3, 7].map(d => {
                 const qtde = contarPendentesAntigos(d as 1 | 2 | 3 | 7);
                 const ativo = diasAntiguidade === d;
                 return (
                   <button key={d} onClick={() => setDiasAntiguidade(d as 1 | 2 | 3 | 7)}
-                    style={{
-                      background: ativo ? "#f59e0b22" : (ehClaro ? "#f3f4f6" : "#1f2937"),
-                      border: `2px solid ${ativo ? "#f59e0b" : tema.bordaForte}`,
-                      borderRadius: 10,
-                      padding: "12px 8px",
-                      cursor: "pointer",
-                      textAlign: "center",
-                    }}>
-                    <p style={{ color: ativo ? "#f59e0b" : tema.textoForte, fontSize: 14, fontWeight: "bold", margin: "0 0 4px" }}>
-                      {d} {d === 1 ? "dia" : "dias"}
-                    </p>
-                    <p style={{ color: tema.textoFraco, fontSize: 10, margin: 0 }}>
-                      {qtde} {qtde === 1 ? "atend." : "atend."}
-                    </p>
+                    style={{ background: ativo ? "#f59e0b22" : (ehClaro ? "#f3f4f6" : "#1f2937"), border: `2px solid ${ativo ? "#f59e0b" : tema.bordaForte}`, borderRadius: 10, padding: "12px 8px", cursor: "pointer", textAlign: "center" }}>
+                    <p style={{ color: ativo ? "#f59e0b" : tema.textoForte, fontSize: 14, fontWeight: "bold", margin: "0 0 4px" }}>{d} {d === 1 ? "dia" : "dias"}</p>
+                    <p style={{ color: tema.textoFraco, fontSize: 10, margin: 0 }}>{qtde} {qtde === 1 ? "atend." : "atend."}</p>
                   </button>
                 );
               })}
             </div>
-
             {(() => {
               const qtde = contarPendentesAntigos(diasAntiguidade);
               return (
-                <div style={{
-                  background: qtde > 0 ? "#f59e0b22" : (ehClaro ? "#f3f4f6" : "#1f2937"),
-                  border: `1px solid ${qtde > 0 ? "#f59e0b66" : tema.bordaSutil}`,
-                  borderRadius: 8,
-                  padding: 14,
-                  marginBottom: 16,
-                }}>
+                <div style={{ background: qtde > 0 ? "#f59e0b22" : (ehClaro ? "#f3f4f6" : "#1f2937"), border: `1px solid ${qtde > 0 ? "#f59e0b66" : tema.bordaSutil}`, borderRadius: 8, padding: 14, marginBottom: 16 }}>
                   <p style={{ color: qtde > 0 ? "#f59e0b" : tema.textoFraco, fontSize: 13, margin: 0, fontWeight: "bold" }}>
-                    {qtde > 0
-                      ? `⚠️ ${qtde} atendimento(s) será(ão) encerrado(s)`
-                      : "✅ Nenhum atendimento atende esse critério"
-                    }
+                    {qtde > 0 ? `⚠️ ${qtde} atendimento(s) será(ão) encerrado(s)` : "✅ Nenhum atendimento atende esse critério"}
                   </p>
                   <p style={{ color: tema.textoFraco, fontSize: 11, margin: "4px 0 0", lineHeight: 1.4 }}>
                     Cada atendimento receberá uma mensagem de sistema explicando o motivo do encerramento. Ação irreversível — mas você pode reabrir manualmente depois se precisar.
@@ -4055,23 +3288,11 @@ export function ChatSection() {
                 </div>
               );
             })()}
-
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button onClick={() => setShowEncerrarAntigos(false)} disabled={encerrandoAntigos}
-                style={{ background: "none", color: tema.textoNormal, border: `1px solid ${tema.bordaForte}`, borderRadius: 8, padding: "10px 18px", fontSize: 13, cursor: encerrandoAntigos ? "wait" : "pointer" }}>
-                Cancelar
-              </button>
+                style={{ background: "none", color: tema.textoNormal, border: `1px solid ${tema.bordaForte}`, borderRadius: 8, padding: "10px 18px", fontSize: 13, cursor: encerrandoAntigos ? "wait" : "pointer" }}>Cancelar</button>
               <button onClick={() => encerrarAtendimentosAntigos(diasAntiguidade)} disabled={encerrandoAntigos || contarPendentesAntigos(diasAntiguidade) === 0}
-                style={{
-                  background: encerrandoAntigos || contarPendentesAntigos(diasAntiguidade) === 0 ? "#6b7280" : "#f59e0b",
-                  color: "#1f2937",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "10px 22px",
-                  fontSize: 13,
-                  fontWeight: "bold",
-                  cursor: encerrandoAntigos || contarPendentesAntigos(diasAntiguidade) === 0 ? "not-allowed" : "pointer",
-                }}>
+                style={{ background: encerrandoAntigos || contarPendentesAntigos(diasAntiguidade) === 0 ? "#6b7280" : "#f59e0b", color: "#1f2937", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 13, fontWeight: "bold", cursor: encerrandoAntigos || contarPendentesAntigos(diasAntiguidade) === 0 ? "not-allowed" : "pointer" }}>
                 {encerrandoAntigos ? "⏳ Encerrando..." : `🧹 Encerrar ${contarPendentesAntigos(diasAntiguidade)}`}
               </button>
             </div>
@@ -4079,21 +3300,8 @@ export function ChatSection() {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          🔔 TOAST CONTAINER — notificações elegantes no canto inferior direito
-          Substitui os alert() nativos do browser. Aparece com fade in,
-          some sozinho depois de 3-6 segundos dependendo do tipo.
-          ═══════════════════════════════════════════════════════════════════ */}
-      <div style={{
-        position: "fixed",
-        bottom: 24,
-        right: 24,
-        zIndex: 99999,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        pointerEvents: "none",
-      }}>
+      {/* 🔔 TOAST CONTAINER */}
+      <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 99999, display: "flex", flexDirection: "column", gap: 10, pointerEvents: "none" }}>
         {toasts.map(t => {
           const cores = {
             sucesso: { bg: "#065f46", border: "#10b981", icone: "✅" },
@@ -4102,34 +3310,13 @@ export function ChatSection() {
             info:    { bg: "#1e3a8a", border: "#3b82f6", icone: "ℹ️" },
           }[t.tipo];
           return (
-            <div
-              key={t.id}
-              onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
-              style={{
-                background: cores.bg,
-                border: `1px solid ${cores.border}`,
-                borderLeft: `4px solid ${cores.border}`,
-                color: "#1f2937",
-                padding: "14px 18px",
-                borderRadius: 10,
-                minWidth: 300,
-                maxWidth: 420,
-                boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 12,
-                pointerEvents: "auto",
-                cursor: "pointer",
-                animation: "wolfToastIn 0.25s ease-out",
-              }}
-              title="Clique pra fechar"
-            >
+            <div key={t.id} onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
+              style={{ background: cores.bg, border: `1px solid ${cores.border}`, borderLeft: `4px solid ${cores.border}`, color: "#1f2937", padding: "14px 18px", borderRadius: 10, minWidth: 300, maxWidth: 420, boxShadow: "0 10px 25px rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-start", gap: 12, pointerEvents: "auto", cursor: "pointer", animation: "wolfToastIn 0.25s ease-out" }}
+              title="Clique pra fechar">
               <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{cores.icone}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, lineHeight: 1.4 }}>{t.msg}</p>
-                {t.subMsg && (
-                  <p style={{ margin: "4px 0 0", fontSize: 12, opacity: 0.85, lineHeight: 1.4 }}>{t.subMsg}</p>
-                )}
+                {t.subMsg && <p style={{ margin: "4px 0 0", fontSize: 12, opacity: 0.85, lineHeight: 1.4 }}>{t.subMsg}</p>}
               </div>
               <span style={{ color: "#1f2937", opacity: 0.5, fontSize: 16, lineHeight: 1, flexShrink: 0, fontWeight: "bold" }}>×</span>
             </div>
