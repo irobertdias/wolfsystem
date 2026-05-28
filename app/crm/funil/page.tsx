@@ -63,7 +63,7 @@ type CampoUni = CampoUnificado & {
   ordem?: number;
 };
 
-type PeriodoKey = "semanal" | "mensal" | "trimestral" | "ano" | "tudo";
+type PeriodoKey = "semanal" | "mensal" | "trimestral" | "ano" | "tudo" | "custom";
 type AbaKey = "visao" | "etapas" | "dimensoes" | "vendedores" | "metas" | "temporal" | "cohort" | "horarios" | "lista";
 type OrdemLista = "recente" | "antiga" | "valor_desc" | "valor_asc" | "nome_az";
 
@@ -285,6 +285,8 @@ export default function Funil() {
 
   // ─── FILTROS ──────────────────────────────────────────────────────────────
   const [periodo, setPeriodo] = useState<PeriodoKey>("mensal");
+  const [dataInicio, setDataInicio] = useState<string>(""); // YYYY-MM-DD (período custom)
+  const [dataFim, setDataFim] = useState<string>("");       // YYYY-MM-DD
   const [filtroVendedor, setFiltroVendedor] = useState("todos");
   const [filtroBusca, setFiltroBusca] = useState("");
   // Filtros dinâmicos por dimensão: { slug: valorSelecionado }
@@ -502,29 +504,43 @@ export default function Funil() {
     return true;
   }, [equipeId, filtroVendedor, filtrosDim, camposMap, filtroBusca, nomeVendedor, statusDe]);
 
-  const dentroPeriodo = useCallback((p: Proposta, dias: number): boolean => {
-    if (dias >= 99999) return true;
-    const limite = new Date(Date.now() - dias * 86400000);
-    return dataDe(p) >= limite;
-  }, [dataDe]);
+  // Janela de datas ativa: resolve atalho OU intervalo custom → { ini, fim, dias, tudo }
+  const janela = useMemo(() => {
+    const agora = new Date();
+    if (periodo === "custom" && dataInicio && dataFim) {
+      const ini = new Date(dataInicio + "T00:00:00");
+      const fim = new Date(dataFim + "T23:59:59");
+      const dias = Math.max(1, Math.round((fim.getTime() - ini.getTime()) / 86400000));
+      return { ini, fim, dias, tudo: false };
+    }
+    const dias = PERIODOS_MAP[periodo === "custom" ? "mensal" : periodo].dias;
+    if (dias >= 99999) return { ini: new Date(0), fim: agora, dias: 99999, tudo: true };
+    return { ini: new Date(agora.getTime() - dias * 86400000), fim: agora, dias, tudo: false };
+  }, [periodo, dataInicio, dataFim]);
+
+  const dentroPeriodo = useCallback((p: Proposta): boolean => {
+    if (janela.tudo) return true;
+    const d = dataDe(p);
+    return d >= janela.ini && d <= janela.fim;
+  }, [dataDe, janela]);
 
   const propsFiltradas = useMemo(() => {
-    const dias = PERIODOS_MAP[periodo].dias;
-    return propostas.filter(p => passaFiltrosBase(p) && dentroPeriodo(p, dias));
-  }, [propostas, periodo, passaFiltrosBase, dentroPeriodo]);
+    return propostas.filter(p => passaFiltrosBase(p) && dentroPeriodo(p));
+  }, [propostas, passaFiltrosBase, dentroPeriodo]);
 
-  // Período anterior (tendência)
+  // Período anterior (tendência) — mesma duração, imediatamente antes da janela
   const propsAnterior = useMemo(() => {
-    const dias = PERIODOS_MAP[periodo].dias;
-    if (dias >= 99999) return [];
-    const fim = new Date(Date.now() - dias * 86400000);
-    const ini = new Date(fim.getTime() - dias * 86400000);
+    if (janela.tudo) return [];
+    const durMs = janela.fim.getTime() - janela.ini.getTime();
+    const fimAnt = janela.ini;
+    const iniAnt = new Date(janela.ini.getTime() - durMs);
     return propostas.filter(p => {
       if (!passaFiltrosBase(p)) return false;
       const d = dataDe(p);
-      return d >= ini && d < fim;
+      return d >= iniAnt && d < fimAnt;
     });
-  }, [propostas, periodo, passaFiltrosBase, dataDe]);
+  }, [propostas, janela, passaFiltrosBase, dataDe]);
+
 
   // ─── MÉTRICAS ───────────────────────────────────────────────────────────────
   const metricas = useMemo(() => {
@@ -553,7 +569,7 @@ export default function Funil() {
       ciclo = Math.round(dias.reduce((a, b) => a + b, 0) / dias.length);
     }
 
-    const diasPer = PERIODOS_MAP[periodo].dias >= 99999 ? 365 : PERIODOS_MAP[periodo].dias;
+    const diasPer = janela.tudo ? 365 : janela.dias;
     const velocity = receita / Math.max(diasPer, 1);
     const forecast = Math.round(valorPipeline * (winRate / 100));
 
@@ -588,7 +604,7 @@ export default function Funil() {
       tTotal: trendPct(pf.length, propsAnterior.length),
       tGanhos: trendPct(ganhos.length, gAnt.length),
     };
-  }, [propsFiltradas, propsAnterior, ehGanho, ehPerdido, ehPipeline, valorDe, periodo, config, statusDe]);
+  }, [propsFiltradas, propsAnterior, ehGanho, ehPerdido, ehPipeline, valorDe, janela, config, statusDe]);
 
   // ─── AGING / HIGIENE DE PIPELINE (negócios parados) ─────────────────────────
   const aging = useMemo(() => {
@@ -820,11 +836,10 @@ export default function Funil() {
 
   // ─── SÉRIE TEMPORAL ─────────────────────────────────────────────────────────
   const serieTemporal = useMemo(() => {
-    const dias = PERIODOS_MAP[periodo].dias >= 99999 ? 90 : PERIODOS_MAP[periodo].dias;
+    const dias = janela.tudo ? 90 : janela.dias;
     const tamMs = agrupTempo === "dia" ? 86400000 : agrupTempo === "semana" ? 7 * 86400000 : 30 * 86400000;
-    const n = Math.ceil(dias / (tamMs / 86400000));
-    const agora = new Date();
-    const ini = new Date(agora.getTime() - dias * 86400000);
+    const n = Math.max(1, Math.ceil(dias / (tamMs / 86400000)));
+    const ini = janela.tudo ? new Date(Date.now() - dias * 86400000) : janela.ini;
     const buckets = Array.from({ length: n }, (_, i) => {
       const start = new Date(ini.getTime() + i * tamMs);
       return { label: formatDataCurta(start), start, geradas: 0, ganhos: 0, perdidos: 0, receita: 0 };
@@ -840,7 +855,7 @@ export default function Funil() {
       else if (ehPerdido(p)) { b.perdidos++; }
     }
     return buckets;
-  }, [propsFiltradas, periodo, agrupTempo, dataDe, ehGanho, ehPerdido, valorDe]);
+  }, [propsFiltradas, janela, agrupTempo, dataDe, ehGanho, ehPerdido, valorDe]);
 
   // ─── COHORT ─────────────────────────────────────────────────────────────────
   const cohort = useMemo(() => {
@@ -937,6 +952,8 @@ export default function Funil() {
 
   const limparFiltros = () => {
     setPeriodo("mensal");
+    setDataInicio("");
+    setDataFim("");
     setFiltroVendedor("todos");
     setFiltroBusca("");
     setFiltrosDim({});
@@ -964,7 +981,10 @@ export default function Funil() {
     );
   }
 
-  const periodoInfo = PERIODOS_MAP[periodo];
+  const periodoInfo = PERIODOS_MAP[periodo] || PERIODOS_MAP["mensal"];
+  const periodoLabelCurto = periodo === "custom" && dataInicio && dataFim
+    ? `${dataInicio.split("-").reverse().slice(0, 2).join("/")}–${dataFim.split("-").reverse().slice(0, 2).join("/")}`
+    : periodoInfo.curto;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 🔬 RENDER DO DRILLDOWN DA ETAPA (dashboard que abre ao clicar numa etapa)
@@ -1135,7 +1155,7 @@ export default function Funil() {
           <div>
             <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Funil de Vendas</h1>
             <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
-              <b style={{ color: "#06b6d4" }}>{metricas.total}</b> registros · {periodoInfo.curto}
+              <b style={{ color: "#06b6d4" }}>{metricas.total}</b> registros · {periodoLabelCurto}
               {campoStatus && <> · etapa: <b>{campoStatus.label}</b></>}
               {campoValor && <> · valor: <b>{campoValor.label}</b></>}
               {equipeId && <> · <span style={{ color: "#a855f7", fontWeight: 700 }}>👥 equipe</span></>}
@@ -1302,7 +1322,41 @@ export default function Funil() {
                 </button>
               );
             })}
+            {/* Botão Personalizado (calendário) */}
+            <button onClick={() => setPeriodo("custom")}
+              style={{ background: periodo === "custom" ? "#ec489915" : "#ffffff", color: periodo === "custom" ? "#ec4899" : "#6b7280", border: `1px solid ${periodo === "custom" ? "#ec489950" : "#e5e7eb"}`, borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: periodo === "custom" ? 700 : 600, boxShadow: periodo === "custom" ? "0 2px 8px #ec489920" : "none", transition: "all 0.15s" }}>
+              📅 Personalizado
+            </button>
           </div>
+          {/* Campos de data quando custom */}
+          {periodo === "custom" && (
+            <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end", background: "#fdf2f8", border: "1px solid #fbcfe8", borderRadius: 10, padding: 12 }}>
+              <div>
+                <label style={{ color: "#9d174d", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5 }}>De</label>
+                <input type="date" value={dataInicio} max={dataFim || undefined} onChange={e => setDataInicio(e.target.value)}
+                  style={{ ...inputStyle, cursor: "text", borderColor: "#fbcfe8" }} />
+              </div>
+              <div>
+                <label style={{ color: "#9d174d", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5 }}>Até</label>
+                <input type="date" value={dataFim} min={dataInicio || undefined} onChange={e => setDataFim(e.target.value)}
+                  style={{ ...inputStyle, cursor: "text", borderColor: "#fbcfe8" }} />
+              </div>
+              {/* Atalhos rápidos */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {([
+                  { l: "Este mês", calc: () => { const n = new Date(); return [new Date(n.getFullYear(), n.getMonth(), 1), new Date(n.getFullYear(), n.getMonth() + 1, 0)] as [Date, Date]; } },
+                  { l: "Mês passado", calc: () => { const n = new Date(); return [new Date(n.getFullYear(), n.getMonth() - 1, 1), new Date(n.getFullYear(), n.getMonth(), 0)] as [Date, Date]; } },
+                  { l: "Este ano", calc: () => { const n = new Date(); return [new Date(n.getFullYear(), 0, 1), new Date(n.getFullYear(), 11, 31)] as [Date, Date]; } },
+                ]).map(a => (
+                  <button key={a.l} onClick={() => { const [i, f] = a.calc(); setDataInicio(i.toISOString().slice(0, 10)); setDataFim(f.toISOString().slice(0, 10)); }}
+                    style={{ background: "#ffffff", color: "#9d174d", border: "1px solid #fbcfe8", borderRadius: 8, padding: "7px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                    {a.l}
+                  </button>
+                ))}
+              </div>
+              {(!dataInicio || !dataFim) && <span style={{ color: "#9d174d", fontSize: 11, fontWeight: 600, alignSelf: "center" }}>👈 escolha as duas datas</span>}
+            </div>
+          )}
         </div>
 
         {/* Vendedor + dimensões dinâmicas + busca */}
@@ -1392,7 +1446,7 @@ export default function Funil() {
                 <KPI cor="#06b6d4" bg="#ecfeff" icone="🎫" label="Ticket Médio" valor={formatBRLCompacto(metricas.ticket)} titulo={formatBRL(metricas.ticket)} sub={`mediana ${formatBRLCompacto(metricas.ticketMediana)}`} trend={metricas.tTicket} isMobile={isMobile} />
                 <KPI cor="#f59e0b" bg="#fffbeb" icone="⏱️" label="Ciclo Médio" valor={`${metricas.ciclo}d`} sub="Entrada → ganho" isMobile={isMobile} />
                 <KPI cor="#a855f7" bg="#f5f3ff" icone="🔮" label="Forecast Ponderado" valor={formatBRLCompacto(metricas.forecastPonderado)} titulo={formatBRL(metricas.forecastPonderado)} sub={`valor × prob. por etapa`} isMobile={isMobile} />
-                <KPI cor="#6366f1" bg="#eef2ff" icone="📨" label="Total" valor={formatNum(metricas.total)} sub={periodoInfo.curto} trend={metricas.tTotal} isMobile={isMobile} />
+                <KPI cor="#6366f1" bg="#eef2ff" icone="📨" label="Total" valor={formatNum(metricas.total)} sub={periodoLabelCurto} trend={metricas.tTotal} isMobile={isMobile} />
                 <KPI cor="#dc2626" bg="#fef2f2" icone="🚫" label="Perdidos" valor={formatNum(metricas.perdidos)} sub={`${metricas.taxaPerda}% dos fechados`} isMobile={isMobile} />
               </div>
 
@@ -1408,21 +1462,21 @@ export default function Funil() {
                     O campo de etapa ("{campoStatus?.label}") não tem opções. Configure as opções no Editor de Proposta ou escolha outro campo em ⚙️.
                   </p>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ maxWidth: 620, margin: "0 auto", display: "flex", flexDirection: "column", gap: 5 }}>
                     {etapasFunil.map((e, i) => {
-                      const largura = Math.max(34, 100 * (e.qtd / maxQtdEtapa));
+                      const largura = Math.max(40, 100 * (e.qtd / maxQtdEtapa));
                       const aberta = etapaAberta === e.opcao;
                       return (
                         <div key={e.opcao} onClick={() => abrirEtapa(e.opcao)}
                           style={{ display: "flex", justifyContent: "center", cursor: "pointer" }}>
-                          <div style={{ width: `${largura}%`, minWidth: 0, background: `linear-gradient(135deg, ${e.cor} 0%, ${e.cor}dd 100%)`, color: "white", borderRadius: 12, padding: isMobile ? "12px 16px" : "14px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, boxShadow: `0 4px 12px ${e.cor}40`, outline: aberta ? `3px solid ${e.cor}` : "none", outlineOffset: 3, transition: "all 0.15s" }}>
+                          <div style={{ width: `${largura}%`, minWidth: 0, background: `linear-gradient(135deg, ${e.cor} 0%, ${e.cor}dd 100%)`, color: "white", borderRadius: 10, padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, boxShadow: `0 2px 8px ${e.cor}35`, outline: aberta ? `2px solid ${e.cor}` : "none", outlineOffset: 2, transition: "all 0.15s" }}>
                             <div style={{ minWidth: 0, flex: 1 }}>
-                              <p style={{ margin: 0, fontSize: isMobile ? 12 : 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {e.tipo === "ganho" ? "✅ " : "▸ "}{e.opcao}{aberta && " 📂"}
                               </p>
-                              <p style={{ margin: "2px 0 0", fontSize: 10, opacity: 0.9 }}>{formatBRLCompacto(e.valor)}</p>
+                              <p style={{ margin: "1px 0 0", fontSize: 9, opacity: 0.9 }}>{formatBRLCompacto(e.valor)}</p>
                             </div>
-                            <p style={{ margin: 0, fontSize: isMobile ? 20 : 26, fontWeight: 800, letterSpacing: -0.5, flexShrink: 0 }}>{e.qtd}</p>
+                            <p style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: -0.5, flexShrink: 0 }}>{e.qtd}</p>
                           </div>
                         </div>
                       );
@@ -1431,7 +1485,7 @@ export default function Funil() {
                 )}
                 {/* Perdidos */}
                 {etapasPerdidas.length > 0 && (
-                  <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ maxWidth: 620, margin: "12px auto 0", display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {etapasPerdidas.map(e => (
                       <div key={e.opcao} onClick={() => abrirEtapa(e.opcao)}
                         style={{ flex: "1 1 200px", background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", outline: etapaAberta === e.opcao ? "2px solid #dc2626" : "none", outlineOffset: 2 }}>
