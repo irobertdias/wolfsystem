@@ -1741,7 +1741,8 @@ export default function FluxosPage() {
   const [wsId,setWsId]             = useState<string|null>(null);
   const [fluxos,setFluxos]         = useState<Fluxo[]>([]);
   const [filasBanco,setFilasBanco] = useState<FilaItem[]>([]); // 🆕
-  const [atendentesBanco,setAtendentesBanco] = useState<AtendenteItem[]>([]); // 🆕 atendentes do workspace  const [view,setView]             = useState<"lista"|"editor">("lista");
+  const [atendentesBanco,setAtendentesBanco] = useState<AtendenteItem[]>([]); // 🆕 atendentes do workspace
+  const [view,setView]             = useState<"lista"|"editor">("lista");
   const [fluxoAtivo,setFluxoAtivo] = useState<Fluxo|null>(null);
   const [nos,setNos]               = useState<No[]>([]);
   const [arestas,setArestas]       = useState<Aresta[]>([]);
