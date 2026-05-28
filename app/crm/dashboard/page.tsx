@@ -3,11 +3,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabase";
+import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
 
 type Proposta = {
   id: number; created_at: string; data_proposta: string; nome: string;
   vendedor: string; valor_plano: number; status_venda: string;
   operadora: string; plano: string; workspace_id: string;
+  equipe_id?: string | null;
 };
 type UsuarioWs = { email: string; nome: string; };
 
@@ -18,6 +20,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [workspaceNome, setWorkspaceNome] = useState("");
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
+  const [workspaceId, setWorkspaceId] = useState<string>("");
+
+  // 👥 Filtro por equipe (dropdown que aparece pro admin)
+  const { equipeId, EquipeSelector } = useEquipeFiltro(workspaceId);
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -63,6 +69,7 @@ export default function Dashboard() {
 
       if (wsIds.length === 0) { setLoading(false); return; }
       setWorkspaceNome(wsNome);
+      setWorkspaceId(wsIds[0]);
 
       const { data: props } = await supabase.from("proposta").select("*")
         .in("workspace_id", wsIds)
@@ -95,6 +102,7 @@ export default function Dashboard() {
   const filtroLabel: Record<string, string> = { diario: "Hoje", semanal: "Esta Semana", mensal: "Este Mês" };
 
   const filtrarPorPeriodo = (lista: Proposta[]) => lista.filter(p => {
+    if (equipeId && p.equipe_id !== equipeId) return false;
     const data = new Date(p.created_at);
     if (filtro === "diario") return data.toDateString() === hoje.toDateString();
     else if (filtro === "semanal") return (hoje.getTime() - data.getTime()) / (1000 * 60 * 60 * 24) <= 7;
@@ -155,7 +163,9 @@ export default function Dashboard() {
             <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>Workspace: <b>{workspaceNome}</b></p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          {/* 👥 Filtro de Equipe */}
+          <EquipeSelector />
           {[
             { key: "diario", label: "Hoje", color: "#16a34a" },
             { key: "semanal", label: "Esta Semana", color: "#3b82f6" },

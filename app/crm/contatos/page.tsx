@@ -2,12 +2,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
 import * as XLSX from "xlsx";
 
 type Atendimento = {
   id: number; created_at: string; numero: string; nome: string;
   mensagem: string; status: string; fila: string; atendente: string;
   workspace_id: string;
+  equipe_id?: string | null;
 };
 
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
@@ -33,6 +35,9 @@ export default function Contatos() {
   const [loading, setLoading] = useState(true);
   const [wsId, setWsId] = useState<string | null>(null);
   const [truncado, setTruncado] = useState(false);
+
+  // 👥 Filtro por equipe
+  const { equipeId, EquipeSelector } = useEquipeFiltro(wsId || "");
 
   // Busca e filtros
   const [busca, setBusca] = useState("");
@@ -154,9 +159,14 @@ export default function Contatos() {
   }, [wsId]);
 
   // ═══ AGREGA atendimentos por número = contatos únicos ═══
+  // Aplica filtro de equipe ANTES da agregação: se admin escolheu Equipe X,
+  // o contato aparece só com os atendimentos que pertencem à X
   const contatos: Contato[] = useMemo(() => {
+    const fonte = equipeId
+      ? atendimentos.filter(a => a.equipe_id === equipeId)
+      : atendimentos;
     const mapa = new Map<string, Contato>();
-    for (const a of atendimentos) {
+    for (const a of fonte) {
       if (!a.numero) continue;
       const existente = mapa.get(a.numero);
       if (!existente) {
@@ -193,7 +203,7 @@ export default function Contatos() {
       }
     }
     return Array.from(mapa.values()).sort((a, b) => new Date(b.ultimaData).getTime() - new Date(a.ultimaData).getTime());
-  }, [atendimentos, etiquetasPorAtend]);
+  }, [atendimentos, etiquetasPorAtend, equipeId]);
 
   // ═══ FILTROS ═══
   const contatosFiltrados = useMemo(() => {
@@ -547,17 +557,21 @@ export default function Contatos() {
             </p>
           </div>
         </div>
-        <button onClick={exportar} disabled={exportando || contatosFiltrados.length === 0}
-          style={{
-            background: (exportando || contatosFiltrados.length === 0) ? "#f3f4f6" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-            color: (exportando || contatosFiltrados.length === 0) ? "#9ca3af" : "white",
-            border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 13,
-            cursor: (exportando || contatosFiltrados.length === 0) ? "not-allowed" : "pointer", fontWeight: 700,
-            boxShadow: (exportando || contatosFiltrados.length === 0) ? "none" : "0 4px 12px rgba(22,163,74,0.3)",
-            whiteSpace: "nowrap",
-          }}>
-          {exportando ? "⏳ Exportando..." : "📥 Exportar Excel"}
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          {/* 👥 Filtro de Equipe */}
+          <EquipeSelector />
+          <button onClick={exportar} disabled={exportando || contatosFiltrados.length === 0}
+            style={{
+              background: (exportando || contatosFiltrados.length === 0) ? "#f3f4f6" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+              color: (exportando || contatosFiltrados.length === 0) ? "#9ca3af" : "white",
+              border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 13,
+              cursor: (exportando || contatosFiltrados.length === 0) ? "not-allowed" : "pointer", fontWeight: 700,
+              boxShadow: (exportando || contatosFiltrados.length === 0) ? "none" : "0 4px 12px rgba(22,163,74,0.3)",
+              whiteSpace: "nowrap",
+            }}>
+            {exportando ? "⏳ Exportando..." : "📥 Exportar Excel"}
+          </button>
+        </div>
       </div>
 
       {/* Aviso de truncamento */}
