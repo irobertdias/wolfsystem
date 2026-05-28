@@ -64,7 +64,7 @@ type CampoUni = CampoUnificado & {
 };
 
 type PeriodoKey = "semanal" | "mensal" | "trimestral" | "ano" | "tudo";
-type AbaKey = "visao" | "etapas" | "dimensoes" | "vendedores" | "temporal" | "cohort" | "horarios" | "lista";
+type AbaKey = "visao" | "etapas" | "dimensoes" | "vendedores" | "metas" | "temporal" | "cohort" | "horarios" | "lista";
 type OrdemLista = "recente" | "antiga" | "valor_desc" | "valor_asc" | "nome_az";
 
 // Configuração semântica do funil (o que cada coisa significa neste workspace)
@@ -74,7 +74,12 @@ type FunilConfig = {
   campoData: string;            // slug do campo de data principal ("" = usa created_at)
   statusGanho: string[];        // opções do status que contam como "ganho/sucesso"
   statusPerdido: string[];      // opções que contam como "perdido"
+  probabilidades: Record<string, number>; // % de chance de fechar por opção de status (0-100)
+  metaReceita: number;          // alvo de receita do mês
+  metaGanhos: number;           // alvo de nº de ganhos do mês
+  diasParado: number;           // nº de dias sem atualização pra considerar "parado/esfriando"
 };
+
 
 // ─── PERÍODOS ──────────────────────────────────────────────────────────────
 const PERIODOS: { key: PeriodoKey; label: string; curto: string; dias: number; icone: string; cor: string }[] = [
@@ -213,7 +218,23 @@ const autoDetectarConfig = (campos: CampoUni[]): FunilConfig => {
   const statusGanho = opcoesStatus.filter(o => REGEX_GANHO.test(o));
   const statusPerdido = opcoesStatus.filter(o => REGEX_PERDIDO.test(o));
 
-  return { campoStatus, campoValor, campoData, statusGanho, statusPerdido };
+  // Probabilidade por etapa: ganho=100, perdido=0, pipeline rampa crescente pela ordem
+  const pipeline = opcoesStatus.filter(o => !statusGanho.includes(o) && !statusPerdido.includes(o));
+  const probabilidades: Record<string, number> = {};
+  statusGanho.forEach(o => { probabilidades[o] = 100; });
+  statusPerdido.forEach(o => { probabilidades[o] = 0; });
+  pipeline.forEach((o, i) => {
+    // rampa de ~20% até ~80% conforme a posição na esteira
+    probabilidades[o] = pipeline.length <= 1 ? 50 : Math.round(20 + (60 * i) / (pipeline.length - 1));
+  });
+
+  return {
+    campoStatus, campoValor, campoData, statusGanho, statusPerdido,
+    probabilidades,
+    metaReceita: 0,
+    metaGanhos: 0,
+    diasParado: 14,
+  };
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -374,6 +395,10 @@ export default function Funil() {
         campoData: salva?.campoData ?? auto.campoData,
         statusGanho: salva?.statusGanho || auto.statusGanho,
         statusPerdido: salva?.statusPerdido || auto.statusPerdido,
+        probabilidades: salva?.probabilidades || auto.probabilidades,
+        metaReceita: salva?.metaReceita ?? auto.metaReceita,
+        metaGanhos: salva?.metaGanhos ?? auto.metaGanhos,
+        diasParado: salva?.diasParado ?? auto.diasParado,
       };
       setConfig(cfg);
 
@@ -532,6 +557,15 @@ export default function Funil() {
     const velocity = receita / Math.max(diasPer, 1);
     const forecast = Math.round(valorPipeline * (winRate / 100));
 
+    // Forecast PONDERADO: cada negócio em aberto vale valor × probabilidade da sua etapa
+    const probs = config?.probabilidades || {};
+    const forecastPonderado = Math.round(pipeline.reduce((a, p) => {
+      const prob = probs[statusDe(p)] ?? 0;
+      return a + valorDe(p) * (prob / 100);
+    }, 0));
+    // Receita projetada total = já realizado + esperado do pipeline ponderado
+    const receitaProjetada = receita + forecastPonderado;
+
     // Anterior
     const gAnt = propsAnterior.filter(ehGanho);
     const pAnt = propsAnterior.filter(ehPerdido);
@@ -546,6 +580,7 @@ export default function Funil() {
       pipelineCount: pipeline.length,
       receita, valorPipeline, valorPerdido,
       winRate, taxaPerda, ticket, ticketMediana, ciclo, velocity, forecast,
+      forecastPonderado, receitaProjetada,
       // tendências
       tRec: trendPct(receita, recAnt),
       tWin: trendPct(winRate, wrAnt),
@@ -553,7 +588,85 @@ export default function Funil() {
       tTotal: trendPct(pf.length, propsAnterior.length),
       tGanhos: trendPct(ganhos.length, gAnt.length),
     };
-  }, [propsFiltradas, propsAnterior, ehGanho, ehPerdido, ehPipeline, valorDe, periodo]);
+  }, [propsFiltradas, propsAnterior, ehGanho, ehPerdido, ehPipeline, valorDe, periodo, config, statusDe]);
+
+  // ─── AGING / HIGIENE DE PIPELINE (negócios parados) ─────────────────────────
+  const aging = useMemo(() => {
+    const limite = config?.diasParado ?? 14;
+    const abertos = propsFiltradas.filter(ehPipeline);
+    const agora = Date.now();
+    const calcDiasParado = (p: Proposta) => {
+      const ref = p.updated_at ? new Date(p.updated_at).getTime() : new Date(p.created_at).getTime();
+      return Math.floor((agora - ref) / 86400000);
+    };
+    const calcDiasAberto = (p: Proposta) => Math.floor((agora - new Date(p.created_at).getTime()) / 86400000);
+
+    const faixas = [
+      { label: "0–7 dias", min: 0, max: 7, qtd: 0, valor: 0, cor: "#16a34a" },
+      { label: "8–15 dias", min: 8, max: 15, qtd: 0, valor: 0, cor: "#84cc16" },
+      { label: "16–30 dias", min: 16, max: 30, qtd: 0, valor: 0, cor: "#f59e0b" },
+      { label: "31–60 dias", min: 31, max: 60, qtd: 0, valor: 0, cor: "#f97316" },
+      { label: "60+ dias", min: 61, max: Infinity, qtd: 0, valor: 0, cor: "#dc2626" },
+    ];
+    for (const p of abertos) {
+      const d = calcDiasAberto(p);
+      const f = faixas.find(x => d >= x.min && d <= x.max);
+      if (f) { f.qtd++; f.valor += valorDe(p); }
+    }
+
+    const parados = abertos
+      .map(p => ({ p, diasParado: calcDiasParado(p), diasAberto: calcDiasAberto(p), valor: valorDe(p) }))
+      .filter(x => x.diasParado >= limite)
+      .sort((a, b) => b.diasParado - a.diasParado);
+
+    const valorParado = parados.reduce((a, x) => a + x.valor, 0);
+    return { faixas, parados, valorParado, limite, totalAbertos: abertos.length };
+  }, [propsFiltradas, ehPipeline, valorDe, config]);
+
+  // ─── METAS DO MÊS ATUAL ─────────────────────────────────────────────────────
+  const metas = useMemo(() => {
+    const agora = new Date();
+    const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+    const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
+    const diasNoMes = fimMes.getDate();
+    const diaAtual = agora.getDate();
+    const fracaoDecorrida = diaAtual / diasNoMes;
+
+    // ganhos do mês corrente (respeitando filtros base, ignorando período)
+    const base = propostas.filter(passaFiltrosBase);
+    const ganhosMes = base.filter(p => {
+      if (!ehGanho(p)) return false;
+      const d = dataDe(p);
+      return d >= inicioMes && d <= new Date(fimMes.getFullYear(), fimMes.getMonth(), fimMes.getDate(), 23, 59, 59);
+    });
+    const receitaMes = ganhosMes.reduce((a, p) => a + valorDe(p), 0);
+    const qtdMes = ganhosMes.length;
+
+    const metaReceita = config?.metaReceita || 0;
+    const metaGanhos = config?.metaGanhos || 0;
+
+    const pctReceita = metaReceita > 0 ? Math.round((receitaMes / metaReceita) * 100) : 0;
+    const pctGanhos = metaGanhos > 0 ? Math.round((qtdMes / metaGanhos) * 100) : 0;
+
+    // Projeção no ritmo atual
+    const projReceita = fracaoDecorrida > 0 ? Math.round(receitaMes / fracaoDecorrida) : 0;
+    const projGanhos = fracaoDecorrida > 0 ? Math.round(qtdMes / fracaoDecorrida) : 0;
+    const pctRitmo = Math.round(fracaoDecorrida * 100);
+
+    // Faltam pra meta
+    const faltaReceita = Math.max(0, metaReceita - receitaMes);
+    const faltaGanhos = Math.max(0, metaGanhos - qtdMes);
+    const diasRestantes = diasNoMes - diaAtual;
+
+    return {
+      receitaMes, qtdMes, metaReceita, metaGanhos,
+      pctReceita, pctGanhos, projReceita, projGanhos, pctRitmo,
+      faltaReceita, faltaGanhos, diasRestantes, diasNoMes, diaAtual,
+      noRitmo: projReceita >= metaReceita,
+      mesLabel: agora.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+    };
+  }, [propostas, passaFiltrosBase, ehGanho, dataDe, valorDe, config]);
+
 
   // ─── ETAPAS DO FUNIL (por opção de status) ──────────────────────────────────
   const etapas = useMemo(() => {
@@ -1120,6 +1233,57 @@ export default function Funil() {
           <p style={{ color: "#9ca3af", fontSize: 11, margin: "12px 0 0", lineHeight: 1.4 }}>
             As situações que <b>não</b> forem ganho nem perdido são tratadas como <b>pipeline em aberto</b>. Sua escolha fica salva neste navegador por workspace.
           </p>
+
+          {/* Probabilidade por etapa (forecast ponderado) */}
+          {opcoesStatus.length > 0 && (
+            <div style={{ marginTop: 18, paddingTop: 18, borderTop: "1px dashed #e5e7eb" }}>
+              <p style={{ color: "#1f2937", fontSize: 12, fontWeight: 700, margin: "0 0 4px" }}>🔮 Probabilidade de fechar por etapa</p>
+              <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 12px" }}>Usada no <b>forecast ponderado</b>: cada negócio em aberto vale valor × probabilidade da etapa. (Ganho = 100%, Perdido = 0%.)</p>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+                {opcoesStatus.map(opt => {
+                  const isG = config.statusGanho.includes(opt);
+                  const isP = config.statusPerdido.includes(opt);
+                  const val = isG ? 100 : isP ? 0 : (config.probabilidades[opt] ?? 0);
+                  return (
+                    <div key={opt} style={{ display: "flex", alignItems: "center", gap: 10, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px" }}>
+                      <span style={{ color: "#1f2937", fontSize: 12, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {isG ? "✅ " : isP ? "❌ " : "▸ "}{opt}
+                      </span>
+                      <input type="range" min={0} max={100} step={5} value={val} disabled={isG || isP}
+                        onChange={e => salvarConfigFunil({ ...config, probabilidades: { ...config.probabilidades, [opt]: parseInt(e.target.value) } })}
+                        style={{ flex: 1, accentColor: "#a855f7", cursor: isG || isP ? "not-allowed" : "pointer" }} />
+                      <span style={{ color: isG ? "#16a34a" : isP ? "#dc2626" : "#a855f7", fontSize: 12, fontWeight: 800, width: 42, textAlign: "right" }}>{val}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Metas do mês */}
+          <div style={{ marginTop: 18, paddingTop: 18, borderTop: "1px dashed #e5e7eb" }}>
+            <p style={{ color: "#1f2937", fontSize: 12, fontWeight: 700, margin: "0 0 12px" }}>🏆 Metas do mês</p>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>💰 Meta de receita (R$)</label>
+                <input type="number" min={0} value={config.metaReceita || ""} placeholder="0"
+                  onChange={e => salvarConfigFunil({ ...config, metaReceita: parseFloat(e.target.value) || 0 })}
+                  style={{ ...inputStyle, width: "100%", cursor: "text" }} />
+              </div>
+              <div>
+                <label style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>✅ Meta de ganhos (qtd)</label>
+                <input type="number" min={0} value={config.metaGanhos || ""} placeholder="0"
+                  onChange={e => salvarConfigFunil({ ...config, metaGanhos: parseInt(e.target.value) || 0 })}
+                  style={{ ...inputStyle, width: "100%", cursor: "text" }} />
+              </div>
+              <div>
+                <label style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>🥶 Dias p/ "parado"</label>
+                <input type="number" min={1} value={config.diasParado || ""} placeholder="14"
+                  onChange={e => salvarConfigFunil({ ...config, diasParado: parseInt(e.target.value) || 14 })}
+                  style={{ ...inputStyle, width: "100%", cursor: "text" }} />
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1187,6 +1351,7 @@ export default function Funil() {
           { key: "etapas",     label: "Etapas",      icone: "🎯", color: "#3b82f6" },
           { key: "dimensoes",  label: "Quebras",     icone: "🧩", color: "#8b5cf6" },
           { key: "vendedores", label: "Vendedores",  icone: "👥", color: "#16a34a" },
+          { key: "metas",      label: "Metas",       icone: "🏆", color: "#eab308" },
           { key: "temporal",   label: "Temporal",    icone: "📈", color: "#f59e0b" },
           { key: "cohort",     label: "Coorte",      icone: "🧬", color: "#0ea5e9" },
           { key: "horarios",   label: "Horários",    icone: "🗓️", color: "#14b8a6" },
@@ -1226,7 +1391,7 @@ export default function Funil() {
                 <KPI cor="#8b5cf6" bg="#f3e8ff" icone="📊" label="Win Rate" valor={`${metricas.winRate}%`} sub={`${metricas.ganhos} ✓ / ${metricas.perdidos} ✗`} trend={metricas.tWin} isMobile={isMobile} />
                 <KPI cor="#06b6d4" bg="#ecfeff" icone="🎫" label="Ticket Médio" valor={formatBRLCompacto(metricas.ticket)} titulo={formatBRL(metricas.ticket)} sub={`mediana ${formatBRLCompacto(metricas.ticketMediana)}`} trend={metricas.tTicket} isMobile={isMobile} />
                 <KPI cor="#f59e0b" bg="#fffbeb" icone="⏱️" label="Ciclo Médio" valor={`${metricas.ciclo}d`} sub="Entrada → ganho" isMobile={isMobile} />
-                <KPI cor="#a855f7" bg="#f5f3ff" icone="🔮" label="Forecast" valor={formatBRLCompacto(metricas.forecast)} titulo={formatBRL(metricas.forecast)} sub={`pipeline × ${metricas.winRate}%`} isMobile={isMobile} />
+                <KPI cor="#a855f7" bg="#f5f3ff" icone="🔮" label="Forecast Ponderado" valor={formatBRLCompacto(metricas.forecastPonderado)} titulo={formatBRL(metricas.forecastPonderado)} sub={`valor × prob. por etapa`} isMobile={isMobile} />
                 <KPI cor="#6366f1" bg="#eef2ff" icone="📨" label="Total" valor={formatNum(metricas.total)} sub={periodoInfo.curto} trend={metricas.tTotal} isMobile={isMobile} />
                 <KPI cor="#dc2626" bg="#fef2f2" icone="🚫" label="Perdidos" valor={formatNum(metricas.perdidos)} sub={`${metricas.taxaPerda}% dos fechados`} isMobile={isMobile} />
               </div>
@@ -1294,6 +1459,52 @@ export default function Funil() {
                   </div>
                 ))}
               </div>
+
+              {/* Higiene de pipeline (aging) */}
+              {aging.totalAbertos > 0 && (
+                <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
+                  <h3 style={sectionTitleStyle}>
+                    <span style={{ width: 32, height: 32, borderRadius: 8, background: "#fff7ed", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🌡️</span>
+                    Higiene do pipeline — há quanto tempo os negócios estão abertos
+                    {aging.parados.length > 0 && (
+                      <span style={{ marginLeft: "auto", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 700 }}>
+                        🥶 {aging.parados.length} parado(s) · {formatBRLCompacto(aging.valorParado)}
+                      </span>
+                    )}
+                  </h3>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: 10, marginBottom: aging.parados.length > 0 ? 18 : 0 }}>
+                    {aging.faixas.map(f => (
+                      <div key={f.label} style={{ background: `${f.cor}10`, border: `1px solid ${f.cor}30`, borderRadius: 10, padding: 12, textAlign: "center" }}>
+                        <p style={{ color: f.cor, fontSize: 22, fontWeight: 800, margin: 0 }}>{f.qtd}</p>
+                        <p style={{ color: "#6b7280", fontSize: 10, margin: "2px 0 0", fontWeight: 600 }}>{f.label}</p>
+                        <p style={{ color: "#9ca3af", fontSize: 10, margin: "3px 0 0" }}>{formatBRLCompacto(f.valor)}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {aging.parados.length > 0 && (
+                    <div>
+                      <p style={{ color: "#991b1b", fontSize: 12, fontWeight: 700, margin: "0 0 10px" }}>
+                        ⚠️ Parados há {aging.limite}+ dias sem atualização — precisam de atenção:
+                      </p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {aging.parados.slice(0, 8).map(({ p, diasParado, valor }) => (
+                          <div key={p.id} onClick={() => router.push("/crm/vendas")}
+                            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "#fffbeb", border: "1px solid #fde68a", borderLeft: "4px solid #f59e0b", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <p style={{ color: "#1f2937", fontSize: 12, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nome || `#${p.id}`}</p>
+                              <p style={{ color: "#92400e", fontSize: 10, margin: "2px 0 0" }}>{statusDe(p)} · {nomeVendedor(p.vendedor)}</p>
+                            </div>
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <p style={{ color: "#dc2626", fontSize: 12, fontWeight: 800, margin: 0 }}>{diasParado}d parado</p>
+                              <p style={{ color: "#16a34a", fontSize: 11, fontWeight: 700, margin: "2px 0 0" }}>{formatBRLCompacto(valor)}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Drilldown inline na visão também */}
               {etapaAberta && renderDrilldownEtapa()}
@@ -1447,6 +1658,113 @@ export default function Funil() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* ════════════ ABA: METAS ════════════ */}
+          {aba === "metas" && (
+            <>
+              {(metas.metaReceita === 0 && metas.metaGanhos === 0) ? (
+                <div style={{ ...cardStyle, padding: 40, textAlign: "center" }}>
+                  <p style={{ fontSize: 36, margin: "0 0 8px" }}>🏆</p>
+                  <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 6px" }}>Defina suas metas do mês</h3>
+                  <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 16px" }}>Configure a meta de receita e/ou de ganhos em ⚙️ Configurar funil pra acompanhar o pace.</p>
+                  <button onClick={() => setShowConfig(true)} style={{ background: "linear-gradient(135deg, #eab308 0%, #ca8a04 100%)", color: "white", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>⚙️ Definir metas</button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
+                      <h3 style={{ ...sectionTitleStyle, margin: 0, textTransform: "capitalize" }}>
+                        <span style={{ width: 32, height: 32, borderRadius: 8, background: "#fefce8", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🏆</span>
+                        Metas — {metas.mesLabel}
+                      </h3>
+                      <span style={{ color: "#6b7280", fontSize: 12, fontWeight: 600 }}>Dia {metas.diaAtual}/{metas.diasNoMes} · faltam {metas.diasRestantes}d · {metas.pctRitmo}% do mês decorrido</span>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
+                      {/* Meta de Receita */}
+                      {metas.metaReceita > 0 && (
+                        <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+                            <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 700 }}>💰 Receita</span>
+                            <span style={{ color: metas.pctReceita >= 100 ? "#16a34a" : "#6b7280", fontSize: 20, fontWeight: 800 }}>{metas.pctReceita}%</span>
+                          </div>
+                          <div style={{ background: "#e5e7eb", borderRadius: 8, height: 14, overflow: "hidden", marginBottom: 6, position: "relative" }}>
+                            <div style={{ background: metas.pctReceita >= 100 ? "linear-gradient(90deg,#16a34a,#22c55e)" : "linear-gradient(90deg,#eab308,#facc15)", width: `${Math.min(100, metas.pctReceita)}%`, height: "100%", transition: "width 0.4s" }} />
+                            {/* marcador do ritmo esperado */}
+                            <div style={{ position: "absolute", top: -2, left: `${metas.pctRitmo}%`, width: 2, height: 18, background: "#6b7280" }} title="ritmo esperado" />
+                          </div>
+                          <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 12px" }}>
+                            <b style={{ color: "#16a34a" }}>{formatBRL(metas.receitaMes)}</b> de <b>{formatBRL(metas.metaReceita)}</b>
+                          </p>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                            <div style={{ background: "#ffffff", border: "1px solid #f3f4f6", borderRadius: 8, padding: 10 }}>
+                              <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, fontWeight: 600, textTransform: "uppercase" }}>Falta</p>
+                              <p style={{ color: "#dc2626", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{formatBRLCompacto(metas.faltaReceita)}</p>
+                            </div>
+                            <div style={{ background: "#ffffff", border: "1px solid #f3f4f6", borderRadius: 8, padding: 10 }}>
+                              <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, fontWeight: 600, textTransform: "uppercase" }}>Projeção</p>
+                              <p style={{ color: metas.projReceita >= metas.metaReceita ? "#16a34a" : "#f59e0b", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{formatBRLCompacto(metas.projReceita)}</p>
+                            </div>
+                          </div>
+                          <p style={{ color: metas.projReceita >= metas.metaReceita ? "#16a34a" : "#dc2626", fontSize: 11, fontWeight: 700, margin: "10px 0 0", textAlign: "center" }}>
+                            {metas.projReceita >= metas.metaReceita ? "✅ No ritmo pra bater a meta" : "⚠️ Abaixo do ritmo necessário"}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Meta de Ganhos */}
+                      {metas.metaGanhos > 0 && (
+                        <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+                            <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 700 }}>✅ Ganhos (quantidade)</span>
+                            <span style={{ color: metas.pctGanhos >= 100 ? "#16a34a" : "#6b7280", fontSize: 20, fontWeight: 800 }}>{metas.pctGanhos}%</span>
+                          </div>
+                          <div style={{ background: "#e5e7eb", borderRadius: 8, height: 14, overflow: "hidden", marginBottom: 6, position: "relative" }}>
+                            <div style={{ background: metas.pctGanhos >= 100 ? "linear-gradient(90deg,#16a34a,#22c55e)" : "linear-gradient(90deg,#3b82f6,#60a5fa)", width: `${Math.min(100, metas.pctGanhos)}%`, height: "100%", transition: "width 0.4s" }} />
+                            <div style={{ position: "absolute", top: -2, left: `${metas.pctRitmo}%`, width: 2, height: 18, background: "#6b7280" }} title="ritmo esperado" />
+                          </div>
+                          <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 12px" }}>
+                            <b style={{ color: "#16a34a" }}>{metas.qtdMes}</b> de <b>{metas.metaGanhos}</b> ganhos
+                          </p>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                            <div style={{ background: "#ffffff", border: "1px solid #f3f4f6", borderRadius: 8, padding: 10 }}>
+                              <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, fontWeight: 600, textTransform: "uppercase" }}>Falta</p>
+                              <p style={{ color: "#dc2626", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{metas.faltaGanhos}</p>
+                            </div>
+                            <div style={{ background: "#ffffff", border: "1px solid #f3f4f6", borderRadius: 8, padding: 10 }}>
+                              <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, fontWeight: 600, textTransform: "uppercase" }}>Projeção</p>
+                              <p style={{ color: metas.projGanhos >= metas.metaGanhos ? "#16a34a" : "#f59e0b", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{metas.projGanhos}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contribuição por vendedor pra meta */}
+                  <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
+                    <h3 style={sectionTitleStyle}>
+                      <span style={{ width: 32, height: 32, borderRadius: 8, background: "#f0fdf4", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🤝</span>
+                      Quem está puxando a meta (receita ganha no período filtrado)
+                    </h3>
+                    {vendedoresStats.filter(v => v.receita > 0).length === 0 ? (
+                      <p style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic" }}>Ninguém com receita ganha ainda.</p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={Math.min(320, vendedoresStats.filter(v => v.receita > 0).length * 42 + 30)}>
+                        <BarChart data={vendedoresStats.filter(v => v.receita > 0).slice(0, 10).map(v => ({ nome: v.nome.length > 16 ? v.nome.slice(0, 14) + "…" : v.nome, receita: v.receita }))} layout="vertical" margin={{ top: 5, right: 20, left: 80, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+                          <XAxis type="number" stroke="#6b7280" fontSize={10} tickFormatter={v => formatBRLCompacto(v)} />
+                          <YAxis dataKey="nome" type="category" stroke="#6b7280" fontSize={11} width={76} />
+                          <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 12 }} formatter={(v: any) => [formatBRL(v), "Receita"]} cursor={{ fill: "#f0fdf4" }} />
+                          <Bar dataKey="receita" fill="#16a34a" radius={[0, 8, 8, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
           )}
 
           {/* ════════════ ABA: TEMPORAL ════════════ */}
