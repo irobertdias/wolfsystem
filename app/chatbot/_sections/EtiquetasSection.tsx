@@ -2,29 +2,51 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { usePermissao } from "../../hooks/usePermissao";
 
-type RespostaRapida = {
-  id?: number;
-  atalho: string;
-  mensagem: string;
-  workspace_id?: string;
-  equipe_id?: string | null; // 👥 equipe dona da resposta (NULL = geral, vale pra todas)
+type Etiqueta = {
+  id: number;
+  nome: string;
+  cor: string;
+  icone: string;
+  workspace_id: string;
+  equipe_id?: string | null; // 👥 equipe dona da etiqueta (NULL = geral, vale pra todas)
+  created_at?: string;
 };
 // 👥 Equipe (time/empresa dentro do workspace)
 type Equipe = { id: string; nome: string; };
 
-export function RespostasRapidasSection() {
-  const { workspace, wsId } = useWorkspace();
-  const [respostas, setRespostas] = useState<RespostaRapida[]>([]);
+// Paleta de cores pré-definidas
+const CORES_PADRAO = [
+  "#dc2626", "#ef4444", "#f97316", "#f59e0b",
+  "#eab308", "#84cc16", "#16a34a", "#10b981",
+  "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6",
+  "#a855f7", "#ec4899", "#f43f5e", "#6b7280",
+];
+
+// Emojis mais comuns pra etiquetas
+const EMOJIS_COMUNS = [
+  "🏷️", "🔥", "⭐", "💰", "🎯", "📞", "✅", "❌",
+  "⚠️", "🆕", "🔔", "💎", "🚀", "📌", "🔴", "🟢",
+  "🟡", "🔵", "🟣", "⚡", "💼", "🎁", "🏆", "❤️",
+];
+
+export function EtiquetasSection() {
+  const { wsId, wsPronto } = useWorkspace();
+  const { isDono, isSuperAdmin, permissoes } = usePermissao();
+  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
   // 👥 equipes do workspace + filtro de equipe da lista
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState<string>("todas");
+  const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ atalho: "", mensagem: "", equipeId: "" });
+  const [editando, setEditando] = useState<Etiqueta | null>(null);
   const [salvando, setSalvando] = useState(false);
-  const [carregando, setCarregando] = useState(false);
+  const [busca, setBusca] = useState("");
 
-  const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
+  const [form, setForm] = useState({ nome: "", cor: "#3b82f6", icone: "🏷️", equipeId: "" });
+
+  const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 14, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
 
   const cardStyle = {
     background: "#ffffff",
@@ -33,101 +55,114 @@ export function RespostasRapidasSection() {
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
-  // 🔒 MULTI-TENANT FIX: padronizar a chave de workspace usada em TODAS as queries
-  // (fetch, insert, delete). Antes, salvava com `wsId` e buscava com `workspace.username
-  // || workspace.id.toString()` — bugado pra workspaces com username diferente do id.
-  // Agora a fórmula é única e consistente.
-  const wsKey = (): string | null => {
-    return workspace?.username || workspace?.id?.toString() || wsId || null;
+  // ═══ Carrega etiquetas ═══
+  const fetchEtiquetas = async (ws: string) => {
+    setLoading(true);
+    const { data } = await supabase.from("etiquetas")
+      .select("*")
+      .eq("workspace_id", ws)
+      .order("created_at", { ascending: true });
+    setEtiquetas(data || []);
+    setLoading(false);
   };
 
-  const fetchRespostas = async () => {
-    const ws = wsKey();
-    if (!ws) return;
-    setCarregando(true);
+  // 👥 Carrega equipes ativas do workspace
+  const fetchEquipes = async (ws: string) => {
     try {
-      const { data, error } = await supabase
-        .from("respostas_rapidas")
-        .select("*")
-        .eq("workspace_id", ws)
-        .order("created_at", { ascending: true });
-      if (error) {
-        console.warn("[RespostasRapidas] erro no fetch:", error.message);
-        setRespostas([]);
-      } else {
-        setRespostas(data || []);
-      }
-    } catch (e) {
-      console.error("[RespostasRapidas] exceção no fetch:", e);
-      setRespostas([]);
-    }
-    setCarregando(false);
-  };
-
-  // 👥 Carrega equipes ativas do workspace (mesma fonte das outras telas: wsId)
-  const fetchEquipes = async () => {
-    if (!wsId) return;
-    try {
-      const { data } = await supabase.from("equipes").select("id, nome").eq("workspace_id", wsId).eq("ativo", true).order("nome", { ascending: true });
+      const { data } = await supabase.from("equipes").select("id, nome").eq("workspace_id", ws).eq("ativo", true).order("nome", { ascending: true });
       setEquipes((data as Equipe[]) || []);
     } catch (e) { console.error("Erro ao buscar equipes:", e); setEquipes([]); }
   };
 
-  useEffect(() => { fetchRespostas(); fetchEquipes(); }, [workspace, wsId]);
+  useEffect(() => {
+    if (!wsPronto || !wsId) return;
+    fetchEtiquetas(wsId);
+    fetchEquipes(wsId);
+    const ch = supabase.channel("etiquetas_rt_" + wsId)
+      .on("postgres_changes", { event: "*", schema: "public", table: "etiquetas", filter: `workspace_id=eq.${wsId}` }, () => fetchEtiquetas(wsId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "equipes", filter: `workspace_id=eq.${wsId}` }, () => fetchEquipes(wsId))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [wsId, wsPronto]);
+
+  const abrirNovo = () => {
+    setEditando(null);
+    setForm({ nome: "", cor: "#3b82f6", icone: "🏷️", equipeId: filtroEquipe !== "todas" ? filtroEquipe : "" });
+    setShowForm(true);
+  };
+
+  const abrirEditar = (e: Etiqueta) => {
+    setEditando(e);
+    setForm({ nome: e.nome, cor: e.cor, icone: e.icone || "🏷️", equipeId: e.equipe_id || "" });
+    setShowForm(true);
+  };
+
+  const cancelar = () => {
+    setShowForm(false);
+    setEditando(null);
+    setForm({ nome: "", cor: "#3b82f6", icone: "🏷️", equipeId: "" });
+  };
 
   const salvar = async () => {
-    if (!form.atalho.trim() || !form.mensagem.trim()) { alert("Preencha atalho e mensagem!"); return; }
-    if (!form.atalho.startsWith("/")) { alert("O atalho deve começar com /"); return; }
-    const ws = wsKey();
-    if (!ws) { alert("Workspace não carregado. Recarregue a página."); return; }
-
+    if (!isDono && !isSuperAdmin && !permissoes.etiquetas) {
+      alert("❌ Você não tem permissão para gerenciar etiquetas.");
+      return;
+    }
+    if (!form.nome.trim()) { alert("Digite o nome da etiqueta!"); return; }
+    if (!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
     setSalvando(true);
     try {
-      const { data, error } = await supabase.from("respostas_rapidas").insert([{
-        atalho: form.atalho.trim(),
-        mensagem: form.mensagem.trim(),
-        workspace_id: ws,
-      }]).select("id").single();
-      if (error) {
-        alert("Erro ao salvar: " + error.message);
+      let etiquetaId: number | null = editando ? editando.id : null;
+      if (editando) {
+        const { error } = await supabase.from("etiquetas")
+          .update({ nome: form.nome.trim(), cor: form.cor, icone: form.icone })
+          .eq("id", editando.id)
+          .eq("workspace_id", wsId);
+        if (error) { alert("Erro ao atualizar: " + error.message); setSalvando(false); return; }
       } else {
-        // 👥 best-effort: grava a equipe (requer coluna respostas_rapidas.equipe_id — ver migration).
-        // Se a coluna ainda não existe, ignora o erro pra não quebrar o fluxo principal.
-        if (data?.id) {
-          const { error: eqErr } = await supabase.from("respostas_rapidas")
-            .update({ equipe_id: form.equipeId || null })
-            .eq("id", data.id)
-            .eq("workspace_id", ws);
-          if (eqErr) console.warn("[RespostasRapidas] equipe_id não gravado (rode migration-equipes-etiquetas-respostas.sql):", eqErr.message);
-        }
-        await fetchRespostas();
-        setForm({ atalho: "", mensagem: "", equipeId: "" });
-        setShowForm(false);
+        const { data, error } = await supabase.from("etiquetas").insert([{
+          nome: form.nome.trim(),
+          cor: form.cor,
+          icone: form.icone,
+          workspace_id: wsId,
+        }]).select("id").single();
+        if (error) { alert("Erro ao criar: " + error.message); setSalvando(false); return; }
+        etiquetaId = data?.id ?? null;
       }
-    } catch (e: any) {
-      alert("Erro ao salvar: " + (e?.message || "desconhecido"));
-    }
+      // 👥 best-effort: grava a equipe (requer coluna etiquetas.equipe_id — ver migration).
+      // Se a coluna ainda não existe, ignora o erro pra não quebrar o fluxo principal.
+      if (etiquetaId) {
+        const { error: eqErr } = await supabase.from("etiquetas")
+          .update({ equipe_id: form.equipeId || null })
+          .eq("id", etiquetaId)
+          .eq("workspace_id", wsId);
+        if (eqErr) console.warn("[Etiquetas] equipe_id não gravado (rode migration-equipes-etiquetas-respostas.sql):", eqErr.message);
+      }
+      await fetchEtiquetas(wsId);
+      cancelar();
+    } catch (e: any) { alert("Erro: " + e.message); }
     setSalvando(false);
   };
 
-  const remover = async (r: RespostaRapida) => {
-    if (!confirm(`Remover atalho ${r.atalho}?`)) return;
-    if (!r.id) {
-      setRespostas(respostas.filter(x => x.atalho !== r.atalho));
+  const excluir = async (e: Etiqueta) => {
+    if (!isDono && !isSuperAdmin && !permissoes.etiquetas) {
+      alert("❌ Você não tem permissão para excluir etiquetas.");
       return;
     }
-    const ws = wsKey();
-    if (!ws) { alert("Workspace não carregado. Recarregue a página."); return; }
-
-    // 🔒 MULTI-TENANT: defesa em profundidade — só deleta se for deste workspace.
-    const { error } = await supabase.from("respostas_rapidas").delete()
-      .eq("id", r.id)
-      .eq("workspace_id", ws);
-    if (error) {
-      alert("Erro ao remover: " + error.message);
-      return;
-    }
-    await fetchRespostas();
+    if (!confirm(`Excluir a etiqueta "${e.nome}"?\n\nEla será removida de todos os atendimentos que a usavam.`)) return;
+    if (!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
+    try {
+      if (e.workspace_id && e.workspace_id !== wsId) {
+        alert("Erro: etiqueta não pertence a este workspace.");
+        return;
+      }
+      await supabase.from("atendimento_etiquetas").delete().eq("etiqueta_id", e.id);
+      const { error } = await supabase.from("etiquetas").delete()
+        .eq("id", e.id)
+        .eq("workspace_id", wsId);
+      if (error) { alert("Erro ao excluir: " + error.message); return; }
+      await fetchEtiquetas(wsId);
+    } catch (err: any) { alert("Erro: " + err.message); }
   };
 
   // 👥 nome da equipe a partir do id
@@ -136,161 +171,252 @@ export function RespostasRapidasSection() {
     return equipes.find(e => e.id === equipeId)?.nome || "";
   };
 
-  // 👥 respostas filtradas pela equipe escolhida
-  const respostasFiltradas = respostas.filter(r => filtroEquipe === "todas" || (r.equipe_id || "") === filtroEquipe);
+  const etiquetasFiltradas = etiquetas.filter(e =>
+    (!busca || e.nome.toLowerCase().includes(busca.toLowerCase())) &&
+    (filtroEquipe === "todas" || (e.equipe_id || "") === filtroEquipe)
+  );
 
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#f8fafc", minHeight: "100vh" }}>
 
       {/* ═══ HEADER ═══ */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
+            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(245,158,11,0.25)",
+            fontSize: 24, boxShadow: "0 8px 20px rgba(59, 130, 246, 0.25)",
           }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>⚡</span>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>🏷️</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Respostas Rápidas</h1>
-            <p style={{ color: "#6b7280", fontSize: 13, margin: "2px 0 0" }}>
-              Digite <code style={{ background: "#f3f4f6", color: "#3b82f6", padding: "1px 6px", borderRadius: 4, fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}>/</code> no chat para usar
-            </p>
+            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Etiquetas</h1>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>{etiquetas.length} etiqueta(s) cadastrada(s)</p>
           </div>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
+        <button onClick={abrirNovo}
           style={{
             background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
             boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
           }}>
-          + Nova Resposta
+          + Nova Etiqueta
         </button>
       </div>
 
-      {/* ═══ FILTRO DE EQUIPE ═══ */}
-      {equipes.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "#a855f7", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>👥 Equipe</span>
-          <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)} style={{ ...IS, width: "auto", minWidth: 200, cursor: "pointer" }}>
-            <option value="todas">Todas as equipes</option>
-            <option value="">⚪ Geral (sem equipe)</option>
-            {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
-          </select>
+      {/* ═══ BUSCA + FILTRO DE EQUIPE ═══ */}
+      {(etiquetas.length > 5 || equipes.length > 0) && (
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          {etiquetas.length > 5 && (
+            <input placeholder="🔍 Buscar etiqueta..." value={busca} onChange={e => setBusca(e.target.value)}
+              style={{ ...IS, maxWidth: 360, padding: "10px 16px", fontSize: 13, borderRadius: 20 }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#3b82f680"; e.currentTarget.style.boxShadow = "0 0 0 3px #3b82f620"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }}
+            />
+          )}
+          {/* 👥 Filtro de equipe */}
+          {equipes.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: "#a855f7", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>👥 Equipe</span>
+              <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)} style={{ ...IS, width: "auto", minWidth: 180, padding: "9px 14px", fontSize: 13, cursor: "pointer" }}>
+                <option value="todas">Todas as equipes</option>
+                <option value="">⚪ Geral (sem equipe)</option>
+                {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
+              </select>
+            </div>
+          )}
         </div>
       )}
 
-      {/* ═══ FORM ═══ */}
+      {/* ═══ FORM NOVA/EDITAR ═══ */}
       {showForm && (
-        <div style={{ ...cardStyle, padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: "#3b82f615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>➕</div>
-            <p style={{ color: "#3b82f6", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Nova Resposta Rápida</p>
+        <div style={{ ...cardStyle, padding: 24, display: "flex", flexDirection: "column", gap: 18, maxWidth: 640 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              {editando ? "✏️ Editar Etiqueta" : "➕ Nova Etiqueta"}
+            </h2>
+            <button onClick={cancelar} style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 12 }}>
-            <div>
-              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Atalho *</label>
-              <input placeholder="/oi" value={form.atalho} onChange={e => setForm({ ...form, atalho: e.target.value })} style={{ ...IS, fontFamily: "monospace", fontWeight: 600 }} />
-            </div>
-            <div>
-              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Mensagem *</label>
-              <input placeholder="Olá! Como posso te ajudar?" value={form.mensagem} onChange={e => setForm({ ...form, mensagem: e.target.value })} style={IS} />
+
+          {/* PRÉVIA DA ETIQUETA */}
+          <div style={{ background: "#f9fafb", borderRadius: 12, padding: 16, display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed #d1d5db" }}>
+            <div style={{ background: form.cor + "15", border: `2px solid ${form.cor}`, borderRadius: 20, padding: "8px 18px", display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 16 }}>{form.icone}</span>
+              <span style={{ color: form.cor, fontSize: 13, fontWeight: 700 }}>{form.nome || "Prévia da etiqueta"}</span>
             </div>
           </div>
+
+          {/* NOME */}
+          <div>
+            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Nome *</label>
+            <input placeholder="Ex: Lead Quente" value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })}
+              style={IS} maxLength={40} />
+          </div>
+
           {/* 👥 EQUIPE */}
           {equipes.length > 0 && (
             <div>
-              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>👥 Equipe</label>
+              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>👥 Equipe</label>
               <select value={form.equipeId} onChange={e => setForm({ ...form, equipeId: e.target.value })} style={IS}>
                 <option value="">⚪ Geral (todas as equipes)</option>
                 {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
               </select>
-              <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Deixe "Geral" pra valer pra todas as equipes, ou escolha uma equipe específica.</p>
+              <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Deixe "Geral" pra a etiqueta valer pra todas as equipes, ou escolha uma equipe específica.</p>
             </div>
           )}
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
-            <button onClick={() => { setShowForm(false); setForm({ atalho: "", mensagem: "", equipeId: "" }); }}
-              style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+
+          {/* ÍCONE (EMOJI) */}
+          <div>
+            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Ícone (emoji)</label>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
+              <input value={form.icone} onChange={e => setForm({ ...form, icone: e.target.value })}
+                style={{ ...IS, width: 60, textAlign: "center", fontSize: 20 }} maxLength={2} />
+              <span style={{ color: "#9ca3af", fontSize: 11 }}>Digite um emoji ou escolha abaixo</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 4 }}>
+              {EMOJIS_COMUNS.map(emoji => (
+                <button key={emoji} onClick={() => setForm({ ...form, icone: emoji })}
+                  style={{
+                    background: form.icone === emoji ? "#3b82f615" : "#f9fafb",
+                    border: `1px solid ${form.icone === emoji ? "#3b82f6" : "#e5e7eb"}`,
+                    borderRadius: 8, padding: "6px 0", fontSize: 16, cursor: "pointer",
+                    transition: "all 0.1s",
+                  }}>
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* COR */}
+          <div>
+            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Cor</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 6, marginBottom: 10 }}>
+              {CORES_PADRAO.map(cor => (
+                <button key={cor} onClick={() => setForm({ ...form, cor })}
+                  style={{
+                    background: cor,
+                    border: form.cor === cor ? "3px solid #1f2937" : "2px solid #e5e7eb",
+                    borderRadius: 8, height: 34, cursor: "pointer",
+                    boxShadow: form.cor === cor ? `0 0 0 2px white, 0 0 0 4px ${cor}` : "0 1px 2px rgba(0,0,0,0.1)",
+                    transition: "all 0.15s",
+                  }}
+                  title={cor} />
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input type="color" value={form.cor} onChange={e => setForm({ ...form, cor: e.target.value })}
+                style={{ width: 40, height: 34, borderRadius: 8, border: "1px solid #e5e7eb", cursor: "pointer", background: "#ffffff" }} />
+              <input value={form.cor} onChange={e => setForm({ ...form, cor: e.target.value })}
+                style={{ ...IS, maxWidth: 120, fontFamily: "monospace", padding: "6px 10px", fontSize: 12 }} maxLength={7} />
+              <span style={{ color: "#9ca3af", fontSize: 10 }}>Código hex ou picker</span>
+            </div>
+          </div>
+
+          {/* BOTÕES */}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
+            <button onClick={cancelar} style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
               Cancelar
             </button>
             <button onClick={salvar} disabled={salvando}
               style={{
                 background: salvando ? "#2563eb" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
                 color: "white", border: "none", borderRadius: 10,
-                padding: "9px 22px", fontSize: 12, cursor: "pointer", fontWeight: 700,
+                padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700,
                 boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
               }}>
-              {salvando ? "⏳ Salvando..." : "💾 Salvar"}
+              {salvando ? "Salvando..." : editando ? "💾 Atualizar" : "➕ Criar Etiqueta"}
             </button>
           </div>
         </div>
       )}
 
       {/* ═══ LISTA ═══ */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {carregando ? (
-          <div style={{ ...cardStyle, padding: 32, textAlign: "center" }}>
-            <p style={{ color: "#6b7280", fontSize: 13 }}>⏳ Carregando...</p>
+      {loading ? (
+        <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+      ) : etiquetasFiltradas.length === 0 ? (
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: 20,
+            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 40, margin: "0 auto 16px",
+            boxShadow: "0 12px 24px rgba(59,130,246,0.25)",
+          }}>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>🏷️</span>
           </div>
-        ) : respostasFiltradas.length === 0 ? (
-          <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-            <div style={{
-              width: 80, height: 80, borderRadius: 20,
-              background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 40, margin: "0 auto 16px",
-              boxShadow: "0 12px 24px rgba(245,158,11,0.25)",
+          <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>
+            {busca || filtroEquipe !== "todas" ? "Nenhuma etiqueta encontrada" : "Nenhuma etiqueta cadastrada ainda"}
+          </h3>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 16px" }}>
+            {busca || filtroEquipe !== "todas" ? "Tente outro termo ou equipe" : "Crie etiquetas pra organizar seus atendimentos"}
+          </p>
+          {!busca && filtroEquipe === "todas" && (
+            <button onClick={abrirNovo} style={{
+              background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+              color: "white", border: "none", borderRadius: 12,
+              padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700,
+              boxShadow: "0 4px 12px rgba(59,130,246,0.25)",
             }}>
-              <span style={{ filter: "saturate(0) brightness(2)" }}>⚡</span>
-            </div>
-            <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>
-              {filtroEquipe !== "todas" ? "Nenhuma resposta nessa equipe" : "Nenhuma resposta rápida cadastrada ainda"}
-            </h3>
-            <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Clique em <b>+ Nova Resposta</b> pra criar a primeira</p>
-          </div>
-        ) : respostasFiltradas.map((r, i) => (
-          <div key={r.id || i}
-            style={{
-              ...cardStyle,
-              padding: "14px 20px",
-              display: "flex", alignItems: "center", gap: 16,
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(59,130,246,0.10)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}
-          >
-            <span style={{
-              background: "#3b82f615",
-              color: "#3b82f6",
-              border: "1px solid #3b82f630",
-              fontSize: 12, padding: "5px 12px",
-              borderRadius: 8, fontWeight: 700,
-              whiteSpace: "nowrap",
-              fontFamily: "monospace",
-            }}>
-              {r.atalho}
-            </span>
-            <p style={{ color: "#4b5563", fontSize: 13, margin: 0, flex: 1 }}>{r.mensagem}</p>
-            {equipeNomeDe(r.equipe_id) && (
-              <span style={{ background: "#a855f715", color: "#a855f7", border: "1px solid #a855f730", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>👥 {equipeNomeDe(r.equipe_id)}</span>
-            )}
-            <button onClick={() => remover(r)}
+              + Nova Etiqueta
+            </button>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+          {etiquetasFiltradas.map(e => (
+            <div key={e.id}
               style={{
-                background: "#fef2f2", color: "#dc2626",
-                border: "1px solid #fecaca", borderRadius: 8,
-                padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600,
+                ...cardStyle,
+                padding: "14px 18px",
+                borderLeft: `4px solid ${e.cor}`,
+                display: "flex", alignItems: "center", gap: 12, minWidth: 240,
                 transition: "all 0.15s",
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = "#fee2e2"}
-              onMouseLeave={(e) => e.currentTarget.style.background = "#fef2f2"}>
-              Remover
-            </button>
-          </div>
-        ))}
-      </div>
+              onMouseEnter={(ev) => { ev.currentTarget.style.boxShadow = `0 4px 12px ${e.cor}20`; ev.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={(ev) => { ev.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; ev.currentTarget.style.transform = "translateY(0)"; }}
+            >
+              <div style={{
+                background: e.cor + "15", borderRadius: 10, width: 36, height: 36,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 18, flexShrink: 0,
+              }}>
+                {e.icone || "🏷️"}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, display: "block" }}>{e.nome}</span>
+                {equipeNomeDe(e.equipe_id) && (
+                  <span style={{ display: "inline-block", marginTop: 3, background: "#a855f715", color: "#a855f7", fontSize: 10, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>👥 {equipeNomeDe(e.equipe_id)}</span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 4 }}>
+                <button onClick={() => abrirEditar(e)} title="Editar"
+                  style={{
+                    background: "#3b82f610", color: "#3b82f6",
+                    border: "1px solid #3b82f630", borderRadius: 8,
+                    padding: "5px 9px", fontSize: 11, cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(ev) => ev.currentTarget.style.background = "#3b82f620"}
+                  onMouseLeave={(ev) => ev.currentTarget.style.background = "#3b82f610"}
+                >✏️</button>
+                <button onClick={() => excluir(e)} title="Excluir"
+                  style={{
+                    background: "#fef2f2", color: "#dc2626",
+                    border: "1px solid #fecaca", borderRadius: 8,
+                    padding: "5px 9px", fontSize: 11, cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(ev) => ev.currentTarget.style.background = "#fee2e2"}
+                  onMouseLeave={(ev) => ev.currentTarget.style.background = "#fef2f2"}
+                >🗑️</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

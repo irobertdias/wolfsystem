@@ -8,13 +8,19 @@ type RespostaRapida = {
   atalho: string;
   mensagem: string;
   workspace_id?: string;
+  equipe_id?: string | null; // 👥 equipe dona da resposta (NULL = geral, vale pra todas)
 };
+// 👥 Equipe (time/empresa dentro do workspace)
+type Equipe = { id: string; nome: string; };
 
 export function RespostasRapidasSection() {
   const { workspace, wsId } = useWorkspace();
   const [respostas, setRespostas] = useState<RespostaRapida[]>([]);
+  // 👥 equipes do workspace + filtro de equipe da lista
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const [filtroEquipe, setFiltroEquipe] = useState<string>("todas");
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ atalho: "", mensagem: "" });
+  const [form, setForm] = useState({ atalho: "", mensagem: "", equipeId: "" });
   const [salvando, setSalvando] = useState(false);
   const [carregando, setCarregando] = useState(false);
 
@@ -58,7 +64,16 @@ export function RespostasRapidasSection() {
     setCarregando(false);
   };
 
-  useEffect(() => { fetchRespostas(); }, [workspace, wsId]);
+  // 👥 Carrega equipes ativas do workspace (mesma fonte das outras telas: wsId)
+  const fetchEquipes = async () => {
+    if (!wsId) return;
+    try {
+      const { data } = await supabase.from("equipes").select("id, nome").eq("workspace_id", wsId).eq("ativo", true).order("nome", { ascending: true });
+      setEquipes((data as Equipe[]) || []);
+    } catch (e) { console.error("Erro ao buscar equipes:", e); setEquipes([]); }
+  };
+
+  useEffect(() => { fetchRespostas(); fetchEquipes(); }, [workspace, wsId]);
 
   const salvar = async () => {
     if (!form.atalho.trim() || !form.mensagem.trim()) { alert("Preencha atalho e mensagem!"); return; }
@@ -68,16 +83,25 @@ export function RespostasRapidasSection() {
 
     setSalvando(true);
     try {
-      const { error } = await supabase.from("respostas_rapidas").insert([{
+      const { data, error } = await supabase.from("respostas_rapidas").insert([{
         atalho: form.atalho.trim(),
         mensagem: form.mensagem.trim(),
         workspace_id: ws,
-      }]);
+      }]).select("id").single();
       if (error) {
         alert("Erro ao salvar: " + error.message);
       } else {
+        // 👥 best-effort: grava a equipe (requer coluna respostas_rapidas.equipe_id — ver migration).
+        // Se a coluna ainda não existe, ignora o erro pra não quebrar o fluxo principal.
+        if (data?.id) {
+          const { error: eqErr } = await supabase.from("respostas_rapidas")
+            .update({ equipe_id: form.equipeId || null })
+            .eq("id", data.id)
+            .eq("workspace_id", ws);
+          if (eqErr) console.warn("[RespostasRapidas] equipe_id não gravado (rode migration-equipes-etiquetas-respostas.sql):", eqErr.message);
+        }
         await fetchRespostas();
-        setForm({ atalho: "", mensagem: "" });
+        setForm({ atalho: "", mensagem: "", equipeId: "" });
         setShowForm(false);
       }
     } catch (e: any) {
@@ -105,6 +129,15 @@ export function RespostasRapidasSection() {
     }
     await fetchRespostas();
   };
+
+  // 👥 nome da equipe a partir do id
+  const equipeNomeDe = (equipeId?: string | null): string => {
+    if (!equipeId) return "";
+    return equipes.find(e => e.id === equipeId)?.nome || "";
+  };
+
+  // 👥 respostas filtradas pela equipe escolhida
+  const respostasFiltradas = respostas.filter(r => filtroEquipe === "todas" || (r.equipe_id || "") === filtroEquipe);
 
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#f8fafc", minHeight: "100vh" }}>
@@ -138,6 +171,18 @@ export function RespostasRapidasSection() {
         </button>
       </div>
 
+      {/* ═══ FILTRO DE EQUIPE ═══ */}
+      {equipes.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ color: "#a855f7", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>👥 Equipe</span>
+          <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)} style={{ ...IS, width: "auto", minWidth: 200, cursor: "pointer" }}>
+            <option value="todas">Todas as equipes</option>
+            <option value="">⚪ Geral (sem equipe)</option>
+            {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
+          </select>
+        </div>
+      )}
+
       {/* ═══ FORM ═══ */}
       {showForm && (
         <div style={{ ...cardStyle, padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -155,8 +200,19 @@ export function RespostasRapidasSection() {
               <input placeholder="Olá! Como posso te ajudar?" value={form.mensagem} onChange={e => setForm({ ...form, mensagem: e.target.value })} style={IS} />
             </div>
           </div>
+          {/* 👥 EQUIPE */}
+          {equipes.length > 0 && (
+            <div>
+              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>👥 Equipe</label>
+              <select value={form.equipeId} onChange={e => setForm({ ...form, equipeId: e.target.value })} style={IS}>
+                <option value="">⚪ Geral (todas as equipes)</option>
+                {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
+              </select>
+              <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Deixe "Geral" pra valer pra todas as equipes, ou escolha uma equipe específica.</p>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
-            <button onClick={() => { setShowForm(false); setForm({ atalho: "", mensagem: "" }); }}
+            <button onClick={() => { setShowForm(false); setForm({ atalho: "", mensagem: "", equipeId: "" }); }}
               style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
               Cancelar
             </button>
@@ -179,7 +235,7 @@ export function RespostasRapidasSection() {
           <div style={{ ...cardStyle, padding: 32, textAlign: "center" }}>
             <p style={{ color: "#6b7280", fontSize: 13 }}>⏳ Carregando...</p>
           </div>
-        ) : respostas.length === 0 ? (
+        ) : respostasFiltradas.length === 0 ? (
           <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
             <div style={{
               width: 80, height: 80, borderRadius: 20,
@@ -190,10 +246,12 @@ export function RespostasRapidasSection() {
             }}>
               <span style={{ filter: "saturate(0) brightness(2)" }}>⚡</span>
             </div>
-            <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Nenhuma resposta rápida cadastrada ainda</h3>
+            <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>
+              {filtroEquipe !== "todas" ? "Nenhuma resposta nessa equipe" : "Nenhuma resposta rápida cadastrada ainda"}
+            </h3>
             <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Clique em <b>+ Nova Resposta</b> pra criar a primeira</p>
           </div>
-        ) : respostas.map((r, i) => (
+        ) : respostasFiltradas.map((r, i) => (
           <div key={r.id || i}
             style={{
               ...cardStyle,
@@ -216,6 +274,9 @@ export function RespostasRapidasSection() {
               {r.atalho}
             </span>
             <p style={{ color: "#4b5563", fontSize: 13, margin: 0, flex: 1 }}>{r.mensagem}</p>
+            {equipeNomeDe(r.equipe_id) && (
+              <span style={{ background: "#a855f715", color: "#a855f7", border: "1px solid #a855f730", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>👥 {equipeNomeDe(r.equipe_id)}</span>
+            )}
             <button onClick={() => remover(r)}
               style={{
                 background: "#fef2f2", color: "#dc2626",
