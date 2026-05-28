@@ -162,6 +162,61 @@ export default function TemplatesPage() {
       return alert("Nome do template deve ter só letras minúsculas, números e _\nExemplo: boas_vindas_cliente");
     }
 
+    // 🛡️ PRÉ-VALIDADOR — pega 90% dos motivos do erro "Meta: Invalid parameter (code 100)"
+    // antes de gastar a chamada com a Meta. Os checks abaixo são os que a gente já
+    // viu cair na prática: marca registrada, categoria errada, caractere proibido.
+    const avisos: string[] = [];
+    const textoTudo = `${form.headerTexto || ""} ${form.body || ""} ${form.footer || ""}`.toLowerCase();
+
+    // Marcas registradas comuns (telecom + bancos) — Meta REJEITA por trademark
+    const marcas = ["claro", "vivo", "tim", "oi telecom", "nextel", "algar", "sky", "nubank", "itaú", "itau", "bradesco", "santander", "caixa econômica", "banco do brasil", "mercado livre", "mercado pago", "magalu", "magazine luiza", "americanas", "ifood", "uber", "99", "amazon", "shopee", "aliexpress", "netflix", "spotify", "disney", "globo", "sbt", "record", "whatsapp", "instagram", "facebook", "meta", "google", "apple", "microsoft"];
+    const marcasEncontradas = marcas.filter(m => textoTudo.includes(m));
+    if (marcasEncontradas.length > 0) {
+      avisos.push(`⚠️ Marcas registradas detectadas: ${marcasEncontradas.join(", ")}\n   → Meta rejeita templates que mencionam marcas de terceiros sem autorização.\n   → Troque por algo genérico ("sua operadora", "nosso parceiro").`);
+    }
+
+    // UTILITY com palavras promocionais — Meta exige categoria MARKETING
+    if (form.categoria === "UTILITY") {
+      const palavrasPromo = ["promoção", "promocao", "promoções", "promocoes", "oferta", "desconto", "cupom", "black friday", "imperdível", "imperdivel", "exclusiva", "exclusivo", "upgrade", "novidade", "lançamento", "lancamento", "venda", "compre", "aproveite", "garanta"];
+      const promoEncontradas = palavrasPromo.filter(p => textoTudo.includes(p));
+      if (promoEncontradas.length > 0) {
+        avisos.push(`⚠️ Palavras promocionais em template UTILITY: ${promoEncontradas.join(", ")}\n   → Meta exige categoria MARKETING para conteúdo promocional.\n   → Mude a categoria ou remova essas palavras.`);
+      }
+    }
+
+    // Body precisa ter algo além de bullets vazios / só formatação
+    if (form.body.replace(/[\s•\-\*\u2022\u00bd\u00bc\u00be]/g, "").length < 10) {
+      avisos.push(`⚠️ Body muito curto ou só com bullets.\n   → Meta exige mensagem com conteúdo substancial.`);
+    }
+
+    // Variáveis mal-formadas: {{1}} ok; {1}, {{a}}, {{ }} dão erro
+    const varsMatch = form.body.match(/\{\{[^}]*\}\}/g) || [];
+    const varsRuins = varsMatch.filter(v => !/^\{\{[1-9]\d?\}\}$/.test(v));
+    if (varsRuins.length > 0) {
+      avisos.push(`⚠️ Variáveis com formato errado: ${varsRuins.join(", ")}\n   → Use {{1}}, {{2}}, {{3}} (numeradas, sequenciais, começando em 1).`);
+    }
+
+    // Se variáveis pulam numeração (ex: {{1}} e {{3}} sem {{2}}) → Meta rejeita
+    const numsRaw: number[] = varsMatch
+      .map((v: string) => parseInt(v.replace(/[^0-9]/g, ""), 10))
+      .filter((n: number) => !isNaN(n));
+    const numsUsados: number[] = Array.from(new Set<number>(numsRaw)).sort((a, b) => a - b);
+    if (numsUsados.length > 0) {
+      const esperado = numsUsados.map((_, i) => i + 1);
+      if (JSON.stringify(numsUsados) !== JSON.stringify(esperado)) {
+        avisos.push(`⚠️ Variáveis não-sequenciais: ${numsUsados.join(", ")}\n   → Use {{1}}, {{2}}, {{3}}... sem pular números.`);
+      }
+    }
+
+    // Pergunta antes de mandar se tiver alertas
+    if (avisos.length > 0) {
+      const continuar = confirm(
+        `🛡️ Encontrei ${avisos.length} possível(is) problema(s) que a Meta costuma rejeitar:\n\n${avisos.join("\n\n")}\n\n` +
+        `Quer mandar pra Meta mesmo assim? (vai ser rejeitado provavelmente)`
+      );
+      if (!continuar) return;
+    }
+
     setEnviando(true);
     try {
       const resp = await wa("templates/criar", {
@@ -180,9 +235,10 @@ export default function TemplatesPage() {
         setShowModal(false); setForm(formInicial);
         fetchTemplates();
       } else {
-        alert(`❌ Erro: ${resp.error}`);
+        // 💬 Mensagem completa com o motivo real que a Meta retornou
+        alert(`❌ Meta rejeitou o template:\n\n${resp.error}\n\n💡 Dica: copie esse erro inteiro e me manda se não entender o motivo.`);
       }
-    } catch (e: any) { alert(`❌ Erro: ${e.message}`); }
+    } catch (e: any) { alert(`❌ Erro de rede: ${e.message}`); }
     setEnviando(false);
   };
 
