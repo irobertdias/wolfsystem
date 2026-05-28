@@ -4,7 +4,9 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 
-type Usuario = { nome: string; email: string; perfil: string; fila: string; };
+type Usuario = { nome: string; email: string; perfil: string; fila: string; equipe_id?: string | null; };
+// 👥 Equipe (time/empresa dentro do workspace)
+type Equipe = { id: string; nome: string; };
 
 type RoletaConfig = {
   id?: number;
@@ -37,6 +39,9 @@ export function RoletaSection() {
 
   const [config, setConfig] = useState<RoletaConfig>(CONFIG_PADRAO);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  // 👥 equipes do workspace + filtro de equipe pra selecionar atendentes
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const [filtroEquipeUsuarios, setFiltroEquipeUsuarios] = useState<string>("todas");
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -68,6 +73,10 @@ export function RoletaSection() {
 
     const { data: users } = await supabase.from("usuarios_workspace").select("*").eq("workspace_id", wsId);
     setUsuarios(users || []);
+
+    // 👥 equipes ativas do workspace
+    const { data: eqs } = await supabase.from("equipes").select("id, nome").eq("workspace_id", wsId).eq("ativo", true).order("nome", { ascending: true });
+    setEquipes((eqs as Equipe[]) || []);
 
     const { data: cfg } = await supabase.from("roleta_config").select("*").eq("workspace_id", wsId).maybeSingle();
     if (cfg) {
@@ -124,6 +133,15 @@ export function RoletaSection() {
     alert("✅ Contador resetado!");
     fetchTudo();
   };
+
+  // 👥 nome da equipe a partir do id
+  const equipeNomeDe = (equipeId?: string | null): string => {
+    if (!equipeId) return "";
+    return equipes.find(e => e.id === equipeId)?.nome || "";
+  };
+
+  // 👥 atendentes visíveis na lista da roleta — filtrados pela equipe escolhida (todas = sem filtro)
+  const usuariosVisiveis = usuarios.filter(u => filtroEquipeUsuarios === "todas" || (u.equipe_id || "") === filtroEquipeUsuarios);
 
   if (!podeGerenciar) {
     return (
@@ -267,8 +285,23 @@ export function RoletaSection() {
               <span style={{ color: "#9ca3af" }}>{showDropdown ? "▲" : "▼"}</span>
             </button>
             {showDropdown && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 12, zIndex: 100, marginTop: 6, overflow: "hidden", maxHeight: 320, overflowY: "auto", boxShadow: "0 10px 25px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.04)" }}>
-                {usuarios.map(u => (
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 12, zIndex: 100, marginTop: 6, overflow: "hidden", maxHeight: 380, overflowY: "auto", boxShadow: "0 10px 25px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.04)" }}>
+                {/* 👥 Filtro de equipe — afunila a lista de atendentes abaixo */}
+                {equipes.length > 0 && (
+                  <div style={{ padding: "10px 14px", borderBottom: "1px solid #f3f4f6", background: "#fafbfc", display: "flex", alignItems: "center", gap: 8, position: "sticky", top: 0, zIndex: 1 }}>
+                    <span style={{ color: "#a855f7", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>👥 Equipe</span>
+                    <select value={filtroEquipeUsuarios} onChange={e => setFiltroEquipeUsuarios(e.target.value)}
+                      style={{ ...inputStyle, padding: "6px 10px", fontSize: 12, flex: 1, cursor: "pointer" }}>
+                      <option value="todas">Todas as equipes</option>
+                      {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
+                    </select>
+                  </div>
+                )}
+                {usuariosVisiveis.length === 0 ? (
+                  <div style={{ padding: 16, textAlign: "center" }}>
+                    <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>Nenhum atendente nessa equipe.</p>
+                  </div>
+                ) : usuariosVisiveis.map(u => (
                   <label key={u.email}
                     style={{
                       display: "flex", alignItems: "center", gap: 10, padding: "11px 14px",
@@ -281,7 +314,10 @@ export function RoletaSection() {
                   >
                     <input type="checkbox" checked={config.usuarios.includes(u.email)} onChange={() => toggleUsuario(u.email)} style={{ accentColor: "#16a34a", width: 16, height: 16 }} />
                     <div style={{ flex: 1 }}>
-                      <p style={{ color: "#1f2937", fontSize: 13, margin: 0, fontWeight: 600 }}>{u.nome}</p>
+                      <p style={{ color: "#1f2937", fontSize: 13, margin: 0, fontWeight: 600 }}>
+                        {u.nome}
+                        {equipeNomeDe(u.equipe_id) && <span style={{ marginLeft: 8, background: "#a855f715", color: "#a855f7", fontSize: 10, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>👥 {equipeNomeDe(u.equipe_id)}</span>}
+                      </p>
                       <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>
                         {u.email} · {u.perfil}{u.fila ? ` · Fila${u.fila.includes(",") ? "s" : ""}: ${u.fila.split(",").map(s => s.trim()).filter(Boolean).join(", ")}` : ""}
                       </p>
@@ -289,13 +325,13 @@ export function RoletaSection() {
                   </label>
                 ))}
                 <div style={{ padding: 10, display: "flex", gap: 6, background: "#f9fafb", borderTop: "1px solid #e5e7eb" }}>
-                  <button onClick={() => setConfig(c => ({ ...c, usuarios: usuarios.map(u => u.email) }))}
+                  <button onClick={() => setConfig(c => ({ ...c, usuarios: [...new Set([...c.usuarios, ...usuariosVisiveis.map(u => u.email)])] }))}
                     style={{ flex: 1, background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
-                    Selecionar todos
+                    {filtroEquipeUsuarios === "todas" ? "Selecionar todos" : "Selecionar a equipe"}
                   </button>
-                  <button onClick={() => setConfig(c => ({ ...c, usuarios: [] }))}
+                  <button onClick={() => { const vis = new Set(usuariosVisiveis.map(u => u.email)); setConfig(c => ({ ...c, usuarios: c.usuarios.filter(e => !vis.has(e)) })); }}
                     style={{ flex: 1, background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
-                    Desmarcar todos
+                    {filtroEquipeUsuarios === "todas" ? "Desmarcar todos" : "Desmarcar a equipe"}
                   </button>
                   <button onClick={() => setShowDropdown(false)}
                     style={{ flex: 1, background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>

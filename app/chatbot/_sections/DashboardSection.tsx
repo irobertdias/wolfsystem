@@ -13,7 +13,9 @@ type Atendimento = {
   atendente?: string;
 };
 type Canal = { id: number; nome: string; tipo: string };
-type Fila = { id: number; nome: string };
+type Fila = { id: number; nome: string; equipe_id?: string | null };
+// 👥 Equipe (time/empresa) — usada pra filtrar o dashboard pela fila de cada equipe
+type Equipe = { id: string; nome: string };
 type UsuarioWs = { email: string; nome: string };
 
 type Periodo = "hoje" | "semana" | "mes" | "ano" | "todos" | "personalizado";
@@ -24,11 +26,15 @@ export function DashboardSection() {
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [canais, setCanais] = useState<Canal[]>([]);
   const [filas, setFilas] = useState<Fila[]>([]);
+  // 👥 Equipes ativas do workspace
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
   const [carregando, setCarregando] = useState(true);
 
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const [canalFiltro, setCanalFiltro] = useState<string>("todos");
+  // 👥 filtro de equipe (afunila também as filas disponíveis)
+  const [equipeFiltro, setEquipeFiltro] = useState<string>("todas");
   const [filaFiltro, setFilaFiltro] = useState<string>("todas");
   const [atendenteFiltro, setAtendenteFiltro] = useState<string>("todos");
 
@@ -67,15 +73,18 @@ export function DashboardSection() {
         return lista;
       };
 
-      const [listaAtendimentos, resCx, resFi, resUs] = await Promise.all([
+      const [listaAtendimentos, resCx, resFi, resEq, resUs] = await Promise.all([
         fetchAtendimentosPaginado(),
         supabase.from("conexoes").select("id, nome, tipo").eq("workspace_id", wsId),
-        supabase.from("filas").select("id, nome").eq("workspace_id", wsId).order("nome", { ascending: true }),
+        // 👥 traz equipe_id pra mapear fila → equipe (filtro de equipe)
+        supabase.from("filas").select("id, nome, equipe_id").eq("workspace_id", wsId).order("nome", { ascending: true }),
+        supabase.from("equipes").select("id, nome").eq("workspace_id", wsId).eq("ativo", true).order("nome", { ascending: true }),
         supabase.from("usuarios_workspace").select("email, nome").eq("workspace_id", wsId),
       ]);
       setAtendimentos(listaAtendimentos);
       setCanais((resCx.data as Canal[]) || []);
       setFilas((resFi.data as Fila[]) || []);
+      setEquipes((resEq.data as Equipe[]) || []);
       const subs: UsuarioWs[] = (resUs.data as UsuarioWs[]) || [];
       if (workspace?.owner_email) {
         subs.push({ email: workspace.owner_email, nome: workspace.nome || "Dono" });
@@ -108,6 +117,7 @@ export function DashboardSection() {
       .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos", filter: `workspace_id=eq.${wsId}` }, () => fetchTudo())
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes", filter: `workspace_id=eq.${wsId}` }, () => fetchTudo())
       .on("postgres_changes", { event: "*", schema: "public", table: "filas", filter: `workspace_id=eq.${wsId}` }, () => fetchTudo())
+      .on("postgres_changes", { event: "*", schema: "public", table: "equipes", filter: `workspace_id=eq.${wsId}` }, () => fetchTudo())
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${wsId}` }, () => fetchTudo())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -129,17 +139,31 @@ export function DashboardSection() {
     return isNaN(d.getTime()) ? null : d;
   }, [periodo, dataCustomFim]);
 
+  // 👥 Mapa fila(nome) → equipe_id. Atendimento herda a equipe da sua fila.
+  const filaParaEquipe = useMemo(() => {
+    const map: Record<string, string> = {};
+    filas.forEach(f => { if (f.nome) map[f.nome] = f.equipe_id || ""; });
+    return map;
+  }, [filas]);
+
+  // 👥 Filas mostradas no dropdown: filtradas pela equipe escolhida (todas = sem filtro)
+  const filasFiltradas = useMemo(() => {
+    return filas.filter(f => equipeFiltro === "todas" || (f.equipe_id || "") === equipeFiltro);
+  }, [filas, equipeFiltro]);
+
   const atendimentosFiltrados = useMemo(() => {
     return atendimentos.filter(a => {
       const dt = new Date(a.created_at);
       if (dataInicio && dt < dataInicio) return false;
       if (dataFim && dt > dataFim) return false;
       if (canalFiltro !== "todos" && String(a.canal_id || "") !== canalFiltro) return false;
+      // 👥 filtro de equipe — via fila do atendimento (a fila carrega o equipe_id)
+      if (equipeFiltro !== "todas" && (filaParaEquipe[a.fila || ""] || "") !== equipeFiltro) return false;
       if (filaFiltro !== "todas" && (a.fila || "") !== filaFiltro) return false;
       if (atendenteFiltro !== "todos" && (a.atendente || "") !== atendenteFiltro) return false;
       return true;
     });
-  }, [atendimentos, dataInicio, dataFim, canalFiltro, filaFiltro, atendenteFiltro]);
+  }, [atendimentos, dataInicio, dataFim, canalFiltro, equipeFiltro, filaParaEquipe, filaFiltro, atendenteFiltro]);
 
   type AbaCalc = "automatico" | "aguardando" | "abertos" | "finalizados";
   const classificarAtendimento = (a: Atendimento): AbaCalc => {
@@ -266,7 +290,7 @@ export function DashboardSection() {
       .sort((a, b) => b.total - a.total);
   }, [atendimentosFiltrados, usuariosWs]);
 
-  const temFiltroAtivo = periodo !== "todos" || canalFiltro !== "todos" || filaFiltro !== "todas" || atendenteFiltro !== "todos";
+  const temFiltroAtivo = periodo !== "todos" || canalFiltro !== "todos" || equipeFiltro !== "todas" || filaFiltro !== "todas" || atendenteFiltro !== "todos";
 
   const labelPeriodo = (() => {
     const map: Record<Periodo, string> = {
@@ -415,23 +439,43 @@ export function DashboardSection() {
             )}
           </div>
 
-          {/* Canal, Fila, Atendente */}
+          {/* Canal, Equipe, Fila, Atendente */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-            <div style={{ flex: "1 1 220px", minWidth: 200 }}>
+            <div style={{ flex: "1 1 200px", minWidth: 180 }}>
               <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 6px" }}>Canal / Conexão</p>
               <select value={canalFiltro} onChange={e => setCanalFiltro(e.target.value)} style={selectStyle}>
                 <option value="todos">📡 Todos os canais</option>
                 {canais.map(c => <option key={c.id} value={String(c.id)}>{c.tipo === "waba" ? "🔗" : "📱"} {c.nome}</option>)}
               </select>
             </div>
-            <div style={{ flex: "1 1 220px", minWidth: 200 }}>
+            {/* 👥 Equipe — afunila as filas abaixo */}
+            {equipes.length > 0 && (
+              <div style={{ flex: "1 1 200px", minWidth: 180 }}>
+                <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 6px" }}>Equipe</p>
+                <select
+                  value={equipeFiltro}
+                  onChange={e => {
+                    const novaEquipe = e.target.value;
+                    setEquipeFiltro(novaEquipe);
+                    // se a fila selecionada não pertence à nova equipe, volta pra "todas"
+                    if (novaEquipe !== "todas" && filaFiltro !== "todas" && (filaParaEquipe[filaFiltro] || "") !== novaEquipe) {
+                      setFilaFiltro("todas");
+                    }
+                  }}
+                  style={selectStyle}>
+                  <option value="todas">👥 Todas as equipes</option>
+                  {equipes.map(eq => <option key={eq.id} value={eq.id}>👥 {eq.nome}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{ flex: "1 1 200px", minWidth: 180 }}>
               <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 6px" }}>Fila</p>
               <select value={filaFiltro} onChange={e => setFilaFiltro(e.target.value)} style={selectStyle}>
                 <option value="todas">📋 Todas as filas</option>
-                {filas.map(f => <option key={f.id} value={f.nome}>{f.nome}</option>)}
+                {filasFiltradas.map(f => <option key={f.id} value={f.nome}>{f.nome}</option>)}
               </select>
             </div>
-            <div style={{ flex: "1 1 220px", minWidth: 200 }}>
+            <div style={{ flex: "1 1 200px", minWidth: 180 }}>
               <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 6px" }}>Atendente</p>
               <select value={atendenteFiltro} onChange={e => setAtendenteFiltro(e.target.value)} style={selectStyle}>
                 <option value="todos">👥 Todos os atendentes</option>
@@ -440,7 +484,7 @@ export function DashboardSection() {
               </select>
             </div>
             {temFiltroAtivo && (
-              <button onClick={() => { setPeriodo("todos"); setCanalFiltro("todos"); setFilaFiltro("todas"); setAtendenteFiltro("todos"); }}
+              <button onClick={() => { setPeriodo("todos"); setCanalFiltro("todos"); setEquipeFiltro("todas"); setFilaFiltro("todas"); setAtendenteFiltro("todos"); }}
                 style={{
                   background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10,
                   padding: "10px 18px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",

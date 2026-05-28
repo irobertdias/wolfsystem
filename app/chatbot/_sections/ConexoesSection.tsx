@@ -39,7 +39,9 @@ type Conexao = {
   instagram_username?: string;
 };
 type FluxoItem = { id: number; nome: string; ativo: boolean; };
-type FilaItem = { id: number; nome: string; conexao?: string; };
+type FilaItem = { id: number; nome: string; conexao?: string; equipe_id?: string | null; };
+// 👥 Equipe (time/empresa dentro do workspace) — usada pra filtrar quais filas aparecem
+type Equipe = { id: string; nome: string; ativo?: boolean; };
 type LimitesPlano = { conexoes: number; webjs: boolean; waba: boolean; instagram: boolean; };
 
 export function ConexoesSection() {
@@ -53,6 +55,8 @@ export function ConexoesSection() {
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
   const [fluxos, setFluxos] = useState<FluxoItem[]>([]);
   const [filasBanco, setFilasBanco] = useState<FilaItem[]>([]);
+  // 👥 Equipes do workspace — alimenta o seletor que filtra as filas no modal de canal
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [showModalQR, setShowModalQR] = useState(false);
   const [showMenuEngrenagem, setShowMenuEngrenagem] = useState<number | null>(null);
   const [qrCanalId, setQrCanalId] = useState<number | null>(null);
@@ -78,7 +82,8 @@ export function ConexoesSection() {
 
   const [limites, setLimites] = useState<LimitesPlano>({ conexoes: 1, webjs: true, waba: false, instagram: false });
 
-  const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", fila: "", pararSeAtendente: true, typebot_url: "", typebot_msg_invalida: "", typebot_msg_boas_vindas: "" };
+  // 👥 equipeId no form = filtro de equipe (não é salvo na conexão — a fila escolhida já carrega o equipe_id)
+  const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", equipeId: "", fila: "", pararSeAtendente: true, typebot_url: "", typebot_msg_invalida: "", typebot_msg_boas_vindas: "" };
   const [form, setForm] = useState(formInicial);
 
   const [apiKeyTocada, setApiKeyTocada] = useState(false);
@@ -164,11 +169,25 @@ export function ConexoesSection() {
     const ids = wsIdsRef.current;
     if (ids.length === 0) return;
     try {
-      const { data } = await supabase.from("filas").select("id, nome, conexao").in("workspace_id", ids).order("nome", { ascending: true });
+      // 👥 traz equipe_id pra conseguir filtrar as filas por equipe no modal de canal
+      const { data } = await supabase.from("filas").select("id, nome, conexao, equipe_id").in("workspace_id", ids).order("nome", { ascending: true });
       setFilasBanco(data || []);
     } catch (e) {
       console.error("Erro ao buscar filas:", e);
       setFilasBanco([]);
+    }
+  };
+
+  // 👥 Busca as equipes ativas do workspace (alimenta o seletor de equipe no modal)
+  const fetchEquipes = async () => {
+    const ids = wsIdsRef.current;
+    if (ids.length === 0) return;
+    try {
+      const { data } = await supabase.from("equipes").select("id, nome, ativo").in("workspace_id", ids).eq("ativo", true).order("nome", { ascending: true });
+      setEquipes(data || []);
+    } catch (e) {
+      console.error("Erro ao buscar equipes:", e);
+      setEquipes([]);
     }
   };
 
@@ -184,12 +203,14 @@ export function ConexoesSection() {
     fetchConexoes();
     fetchFluxos();
     fetchFilas();
+    fetchEquipes();
     fetchLimites();
 
     const channelName = `conexoes_rt_${wsId || "anon"}`;
     const ch = supabase.channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes", filter: `workspace_id=eq.${wsId}` }, () => fetchConexoes())
       .on("postgres_changes", { event: "*", schema: "public", table: "filas", filter: `workspace_id=eq.${wsId}` }, () => fetchFilas())
+      .on("postgres_changes", { event: "*", schema: "public", table: "equipes", filter: `workspace_id=eq.${wsId}` }, () => fetchEquipes())
       .subscribe();
 
     const interval = setInterval(async () => {
@@ -339,9 +360,11 @@ export function ConexoesSection() {
 
   const abrirEditar = (c: Conexao) => {
     setEditandoId(c.id);
-    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", fila: c.fila || "", pararSeAtendente: c.parar_se_atendente, typebot_url: c.typebot_url || "", typebot_msg_invalida: c.typebot_msg_invalida || "", typebot_msg_boas_vindas: c.typebot_msg_boas_vindas || "" });
+    // 👥 deriva a equipe a partir da fila atual do canal (a fila carrega o equipe_id)
+    const equipeDaFila = filasBanco.find(f => f.nome === c.fila)?.equipe_id || "";
+    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", equipeId: equipeDaFila, fila: c.fila || "", pararSeAtendente: c.parar_se_atendente, typebot_url: c.typebot_url || "", typebot_msg_invalida: c.typebot_msg_invalida || "", typebot_msg_boas_vindas: c.typebot_msg_boas_vindas || "" });
     setApiKeyTocada(false); setTokenTocado(false); setShowModalNovoCanal(true); setShowMenuEngrenagem(null);
-    fetchFluxos(); fetchFilas();
+    fetchFluxos(); fetchFilas(); fetchEquipes();
   };
 
   const toggleMetaFlag = async (canal: any, flag: "instagram_ativo" | "messenger_ativo") => {
@@ -524,6 +547,9 @@ export function ConexoesSection() {
   const webjsPermitido = isSuperAdmin || limites.webjs;
   const wabaPermitido = isSuperAdmin || limites.waba;
   const instagramPermitido = isSuperAdmin || limites.instagram;
+
+  // 👥 Filas mostradas no modal: filtradas pela equipe escolhida (vazio = todas as equipes)
+  const filasFiltradas = filasBanco.filter(f => !form.equipeId || (f.equipe_id || "") === form.equipeId);
 
   // Helper pra fechar modal novo canal
   const fecharModalNovoCanal = () => { setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null); setEditandoId(null); setApiKeyTocada(false); setTokenTocado(false); setResultadoMeta(null); setPagesDisponiveis([]); setPagesSelecionadas(new Set()); };
@@ -802,7 +828,32 @@ export function ConexoesSection() {
                 )}
               </div>
               <div>
-                <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px" }}>{editandoId ? "3" : form.tipo === "waba" ? "5" : "4"}. Fila / Departamento</p>
+                <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>{editandoId ? "3" : form.tipo === "waba" ? "5" : "4"}. Equipe & Fila / Departamento</p>
+
+                {/* 👥 Seletor de EQUIPE — filtra quais filas aparecem abaixo. Vazio = todas. */}
+                {equipes.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>👥 Equipe <span style={{ color: "#9ca3af", fontWeight: 400 }}>(afunila as filas)</span></label>
+                    <select
+                      value={form.equipeId}
+                      onChange={e => {
+                        const novaEquipe = e.target.value;
+                        setForm(p => {
+                          // Se a fila já escolhida não pertence à nova equipe, limpa a seleção de fila
+                          const filaAtual = filasBanco.find(f => f.nome === p.fila);
+                          const filaContinuaValida = !novaEquipe || (filaAtual && (filaAtual.equipe_id || "") === novaEquipe);
+                          return { ...p, equipeId: novaEquipe, fila: filaContinuaValida ? p.fila : "" };
+                        });
+                      }}
+                      style={IS}>
+                      <option value="">👥 Todas as equipes</option>
+                      {equipes.map(eq => (<option key={eq.id} value={eq.id}>👥 {eq.nome}</option>))}
+                    </select>
+                    <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Escolha a equipe e selecione abaixo qual fila (segmento) deste canal.</p>
+                  </div>
+                )}
+
+                <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>📋 Fila / Segmento</label>
                 {filasBanco.length === 0 ? (
                   <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
                     <span style={{ fontSize: 22 }}>⚠️</span>
@@ -813,12 +864,17 @@ export function ConexoesSection() {
                     <button onClick={() => { setShowModalNovoCanal(false); router.push("/crm/configuracoes"); }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>Criar fila</button>
                   </div>
                 ) : (
-                  <select value={form.fila} onChange={e => setForm(p => ({ ...p, fila: e.target.value }))} style={IS}>
-                    <option value="">Selecione uma fila...</option>
-                    {filasBanco.map(f => (<option key={f.id} value={f.nome}>📋 {f.nome}{f.conexao ? ` (${f.conexao})` : ""}</option>))}
-                  </select>
+                  <>
+                    <select value={form.fila} onChange={e => setForm(p => ({ ...p, fila: e.target.value }))} style={IS}>
+                      <option value="">Selecione uma fila...</option>
+                      {filasFiltradas.map(f => (<option key={f.id} value={f.nome}>📋 {f.nome}{f.conexao ? ` (${f.conexao})` : ""}</option>))}
+                    </select>
+                    {form.equipeId && filasFiltradas.length === 0 && (
+                      <p style={{ color: "#dc2626", fontSize: 11, margin: "6px 0 0", lineHeight: 1.4 }}>⚠️ Essa equipe não tem nenhuma fila cadastrada. Crie uma fila pra ela em <b>Configurações → Filas</b> (ou escolha "Todas as equipes").</p>
+                    )}
+                  </>
                 )}
-                <p style={{ color: "#9ca3af", fontSize: 11, margin: "6px 0 0" }}>Filas são gerenciadas em <b>Configurações → Filas</b> do CRM.</p>
+                <p style={{ color: "#9ca3af", fontSize: 11, margin: "6px 0 0" }}>Filas e equipes são gerenciadas em <b>Configurações → Filas</b> do CRM.</p>
               </div>
               <div>
                 <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>{editandoId ? "4" : form.tipo === "waba" ? "6" : "5"}. Comportamento</p>
@@ -859,7 +915,7 @@ export function ConexoesSection() {
           </div>
         </div>
         <button
-          onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); }}
+          onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); fetchEquipes(); }}
           disabled={limiteAtingido}
           style={{
             background: limiteAtingido ? "#e5e7eb" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
@@ -880,7 +936,7 @@ export function ConexoesSection() {
           </div>
           <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Nenhum canal conectado</h3>
           <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Crie seu primeiro canal pra começar</p>
-          <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); }} style={{ background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 12, padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>+ Novo Canal</button>
+          <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); fetchEquipes(); }} style={{ background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 12, padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>+ Novo Canal</button>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
@@ -915,6 +971,13 @@ export function ConexoesSection() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: 700 }}>{c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxo_nome}` : c.modo === "typebot" ? `🎯 Typebot` : "🚫 Sem automação"}</span></div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Fila:</span><span style={{ color: "#3b82f6", fontSize: 12, fontWeight: 600 }}>{c.fila || "—"}</span></div>
+                {/* 👥 Equipe — derivada da fila do canal (a fila carrega o equipe_id) */}
+                {(() => {
+                  const eqId = filasBanco.find(f => f.nome === c.fila)?.equipe_id;
+                  const eqNome = eqId ? equipes.find(e => e.id === eqId)?.nome : null;
+                  if (!eqNome) return null;
+                  return <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Equipe:</span><span style={{ color: "#a855f7", fontSize: 12, fontWeight: 600 }}>👥 {eqNome}</span></div>;
+                })()}
                 {c.numero && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Número:</span><span style={{ color: "#1f2937", fontSize: 12, fontWeight: 600 }}>{c.numero}</span></div>}
               </div>
               <div style={{ display: "flex", gap: 8 }}>

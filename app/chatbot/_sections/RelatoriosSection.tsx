@@ -16,6 +16,8 @@ type Atendimento = {
 };
 
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
+// 👥 Equipe (time/empresa dentro do workspace)
+type Equipe = { id: string; nome: string; };
 
 export function RelatoriosSection() {
   const { wsId } = useWorkspace();
@@ -23,6 +25,9 @@ export function RelatoriosSection() {
   const [resultado, setResultado] = useState<Atendimento[]>([]);
   const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
   const [etiquetasPorAtend, setEtiquetasPorAtend] = useState<Record<number, number[]>>({});
+  // 👥 equipes do workspace + mapa fila(nome) → equipe_id (a fila carrega o equipe_id)
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const [filaEquipeMap, setFilaEquipeMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [gerado, setGerado] = useState(false);
@@ -31,6 +36,8 @@ export function RelatoriosSection() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  // 👥 filtro de equipe (afunila também as filas)
+  const [filtroEquipe, setFiltroEquipe] = useState("todas");
   const [filtroFila, setFiltroFila] = useState("todas");
   const [filtroAtendente, setFiltroAtendente] = useState("todos");
   const [filtroEtiqueta, setFiltroEtiqueta] = useState("todas");
@@ -77,12 +84,20 @@ export function RelatoriosSection() {
         return lista;
       };
 
-      const [atends, resEtiq] = await Promise.all([
+      const [atends, resEtiq, resEquipes, resFilas] = await Promise.all([
         fetchAtendimentosPaginado(),
         supabase.from("etiquetas").select("*").eq("workspace_id", wsId),
+        // 👥 equipes ativas + tabela de filas (pra mapear fila → equipe_id)
+        supabase.from("equipes").select("id, nome").eq("workspace_id", wsId).eq("ativo", true).order("nome", { ascending: true }),
+        supabase.from("filas").select("nome, equipe_id").eq("workspace_id", wsId),
       ]);
       setAtendimentos(atends);
       setEtiquetas(resEtiq.data || []);
+      setEquipes((resEquipes.data as Equipe[]) || []);
+      // monta mapa fila(nome) → equipe_id
+      const mapaFE: Record<string, string> = {};
+      (resFilas.data || []).forEach((f: any) => { if (f.nome) mapaFE[f.nome] = f.equipe_id || ""; });
+      setFilaEquipeMap(mapaFE);
       setTruncado(atends.length >= TOTAL_LIMITE);
 
       // 🔒 PAGINAÇÃO: .in() com muitos ids estoura — divide em lotes de 500
@@ -108,6 +123,16 @@ export function RelatoriosSection() {
 
   const filas = [...new Set(atendimentos.map(a => a.fila))].filter(Boolean);
   const atendentes = [...new Set(atendimentos.map(a => a.atendente))].filter(Boolean);
+
+  // 👥 filas mostradas no dropdown: filtradas pela equipe escolhida (todas = sem filtro)
+  const filasFiltradas = filas.filter(f => filtroEquipe === "todas" || (filaEquipeMap[f] || "") === filtroEquipe);
+
+  // 👥 nome da equipe de um atendimento (via fila)
+  const equipeNome = (a: Atendimento): string => {
+    const eqId = filaEquipeMap[a.fila || ""] || "";
+    if (!eqId) return "";
+    return equipes.find(e => e.id === eqId)?.nome || "";
+  };
 
   const etiquetasNomes = (atendId: number): string => {
     const ids = etiquetasPorAtend[atendId] || [];
@@ -147,6 +172,8 @@ export function RelatoriosSection() {
     setLoading(true);
     let filtrados = filtrarPorPeriodo(atendimentos);
     if (filtroStatus !== "todos") filtrados = filtrados.filter(a => a.status === filtroStatus);
+    // 👥 filtro de equipe — via fila do atendimento (a fila carrega o equipe_id)
+    if (filtroEquipe !== "todas") filtrados = filtrados.filter(a => (filaEquipeMap[a.fila || ""] || "") === filtroEquipe);
     if (filtroFila !== "todas") filtrados = filtrados.filter(a => a.fila === filtroFila);
     if (filtroAtendente !== "todos") filtrados = filtrados.filter(a => a.atendente === filtroAtendente);
     if (filtroEtiqueta !== "todas") {
@@ -166,6 +193,7 @@ export function RelatoriosSection() {
         "Nome": a.nome || "",
         "Telefone": (a.numero || "").replace(/\D/g, ""),
         "Etiqueta": etiquetasNomes(a.id),
+        "Equipe": equipeNome(a),
         "Fila": a.fila || "",
         "Atendente": a.atendente || "",
         "Status": a.status === "resolvido" ? "Resolvido" : a.status === "aberto" ? "Aberto" : a.status === "pendente" ? "Pendente" : a.status,
@@ -173,7 +201,7 @@ export function RelatoriosSection() {
       }));
       const ws = XLSX.utils.json_to_sheet(dados);
       ws["!cols"] = [
-        { wch: 28 }, { wch: 18 }, { wch: 30 }, { wch: 18 }, { wch: 25 }, { wch: 12 }, { wch: 20 },
+        { wch: 28 }, { wch: 18 }, { wch: 30 }, { wch: 20 }, { wch: 18 }, { wch: 25 }, { wch: 12 }, { wch: 20 },
       ];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Atendimentos");
@@ -188,6 +216,7 @@ export function RelatoriosSection() {
     setDataInicio("");
     setDataFim("");
     setFiltroStatus("todos");
+    setFiltroEquipe("todas");
     setFiltroFila("todas");
     setFiltroAtendente("todos");
     setFiltroEtiqueta("todas");
@@ -291,11 +320,29 @@ export function RelatoriosSection() {
               <option value="resolvido">✅ Resolvido</option>
             </select>
           </div>
+          {/* 👥 Equipe — afunila as filas abaixo */}
+          {equipes.length > 0 && (
+            <div>
+              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>👥 Equipe</label>
+              <select
+                value={filtroEquipe}
+                onChange={e => {
+                  const nova = e.target.value;
+                  setFiltroEquipe(nova);
+                  // se a fila selecionada não pertence à nova equipe, volta pra "todas"
+                  if (nova !== "todas" && filtroFila !== "todas" && (filaEquipeMap[filtroFila] || "") !== nova) setFiltroFila("todas");
+                }}
+                style={IS}>
+                <option value="todas">Todas</option>
+                {equipes.map(eq => <option key={eq.id} value={eq.id}>👥 {eq.nome}</option>)}
+              </select>
+            </div>
+          )}
           <div>
             <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Fila</label>
             <select value={filtroFila} onChange={e => setFiltroFila(e.target.value)} style={IS}>
               <option value="todas">Todas</option>
-              {filas.map(f => <option key={f} value={f}>{f}</option>)}
+              {filasFiltradas.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
           </div>
           <div>
@@ -383,7 +430,7 @@ export function RelatoriosSection() {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
                     <tr style={{ background: "#f9fafb" }}>
-                      {["Nome", "Telefone", "Etiquetas", "Fila", "Atendente", "Status", "Data"].map(h => (
+                      {["Nome", "Telefone", "Etiquetas", "Equipe", "Fila", "Atendente", "Status", "Data"].map(h => (
                         <th key={h} style={{ padding: "12px 18px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
                       ))}
                     </tr>
@@ -392,6 +439,7 @@ export function RelatoriosSection() {
                     {resultado.map((a, i) => {
                       const ids = etiquetasPorAtend[a.id] || [];
                       const etiqs = ids.map(id => etiquetas.find(e => e.id === id)).filter(Boolean) as Etiqueta[];
+                      const eqNome = equipeNome(a);
                       return (
                         <tr key={a.id}
                           style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#ffffff" : "#fafbfc", transition: "background 0.1s" }}
@@ -411,6 +459,13 @@ export function RelatoriosSection() {
                                   </span>
                                 ))}
                               </div>
+                            )}
+                          </td>
+                          <td style={{ padding: "14px 18px" }}>
+                            {eqNome ? (
+                              <span style={{ background: "#a855f715", color: "#a855f7", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 600, border: "1px solid #a855f730", whiteSpace: "nowrap" }}>👥 {eqNome}</span>
+                            ) : (
+                              <span style={{ color: "#d1d5db", fontSize: 11 }}>—</span>
                             )}
                           </td>
                           <td style={{ padding: "14px 18px" }}>
