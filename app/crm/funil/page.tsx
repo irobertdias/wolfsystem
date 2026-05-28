@@ -49,7 +49,7 @@ const AGING_BUCKETS = [
   { label: "31+ dias",   min: 30, max: Infinity, cor: "#dc2626" },
 ];
 
-type Aba = "visao" | "instaladas" | "pipeline" | "canceladas" | "vendedores" | "operadoras" | "planos" | "temporal";
+type Aba = "visao" | "instaladas" | "pipeline" | "canceladas" | "vendedores" | "operadoras" | "planos" | "temporal" | "cohort" | "horarios";
 
 export default function Funil() {
   const router = useRouter();
@@ -381,6 +381,84 @@ export default function Funil() {
   const operadorasUnicas = useMemo(() => Array.from(new Set(propostas.map(p => p.operadora).filter(Boolean) as string[])).sort(), [propostas]);
   const planosUnicos = useMemo(() => Array.from(new Set(propostas.map(p => p.plano).filter(Boolean) as string[])).sort(), [propostas]);
 
+  // ═══ COORTE — propostas geradas por semana e o que aconteceu com elas ═══
+  // Olha pras propostas com filtro de equipe/vendedor/plano/operadora (não período).
+  const cohort = useMemo(() => {
+    let base = propostas;
+    if (equipeId) base = base.filter(p => p.equipe_id === equipeId);
+    if (filtroVendedor !== "todos") base = base.filter(p => p.vendedor === filtroVendedor);
+    const agora = new Date();
+    const hoje0 = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    const linhas: {
+      label: string; total: number;
+      instaladas: number; canceladas: number; emAberto: number;
+      receita: number;
+      taxaInst: number; taxaCanc: number; taxaAberto: number;
+    }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const ini = new Date(hoje0.getTime() - (i + 1) * 7 * 86400000);
+      const fim = new Date(hoje0.getTime() - i * 7 * 86400000);
+      const semana = base.filter(p => {
+        const d = new Date(p.created_at);
+        return d >= ini && d < fim;
+      });
+      const inst = semana.filter(p => p.status_venda === "INSTALADA");
+      const canc = semana.filter(p => p.status_venda === "CANCELADA").length;
+      const aberto = semana.length - inst.length - canc;
+      const total = semana.length;
+      linhas.push({
+        label: ini.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+        total,
+        instaladas: inst.length,
+        canceladas: canc,
+        emAberto: aberto,
+        receita: inst.reduce((a, p) => a + (p.valor_plano || 0), 0),
+        taxaInst: total > 0 ? Math.round((inst.length / total) * 100) : 0,
+        taxaCanc: total > 0 ? Math.round((canc / total) * 100) : 0,
+        taxaAberto: total > 0 ? Math.round((aberto / total) * 100) : 0,
+      });
+    }
+    return linhas;
+  }, [propostas, equipeId, filtroVendedor]);
+
+  // ═══ HEATMAP dia da semana × hora do dia (quando entram propostas) ═══
+  const heatmap = useMemo(() => {
+    const grid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+    for (const p of propsFiltradas) {
+      const d = new Date(p.created_at);
+      grid[d.getDay()][d.getHours()]++;
+    }
+    let max = 0;
+    for (const row of grid) for (const v of row) if (v > max) max = v;
+    return { grid, max };
+  }, [propsFiltradas]);
+
+  // Melhor dia/horário (pico)
+  const picoHorario = useMemo(() => {
+    let best = { dia: 0, hora: 0, qtd: 0 };
+    heatmap.grid.forEach((row, dia) => {
+      row.forEach((qtd, hora) => {
+        if (qtd > best.qtd) best = { dia, hora, qtd };
+      });
+    });
+    return best;
+  }, [heatmap]);
+
+  // Totais por dia da semana e por hora (pros gráficos de barra laterais)
+  const porDiaSemana = useMemo(() => {
+    const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    return heatmap.grid.map((row, i) => ({
+      dia: DIAS[i],
+      qtd: row.reduce((a, b) => a + b, 0),
+    }));
+  }, [heatmap]);
+
+  const porHora = useMemo(() => {
+    const totals = Array(24).fill(0);
+    heatmap.grid.forEach(row => row.forEach((v, h) => { totals[h] += v; }));
+    return totals.map((qtd, h) => ({ hora: `${h}h`, qtd }));
+  }, [heatmap]);
+
   if (!isDono && !isSuperAdmin && !permissoes.funil) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", padding: 32 }}>
@@ -470,6 +548,8 @@ export default function Funil() {
           { key: "operadoras", label: "Operadoras",  icone: "📡", color: "#ec4899" },
           { key: "planos",     label: "Planos",      icone: "📦", color: "#a855f7" },
           { key: "temporal",   label: "Temporal",    icone: "📈", color: "#f59e0b" },
+          { key: "cohort",     label: "Coorte",      icone: "🧬", color: "#0ea5e9" },
+          { key: "horarios",   label: "Horários",    icone: "🗓️", color: "#14b8a6" },
         ] as { key: Aba; label: string; icone: string; color: string }[]).map(t => {
           const ativo = aba === t.key;
           return (
@@ -1250,6 +1330,204 @@ export default function Funil() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ════ ABA: COORTE ════ */}
+        {aba === "cohort" && (
+          <>
+            <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
+              <h3 style={sectionTitleStyle}>
+                <span style={{ width: 32, height: 32, borderRadius: 8, background: "#e0f2fe", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🧬</span>
+                Análise de Coorte — últimas 12 semanas
+              </h3>
+              <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 18px", lineHeight: 1.5 }}>
+                Cada linha é uma <b>semana em que as propostas foram geradas</b>. As colunas mostram o que aconteceu com elas:
+                quantas <b style={{ color: "#16a34a" }}>instalaram</b>, quantas <b style={{ color: "#dc2626" }}>cancelaram</b> e quantas ainda estão <b style={{ color: "#f59e0b" }}>em aberto</b>.
+                Serve pra ver se o funil tá esquentando ou esfriando ao longo do tempo.
+                {(equipeId || filtroVendedor !== "todos") && <> (Respeitando os filtros de equipe/vendedor; ignora o filtro de período.)</>}
+              </p>
+
+              {/* Gráfico: taxa de instalação por semana */}
+              <ResponsiveContainer width="100%" height={isMobile ? 200 : 260}>
+                <BarChart data={cohort} margin={isMobile ? { top: 5, right: 5, left: -15, bottom: 0 } : { top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="label" stroke="#6b7280" fontSize={isMobile ? 9 : 11} />
+                  <YAxis stroke="#6b7280" fontSize={isMobile ? 9 : 11} tickFormatter={v => `${v}%`} domain={[0, 100]} />
+                  <Tooltip
+                    contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 12 }}
+                    formatter={(value: any, name: string) => [`${value}%`, name === "taxaInst" ? "Instalação" : name === "taxaCanc" ? "Cancelamento" : "Em aberto"]}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => v === "taxaInst" ? "Instalação" : v === "taxaCanc" ? "Cancelamento" : "Em aberto"} />
+                  <Bar dataKey="taxaInst" stackId="a" fill="#16a34a" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="taxaAberto" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="taxaCanc" stackId="a" fill="#dc2626" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Tabela detalhada da coorte */}
+            <div style={{ ...cardStyle, overflow: "hidden" }}>
+              <div style={{ padding: "16px 20px", borderBottom: "1px solid #e5e7eb" }}>
+                <h3 style={{ ...sectionTitleStyle, margin: 0 }}>
+                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "#e0f2fe", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📋</span>
+                  Detalhamento por semana
+                </h3>
+              </div>
+              <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 640 : "auto" }}>
+                  <thead>
+                    <tr style={{ background: "#f9fafb" }}>
+                      {["Semana de", "Geradas", "✅ Instaladas", "❌ Canceladas", "⏳ Em aberto", "Receita", "Taxa Conv."].map(h => (
+                        <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cohort.map((c, i) => {
+                      const corConv = c.taxaInst >= 50 ? "#16a34a" : c.taxaInst >= 25 ? "#f59e0b" : "#dc2626";
+                      const bgConv = c.taxaInst >= 50 ? "#f0fdf4" : c.taxaInst >= 25 ? "#fffbeb" : "#fef2f2";
+                      return (
+                        <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#ffffff" : "#fafbfc" }}>
+                          <td style={{ padding: "12px 16px", color: "#1f2937", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{c.label}</td>
+                          <td style={{ padding: "12px 16px", color: "#3b82f6", fontSize: 13, fontWeight: 700 }}>{c.total}</td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <span style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{c.instaladas}</span>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <span style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{c.canceladas}</span>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <span style={{ background: "#fffbeb", color: "#f59e0b", border: "1px solid #fde68a", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{c.emAberto}</span>
+                          </td>
+                          <td style={{ padding: "12px 16px", color: "#16a34a", fontSize: 13, fontWeight: 700 }}>{formatBRLCompacto(c.receita)}</td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <div style={{ flex: 1, background: "#f3f4f6", borderRadius: 4, height: 6, overflow: "hidden", minWidth: 60, maxWidth: 100 }}>
+                                <div style={{ background: corConv, width: `${c.taxaInst}%`, height: "100%", borderRadius: 4 }} />
+                              </div>
+                              <span style={{ background: bgConv, color: corConv, fontSize: 11, padding: "3px 8px", borderRadius: 8, fontWeight: 800 }}>{c.taxaInst}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ════ ABA: HORÁRIOS (HEATMAP) ════ */}
+        {aba === "horarios" && (
+          <>
+            {/* Pico */}
+            <div style={{ ...cardStyle, padding: isMobile ? 16 : 24, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, boxShadow: "0 8px 20px rgba(20,184,166,0.25)", flexShrink: 0 }}>
+                <span style={{ filter: "saturate(0) brightness(2)" }}>🔥</span>
+              </div>
+              <div>
+                <p style={{ color: "#6b7280", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Horário de pico</p>
+                <p style={{ color: "#0d9488", fontSize: isMobile ? 18 : 22, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>
+                  {picoHorario.qtd > 0
+                    ? `${["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"][picoHorario.dia]} às ${picoHorario.hora}h`
+                    : "Sem dados suficientes"}
+                </p>
+                <p style={{ color: "#9ca3af", fontSize: 12, margin: "2px 0 0" }}>
+                  {picoHorario.qtd > 0 ? `${picoHorario.qtd} proposta(s) geradas nesse horário` : "—"}
+                </p>
+              </div>
+            </div>
+
+            {/* Heatmap grid */}
+            <div style={{ ...cardStyle, padding: isMobile ? 14 : 24 }}>
+              <h3 style={sectionTitleStyle}>
+                <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ccfbf1", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🗓️</span>
+                Mapa de calor — dia da semana × hora
+              </h3>
+              <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 16px" }}>
+                Quanto mais escura a célula, mais propostas entraram naquele dia/horário. Útil pra escalar atendentes nos picos.
+              </p>
+              <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <div style={{ minWidth: 680 }}>
+                  {/* Cabeçalho de horas */}
+                  <div style={{ display: "grid", gridTemplateColumns: "40px repeat(24, 1fr)", gap: 2, marginBottom: 2 }}>
+                    <div />
+                    {Array.from({ length: 24 }, (_, h) => (
+                      <div key={h} style={{ textAlign: "center", color: "#9ca3af", fontSize: 8, fontWeight: 600 }}>{h}</div>
+                    ))}
+                  </div>
+                  {/* Linhas por dia */}
+                  {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((dia, di) => (
+                    <div key={dia} style={{ display: "grid", gridTemplateColumns: "40px repeat(24, 1fr)", gap: 2, marginBottom: 2 }}>
+                      <div style={{ display: "flex", alignItems: "center", color: "#6b7280", fontSize: 10, fontWeight: 700 }}>{dia}</div>
+                      {heatmap.grid[di].map((qtd, hi) => {
+                        const intensidade = heatmap.max > 0 ? qtd / heatmap.max : 0;
+                        const bg = qtd === 0
+                          ? "#f9fafb"
+                          : `rgba(20, 184, 166, ${0.15 + intensidade * 0.85})`;
+                        return (
+                          <div key={hi}
+                            title={`${dia} ${hi}h — ${qtd} proposta(s)`}
+                            style={{
+                              aspectRatio: "1", borderRadius: 3, background: bg,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 8, fontWeight: 700,
+                              color: intensidade > 0.5 ? "#ffffff" : "#0d9488",
+                              cursor: "default", minHeight: 18,
+                            }}>
+                            {qtd > 0 ? qtd : ""}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Legenda */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
+                <span style={{ color: "#9ca3af", fontSize: 11 }}>Menos</span>
+                {[0.15, 0.35, 0.55, 0.75, 1].map(o => (
+                  <div key={o} style={{ width: 16, height: 16, borderRadius: 3, background: `rgba(20, 184, 166, ${o})` }} />
+                ))}
+                <span style={{ color: "#9ca3af", fontSize: 11 }}>Mais</span>
+              </div>
+            </div>
+
+            {/* Barras: por dia da semana + por hora */}
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
+              <div style={{ ...cardStyle, padding: isMobile ? 16 : 20 }}>
+                <h3 style={{ ...sectionTitleStyle, fontSize: 14, margin: "0 0 14px" }}>
+                  <span style={{ width: 28, height: 28, borderRadius: 8, background: "#ccfbf1", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>📅</span>
+                  Propostas por dia da semana
+                </h3>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={porDiaSemana} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="dia" stroke="#6b7280" fontSize={11} />
+                    <YAxis stroke="#6b7280" fontSize={11} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 12 }} cursor={{ fill: "#f0fdfa" }} />
+                    <Bar dataKey="qtd" fill="#14b8a6" radius={[8, 8, 0, 0]} name="Propostas" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ ...cardStyle, padding: isMobile ? 16 : 20 }}>
+                <h3 style={{ ...sectionTitleStyle, fontSize: 14, margin: "0 0 14px" }}>
+                  <span style={{ width: 28, height: 28, borderRadius: 8, background: "#ccfbf1", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⏰</span>
+                  Propostas por hora do dia
+                </h3>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={porHora} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="hora" stroke="#6b7280" fontSize={8} interval={1} />
+                    <YAxis stroke="#6b7280" fontSize={11} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 12 }} cursor={{ fill: "#f0fdfa" }} />
+                    <Bar dataKey="qtd" fill="#0d9488" radius={[6, 6, 0, 0]} name="Propostas" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </>
