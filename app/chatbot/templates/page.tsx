@@ -893,7 +893,7 @@ export default function TemplatesPage() {
         const ehConfirmacao = !!feedback.onConfirmar;
         return (
           <div onClick={() => !ehConfirmacao && setFeedback(null)}
-            style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16, animation: "fadeIn 0.15s" }}>
+            style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3000, padding: 16, animation: "fadeIn 0.15s" }}>
             <div onClick={e => e.stopPropagation()}
               style={{ background: "#ffffff", borderRadius: 16, maxWidth: 520, width: "100%", maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
               {/* Topo colorido */}
