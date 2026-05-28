@@ -76,6 +76,17 @@ export default function TemplatesPage() {
   // 🆕 Filtro de canal — ids dos canais marcados pra exibição (vazio = mostra todos)
   const [canaisSelecionados, setCanaisSelecionados] = useState<number[]>([]);
 
+  // 💬 Modal visual de feedback (substitui alert() nativo)
+  //    tipo: erro = vermelho, aviso = amarelo, sucesso = verde, info = azul
+  const [feedback, setFeedback] = useState<{
+    tipo: "erro" | "aviso" | "sucesso" | "info";
+    titulo: string;
+    mensagem: string;
+    detalhes?: string[];      // bullets opcionais (lista de problemas, dicas, etc.)
+    onConfirmar?: () => void; // se setado, vira modal de confirmação (mostra Cancelar + Continuar)
+    confirmarLabel?: string;  // texto do botão de continuar (default "Enviar mesmo assim")
+  } | null>(null);
+
   const podeAcessar = isDono;
 
   const formInicial = {
@@ -154,49 +165,86 @@ export default function TemplatesPage() {
     return comps;
   };
 
-  const enviarParaMeta = async () => {
-    if (!form.canalId) return alert("Selecione um canal WABA!");
-    if (!form.metaTemplateName.trim()) return alert("Digite o nome do template (snake_case)!");
-    if (!form.body.trim()) return alert("O corpo da mensagem é obrigatório!");
-    if (!/^[a-z0-9_]+$/.test(form.metaTemplateName)) {
-      return alert("Nome do template deve ter só letras minúsculas, números e _\nExemplo: boas_vindas_cliente");
+  // 🧼 Limpa mensagem de erro técnica antes de mostrar pro usuário.
+  // Remove "VPS 500:", "Erro:", "Meta:", JSON malformado, códigos entre parênteses, fbtrace.
+  // Se receber JSON stringificado, faz parse e pega só o campo .error.
+  const limparMensagemErro = (raw: string): string => {
+    if (!raw) return "Erro desconhecido. Tente novamente.";
+    let msg = String(raw);
+    // 1) Se for JSON stringificado (ex: VPS 500 manda body inteiro), tenta parsear
+    const matchJson = msg.match(/\{.*"error".*\}/);
+    if (matchJson) {
+      try {
+        const obj = JSON.parse(matchJson[0]);
+        if (obj.error) msg = String(obj.error);
+      } catch { /* mantém raw */ }
     }
+    // 2) Remove prefixos técnicos
+    msg = msg
+      .replace(/^VPS\s*\d+\s*:\s*/i, "")
+      .replace(/^Erro de rede:\s*/i, "")
+      .replace(/^Erro:\s*/i, "")
+      .replace(/^Meta:\s*/i, "");
+    // 3) Remove sufixos de código (code 100, subcode 2388072, fbtrace ABC123)
+    msg = msg
+      .replace(/\s*\(code\s*\d+(\s*\(subcode\s*\d+\))?\)\s*/gi, "")
+      .replace(/\s*\[fbtrace[^\]]+\]\s*/gi, "")
+      .replace(/\s*\(subcode\s*\d+\)\s*/gi, "")
+      .trim();
+    return msg || "Erro desconhecido. Tente novamente.";
+  };
 
-    // 🛡️ PRÉ-VALIDADOR — pega 90% dos motivos do erro "Meta: Invalid parameter (code 100)"
-    // antes de gastar a chamada com a Meta. Os checks abaixo são os que a gente já
-    // viu cair na prática: marca registrada, categoria errada, caractere proibido.
-    const avisos: string[] = [];
+  const enviarParaMeta = async () => {
+    if (!form.canalId)
+      return setFeedback({ tipo: "aviso", titulo: "Canal não selecionado", mensagem: "Escolha um canal WhatsApp Business (WABA) antes de criar o template." });
+    if (!form.metaTemplateName.trim())
+      return setFeedback({ tipo: "aviso", titulo: "Nome do template vazio", mensagem: "Digite um nome técnico em snake_case (ex: boas_vindas_cliente)." });
+    if (!form.body.trim())
+      return setFeedback({ tipo: "aviso", titulo: "Corpo da mensagem vazio", mensagem: "O corpo (BODY) da mensagem é obrigatório." });
+    if (!/^[a-z0-9_]+$/.test(form.metaTemplateName))
+      return setFeedback({ tipo: "aviso", titulo: "Nome inválido", mensagem: "O nome técnico deve ter apenas letras minúsculas, números e _ (underline).", detalhes: ["Exemplo correto: boas_vindas_cliente", "Sem espaço, sem acento, sem maiúscula."] });
+
+    // 🛡️ PRÉ-VALIDADOR — detecta antes de gastar chamada com a Meta.
+    const problemas: string[] = [];
     const textoTudo = `${form.headerTexto || ""} ${form.body || ""} ${form.footer || ""}`.toLowerCase();
 
-    // Marcas registradas comuns (telecom + bancos) — Meta REJEITA por trademark
+    // HEADER de texto: Meta proíbe quebra de linha, emoji, asterisco, formatação
+    if (form.headerTipo === "text" && form.headerTexto) {
+      const headerProblemas: string[] = [];
+      if (/\n|\r/.test(form.headerTexto)) headerProblemas.push("quebra de linha");
+      // Emoji: range Unicode emoji
+      if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F1FF}\u{1F200}-\u{1F2FF}]/u.test(form.headerTexto)) headerProblemas.push("emoji");
+      if (/\*/.test(form.headerTexto)) headerProblemas.push("asterisco (*)");
+      if (/_(?!_)/.test(form.headerTexto)) headerProblemas.push("underline (_)");
+      if (/~/.test(form.headerTexto)) headerProblemas.push("til (~)");
+      if (form.headerTexto.length > 60) headerProblemas.push(`tem ${form.headerTexto.length} caracteres (máximo 60)`);
+      if (headerProblemas.length > 0) {
+        problemas.push(`Header tem: ${headerProblemas.join(", ")}. Header de texto só aceita texto simples.`);
+      }
+    }
+
+    // Marcas registradas
     const marcas = ["claro", "vivo", "tim", "oi telecom", "nextel", "algar", "sky", "nubank", "itaú", "itau", "bradesco", "santander", "caixa econômica", "banco do brasil", "mercado livre", "mercado pago", "magalu", "magazine luiza", "americanas", "ifood", "uber", "99", "amazon", "shopee", "aliexpress", "netflix", "spotify", "disney", "globo", "sbt", "record", "whatsapp", "instagram", "facebook", "meta", "google", "apple", "microsoft"];
     const marcasEncontradas = marcas.filter(m => textoTudo.includes(m));
     if (marcasEncontradas.length > 0) {
-      avisos.push(`⚠️ Marcas registradas detectadas: ${marcasEncontradas.join(", ")}\n   → Meta rejeita templates que mencionam marcas de terceiros sem autorização.\n   → Troque por algo genérico ("sua operadora", "nosso parceiro").`);
+      problemas.push(`Marcas registradas detectadas (${marcasEncontradas.join(", ")}). A Meta rejeita templates que mencionam marcas de terceiros sem autorização.`);
     }
 
-    // UTILITY com palavras promocionais — Meta exige categoria MARKETING
+    // UTILITY com palavras promocionais
     if (form.categoria === "UTILITY") {
       const palavrasPromo = ["promoção", "promocao", "promoções", "promocoes", "oferta", "desconto", "cupom", "black friday", "imperdível", "imperdivel", "exclusiva", "exclusivo", "upgrade", "novidade", "lançamento", "lancamento", "venda", "compre", "aproveite", "garanta"];
       const promoEncontradas = palavrasPromo.filter(p => textoTudo.includes(p));
       if (promoEncontradas.length > 0) {
-        avisos.push(`⚠️ Palavras promocionais em template UTILITY: ${promoEncontradas.join(", ")}\n   → Meta exige categoria MARKETING para conteúdo promocional.\n   → Mude a categoria ou remova essas palavras.`);
+        problemas.push(`Palavras promocionais (${promoEncontradas.join(", ")}) em template UTILITY. Use a categoria MARKETING para conteúdo promocional.`);
       }
     }
 
-    // Body precisa ter algo além de bullets vazios / só formatação
-    if (form.body.replace(/[\s•\-\*\u2022\u00bd\u00bc\u00be]/g, "").length < 10) {
-      avisos.push(`⚠️ Body muito curto ou só com bullets.\n   → Meta exige mensagem com conteúdo substancial.`);
-    }
-
-    // Variáveis mal-formadas: {{1}} ok; {1}, {{a}}, {{ }} dão erro
+    // Variáveis
     const varsMatch = form.body.match(/\{\{[^}]*\}\}/g) || [];
-    const varsRuins = varsMatch.filter(v => !/^\{\{[1-9]\d?\}\}$/.test(v));
+    const varsRuins = varsMatch.filter((v: string) => !/^\{\{[1-9]\d?\}\}$/.test(v));
     if (varsRuins.length > 0) {
-      avisos.push(`⚠️ Variáveis com formato errado: ${varsRuins.join(", ")}\n   → Use {{1}}, {{2}}, {{3}} (numeradas, sequenciais, começando em 1).`);
+      problemas.push(`Variáveis com formato errado: ${varsRuins.join(", ")}. Use {{1}}, {{2}}, {{3}} (numeradas, começando em 1).`);
     }
-
-    // Se variáveis pulam numeração (ex: {{1}} e {{3}} sem {{2}}) → Meta rejeita
     const numsRaw: number[] = varsMatch
       .map((v: string) => parseInt(v.replace(/[^0-9]/g, ""), 10))
       .filter((n: number) => !isNaN(n));
@@ -204,19 +252,28 @@ export default function TemplatesPage() {
     if (numsUsados.length > 0) {
       const esperado = numsUsados.map((_, i) => i + 1);
       if (JSON.stringify(numsUsados) !== JSON.stringify(esperado)) {
-        avisos.push(`⚠️ Variáveis não-sequenciais: ${numsUsados.join(", ")}\n   → Use {{1}}, {{2}}, {{3}}... sem pular números.`);
+        problemas.push(`Variáveis não-sequenciais: ${numsUsados.join(", ")}. Use {{1}}, {{2}}, {{3}}... sem pular números.`);
       }
     }
 
-    // Pergunta antes de mandar se tiver alertas
-    if (avisos.length > 0) {
-      const continuar = confirm(
-        `🛡️ Encontrei ${avisos.length} possível(is) problema(s) que a Meta costuma rejeitar:\n\n${avisos.join("\n\n")}\n\n` +
-        `Quer mandar pra Meta mesmo assim? (vai ser rejeitado provavelmente)`
-      );
-      if (!continuar) return;
+    // Se tem problemas, mostra modal de confirmação
+    if (problemas.length > 0) {
+      setFeedback({
+        tipo: "aviso",
+        titulo: "Possíveis problemas detectados",
+        mensagem: "Encontrei coisas que a Meta costuma rejeitar. Você pode tentar mesmo assim, mas tem grande chance de ser recusado.",
+        detalhes: problemas,
+        confirmarLabel: "Enviar mesmo assim",
+        onConfirmar: () => { setFeedback(null); enviarParaMetaSemValidar(); },
+      });
+      return;
     }
 
+    enviarParaMetaSemValidar();
+  };
+
+  // Envia direto sem revalidar (chamado pelo enviarParaMeta após validação ou após user confirmar mesmo com avisos)
+  const enviarParaMetaSemValidar = async () => {
     setEnviando(true);
     try {
       const resp = await wa("templates/criar", {
@@ -231,31 +288,59 @@ export default function TemplatesPage() {
       });
 
       if (resp.success) {
-        alert(`✅ Template enviado pra Meta!\n\nAguarde a aprovação (geralmente 15-60 minutos).`);
-        setShowModal(false); setForm(formInicial);
+        setShowModal(false);
+        setForm(formInicial);
         fetchTemplates();
+        setFeedback({
+          tipo: "sucesso",
+          titulo: "Template enviado!",
+          mensagem: "Sua solicitação foi enviada para a Meta. A aprovação costuma sair entre 15 e 60 minutos.",
+        });
       } else {
-        // 💬 Mensagem completa com o motivo real que a Meta retornou
-        alert(`❌ Meta rejeitou o template:\n\n${resp.error}\n\n💡 Dica: copie esse erro inteiro e me manda se não entender o motivo.`);
+        setFeedback({
+          tipo: "erro",
+          titulo: "Template não foi aceito",
+          mensagem: limparMensagemErro(resp.error || ""),
+        });
       }
-    } catch (e: any) { alert(`❌ Erro de rede: ${e.message}`); }
+    } catch (e: any) {
+      setFeedback({
+        tipo: "erro",
+        titulo: "Não foi possível conectar",
+        mensagem: limparMensagemErro(e?.message || "Verifique sua conexão e tente novamente."),
+      });
+    }
     setEnviando(false);
   };
 
   const deletarTemplate = async (t: Template) => {
-    if (!confirm(`Deletar o template "${t.nome_amigavel || t.meta_template_name}"?\n\nIsso vai remover ele da Meta também.`)) return;
-    try {
-      const resp = await wa("templates/deletar", { templateId: t.id, workspaceId: wsId });
-      if (resp.success) { alert("✅ Template deletado!"); fetchTemplates(); }
-      else alert(`❌ Erro: ${resp.error}`);
-    } catch (e: any) { alert(`❌ Erro: ${e.message}`); }
+    setFeedback({
+      tipo: "aviso",
+      titulo: "Deletar template?",
+      mensagem: `O template "${t.nome_amigavel || t.meta_template_name}" será removido do sistema e também da Meta. Essa ação não pode ser desfeita.`,
+      confirmarLabel: "Sim, deletar",
+      onConfirmar: async () => {
+        setFeedback(null);
+        try {
+          const resp = await wa("templates/deletar", { templateId: t.id, workspaceId: wsId });
+          if (resp.success) {
+            fetchTemplates();
+            setFeedback({ tipo: "sucesso", titulo: "Template deletado", mensagem: "Foi removido do sistema e da Meta." });
+          } else {
+            setFeedback({ tipo: "erro", titulo: "Não foi possível deletar", mensagem: limparMensagemErro(resp.error || "") });
+          }
+        } catch (e: any) {
+          setFeedback({ tipo: "erro", titulo: "Não foi possível deletar", mensagem: limparMensagemErro(e?.message || "") });
+        }
+      },
+    });
   };
 
   const sincronizarAgora = async () => {
     setSincronizando(true);
     try {
       if (canais.length === 0) {
-        alert("⚠️ Nenhum canal WABA conectado. Conecte um em Conexões primeiro.");
+        setFeedback({ tipo: "aviso", titulo: "Nenhum canal WABA conectado", mensagem: "Conecte um canal WhatsApp Business na tela de Conexões antes de sincronizar templates." });
         setSincronizando(false);
         return;
       }
@@ -273,6 +358,7 @@ export default function TemplatesPage() {
       });
 
       const resultados: string[] = [];
+      let teveErro = false;
 
       for (const [wabaId, canaisDoWaba] of porWaba) {
         // Usa o primeiro canal do WABA como "porta de entrada"
@@ -285,27 +371,39 @@ export default function TemplatesPage() {
           const ok = resp?.success || resp?.sucesso;
           const count = resp?.count ?? resp?.total ?? resp?.templates?.length ?? "?";
           if (ok === false || resp?.error || resp?.erro) {
-            resultados.push(`❌ ${canalPrincipal.nome}: ${resp?.error || resp?.erro || "erro desconhecido"}`);
+            resultados.push(`${canalPrincipal.nome}: ${limparMensagemErro(resp?.error || resp?.erro || "erro desconhecido")}`);
+            teveErro = true;
           } else {
-            resultados.push(`✅ ${canalPrincipal.nome}${compartilhados}: ${count} templates da Meta`);
+            resultados.push(`${canalPrincipal.nome}${compartilhados}: ${count} templates da Meta`);
           }
         } catch (e: any) {
-          resultados.push(`❌ ${canalPrincipal.nome}: ${e.message || "falha de rede"}`);
+          resultados.push(`${canalPrincipal.nome}: ${limparMensagemErro(e?.message || "falha de rede")}`);
+          teveErro = true;
         }
       }
 
       if (semWaba.length > 0) {
-        resultados.push(`⚠️ ${semWaba.length} canal(is) sem WABA ID: ${semWaba.map(c => c.nome).join(", ")}`);
+        resultados.push(`${semWaba.length} canal(is) sem WABA ID: ${semWaba.map(c => c.nome).join(", ")}`);
       }
 
       await fetchTemplates();
-      alert(`Sincronização concluída\n\n${resultados.join("\n")}\n\nTotal no banco: ${templates.length} templates`);
-    } catch (e: any) { alert(`❌ Erro: ${e.message}`); }
+      setFeedback({
+        tipo: teveErro ? "aviso" : "sucesso",
+        titulo: teveErro ? "Sincronização finalizada com avisos" : "Sincronização concluída",
+        mensagem: `Total no banco: ${templates.length} template(s).`,
+        detalhes: resultados,
+      });
+    } catch (e: any) {
+      setFeedback({ tipo: "erro", titulo: "Não foi possível sincronizar", mensagem: limparMensagemErro(e?.message || "") });
+    }
     setSincronizando(false);
   };
 
   const adicionarBotao = () => {
-    if (form.botoes.length >= 3) return alert("Máximo 3 botões por template");
+    if (form.botoes.length >= 3) {
+      setFeedback({ tipo: "aviso", titulo: "Limite de botões", mensagem: "Um template pode ter no máximo 3 botões." });
+      return;
+    }
     setForm(p => ({ ...p, botoes: [...p.botoes, { type: "QUICK_REPLY", text: "" }] }));
   };
   const removerBotao = (i: number) => setForm(p => ({ ...p, botoes: p.botoes.filter((_, idx) => idx !== i) }));
@@ -783,6 +881,66 @@ export default function TemplatesPage() {
           </div>
         </div>
       )}
+
+      {/* ═══ MODAL VISUAL DE FEEDBACK (substitui alerts/confirms nativos) ═══ */}
+      {feedback && (() => {
+        const cores = {
+          erro:    { bg: "#fef2f2", border: "#fecaca", iconBg: "#fee2e2", icon: "#dc2626", titulo: "#991b1b", botao: "#dc2626", botaoHover: "#b91c1c", emoji: "⚠️" },
+          aviso:   { bg: "#fffbeb", border: "#fde68a", iconBg: "#fef3c7", icon: "#d97706", titulo: "#92400e", botao: "#d97706", botaoHover: "#b45309", emoji: "🛡️" },
+          sucesso: { bg: "#f0fdf4", border: "#bbf7d0", iconBg: "#dcfce7", icon: "#16a34a", titulo: "#14532d", botao: "#16a34a", botaoHover: "#15803d", emoji: "✅" },
+          info:    { bg: "#eff6ff", border: "#bfdbfe", iconBg: "#dbeafe", icon: "#2563eb", titulo: "#1e3a8a", botao: "#2563eb", botaoHover: "#1d4ed8", emoji: "ℹ️" },
+        }[feedback.tipo];
+        const ehConfirmacao = !!feedback.onConfirmar;
+        return (
+          <div onClick={() => !ehConfirmacao && setFeedback(null)}
+            style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16, animation: "fadeIn 0.15s" }}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ background: "#ffffff", borderRadius: 16, maxWidth: 520, width: "100%", maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
+              {/* Topo colorido */}
+              <div style={{ background: cores.bg, borderBottom: `1px solid ${cores.border}`, padding: "22px 24px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: cores.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0, boxShadow: `0 4px 12px ${cores.icon}25` }}>
+                  {cores.emoji}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ color: cores.titulo, fontSize: 16, fontWeight: 800, margin: "2px 0 6px", letterSpacing: -0.2 }}>{feedback.titulo}</h3>
+                  <p style={{ color: "#374151", fontSize: 13, margin: 0, lineHeight: 1.55 }}>{feedback.mensagem}</p>
+                </div>
+              </div>
+
+              {/* Lista de detalhes (se houver) */}
+              {feedback.detalhes && feedback.detalhes.length > 0 && (
+                <div style={{ padding: "16px 24px", overflowY: "auto", flex: 1, borderBottom: "1px solid #f3f4f6" }}>
+                  <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>O que pode estar acontecendo</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {feedback.detalhes.map((d, i) => (
+                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 12px" }}>
+                        <span style={{ width: 22, height: 22, borderRadius: 8, background: cores.iconBg, color: cores.icon, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                        <p style={{ color: "#374151", fontSize: 12.5, margin: 0, lineHeight: 1.5, flex: 1 }}>{d}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Botões */}
+              <div style={{ padding: "14px 24px", background: "#fafbfc", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                {ehConfirmacao && (
+                  <button onClick={() => setFeedback(null)}
+                    style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
+                    Cancelar
+                  </button>
+                )}
+                <button onClick={() => { if (feedback.onConfirmar) feedback.onConfirmar(); else setFeedback(null); }}
+                  onMouseEnter={e => e.currentTarget.style.background = cores.botaoHover}
+                  onMouseLeave={e => e.currentTarget.style.background = cores.botao}
+                  style={{ background: cores.botao, color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: `0 4px 12px ${cores.botao}40`, transition: "background 0.15s" }}>
+                  {ehConfirmacao ? (feedback.confirmarLabel || "Continuar") : "Entendi"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
