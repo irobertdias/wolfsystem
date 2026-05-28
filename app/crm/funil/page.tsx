@@ -51,7 +51,36 @@ type Proposta = {
   [key: string]: any;
 };
 
-type UsuarioWs = { email: string; nome: string };
+type UsuarioWs = { email: string; nome: string; equipe_id?: string | null };
+
+// 📞 Atendimentos (tabela `atendimentos`)
+type Atendimento = {
+  id: number;
+  created_at: string;
+  workspace_id: string;
+  numero: string;
+  nome?: string | null;
+  atendente?: string | null;   // email do atendente
+  fila?: string | null;
+  status?: string | null;       // aberto/pendente/resolvido/finalizado
+  finalizado_em?: string | null;
+};
+
+// 🏷️ Etiquetas (tabela `etiquetas`)
+type Etiqueta = {
+  id: number;
+  workspace_id: string;
+  nome: string;
+  cor?: string | null;
+  icone?: string | null;
+  equipe_id?: string | null;
+};
+
+// Pivot atendimento_etiquetas (N×N)
+type AtEt = { atendimento_id: number; etiqueta_id: number };
+
+// Categoria que cada etiqueta representa no funil
+type CategoriaEtiqueta = "venda" | "inviavel" | "andamento";
 
 // Campo unificado enriquecido com mostrar_na_lista
 type CampoUni = CampoUnificado & {
@@ -64,7 +93,7 @@ type CampoUni = CampoUnificado & {
 };
 
 type PeriodoKey = "semanal" | "mensal" | "trimestral" | "ano" | "tudo" | "custom";
-type AbaKey = "visao" | "etapas" | "dimensoes" | "vendedores" | "metas" | "temporal" | "cohort" | "horarios" | "lista";
+type AbaKey = "visao" | "etapas" | "dimensoes" | "vendedores" | "atendimentos" | "metas" | "temporal" | "cohort" | "horarios" | "lista";
 type OrdemLista = "recente" | "antiga" | "valor_desc" | "valor_asc" | "nome_az";
 
 // Configuração semântica do funil (o que cada coisa significa neste workspace)
@@ -100,6 +129,31 @@ const DIAS_SEMANA_LONGO = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "
 // Heurísticas pra detectar opções de "ganho" e "perdido" automaticamente
 const REGEX_GANHO = /instal|ganho|conclu|fechad|aprovad|pago|ativ|sucesso|vendid|efetiv|finaliz/i;
 const REGEX_PERDIDO = /cancel|perd|recus|reprovad|inativ|desist|inadimpl|nao_?fechad|abortad|devolvid/i;
+
+// 🏷️ Heurística de classificação de ETIQUETAS de atendimento por nome:
+//   • venda    → etiqueta sugere conversão/sucesso
+//   • inviavel → etiqueta sugere descarte/perda
+//   • andamento → resto (lead em qualificação, em pausa, retorno, etc.)
+const REGEX_ETQ_VENDA = /vend|fechad|ganho|conclu|aprovad|pago|sucesso|vendid|contrato|cliente|convertid|efetiv|instal|ativ/i;
+const REGEX_ETQ_INVIAVEL = /inviav|perd|recus|desist|sem.?perfil|frio|nao.?quis|n.o.?quis|spam|incorret|errado|trote|duplicad|invalid|inadimpl|desinteress|fora.?regi.o|sem.?condi/i;
+
+const classificarEtiquetaAuto = (nome: string): CategoriaEtiqueta => {
+  if (REGEX_ETQ_VENDA.test(nome)) return "venda";
+  if (REGEX_ETQ_INVIAVEL.test(nome)) return "inviavel";
+  return "andamento";
+};
+
+// localStorage do mapeamento manual: { [etiquetaId]: "venda" | "inviavel" | "andamento" }
+const MAPA_ETQ_KEY = (wsId: string) => `funil_etq_mapa_v1__${wsId}`;
+const carregarMapaEtq = (wsId: string): Record<string, CategoriaEtiqueta> => {
+  if (!wsId || typeof window === "undefined") return {};
+  try { return JSON.parse(window.localStorage.getItem(MAPA_ETQ_KEY(wsId)) || "{}"); }
+  catch { return {}; }
+};
+const salvarMapaEtq = (wsId: string, m: Record<string, CategoriaEtiqueta>) => {
+  if (!wsId || typeof window === "undefined") return;
+  try { window.localStorage.setItem(MAPA_ETQ_KEY(wsId), JSON.stringify(m)); } catch { /* noop */ }
+};
 
 // ─── HELPERS DE FORMATO ──────────────────────────────────────────────────────
 const formatBRL = (v: number) =>
@@ -276,6 +330,13 @@ export default function Funil() {
   const [loading, setLoading] = useState(true);
   const [workspaceId, setWorkspaceId] = useState<string>("");
 
+  // 📞 Atendimentos + etiquetas (nova aba)
+  const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
+  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
+  const [atEtiquetas, setAtEtiquetas] = useState<AtEt[]>([]);
+  const [mapaEtq, setMapaEtq] = useState<Record<string, CategoriaEtiqueta>>({});
+  const [showMapearEtq, setShowMapearEtq] = useState(false);
+
   // 👥 Filtro de equipe (global)
   const { equipeId, EquipeSelector } = useEquipeFiltro(workspaceId);
 
@@ -418,13 +479,49 @@ export default function Funil() {
       // 5) Lookup de vendedores
       const lista: UsuarioWs[] = [];
       if (ownerEmail) lista.push({ email: ownerEmail, nome: wsNome || "Dono" });
-      const { data: subs } = await supabase.from("usuarios_workspace").select("email, nome").in("workspace_id", wsIds);
+      const { data: subs } = await supabase.from("usuarios_workspace").select("email, nome, equipe_id").in("workspace_id", wsIds);
       for (const s of (subs || [])) {
         if (s.email && !lista.find(x => x.email?.toLowerCase() === s.email?.toLowerCase())) {
-          lista.push({ email: s.email, nome: s.nome || s.email });
+          lista.push({ email: s.email, nome: s.nome || s.email, equipe_id: s.equipe_id || null });
         }
       }
       setUsuariosWs(lista);
+
+      // 6) 📞 Carrega atendimentos + etiquetas + pivot (nova aba)
+      try {
+        const [respAt, respEtq] = await Promise.all([
+          supabase.from("atendimentos").select("id, created_at, workspace_id, numero, nome, atendente, fila, status, finalizado_em")
+            .in("workspace_id", wsIds)
+            .order("created_at", { ascending: false })
+            .limit(20000),
+          supabase.from("etiquetas").select("id, workspace_id, nome, cor, icone, equipe_id")
+            .in("workspace_id", wsIds),
+        ]);
+        const ats = (respAt.data || []) as Atendimento[];
+        const etqs = (respEtq.data || []) as Etiqueta[];
+        setAtendimentos(ats);
+        setEtiquetas(etqs);
+
+        // Pivot — busca em lotes pra não estourar URL (in() com até 500 ids por vez)
+        if (ats.length > 0) {
+          const ids = ats.map(a => a.id);
+          const pares: AtEt[] = [];
+          for (let i = 0; i < ids.length; i += 500) {
+            const lote = ids.slice(i, i + 500);
+            const { data: pv } = await supabase.from("atendimento_etiquetas")
+              .select("atendimento_id, etiqueta_id")
+              .in("atendimento_id", lote);
+            if (pv) pares.push(...(pv as AtEt[]));
+          }
+          setAtEtiquetas(pares);
+        }
+
+        // Mapeamento manual salvo (override do auto-classificador)
+        setMapaEtq(carregarMapaEtq(wsUsername || wsIds[0]));
+      } catch (e) {
+        console.warn("[Funil] erro ao carregar atendimentos/etiquetas:", e);
+      }
+
       setLoading(false);
     };
     init();
@@ -965,6 +1062,141 @@ export default function Funil() {
   const vendedoresUnicos = useMemo(() => Array.from(new Set(propostas.map(p => p.vendedor).filter(Boolean) as string[])).sort(), [propostas]);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // 📞 ATENDIMENTOS — FUNIL POR ETIQUETA
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Categoria FINAL de cada etiqueta: override manual prevalece sobre auto-classificação
+  const etiquetasComCategoria = useMemo(() => {
+    return etiquetas.map(e => ({
+      ...e,
+      categoria: (mapaEtq[String(e.id)] || classificarEtiquetaAuto(e.nome)) as CategoriaEtiqueta,
+    }));
+  }, [etiquetas, mapaEtq]);
+
+  const etqById = useMemo(() => {
+    const m = new Map<number, typeof etiquetasComCategoria[number]>();
+    for (const e of etiquetasComCategoria) m.set(e.id, e);
+    return m;
+  }, [etiquetasComCategoria]);
+
+  // Mapa: atendimento_id → array de etiquetaIds
+  const etiquetasPorAtendimento = useMemo(() => {
+    const m = new Map<number, number[]>();
+    for (const r of atEtiquetas) {
+      const arr = m.get(r.atendimento_id) || [];
+      arr.push(r.etiqueta_id);
+      m.set(r.atendimento_id, arr);
+    }
+    return m;
+  }, [atEtiquetas]);
+
+  // Mapa: email atendente → equipe_id (pra filtro de equipe nos atendimentos)
+  const equipePorEmail = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const u of usuariosWs) m.set(u.email.toLowerCase(), u.equipe_id || null);
+    return m;
+  }, [usuariosWs]);
+
+  // Atendimentos no período + filtro de equipe (deriva equipe via atendente→usuarios_workspace.equipe_id)
+  const atendimentosFiltrados = useMemo(() => {
+    return atendimentos.filter(a => {
+      // Período
+      if (!janela.tudo) {
+        const d = new Date(a.created_at);
+        if (d < janela.ini || d > janela.fim) return false;
+      }
+      // Equipe
+      if (equipeId) {
+        const eq = a.atendente ? equipePorEmail.get(a.atendente.toLowerCase()) : null;
+        if (eq !== equipeId) return false;
+      }
+      // Busca (nome ou número)
+      if (filtroBusca) {
+        const b = filtroBusca.toLowerCase();
+        const nome = (a.nome || "").toLowerCase();
+        const num = (a.numero || "").toLowerCase();
+        if (!nome.includes(b) && !num.includes(b)) return false;
+      }
+      return true;
+    });
+  }, [atendimentos, janela, equipeId, equipePorEmail, filtroBusca]);
+
+  // Categoria final DE UM ATENDIMENTO baseada nas etiquetas que ele tem:
+  // venda > inviavel > andamento (prevalece o mais "decisivo")
+  const categoriaDoAtendimento = useCallback((atId: number): CategoriaEtiqueta => {
+    const etqIds = etiquetasPorAtendimento.get(atId) || [];
+    if (etqIds.length === 0) return "andamento";
+    let temVenda = false, temInviavel = false;
+    for (const id of etqIds) {
+      const e = etqById.get(id);
+      if (!e) continue;
+      if (e.categoria === "venda") temVenda = true;
+      else if (e.categoria === "inviavel") temInviavel = true;
+    }
+    if (temVenda) return "venda";
+    if (temInviavel) return "inviavel";
+    return "andamento";
+  }, [etiquetasPorAtendimento, etqById]);
+
+  // KPIs gerais de atendimento
+  const kpisAtendimento = useMemo(() => {
+    let total = atendimentosFiltrados.length;
+    let venda = 0, inviavel = 0, andamento = 0, semEtiqueta = 0;
+    for (const a of atendimentosFiltrados) {
+      const etqIds = etiquetasPorAtendimento.get(a.id) || [];
+      if (etqIds.length === 0) { semEtiqueta++; andamento++; continue; }
+      const cat = categoriaDoAtendimento(a.id);
+      if (cat === "venda") venda++;
+      else if (cat === "inviavel") inviavel++;
+      else andamento++;
+    }
+    const taxaConv = total > 0 ? Math.round((venda / total) * 100) : 0;
+    const taxaInv = total > 0 ? Math.round((inviavel / total) * 100) : 0;
+    return { total, venda, inviavel, andamento, semEtiqueta, taxaConv, taxaInv };
+  }, [atendimentosFiltrados, etiquetasPorAtendimento, categoriaDoAtendimento]);
+
+  // Tabela: performance por atendente (vendedor)
+  const performanceAtendentes = useMemo(() => {
+    const mapa: Record<string, { email: string; nome: string; total: number; venda: number; inviavel: number; andamento: number; }> = {};
+    for (const a of atendimentosFiltrados) {
+      const email = a.atendente || "—";
+      if (!mapa[email]) mapa[email] = { email, nome: nomeVendedor(email), total: 0, venda: 0, inviavel: 0, andamento: 0 };
+      mapa[email].total++;
+      const cat = categoriaDoAtendimento(a.id);
+      if (cat === "venda") mapa[email].venda++;
+      else if (cat === "inviavel") mapa[email].inviavel++;
+      else mapa[email].andamento++;
+    }
+    return Object.values(mapa).map(r => ({
+      ...r,
+      taxaConv: r.total > 0 ? Math.round((r.venda / r.total) * 100) : 0,
+      taxaInv: r.total > 0 ? Math.round((r.inviavel / r.total) * 100) : 0,
+    })).sort((a, b) => b.venda - a.venda || b.total - a.total);
+  }, [atendimentosFiltrados, categoriaDoAtendimento, nomeVendedor]);
+
+  // Ranking por etiqueta (qtd de atendimentos com cada etiqueta no período)
+  const rankingEtiquetas = useMemo(() => {
+    const cont: Record<number, number> = {};
+    const idsFiltrados = new Set(atendimentosFiltrados.map(a => a.id));
+    for (const r of atEtiquetas) {
+      if (!idsFiltrados.has(r.atendimento_id)) continue;
+      cont[r.etiqueta_id] = (cont[r.etiqueta_id] || 0) + 1;
+    }
+    return etiquetasComCategoria
+      .map(e => ({ ...e, qtd: cont[e.id] || 0 }))
+      .filter(e => e.qtd > 0)
+      .sort((a, b) => b.qtd - a.qtd);
+  }, [atendimentosFiltrados, atEtiquetas, etiquetasComCategoria]);
+
+  const salvarMapeamentoEtq = useCallback((etqId: number, cat: CategoriaEtiqueta) => {
+    setMapaEtq(prev => {
+      const novo = { ...prev, [String(etqId)]: cat };
+      if (workspaceId) salvarMapaEtq(workspaceId, novo);
+      return novo;
+    });
+  }, [workspaceId]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // 🚫 ACESSO RESTRITO
   // ═══════════════════════════════════════════════════════════════════════════
   if (!isDono && !isSuperAdmin && !permissoes.funil) {
@@ -1405,6 +1637,7 @@ export default function Funil() {
           { key: "etapas",     label: "Etapas",      icone: "🎯", color: "#3b82f6" },
           { key: "dimensoes",  label: "Quebras",     icone: "🧩", color: "#8b5cf6" },
           { key: "vendedores", label: "Vendedores",  icone: "👥", color: "#16a34a" },
+          { key: "atendimentos", label: "Atendimentos", icone: "📞", color: "#a855f7" },
           { key: "metas",      label: "Metas",       icone: "🏆", color: "#eab308" },
           { key: "temporal",   label: "Temporal",    icone: "📈", color: "#f59e0b" },
           { key: "cohort",     label: "Coorte",      icone: "🧬", color: "#0ea5e9" },
@@ -1712,6 +1945,177 @@ export default function Funil() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* ════════════ ABA: ATENDIMENTOS (FUNIL POR ETIQUETA) ════════════ */}
+          {aba === "atendimentos" && (
+            <>
+              {/* KPIs */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: isMobile ? 10 : 14 }}>
+                <KPI cor="#a855f7" bg="#f3e8ff" icone="📞" label="Total atendidos" valor={formatNum(kpisAtendimento.total)} sub={`${kpisAtendimento.semEtiqueta} sem etiqueta`} isMobile={isMobile} />
+                <KPI cor="#16a34a" bg="#f0fdf4" icone="✅" label="Viraram venda" valor={formatNum(kpisAtendimento.venda)} sub={`${kpisAtendimento.taxaConv}% de conversão`} isMobile={isMobile} />
+                <KPI cor="#dc2626" bg="#fef2f2" icone="❌" label="Inviáveis" valor={formatNum(kpisAtendimento.inviavel)} sub={`${kpisAtendimento.taxaInv}% descartados`} isMobile={isMobile} />
+                <KPI cor="#f59e0b" bg="#fffbeb" icone="🔄" label="Em andamento" valor={formatNum(kpisAtendimento.andamento)} sub="Sem decisão ainda" isMobile={isMobile} />
+                <KPI cor="#3b82f6" bg="#eff6ff" icone="📊" label="Taxa conversão" valor={`${kpisAtendimento.taxaConv}%`} sub={`${kpisAtendimento.venda} de ${kpisAtendimento.total}`} isMobile={isMobile} />
+              </div>
+
+              {/* Funil visual */}
+              <div style={{ ...cardStyle, padding: isMobile ? 16 : 24, marginTop: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
+                  <h3 style={{ ...sectionTitleStyle, margin: 0 }}>
+                    <span style={{ width: 32, height: 32, borderRadius: 8, background: "#f3e8ff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🎯</span>
+                    Funil de atendimento (por etiqueta)
+                  </h3>
+                  <button onClick={() => setShowMapearEtq(true)}
+                    style={{ background: "#f3e8ff", color: "#a855f7", border: "1px solid #d8b4fe", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+                    ⚙️ Mapear etiquetas
+                  </button>
+                </div>
+                {kpisAtendimento.total === 0 ? (
+                  <p style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic", textAlign: "center", padding: 32 }}>Sem atendimentos no período.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {[
+                      { label: "📞 Total atendidos", qtd: kpisAtendimento.total, pct: 100, cor: "#a855f7", bg: "#f3e8ff" },
+                      { label: "🔄 Em andamento", qtd: kpisAtendimento.andamento, pct: kpisAtendimento.total > 0 ? Math.round((kpisAtendimento.andamento / kpisAtendimento.total) * 100) : 0, cor: "#f59e0b", bg: "#fffbeb" },
+                      { label: "❌ Inviáveis", qtd: kpisAtendimento.inviavel, pct: kpisAtendimento.taxaInv, cor: "#dc2626", bg: "#fef2f2" },
+                      { label: "✅ Viraram venda", qtd: kpisAtendimento.venda, pct: kpisAtendimento.taxaConv, cor: "#16a34a", bg: "#f0fdf4" },
+                    ].map(f => (
+                      <div key={f.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: isMobile ? 130 : 200, fontSize: 13, color: "#1f2937", fontWeight: 700, flexShrink: 0 }}>{f.label}</div>
+                        <div style={{ flex: 1, height: 32, background: "#f9fafb", borderRadius: 8, overflow: "hidden", position: "relative", border: "1px solid #e5e7eb" }}>
+                          <div style={{ width: `${Math.max(2, f.pct)}%`, height: "100%", background: `linear-gradient(90deg, ${f.cor} 0%, ${f.cor}dd 100%)`, transition: "width 0.4s", display: "flex", alignItems: "center", paddingLeft: 10 }}>
+                            <span style={{ color: "white", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>{f.qtd} ({f.pct}%)</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Tabela: performance por atendente */}
+              <div style={{ ...cardStyle, overflow: "hidden", marginTop: 14 }}>
+                <div style={{ padding: "16px 20px", borderBottom: "1px solid #e5e7eb" }}>
+                  <h3 style={{ ...sectionTitleStyle, margin: 0 }}>
+                    <span style={{ width: 32, height: 32, borderRadius: 8, background: "#f3e8ff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>👤</span>
+                    Performance por atendente
+                  </h3>
+                  <p style={{ color: "#9ca3af", fontSize: 11, margin: "4px 0 0" }}>Baseado nas etiquetas marcadas no chat. Reclassifique em "⚙️ Mapear etiquetas".</p>
+                </div>
+                {performanceAtendentes.length === 0 ? (
+                  <p style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic", padding: 24, textAlign: "center" }}>Sem atendimentos no período.</p>
+                ) : (
+                  <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
+                      <thead>
+                        <tr style={{ background: "#f9fafb" }}>
+                          {["#", "Atendente", "Total", "✅ Venda", "❌ Inviável", "🔄 Andamento", "Conv.", "Perda"].map(h => (
+                            <th key={h} style={{ padding: "12px 14px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {performanceAtendentes.map((r, i) => {
+                          const corConv = r.taxaConv >= 30 ? "#16a34a" : r.taxaConv >= 10 ? "#f59e0b" : "#dc2626";
+                          return (
+                            <tr key={r.email} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#ffffff" : "#fafbfc" }}>
+                              <td style={{ padding: "14px", fontSize: 16 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span style={{ color: "#9ca3af", fontSize: 12 }}>#{i + 1}</span>}</td>
+                              <td style={{ padding: "14px", color: "#1f2937", fontSize: 13, fontWeight: 700 }}>{r.nome}</td>
+                              <td style={{ padding: "14px", color: "#3b82f6", fontSize: 13, fontWeight: 700 }}>{r.total}</td>
+                              <td style={{ padding: "14px" }}><span style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{r.venda}</span></td>
+                              <td style={{ padding: "14px" }}><span style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{r.inviavel}</span></td>
+                              <td style={{ padding: "14px" }}><span style={{ background: "#fffbeb", color: "#f59e0b", border: "1px solid #fde68a", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{r.andamento}</span></td>
+                              <td style={{ padding: "14px" }}><span style={{ background: `${corConv}15`, color: corConv, fontSize: 13, padding: "4px 12px", borderRadius: 10, fontWeight: 800 }}>{r.taxaConv}%</span></td>
+                              <td style={{ padding: "14px", color: "#9ca3af", fontSize: 12, fontWeight: 600 }}>{r.taxaInv}%</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Ranking de etiquetas mais usadas */}
+              <div style={{ ...cardStyle, padding: isMobile ? 16 : 20, marginTop: 14 }}>
+                <h3 style={{ ...sectionTitleStyle, margin: "0 0 14px" }}>
+                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "#f3e8ff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🏷️</span>
+                  Etiquetas mais usadas no período
+                </h3>
+                {rankingEtiquetas.length === 0 ? (
+                  <p style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic", padding: 12 }}>Nenhuma etiqueta marcada em atendimentos do período.</p>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
+                    {rankingEtiquetas.slice(0, 16).map(e => {
+                      const cor = e.cor || "#6b7280";
+                      const corCat = e.categoria === "venda" ? "#16a34a" : e.categoria === "inviavel" ? "#dc2626" : "#f59e0b";
+                      const bgCat = e.categoria === "venda" ? "#f0fdf4" : e.categoria === "inviavel" ? "#fef2f2" : "#fffbeb";
+                      const labelCat = e.categoria === "venda" ? "✅ Venda" : e.categoria === "inviavel" ? "❌ Inviável" : "🔄 Andamento";
+                      return (
+                        <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10 }}>
+                          <span style={{ width: 12, height: 12, borderRadius: 4, background: cor, flexShrink: 0 }}></span>
+                          <span style={{ fontSize: 13, color: "#1f2937", fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                            {e.icone ? `${e.icone} ` : ""}{e.nome}
+                          </span>
+                          <span style={{ background: bgCat, color: corCat, border: `1px solid ${corCat}33`, fontSize: 10, padding: "2px 7px", borderRadius: 8, fontWeight: 700, whiteSpace: "nowrap" }}>{labelCat}</span>
+                          <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 800, minWidth: 36, textAlign: "right" }}>{e.qtd}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* MODAL: Mapear etiquetas → categorias */}
+              {showMapearEtq && (
+                <div onClick={() => setShowMapearEtq(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}>
+                  <div onClick={(e) => e.stopPropagation()} style={{ background: "#ffffff", borderRadius: 14, maxWidth: 600, width: "100%", maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                    <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>⚙️ Mapear etiquetas do funil</h3>
+                        <p style={{ color: "#9ca3af", fontSize: 11, margin: "3px 0 0" }}>Defina o que cada etiqueta significa no funil. Padrão = auto-detectado pelo nome.</p>
+                      </div>
+                      <button onClick={() => setShowMapearEtq(false)} style={{ background: "#f3f4f6", color: "#6b7280", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>✕</button>
+                    </div>
+                    <div style={{ overflowY: "auto", padding: 18, flex: 1 }}>
+                      {etiquetasComCategoria.length === 0 ? (
+                        <p style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic", textAlign: "center" }}>Nenhuma etiqueta cadastrada ainda.</p>
+                      ) : etiquetasComCategoria.map(e => {
+                        const cor = e.cor || "#6b7280";
+                        const opts: { v: CategoriaEtiqueta; l: string; c: string; bg: string }[] = [
+                          { v: "venda",     l: "✅ Venda",     c: "#16a34a", bg: "#f0fdf4" },
+                          { v: "inviavel",  l: "❌ Inviável",  c: "#dc2626", bg: "#fef2f2" },
+                          { v: "andamento", l: "🔄 Andamento", c: "#f59e0b", bg: "#fffbeb" },
+                        ];
+                        return (
+                          <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: "1px solid #f3f4f6", flexWrap: "wrap" }}>
+                            <span style={{ width: 12, height: 12, borderRadius: 4, background: cor, flexShrink: 0 }}></span>
+                            <span style={{ fontSize: 13, color: "#1f2937", fontWeight: 600, flex: 1, minWidth: 120 }}>
+                              {e.icone ? `${e.icone} ` : ""}{e.nome}
+                            </span>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              {opts.map(o => {
+                                const at = e.categoria === o.v;
+                                return (
+                                  <button key={o.v} onClick={() => salvarMapeamentoEtq(e.id, o.v)}
+                                    style={{ background: at ? o.bg : "#ffffff", color: at ? o.c : "#9ca3af", border: `1px solid ${at ? o.c : "#e5e7eb"}`, borderRadius: 8, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                    {o.l}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ padding: "12px 18px", borderTop: "1px solid #e5e7eb", background: "#f9fafb", fontSize: 11, color: "#6b7280" }}>
+                      💾 Suas escolhas ficam salvas neste navegador. Funil atualiza ao fechar.
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* ════════════ ABA: METAS ════════════ */}
