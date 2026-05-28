@@ -21,6 +21,7 @@ type Aresta = { id: string; de: string; saidaIndex: number; para: string; };
 type Fluxo = { id?: number; nome: string; descricao: string; ativo: boolean; trigger_tipo: string; trigger_valor: string; nos: No[]; conexoes: Aresta[]; workspace_id: string; };
 type BC = { label: string; icone: string; cor: string; saidas: string[]; grupo: string; };
 type FilaItem = { id: number; nome: string; conexao?: string; }; // 🆕 filas do CRM
+type AtendenteItem = { email: string; nome: string; }; // 🆕 atendentes do workspace
 
 const B: Record<TipoNo, BC> = {
   texto:                {label:"Texto",           icone:"💬", cor:"#3b82f6", saidas:["Próximo"],                     grupo:"Bubbles"},
@@ -50,11 +51,11 @@ const B: Record<TipoNo, BC> = {
   webhook:              {label:"Webhook",         icone:"🔔", cor:"#f59e0b", saidas:["Próximo"],                     grupo:"Lógica"},
   pular:                {label:"Pular",           icone:"⏭️", cor:"#f59e0b", saidas:[],                              grupo:"Lógica"},
   retornar:             {label:"Retornar",        icone:"🔁", cor:"#f59e0b", saidas:[],                              grupo:"Lógica"},
-  google_sheets:        {label:"Google Sheets",   icone:"📊", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
+  google_sheets:        {label:"Google Sheets",   icone:"📊", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   http_request:         {label:"HTTP Request",    icone:"🌐", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   openai:               {label:"OpenAI",          icone:"🤖", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
   claude_ai:            {label:"Claude AI",       icone:"🧠", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
-  gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado"],                     grupo:"Integrações"},
+  gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
   inicio:               {label:"Início",          icone:"🚀", cor:"#22c55e", saidas:["Próximo"],                     grupo:"Eventos"},
   comando:              {label:"Comando",         icone:"⚡", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
   reply:                {label:"Reply",           icone:"↩️", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
@@ -136,15 +137,16 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     espera:{segundos:3},teste_ab:{percentual_a:50},
     webhook:{url:"",metodo:"POST",headers:"",body:""},
     pular:{alvo:""},retornar:{alvo:""},
-    google_sheets:{spreadsheet_id:"",aba:"Sheet1",acao:"append",dados:""},
+    google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
-    gmail:{para:"",assunto:"",corpo:""},
+    gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     inicio:{mensagem:"Olá! Como posso te ajudar?"},
     comando:{comando:"/start"},reply:{palavras:""},
     invalido:{mensagem:"Não entendi."},
-    transferir:{fila:"",mensagem:"Transferindo..."}, // 🆕 fila vazia, usuário seleciona
+    // 🆕 Transferir agora tem 2 modos: equipe (fila) ou humano (atendente específico)
+    transferir:{modo:"equipe", fila:"", atendente_email:"", atendente_nome:"", mensagem:"Transferindo..."},
     finalizar:{mensagem:"Atendimento finalizado. Obrigado!"},
     // 🆕 v18: bloco enviar_venda — defaults
     enviar_venda:{
@@ -200,16 +202,22 @@ function getPreview(no: No): string {
     case "teste_ab": return `A:${d.percentual_a}% B:${100-(d.percentual_a||50)}%`;
     case "webhook": return `${d.metodo} ${d.url||""}`;
     case "pular":case"retornar": return `→ ${d.alvo||"?"}`;
-    case "google_sheets": return `Sheets: ${d.acao}`;
+    case "google_sheets": return d.webhook_url ? `Sheets ${d.acao}` : "⚠️ Webhook não configurado";
     case "http_request": return `${d.metodo} ${d.url||""}`;
     case "openai": return `GPT: ${d.modelo}`;
     case "claude_ai": return `Claude: ${d.modelo}`;
-    case "gmail": return `Para: ${d.para||"?"}`;
+    case "gmail": return d.smtp_user ? `📨 ${d.para||"?"}` : "⚠️ SMTP não configurado";
     case "inicio": return d.mensagem||"Início";
     case "comando": return d.comando||"/start";
     case "reply": return d.palavras||"Palavras-chave";
     case "invalido": return d.mensagem||"Inválido";
-    case "transferir": return d.fila ? `→ ${d.fila}` : "⚠️ Sem fila selecionada"; // 🆕
+    // 🆕 Transferir: mostra equipe/fila OU atendente humano conforme modo
+    case "transferir": {
+      if (d.modo === "humano") {
+        return d.atendente_email ? `👤 ${d.atendente_nome || d.atendente_email}` : "⚠️ Atendente não selecionado";
+      }
+      return d.fila ? `📋 ${d.fila}` : "⚠️ Fila não selecionada";
+    }
     case "finalizar": return d.mensagem||"Finalizar";
     // 🆕 v18: preview do bloco "Enviar Venda"
     case "enviar_venda": {
@@ -445,12 +453,13 @@ function TVarComponent({
   );
 }
 
-function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
+function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, nos }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
   setNos: React.Dispatch<React.SetStateAction<No[]>>;
   filasBanco: FilaItem[]; // 🆕
+  atendentesBanco: AtendenteItem[]; // 🆕 lista de atendentes do workspace
   nos: No[]; // 🆕 lista completa de nós pra detectar variáveis criadas
 }) {
   const d = noSel.dados;
@@ -1113,11 +1122,72 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
       </div>;
     case "google_sheets":
       return <>
-        <p style={{color:"#f59e0b",fontSize:11,margin:"0 0 6px"}}>⚠️ Em desenvolvimento — ainda não funcional.</p>
-        {F("ID da Planilha","spreadsheet_id","text","ID do Google Sheets")}
-        {F("Aba","aba","text","Sheet1")}
-        {S("Ação","acao",[{value:"append",label:"Adicionar linha"},{value:"update",label:"Atualizar"},{value:"get",label:"Buscar"}])}
-        {T("Dados ({{var1}},{{var2}})","dados","{{nome}},{{email}}",60)}
+        <div style={{background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8, padding:10, marginBottom:10}}>
+          <p style={{color:"#14532d", fontSize:11, margin:0, fontWeight:700}}>📊 Google Sheets via Apps Script</p>
+          <p style={{color:"#16a34a", fontSize:10, margin:"4px 0 6px", lineHeight:1.5}}>
+            <b>Como configurar (5 minutos, sem OAuth):</b><br/>
+            1. Abra seu Sheets → <b>Extensões → Apps Script</b><br/>
+            2. Cole o código de webhook (veja botão abaixo)<br/>
+            3. <b>Implantar → Nova implantação → Aplicativo da Web</b><br/>
+            4. Quem tem acesso: <b>Qualquer pessoa</b> → Implantar<br/>
+            5. Copie a URL e cole aqui embaixo 👇
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              const codigo = `// Cole isso no Apps Script do seu Google Sheets
+// Implante como "Aplicativo da Web" com acesso "Qualquer pessoa"
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = body.aba ? ss.getSheetByName(body.aba) : ss.getSheets()[0];
+    if (!aba) return saida({ok:false, erro:"Aba não encontrada: " + body.aba});
+    const dados = (body.dados || "").toString().split(",").map(s => s.trim());
+
+    if (body.acao === "append") {
+      aba.appendRow(dados);
+      return saida({ok:true, linha: aba.getLastRow()});
+    }
+    if (body.acao === "update") {
+      // Atualiza a última linha (ou faz lookup pela primeira coluna)
+      const ultima = aba.getLastRow();
+      if (ultima < 1) return saida({ok:false, erro:"Sheet vazia"});
+      aba.getRange(ultima, 1, 1, dados.length).setValues([dados]);
+      return saida({ok:true, linha: ultima});
+    }
+    if (body.acao === "get") {
+      const vals = aba.getDataRange().getValues();
+      return saida({ok:true, dados: vals});
+    }
+    return saida({ok:false, erro: "Ação inválida: " + body.acao});
+  } catch (err) {
+    return saida({ok:false, erro: err.toString()});
+  }
+}
+function saida(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}`;
+              navigator.clipboard.writeText(codigo);
+              alert("✅ Código copiado!\n\nAgora cole no Apps Script do seu Google Sheets.");
+            }}
+            style={{background:"#16a34a", color:"#fff", border:"none", borderRadius:6, padding:"6px 12px", fontSize:11, cursor:"pointer", fontWeight:700, marginTop:4}}
+          >
+            📋 Copiar código do Apps Script
+          </button>
+        </div>
+        {F("URL do Webhook (Apps Script Web App)","webhook_url","url","https://script.google.com/macros/s/AKfy.../exec")}
+        {F("Aba (opcional)","aba","text","Sheet1")}
+        {S("Ação","acao",[
+          {value:"append", label:"Adicionar nova linha"},
+          {value:"update", label:"Atualizar última linha"},
+          {value:"get",    label:"Buscar dados"}
+        ])}
+        {T("Dados (separados por vírgula)","dados","{{nome}}, {{email}}, {{telefone}}",80)}
+        {VarPill("Salvar resposta em (opcional)","variavel_resposta","ex: resposta_sheets")}
+        <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
+          💡 Use {`{{variavel}}`} nos campos. Saídas: <b>Sucesso</b> / <b>Erro</b>.
+        </p>
       </>;
     case "http_request":
       return <>
@@ -1152,10 +1222,31 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
       </>;
     case "gmail":
       return <>
-        <p style={{color:"#f59e0b",fontSize:11,margin:"0 0 6px"}}>⚠️ Em desenvolvimento — ainda não funcional.</p>
-        {F("Para","para","email","email@exemplo.com")}
-        {F("Assunto","assunto","text","Assunto do email")}
-        {T("Corpo do email","corpo","Olá {{nome}}...",120)}
+        <div style={{background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:8, padding:10, marginBottom:10}}>
+          <p style={{color:"#1e40af", fontSize:11, margin:0, fontWeight:700}}>📨 Envio de email via SMTP</p>
+          <p style={{color:"#3b82f6", fontSize:10, margin:"4px 0 0", lineHeight:1.4}}>
+            Use Gmail (com <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{color:"#2563eb",fontWeight:700}}>App Password</a>), SendGrid, Mailgun ou qualquer SMTP.
+          </p>
+        </div>
+        <p style={{color:"#6b7280", fontSize:10, margin:"6px 0 6px", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4}}>Servidor SMTP</p>
+        <div style={{display:"grid", gridTemplateColumns:"1fr 80px", gap:8}}>
+          {F("Host","smtp_host","text","smtp.gmail.com")}
+          {F("Porta","smtp_port","number","587")}
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:6,color:"#1f2937",fontSize:12}}>
+          <input type="checkbox" checked={!!d.smtp_secure} onChange={e => u({ smtp_secure: e.target.checked })} />
+          Conexão SSL/TLS (porta 465). Desmarcado = STARTTLS (porta 587).
+        </label>
+        {F("Usuário SMTP","smtp_user","text","seu@gmail.com")}
+        {F("Senha SMTP / App Password","smtp_pass","password","••••••••")}
+        <p style={{color:"#6b7280", fontSize:10, margin:"6px 0 6px", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4}}>Mensagem</p>
+        {F("Nome do remetente (opcional)","from_name","text","Minha Empresa")}
+        {F("Para","para","text","cliente@email.com  •  aceita {{variavel}}")}
+        {F("Assunto","assunto","text","Bem-vindo, {{nome}}!")}
+        {T("Corpo do email (texto ou HTML)","corpo","Olá {{nome}},\n\nObrigado pelo contato!\n\nAtenciosamente.",140)}
+        <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
+          💡 Use {`{{variavel}}`} no Para/Assunto/Corpo. Saídas: <b>Enviado</b> (ok) / <b>Erro</b> (falha SMTP).
+        </p>
       </>;
     case "inicio":    return <>{TVar("Mensagem de boas-vindas","mensagem","Olá! Como posso ajudar?",100)}</>;
     case "comando":   return <>{F("Comando","comando","text","/start")}</>;
@@ -1166,33 +1257,92 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, nos }: {
       </div>;
     case "invalido":  return <>{T("Mensagem para inválido","mensagem","Não entendi...",80)}</>;
 
-    // 🆕 Transferir — agora lista filas do banco (tabela filas do workspace)
-    case "transferir":
+    // 🆕 Transferir — 2 modos: equipe/fila OU atendente humano específico
+    case "transferir": {
+      const modo = d.modo || "equipe";
+      const radioStyle = (ativo: boolean): React.CSSProperties => ({
+        flex: 1, padding: "10px 12px", borderRadius: 8, border: ativo ? "2px solid #ef4444" : "1px solid #e5e7eb",
+        background: ativo ? "#fef2f2" : "#ffffff", color: ativo ? "#dc2626" : "#6b7280",
+        fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+        transition: "all 0.15s",
+      });
       return <>
         <div>
-          <label style={LS}>Fila de destino</label>
-          {filasBanco.length === 0 ? (
-            <div style={{background:"#fef3c7", border:"1px solid #f59e0b44", borderRadius:6, padding:10}}>
-              <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>⚠️ Nenhuma fila cadastrada</p>
-              <p style={{color:"#9ca3af", fontSize:10, margin:0, lineHeight:1.4}}>
-                Vá em <b>CRM → Configurações → Filas</b> e crie suas filas.<br/>
-                Depois volte aqui e selecione a fila de destino.
-              </p>
-            </div>
-          ) : (
-            <select value={d.fila||""} onChange={e => u({fila: e.target.value})} style={IS}>
-              <option value="">Selecione uma fila...</option>
-              {filasBanco.map(f => (
-                <option key={f.id} value={f.nome}>📋 {f.nome}{f.conexao ? ` (${f.conexao})` : ""}</option>
-              ))}
-            </select>
-          )}
-          <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
-            💡 Filas são criadas em <b>Configurações → Filas</b> do CRM
+          <label style={LS}>Tipo de transferência</label>
+          <div style={{display:"flex", gap:6}}>
+            <button type="button" onClick={() => u({modo: "equipe"})} style={radioStyle(modo === "equipe")}>
+              👥 Equipe / Fila
+            </button>
+            <button type="button" onClick={() => u({modo: "humano"})} style={radioStyle(modo === "humano")}>
+              👤 Atendente humano
+            </button>
+          </div>
+          <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0", lineHeight:1.4}}>
+            {modo === "humano"
+              ? "Atribui o atendimento direto pro atendente escolhido."
+              : "Joga o atendimento na fila — qualquer atendente da equipe pode pegar."}
           </p>
         </div>
-        {T("Mensagem ao transferir","mensagem","Transferindo...",80)}
+
+        {modo === "equipe" ? (
+          <div style={{marginTop:12}}>
+            <label style={LS}>Fila de destino</label>
+            {filasBanco.length === 0 ? (
+              <div style={{background:"#fef3c7", border:"1px solid #f59e0b44", borderRadius:6, padding:10}}>
+                <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>⚠️ Nenhuma fila cadastrada</p>
+                <p style={{color:"#9ca3af", fontSize:10, margin:0, lineHeight:1.4}}>
+                  Vá em <b>CRM → Configurações → Filas</b> e crie suas filas.<br/>
+                  Depois volte aqui e selecione a fila de destino.
+                </p>
+              </div>
+            ) : (
+              <select value={d.fila||""} onChange={e => u({fila: e.target.value})} style={IS}>
+                <option value="">Selecione uma fila...</option>
+                {filasBanco.map(f => (
+                  <option key={f.id} value={f.nome}>📋 {f.nome}{f.conexao ? ` (${f.conexao})` : ""}</option>
+                ))}
+              </select>
+            )}
+            <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
+              💡 Filas são criadas em <b>Configurações → Filas</b> do CRM
+            </p>
+          </div>
+        ) : (
+          <div style={{marginTop:12}}>
+            <label style={LS}>Atendente humano</label>
+            {atendentesBanco.length === 0 ? (
+              <div style={{background:"#fef3c7", border:"1px solid #f59e0b44", borderRadius:6, padding:10}}>
+                <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>⚠️ Nenhum atendente cadastrado</p>
+                <p style={{color:"#9ca3af", fontSize:10, margin:0, lineHeight:1.4}}>
+                  Cadastre atendentes em <b>CRM → Configurações → Usuários</b>.
+                </p>
+              </div>
+            ) : (
+              <select
+                value={d.atendente_email||""}
+                onChange={e => {
+                  const at = atendentesBanco.find(a => a.email === e.target.value);
+                  u({atendente_email: e.target.value, atendente_nome: at?.nome || ""});
+                }}
+                style={IS}
+              >
+                <option value="">Selecione um atendente...</option>
+                {atendentesBanco.map(a => (
+                  <option key={a.email} value={a.email}>👤 {a.nome} ({a.email})</option>
+                ))}
+              </select>
+            )}
+            <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
+              💡 Atendentes são cadastrados em <b>Configurações → Usuários</b>
+            </p>
+          </div>
+        )}
+
+        <div style={{marginTop:12}}>
+          {T("Mensagem ao transferir","mensagem","Transferindo...",80)}
+        </div>
       </>;
+    }
 
     case "finalizar": return <>{T("Mensagem de encerramento","mensagem","Obrigado pelo contato!",80)}</>;
 
@@ -1591,7 +1741,7 @@ export default function FluxosPage() {
   const [wsId,setWsId]             = useState<string|null>(null);
   const [fluxos,setFluxos]         = useState<Fluxo[]>([]);
   const [filasBanco,setFilasBanco] = useState<FilaItem[]>([]); // 🆕
-  const [view,setView]             = useState<"lista"|"editor">("lista");
+  const [atendentesBanco,setAtendentesBanco] = useState<AtendenteItem[]>([]); // 🆕 atendentes do workspace  const [view,setView]             = useState<"lista"|"editor">("lista");
   const [fluxoAtivo,setFluxoAtivo] = useState<Fluxo|null>(null);
   const [nos,setNos]               = useState<No[]>([]);
   const [arestas,setArestas]       = useState<Aresta[]>([]);
@@ -1628,6 +1778,7 @@ export default function FluxosPage() {
       setWsId(username);
       load(username);
       fetchFilas(username); // 🆕
+      fetchAtendentes(username); // 🆕 atendentes pro bloco Transferir modo humano
 
       // 🔒 MULTI-TENANT: Realtime AGORA filtra por workspace_id no servidor.
       // Antes recebia eventos de fluxos/filas de TODOS workspaces — vazamento de
@@ -1640,6 +1791,9 @@ export default function FluxosPage() {
         })
         .on("postgres_changes", { event: "*", schema: "public", table: "filas", filter: `workspace_id=eq.${username}` }, () => { // 🆕
           if (!cancelled) fetchFilas(username);
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${username}` }, () => { // 🆕
+          if (!cancelled) fetchAtendentes(username);
         })
         .subscribe();
 
@@ -1682,6 +1836,37 @@ export default function FluxosPage() {
     }
   }
 
+  // 🆕 Busca atendentes do workspace (usuarios_workspace + dono) — usado no bloco Transferir modo "humano"
+  async function fetchAtendentes(username?: string) {
+    const u = username || wsId;
+    if (!u) return;
+    try {
+      const lista: AtendenteItem[] = [];
+      // Sub-usuários do workspace
+      const { data: subs } = await supabase.from("usuarios_workspace")
+        .select("email, nome")
+        .eq("workspace_id", u);
+      for (const s of (subs || [])) {
+        if (s.email && !lista.find(x => x.email?.toLowerCase() === s.email?.toLowerCase())) {
+          lista.push({ email: s.email, nome: s.nome || s.email });
+        }
+      }
+      // Dono do workspace
+      const { data: ws } = await supabase.from("workspaces")
+        .select("owner_email, nome")
+        .or(`username.eq.${u},id.eq.${u}`)
+        .maybeSingle();
+      if (ws?.owner_email && !lista.find(x => x.email?.toLowerCase() === ws.owner_email.toLowerCase())) {
+        lista.unshift({ email: ws.owner_email, nome: ws.nome || ws.owner_email });
+      }
+      lista.sort((a, b) => a.nome.localeCompare(b.nome));
+      setAtendentesBanco(lista);
+    } catch (e) {
+      console.error("Erro ao buscar atendentes:", e);
+      setAtendentesBanco([]);
+    }
+  }
+
   async function criarFluxo() {
     if(!form.nome.trim()){alert("Digite o nome!");return;}
     setCriando(true);
@@ -1694,7 +1879,7 @@ export default function FluxosPage() {
         nos:[ini],conexoes:[],workspace_id:username};
       const {data,error} = await supabase.from("fluxos").insert([payload]).select().single();
       if(error){alert("Erro: "+error.message);return;}
-      setWsId(username); await load(username); await fetchFilas(username);
+      setWsId(username); await load(username); await fetchFilas(username); await fetchAtendentes(username);
       abrirEditor({...payload, id:data.id} as Fluxo);
       setShowNovo(false);
       setForm({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:""});
@@ -1704,16 +1889,40 @@ export default function FluxosPage() {
   function abrirEditor(f:Fluxo) {
     setFluxoAtivo(f); setNos(f.nos||[]); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
     fetchFilas(); // 🆕 recarrega filas ao abrir o editor
+    fetchAtendentes(); // 🆕 recarrega atendentes ao abrir o editor
   }
 
   async function salvar() {
     if(!fluxoAtivo?.id) return;
     if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
-    // 🆕 Validação: avisa se algum nó transferir não tem fila selecionada
-    const transferirSemFila = nos.filter(n => n.tipo === "transferir" && !n.dados?.fila);
-    if (transferirSemFila.length > 0) {
-      if (!confirm(`⚠️ ${transferirSemFila.length} nó(s) de Transferir estão sem fila selecionada.\n\nQuando executados vão usar "Fila Principal" como fallback. Deseja salvar assim mesmo?`)) return;
+
+    // 🆕 Validações por bloco — avisa antes de salvar bloco mal configurado
+    const problemas: string[] = [];
+    for (const n of nos) {
+      if (n.tipo === "transferir") {
+        const modo = n.dados?.modo || "equipe";
+        if (modo === "equipe" && !n.dados?.fila) {
+          problemas.push("📤 Transferir → modo Equipe sem fila selecionada");
+        }
+        if (modo === "humano" && !n.dados?.atendente_email) {
+          problemas.push("📤 Transferir → modo Atendente humano sem atendente selecionado");
+        }
+      }
+      if (n.tipo === "gmail") {
+        const faltam: string[] = [];
+        if (!n.dados?.smtp_user) faltam.push("usuário SMTP");
+        if (!n.dados?.smtp_pass) faltam.push("senha SMTP");
+        if (!n.dados?.para) faltam.push("destinatário (Para)");
+        if (faltam.length > 0) problemas.push(`📨 Gmail → falta: ${faltam.join(", ")}`);
+      }
+      if (n.tipo === "google_sheets") {
+        if (!n.dados?.webhook_url) problemas.push("📊 Google Sheets → URL do webhook não preenchida");
+      }
     }
+    if (problemas.length > 0) {
+      if (!confirm(`⚠️ Encontrei ${problemas.length} bloco(s) com configuração incompleta:\n\n${problemas.join("\n")}\n\nEles vão FALHAR quando o fluxo rodar. Salvar mesmo assim?`)) return;
+    }
+
     setSalvando(true);
     // 🔒 MULTI-TENANT: defesa em profundidade — só salva se fluxo for deste workspace
     await supabase.from("fluxos").update({nos,conexoes:arestas,nome:fluxoAtivo.nome,
@@ -2396,6 +2605,7 @@ export default function FluxosPage() {
                 excluirNo={(id) => { excluirNo(id); setNoEditando(null); }}
                 setNos={setNos}
                 filasBanco={filasBanco}
+                atendentesBanco={atendentesBanco}
                 nos={nos}
               />
             </div>
