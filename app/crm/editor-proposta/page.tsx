@@ -1,5 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+export const dynamic = "force-dynamic";
+
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
@@ -15,7 +17,15 @@ import {
 } from "../../lib/campos_proposta_definicao";
 
 // ═══════════════════════════════════════════════════════════════════════
-// 🛠️ EDITOR DE CAMPOS DA PROPOSTA — V2 (mostra fixos + custom unificados)
+// 🛠️ EDITOR DE CAMPOS DA PROPOSTA — Wolf PREMIUM
+// ───────────────────────────────────────────────────────────────────────
+// Agrupado por seção (mesmo padrão da Nova Proposta) com:
+// • Header sticky com stats + salvar
+// • Sidebar com índice de seções (scroll spy)
+// • Cards de seção coloridos
+// • Mover ↑↓ respeita fronteira de seção (não bagunça a ordenação)
+// • Busca de campos
+// • Atalho Ctrl+S e confirmação ao sair com mudanças
 // ═══════════════════════════════════════════════════════════════════════
 
 type TipoCustom = "texto" | "textarea" | "numero" | "moeda" | "data" | "dropdown" | "checkbox";
@@ -38,6 +48,23 @@ const labelToSlug = (label: string): string =>
     .replace(/(^_|_$)/g, "")
     .slice(0, 50);
 
+// ═══ SEÇÃO META — IDÊNTICO À NOVA PROPOSTA pra garantir consistência ═══
+const SECAO_META: Record<string, { icone: string; cor: string; descricao: string; ordem: number }> = {
+  pessoal:        { icone: "👤", cor: "#3b82f6", descricao: "Identificação do cliente",        ordem: 1 },
+  endereco:       { icone: "📍", cor: "#06b6d4", descricao: "Onde será a instalação",           ordem: 2 },
+  contato:        { icone: "📱", cor: "#8b5cf6", descricao: "Como falar com o cliente",         ordem: 3 },
+  plano:          { icone: "📦", cor: "#f59e0b", descricao: "Serviço contratado",               ordem: 4 },
+  agendamento:    { icone: "📅", cor: "#ec4899", descricao: "Quando instalar",                  ordem: 5 },
+  vendedor:       { icone: "👨‍💼", cor: "#16a34a", descricao: "Atribuição interna",              ordem: 6 },
+  status:         { icone: "🎯", cor: "#dc2626", descricao: "Situação atual da proposta",       ordem: 7 },
+  personalizado:  { icone: "⚙️", cor: "#a855f7", descricao: "Campos customizados pelo workspace", ordem: 8 },
+};
+
+const getSecaoKey = (campo: CampoUnificado): string => {
+  if (campo.origem === "custom") return "personalizado";
+  return (campo as any).secao || "personalizado";
+};
+
 export default function EditorProposta() {
   const router = useRouter();
   const { workspace } = useWorkspace();
@@ -47,8 +74,20 @@ export default function EditorProposta() {
   const [campos, setCampos] = useState<CampoUnificado[]>([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [secaoVisivel, setSecaoVisivel] = useState<string>("");
+  const sectionsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // 🎨 ESTILOS LIGHT TECH
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // 🎨 ESTILOS
   const inputStyle = {
     width: "100%",
     background: "#ffffff",
@@ -68,6 +107,9 @@ export default function EditorProposta() {
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
+  // ═══════════════════════════════════════════════════════════════════
+  // 📜 FETCH
+  // ═══════════════════════════════════════════════════════════════════
   const fetchCampos = async () => {
     if (!workspace?.username) return;
     setLoading(true);
@@ -108,7 +150,7 @@ export default function EditorProposta() {
 
       const lista = montarCamposUnificados(configs, customs);
 
-      // 📊 Enriquece cada campo com mostrar_na_lista (lido das tabelas brutas)
+      // 📊 Enriquece cada campo com mostrar_na_lista
       const mostrarFixoMap = new Map<string, boolean>();
       for (const c of (respConfig.data || [])) {
         mostrarFixoMap.set(c.campo_slug, !!c.mostrar_na_lista);
@@ -124,6 +166,7 @@ export default function EditorProposta() {
           : !!mostrarCustomMap.get(c.slug),
       }));
       setCampos(enriquecida as any);
+      setDirty(false);
     } catch (e) {
       console.error("[EditorProposta] erro fetch:", e);
     }
@@ -132,6 +175,51 @@ export default function EditorProposta() {
 
   useEffect(() => { fetchCampos(); }, [workspace]);
 
+  // ═══════════════════════════════════════════════════════════════════
+  // ⚠️ BEFORE UNLOAD — confirma sair com mudanças
+  // ═══════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirty) { e.preventDefault(); e.returnValue = ""; return ""; }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ⌨️ ATALHO Ctrl+S
+  // ═══════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        salvar();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campos, dirty, salvando]);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 👁️ SCROLL SPY
+  // ═══════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (campos.length === 0) return;
+    const observer = new IntersectionObserver((entries) => {
+      const visiveis = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visiveis.length > 0) {
+        const id = visiveis[0].target.getAttribute("data-secao");
+        if (id) setSecaoVisivel(id);
+      }
+    }, { rootMargin: "-20% 0px -60% 0px", threshold: 0 });
+    Object.values(sectionsRef.current).forEach(el => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, [campos]);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔧 HANDLERS
+  // ═══════════════════════════════════════════════════════════════════
   const adicionarCustom = () => {
     const maxOrdem = campos.reduce((m, c) => Math.max(m, c.ordem), 0);
     const novo: CampoUnificado = {
@@ -145,18 +233,34 @@ export default function EditorProposta() {
       opcoes: [],
     };
     setCampos([...campos, { ...novo, mostrar_na_lista: true } as any]);
+    setDirty(true);
+    // Scroll até a seção "personalizado" depois de adicionar
+    setTimeout(() => {
+      sectionsRef.current["personalizado"]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
 
   const atualizar = (idx: number, patch: Partial<CampoUnificado>) => {
     setCampos(campos.map((c, i) => i === idx ? { ...c, ...patch } : c));
+    setDirty(true);
   };
 
+  // FIX: mover só dentro da MESMA SEÇÃO (não atravessa fronteiras)
   const mover = (idx: number, dir: -1 | 1) => {
-    const target = idx + dir;
+    const c = campos[idx];
+    const secAtual = getSecaoKey(c);
+    let target = idx + dir;
+    while (target >= 0 && target < campos.length) {
+      if (getSecaoKey(campos[target]) === secAtual) break;
+      target += dir;
+    }
     if (target < 0 || target >= campos.length) return;
+    if (getSecaoKey(campos[target]) !== secAtual) return;
+
     const novo = [...campos];
     [novo[idx], novo[target]] = [novo[target], novo[idx]];
     setCampos(novo.map((c, i) => ({ ...c, ordem: i })));
+    setDirty(true);
   };
 
   const remover = async (idx: number) => {
@@ -178,33 +282,30 @@ export default function EditorProposta() {
         .update({ ativo: false })
         .eq("id", c.idCustom)
         .eq("workspace_id", workspace.username);
-      if (error) {
-        alert("Erro ao remover: " + error.message);
-        return;
-      }
+      if (error) { alert("Erro ao remover: " + error.message); return; }
     }
     setCampos(campos.filter((_, i) => i !== idx).map((c, i) => ({ ...c, ordem: i })));
+    setDirty(true);
   };
 
   const adicionarOpcao = (idx: number) => {
     const c = campos[idx];
-    const opcoes = [...(c.opcoes || []), ""];
-    atualizar(idx, { opcoes });
+    atualizar(idx, { opcoes: [...(c.opcoes || []), ""] });
   };
-
   const atualizarOpcao = (idx: number, opIdx: number, valor: string) => {
     const c = campos[idx];
     const opcoes = [...(c.opcoes || [])];
     opcoes[opIdx] = valor;
     atualizar(idx, { opcoes });
   };
-
   const removerOpcao = (idx: number, opIdx: number) => {
     const c = campos[idx];
-    const opcoes = (c.opcoes || []).filter((_, i) => i !== opIdx);
-    atualizar(idx, { opcoes });
+    atualizar(idx, { opcoes: (c.opcoes || []).filter((_, i) => i !== opIdx) });
   };
 
+  // ═══════════════════════════════════════════════════════════════════
+  // 💾 SALVAR
+  // ═══════════════════════════════════════════════════════════════════
   const salvar = async () => {
     if (!workspace?.username) return;
 
@@ -227,7 +328,7 @@ export default function EditorProposta() {
 
     setSalvando(true);
     try {
-      // ─── 1) Salva config dos fixos ──────────────────────────────────
+      // ─── 1) Salva config dos fixos ──
       const fixosNaLista = campos.filter(c => c.origem === "fixo");
       for (let i = 0; i < fixosNaLista.length; i++) {
         const c = fixosNaLista[i];
@@ -249,10 +350,8 @@ export default function EditorProposta() {
 
         const placeholderMudou = (c.placeholder || "").trim() !== (def.placeholderPadrao || "");
         const placeholderFinal = placeholderMudou ? (c.placeholder || null) : null;
-
-        // 📊 Detecta mudança no "mostrar na tela principal"
         const mostrarNaListaAtual = !!(c as any).mostrar_na_lista;
-        const mostrarMudou = mostrarNaListaAtual !== false; // default é false
+        const mostrarMudou = mostrarNaListaAtual !== false;
 
         const labelCustomFinal = labelMudou ? c.label.trim() : null;
         const obrigatorioFinal = obrigMudou ? c.obrigatorio : null;
@@ -291,9 +390,8 @@ export default function EditorProposta() {
         }
       }
 
-      // ─── 2) Salva customs ──────────────────────────────────────────
+      // ─── 2) Salva customs ──
       const customsNaLista = campos.filter(c => c.origem === "custom");
-
       const customsComSlug = customsNaLista.map(c => ({
         ...c,
         slug: (c.slug || labelToSlug(c.label)).slice(0, 50),
@@ -303,18 +401,15 @@ export default function EditorProposta() {
       for (const c of customsComSlug) {
         if (!c.slug) {
           alert(`Campo "${c.label}" não conseguiu gerar slug. Renomeie.`);
-          setSalvando(false);
-          return;
+          setSalvando(false); return;
         }
         if (slugSet.has(c.slug)) {
           alert(`Campos customizados com nome interno duplicado ("${c.slug}"). Renomeie um.`);
-          setSalvando(false);
-          return;
+          setSalvando(false); return;
         }
         if (CAMPOS_FIXOS_MAP[c.slug]) {
           alert(`O nome "${c.slug}" conflita com um campo padrão. Escolha outro nome pro campo "${c.label}".`);
-          setSalvando(false);
-          return;
+          setSalvando(false); return;
         }
         slugSet.add(c.slug);
       }
@@ -363,7 +458,62 @@ export default function EditorProposta() {
     setSalvando(false);
   };
 
-  // ═══ Sem permissão ═══
+  // ═══════════════════════════════════════════════════════════════════
+  // 📊 AGRUPAMENTO POR SEÇÃO (mesma lógica da Nova Proposta)
+  // ═══════════════════════════════════════════════════════════════════
+  const camposComIndice = useMemo(
+    () => campos.map((c, idx) => ({ campo: c, idx })),
+    [campos]
+  );
+
+  const secoesAgrupadas = useMemo(() => {
+    const mapa = new Map<string, { campos: { campo: CampoUnificado; idx: number }[]; ordemMin: number }>();
+    let ordemSequencial = 0;
+    for (const item of camposComIndice) {
+      const sec = getSecaoKey(item.campo);
+      if (!mapa.has(sec)) {
+        mapa.set(sec, { campos: [], ordemMin: ordemSequencial++ });
+      }
+      mapa.get(sec)!.campos.push(item);
+    }
+    const lista = Array.from(mapa.entries()).map(([key, { campos: itens, ordemMin }]) => {
+      const labelRaw = (SECOES_LABEL as any)?.[key];
+      const label = typeof labelRaw === "string"
+        ? labelRaw
+        : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[key]?.descricao || key);
+      const corCustom = (labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null;
+      const metaBase = SECAO_META[key] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
+      return {
+        key,
+        label,
+        meta: corCustom ? { ...metaBase, cor: corCustom } : metaBase,
+        campos: itens,
+        ordemMin,
+      };
+    });
+    return lista.sort((a, b) => a.ordemMin - b.ordemMin);
+  }, [camposComIndice]);
+
+  // Stats
+  const stats = useMemo(() => ({
+    total: campos.length,
+    fixos: campos.filter(c => c.origem === "fixo").length,
+    custom: campos.filter(c => c.origem === "custom").length,
+    visiveis: campos.filter(c => c.visivel).length,
+    obrigatorios: campos.filter(c => c.obrigatorio).length,
+    mostrarLista: campos.filter(c => (c as any).mostrar_na_lista).length,
+  }), [campos]);
+
+  // Filtro de busca
+  const buscaLower = busca.trim().toLowerCase();
+  const matchaBusca = (c: CampoUnificado) => {
+    if (!buscaLower) return true;
+    return c.label.toLowerCase().includes(buscaLower) || c.slug.toLowerCase().includes(buscaLower);
+  };
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🚫 SEM PERMISSÃO
+  // ═══════════════════════════════════════════════════════════════════
   if (!podeEditar) {
     return (
       <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -387,299 +537,538 @@ export default function EditorProposta() {
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
               boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
-            }}>
-            ← Voltar
-          </button>
+            }}>← Voltar</button>
         </div>
       </div>
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // 🎨 RENDER PRINCIPAL
+  // ═══════════════════════════════════════════════════════════════════
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "Arial, sans-serif" }}>
 
-      {/* ═══ HEADER ═══ */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(139,92,246,0.25)",
-            flexShrink: 0,
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🛠️</span>
-          </div>
-          <div>
-            <h1 style={{ color: "#1f2937", fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Editor de Campos da Proposta</h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0", maxWidth: 820, lineHeight: 1.5 }}>
-              Configure quais campos aparecem no formulário de proposta deste workspace. Você pode editar os campos padrão (label, obrigatório, ocultar) e adicionar quantos campos personalizados quiser. Cada workspace tem sua própria configuração.
-            </p>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => router.push("/crm/vendas")}
-            style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            ← Voltar para Vendas
-          </button>
-          <button onClick={salvar} disabled={salvando || loading}
-            style={{
-              background: salvando ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-              color: "white", border: "none", borderRadius: 10,
-              padding: "10px 22px", fontSize: 13, fontWeight: 700,
-              cursor: salvando || loading ? "not-allowed" : "pointer",
-              boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+      {/* ═══ HEADER STICKY ═══ */}
+      <div style={{
+        position: "sticky", top: 0, zIndex: 50,
+        background: "rgba(248,250,252,0.85)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid #e5e7eb",
+        padding: isMobile ? "10px 12px" : "12px 28px",
+      }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+            <div style={{
+              width: isMobile ? 40 : 46, height: isMobile ? 40 : 46, borderRadius: 12,
+              background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 22, boxShadow: "0 8px 20px rgba(139,92,246,0.30)",
+              flexShrink: 0,
             }}>
-            {salvando ? "⏳ Salvando..." : "💾 Salvar Tudo"}
-          </button>
+              <span style={{ filter: "saturate(0) brightness(2)" }}>🛠️</span>
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                <h1 style={{ color: "#1f2937", fontSize: isMobile ? 16 : 18, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Editor de Proposta</h1>
+                <span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 600 }}>· {stats.total} campos</span>
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
+                <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
+                  Wolf CRM · <b>{workspace?.nome}</b>
+                </p>
+                <span style={{ color: "#9ca3af", fontSize: 11 }}>
+                  {stats.fixos} fixos · {stats.custom} personalizados · {stats.visiveis} visíveis · {stats.obrigatorios} obrigatórios
+                </span>
+                {dirty && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, fontStyle: "italic" }}>● mudanças não salvas</span>}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <button onClick={() => {
+              if (dirty && !confirm("Você tem mudanças não salvas. Sair mesmo assim?")) return;
+              router.push("/crm/vendas");
+            }}
+              style={{
+                background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb",
+                borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer",
+                whiteSpace: "nowrap", fontWeight: 600,
+              }}>← Voltar</button>
+            <button onClick={salvar} disabled={salvando || loading}
+              title="Ctrl+S"
+              style={{
+                background: salvando ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                color: "white", border: "none", borderRadius: 10,
+                padding: "8px 18px", fontSize: 12, fontWeight: 700,
+                cursor: salvando || loading ? "not-allowed" : "pointer",
+                boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                whiteSpace: "nowrap",
+              }}>
+              {salvando ? "⏳ Salvando..." : "💾 Salvar Tudo"}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ═══ LEGENDA ═══ */}
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: "#6b7280", ...cardStyle, padding: "12px 16px" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <span style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>🔒 Padrão</span>
-          Campos fixos do sistema — editar label, obrigatório, visibilidade e ordem
-        </span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <span style={{ background: "#f3e8ff", color: "#a855f7", border: "1px solid #ddd6fe", padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>✨ Personalizado</span>
-          Campos extras criados pelo workspace — pode editar tudo + remover
-        </span>
-      </div>
+      {/* ═══ MAIN LAYOUT ═══ */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "260px 1fr",
+        gap: isMobile ? 14 : 22,
+        padding: isMobile ? 12 : 28,
+        maxWidth: 1400,
+        margin: "0 auto",
+      }}>
 
-      {/* ═══ AVISO LGPD ═══ */}
-      <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderLeft: "4px solid #f59e0b", borderRadius: 12, padding: "12px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-        <span style={{ fontSize: 22, lineHeight: 1 }}>⚠️</span>
-        <div>
-          <p style={{ color: "#92400e", fontSize: 12, fontWeight: 700, margin: 0 }}>Atenção sobre dados pessoais (LGPD)</p>
-          <p style={{ color: "#78350f", fontSize: 11, margin: "3px 0 0", lineHeight: 1.5 }}>
-            Você é responsável pelos dados coletados nesses campos. Não cadastre informações sensíveis sem consentimento expresso do titular.
-          </p>
-        </div>
-      </div>
-
-      {/* ═══ LISTA ═══ */}
-      {loading ? (
-        <div style={{ ...cardStyle, padding: 48, textAlign: "center", color: "#6b7280", fontSize: 13 }}>
-          ⏳ Carregando campos...
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {campos.map((campo, idx) => {
-            const ehFixo = campo.origem === "fixo";
-            const corBadge = ehFixo ? "#3b82f6" : "#a855f7";
-            const bgBadge = ehFixo ? "#eff6ff" : "#f3e8ff";
-            const borderBadge = ehFixo ? "#bfdbfe" : "#ddd6fe";
-            const labelBadge = ehFixo ? "🔒 Padrão" : "✨ Personalizado";
-            const opacidade = !campo.visivel ? 0.55 : 1;
-
-            return (
-              <div key={`${campo.origem}-${campo.slug}-${idx}`}
-                style={{
-                  ...cardStyle,
-                  padding: 16,
-                  opacity: opacidade,
-                  transition: "opacity 0.15s, box-shadow 0.15s",
-                  borderLeft: `3px solid ${corBadge}`,
-                }}>
-                {/* Linha 1 — Mover + Badge + Label + Tipo + Ações */}
-                <div style={{ display: "grid", gridTemplateColumns: "auto auto 1fr auto auto", gap: 10, alignItems: "center" }}>
-                  {/* Mover */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    <button onClick={() => mover(idx, -1)} disabled={idx === 0} title="Mover pra cima"
+        {/* ═══ SIDEBAR ═══ */}
+        {!isMobile && (
+          <aside style={{ position: "sticky", top: 100, alignSelf: "start", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ ...cardStyle, padding: 14 }}>
+              <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 10px", fontWeight: 800 }}>
+                📑 Seções
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {secoesAgrupadas.map(s => {
+                  const ativa = secaoVisivel === s.key;
+                  return (
+                    <button key={s.key} onClick={() => {
+                      sectionsRef.current[s.key]?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
                       style={{
-                        background: "#f9fafb",
-                        color: idx === 0 ? "#d1d5db" : "#6b7280",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 6, width: 26, height: 20, fontSize: 9,
-                        cursor: idx === 0 ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
-                      }}>▲</button>
-                    <button onClick={() => mover(idx, 1)} disabled={idx === campos.length - 1} title="Mover pra baixo"
-                      style={{
-                        background: "#f9fafb",
-                        color: idx === campos.length - 1 ? "#d1d5db" : "#6b7280",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 6, width: 26, height: 20, fontSize: 9,
-                        cursor: idx === campos.length - 1 ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
-                      }}>▼</button>
-                  </div>
-
-                  {/* Badge */}
-                  <span style={{
-                    background: bgBadge, color: corBadge,
-                    border: `1px solid ${borderBadge}`,
-                    padding: "4px 10px", borderRadius: 10, fontSize: 10,
-                    fontWeight: 700, whiteSpace: "nowrap",
-                  }}>
-                    {labelBadge}
-                  </span>
-
-                  {/* Label */}
-                  <div>
-                    <input
-                      value={campo.label}
-                      onChange={(e) => atualizar(idx, { label: e.target.value })}
-                      placeholder={ehFixo ? campo.labelPadrao : 'Ex: "CEP do Imóvel", "Operadora atual"'}
-                      style={{ ...inputStyle, fontSize: 13, fontWeight: 600 }}
-                    />
-                    {ehFixo && campo.label !== campo.labelPadrao && (
-                      <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>
-                        Padrão: {campo.labelPadrao} · slug interno: <code style={{ color: "#6b7280", background: "#f3f4f6", padding: "1px 5px", borderRadius: 4, border: "1px solid #e5e7eb" }}>{campo.slug}</code>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Tipo */}
-                  {ehFixo ? (
-                    <div style={{ minWidth: 160 }}>
-                      <span style={{ background: "#f3f4f6", color: "#4b5563", border: "1px solid #e5e7eb", padding: "9px 14px", borderRadius: 10, fontSize: 12, display: "block", textAlign: "center", fontWeight: 600 }}>
-                        {campo.tipo === "vendedor" ? "👤 Vendedor" : campo.tipo === "telefone" ? "📞 Telefone" : campo.tipo === "email" ? "📧 E-mail" : campo.tipo === "data" ? "📅 Data" : campo.tipo === "moeda" ? "💰 Valor (R$)" : campo.tipo === "dropdown" ? "📋 Seleção" : "📝 Texto"}
-                      </span>
-                    </div>
-                  ) : (
-                    <select
-                      value={campo.tipo}
-                      onChange={(e) => {
-                        const novoTipo = e.target.value as TipoCustom;
-                        atualizar(idx, {
-                          tipo: novoTipo,
-                          opcoes: novoTipo === "dropdown" ? (campo.opcoes || [""]) : []
-                        });
-                      }}
-                      style={{ ...inputStyle, minWidth: 170 }}
-                    >
-                      {TIPOS_CUSTOM.map(t => (
-                        <option key={t.valor} value={t.valor}>{t.icone} {t.label}</option>
-                      ))}
-                    </select>
-                  )}
-
-                  {/* Botão remover/ocultar */}
-                  <button onClick={() => remover(idx)}
-                    title={ehFixo ? "Ocultar campo (não pode ser deletado)" : "Remover campo"}
-                    style={{
-                      background: ehFixo ? "#fffbeb" : "#fef2f2",
-                      color: ehFixo ? "#f59e0b" : "#dc2626",
-                      border: `1px solid ${ehFixo ? "#fde68a" : "#fecaca"}`,
-                      borderRadius: 10, padding: "9px 12px", fontSize: 14,
-                      cursor: "pointer", height: 38, whiteSpace: "nowrap", fontWeight: 600,
-                    }}>
-                    {ehFixo ? "👁️‍🗨️" : "🗑️"}
-                  </button>
-                </div>
-
-                {/* Linha 2 — Toggles */}
-                <div style={{ display: "flex", gap: 14, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
-                  <label style={{
-                    display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
-                    background: campo.obrigatorio ? "#f0fdf4" : "#f9fafb",
-                    border: `1px solid ${campo.obrigatorio ? "#bbf7d0" : "#e5e7eb"}`,
-                    padding: "5px 12px", borderRadius: 8,
-                    transition: "all 0.15s",
-                  }}>
-                    <input type="checkbox" checked={campo.obrigatorio}
-                      onChange={(e) => atualizar(idx, { obrigatorio: e.target.checked })}
-                      style={{ accentColor: "#16a34a", width: 15, height: 15, cursor: "pointer" }} />
-                    <span style={{ color: campo.obrigatorio ? "#16a34a" : "#6b7280", fontSize: 12, fontWeight: 600 }}>⭐ Obrigatório</span>
-                  </label>
-
-                  <label style={{
-                    display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
-                    background: campo.visivel ? "#eff6ff" : "#f3f4f6",
-                    border: `1px solid ${campo.visivel ? "#bfdbfe" : "#e5e7eb"}`,
-                    padding: "5px 12px", borderRadius: 8,
-                    transition: "all 0.15s",
-                  }}>
-                    <input type="checkbox" checked={campo.visivel}
-                      onChange={(e) => atualizar(idx, { visivel: e.target.checked })}
-                      style={{ accentColor: campo.visivel ? "#3b82f6" : "#9ca3af", width: 15, height: 15, cursor: "pointer" }} />
-                    <span style={{ color: campo.visivel ? "#3b82f6" : "#6b7280", fontSize: 12, fontWeight: 600 }}>
-                      {campo.visivel ? "👁️ Visível" : "🙈 Oculto"}
-                    </span>
-                  </label>
-
-                  {/* 📊 Visualizar na tela principal (lista de Vendas) */}
-                  {(() => {
-                    const mostraNaLista = !!(campo as any).mostrar_na_lista;
-                    return (
-                      <label style={{
-                        display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
-                        background: mostraNaLista ? "#f0fdf4" : "#f9fafb",
-                        border: `1px solid ${mostraNaLista ? "#bbf7d0" : "#e5e7eb"}`,
-                        padding: "5px 12px", borderRadius: 8,
+                        background: ativa ? `${s.meta.cor}10` : "transparent",
+                        border: `1px solid ${ativa ? `${s.meta.cor}30` : "transparent"}`,
+                        borderLeft: `3px solid ${ativa ? s.meta.cor : "transparent"}`,
+                        borderRadius: 8, padding: "8px 10px",
+                        cursor: "pointer", textAlign: "left",
                         transition: "all 0.15s",
                       }}>
-                        <input type="checkbox" checked={mostraNaLista}
-                          onChange={(e) => atualizar(idx, { mostrar_na_lista: e.target.checked } as any)}
-                          style={{ accentColor: "#16a34a", width: 15, height: 15, cursor: "pointer" }} />
-                        <span style={{ color: mostraNaLista ? "#16a34a" : "#6b7280", fontSize: 12, fontWeight: 600 }}>
-                          📊 Visualizar na tela principal
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 14 }}>{s.meta.icone}</span>
+                        <span style={{ color: ativa ? s.meta.cor : "#374151", fontSize: 12, fontWeight: ativa ? 800 : 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {s.label}
                         </span>
-                      </label>
-                    );
-                  })()}
-
-                  {/* Placeholder */}
-                  {(campo.tipo === "texto" || campo.tipo === "textarea" || campo.tipo === "numero" || campo.tipo === "moeda" || campo.tipo === "telefone" || campo.tipo === "email") && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 220 }}>
-                      <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>Placeholder:</span>
-                      <input placeholder="Texto de exemplo (opcional)"
-                        value={campo.placeholder || ""}
-                        onChange={(e) => atualizar(idx, { placeholder: e.target.value })}
-                        style={{ ...inputStyle, padding: "6px 10px", fontSize: 12, flex: 1 }} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Linha 3 — Opções pra dropdowns */}
-                {campo.tipo === "dropdown" && (
-                  <div style={{ marginTop: 12, padding: 12, background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
-                    <p style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px", fontWeight: 700 }}>
-                      📋 Opções do dropdown
-                      {ehFixo && (
-                        <span style={{ color: "#9ca3af", fontSize: 10, marginLeft: 8, textTransform: "none", fontWeight: 500, fontStyle: "italic" }}>
-                          (você pode editar a lista — vai sobrescrever a do sistema)
+                        <span style={{
+                          fontSize: 10, fontWeight: 800,
+                          color: ativa ? s.meta.cor : "#9ca3af",
+                          background: ativa ? `${s.meta.cor}15` : "#f3f4f6",
+                          padding: "1px 7px", borderRadius: 6,
+                        }}>
+                          {s.campos.length}
                         </span>
-                      )}
-                    </p>
-                    {(campo.opcoes || []).map((op, opIdx) => (
-                      <div key={opIdx} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                        <input placeholder={`Opção ${opIdx + 1}`} value={op}
-                          onChange={(e) => atualizarOpcao(idx, opIdx, e.target.value)}
-                          style={{ ...inputStyle, padding: "7px 12px", fontSize: 12 }} />
-                        <button onClick={() => removerOpcao(idx, opIdx)}
-                          style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✕</button>
                       </div>
-                    ))}
-                    <button onClick={() => adicionarOpcao(idx)}
-                      style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "7px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, marginTop: 4 }}>
-                      ➕ Adicionar opção
                     </button>
-                    {ehFixo && campo.slug === "status_venda" && (
-                      <p style={{ color: "#92400e", fontSize: 10, margin: "10px 0 0", fontStyle: "italic", background: "#fffbeb", padding: "6px 10px", borderRadius: 6, border: "1px solid #fde68a" }}>
-                        ⚠️ Status novos não terão cor personalizada na lista de vendas — vão aparecer em cinza. Dashboard e Funil seguem funcionando normalmente.
-                      </p>
-                    )}
-                  </div>
-                )}
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
 
-          {/* Botão adicionar custom */}
-          <button onClick={adicionarCustom}
+            {/* Stats card */}
+            <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #f3e8ff 0%, #fae8ff 100%)", border: "1px solid #ddd6fe" }}>
+              <p style={{ color: "#6b21a8", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px", fontWeight: 800 }}>
+                📊 Resumo
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <Stat label="Visíveis" valor={`${stats.visiveis}/${stats.total}`} cor="#3b82f6" />
+                <Stat label="Obrigatórios" valor={stats.obrigatorios.toString()} cor="#16a34a" />
+                <Stat label="Na tela principal" valor={stats.mostrarLista.toString()} cor="#f59e0b" />
+                <Stat label="Personalizados" valor={stats.custom.toString()} cor="#a855f7" />
+              </div>
+            </div>
+
+            {/* Atalhos */}
+            <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
+              <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px", fontWeight: 800 }}>
+                ⌨️ Atalho
+              </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
+                <span style={{ color: "#6b7280" }}>Salvar</span>
+                <kbd style={{ background: "#ffffff", border: "1px solid #d1d5db", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontFamily: "monospace", color: "#374151", fontWeight: 700 }}>Ctrl+S</kbd>
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {/* ═══ CONTEÚDO PRINCIPAL ═══ */}
+        <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+
+          {/* Toolbar de busca + adicionar */}
+          <div style={{ ...cardStyle, padding: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <input placeholder="🔍 Buscar campo por nome..." value={busca} onChange={e => setBusca(e.target.value)}
+              style={{ ...inputStyle, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
+            <div style={{ flex: 1 }} />
+            <button onClick={adicionarCustom}
+              style={{
+                background: "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)",
+                color: "white", border: "none", borderRadius: 10,
+                padding: "9px 18px", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
+                whiteSpace: "nowrap",
+              }}>+ Campo Personalizado</button>
+          </div>
+
+          {/* Aviso LGPD */}
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderLeft: "4px solid #f59e0b", borderRadius: 12, padding: "10px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: "#92400e", fontSize: 12, fontWeight: 700, margin: 0 }}>LGPD · Atenção sobre dados pessoais</p>
+              <p style={{ color: "#78350f", fontSize: 11, margin: "2px 0 0", lineHeight: 1.5 }}>
+                Você é responsável pelos dados coletados. As setas <code style={{ background: "#fef3c7", padding: "1px 5px", borderRadius: 4 }}>▲▼</code> reordenam apenas dentro da mesma seção — garantindo que a ordenação na Nova Proposta fica consistente.
+              </p>
+            </div>
+          </div>
+
+          {/* Lista agrupada por seção */}
+          {loading ? (
+            <>
+              {[1, 2, 3].map(i => (
+                <div key={i} style={{ ...cardStyle, padding: 20 }}>
+                  <div style={{ height: 16, background: "#f3f4f6", borderRadius: 4, marginBottom: 14, width: "30%" }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {[1, 2, 3].map(j => (
+                      <div key={j} style={{ height: 60, background: "#f9fafb", borderRadius: 8 }} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : campos.length === 0 ? (
+            <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
+              <p style={{ fontSize: 40, margin: "0 0 8px" }}>🛠️</p>
+              <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum campo configurado ainda.</p>
+            </div>
+          ) : (
+            secoesAgrupadas.map(s => {
+              const camposFiltrados = s.campos.filter(({ campo }) => matchaBusca(campo));
+              if (buscaLower && camposFiltrados.length === 0) return null;
+
+              return (
+                <div key={s.key}
+                  ref={(el) => { sectionsRef.current[s.key] = el; }}
+                  data-secao={s.key}
+                  style={{ ...cardStyle, overflow: "hidden", scrollMarginTop: 110 }}>
+
+                  {/* Header da seção */}
+                  <div style={{
+                    padding: "14px 20px",
+                    borderBottom: "1px solid #f3f4f6",
+                    background: `${s.meta.cor}05`,
+                    borderLeft: `4px solid ${s.meta.cor}`,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                  }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 10,
+                      background: `linear-gradient(135deg, ${s.meta.cor} 0%, ${s.meta.cor}cc 100%)`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 18, boxShadow: `0 4px 10px ${s.meta.cor}40`,
+                      flexShrink: 0,
+                    }}><span style={{ filter: "saturate(0) brightness(2)" }}>{s.meta.icone}</span></div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h2 style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: -0.2 }}>{s.label}</h2>
+                      {s.meta.descricao && <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{s.meta.descricao}</p>}
+                    </div>
+                    <span style={{
+                      background: `${s.meta.cor}10`,
+                      color: s.meta.cor,
+                      border: `1px solid ${s.meta.cor}30`,
+                      padding: "4px 10px",
+                      borderRadius: 10,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      whiteSpace: "nowrap",
+                    }}>{s.campos.length} {s.campos.length === 1 ? "campo" : "campos"}</span>
+                  </div>
+
+                  {/* Campos da seção */}
+                  <div style={{ padding: isMobile ? 12 : 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {camposFiltrados.map(({ campo, idx }) => (
+                      <CampoCard
+                        key={`${campo.origem}-${campo.slug}-${idx}`}
+                        campo={campo}
+                        idx={idx}
+                        secaoMeta={s.meta}
+                        campos={campos}
+                        inputStyle={inputStyle}
+                        cardStyle={cardStyle}
+                        isMobile={isMobile}
+                        atualizar={atualizar}
+                        mover={mover}
+                        remover={remover}
+                        adicionarOpcao={adicionarOpcao}
+                        atualizarOpcao={atualizarOpcao}
+                        removerOpcao={removerOpcao}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          {/* Footer com Salvar */}
+          {!loading && campos.length > 0 && (
+            <div style={{ ...cardStyle, padding: isMobile ? 14 : 18, background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: dirty ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 20,
+                  flexShrink: 0,
+                }}><span style={{ filter: "saturate(0) brightness(2)" }}>{dirty ? "📝" : "✅"}</span></div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: 0 }}>
+                    {dirty ? "Você tem mudanças não salvas" : "Tudo salvo e sincronizado"}
+                  </p>
+                  <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+                    {stats.total} campos configurados · {stats.visiveis} visíveis · {stats.obrigatorios} obrigatórios
+                  </p>
+                </div>
+                <button onClick={salvar} disabled={salvando || loading}
+                  style={{
+                    background: salvando ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                    color: "white", border: "none", borderRadius: 10,
+                    padding: "11px 28px", fontSize: 13, fontWeight: 700,
+                    cursor: salvando || loading ? "not-allowed" : "pointer",
+                    boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                    whiteSpace: "nowrap",
+                  }}>{salvando ? "⏳ Salvando..." : "💾 Salvar Tudo"}</button>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 📊 Stat — usado na sidebar
+// ═══════════════════════════════════════════════════════════════════════
+function Stat({ label, valor, cor }: { label: string; valor: string; cor: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
+      <span style={{ color: "#6b7280" }}>{label}</span>
+      <span style={{ color: cor, fontWeight: 800 }}>{valor}</span>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 📝 CampoCard — cada campo individual com edição inline
+// ═══════════════════════════════════════════════════════════════════════
+function CampoCard({ campo, idx, secaoMeta, campos, inputStyle, cardStyle, isMobile, atualizar, mover, remover, adicionarOpcao, atualizarOpcao, removerOpcao }: any) {
+  const ehFixo = campo.origem === "fixo";
+  const corBadge = ehFixo ? "#3b82f6" : "#a855f7";
+  const bgBadge = ehFixo ? "#eff6ff" : "#f3e8ff";
+  const borderBadge = ehFixo ? "#bfdbfe" : "#ddd6fe";
+  const labelBadge = ehFixo ? "🔒 Padrão" : "✨ Personalizado";
+  const opacidade = !campo.visivel ? 0.55 : 1;
+
+  // Checa se pode mover ↑/↓ dentro da mesma seção
+  const secAtual = getSecaoKey(campo);
+  const indicesSecao = campos.map((c: CampoUnificado, i: number) => getSecaoKey(c) === secAtual ? i : -1).filter((i: number) => i >= 0);
+  const ehPrimeiroDaSecao = indicesSecao[0] === idx;
+  const ehUltimoDaSecao = indicesSecao[indicesSecao.length - 1] === idx;
+
+  return (
+    <div style={{
+      background: "#fafbfc",
+      borderRadius: 10,
+      border: "1px solid #e5e7eb",
+      borderLeft: `3px solid ${secaoMeta.cor}`,
+      padding: 14,
+      opacity: opacidade,
+      transition: "opacity 0.15s",
+    }}>
+      {/* Linha 1: Mover + Badge + Label + Tipo + Ações */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "auto 1fr auto" : "auto auto 1fr auto auto", gap: 10, alignItems: "center" }}>
+        {/* Mover */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <button onClick={() => mover(idx, -1)} disabled={ehPrimeiroDaSecao} title={ehPrimeiroDaSecao ? "Já é o primeiro da seção" : "Mover pra cima"}
             style={{
               background: "#ffffff",
-              color: "#a855f7",
-              border: "2px dashed #ddd6fe",
-              borderRadius: 14, padding: "16px 24px",
-              fontSize: 13, cursor: "pointer", fontWeight: 700, marginTop: 6,
-              transition: "all 0.15s",
+              color: ehPrimeiroDaSecao ? "#d1d5db" : "#6b7280",
+              border: "1px solid #e5e7eb",
+              borderRadius: 6, width: 26, height: 20, fontSize: 9,
+              cursor: ehPrimeiroDaSecao ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
+            }}>▲</button>
+          <button onClick={() => mover(idx, 1)} disabled={ehUltimoDaSecao} title={ehUltimoDaSecao ? "Já é o último da seção" : "Mover pra baixo"}
+            style={{
+              background: "#ffffff",
+              color: ehUltimoDaSecao ? "#d1d5db" : "#6b7280",
+              border: "1px solid #e5e7eb",
+              borderRadius: 6, width: 26, height: 20, fontSize: 9,
+              cursor: ehUltimoDaSecao ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
+            }}>▼</button>
+        </div>
+
+        {/* Badge */}
+        {!isMobile && (
+          <span style={{
+            background: bgBadge, color: corBadge,
+            border: `1px solid ${borderBadge}`,
+            padding: "4px 10px", borderRadius: 10, fontSize: 10,
+            fontWeight: 700, whiteSpace: "nowrap",
+          }}>{labelBadge}</span>
+        )}
+
+        {/* Label */}
+        <div>
+          <input
+            value={campo.label}
+            onChange={(e) => atualizar(idx, { label: e.target.value })}
+            placeholder={ehFixo ? campo.labelPadrao : 'Ex: "CEP do Imóvel", "Operadora atual"'}
+            style={{ ...inputStyle, fontSize: 13, fontWeight: 600 }}
+          />
+          {ehFixo && campo.label !== campo.labelPadrao && (
+            <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>
+              Padrão: {campo.labelPadrao} · slug: <code style={{ color: "#6b7280", background: "#f3f4f6", padding: "1px 5px", borderRadius: 4, border: "1px solid #e5e7eb" }}>{campo.slug}</code>
+            </p>
+          )}
+        </div>
+
+        {/* Tipo */}
+        {!isMobile && (ehFixo ? (
+          <div style={{ minWidth: 160 }}>
+            <span style={{ background: "#f3f4f6", color: "#4b5563", border: "1px solid #e5e7eb", padding: "9px 14px", borderRadius: 10, fontSize: 12, display: "block", textAlign: "center", fontWeight: 600 }}>
+              {campo.tipo === "vendedor" ? "👤 Vendedor" : campo.tipo === "telefone" ? "📞 Telefone" : campo.tipo === "email" ? "📧 E-mail" : campo.tipo === "data" ? "📅 Data" : campo.tipo === "moeda" ? "💰 Valor (R$)" : campo.tipo === "dropdown" ? "📋 Seleção" : "📝 Texto"}
+            </span>
+          </div>
+        ) : (
+          <select
+            value={campo.tipo}
+            onChange={(e) => {
+              const novoTipo = e.target.value as TipoCustom;
+              atualizar(idx, { tipo: novoTipo, opcoes: novoTipo === "dropdown" ? (campo.opcoes || [""]) : [] });
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#f3e8ff"; e.currentTarget.style.borderColor = "#a855f7"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#ffffff"; e.currentTarget.style.borderColor = "#ddd6fe"; }}>
-            ➕ Adicionar campo personalizado
+            style={{ ...inputStyle, minWidth: 170 }}
+          >
+            {TIPOS_CUSTOM.map(t => <option key={t.valor} value={t.valor}>{t.icone} {t.label}</option>)}
+          </select>
+        ))}
+
+        {/* Botão remover/ocultar */}
+        <button onClick={() => remover(idx)}
+          title={ehFixo ? "Ocultar campo (não pode ser deletado)" : "Remover campo"}
+          style={{
+            background: ehFixo ? "#fffbeb" : "#fef2f2",
+            color: ehFixo ? "#f59e0b" : "#dc2626",
+            border: `1px solid ${ehFixo ? "#fde68a" : "#fecaca"}`,
+            borderRadius: 10, padding: "9px 12px", fontSize: 14,
+            cursor: "pointer", height: 38, whiteSpace: "nowrap", fontWeight: 600,
+          }}>{ehFixo ? "👁️‍🗨️" : "🗑️"}</button>
+      </div>
+
+      {/* Linha 2: tipo no mobile + badges no mobile */}
+      {isMobile && (
+        <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{
+            background: bgBadge, color: corBadge,
+            border: `1px solid ${borderBadge}`,
+            padding: "3px 10px", borderRadius: 10, fontSize: 10,
+            fontWeight: 700, whiteSpace: "nowrap",
+          }}>{labelBadge}</span>
+          {ehFixo ? (
+            <span style={{ background: "#f3f4f6", color: "#4b5563", border: "1px solid #e5e7eb", padding: "5px 10px", borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
+              {campo.tipo === "vendedor" ? "👤 Vendedor" : campo.tipo === "telefone" ? "📞 Telefone" : campo.tipo === "email" ? "📧 E-mail" : campo.tipo === "data" ? "📅 Data" : campo.tipo === "moeda" ? "💰 Valor" : campo.tipo === "dropdown" ? "📋 Seleção" : "📝 Texto"}
+            </span>
+          ) : (
+            <select value={campo.tipo}
+              onChange={(e) => {
+                const novoTipo = e.target.value as TipoCustom;
+                atualizar(idx, { tipo: novoTipo, opcoes: novoTipo === "dropdown" ? (campo.opcoes || [""]) : [] });
+              }}
+              style={{ ...inputStyle, flex: 1, padding: "5px 10px", fontSize: 12 }}>
+              {TIPOS_CUSTOM.map(t => <option key={t.valor} value={t.valor}>{t.icone} {t.label}</option>)}
+            </select>
+          )}
+        </div>
+      )}
+
+      {/* Linha 3: Toggles */}
+      <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <label style={{
+          display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+          background: campo.obrigatorio ? "#f0fdf4" : "#ffffff",
+          border: `1px solid ${campo.obrigatorio ? "#bbf7d0" : "#e5e7eb"}`,
+          padding: "5px 11px", borderRadius: 8,
+        }}>
+          <input type="checkbox" checked={campo.obrigatorio}
+            onChange={(e) => atualizar(idx, { obrigatorio: e.target.checked })}
+            style={{ accentColor: "#16a34a", width: 14, height: 14, cursor: "pointer" }} />
+          <span style={{ color: campo.obrigatorio ? "#16a34a" : "#6b7280", fontSize: 11, fontWeight: 600 }}>⭐ Obrigatório</span>
+        </label>
+
+        <label style={{
+          display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+          background: campo.visivel ? "#eff6ff" : "#f3f4f6",
+          border: `1px solid ${campo.visivel ? "#bfdbfe" : "#e5e7eb"}`,
+          padding: "5px 11px", borderRadius: 8,
+        }}>
+          <input type="checkbox" checked={campo.visivel}
+            onChange={(e) => atualizar(idx, { visivel: e.target.checked })}
+            style={{ accentColor: campo.visivel ? "#3b82f6" : "#9ca3af", width: 14, height: 14, cursor: "pointer" }} />
+          <span style={{ color: campo.visivel ? "#3b82f6" : "#6b7280", fontSize: 11, fontWeight: 600 }}>
+            {campo.visivel ? "👁️ Visível" : "🙈 Oculto"}
+          </span>
+        </label>
+
+        <label style={{
+          display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+          background: (campo as any).mostrar_na_lista ? "#fffbeb" : "#ffffff",
+          border: `1px solid ${(campo as any).mostrar_na_lista ? "#fde68a" : "#e5e7eb"}`,
+          padding: "5px 11px", borderRadius: 8,
+        }}>
+          <input type="checkbox" checked={!!(campo as any).mostrar_na_lista}
+            onChange={(e) => atualizar(idx, { mostrar_na_lista: e.target.checked } as any)}
+            style={{ accentColor: "#f59e0b", width: 14, height: 14, cursor: "pointer" }} />
+          <span style={{ color: (campo as any).mostrar_na_lista ? "#d97706" : "#6b7280", fontSize: 11, fontWeight: 600 }}>
+            📊 Tela principal
+          </span>
+        </label>
+
+        {(campo.tipo === "texto" || campo.tipo === "textarea" || campo.tipo === "numero" || campo.tipo === "moeda" || campo.tipo === "telefone" || campo.tipo === "email") && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 200 }}>
+            <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>Placeholder:</span>
+            <input placeholder="Texto de exemplo (opcional)"
+              value={campo.placeholder || ""}
+              onChange={(e) => atualizar(idx, { placeholder: e.target.value })}
+              style={{ ...inputStyle, padding: "5px 10px", fontSize: 11, flex: 1 }} />
+          </div>
+        )}
+      </div>
+
+      {/* Linha 4: Opções pra dropdown */}
+      {campo.tipo === "dropdown" && (
+        <div style={{ marginTop: 12, padding: 12, background: "#ffffff", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+          <p style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px", fontWeight: 700 }}>
+            📋 Opções do dropdown
+            {ehFixo && (
+              <span style={{ color: "#9ca3af", fontSize: 10, marginLeft: 8, textTransform: "none", fontWeight: 500, fontStyle: "italic" }}>
+                (você pode editar — vai sobrescrever a do sistema)
+              </span>
+            )}
+          </p>
+          {(campo.opcoes || []).map((op: string, opIdx: number) => (
+            <div key={opIdx} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+              <input placeholder={`Opção ${opIdx + 1}`} value={op}
+                onChange={(e) => atualizarOpcao(idx, opIdx, e.target.value)}
+                style={{ ...inputStyle, padding: "6px 12px", fontSize: 12 }} />
+              <button onClick={() => removerOpcao(idx, opIdx)}
+                style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✕</button>
+            </div>
+          ))}
+          <button onClick={() => adicionarOpcao(idx)}
+            style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700, marginTop: 4 }}>
+            ➕ Adicionar opção
           </button>
+          {ehFixo && campo.slug === "status_venda" && (
+            <p style={{ color: "#92400e", fontSize: 10, margin: "10px 0 0", fontStyle: "italic", background: "#fffbeb", padding: "6px 10px", borderRadius: 6, border: "1px solid #fde68a" }}>
+              ⚠️ Status novos não terão cor personalizada na lista de vendas — vão aparecer em cinza.
+            </p>
+          )}
         </div>
       )}
     </div>

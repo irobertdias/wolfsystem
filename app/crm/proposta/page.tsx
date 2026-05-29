@@ -557,15 +557,19 @@ function PropostaForm() {
   const camposObrigPreenchidos = useMemo(() => camposObrig.filter(isCampoPreenchido).length, [camposObrig, form, dadosCustomizados]);
   const pctTotal = camposObrig.length === 0 ? 100 : Math.round((camposObrigPreenchidos / camposObrig.length) * 100);
 
-  // Campos agrupados por seção (ordenados)
+  // Campos agrupados por seção (ordenados pela ordem do PRIMEIRO campo de cada seção)
   const secoesAgrupadas = useMemo(() => {
-    const mapa = new Map<string, CampoUnificado[]>();
+    const mapa = new Map<string, { campos: CampoUnificado[]; ordemMin: number }>();
+    let ordemSequencial = 0;
     for (const c of camposUnificados) {
       const sec = getSecaoKey(c);
-      if (!mapa.has(sec)) mapa.set(sec, []);
-      mapa.get(sec)!.push(c);
+      if (!mapa.has(sec)) {
+        // Primeira aparição da seção → guarda a "ordem" que ela apareceu
+        mapa.set(sec, { campos: [], ordemMin: ordemSequencial++ });
+      }
+      mapa.get(sec)!.campos.push(c);
     }
-    const lista = Array.from(mapa.entries()).map(([key, campos]) => {
+    const lista = Array.from(mapa.entries()).map(([key, { campos, ordemMin }]) => {
       // FIX react-error-31: SECOES_LABEL pode ser string OU objeto {titulo, cor}
       const labelRaw = (SECOES_LABEL as any)?.[key];
       const label = typeof labelRaw === "string"
@@ -578,9 +582,11 @@ function PropostaForm() {
         label,
         meta: corCustom ? { ...metaBase, cor: corCustom } : metaBase,
         campos,
+        ordemMin,
       };
     });
-    return lista.sort((a, b) => (a.meta.ordem || 99) - (b.meta.ordem || 99));
+    // Ordena pela ordem em que a seção apareceu nos campos (campos já vêm ordenados por `ordem`)
+    return lista.sort((a, b) => a.ordemMin - b.ordemMin);
   }, [camposUnificados]);
 
   // Progresso por seção
