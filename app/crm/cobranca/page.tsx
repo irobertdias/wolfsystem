@@ -49,6 +49,31 @@ type Campanha = {
   total_falhas: number; created_at: string; finalizado_em?: string;
 };
 
+// 🆕 Status de fatura — persistido na tabela `faturas_status`
+type StatusFatura = "pendente" | "paga" | "atrasada";
+type FaturaStatusDB = {
+  workspace_id: string; proposta_id: number; numero_referencia: string;
+  status: StatusFatura; data_pagamento?: string | null; forma_pagamento?: string | null;
+  valor_pago?: number | null; observacoes?: string | null;
+  atualizado_por?: string | null; updated_at?: string;
+};
+
+// 🆕 Fatura calculada dinamicamente a partir de proposta.data_instalacao + vencimento + valor_plano
+//    O VALOR e a DATA não ficam no banco — só o status (paga/atrasada/etc).
+type Fatura = {
+  proposta: Proposta;
+  numero_referencia: string;     // "2026-06" — chave do mês
+  data_vencimento: Date;
+  valor: number;
+  proporcional: boolean;          // true só pra primeira fatura (com dias extras)
+  dias_cobertos: number;
+  status: StatusFatura;            // status NO BANCO
+  status_visual: StatusFatura;     // status considerando vencimento (pendente vencida → "atrasada")
+  data_pagamento?: string | null;
+  observacoes?: string | null;
+  dias_atraso: number;             // negativo = ainda não venceu; positivo = atrasada
+};
+
 type AbaKey = "do_crm" | "planilha" | "campanhas";
 type FiltroVenc = "todos" | "hoje" | "vencendo_7d" | "vencidos" | "este_mes";
 
@@ -63,47 +88,104 @@ const formatBRLCompacto = (v: number): string => {
   return formatBRL(v);
 };
 
-// Calcula a próxima ocorrência do vencimento (dia do mês) a partir de hoje.
-// Retorna { data: Date, diasRestantes: number, status: "hoje"|"vencendo"|"atrasado"|"futuro" }
-const calcularVencimento = (diaStr: string | null | undefined) => {
-  if (!diaStr) return null;
-  const dia = parseInt(String(diaStr).replace(/\D/g, ""), 10);
-  if (isNaN(dia) || dia < 1 || dia > 31) return null;
+// 🆕 Formata data como DD/MM/AA
+const formatData = (d: Date | string | null | undefined) => {
+  if (!d) return "—";
+  const dt = typeof d === "string" ? new Date(d + (d.length === 10 ? "T00:00:00" : "")) : d;
+  if (isNaN(dt.getTime())) return "—";
+  return dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+};
+
+// 🆕 numero_referencia = "YYYY-MM" do mês de vencimento
+const formatNumeroRef = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+const formatMesExtenso = (numRef: string): string => {
+  const [ano, mes] = numRef.split("-");
+  const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  return `${meses[parseInt(mes, 10) - 1]}/${ano.slice(2)}`;
+};
+
+// 🆕 Regra do Robert pra 1ª fatura:
+//   • vence em (data_instalacao + 30d) ajustado pro próximo dia X do vencimento
+//   • valor = mensalidade + proporcional dos dias EXTRAS (entre +30d e o dia X)
+const calcularPrimeiraFatura = (dataInstalacao: Date, diaVencimento: number) => {
+  if (isNaN(dataInstalacao.getTime())) return null;
+  if (diaVencimento < 1 || diaVencimento > 31) return null;
+  const trintaDiasDepois = new Date(dataInstalacao);
+  trintaDiasDepois.setDate(trintaDiasDepois.getDate() + 30);
+  let venc = new Date(trintaDiasDepois.getFullYear(), trintaDiasDepois.getMonth(), diaVencimento);
+  if (venc.getTime() < trintaDiasDepois.getTime()) {
+    venc = new Date(trintaDiasDepois.getFullYear(), trintaDiasDepois.getMonth() + 1, diaVencimento);
+  }
+  const diasProp = Math.round((venc.getTime() - trintaDiasDepois.getTime()) / 86400000);
+  return { vencimento: venc, diasCobertos: 30 + diasProp, proporcional: diasProp };
+};
+
+// 🆕 Gera todas as faturas até "hoje + ateMeses" pra dar visibilidade do que tá por vir.
+const gerarFaturasDeProposta = (p: Proposta, ateMeses: number = 2): Fatura[] => {
+  if (!p.data_instalacao || !p.vencimento || !p.valor_plano) return [];
+  const diaVenc = parseInt(String(p.vencimento).replace(/\D/g, ""), 10);
+  if (isNaN(diaVenc)) return [];
+  const inst = new Date(p.data_instalacao + (p.data_instalacao.length === 10 ? "T00:00:00" : ""));
+  if (isNaN(inst.getTime())) return [];
+  const valorMensal = p.valor_plano;
+  const primeira = calcularPrimeiraFatura(inst, diaVenc);
+  if (!primeira) return [];
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
-  const diaHoje = hoje.getDate();
-  let venc: Date;
-  if (dia >= diaHoje) {
-    // Vence ainda neste mês
-    venc = new Date(hoje.getFullYear(), hoje.getMonth(), dia);
-  } else {
-    // Já passou → última ocorrência foi mês passado, próxima é mês que vem.
-    // Pra fins de "atrasado", usa o mês passado como referência.
-    venc = new Date(hoje.getFullYear(), hoje.getMonth() - 1, dia);
+  const limite = new Date(hoje.getFullYear(), hoje.getMonth() + ateMeses, diaVenc);
+
+  type FaturaBase = Omit<Fatura, "proposta" | "status" | "status_visual" | "dias_atraso" | "data_pagamento" | "observacoes">;
+  const faturas: FaturaBase[] = [];
+  const valorPrimeira = valorMensal + (valorMensal / 30) * primeira.proporcional;
+  faturas.push({
+    numero_referencia: formatNumeroRef(primeira.vencimento),
+    data_vencimento: primeira.vencimento,
+    valor: Math.round(valorPrimeira * 100) / 100,
+    proporcional: primeira.proporcional > 0,
+    dias_cobertos: primeira.diasCobertos,
+  });
+  let proxVenc = new Date(primeira.vencimento);
+  while (true) {
+    proxVenc = new Date(proxVenc.getFullYear(), proxVenc.getMonth() + 1, diaVenc);
+    if (proxVenc.getTime() > limite.getTime()) break;
+    faturas.push({
+      numero_referencia: formatNumeroRef(proxVenc),
+      data_vencimento: new Date(proxVenc),
+      valor: valorMensal, proporcional: false, dias_cobertos: 30,
+    });
   }
-  const diasRest = Math.round((venc.getTime() - hoje.getTime()) / 86400000);
-  let status: "hoje" | "vencendo" | "atrasado" | "futuro";
-  if (diasRest === 0) status = "hoje";
-  else if (diasRest < 0) status = "atrasado";
-  else if (diasRest <= 7) status = "vencendo";
-  else status = "futuro";
-  return { data: venc, diasRestantes: diasRest, status };
+  return faturas.map(f => ({
+    ...f, proposta: p,
+    status: "pendente" as StatusFatura, status_visual: "pendente" as StatusFatura,
+    dias_atraso: 0, data_pagamento: null, observacoes: null,
+  }));
 };
 
-const formatDiasVencimento = (info: ReturnType<typeof calcularVencimento>) => {
-  if (!info) return "—";
-  if (info.status === "hoje") return "⏰ Vence hoje";
-  if (info.status === "atrasado") return `🔴 Vencido há ${Math.abs(info.diasRestantes)}d`;
-  if (info.status === "vencendo") return `🟡 Em ${info.diasRestantes}d`;
-  return `🟢 Em ${info.diasRestantes}d`;
+// 🆕 Mescla cálculo + status do banco. Calcula dias_atraso e status_visual ("atrasada" se pendente vencida).
+const aplicarStatusEAtrasos = (faturas: Fatura[], statusMap: Map<string, FaturaStatusDB>): Fatura[] => {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return faturas.map(f => {
+    const chave = `${f.proposta.id}_${f.numero_referencia}`;
+    const db = statusMap.get(chave);
+    const status = db?.status || "pendente";
+    const diasAtraso = Math.round((hoje.getTime() - f.data_vencimento.getTime()) / 86400000);
+    const visual: StatusFatura = (status === "pendente" && diasAtraso > 0) ? "atrasada" : status;
+    return {
+      ...f, status, status_visual: visual, dias_atraso: diasAtraso,
+      data_pagamento: db?.data_pagamento || null,
+      observacoes: db?.observacoes || null,
+    };
+  });
 };
 
-const corDoStatusVenc = (s: ReturnType<typeof calcularVencimento>) => {
-  if (!s) return "#9ca3af";
-  if (s.status === "atrasado") return "#dc2626";
-  if (s.status === "hoje") return "#ea580c";
-  if (s.status === "vencendo") return "#f59e0b";
-  return "#16a34a";
+// 🆕 Helper visual: cor + label do status da fatura
+const corStatus = (s: StatusFatura) => {
+  if (s === "paga")     return { bg: "#f0fdf4", border: "#bbf7d0", color: "#16a34a", label: "✓ Paga" };
+  if (s === "atrasada") return { bg: "#fef2f2", border: "#fecaca", color: "#dc2626", label: "🔴 Atrasada" };
+  return                       { bg: "#fffbeb", border: "#fde68a", color: "#d97706", label: "⏳ A pagar" };
 };
 
 const normalizarTelefone = (t: string | null | undefined): string => {
@@ -175,11 +257,23 @@ export default function CobrancaPage() {
   const [canais, setCanais] = useState<Canal[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
+  // 🆕 Status persistido das faturas (chave = "propostaId_YYYY-MM")
+  const [statusMap, setStatusMap] = useState<Map<string, FaturaStatusDB>>(new Map());
 
   // ─── ABA "DO CRM" ───────────────────────────────────────────────────────
   const [filtroVenc, setFiltroVenc] = useState<FiltroVenc>("vencendo_7d");
   const [filtroBusca, setFiltroBusca] = useState("");
-  const [selecionadosCrm, setSelecionadosCrm] = useState<Set<number>>(new Set());
+  // 🆕 Seleção agora é por chave de FATURA (propostaId_numRef), não por propostaId
+  const [selecionadasFat, setSelecionadasFat] = useState<Set<string>>(new Set());
+  // 🆕 Filtro adicional de status da fatura
+  const [filtroStatus, setFiltroStatus] = useState<"todas" | "pendentes" | "atrasadas" | "pagas">("todas");
+
+  // 🆕 Modal "marcar como paga" — pergunta data, forma de pagamento, valor pago, obs
+  const [showMarcarPaga, setShowMarcarPaga] = useState<Fatura | null>(null);
+  const [marcarPagaData, setMarcarPagaData] = useState("");
+  const [marcarPagaForma, setMarcarPagaForma] = useState("");
+  const [marcarPagaValor, setMarcarPagaValor] = useState("");
+  const [marcarPagaObs, setMarcarPagaObs] = useState("");
 
   // ─── ABA "PLANILHA" ─────────────────────────────────────────────────────
   const [planilhaLinhas, setPlanilhaLinhas] = useState<any[][]>([]);   // primeira linha = cabeçalho
@@ -197,7 +291,7 @@ export default function CobrancaPage() {
   const [envioTipo, setEnvioTipo] = useState<"webjs" | "waba">("webjs");
   const [envioTemplateId, setEnvioTemplateId] = useState<number | null>(null);
   const [envioMensagem, setEnvioMensagem] = useState(
-    "Olá {{nome}}! 👋\n\nLembrete: sua fatura de {{plano}} no valor de {{valor}} vence dia {{vencimento}}.\n\nPara evitar atrasos, faça o pagamento até o vencimento.\n\nQualquer dúvida, estou à disposição!"
+    "Olá {{nome}}! 👋\n\nLembrete: sua fatura referente a {{mes_referencia}} no valor de {{valor}} vence em {{vencimento}}.\n\nPara evitar atrasos, faça o pagamento até o vencimento.\n\nQualquer dúvida, estou à disposição!"
   );
   const [envioNomeCampanha, setEnvioNomeCampanha] = useState("");
   const [envioDelayMin, setEnvioDelayMin] = useState(30);
@@ -208,6 +302,7 @@ export default function CobrancaPage() {
   const [feedback, setFeedback] = useState<{
     tipo: "erro" | "aviso" | "sucesso" | "info";
     titulo: string; mensagem: string; detalhes?: string[];
+    onConfirmar?: () => void; confirmarLabel?: string;
   } | null>(null);
 
   // ─── INIT ───────────────────────────────────────────────────────────────
@@ -225,14 +320,34 @@ export default function CobrancaPage() {
     const ch = supabase.channel("cobranca_rt_" + wsId)
       .on("postgres_changes", { event: "*", schema: "public", table: "proposta", filter: `workspace_id=eq.${wsId}` }, () => fetchPropostas())
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes", filter: `workspace_id=eq.${wsId}` }, () => fetchCanais())
+      .on("postgres_changes", { event: "*", schema: "public", table: "faturas_status", filter: `workspace_id=eq.${wsId}` }, () => fetchStatusFaturas())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [wsId]);
 
   async function fetchTudo() {
     setLoading(true);
-    await Promise.all([fetchPropostas(), fetchCanais(), fetchTemplates(), fetchCampanhas()]);
+    await Promise.all([fetchPropostas(), fetchStatusFaturas(), fetchCanais(), fetchTemplates(), fetchCampanhas()]);
     setLoading(false);
+  }
+
+  // 🆕 Status das faturas (paga/atrasada/etc) — gracioso se a tabela ainda não existir
+  async function fetchStatusFaturas() {
+    if (!wsId) return;
+    try {
+      const { data, error } = await supabase
+        .from("faturas_status")
+        .select("*")
+        .eq("workspace_id", wsId);
+      if (error) {
+        console.warn("[Cobrança] tabela faturas_status ainda não existe — rode migration-faturas-status.sql");
+        setStatusMap(new Map());
+        return;
+      }
+      const m = new Map<string, FaturaStatusDB>();
+      for (const r of (data || [])) m.set(`${r.proposta_id}_${r.numero_referencia}`, r);
+      setStatusMap(m);
+    } catch { setStatusMap(new Map()); }
   }
 
   async function fetchPropostas() {
@@ -282,85 +397,190 @@ export default function CobrancaPage() {
     } catch { /* tabela ainda não existe */ }
   }
 
-  // ─── DADOS DERIVADOS — INSTALADOS COM VENCIMENTO ────────────────────────
-  const instalados = useMemo(() => {
-    return propostas
-      .filter(p => (p.status_venda || "").toUpperCase() === "INSTALADA")
-      .map(p => {
-        const venc = calcularVencimento(p.vencimento);
-        return { ...p, vencInfo: venc };
-      });
-  }, [propostas]);
+  // 🆕 TODAS as faturas geradas pra clientes INSTALADOS (calculadas dinamicamente).
+  //    Cada fatura tem status_visual ("atrasada" se pendente e vencida).
+  const todasFaturas = useMemo<Fatura[]>(() => {
+    const instalados = propostas.filter(p => (p.status_venda || "").toUpperCase() === "INSTALADA");
+    const result: Fatura[] = [];
+    for (const p of instalados) result.push(...gerarFaturasDeProposta(p));
+    return aplicarStatusEAtrasos(result, statusMap);
+  }, [propostas, statusMap]);
 
-  // Filtrados pela seleção atual do CRM
-  const instaladosFiltrados = useMemo(() => {
-    let arr = instalados;
+  // Filtros aplicados na aba "Do CRM"
+  const faturasFiltradas = useMemo(() => {
+    let arr = todasFaturas;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
 
+    // Período de vencimento
     if (filtroVenc !== "todos") {
-      arr = arr.filter(p => {
-        if (!p.vencInfo) return false;
-        if (filtroVenc === "hoje") return p.vencInfo.status === "hoje";
-        if (filtroVenc === "vencendo_7d") return p.vencInfo.status === "hoje" || p.vencInfo.status === "vencendo";
-        if (filtroVenc === "vencidos") return p.vencInfo.status === "atrasado";
+      arr = arr.filter(f => {
+        const dias = f.dias_atraso;
+        if (filtroVenc === "hoje") return dias === 0;
+        if (filtroVenc === "vencendo_7d") return dias >= -7 && dias <= 0;
+        if (filtroVenc === "vencidos") return dias > 0 && f.status !== "paga";
         if (filtroVenc === "este_mes") {
-          const hoje = new Date();
-          return p.vencInfo.data.getMonth() === hoje.getMonth() && p.vencInfo.data.getFullYear() === hoje.getFullYear();
+          return f.data_vencimento.getMonth() === hoje.getMonth() && f.data_vencimento.getFullYear() === hoje.getFullYear();
         }
         return true;
       });
     }
 
+    // Status da fatura
+    if (filtroStatus === "pendentes")      arr = arr.filter(f => f.status_visual === "pendente");
+    else if (filtroStatus === "atrasadas") arr = arr.filter(f => f.status_visual === "atrasada");
+    else if (filtroStatus === "pagas")     arr = arr.filter(f => f.status_visual === "paga");
+
+    // Busca textual
     if (filtroBusca) {
       const b = filtroBusca.toLowerCase();
-      arr = arr.filter(p =>
-        (p.nome || "").toLowerCase().includes(b) ||
-        (p.telefone1 || "").includes(b) ||
-        (p.plano || "").toLowerCase().includes(b)
+      arr = arr.filter(f =>
+        (f.proposta.nome || "").toLowerCase().includes(b) ||
+        (f.proposta.telefone1 || "").includes(b) ||
+        (f.proposta.plano || "").toLowerCase().includes(b)
       );
     }
 
-    // Ordena: atrasado → hoje → vencendo → futuro
-    const peso = { atrasado: 0, hoje: 1, vencendo: 2, futuro: 3 };
+    // Ordena: atrasada → pendente → paga; dentro disso, por data
     return [...arr].sort((a, b) => {
-      const pa = a.vencInfo ? peso[a.vencInfo.status] : 99;
-      const pb = b.vencInfo ? peso[b.vencInfo.status] : 99;
-      if (pa !== pb) return pa - pb;
-      return (a.vencInfo?.diasRestantes || 0) - (b.vencInfo?.diasRestantes || 0);
+      const ordem = { atrasada: 0, pendente: 1, paga: 2 };
+      const oa = ordem[a.status_visual] ?? 3;
+      const ob = ordem[b.status_visual] ?? 3;
+      if (oa !== ob) return oa - ob;
+      return a.data_vencimento.getTime() - b.data_vencimento.getTime();
     });
-  }, [instalados, filtroVenc, filtroBusca]);
+  }, [todasFaturas, filtroVenc, filtroStatus, filtroBusca]);
 
-  // ─── KPIs ───────────────────────────────────────────────────────────────
+  // 🆕 KPIs baseados em faturas (não em clientes)
   const kpis = useMemo(() => {
-    let receitaMes = 0, vencendo = 0, vencidos = 0, totalInst = 0, valorVencendo = 0, valorVencidos = 0;
-    for (const p of instalados) {
-      totalInst++;
-      receitaMes += p.valor_plano || 0;
-      if (!p.vencInfo) continue;
-      if (p.vencInfo.status === "hoje" || p.vencInfo.status === "vencendo") {
-        vencendo++;
-        valorVencendo += p.valor_plano || 0;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    let aReceberMes = 0, recebidoMes = 0, atrasado = 0, totalMes = 0, pagasMes = 0, atrasadasCnt = 0;
+    for (const f of todasFaturas) {
+      const ehDesteMes = f.data_vencimento.getMonth() === hoje.getMonth() && f.data_vencimento.getFullYear() === hoje.getFullYear();
+      if (ehDesteMes) {
+        totalMes++;
+        if (f.status_visual === "paga") { pagasMes++; recebidoMes += f.valor; }
+        else aReceberMes += f.valor;
       }
-      if (p.vencInfo.status === "atrasado") {
-        vencidos++;
-        valorVencidos += p.valor_plano || 0;
-      }
+      if (f.status_visual === "atrasada") { atrasado += f.valor; atrasadasCnt++; }
     }
-    return { receitaMes, vencendo, vencidos, totalInst, valorVencendo, valorVencidos };
-  }, [instalados]);
+    const inadimplencia = totalMes > 0 ? Math.round((atrasadasCnt / totalMes) * 100) : 0;
+    return { aReceberMes, recebidoMes, atrasado, atrasadasCnt, pagasMes, totalMes, inadimplencia };
+  }, [todasFaturas]);
 
-  // ─── SELEÇÃO ────────────────────────────────────────────────────────────
-  const toggleSelCrm = (id: number) => {
-    setSelecionadosCrm(prev => {
-      const novo = new Set(prev);
-      if (novo.has(id)) novo.delete(id); else novo.add(id);
-      return novo;
+  // ─── SELEÇÃO (por chave de fatura: "propostaId_numRef") ────────────────
+  const chaveSelecao = (f: Fatura) => `${f.proposta.id}_${f.numero_referencia}`;
+  const toggleSelFat = (k: string) => {
+    setSelecionadasFat(prev => { const n = new Set(prev); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  };
+  const selecionarTodasFat = () => {
+    setSelecionadasFat(prev => prev.size === faturasFiltradas.length ? new Set() : new Set(faturasFiltradas.map(chaveSelecao)));
+  };
+
+  // 🆕 AÇÕES POR FATURA — gravam status na tabela faturas_status (upsert)
+  const abrirMarcarPaga = (f: Fatura) => {
+    setMarcarPagaData(new Date().toISOString().slice(0, 10));
+    setMarcarPagaForma(f.proposta.forma_pagamento || "");
+    setMarcarPagaValor(String(f.valor.toFixed(2)));
+    setMarcarPagaObs("");
+    setShowMarcarPaga(f);
+  };
+
+  const confirmarMarcarPaga = async () => {
+    if (!showMarcarPaga || !wsId) return;
+    const f = showMarcarPaga;
+    const { error } = await supabase.from("faturas_status").upsert({
+      workspace_id: wsId,
+      proposta_id: f.proposta.id,
+      numero_referencia: f.numero_referencia,
+      status: "paga",
+      data_pagamento: marcarPagaData || new Date().toISOString().slice(0, 10),
+      forma_pagamento: marcarPagaForma || null,
+      valor_pago: marcarPagaValor ? parseFloat(marcarPagaValor.replace(",", ".")) : f.valor,
+      observacoes: marcarPagaObs || null,
+      atualizado_por: user?.email || null,
+    }, { onConflict: "workspace_id,proposta_id,numero_referencia" });
+    if (error) {
+      setFeedback({ tipo: "erro", titulo: "Não foi possível marcar como paga", mensagem: error.message });
+      return;
+    }
+    setShowMarcarPaga(null);
+    await fetchStatusFaturas();
+  };
+
+  const marcarAPagar = async (f: Fatura) => {
+    if (!wsId) return;
+    const { error } = await supabase.from("faturas_status").upsert({
+      workspace_id: wsId, proposta_id: f.proposta.id, numero_referencia: f.numero_referencia,
+      status: "pendente", data_pagamento: null, valor_pago: null,
+      atualizado_por: user?.email || null,
+    }, { onConflict: "workspace_id,proposta_id,numero_referencia" });
+    if (error) {
+      setFeedback({ tipo: "erro", titulo: "Erro ao atualizar", mensagem: error.message });
+      return;
+    }
+    await fetchStatusFaturas();
+  };
+
+  // 🆕 "Cliente cancelou" → atualiza a PROPOSTA (status_venda=CANCELADA).
+  //    As faturas dele param de aparecer (filtro INSTALADA), mas histórico continua.
+  const clienteCancelou = (f: Fatura) => {
+    setFeedback({
+      tipo: "aviso",
+      titulo: "Cliente cancelou o serviço?",
+      mensagem: `Isso vai mudar o status da proposta de ${f.proposta.nome || "—"} para CANCELADA. As faturas dele param de aparecer na cobrança. Faturas já pagas ficam no histórico.`,
+      onConfirmar: async () => {
+        setFeedback(null);
+        if (!wsId) return;
+        const { error } = await supabase
+          .from("proposta")
+          .update({ status_venda: "CANCELADA", data_cancelamento: new Date().toISOString().slice(0, 10) })
+          .eq("id", f.proposta.id)
+          .eq("workspace_id", wsId);
+        if (error) {
+          setFeedback({ tipo: "erro", titulo: "Erro ao cancelar", mensagem: error.message });
+          return;
+        }
+        await fetchPropostas();
+        setFeedback({ tipo: "sucesso", titulo: "Cliente cancelado", mensagem: `${f.proposta.nome || "—"} foi marcado como CANCELADA no CRM.` });
+      },
     });
   };
-  const selecionarTodosCrm = () => {
-    setSelecionadosCrm(prev => {
-      if (prev.size === instaladosFiltrados.length) return new Set();
-      return new Set(instaladosFiltrados.map(p => p.id));
-    });
+
+  // ─── ABRIR MODAL DE ENVIO ──────────────────────────────────────────────
+  const abrirEnvioCrm = () => {
+    if (selecionadasFat.size === 0) {
+      setFeedback({ tipo: "aviso", titulo: "Nenhuma fatura selecionada", mensagem: "Marque ao menos uma fatura pra disparar a cobrança." });
+      return;
+    }
+    const contatos = faturasFiltradas
+      .filter(f => selecionadasFat.has(chaveSelecao(f)))
+      .map(f => {
+        const p = f.proposta;
+        const tel = normalizarTelefone(p.telefone1) || normalizarTelefone(p.telefone2) || normalizarTelefone(p.telefone3);
+        return {
+          nome: p.nome || "Cliente", telefone: tel,
+          vars: {
+            nome: p.nome || "Cliente", telefone: tel,
+            plano: p.plano || "",
+            valor: formatBRL(f.valor),
+            vencimento: formatData(f.data_vencimento),
+            mes_referencia: formatMesExtenso(f.numero_referencia),
+            dias_atraso: f.dias_atraso > 0 ? String(f.dias_atraso) : "0",
+            operadora: p.operadora || "",
+          },
+        };
+      })
+      .filter(c => c.telefone.length >= 10);
+    if (contatos.length === 0) {
+      setFeedback({ tipo: "aviso", titulo: "Nenhum telefone válido", mensagem: "Os clientes selecionados não têm telefone com 10+ dígitos." });
+      return;
+    }
+    setEnvioFonte("crm");
+    setEnvioContatos(contatos);
+    setEnvioNomeCampanha(`Cobrança CRM ${new Date().toLocaleDateString("pt-BR")} (${contatos.length} faturas)`);
+    setShowEnvio(true);
   };
 
   // ─── UPLOAD DE PLANILHA ────────────────────────────────────────────────
@@ -452,41 +672,7 @@ export default function CobrancaPage() {
     });
   };
 
-  // ─── ABRIR MODAL DE ENVIO ──────────────────────────────────────────────
-  const abrirEnvioCrm = () => {
-    if (selecionadosCrm.size === 0) {
-      setFeedback({ tipo: "aviso", titulo: "Nenhum cliente selecionado", mensagem: "Marque os clientes que vc quer cobrar pra continuar." });
-      return;
-    }
-    const contatos = instaladosFiltrados
-      .filter(p => selecionadosCrm.has(p.id))
-      .map(p => {
-        const tel = normalizarTelefone(p.telefone1) || normalizarTelefone(p.telefone2) || normalizarTelefone(p.telefone3);
-        return {
-          nome: p.nome || "Cliente",
-          telefone: tel,
-          vars: {
-            nome: p.nome || "Cliente",
-            telefone: tel,
-            plano: p.plano || "",
-            valor: p.valor_plano ? formatBRL(p.valor_plano) : "",
-            vencimento: p.vencimento || "",
-            operadora: p.operadora || "",
-          },
-        };
-      })
-      .filter(c => c.telefone.length >= 10);
-
-    if (contatos.length === 0) {
-      setFeedback({ tipo: "aviso", titulo: "Nenhum telefone válido", mensagem: "Nenhum dos clientes selecionados tem telefone válido (10+ dígitos)." });
-      return;
-    }
-    setEnvioFonte("crm");
-    setEnvioContatos(contatos);
-    setEnvioNomeCampanha(`Cobrança CRM ${new Date().toLocaleDateString("pt-BR")} (${contatos.length} contatos)`);
-    setShowEnvio(true);
-  };
-
+  // ─── ABRIR MODAL DE ENVIO PRA PLANILHA ─────────────────────────────────
   const abrirEnvioPlanilha = () => {
     const idsParaEnvio = selecionadosPlanilha.size > 0
       ? linhasValidas.filter((_, i) => selecionadosPlanilha.has(i))
@@ -571,7 +757,7 @@ export default function CobrancaPage() {
       const data = await resp.json();
       if (data.success) {
         setShowEnvio(false);
-        setSelecionadosCrm(new Set());
+        setSelecionadasFat(new Set());
         setSelecionadosPlanilha(new Set());
         setFeedback({
           tipo: "sucesso",
@@ -634,10 +820,10 @@ export default function CobrancaPage() {
 
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 10 : 14 }}>
-        <KPI cor="#16a34a" bg="#f0fdf4" icone="💵" label="A receber (mês)" valor={formatBRLCompacto(kpis.receitaMes)} sub={`${kpis.totalInst} instalados`} isMobile={isMobile} />
-        <KPI cor="#f59e0b" bg="#fffbeb" icone="🟡" label="Vencendo (7d)" valor={formatNum(kpis.vencendo)} sub={`${formatBRLCompacto(kpis.valorVencendo)} em jogo`} isMobile={isMobile} />
-        <KPI cor="#dc2626" bg="#fef2f2" icone="🔴" label="Vencidos" valor={formatNum(kpis.vencidos)} sub={`${formatBRLCompacto(kpis.valorVencidos)} atrasado`} isMobile={isMobile} />
-        <KPI cor="#3b82f6" bg="#eff6ff" icone="📤" label="Campanhas" valor={formatNum(campanhas.length)} sub="Histórico de envios" isMobile={isMobile} />
+        <KPI cor="#3b82f6" bg="#eff6ff" icone="📅" label="A receber (mês)" valor={formatBRLCompacto(kpis.aReceberMes)} sub={`${kpis.totalMes - kpis.pagasMes} fatura(s) pendente(s)`} isMobile={isMobile} />
+        <KPI cor="#16a34a" bg="#f0fdf4" icone="💵" label="Recebido (mês)"  valor={formatBRLCompacto(kpis.recebidoMes)} sub={`${kpis.pagasMes} fatura(s) paga(s)`} isMobile={isMobile} />
+        <KPI cor="#dc2626" bg="#fef2f2" icone="🔴" label="Atrasado"         valor={formatBRLCompacto(kpis.atrasado)}    sub={`${kpis.atrasadasCnt} fatura(s) vencida(s)`} isMobile={isMobile} />
+        <KPI cor="#a855f7" bg="#f3e8ff" icone="📊" label="Inadimplência"    valor={`${kpis.inadimplencia}%`}             sub="Atrasadas / total do mês" isMobile={isMobile} />
       </div>
 
       {/* TABS */}
@@ -675,7 +861,7 @@ export default function CobrancaPage() {
                 ] as { k: FiltroVenc; l: string; cor: string }[]).map(f => {
                   const at = filtroVenc === f.k;
                   return (
-                    <button key={f.k} onClick={() => { setFiltroVenc(f.k); setSelecionadosCrm(new Set()); }}
+                    <button key={f.k} onClick={() => { setFiltroVenc(f.k); setSelecionadasFat(new Set()); }}
                       style={{ background: at ? `${f.cor}15` : "#ffffff", color: at ? f.cor : "#6b7280", border: `1px solid ${at ? f.cor : "#e5e7eb"}`, borderRadius: 20, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: at ? 700 : 600, whiteSpace: "nowrap" }}>
                       {f.l}
                     </button>
@@ -685,54 +871,116 @@ export default function CobrancaPage() {
                   style={{ ...inputStyle, flex: 1, minWidth: 180, padding: "7px 12px" }} />
               </div>
 
-              {/* Lista */}
+              {/* 🆕 Linha de filtro de STATUS da fatura */}
+              <div style={{ ...cardStyle, padding: isMobile ? 10 : 12, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, marginRight: 4 }}>Status:</span>
+                {([
+                  { k: "todas",     l: "🌐 Todas",      cor: "#374151" },
+                  { k: "pendentes", l: "⏳ A pagar",    cor: "#d97706" },
+                  { k: "atrasadas", l: "🔴 Atrasadas",  cor: "#dc2626" },
+                  { k: "pagas",     l: "✓ Pagas",       cor: "#16a34a" },
+                ] as { k: "todas" | "pendentes" | "atrasadas" | "pagas"; l: string; cor: string }[]).map(f => {
+                  const at = filtroStatus === f.k;
+                  return (
+                    <button key={f.k} onClick={() => { setFiltroStatus(f.k); setSelecionadasFat(new Set()); }}
+                      style={{ background: at ? `${f.cor}15` : "#ffffff", color: at ? f.cor : "#6b7280", border: `1px solid ${at ? f.cor : "#e5e7eb"}`, borderRadius: 20, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: at ? 700 : 600, whiteSpace: "nowrap" }}>
+                      {f.l}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Lista de FATURAS (1 linha por fatura, não por cliente) */}
               <div style={{ ...cardStyle, overflow: "hidden" }}>
                 <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                   <div style={{ color: "#6b7280", fontSize: 12, fontWeight: 600 }}>
-                    {instaladosFiltrados.length} cliente(s) · {selecionadosCrm.size} selecionado(s)
+                    {faturasFiltradas.length} fatura(s) · {selecionadasFat.size} selecionada(s)
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={selecionarTodosCrm} style={btnSecundario}>
-                      {selecionadosCrm.size === instaladosFiltrados.length && instaladosFiltrados.length > 0 ? "✗ Desmarcar todos" : "✓ Selecionar todos"}
+                    <button onClick={selecionarTodasFat} style={btnSecundario}>
+                      {selecionadasFat.size === faturasFiltradas.length && faturasFiltradas.length > 0 ? "✗ Desmarcar todos" : "✓ Selecionar todos"}
                     </button>
-                    <button onClick={abrirEnvioCrm} disabled={selecionadosCrm.size === 0} style={{ ...btnPrimario, opacity: selecionadosCrm.size === 0 ? 0.5 : 1, cursor: selecionadosCrm.size === 0 ? "not-allowed" : "pointer" }}>
-                      📤 Cobrar {selecionadosCrm.size} cliente(s)
+                    <button onClick={abrirEnvioCrm} disabled={selecionadasFat.size === 0} style={{ ...btnPrimario, opacity: selecionadasFat.size === 0 ? 0.5 : 1, cursor: selecionadasFat.size === 0 ? "not-allowed" : "pointer" }}>
+                      📤 Cobrar {selecionadasFat.size} fatura(s)
                     </button>
                   </div>
                 </div>
 
-                {instaladosFiltrados.length === 0 ? (
-                  <p style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic", padding: 32, textAlign: "center" }}>Nenhum cliente nessa categoria.</p>
+                {faturasFiltradas.length === 0 ? (
+                  <div style={{ padding: 40, textAlign: "center" }}>
+                    <div style={{ fontSize: 40, marginBottom: 8 }}>📋</div>
+                    <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>Nenhuma fatura nesse filtro</p>
+                    <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>
+                      As faturas são calculadas pra cada cliente <b>INSTALADO</b> a partir de <b>data_instalacao</b> + dia de <b>vencimento</b> + <b>valor_plano</b>.<br/>
+                      Sem instalados ou sem esses 3 campos preenchidos, nada aparece aqui.
+                    </p>
+                  </div>
                 ) : (
                   <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 760 : "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 900 : "auto" }}>
                       <thead>
                         <tr style={{ background: "#f9fafb" }}>
                           <th style={{ width: 36, padding: "10px 12px", borderBottom: "1px solid #e5e7eb" }}></th>
-                          {["Cliente", "Telefone", "Plano", "Valor", "Vencimento", "Status"].map(h => (
+                          {["Cliente", "Fatura", "Vencimento", "Valor", "Status", "Ações"].map(h => (
                             <th key={h} style={{ padding: "10px 12px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {instaladosFiltrados.map((p, i) => {
-                          const sel = selecionadosCrm.has(p.id);
-                          const cor = corDoStatusVenc(p.vencInfo);
+                        {faturasFiltradas.map((f, i) => {
+                          const k = chaveSelecao(f);
+                          const sel = selecionadasFat.has(k);
+                          const c = corStatus(f.status_visual);
                           return (
-                            <tr key={p.id} onClick={() => toggleSelCrm(p.id)}
-                              style={{ borderTop: "1px solid #f3f4f6", background: sel ? "#fef2f2" : (i % 2 === 0 ? "#ffffff" : "#fafbfc"), cursor: "pointer" }}>
+                            <tr key={k}
+                              style={{ borderTop: "1px solid #f3f4f6", background: sel ? "#fef2f2" : (i % 2 === 0 ? "#ffffff" : "#fafbfc") }}>
                               <td style={{ padding: "12px", textAlign: "center" }}>
-                                <input type="checkbox" checked={sel} onChange={() => toggleSelCrm(p.id)} onClick={e => e.stopPropagation()} style={{ cursor: "pointer", width: 16, height: 16 }} />
+                                <input type="checkbox" checked={sel} onChange={() => toggleSelFat(k)} style={{ cursor: "pointer", width: 16, height: 16 }} />
                               </td>
-                              <td style={{ padding: "12px", color: "#1f2937", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>{p.nome || "—"}</td>
-                              <td style={{ padding: "12px", color: "#6b7280", fontSize: 12, whiteSpace: "nowrap", fontFamily: "monospace" }}>{p.telefone1 || "—"}</td>
-                              <td style={{ padding: "12px", color: "#374151", fontSize: 12, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.plano || "—"}</td>
-                              <td style={{ padding: "12px", color: "#16a34a", fontSize: 13, fontWeight: 700 }}>{p.valor_plano ? formatBRL(p.valor_plano) : "—"}</td>
-                              <td style={{ padding: "12px", color: "#6b7280", fontSize: 12 }}>Dia {p.vencimento || "—"}</td>
+                              <td style={{ padding: "12px", maxWidth: 220, overflow: "hidden" }}>
+                                <div style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.proposta.nome || "—"}</div>
+                                <div style={{ color: "#9ca3af", fontSize: 11, fontFamily: "monospace" }}>{f.proposta.telefone1 || "—"} · {f.proposta.plano || "—"}</div>
+                              </td>
+                              <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
+                                <div style={{ color: "#1f2937", fontSize: 12, fontWeight: 700 }}>{formatMesExtenso(f.numero_referencia)}</div>
+                                {f.proporcional && <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 600 }}>⚠ 1ª (+{f.dias_cobertos - 30}d proporcional)</div>}
+                              </td>
+                              <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
+                                <div style={{ color: "#1f2937", fontSize: 12, fontWeight: 600 }}>{formatData(f.data_vencimento)}</div>
+                                {f.status_visual === "atrasada" && (
+                                  <div style={{ color: "#dc2626", fontSize: 10, fontWeight: 700 }}>🔴 {f.dias_atraso}d atraso</div>
+                                )}
+                                {f.status_visual === "pendente" && f.dias_atraso < 0 && (
+                                  <div style={{ color: "#16a34a", fontSize: 10, fontWeight: 600 }}>🟢 Em {Math.abs(f.dias_atraso)}d</div>
+                                )}
+                                {f.status_visual === "paga" && f.data_pagamento && (
+                                  <div style={{ color: "#16a34a", fontSize: 10, fontWeight: 600 }}>✓ Pago {formatData(f.data_pagamento)}</div>
+                                )}
+                              </td>
+                              <td style={{ padding: "12px", color: "#16a34a", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{formatBRL(f.valor)}</td>
                               <td style={{ padding: "12px" }}>
-                                <span style={{ background: `${cor}15`, color: cor, border: `1px solid ${cor}33`, borderRadius: 8, padding: "3px 8px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
-                                  {formatDiasVencimento(p.vencInfo)}
+                                <span style={{ background: c.bg, color: c.color, border: `1px solid ${c.border}`, borderRadius: 8, padding: "3px 8px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+                                  {c.label}
                                 </span>
+                              </td>
+                              <td style={{ padding: "12px" }}>
+                                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                                  {f.status === "paga" ? (
+                                    <button onClick={() => marcarAPagar(f)} title="Reverter pagamento"
+                                      style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                      ↩ A pagar
+                                    </button>
+                                  ) : (
+                                    <button onClick={() => abrirMarcarPaga(f)} title="Marcar como paga"
+                                      style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                      ✓ Paga
+                                    </button>
+                                  )}
+                                  <button onClick={() => clienteCancelou(f)} title="Cliente cancelou o serviço"
+                                    style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                    ✕ Cancelou
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1029,6 +1277,54 @@ export default function CobrancaPage() {
         </div>
       )}
 
+      {/* ════════════ MODAL: MARCAR FATURA COMO PAGA ════════════ */}
+      {showMarcarPaga && (
+        <div onClick={() => setShowMarcarPaga(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", borderRadius: 16, maxWidth: 500, width: "100%", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", background: "linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)" }}>
+              <h3 style={{ color: "#14532d", fontSize: 16, fontWeight: 800, margin: 0 }}>✓ Marcar fatura como paga</h3>
+              <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
+                {showMarcarPaga.proposta.nome} · {formatMesExtenso(showMarcarPaga.numero_referencia)} · {formatBRL(showMarcarPaga.valor)}
+              </p>
+            </div>
+            <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Data do pagamento</label>
+                <input type="date" value={marcarPagaData} onChange={e => setMarcarPagaData(e.target.value)} style={inputStyle} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={labelStyle}>Valor pago</label>
+                  <input type="text" value={marcarPagaValor} onChange={e => setMarcarPagaValor(e.target.value)} placeholder="0,00" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Forma de pagamento</label>
+                  <select value={marcarPagaForma} onChange={e => setMarcarPagaForma(e.target.value)} style={inputStyle}>
+                    <option value="">—</option>
+                    <option value="PIX">PIX</option>
+                    <option value="Boleto">Boleto</option>
+                    <option value="Cartão de Crédito">Cartão de Crédito</option>
+                    <option value="Cartão de Débito">Cartão de Débito</option>
+                    <option value="Transferência">Transferência</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Observações (opcional)</label>
+                <textarea value={marcarPagaObs} onChange={e => setMarcarPagaObs(e.target.value)} rows={2} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} placeholder="Ex: pago com 10% de desconto" />
+              </div>
+            </div>
+            <div style={{ padding: "14px 22px", borderTop: "1px solid #e5e7eb", background: "#fafbfc", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button onClick={() => setShowMarcarPaga(null)} style={btnSecundario}>Cancelar</button>
+              <button onClick={confirmarMarcarPaga} style={{ background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)", color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>
+                ✓ Confirmar pagamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ════════════ MODAL DE FEEDBACK ════════════ */}
       {feedback && (() => {
         const cores = {
@@ -1037,8 +1333,9 @@ export default function CobrancaPage() {
           sucesso: { bg: "#f0fdf4", border: "#bbf7d0", iconBg: "#dcfce7", icon: "#16a34a", titulo: "#14532d", botao: "#16a34a", emoji: "✅" },
           info:    { bg: "#eff6ff", border: "#bfdbfe", iconBg: "#dbeafe", icon: "#2563eb", titulo: "#1e3a8a", botao: "#2563eb", emoji: "ℹ️" },
         }[feedback.tipo];
+        const ehConfirm = !!feedback.onConfirmar;
         return (
-          <div onClick={() => setFeedback(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: 16 }}>
+          <div onClick={() => !ehConfirm && setFeedback(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: 16 }}>
             <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", borderRadius: 16, maxWidth: 520, width: "100%", maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
               <div style={{ background: cores.bg, borderBottom: `1px solid ${cores.border}`, padding: "22px 24px", display: "flex", gap: 14, alignItems: "flex-start" }}>
                 <div style={{ width: 48, height: 48, borderRadius: 14, background: cores.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{cores.emoji}</div>
@@ -1057,8 +1354,14 @@ export default function CobrancaPage() {
                   </div>
                 </div>
               )}
-              <div style={{ padding: "14px 24px", background: "#fafbfc", display: "flex", justifyContent: "flex-end" }}>
-                <button onClick={() => setFeedback(null)} style={{ background: cores.botao, color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: `0 4px 12px ${cores.botao}40` }}>Entendi</button>
+              <div style={{ padding: "14px 24px", background: "#fafbfc", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                {ehConfirm && (
+                  <button onClick={() => setFeedback(null)} style={btnSecundario}>Cancelar</button>
+                )}
+                <button onClick={() => { if (feedback.onConfirmar) feedback.onConfirmar(); else setFeedback(null); }}
+                  style={{ background: cores.botao, color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: `0 4px 12px ${cores.botao}40` }}>
+                  {ehConfirm ? (feedback.confirmarLabel || "Continuar") : "Entendi"}
+                </button>
               </div>
             </div>
           </div>
