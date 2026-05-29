@@ -16,8 +16,8 @@ import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
 //   • "Da planilha" → upload CSV/XLSX. Mapeia colunas (Nome, Telefone,
 //                    Valor, Vencimento, Plano) e dispara em massa.
 //
-// Disparo passa pelo backend wolf-cobranca (rota /api/cobranca?rota=...).
-// Enquanto backend não existe, mostra toast amigável sem quebrar UI.
+// Disparo passa pelo backend wolf-whatsapp existente (rota /api/whatsapp?rota=disparos/criar)
+// com `origem: "cobranca"` e contatos personalizados. Aba Campanhas filtra disparos.origem='cobranca'.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ─── TIPOS ─────────────────────────────────────────────────────────────────
@@ -421,17 +421,40 @@ export default function CobrancaPage() {
 
   async function fetchCampanhas() {
     if (!wsId) return;
-    // Tabela `cobrancas_campanhas` será criada quando o backend wolf-cobranca subir.
-    // Por enquanto tenta puxar e ignora erro silenciosamente.
+    // 🆕 Reaproveita a tabela `disparos` do wolf-whatsapp — filtra origem='cobranca'
+    //    pra mostrar só as campanhas de cobrança, separadas dos disparos manuais.
     try {
       const { data, error } = await supabase
-        .from("cobrancas_campanhas")
-        .select("*")
+        .from("disparos")
+        .select("id, workspace_id, nome, criado_por, status, total_contatos, total_enviados, total_falhas, created_at, finalizado_em, tipo, origem")
         .eq("workspace_id", wsId)
+        .eq("origem", "cobranca")
         .order("created_at", { ascending: false })
         .limit(50);
-      if (!error) setCampanhas(data || []);
-    } catch { /* tabela ainda não existe */ }
+      if (error) {
+        // Coluna `origem` ainda não existe → rode migration-disparos-cobranca.sql
+        if (String(error.message || "").toLowerCase().includes("origem")) {
+          console.warn("[Cobrança] coluna disparos.origem ainda não existe — rode migration-disparos-cobranca.sql");
+        }
+        return;
+      }
+      // Mapeia campos pra struct Campanha esperada pela UI
+      setCampanhas((data || []).map((d: any) => ({
+        id: d.id,
+        workspace_id: d.workspace_id,
+        nome: d.nome,
+        criado_por: d.criado_por,
+        status: d.status,
+        modo: "crm",  // já que veio de origem=cobranca
+        total_contatos: d.total_contatos || 0,
+        total_enviados: d.total_enviados || 0,
+        total_falhas: d.total_falhas || 0,
+        created_at: d.created_at,
+        finalizado_em: d.finalizado_em,
+      })));
+    } catch (e) {
+      console.warn("[Cobrança] erro ao listar campanhas:", e);
+    }
   }
 
   // 🆕 TODAS as faturas geradas pra clientes INSTALADOS (calculadas dinamicamente).
@@ -782,7 +805,11 @@ export default function CobrancaPage() {
 
     setEnvioEnviando(true);
     try {
-      const resp = await fetch("/api/cobranca?rota=campanhas/criar", {
+      // 🆕 Reaproveita o backend wolf-whatsapp existente!
+      //    Endpoint /disparos/criar agora aceita contatos personalizados com vars,
+      //    e a coluna `origem='cobranca'` permite filtrar na aba Campanhas.
+      const rota = envioTipo === "waba" ? "disparos/criar-waba" : "disparos/criar";
+      const resp = await fetch(`/api/whatsapp?rota=${rota}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -790,32 +817,15 @@ export default function CobrancaPage() {
           canalId: envioCanalId,
           criadoPor: user?.email,
           nome: envioNomeCampanha,
-          modo: envioFonte,
-          tipo: envioTipo,
+          origem: "cobranca",  // 💰 distingue de disparos manuais na UI
+          // Modo cobrança: contatos personalizados com vars próprias (substituídas no envio)
+          contatos: envioContatos.map(c => ({ numero: c.telefone, vars: c.vars })),
           mensagem: envioTipo === "webjs" ? envioMensagem : undefined,
           templateId: envioTipo === "waba" ? envioTemplateId : undefined,
-          contatos: envioContatos,
           delayMinSeg: envioDelayMin,
           delayMaxSeg: envioDelayMax,
         }),
       });
-
-      // Se backend ainda não existe (404 ou similar), mostra mensagem amigável
-      if (resp.status === 404 || resp.status === 502) {
-        setFeedback({
-          tipo: "info",
-          titulo: "Backend de cobrança ainda não está no ar",
-          mensagem: "A tela já tá pronta, mas o servidor wolf-cobranca ainda não foi configurado. Suba o backend e tenta de novo — a campanha já está montada e pronta pra disparar.",
-          detalhes: [
-            `Canal: ${canais.find(c => c.id === envioCanalId)?.nome || "?"}`,
-            `Tipo: ${envioTipo === "waba" ? "WABA (template)" : "WebJS (texto livre)"}`,
-            `Contatos: ${envioContatos.length}`,
-            `Delay: ${envioDelayMin}-${envioDelayMax}s entre envios`,
-          ],
-        });
-        setEnvioEnviando(false);
-        return;
-      }
 
       const data = await resp.json();
       if (data.success) {
@@ -825,19 +835,20 @@ export default function CobrancaPage() {
         setFeedback({
           tipo: "sucesso",
           titulo: "Cobrança disparada!",
-          mensagem: `Campanha "${envioNomeCampanha}" criada com ${envioContatos.length} contatos. Acompanhe na aba Campanhas.`,
+          mensagem: `Campanha "${envioNomeCampanha}" criada com ${envioContatos.length} contatos. Os envios começam agora, respeitando o delay configurado.`,
+          detalhes: [`Disparo ID: ${data.disparoId}`, `Acompanhe na aba Campanhas.`],
         });
         await fetchCampanhas();
         setAba("campanhas");
       } else {
-        setFeedback({ tipo: "erro", titulo: "Erro ao disparar", mensagem: data.error || "Erro desconhecido." });
+        setFeedback({ tipo: "erro", titulo: "Não foi possível disparar", mensagem: data.error || "Erro desconhecido do backend." });
       }
     } catch (e: any) {
       setFeedback({
-        tipo: "info",
-        titulo: "Backend de cobrança ainda não está no ar",
-        mensagem: "A tela tá pronta, mas falta subir o servidor wolf-cobranca. Quando subir, é só clicar de novo.",
-        detalhes: [`Detalhe técnico: ${e?.message || "fetch falhou"}`],
+        tipo: "erro",
+        titulo: "Erro de rede ao disparar",
+        mensagem: e?.message || "Não consegui conectar com o servidor de WhatsApp.",
+        detalhes: ["Verifique se o backend wolf-whatsapp está rodando.", "Se acabou de rodar a migration, faça `pm2 restart wolf-whatsapp`."],
       });
     }
     setEnvioEnviando(false);
@@ -1214,7 +1225,7 @@ export default function CobrancaPage() {
                   <div style={{ fontSize: 40, marginBottom: 8 }}>📊</div>
                   <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>Nenhuma campanha ainda</p>
                   <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>
-                    Quando o backend <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: 4, fontFamily: "monospace" }}>wolf-cobranca</code> estiver no ar e vc disparar uma campanha, ela aparece aqui.
+                    Dispare uma cobrança na aba Faturas ou Planilha que ela aparece aqui.
                   </p>
                 </div>
               ) : (
