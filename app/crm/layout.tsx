@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { usePermissao } from "../hooks/usePermissao";
 import { useModulos } from "../hooks/useModulos";
+import AuthGuard from "../../components/AuthGuard";  // 🔒 protege todo /crm/*
 
 // ═══════════════════════════════════════════════════════════════════════
 // 🏛️ HIERARQUIA:
@@ -121,7 +122,6 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     return !!permissoes[permissaoKey];
   };
 
-  const podeEditarCamposVendas = isSuperAdmin || isDono || perfil === "Administrador";
   const ehDonoOuAdmin = isDono || perfil === "Administrador";
 
   const menuItems = [
@@ -129,7 +129,6 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     ...((isSuperAdmin || isDono || permissoes.dashboard) ? [{ path: "/crm/dashboard", icon: "📊", label: "Dashboard" }] : []),
     ...((isSuperAdmin || isDono || permissoes.funil || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/funil", icon: "🎯", label: "Funil de Vendas" }] : []),
     ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/vendas", icon: "💰", label: "Vendas" }] : []),
-    ...(podeEditarCamposVendas ? [{ path: "/crm/editor-proposta", icon: "🛠️", label: "Editor de Vendas" }] : []),
     ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos) ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos", badge: 0 }] : []),
     ...((isSuperAdmin || isDono || permissoes.configuracoes_workspace) ? [{ path: "/crm/configuracoes", icon: "⚙️", label: "Configurações", badge: 0 }] : []),
   ];
@@ -148,6 +147,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     : "👤 Atendente";
 
   return (
+    <AuthGuard>
     <div style={{
       display: "flex", height: "100vh", fontFamily: "Arial, sans-serif",
       background: "#f8fafc", position: "relative",
@@ -381,5 +381,6 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         {children}
       </div>
     </div>
+    </AuthGuard>
   );
 }
