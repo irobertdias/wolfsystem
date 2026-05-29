@@ -1,4 +1,6 @@
 "use client";
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -162,10 +164,12 @@ function PropostaForm() {
         setUserEmail(user.email || "");
 
         // ── Workspace dono + sub-usuários ──
-        const { data: ws } = await supabase.from("workspaces")
-          .select("owner_id, owner_email, nome, username, id")
-          .or(`username.eq.${workspace.username},id.eq.${workspace.username}`)
-          .maybeSingle();
+        // FIX: detecta se workspace.username é UUID; se não for, busca só por username
+        const ehUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workspace.username);
+        const queryWs = ehUuid
+          ? supabase.from("workspaces").select("owner_id, owner_email, nome, username, id").or(`username.eq.${workspace.username},id.eq.${workspace.username}`).maybeSingle()
+          : supabase.from("workspaces").select("owner_id, owner_email, nome, username, id").eq("username", workspace.username).maybeSingle();
+        const { data: ws } = await queryWs;
         const userEhDono = ws?.owner_id === user.id;
         const { data: subs } = await supabase.from("usuarios_workspace")
           .select("email, nome, perfil, grupo_id")
@@ -561,12 +565,21 @@ function PropostaForm() {
       if (!mapa.has(sec)) mapa.set(sec, []);
       mapa.get(sec)!.push(c);
     }
-    const lista = Array.from(mapa.entries()).map(([key, campos]) => ({
-      key,
-      label: (SECOES_LABEL as any)?.[key] || SECAO_META[key]?.descricao || key,
-      meta: SECAO_META[key] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 },
-      campos,
-    }));
+    const lista = Array.from(mapa.entries()).map(([key, campos]) => {
+      // FIX react-error-31: SECOES_LABEL pode ser string OU objeto {titulo, cor}
+      const labelRaw = (SECOES_LABEL as any)?.[key];
+      const label = typeof labelRaw === "string"
+        ? labelRaw
+        : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[key]?.descricao || key);
+      const corCustom = (labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null;
+      const metaBase = SECAO_META[key] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
+      return {
+        key,
+        label,
+        meta: corCustom ? { ...metaBase, cor: corCustom } : metaBase,
+        campos,
+      };
+    });
     return lista.sort((a, b) => (a.meta.ordem || 99) - (b.meta.ordem || 99));
   }, [camposUnificados]);
 
