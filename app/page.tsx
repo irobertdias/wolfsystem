@@ -223,21 +223,21 @@ export default function Site() {
               <span style={{ fontSize: 24 }}>👤</span>
               <div>
                 <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>Usuário extra</p>
-                <p style={{ color: "#16a34a", fontSize: 17, margin: 0, fontWeight: "bold" }}>R$ 29,90<span style={{ color: "#6b7280", fontSize: 12, fontWeight: "normal" }}> /mês</span></p>
+                <p style={{ color: "#16a34a", fontSize: 17, margin: 0, fontWeight: "bold" }}>R$ 49,90<span style={{ color: "#6b7280", fontSize: 12, fontWeight: "normal" }}> /mês</span></p>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#0a0a0a", borderRadius: 10, padding: "14px 20px", border: "1px solid #1f2937" }}>
               <span style={{ fontSize: 24 }}>🔗</span>
               <div>
                 <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>Conexão extra</p>
-                <p style={{ color: "#3b82f6", fontSize: 17, margin: 0, fontWeight: "bold" }}>R$ 79,90<span style={{ color: "#6b7280", fontSize: 12, fontWeight: "normal" }}> /mês</span></p>
+                <p style={{ color: "#3b82f6", fontSize: 17, margin: 0, fontWeight: "bold" }}>R$ 99,90<span style={{ color: "#6b7280", fontSize: 12, fontWeight: "normal" }}> /mês</span></p>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#0a0a0a", borderRadius: 10, padding: "14px 20px", border: "1px solid #1f2937" }}>
               <span style={{ fontSize: 24 }}>💰</span>
               <div>
                 <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>Módulo Cobrança</p>
-                <p style={{ color: "#dc2626", fontSize: 17, margin: 0, fontWeight: "bold" }}>R$ 99,90<span style={{ color: "#6b7280", fontSize: 12, fontWeight: "normal" }}> /mês</span></p>
+                <p style={{ color: "#dc2626", fontSize: 17, margin: 0, fontWeight: "bold" }}>R$ 299,90<span style={{ color: "#6b7280", fontSize: 12, fontWeight: "normal" }}> /mês</span></p>
               </div>
             </div>
           </div>
