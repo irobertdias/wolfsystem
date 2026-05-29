@@ -7,7 +7,7 @@ export default function Site() {
   const planos = [
     {
       nome: "Básico",
-      preco: "R$ 299,90",
+      preco: "R$ 499,90",
       periodo: "/mês",
       cor: "#16a34a",
       destaque: false,
@@ -29,7 +29,7 @@ export default function Site() {
     },
     {
       nome: "Intermediário",
-      preco: "R$ 599,90",
+      preco: "R$ 899,90",
       periodo: "/mês",
       cor: "#3b82f6",
       destaque: true,
@@ -57,7 +57,7 @@ export default function Site() {
     },
     {
       nome: "Ultra",
-      preco: "R$ 899,90",
+      preco: "R$ 1.599,90",
       periodo: "/mês",
       cor: "#8b5cf6",
       destaque: false,
