@@ -138,6 +138,8 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   const podeVerTelefonia = podeVerComHierarquia(modulos.voip, "voip_usar");
   const podeVerChatbot = isSuperAdmin || isDono || permissoes.chat_proprio || permissoes.chat_todos;
+  // 🆕 Cobrança: por enquanto só dono/admin. Quando criar permissão granular `cobranca` em permissoes_perfis, troca aqui.
+  const podeVerCobranca = isSuperAdmin || isDono || (permissoes as any).cobranca;
 
   const perfilLabel = isSuperAdmin ? "👑 Super Admin Wolf"
     : isDono ? "🏢 Dono do Workspace"
@@ -326,6 +328,24 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               onMouseLeave={(e) => { if (!isActive("/crm/telefonia")) { e.currentTarget.style.background = "#f0fdf4"; e.currentTarget.style.boxShadow = "none"; } }}
             >
               <span>📞</span> Telefonia
+            </button>
+          )}
+
+          {podeVerCobranca && (
+            <button onClick={() => navegarPara("/crm/cobranca")}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px",
+                background: isActive("/crm/cobranca") ? "#fee2e2" : "#fef2f2",
+                border: `1px solid ${isActive("/crm/cobranca") ? "#dc2626" : "#fecaca"}`,
+                borderRadius: 10, cursor: "pointer",
+                color: "#dc2626", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!isActive("/crm/cobranca")) { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(220,38,38,0.15)"; } }}
+              onMouseLeave={(e) => { if (!isActive("/crm/cobranca")) { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.boxShadow = "none"; } }}
+            >
+              <span>💰</span> Cobrança
             </button>
           )}
         </div>
