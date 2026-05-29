@@ -88,9 +88,25 @@ const SECAO_META: Record<string, { icone: string; cor: string; descricao: string
   personalizado:  { icone: "⚙️", cor: "#a855f7", descricao: "Campos customizados pelo workspace", ordem: 8 },
 };
 
-const getSecaoKey = (campo: CampoUnificado): string => {
-  if (campo.origem === "custom") return "personalizado";
-  return (campo as any).secao || "personalizado";
+// 🔑 INFERÊNCIA DE SEÇÃO — fixos usam a `secao` do lib, customs herdam do fixo mais próximo
+const getSecaoKey = (campos: CampoUnificado[], idx: number): string => {
+  const campo = campos[idx];
+  if (!campo) return "personalizado";
+  if (campo.origem === "fixo") {
+    return (campo as any).secao || "personalizado";
+  }
+  // Custom — herda do fixo anterior (prioridade) > próximo
+  for (let i = idx - 1; i >= 0; i--) {
+    if (campos[i].origem === "fixo" && (campos[i] as any).secao) {
+      return (campos[i] as any).secao;
+    }
+  }
+  for (let i = idx + 1; i < campos.length; i++) {
+    if (campos[i].origem === "fixo" && (campos[i] as any).secao) {
+      return (campos[i] as any).secao;
+    }
+  }
+  return "personalizado";
 };
 
 function PropostaForm() {
@@ -471,7 +487,8 @@ function PropostaForm() {
     }
 
     // Validação de obrigatórios
-    for (const c of camposUnificados) {
+    for (let idx = 0; idx < camposUnificados.length; idx++) {
+      const c = camposUnificados[idx];
       if (!c.obrigatorio) continue;
       const valor = c.origem === "fixo" ? form[c.slug] : dadosCustomizados[c.slug];
       let vazio = false;
@@ -480,10 +497,13 @@ function PropostaForm() {
       else vazio = (valor === undefined || valor === null || String(valor).trim() === "");
       if (vazio) {
         alert(`O campo "${c.label}" é obrigatório.`);
-        // Scroll até a seção do campo
-        const secao = getSecaoKey(c);
-        const el = sectionsRef.current[secao];
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Scroll até a primeira ocorrência da seção do campo
+        const secao = getSecaoKey(camposUnificados, idx);
+        const grupo = secoesAgrupadas.find((g: any) => g.key === secao);
+        if (grupo) {
+          const el = sectionsRef.current[grupo.keyUnica];
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
         return;
       }
     }
@@ -557,36 +577,34 @@ function PropostaForm() {
   const camposObrigPreenchidos = useMemo(() => camposObrig.filter(isCampoPreenchido).length, [camposObrig, form, dadosCustomizados]);
   const pctTotal = camposObrig.length === 0 ? 100 : Math.round((camposObrigPreenchidos / camposObrig.length) * 100);
 
-  // Campos agrupados por seção (ordenados pela ordem do PRIMEIRO campo de cada seção)
+  // 📊 Agrupa SEQUÊNCIAS consecutivas — assim a ordem do Editor reflete fielmente aqui
   const secoesAgrupadas = useMemo(() => {
-    const mapa = new Map<string, { campos: CampoUnificado[]; ordemMin: number }>();
-    let ordemSequencial = 0;
-    for (const c of camposUnificados) {
-      const sec = getSecaoKey(c);
-      if (!mapa.has(sec)) {
-        // Primeira aparição da seção → guarda a "ordem" que ela apareceu
-        mapa.set(sec, { campos: [], ordemMin: ordemSequencial++ });
+    const result: any[] = [];
+    let grupoAtual: any = null;
+    let secaoAtual: string | null = null;
+    for (let i = 0; i < camposUnificados.length; i++) {
+      const sec = getSecaoKey(camposUnificados, i);
+      if (sec !== secaoAtual) {
+        // FIX react-error-31: SECOES_LABEL pode ser string OU objeto {titulo, cor}
+        const labelRaw = (SECOES_LABEL as any)?.[sec];
+        const label = typeof labelRaw === "string"
+          ? labelRaw
+          : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec);
+        const corCustom = (labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null;
+        const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
+        grupoAtual = {
+          key: sec,
+          keyUnica: `${sec}-${result.length}`,
+          label,
+          meta: corCustom ? { ...metaBase, cor: corCustom } : metaBase,
+          campos: [] as CampoUnificado[],
+        };
+        result.push(grupoAtual);
+        secaoAtual = sec;
       }
-      mapa.get(sec)!.campos.push(c);
+      grupoAtual.campos.push(camposUnificados[i]);
     }
-    const lista = Array.from(mapa.entries()).map(([key, { campos, ordemMin }]) => {
-      // FIX react-error-31: SECOES_LABEL pode ser string OU objeto {titulo, cor}
-      const labelRaw = (SECOES_LABEL as any)?.[key];
-      const label = typeof labelRaw === "string"
-        ? labelRaw
-        : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[key]?.descricao || key);
-      const corCustom = (labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null;
-      const metaBase = SECAO_META[key] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
-      return {
-        key,
-        label,
-        meta: corCustom ? { ...metaBase, cor: corCustom } : metaBase,
-        campos,
-        ordemMin,
-      };
-    });
-    // Ordena pela ordem em que a seção apareceu nos campos (campos já vêm ordenados por `ordem`)
-    return lista.sort((a, b) => a.ordemMin - b.ordemMin);
+    return result;
   }, [camposUnificados]);
 
   // Progresso por seção
@@ -1095,45 +1113,59 @@ function PropostaForm() {
                 📑 Seções do formulário
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {secoesAgrupadas.map(s => {
-                  const ativa = secaoVisivel === s.key;
-                  const prog = progressoSecao(s.campos);
-                  return (
-                    <button key={s.key} onClick={() => {
-                      sectionsRef.current[s.key]?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }}
-                      style={{
-                        background: ativa ? `${s.meta.cor}10` : "transparent",
-                        border: `1px solid ${ativa ? `${s.meta.cor}30` : "transparent"}`,
-                        borderLeft: `3px solid ${ativa ? s.meta.cor : "transparent"}`,
-                        borderRadius: 8, padding: "8px 10px",
-                        cursor: "pointer", textAlign: "left",
-                        transition: "all 0.15s",
-                      }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontSize: 14 }}>{s.meta.icone}</span>
-                        <span style={{ color: ativa ? s.meta.cor : "#374151", fontSize: 12, fontWeight: ativa ? 800 : 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {s.label}
-                        </span>
-                        {prog.obrig > 0 && (
-                          <span style={{
-                            fontSize: 9, fontWeight: 800,
-                            color: prog.pct === 100 ? "#16a34a" : prog.pct === 0 ? "#9ca3af" : s.meta.cor,
-                          }}>
-                            {prog.preench}/{prog.obrig}
+                {(() => {
+                  // Consolida seções únicas pra sidebar (mesmo que apareçam 2x na ordem)
+                  const vistas = new Set<string>();
+                  const unicas: any[] = [];
+                  for (const g of secoesAgrupadas) {
+                    if (vistas.has(g.key)) continue;
+                    vistas.add(g.key);
+                    // Agrega todos os campos de todas as instâncias dessa seção
+                    const todosCampos = secoesAgrupadas.filter((x: any) => x.key === g.key).flatMap((x: any) => x.campos);
+                    unicas.push({ ...g, todosCampos });
+                  }
+                  return unicas.map(s => {
+                    const ativa = secaoVisivel === s.keyUnica || secoesAgrupadas.some((g: any) => g.key === s.key && g.keyUnica === secaoVisivel);
+                    const prog = progressoSecao(s.todosCampos);
+                    return (
+                      <button key={s.key} onClick={() => {
+                        // Vai pra primeira ocorrência da seção
+                        const primeira = secoesAgrupadas.find((g: any) => g.key === s.key);
+                        if (primeira) sectionsRef.current[primeira.keyUnica]?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                        style={{
+                          background: ativa ? `${s.meta.cor}10` : "transparent",
+                          border: `1px solid ${ativa ? `${s.meta.cor}30` : "transparent"}`,
+                          borderLeft: `3px solid ${ativa ? s.meta.cor : "transparent"}`,
+                          borderRadius: 8, padding: "8px 10px",
+                          cursor: "pointer", textAlign: "left",
+                          transition: "all 0.15s",
+                        }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontSize: 14 }}>{s.meta.icone}</span>
+                          <span style={{ color: ativa ? s.meta.cor : "#374151", fontSize: 12, fontWeight: ativa ? 800 : 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {s.label}
                           </span>
-                        )}
-                      </div>
-                      <div style={{ background: "#e5e7eb", borderRadius: 2, height: 3, overflow: "hidden" }}>
-                        <div style={{
-                          background: prog.pct === 100 ? "#16a34a" : s.meta.cor,
-                          height: "100%", width: `${prog.obrig > 0 ? prog.pct : (prog.preench / Math.max(prog.total, 1)) * 100}%`,
-                          transition: "width 0.3s",
-                        }} />
-                      </div>
-                    </button>
-                  );
-                })}
+                          {prog.obrig > 0 && (
+                            <span style={{
+                              fontSize: 9, fontWeight: 800,
+                              color: prog.pct === 100 ? "#16a34a" : prog.pct === 0 ? "#9ca3af" : s.meta.cor,
+                            }}>
+                              {prog.preench}/{prog.obrig}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ background: "#e5e7eb", borderRadius: 2, height: 3, overflow: "hidden" }}>
+                          <div style={{
+                            background: prog.pct === 100 ? "#16a34a" : s.meta.cor,
+                            height: "100%", width: `${prog.obrig > 0 ? prog.pct : (prog.preench / Math.max(prog.total, 1)) * 100}%`,
+                            transition: "width 0.3s",
+                          }} />
+                        </div>
+                      </button>
+                    );
+                  });
+                })()}
               </div>
             </div>
 
@@ -1183,12 +1215,12 @@ function PropostaForm() {
               </p>
             </div>
           ) : (
-            secoesAgrupadas.map(s => {
+            secoesAgrupadas.map((s: any) => {
               const prog = progressoSecao(s.campos);
               return (
-                <div key={s.key}
-                  ref={(el) => { sectionsRef.current[s.key] = el; }}
-                  data-secao={s.key}
+                <div key={s.keyUnica}
+                  ref={(el) => { sectionsRef.current[s.keyUnica] = el; }}
+                  data-secao={s.keyUnica}
                   style={{ ...cardStyle, overflow: "hidden", scrollMarginTop: 120 }}>
 
                   {/* Header da seção */}

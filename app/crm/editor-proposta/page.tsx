@@ -17,15 +17,11 @@ import {
 } from "../../lib/campos_proposta_definicao";
 
 // ═══════════════════════════════════════════════════════════════════════
-// 🛠️ EDITOR DE CAMPOS DA PROPOSTA — Wolf PREMIUM
+// 🛠️ EDITOR DE CAMPOS DA PROPOSTA — Wolf PREMIUM v2
 // ───────────────────────────────────────────────────────────────────────
-// Agrupado por seção (mesmo padrão da Nova Proposta) com:
-// • Header sticky com stats + salvar
-// • Sidebar com índice de seções (scroll spy)
-// • Cards de seção coloridos
-// • Mover ↑↓ respeita fronteira de seção (não bagunça a ordenação)
-// • Busca de campos
-// • Atalho Ctrl+S e confirmação ao sair com mudanças
+// Setas ↑▼ movem GLOBALMENTE (sem restrição de seção)
+// Campos custom HERDAM a seção do campo fixo anterior mais próximo
+// Reflete EXATAMENTE na Nova Proposta (mesma ordem, mesma seção)
 // ═══════════════════════════════════════════════════════════════════════
 
 type TipoCustom = "texto" | "textarea" | "numero" | "moeda" | "data" | "dropdown" | "checkbox";
@@ -48,7 +44,6 @@ const labelToSlug = (label: string): string =>
     .replace(/(^_|_$)/g, "")
     .slice(0, 50);
 
-// ═══ SEÇÃO META — IDÊNTICO À NOVA PROPOSTA pra garantir consistência ═══
 const SECAO_META: Record<string, { icone: string; cor: string; descricao: string; ordem: number }> = {
   pessoal:        { icone: "👤", cor: "#3b82f6", descricao: "Identificação do cliente",        ordem: 1 },
   endereco:       { icone: "📍", cor: "#06b6d4", descricao: "Onde será a instalação",           ordem: 2 },
@@ -60,9 +55,26 @@ const SECAO_META: Record<string, { icone: string; cor: string; descricao: string
   personalizado:  { icone: "⚙️", cor: "#a855f7", descricao: "Campos customizados pelo workspace", ordem: 8 },
 };
 
-const getSecaoKey = (campo: CampoUnificado): string => {
-  if (campo.origem === "custom") return "personalizado";
-  return (campo as any).secao || "personalizado";
+// 🔑 INFERÊNCIA DE SEÇÃO
+// Fixos: usam a `secao` definida no lib.
+// Customs: herdam do fixo MAIS PRÓXIMO (anterior tem prioridade > próximo).
+const getSecaoKey = (campos: CampoUnificado[], idx: number): string => {
+  const campo = campos[idx];
+  if (!campo) return "personalizado";
+  if (campo.origem === "fixo") {
+    return (campo as any).secao || "personalizado";
+  }
+  for (let i = idx - 1; i >= 0; i--) {
+    if (campos[i].origem === "fixo" && (campos[i] as any).secao) {
+      return (campos[i] as any).secao;
+    }
+  }
+  for (let i = idx + 1; i < campos.length; i++) {
+    if (campos[i].origem === "fixo" && (campos[i] as any).secao) {
+      return (campos[i] as any).secao;
+    }
+  }
+  return "personalizado";
 };
 
 export default function EditorProposta() {
@@ -87,7 +99,6 @@ export default function EditorProposta() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // 🎨 ESTILOS
   const inputStyle = {
     width: "100%",
     background: "#ffffff",
@@ -107,9 +118,6 @@ export default function EditorProposta() {
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 📜 FETCH
-  // ═══════════════════════════════════════════════════════════════════
   const fetchCampos = async () => {
     if (!workspace?.username) return;
     setLoading(true);
@@ -150,7 +158,6 @@ export default function EditorProposta() {
 
       const lista = montarCamposUnificados(configs, customs);
 
-      // 📊 Enriquece cada campo com mostrar_na_lista
       const mostrarFixoMap = new Map<string, boolean>();
       for (const c of (respConfig.data || [])) {
         mostrarFixoMap.set(c.campo_slug, !!c.mostrar_na_lista);
@@ -175,9 +182,6 @@ export default function EditorProposta() {
 
   useEffect(() => { fetchCampos(); }, [workspace]);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // ⚠️ BEFORE UNLOAD — confirma sair com mudanças
-  // ═══════════════════════════════════════════════════════════════════
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (dirty) { e.preventDefault(); e.returnValue = ""; return ""; }
@@ -186,9 +190,6 @@ export default function EditorProposta() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // ⌨️ ATALHO Ctrl+S
-  // ═══════════════════════════════════════════════════════════════════
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
@@ -201,9 +202,6 @@ export default function EditorProposta() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campos, dirty, salvando]);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 👁️ SCROLL SPY
-  // ═══════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (campos.length === 0) return;
     const observer = new IntersectionObserver((entries) => {
@@ -217,9 +215,6 @@ export default function EditorProposta() {
     return () => observer.disconnect();
   }, [campos]);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 🔧 HANDLERS
-  // ═══════════════════════════════════════════════════════════════════
   const adicionarCustom = () => {
     const maxOrdem = campos.reduce((m, c) => Math.max(m, c.ordem), 0);
     const novo: CampoUnificado = {
@@ -234,10 +229,6 @@ export default function EditorProposta() {
     };
     setCampos([...campos, { ...novo, mostrar_na_lista: true } as any]);
     setDirty(true);
-    // Scroll até a seção "personalizado" depois de adicionar
-    setTimeout(() => {
-      sectionsRef.current["personalizado"]?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
   };
 
   const atualizar = (idx: number, patch: Partial<CampoUnificado>) => {
@@ -245,18 +236,10 @@ export default function EditorProposta() {
     setDirty(true);
   };
 
-  // FIX: mover só dentro da MESMA SEÇÃO (não atravessa fronteiras)
+  // 🆕 Mover GLOBAL (sem restrição de seção)
   const mover = (idx: number, dir: -1 | 1) => {
-    const c = campos[idx];
-    const secAtual = getSecaoKey(c);
-    let target = idx + dir;
-    while (target >= 0 && target < campos.length) {
-      if (getSecaoKey(campos[target]) === secAtual) break;
-      target += dir;
-    }
+    const target = idx + dir;
     if (target < 0 || target >= campos.length) return;
-    if (getSecaoKey(campos[target]) !== secAtual) return;
-
     const novo = [...campos];
     [novo[idx], novo[target]] = [novo[target], novo[idx]];
     setCampos(novo.map((c, i) => ({ ...c, ordem: i })));
@@ -266,7 +249,7 @@ export default function EditorProposta() {
   const remover = async (idx: number) => {
     const c = campos[idx];
     if (c.origem === "fixo") {
-      if (confirm(`Ocultar o campo "${c.label}"?\n\nEle deixa de aparecer no formulário, mas os dados das propostas existentes ficam preservados. Você pode voltar a mostrar a qualquer momento.`)) {
+      if (confirm(`Ocultar o campo "${c.label}"?\n\nEle deixa de aparecer no formulário, mas os dados das propostas existentes ficam preservados.`)) {
         atualizar(idx, { visivel: false });
       }
       return;
@@ -303,12 +286,8 @@ export default function EditorProposta() {
     atualizar(idx, { opcoes: (c.opcoes || []).filter((_, i) => i !== opIdx) });
   };
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 💾 SALVAR
-  // ═══════════════════════════════════════════════════════════════════
   const salvar = async () => {
     if (!workspace?.username) return;
-
     for (let i = 0; i < campos.length; i++) {
       const c = campos[i];
       if (c.origem === "custom") {
@@ -325,10 +304,8 @@ export default function EditorProposta() {
         }
       }
     }
-
     setSalvando(true);
     try {
-      // ─── 1) Salva config dos fixos ──
       const fixosNaLista = campos.filter(c => c.origem === "fixo");
       for (let i = 0; i < fixosNaLista.length; i++) {
         const c = fixosNaLista[i];
@@ -390,7 +367,6 @@ export default function EditorProposta() {
         }
       }
 
-      // ─── 2) Salva customs ──
       const customsNaLista = campos.filter(c => c.origem === "custom");
       const customsComSlug = customsNaLista.map(c => ({
         ...c,
@@ -458,43 +434,55 @@ export default function EditorProposta() {
     setSalvando(false);
   };
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 📊 AGRUPAMENTO POR SEÇÃO (mesma lógica da Nova Proposta)
-  // ═══════════════════════════════════════════════════════════════════
-  const camposComIndice = useMemo(
-    () => campos.map((c, idx) => ({ campo: c, idx })),
-    [campos]
-  );
-
-  const secoesAgrupadas = useMemo(() => {
-    const mapa = new Map<string, { campos: { campo: CampoUnificado; idx: number }[]; ordemMin: number }>();
-    let ordemSequencial = 0;
-    for (const item of camposComIndice) {
-      const sec = getSecaoKey(item.campo);
-      if (!mapa.has(sec)) {
-        mapa.set(sec, { campos: [], ordemMin: ordemSequencial++ });
+  // 📊 Agrupa em SEQUÊNCIAS CONSECUTIVAS da mesma seção (permite reflexo fiel da ordem)
+  const grupos = useMemo(() => {
+    const result: any[] = [];
+    let grupoAtual: any = null;
+    let secaoAtual: string | null = null;
+    for (let i = 0; i < campos.length; i++) {
+      const sec = getSecaoKey(campos, i);
+      if (sec !== secaoAtual) {
+        const labelRaw = (SECOES_LABEL as any)?.[sec];
+        const label = typeof labelRaw === "string"
+          ? labelRaw
+          : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec);
+        const corCustom = (labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null;
+        const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
+        grupoAtual = {
+          key: sec,
+          keyUnica: `${sec}-${result.length}`,
+          label,
+          meta: corCustom ? { ...metaBase, cor: corCustom } : metaBase,
+          itens: [] as { campo: CampoUnificado; idx: number }[],
+        };
+        result.push(grupoAtual);
+        secaoAtual = sec;
       }
-      mapa.get(sec)!.campos.push(item);
+      grupoAtual.itens.push({ campo: campos[i], idx: i });
     }
-    const lista = Array.from(mapa.entries()).map(([key, { campos: itens, ordemMin }]) => {
-      const labelRaw = (SECOES_LABEL as any)?.[key];
-      const label = typeof labelRaw === "string"
-        ? labelRaw
-        : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[key]?.descricao || key);
-      const corCustom = (labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null;
-      const metaBase = SECAO_META[key] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
-      return {
-        key,
-        label,
-        meta: corCustom ? { ...metaBase, cor: corCustom } : metaBase,
-        campos: itens,
-        ordemMin,
-      };
-    });
-    return lista.sort((a, b) => a.ordemMin - b.ordemMin);
-  }, [camposComIndice]);
+    return result;
+  }, [campos]);
 
-  // Stats
+  // Seções únicas pra sidebar (consolidadas)
+  const secoesUnicas = useMemo(() => {
+    const vistas = new Set<string>();
+    const lista: { key: string; meta: any; label: string; total: number; primeiraKeyUnica: string }[] = [];
+    for (const g of grupos) {
+      if (vistas.has(g.key)) {
+        const existente = lista.find(s => s.key === g.key);
+        if (existente) existente.total += g.itens.length;
+        continue;
+      }
+      vistas.add(g.key);
+      lista.push({ key: g.key, meta: g.meta, label: g.label, total: g.itens.length, primeiraKeyUnica: g.keyUnica });
+    }
+    // Soma totais de todas as ocorrências
+    for (const s of lista) {
+      s.total = grupos.filter(g => g.key === s.key).reduce((acc, g) => acc + g.itens.length, 0);
+    }
+    return lista;
+  }, [grupos]);
+
   const stats = useMemo(() => ({
     total: campos.length,
     fixos: campos.filter(c => c.origem === "fixo").length,
@@ -504,16 +492,12 @@ export default function EditorProposta() {
     mostrarLista: campos.filter(c => (c as any).mostrar_na_lista).length,
   }), [campos]);
 
-  // Filtro de busca
   const buscaLower = busca.trim().toLowerCase();
   const matchaBusca = (c: CampoUnificado) => {
     if (!buscaLower) return true;
     return c.label.toLowerCase().includes(buscaLower) || c.slug.toLowerCase().includes(buscaLower);
   };
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 🚫 SEM PERMISSÃO
-  // ═══════════════════════════════════════════════════════════════════
   if (!podeEditar) {
     return (
       <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -543,13 +527,10 @@ export default function EditorProposta() {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 🎨 RENDER PRINCIPAL
-  // ═══════════════════════════════════════════════════════════════════
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "Arial, sans-serif" }}>
 
-      {/* ═══ HEADER STICKY ═══ */}
+      {/* HEADER STICKY */}
       <div style={{
         position: "sticky", top: 0, zIndex: 50,
         background: "rgba(248,250,252,0.85)",
@@ -610,7 +591,7 @@ export default function EditorProposta() {
         </div>
       </div>
 
-      {/* ═══ MAIN LAYOUT ═══ */}
+      {/* MAIN LAYOUT */}
       <div style={{
         display: "grid",
         gridTemplateColumns: isMobile ? "1fr" : "260px 1fr",
@@ -620,7 +601,7 @@ export default function EditorProposta() {
         margin: "0 auto",
       }}>
 
-        {/* ═══ SIDEBAR ═══ */}
+        {/* SIDEBAR */}
         {!isMobile && (
           <aside style={{ position: "sticky", top: 100, alignSelf: "start", display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ ...cardStyle, padding: 14 }}>
@@ -628,11 +609,11 @@ export default function EditorProposta() {
                 📑 Seções
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {secoesAgrupadas.map(s => {
-                  const ativa = secaoVisivel === s.key;
+                {secoesUnicas.map(s => {
+                  const ativa = secaoVisivel === s.primeiraKeyUnica || grupos.some(g => g.key === s.key && g.keyUnica === secaoVisivel);
                   return (
                     <button key={s.key} onClick={() => {
-                      sectionsRef.current[s.key]?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      sectionsRef.current[s.primeiraKeyUnica]?.scrollIntoView({ behavior: "smooth", block: "start" });
                     }}
                       style={{
                         background: ativa ? `${s.meta.cor}10` : "transparent",
@@ -653,7 +634,7 @@ export default function EditorProposta() {
                           background: ativa ? `${s.meta.cor}15` : "#f3f4f6",
                           padding: "1px 7px", borderRadius: 6,
                         }}>
-                          {s.campos.length}
+                          {s.total}
                         </span>
                       </div>
                     </button>
@@ -662,7 +643,6 @@ export default function EditorProposta() {
               </div>
             </div>
 
-            {/* Stats card */}
             <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #f3e8ff 0%, #fae8ff 100%)", border: "1px solid #ddd6fe" }}>
               <p style={{ color: "#6b21a8", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px", fontWeight: 800 }}>
                 📊 Resumo
@@ -675,7 +655,6 @@ export default function EditorProposta() {
               </div>
             </div>
 
-            {/* Atalhos */}
             <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
               <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px", fontWeight: 800 }}>
                 ⌨️ Atalho
@@ -688,10 +667,9 @@ export default function EditorProposta() {
           </aside>
         )}
 
-        {/* ═══ CONTEÚDO PRINCIPAL ═══ */}
+        {/* CONTEÚDO */}
         <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
 
-          {/* Toolbar de busca + adicionar */}
           <div style={{ ...cardStyle, padding: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <input placeholder="🔍 Buscar campo por nome..." value={busca} onChange={e => setBusca(e.target.value)}
               style={{ ...inputStyle, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
@@ -706,18 +684,16 @@ export default function EditorProposta() {
               }}>+ Campo Personalizado</button>
           </div>
 
-          {/* Aviso LGPD */}
-          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderLeft: "4px solid #f59e0b", borderRadius: 12, padding: "10px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+          <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", borderLeft: "4px solid #3b82f6", borderRadius: 12, padding: "10px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>💡</span>
             <div style={{ flex: 1 }}>
-              <p style={{ color: "#92400e", fontSize: 12, fontWeight: 700, margin: 0 }}>LGPD · Atenção sobre dados pessoais</p>
-              <p style={{ color: "#78350f", fontSize: 11, margin: "2px 0 0", lineHeight: 1.5 }}>
-                Você é responsável pelos dados coletados. As setas <code style={{ background: "#fef3c7", padding: "1px 5px", borderRadius: 4 }}>▲▼</code> reordenam apenas dentro da mesma seção — garantindo que a ordenação na Nova Proposta fica consistente.
+              <p style={{ color: "#1e40af", fontSize: 12, fontWeight: 700, margin: 0 }}>Setas ↑▼ movem livremente</p>
+              <p style={{ color: "#3b82f6", fontSize: 11, margin: "2px 0 0", lineHeight: 1.5 }}>
+                Você pode mover qualquer campo pra qualquer posição. Os campos personalizados <b>herdam automaticamente a seção</b> do campo padrão anterior — então onde você colocar aqui, é exatamente onde vai aparecer na <b>Nova Proposta</b>.
               </p>
             </div>
           </div>
 
-          {/* Lista agrupada por seção */}
           {loading ? (
             <>
               {[1, 2, 3].map(i => (
@@ -737,60 +713,57 @@ export default function EditorProposta() {
               <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum campo configurado ainda.</p>
             </div>
           ) : (
-            secoesAgrupadas.map(s => {
-              const camposFiltrados = s.campos.filter(({ campo }) => matchaBusca(campo));
-              if (buscaLower && camposFiltrados.length === 0) return null;
+            grupos.map(g => {
+              const itensFiltrados = g.itens.filter(({ campo }: any) => matchaBusca(campo));
+              if (buscaLower && itensFiltrados.length === 0) return null;
 
               return (
-                <div key={s.key}
-                  ref={(el) => { sectionsRef.current[s.key] = el; }}
-                  data-secao={s.key}
+                <div key={g.keyUnica}
+                  ref={(el) => { sectionsRef.current[g.keyUnica] = el; }}
+                  data-secao={g.keyUnica}
                   style={{ ...cardStyle, overflow: "hidden", scrollMarginTop: 110 }}>
 
-                  {/* Header da seção */}
                   <div style={{
                     padding: "14px 20px",
                     borderBottom: "1px solid #f3f4f6",
-                    background: `${s.meta.cor}05`,
-                    borderLeft: `4px solid ${s.meta.cor}`,
+                    background: `${g.meta.cor}05`,
+                    borderLeft: `4px solid ${g.meta.cor}`,
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
                   }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: 10,
-                      background: `linear-gradient(135deg, ${s.meta.cor} 0%, ${s.meta.cor}cc 100%)`,
+                      background: `linear-gradient(135deg, ${g.meta.cor} 0%, ${g.meta.cor}cc 100%)`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 18, boxShadow: `0 4px 10px ${s.meta.cor}40`,
+                      fontSize: 18, boxShadow: `0 4px 10px ${g.meta.cor}40`,
                       flexShrink: 0,
-                    }}><span style={{ filter: "saturate(0) brightness(2)" }}>{s.meta.icone}</span></div>
+                    }}><span style={{ filter: "saturate(0) brightness(2)" }}>{g.meta.icone}</span></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <h2 style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: -0.2 }}>{s.label}</h2>
-                      {s.meta.descricao && <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{s.meta.descricao}</p>}
+                      <h2 style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: -0.2 }}>{g.label}</h2>
+                      {g.meta.descricao && <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{g.meta.descricao}</p>}
                     </div>
                     <span style={{
-                      background: `${s.meta.cor}10`,
-                      color: s.meta.cor,
-                      border: `1px solid ${s.meta.cor}30`,
+                      background: `${g.meta.cor}10`,
+                      color: g.meta.cor,
+                      border: `1px solid ${g.meta.cor}30`,
                       padding: "4px 10px",
                       borderRadius: 10,
                       fontSize: 11,
                       fontWeight: 800,
                       whiteSpace: "nowrap",
-                    }}>{s.campos.length} {s.campos.length === 1 ? "campo" : "campos"}</span>
+                    }}>{g.itens.length} {g.itens.length === 1 ? "campo" : "campos"}</span>
                   </div>
 
-                  {/* Campos da seção */}
                   <div style={{ padding: isMobile ? 12 : 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                    {camposFiltrados.map(({ campo, idx }) => (
+                    {itensFiltrados.map(({ campo, idx }: any) => (
                       <CampoCard
                         key={`${campo.origem}-${campo.slug}-${idx}`}
                         campo={campo}
                         idx={idx}
-                        secaoMeta={s.meta}
-                        campos={campos}
+                        totalCampos={campos.length}
+                        secaoMeta={g.meta}
                         inputStyle={inputStyle}
-                        cardStyle={cardStyle}
                         isMobile={isMobile}
                         atualizar={atualizar}
                         mover={mover}
@@ -806,7 +779,6 @@ export default function EditorProposta() {
             })
           )}
 
-          {/* Footer com Salvar */}
           {!loading && campos.length > 0 && (
             <div style={{ ...cardStyle, padding: isMobile ? 14 : 18, background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -843,9 +815,6 @@ export default function EditorProposta() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// 📊 Stat — usado na sidebar
-// ═══════════════════════════════════════════════════════════════════════
 function Stat({ label, valor, cor }: { label: string; valor: string; cor: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
@@ -855,10 +824,7 @@ function Stat({ label, valor, cor }: { label: string; valor: string; cor: string
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// 📝 CampoCard — cada campo individual com edição inline
-// ═══════════════════════════════════════════════════════════════════════
-function CampoCard({ campo, idx, secaoMeta, campos, inputStyle, cardStyle, isMobile, atualizar, mover, remover, adicionarOpcao, atualizarOpcao, removerOpcao }: any) {
+function CampoCard({ campo, idx, totalCampos, secaoMeta, inputStyle, isMobile, atualizar, mover, remover, adicionarOpcao, atualizarOpcao, removerOpcao }: any) {
   const ehFixo = campo.origem === "fixo";
   const corBadge = ehFixo ? "#3b82f6" : "#a855f7";
   const bgBadge = ehFixo ? "#eff6ff" : "#f3e8ff";
@@ -866,11 +832,9 @@ function CampoCard({ campo, idx, secaoMeta, campos, inputStyle, cardStyle, isMob
   const labelBadge = ehFixo ? "🔒 Padrão" : "✨ Personalizado";
   const opacidade = !campo.visivel ? 0.55 : 1;
 
-  // Checa se pode mover ↑/↓ dentro da mesma seção
-  const secAtual = getSecaoKey(campo);
-  const indicesSecao = campos.map((c: CampoUnificado, i: number) => getSecaoKey(c) === secAtual ? i : -1).filter((i: number) => i >= 0);
-  const ehPrimeiroDaSecao = indicesSecao[0] === idx;
-  const ehUltimoDaSecao = indicesSecao[indicesSecao.length - 1] === idx;
+  // 🆕 Move globalmente: só desabilita nos extremos da lista
+  const ehPrimeiroGlobal = idx === 0;
+  const ehUltimoGlobal = idx === totalCampos - 1;
 
   return (
     <div style={{
@@ -882,29 +846,26 @@ function CampoCard({ campo, idx, secaoMeta, campos, inputStyle, cardStyle, isMob
       opacity: opacidade,
       transition: "opacity 0.15s",
     }}>
-      {/* Linha 1: Mover + Badge + Label + Tipo + Ações */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "auto 1fr auto" : "auto auto 1fr auto auto", gap: 10, alignItems: "center" }}>
-        {/* Mover */}
         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <button onClick={() => mover(idx, -1)} disabled={ehPrimeiroDaSecao} title={ehPrimeiroDaSecao ? "Já é o primeiro da seção" : "Mover pra cima"}
+          <button onClick={() => mover(idx, -1)} disabled={ehPrimeiroGlobal} title={ehPrimeiroGlobal ? "Já é o primeiro" : "Mover pra cima"}
             style={{
               background: "#ffffff",
-              color: ehPrimeiroDaSecao ? "#d1d5db" : "#6b7280",
+              color: ehPrimeiroGlobal ? "#d1d5db" : "#6b7280",
               border: "1px solid #e5e7eb",
               borderRadius: 6, width: 26, height: 20, fontSize: 9,
-              cursor: ehPrimeiroDaSecao ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
+              cursor: ehPrimeiroGlobal ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
             }}>▲</button>
-          <button onClick={() => mover(idx, 1)} disabled={ehUltimoDaSecao} title={ehUltimoDaSecao ? "Já é o último da seção" : "Mover pra baixo"}
+          <button onClick={() => mover(idx, 1)} disabled={ehUltimoGlobal} title={ehUltimoGlobal ? "Já é o último" : "Mover pra baixo"}
             style={{
               background: "#ffffff",
-              color: ehUltimoDaSecao ? "#d1d5db" : "#6b7280",
+              color: ehUltimoGlobal ? "#d1d5db" : "#6b7280",
               border: "1px solid #e5e7eb",
               borderRadius: 6, width: 26, height: 20, fontSize: 9,
-              cursor: ehUltimoDaSecao ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
+              cursor: ehUltimoGlobal ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
             }}>▼</button>
         </div>
 
-        {/* Badge */}
         {!isMobile && (
           <span style={{
             background: bgBadge, color: corBadge,
@@ -914,7 +875,6 @@ function CampoCard({ campo, idx, secaoMeta, campos, inputStyle, cardStyle, isMob
           }}>{labelBadge}</span>
         )}
 
-        {/* Label */}
         <div>
           <input
             value={campo.label}
@@ -929,7 +889,6 @@ function CampoCard({ campo, idx, secaoMeta, campos, inputStyle, cardStyle, isMob
           )}
         </div>
 
-        {/* Tipo */}
         {!isMobile && (ehFixo ? (
           <div style={{ minWidth: 160 }}>
             <span style={{ background: "#f3f4f6", color: "#4b5563", border: "1px solid #e5e7eb", padding: "9px 14px", borderRadius: 10, fontSize: 12, display: "block", textAlign: "center", fontWeight: 600 }}>
@@ -949,7 +908,6 @@ function CampoCard({ campo, idx, secaoMeta, campos, inputStyle, cardStyle, isMob
           </select>
         ))}
 
-        {/* Botão remover/ocultar */}
         <button onClick={() => remover(idx)}
           title={ehFixo ? "Ocultar campo (não pode ser deletado)" : "Remover campo"}
           style={{
@@ -961,7 +919,6 @@ function CampoCard({ campo, idx, secaoMeta, campos, inputStyle, cardStyle, isMob
           }}>{ehFixo ? "👁️‍🗨️" : "🗑️"}</button>
       </div>
 
-      {/* Linha 2: tipo no mobile + badges no mobile */}
       {isMobile && (
         <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{
@@ -987,7 +944,6 @@ function CampoCard({ campo, idx, secaoMeta, campos, inputStyle, cardStyle, isMob
         </div>
       )}
 
-      {/* Linha 3: Toggles */}
       <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
         <label style={{
           display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
@@ -1040,7 +996,6 @@ function CampoCard({ campo, idx, secaoMeta, campos, inputStyle, cardStyle, isMob
         )}
       </div>
 
-      {/* Linha 4: Opções pra dropdown */}
       {campo.tipo === "dropdown" && (
         <div style={{ marginTop: 12, padding: 12, background: "#ffffff", borderRadius: 10, border: "1px solid #e5e7eb" }}>
           <p style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px", fontWeight: 700 }}>
