@@ -1,138 +1,176 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useWorkspace } from "../../hooks/useWorkspace";
 
+// ═══════════════════════════════════════════════════════════════════════
+// ⚙️ CONFIGURAÇÕES — Wolf CRM (multi-tenant, premium)
+// ───────────────────────────────────────────────────────────────────────
+// 5 abas em tabs visuais: Usuários · Equipes · Filas · Permissões · Geral
+// Estado persistido em ?tab=...
+// Real-time em tudo · Busca + filtros por aba · Cards visuais premium
+// ═══════════════════════════════════════════════════════════════════════
+
 const ADMIN_EMAIL = "robert.dias@live.com";
 
-type Usuario = { id?: number; nome: string; email: string; perfil: string; fila: string; status: string; grupo_id?: number; equipe_id?: string | null; };
-type GrupoPermissao = { id: number; nome: string; descricao: string; permissoes: Record<string, boolean>; };
-type Fila = { id: number; nome: string; conexao: string; workspace_id: string; equipe_id?: string | null; };
-type Equipe = { id: string; workspace_id: string; nome: string; descricao: string | null; ativo: boolean; created_at: string; };
+type Usuario = {
+  id?: number;
+  nome: string;
+  email: string;
+  perfil: "Administrador" | "Supervisor" | "Atendente";
+  fila: string; // multi-fila separadas por vírgula
+  status: string;
+  grupo_id?: number;
+  equipe_id?: string | null;
+  created_at?: string;
+};
+
+type GrupoPermissao = {
+  id: number;
+  workspace_id?: string;
+  nome: string;
+  descricao: string;
+  permissoes: Record<string, boolean>;
+};
+
+type Fila = {
+  id: number;
+  nome: string;
+  conexao: string | null;
+  workspace_id: string;
+  equipe_id?: string | null;
+  created_at?: string;
+};
+
+type Equipe = {
+  id: string;
+  workspace_id: string;
+  nome: string;
+  descricao: string | null;
+  ativo: boolean;
+  created_at: string;
+};
+
+type Aba = "usuarios" | "equipes" | "filas" | "permissoes" | "geral";
 
 const CATEGORIAS_PERMISSAO = [
-  {
-    nome: "💬 Atendimento",
-    cor: "#3b82f6",
-    permissoes: [
-      { key: "chat_proprio", label: "Ver próprios atendimentos" },
-      { key: "chat_todos", label: "Ver todos atendimentos" },
-      { key: "chat_interno", label: "Chat interno (conversar c/ equipe)" },
-      { key: "respostas_rapidas", label: "Usar respostas rápidas" },
-      { key: "transferir_chat", label: "Transferir conversas" },
-      { key: "finalizar_chat", label: "Finalizar atendimentos" },
-    ]
-  },
-  {
-    nome: "🏷️ Contatos & Etiquetas",
-    cor: "#06b6d4",
-    permissoes: [
-      { key: "contatos_ver", label: "Ver contatos" },
-      { key: "contatos_editar", label: "Editar cadastro de contatos" },
-      { key: "etiquetas", label: "Gerenciar etiquetas" },
-    ]
-  },
-  {
-    nome: "💰 Vendas & CRM",
-    cor: "#f59e0b",
-    permissoes: [
-      { key: "dashboard", label: "Dashboard de atendimentos" },
-      { key: "vendas_proprio", label: "Ver próprias vendas" },
-      { key: "vendas_equipe", label: "Ver vendas da equipe" },
-      { key: "funil", label: "Ver funil de vendas" },
-      { key: "proposta_criar", label: "Criar propostas" },
-    ]
-  },
-  {
-    nome: "📤 Marketing & Disparos",
-    cor: "#ec4899",
-    permissoes: [
-      { key: "disparo_enviar", label: "Enviar disparos em massa" },
-      { key: "templates_waba", label: "Gerenciar templates WABA" },
-    ]
-  },
-  {
-    nome: "📞 Telefonia VOIP",
-    cor: "#16a34a",
-    permissoes: [
-      { key: "voip_usar", label: "Usar softphone (fazer ligações)" },
-      { key: "voip_conexoes", label: "Gerenciar conexões VOIP" },
-      { key: "voip_campanhas", label: "Criar campanhas VOIP" },
-    ]
-  },
-  {
-    nome: "⚙️ Administração",
-    cor: "#dc2626",
-    permissoes: [
-      { key: "conexoes", label: "Gerenciar conexões WhatsApp" },
-      { key: "filas", label: "Gerenciar filas" },
-      { key: "usuarios_gerenciar", label: "Gerenciar usuários" },
-      { key: "grupos_permissao", label: "Gerenciar grupos de permissão" },
-      { key: "roleta_gerenciar", label: "Gerenciar roleta de distribuição" },
-      { key: "configuracoes_workspace", label: "Configurações do workspace" },
-    ]
-  },
-  {
-    nome: "📊 Relatórios",
-    cor: "#8b5cf6",
-    permissoes: [
-      { key: "relatorios", label: "Relatórios de atendimento" },
-      { key: "relatorios_voip", label: "Relatórios de telefonia" },
-    ]
-  },
-  {
-    nome: "👤 Pessoal",
-    cor: "#6b7280",
-    permissoes: [
-      { key: "config_proprio", label: "Editar próprio perfil" },
-    ]
-  },
+  { nome: "💬 Atendimento", cor: "#3b82f6", permissoes: [
+    { key: "chat_proprio", label: "Ver próprios atendimentos" },
+    { key: "chat_todos", label: "Ver todos atendimentos" },
+    { key: "chat_interno", label: "Chat interno (conversar c/ equipe)" },
+    { key: "respostas_rapidas", label: "Usar respostas rápidas" },
+    { key: "transferir_chat", label: "Transferir conversas" },
+    { key: "finalizar_chat", label: "Finalizar atendimentos" },
+  ]},
+  { nome: "🏷️ Contatos & Etiquetas", cor: "#06b6d4", permissoes: [
+    { key: "contatos_ver", label: "Ver contatos" },
+    { key: "contatos_editar", label: "Editar cadastro de contatos" },
+    { key: "etiquetas", label: "Gerenciar etiquetas" },
+  ]},
+  { nome: "💰 Vendas & CRM", cor: "#f59e0b", permissoes: [
+    { key: "dashboard", label: "Dashboard de atendimentos" },
+    { key: "vendas_proprio", label: "Ver próprias vendas" },
+    { key: "vendas_equipe", label: "Ver vendas da equipe" },
+    { key: "funil", label: "Ver funil de vendas" },
+    { key: "proposta_criar", label: "Criar propostas" },
+  ]},
+  { nome: "📤 Marketing & Disparos", cor: "#ec4899", permissoes: [
+    { key: "disparo_enviar", label: "Enviar disparos em massa" },
+    { key: "templates_waba", label: "Gerenciar templates WABA" },
+  ]},
+  { nome: "📞 Telefonia VOIP", cor: "#16a34a", permissoes: [
+    { key: "voip_usar", label: "Usar softphone (fazer ligações)" },
+    { key: "voip_conexoes", label: "Gerenciar conexões VOIP" },
+    { key: "voip_campanhas", label: "Criar campanhas VOIP" },
+  ]},
+  { nome: "⚙️ Administração", cor: "#dc2626", permissoes: [
+    { key: "conexoes", label: "Gerenciar conexões WhatsApp" },
+    { key: "filas", label: "Gerenciar filas" },
+    { key: "usuarios_gerenciar", label: "Gerenciar usuários" },
+    { key: "grupos_permissao", label: "Gerenciar grupos de permissão" },
+    { key: "roleta_gerenciar", label: "Gerenciar roleta de distribuição" },
+    { key: "configuracoes_workspace", label: "Configurações do workspace" },
+  ]},
+  { nome: "📊 Relatórios", cor: "#8b5cf6", permissoes: [
+    { key: "relatorios", label: "Relatórios de atendimento" },
+    { key: "relatorios_voip", label: "Relatórios de telefonia" },
+  ]},
+  { nome: "👤 Pessoal", cor: "#6b7280", permissoes: [
+    { key: "config_proprio", label: "Editar próprio perfil" },
+  ]},
 ];
 
 const TODAS_PERMISSOES = CATEGORIAS_PERMISSAO.flatMap(c => c.permissoes);
-const PERMISSOES_PADRAO: Record<string, boolean> = TODAS_PERMISSOES.reduce((acc, p) => {
-  acc[p.key] = false;
-  return acc;
-}, {} as Record<string, boolean>);
+const PERMISSOES_PADRAO: Record<string, boolean> = TODAS_PERMISSOES.reduce((acc, p) => { acc[p.key] = false; return acc; }, {} as Record<string, boolean>);
+const LABELS_MAP: Record<string, string> = TODAS_PERMISSOES.reduce((acc, p) => { acc[p.key] = p.label; return acc; }, {} as Record<string, string>);
 
-const LABELS_MAP: Record<string, string> = TODAS_PERMISSOES.reduce((acc, p) => {
-  acc[p.key] = p.label;
-  return acc;
-}, {} as Record<string, string>);
+// ═══ HELPERS VISUAIS ═══
+const initialsFromName = (nome: string) =>
+  nome.split(" ").filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase() || "").join("") || "?";
 
+const corHashFromString = (s: string) => {
+  const cores = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#16a34a", "#06b6d4", "#6366f1", "#a855f7", "#0ea5e9", "#14b8a6", "#f97316"];
+  let h = 0;
+  for (let i = 0; i < (s || "").length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return cores[Math.abs(h) % cores.length];
+};
+
+const iconeHashFromString = (s: string) => {
+  const icones = ["👥", "🚀", "⚡", "🎯", "💼", "🏢", "🌐", "📞", "💰", "🛠️", "📊"];
+  let h = 0;
+  for (let i = 0; i < (s || "").length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return icones[Math.abs(h) % icones.length];
+};
+
+const iconeFilaFromString = (s: string) => {
+  const icones = ["🎯", "📞", "💬", "🛠️", "💰", "🌐", "📋", "🔔", "🚀", "⚡", "📨"];
+  let h = 0;
+  for (let i = 0; i < (s || "").length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return icones[Math.abs(h) % icones.length];
+};
+
+const getToken = async (): Promise<string | null> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || null;
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// 🏛️ COMPONENTE PRINCIPAL
+// ═══════════════════════════════════════════════════════════════════════
 export default function Configuracoes() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isDono, isSuperAdmin, permissoes } = usePermissao();
+
   const [workspaceId, setWorkspaceId] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [autorizado, setAutorizado] = useState(false);
+  const [carregandoInit, setCarregandoInit] = useState(true);
   const [limites, setLimites] = useState({ usuarios_liberados: 9999 });
+
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [gruposPermissao, setGruposPermissao] = useState<GrupoPermissao[]>([]);
   const [filas, setFilas] = useState<Fila[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
-  const [showFormUsuario, setShowFormUsuario] = useState(false);
-  const [showFormFila, setShowFormFila] = useState(false);
-  const [showFormGrupo, setShowFormGrupo] = useState(false);
-  const [showFormEquipe, setShowFormEquipe] = useState(false);
-  const [showSenha, setShowSenha] = useState(false);
-  const [showDropdownFilas, setShowDropdownFilas] = useState(false);
-  const [editandoUsuario, setEditandoUsuario] = useState<Usuario | null>(null);
-  const [editandoGrupo, setEditandoGrupo] = useState<GrupoPermissao | null>(null);
-  const [editandoEquipe, setEditandoEquipe] = useState<Equipe | null>(null);
-  const [formUsuario, setFormUsuario] = useState({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "", equipe_id: "" });
-  const [formFila, setFormFila] = useState({ nome: "", conexao: "", equipe_id: "" });
-  const [formGrupo, setFormGrupo] = useState({ nome: "", descricao: "", permissoes: { ...PERMISSOES_PADRAO } });
-  const [formEquipe, setFormEquipe] = useState({ nome: "", descricao: "" });
-  const [salvandoUsuario, setSalvandoUsuario] = useState(false);
-  const [salvandoFila, setSalvandoFila] = useState(false);
-  const [salvandoEquipe, setSalvandoEquipe] = useState(false);
-  const [catsAbertas, setCatsAbertas] = useState<Record<string, boolean>>(
-    CATEGORIAS_PERMISSAO.reduce((acc, c) => { acc[c.nome] = true; return acc; }, {} as Record<string, boolean>)
-  );
 
+  const podeGerenciarUsuarios = isDono || isSuperAdmin || !!permissoes?.usuarios_gerenciar;
+  const podeGerenciarFilas = isDono || isSuperAdmin || !!permissoes?.filas;
+  const podeGerenciarGrupos = isDono || isSuperAdmin || !!permissoes?.grupos_permissao;
+  const podeConfigSistema = isDono || isSuperAdmin || !!permissoes?.configuracoes_workspace;
+
+  // ═══ Aba atual (persistida em URL) ═══
+  const abaUrl = (searchParams.get("tab") as Aba) || "usuarios";
+  const [abaAtiva, setAbaAtiva] = useState<Aba>(abaUrl);
+  const trocarAba = (a: Aba) => {
+    setAbaAtiva(a);
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.set("tab", a);
+    router.replace(`/crm/configuracoes?${sp.toString()}`);
+  };
+
+  // Mobile
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -141,39 +179,41 @@ export default function Configuracoes() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 14, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
+  // Estilos compartilhados
+  const IS = {
+    width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10,
+    padding: "10px 14px", color: "#1f2937", fontSize: 14, boxSizing: "border-box" as const,
+    outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
+  };
   const cardStyle = {
-    background: "#ffffff",
-    borderRadius: 14,
-    border: "1px solid #e5e7eb",
+    background: "#ffffff", borderRadius: 14, border: "1px solid #e5e7eb",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
-
-  const getToken = async (): Promise<string | null> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token || null;
+  const labelStyle = {
+    color: "#6b7280", fontSize: 11, fontWeight: 700,
+    textTransform: "uppercase" as const, letterSpacing: 0.5,
+    display: "block" as const, marginBottom: 6,
   };
 
+  // ═══ FETCHES ═══
   const fetchUsuarios = async (wsId: string) => {
     const { data } = await supabase.from("usuarios_workspace").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false });
     if (data) setUsuarios(data);
   };
-
   const fetchGrupos = async (wsId: string) => {
     const { data } = await supabase.from("grupos_permissao").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false });
     if (data) setGruposPermissao(data);
   };
-
   const fetchFilas = async (wsId: string) => {
     const { data } = await supabase.from("filas").select("*").eq("workspace_id", wsId).order("created_at", { ascending: true });
     if (data) setFilas(data);
   };
-
   const fetchEquipes = async (wsId: string) => {
     const { data } = await supabase.from("equipes").select("*").eq("workspace_id", wsId).eq("ativo", true).order("nome", { ascending: true });
     if (data) setEquipes(data);
   };
 
+  // ═══ INIT ═══
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -185,16 +225,18 @@ export default function Configuracoes() {
       if (wsDono) {
         setAutorizado(true);
         const wsId = wsDono.username;
-        if (!wsId) { alert("Erro: workspace sem username."); return; }
+        if (!wsId) { alert("Erro: workspace sem username."); setCarregandoInit(false); return; }
         setWorkspaceId(wsId);
-        fetchUsuarios(wsId); fetchGrupos(wsId); fetchFilas(wsId); fetchEquipes(wsId);
+        await Promise.all([fetchUsuarios(wsId), fetchGrupos(wsId), fetchFilas(wsId), fetchEquipes(wsId)]);
         if (!admin) {
           const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).maybeSingle();
           if (cadastro) setLimites({ usuarios_liberados: cadastro.usuarios_liberados || 1 });
         }
+        setCarregandoInit(false);
         return;
       }
 
+      // Sub-usuário
       const { data: usuarioWs } = await supabase.from("usuarios_workspace")
         .select("workspace_id, grupo_id, perfil")
         .eq("email", user.email).order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -210,7 +252,7 @@ export default function Configuracoes() {
 
       const wsId = usuarioWs.workspace_id;
       setWorkspaceId(wsId);
-      fetchUsuarios(wsId); fetchGrupos(wsId); fetchFilas(wsId); fetchEquipes(wsId);
+      await Promise.all([fetchUsuarios(wsId), fetchGrupos(wsId), fetchFilas(wsId), fetchEquipes(wsId)]);
 
       const { data: wsSub } = await supabase.from("workspaces").select("owner_email").eq("username", wsId).maybeSingle();
       if (wsSub?.owner_email) {
@@ -218,10 +260,13 @@ export default function Configuracoes() {
         if (cadastroDono) setLimites({ usuarios_liberados: cadastroDono.usuarios_liberados || 1 });
       }
       setAutorizado(true);
+      setCarregandoInit(false);
     };
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ═══ REAL-TIME ═══
   useEffect(() => {
     if (!workspaceId) return;
     const ch = supabase.channel("ws_rt_" + workspaceId)
@@ -233,21 +278,350 @@ export default function Configuracoes() {
     return () => { supabase.removeChannel(ch); };
   }, [workspaceId]);
 
-  if (!autorizado) return null;
+  // ═══ LOOKUPS ═══
+  const equipeById = useMemo(() => {
+    const m = new Map<string, Equipe>();
+    equipes.forEach(e => m.set(e.id, e));
+    return m;
+  }, [equipes]);
+
+  const usuariosPorEquipe = useMemo(() => {
+    const m = new Map<string, number>();
+    usuarios.forEach(u => {
+      if (u.equipe_id) m.set(u.equipe_id, (m.get(u.equipe_id) || 0) + 1);
+    });
+    return m;
+  }, [usuarios]);
+
+  const filasPorEquipe = useMemo(() => {
+    const m = new Map<string, number>();
+    filas.forEach(f => {
+      if (f.equipe_id) m.set(f.equipe_id, (m.get(f.equipe_id) || 0) + 1);
+    });
+    return m;
+  }, [filas]);
+
   const limiteAtingido = !isAdmin && usuarios.length >= limites.usuarios_liberados;
 
-  const abrirEditarUsuario = (u: Usuario) => {
+  // ═══ ABAS ═══
+  const abas: { id: Aba; nome: string; icone: string; cor: string; count: number; podeVer: boolean }[] = [
+    { id: "usuarios",   nome: "Usuários",   icone: "👥", cor: "#3b82f6", count: usuarios.length,        podeVer: podeGerenciarUsuarios },
+    { id: "equipes",    nome: "Equipes",    icone: "🏢", cor: "#a855f7", count: equipes.length,         podeVer: podeGerenciarUsuarios },
+    { id: "filas",      nome: "Filas",      icone: "📋", cor: "#16a34a", count: filas.length,           podeVer: podeGerenciarFilas },
+    { id: "permissoes", nome: "Permissões", icone: "🔐", cor: "#8b5cf6", count: gruposPermissao.length, podeVer: podeGerenciarGrupos },
+    { id: "geral",      nome: "Geral",      icone: "⚙️", cor: "#f59e0b", count: 0,                      podeVer: podeConfigSistema },
+  ];
+  const abasVisiveis = abas.filter(a => a.podeVer);
+  if (!carregandoInit && abasVisiveis.length > 0 && !abasVisiveis.some(a => a.id === abaAtiva)) {
+    setTimeout(() => setAbaAtiva(abasVisiveis[0].id), 0);
+  }
+
+  // ═══ Loading inicial ═══
+  if (carregandoInit) {
+    return (
+      <div style={{ ...cardStyle, padding: 48, textAlign: "center", color: "#6b7280" }}>
+        ⏳ Carregando configurações...
+      </div>
+    );
+  }
+
+  // ═══ Sem permissão ═══
+  if (!autorizado || (abasVisiveis.length === 0)) {
+    return (
+      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480, borderLeft: "4px solid #dc2626", background: "#fef2f2", borderColor: "#fecaca" }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: 20,
+            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 40, margin: "0 auto 16px",
+            boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
+          }}>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
+          </div>
+          <h1 style={{ color: "#991b1b", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
+          <p style={{ color: "#7f1d1d", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>
+            Você não tem permissão para acessar as configurações do workspace. Fale com o administrador.
+          </p>
+          <button onClick={() => router.back()}
+            style={{
+              background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+              color: "white", border: "none", borderRadius: 12,
+              padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+            }}>← Voltar</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 22 }}>
+
+      {/* ═══ HEADER ═══ */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{
+          width: 52, height: 52, borderRadius: 14,
+          background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 26, boxShadow: "0 8px 20px rgba(59,130,246,0.30)",
+          flexShrink: 0,
+        }}>
+          <span style={{ filter: "saturate(0) brightness(2)" }}>⚙️</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Configurações do Workspace</h1>
+          <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0" }}>
+            Wolf CRM · Gerenciamento completo · {usuarios.length} usuário(s) · {equipes.length} equipe(s) · {filas.length} fila(s)
+          </p>
+        </div>
+        {!isAdmin && limites.usuarios_liberados < 9999 && (
+          <div style={{
+            background: limiteAtingido ? "#fef2f2" : "#f0fdf4",
+            border: `1px solid ${limiteAtingido ? "#fecaca" : "#bbf7d0"}`,
+            borderRadius: 12,
+            padding: "10px 16px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+          }}>
+            <span style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Seu plano</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: limiteAtingido ? "#dc2626" : "#16a34a", marginTop: 2 }}>
+              {usuarios.length}/{limites.usuarios_liberados} usuários
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ═══ TABS ═══ */}
+      <div style={{ ...cardStyle, padding: isMobile ? 6 : 8, overflowX: "auto" }}>
+        <div style={{ display: "flex", gap: 4, minWidth: "fit-content" }}>
+          {abasVisiveis.map(aba => {
+            const ativo = abaAtiva === aba.id;
+            return (
+              <button key={aba.id} onClick={() => trocarAba(aba.id)}
+                style={{
+                  background: ativo ? `linear-gradient(135deg, ${aba.cor}15, ${aba.cor}08)` : "transparent",
+                  color: ativo ? aba.cor : "#6b7280",
+                  border: ativo ? `1px solid ${aba.cor}40` : "1px solid transparent",
+                  borderRadius: 10,
+                  padding: isMobile ? "9px 12px" : "10px 18px",
+                  fontSize: isMobile ? 12 : 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  whiteSpace: "nowrap",
+                  transition: "all 0.15s",
+                  boxShadow: ativo ? `0 2px 8px ${aba.cor}15` : "none",
+                }}>
+                <span style={{ fontSize: 16 }}>{aba.icone}</span>
+                <span>{aba.nome}</span>
+                {aba.count > 0 && (
+                  <span style={{
+                    background: ativo ? aba.cor : "#e5e7eb",
+                    color: ativo ? "white" : "#6b7280",
+                    fontSize: 10,
+                    padding: "1px 7px",
+                    borderRadius: 8,
+                    fontWeight: 800,
+                    minWidth: 18,
+                    textAlign: "center",
+                  }}>{aba.count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ═══ CONTEÚDO DA ABA ═══ */}
+      {abaAtiva === "usuarios" && (
+        <AbaUsuarios
+          usuarios={usuarios}
+          equipes={equipes}
+          filas={filas}
+          gruposPermissao={gruposPermissao}
+          equipeById={equipeById}
+          workspaceId={workspaceId}
+          isAdmin={isAdmin}
+          limites={limites}
+          limiteAtingido={limiteAtingido}
+          podeGerenciar={podeGerenciarUsuarios}
+          isMobile={isMobile}
+          IS={IS} cardStyle={cardStyle} labelStyle={labelStyle}
+          onRefetch={() => fetchUsuarios(workspaceId)}
+        />
+      )}
+      {abaAtiva === "equipes" && (
+        <AbaEquipes
+          equipes={equipes}
+          usuarios={usuarios}
+          filas={filas}
+          usuariosPorEquipe={usuariosPorEquipe}
+          filasPorEquipe={filasPorEquipe}
+          workspaceId={workspaceId}
+          podeGerenciar={podeGerenciarUsuarios}
+          isMobile={isMobile}
+          IS={IS} cardStyle={cardStyle} labelStyle={labelStyle}
+          onRefetch={async () => { await fetchEquipes(workspaceId); await fetchUsuarios(workspaceId); await fetchFilas(workspaceId); }}
+        />
+      )}
+      {abaAtiva === "filas" && (
+        <AbaFilas
+          filas={filas}
+          equipes={equipes}
+          usuarios={usuarios}
+          equipeById={equipeById}
+          workspaceId={workspaceId}
+          podeGerenciar={podeGerenciarFilas}
+          isMobile={isMobile}
+          IS={IS} cardStyle={cardStyle} labelStyle={labelStyle}
+          onRefetch={() => fetchFilas(workspaceId)}
+        />
+      )}
+      {abaAtiva === "permissoes" && (
+        <AbaPermissoes
+          gruposPermissao={gruposPermissao}
+          workspaceId={workspaceId}
+          podeGerenciar={podeGerenciarGrupos}
+          isMobile={isMobile}
+          IS={IS} cardStyle={cardStyle} labelStyle={labelStyle}
+          onRefetch={() => fetchGrupos(workspaceId)}
+        />
+      )}
+      {abaAtiva === "geral" && (
+        <AbaGeral
+          workspaceId={workspaceId}
+          usuarios={usuarios}
+          isAdmin={isAdmin}
+          limites={limites}
+          limiteAtingido={limiteAtingido}
+          podeGerenciar={podeConfigSistema}
+          isMobile={isMobile}
+          IS={IS} cardStyle={cardStyle} labelStyle={labelStyle}
+        />
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 👥 ABA USUÁRIOS
+// ═══════════════════════════════════════════════════════════════════════
+function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, workspaceId, isAdmin, limites, limiteAtingido, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
+  const [busca, setBusca] = useState("");
+  const [filtroPerfil, setFiltroPerfil] = useState<"todos" | "Administrador" | "Supervisor" | "Atendente">("todos");
+  const [filtroEquipe, setFiltroEquipe] = useState<string>("todas");
+  const [showForm, setShowForm] = useState(false);
+  const [editandoUsuario, setEditandoUsuario] = useState<Usuario | null>(null);
+  const [formUsuario, setFormUsuario] = useState({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente" as "Administrador" | "Supervisor" | "Atendente", fila: "", grupo_id: "", equipe_id: "" });
+  const [showSenha, setShowSenha] = useState(false);
+  const [showDropdownFilas, setShowDropdownFilas] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+
+  const usuariosFiltrados = useMemo(() => {
+    let l: Usuario[] = usuarios;
+    if (busca) {
+      const b = busca.toLowerCase();
+      l = l.filter((u: Usuario) => u.nome.toLowerCase().includes(b) || u.email.toLowerCase().includes(b));
+    }
+    if (filtroPerfil !== "todos") l = l.filter((u: Usuario) => u.perfil === filtroPerfil);
+    if (filtroEquipe !== "todas") {
+      if (filtroEquipe === "sem") l = l.filter((u: Usuario) => !u.equipe_id);
+      else l = l.filter((u: Usuario) => u.equipe_id === filtroEquipe);
+    }
+    return l;
+  }, [usuarios, busca, filtroPerfil, filtroEquipe]);
+
+  const abrirNovo = () => {
+    if (!podeGerenciar) { alert("Sem permissão."); return; }
+    if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); return; }
+    setEditandoUsuario(null);
+    setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "", equipe_id: "" });
+    setShowForm(true);
+  };
+
+  const abrirEditar = (u: Usuario) => {
+    if (!podeGerenciar) { alert("Sem permissão."); return; }
     setEditandoUsuario(u);
-    setFormUsuario({ nome: u.nome, email: u.email, telefone: "", senha: "", perfil: u.perfil, fila: u.fila || "", grupo_id: u.grupo_id?.toString() || "", equipe_id: u.equipe_id || "" });
-    setShowFormUsuario(true);
+    setFormUsuario({
+      nome: u.nome, email: u.email, telefone: "", senha: "",
+      perfil: u.perfil, fila: u.fila || "",
+      grupo_id: u.grupo_id?.toString() || "", equipe_id: u.equipe_id || "",
+    });
+    setShowForm(true);
+  };
+
+  const salvarUsuario = async () => {
+    if (!podeGerenciar) { alert("Sem permissão."); return; }
+    if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; }
+    setSalvando(true);
+    try {
+      if (editandoUsuario) {
+        await supabase.from("usuarios_workspace")
+          .update({
+            nome: formUsuario.nome,
+            perfil: formUsuario.perfil,
+            fila: formUsuario.fila,
+            grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
+            equipe_id: formUsuario.equipe_id || null,
+          })
+          .eq("email", editandoUsuario.email)
+          .eq("workspace_id", workspaceId);
+        await onRefetch();
+        setEditandoUsuario(null);
+        setShowForm(false);
+        alert("✅ Usuário atualizado!");
+        setSalvando(false);
+        return;
+      }
+      if (!formUsuario.senha) { alert("Preencha a Senha!"); setSalvando(false); return; }
+      if (formUsuario.senha.length < 6) { alert("Senha deve ter no mínimo 6 caracteres!"); setSalvando(false); return; }
+      if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); setSalvando(false); return; }
+
+      const token = await getToken();
+      if (!token) { alert("Sessão expirou."); setSalvando(false); return; }
+      const resp = await fetch("/api/criar-usuario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({
+          email: formUsuario.email,
+          senha: formUsuario.senha,
+          nome: formUsuario.nome,
+          workspace_id: workspaceId,
+          perfil: formUsuario.perfil,
+          fila: formUsuario.fila,
+          grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
+          equipe_id: formUsuario.equipe_id || null,
+        }),
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        if (data.error === "email_exists") alert("❌ E-mail já cadastrado!");
+        else if (data.error === "limite_atingido") alert("❌ " + (data.detalhes || "Limite atingido!"));
+        else alert("Erro: " + data.error);
+        setSalvando(false);
+        return;
+      }
+      if (formUsuario.equipe_id) {
+        await supabase.from("usuarios_workspace")
+          .update({ equipe_id: formUsuario.equipe_id })
+          .eq("email", formUsuario.email).eq("workspace_id", workspaceId);
+      }
+      await onRefetch();
+      setShowForm(false);
+      alert("✅ Usuário adicionado!");
+    } catch (e: any) {
+      alert("Erro: " + e.message);
+    }
+    setSalvando(false);
   };
 
   const excluirUsuario = async (u: Usuario) => {
-    if (!isDono && !isSuperAdmin && !permissoes.usuarios_gerenciar) {
-      alert("❌ Você não tem permissão para excluir usuários.");
-      return;
-    }
-    if (!confirm(`Excluir ${u.nome}? Isso vai apagar o login dele também.`)) return;
+    if (!podeGerenciar) { alert("Sem permissão."); return; }
+    if (!confirm(`Excluir ${u.nome}?\n\nIsso vai apagar o login dele também.`)) return;
     const token = await getToken();
     if (!token) { alert("Sessão expirou."); return; }
     try {
@@ -258,170 +632,369 @@ export default function Configuracoes() {
       });
       const data = await resp.json();
       if (!data.success) { alert("Erro: " + data.error); return; }
-      await fetchUsuarios(workspaceId);
+      await onRefetch();
       alert("✅ Usuário excluído!");
     } catch (e: any) { alert("Erro: " + e.message); }
   };
 
-  const salvarUsuario = async () => {
-    if (!isDono && !isSuperAdmin && !permissoes.usuarios_gerenciar) {
-      alert("❌ Você não tem permissão para gerenciar usuários.");
-      return;
-    }
-    if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; }
-    setSalvandoUsuario(true);
-    try {
-      if (editandoUsuario) {
-        await supabase.from("usuarios_workspace")
-          .update({ nome: formUsuario.nome, perfil: formUsuario.perfil, fila: formUsuario.fila, grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null, equipe_id: formUsuario.equipe_id || null })
-          .eq("email", editandoUsuario.email).eq("workspace_id", workspaceId);
-        await fetchUsuarios(workspaceId);
-        setEditandoUsuario(null); setShowFormUsuario(false);
-        setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "", equipe_id: "" });
-        alert("✅ Usuário atualizado!"); setSalvandoUsuario(false); return;
-      }
-      if (!formUsuario.senha) { alert("Preencha a Senha!"); setSalvandoUsuario(false); return; }
-      if (formUsuario.senha.length < 6) { alert("Senha deve ter no mínimo 6 caracteres!"); setSalvandoUsuario(false); return; }
-      if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); setSalvandoUsuario(false); return; }
-      const token = await getToken();
-      if (!token) { alert("Sessão expirou."); setSalvandoUsuario(false); return; }
-      const resp = await fetch("/api/criar-usuario", {
-        method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({
-          email: formUsuario.email, senha: formUsuario.senha, nome: formUsuario.nome,
-          workspace_id: workspaceId, perfil: formUsuario.perfil, fila: formUsuario.fila,
-          grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
-          equipe_id: formUsuario.equipe_id || null,
-        }),
-      });
-      const data = await resp.json();
-      if (!data.success) {
-        if (data.error === "email_exists") alert("❌ E-mail já cadastrado!");
-        else if (data.error === "limite_atingido") alert("❌ " + (data.detalhes || "Limite atingido!"));
-        else alert("Erro: " + data.error);
-        setSalvandoUsuario(false); return;
-      }
-      // Garante equipe_id mesmo se a API ainda não encaminha o campo
-      if (formUsuario.equipe_id) {
-        await supabase.from("usuarios_workspace")
-          .update({ equipe_id: formUsuario.equipe_id })
-          .eq("email", formUsuario.email).eq("workspace_id", workspaceId);
-      }
-      await fetchUsuarios(workspaceId);
-      setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "", equipe_id: "" });
-      setShowFormUsuario(false); alert("✅ Usuário adicionado!");
-    } catch (e: any) { alert("Erro: " + e.message); }
-    setSalvandoUsuario(false);
-  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-  const salvarFila = async () => {
-    if (!isDono && !isSuperAdmin && !permissoes.filas) {
-      alert("❌ Você não tem permissão para gerenciar filas.");
-      return;
-    }
-    if (!formFila.nome.trim()) { alert("Digite o nome da fila!"); return; }
-    setSalvandoFila(true);
-    try {
-      const { error } = await supabase.from("filas").insert([{
-        nome: formFila.nome.trim(), conexao: formFila.conexao.trim() || null, workspace_id: workspaceId,
-        equipe_id: formFila.equipe_id || null,
-      }]);
-      if (error) {
-        if (error.code === "23505") alert("❌ Já existe uma fila com esse nome neste workspace!");
-        else alert("Erro ao criar fila: " + error.message);
-        setSalvandoFila(false); return;
-      }
-      await fetchFilas(workspaceId);
-      setFormFila({ nome: "", conexao: "", equipe_id: "" }); setShowFormFila(false);
-    } catch (e: any) { alert("Erro: " + e.message); }
-    setSalvandoFila(false);
-  };
+      {/* Barra de uso de plano (não admin) */}
+      {!isAdmin && limites.usuarios_liberados < 9999 && (
+        <div style={{ ...cardStyle, padding: "12px 18px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, alignItems: "center" }}>
+            <span style={{ color: "#6b7280", fontSize: 12, fontWeight: 700 }}>📊 Uso do plano</span>
+            <span style={{ color: limiteAtingido ? "#dc2626" : "#16a34a", fontSize: 12, fontWeight: 800 }}>
+              {usuarios.length}/{limites.usuarios_liberados} usuários ({Math.round(usuarios.length / limites.usuarios_liberados * 100)}%)
+            </span>
+          </div>
+          <div style={{ background: "#e5e7eb", borderRadius: 4, height: 6, overflow: "hidden" }}>
+            <div style={{
+              background: limiteAtingido
+                ? "linear-gradient(90deg, #dc2626, #ef4444)"
+                : usuarios.length / limites.usuarios_liberados >= 0.8
+                  ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
+                  : "linear-gradient(90deg, #16a34a, #22c55e)",
+              height: "100%",
+              width: `${Math.min((usuarios.length / limites.usuarios_liberados) * 100, 100)}%`,
+              transition: "width 0.3s",
+            }} />
+          </div>
+        </div>
+      )}
 
-  const excluirFila = async (f: Fila) => {
-    if (!isDono && !isSuperAdmin && !permissoes.filas) {
-      alert("❌ Você não tem permissão para excluir filas.");
-      return;
-    }
-    if (!confirm(`Excluir a fila "${f.nome}"?`)) return;
-    if (!workspaceId) { alert("Workspace não carregado."); return; }
-    const { error } = await supabase.from("filas").delete()
-      .eq("id", f.id)
-      .eq("workspace_id", workspaceId);
-    if (error) { alert("Erro ao excluir: " + error.message); return; }
-    await fetchFilas(workspaceId);
-  };
+      {/* Toolbar */}
+      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <input placeholder="🔍 Buscar por nome ou e-mail..." value={busca} onChange={e => setBusca(e.target.value)}
+          style={{ ...IS, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
+        <select value={filtroPerfil} onChange={e => setFiltroPerfil(e.target.value as any)} style={{ ...IS, maxWidth: 180 }}>
+          <option value="todos">Perfil: Todos</option>
+          <option value="Administrador">👑 Administrador</option>
+          <option value="Supervisor">🎖️ Supervisor</option>
+          <option value="Atendente">👤 Atendente</option>
+        </select>
+        <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)} style={{ ...IS, maxWidth: 200 }}>
+          <option value="todas">Equipe: Todas</option>
+          <option value="sem">Sem equipe</option>
+          {equipes.map((eq: Equipe) => (
+            <option key={eq.id} value={eq.id}>{iconeHashFromString(eq.nome)} {eq.nome}</option>
+          ))}
+        </select>
+        <div style={{ flex: 1 }} />
+        <button onClick={abrirNovo} disabled={limiteAtingido}
+          style={{
+            background: limiteAtingido ? "#f3f4f6" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            color: limiteAtingido ? "#9ca3af" : "white",
+            border: "none", borderRadius: 10,
+            padding: "10px 18px", fontSize: 13, fontWeight: 700,
+            cursor: limiteAtingido ? "not-allowed" : "pointer",
+            boxShadow: limiteAtingido ? "none" : "0 4px 12px rgba(59,130,246,0.3)",
+            whiteSpace: "nowrap",
+          }}>
+          {limiteAtingido ? "🔒 Limite Atingido" : "+ Novo Usuário"}
+        </button>
+      </div>
 
-  const toggleCategoriaToda = (catNome: string, marcar: boolean) => {
-    const cat = CATEGORIAS_PERMISSAO.find(c => c.nome === catNome);
-    if (!cat) return;
-    const novo = { ...formGrupo.permissoes };
-    cat.permissoes.forEach(p => { novo[p.key] = marcar; });
-    setFormGrupo({ ...formGrupo, permissoes: novo });
-  };
+      {/* Form */}
+      {showForm && (
+        <div style={{ ...cardStyle, padding: 22, borderTop: "3px solid #3b82f6" }}>
+          <p style={{ color: "#3b82f6", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
+            {editandoUsuario ? "✏️ Editar Usuário" : "➕ Novo Usuário"}
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
+            <div>
+              <label style={labelStyle}>Nome *</label>
+              <input placeholder="Nome completo" value={formUsuario.nome} onChange={e => setFormUsuario({ ...formUsuario, nome: e.target.value })} style={IS} />
+            </div>
+            <div>
+              <label style={labelStyle}>E-mail *</label>
+              <input type="email" placeholder="email@exemplo.com" value={formUsuario.email}
+                onChange={e => setFormUsuario({ ...formUsuario, email: e.target.value })}
+                disabled={!!editandoUsuario}
+                style={{ ...IS, background: editandoUsuario ? "#f3f4f6" : "#ffffff", opacity: editandoUsuario ? 0.6 : 1 }} />
+            </div>
+            <div>
+              <label style={labelStyle}>Perfil</label>
+              <select value={formUsuario.perfil} onChange={e => setFormUsuario({ ...formUsuario, perfil: e.target.value as any })} style={IS}>
+                <option value="Administrador">👑 Administrador</option>
+                <option value="Supervisor">🎖️ Supervisor</option>
+                <option value="Atendente">👤 Atendente</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>🏢 Equipe</label>
+              <select value={formUsuario.equipe_id} onChange={e => setFormUsuario({ ...formUsuario, equipe_id: e.target.value })} style={IS}>
+                <option value="">Sem equipe (global)</option>
+                {equipes.map((eq: Equipe) => (
+                  <option key={eq.id} value={eq.id}>{iconeHashFromString(eq.nome)} {eq.nome}</option>
+                ))}
+              </select>
+              {equipes.length === 0 && (
+                <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>
+                  Nenhuma equipe ainda — vá na aba "Equipes" pra criar.
+                </p>
+              )}
+            </div>
+            <div>
+              <label style={labelStyle}>📋 Filas atendidas</label>
+              {(() => {
+                const filasSelecionadas = (formUsuario.fila || "").split(",").map(s => s.trim()).filter(Boolean);
+                const labelBotao = filasSelecionadas.length === 0
+                  ? "Selecione..."
+                  : filasSelecionadas.length === 1
+                    ? filasSelecionadas[0]
+                    : `${filasSelecionadas.length} filas selecionadas`;
+                const toggleFila = (nome: string) => {
+                  const novas = filasSelecionadas.includes(nome)
+                    ? filasSelecionadas.filter(f => f !== nome)
+                    : [...filasSelecionadas, nome];
+                  setFormUsuario({ ...formUsuario, fila: novas.join(",") });
+                };
+                return (
+                  <div style={{ position: "relative" }}>
+                    <button type="button" onClick={() => setShowDropdownFilas(!showDropdownFilas)}
+                      style={{ ...IS, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: filasSelecionadas.length === 0 ? "#9ca3af" : "#1f2937", fontWeight: filasSelecionadas.length > 0 ? 600 : 400 }}>{labelBotao}</span>
+                      <span style={{ color: "#9ca3af", fontSize: 10 }}>{showDropdownFilas ? "▲" : "▼"}</span>
+                    </button>
+                    {showDropdownFilas && (
+                      <>
+                        <div onClick={() => setShowDropdownFilas(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }} />
+                        <div style={{
+                          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                          background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10,
+                          maxHeight: 260, overflowY: "auto", zIndex: 101,
+                          boxShadow: "0 10px 25px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.04)",
+                        }}>
+                          {filas.length === 0 ? (
+                            <p style={{ color: "#9ca3af", fontSize: 12, padding: 14, textAlign: "center", margin: 0 }}>
+                              Nenhuma fila criada ainda. Crie uma fila na aba "Filas" primeiro.
+                            </p>
+                          ) : (
+                            <>
+                              {filas.map((f: Fila) => {
+                                const marcada = filasSelecionadas.includes(f.nome);
+                                return (
+                                  <label key={f.id} style={{
+                                    display: "flex", alignItems: "center", gap: 10,
+                                    padding: "11px 14px", cursor: "pointer",
+                                    borderBottom: "1px solid #f3f4f6",
+                                    background: marcada ? "#eff6ff" : "transparent",
+                                  }}
+                                    onMouseEnter={(e) => { if (!marcada) e.currentTarget.style.background = "#f9fafb"; }}
+                                    onMouseLeave={(e) => { if (!marcada) e.currentTarget.style.background = "transparent"; }}>
+                                    <input type="checkbox" checked={marcada} onChange={() => toggleFila(f.nome)}
+                                      style={{ accentColor: "#3b82f6", cursor: "pointer", width: 16, height: 16 }} />
+                                    <span style={{ color: marcada ? "#3b82f6" : "#1f2937", fontSize: 13, fontWeight: marcada ? 700 : 500 }}>
+                                      {iconeFilaFromString(f.nome)} {f.nome}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                              {filasSelecionadas.length > 0 && (
+                                <div style={{ padding: "8px 14px", borderTop: "1px solid #e5e7eb", background: "#f9fafb" }}>
+                                  <button type="button" onClick={() => setFormUsuario({ ...formUsuario, fila: "" })}
+                                    style={{ background: "none", border: "none", color: "#dc2626", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                                    ✕ Limpar seleção
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                    {filasSelecionadas.length > 1 && (
+                      <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
+                        ℹ️ Atende {filasSelecionadas.length} filas: <b>{filasSelecionadas.join(", ")}</b>
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+            <div>
+              <label style={labelStyle}>🔐 Grupo de Permissão</label>
+              <select value={formUsuario.grupo_id} onChange={e => setFormUsuario({ ...formUsuario, grupo_id: e.target.value })} style={IS}>
+                <option value="">Sem grupo (usa padrão do perfil)</option>
+                {gruposPermissao.map((g: GrupoPermissao) => (
+                  <option key={g.id} value={g.id.toString()}>{g.nome}</option>
+                ))}
+              </select>
+            </div>
+            {!editandoUsuario && (
+              <div style={{ position: "relative", gridColumn: isMobile ? "1" : "span 2" }}>
+                <label style={labelStyle}>Senha *</label>
+                <input type={showSenha ? "text" : "password"} placeholder="Mínimo 6 caracteres" value={formUsuario.senha}
+                  onChange={e => setFormUsuario({ ...formUsuario, senha: e.target.value })}
+                  style={{ ...IS, paddingRight: 40 }} />
+                <button onClick={() => setShowSenha(!showSenha)} type="button"
+                  style={{ position: "absolute", right: 8, top: 32, background: "#f3f4f6", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 12, width: 28, height: 28, borderRadius: 6 }}>
+                  {showSenha ? "🙈" : "👁️"}
+                </button>
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button onClick={() => { setShowForm(false); setEditandoUsuario(null); }}
+              style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              Cancelar
+            </button>
+            <button onClick={salvarUsuario} disabled={salvando}
+              style={{
+                background: salvando ? "#2563eb" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                color: "white", border: "none", borderRadius: 10,
+                padding: "9px 22px", fontSize: 12, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
+                boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+              }}>{salvando ? "Salvando..." : "💾 Salvar"}</button>
+          </div>
+        </div>
+      )}
 
-  const salvarGrupo = async () => {
-    if (!isDono && !isSuperAdmin && !permissoes.grupos_permissao) {
-      alert("❌ Você não tem permissão para gerenciar grupos de permissão.");
-      return;
-    }
-    if (!formGrupo.nome) { alert("Digite o nome do grupo!"); return; }
-    if (!workspaceId) { alert("Workspace não carregado."); return; }
-    if (editandoGrupo) {
-      await supabase.from("grupos_permissao")
-        .update({ nome: formGrupo.nome, descricao: formGrupo.descricao, permissoes: formGrupo.permissoes })
-        .eq("id", editandoGrupo.id)
-        .eq("workspace_id", workspaceId);
-    } else {
-      await supabase.from("grupos_permissao").insert([{ workspace_id: workspaceId, nome: formGrupo.nome, descricao: formGrupo.descricao, permissoes: formGrupo.permissoes }]);
-    }
-    await fetchGrupos(workspaceId);
-    setShowFormGrupo(false); setEditandoGrupo(null);
-    setFormGrupo({ nome: "", descricao: "", permissoes: { ...PERMISSOES_PADRAO } });
-    alert("✅ Grupo salvo!");
-  };
+      {/* Lista */}
+      {usuariosFiltrados.length === 0 ? (
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
+          <p style={{ fontSize: 40, margin: "0 0 8px" }}>{busca || filtroPerfil !== "todos" || filtroEquipe !== "todas" ? "🔍" : "👥"}</p>
+          <p style={{ color: "#9ca3af", fontSize: 13 }}>
+            {busca || filtroPerfil !== "todos" || filtroEquipe !== "todas" ? "Nenhum usuário com esses filtros" : "Nenhum usuário cadastrado ainda"}
+          </p>
+        </div>
+      ) : (
+        <div style={{ ...cardStyle, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 800 : "auto" }}>
+              <thead>
+                <tr style={{ background: "#f9fafb" }}>
+                  {["Nome", "Perfil", "Equipe", "Filas", "Grupo", "Status", "Ações"].map(h => (
+                    <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {usuariosFiltrados.map((u: Usuario, i: number) => {
+                  const equipe = u.equipe_id ? equipeById.get(u.equipe_id) : null;
+                  const corEquipe = equipe ? corHashFromString(equipe.nome) : "#9ca3af";
+                  const grupo = u.grupo_id ? gruposPermissao.find((g: GrupoPermissao) => g.id === u.grupo_id) : null;
+                  const corAvatar = corHashFromString(u.email || u.nome);
+                  const filasUser = (u.fila || "").split(",").map(s => s.trim()).filter(Boolean);
+                  return (
+                    <tr key={u.id || i}
+                      style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#ffffff" : "#fafbfc", transition: "background 0.1s" }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc"}
+                    >
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{
+                            width: 36, height: 36, borderRadius: "50%",
+                            background: `linear-gradient(135deg, ${corAvatar} 0%, ${corAvatar}cc 100%)`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: "white", fontSize: 12, fontWeight: 800,
+                            flexShrink: 0,
+                            boxShadow: `0 2px 6px ${corAvatar}40`,
+                          }}>
+                            {initialsFromName(u.nome)}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.nome}</p>
+                            <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        {u.perfil === "Administrador" ? (
+                          <span style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>👑 Admin</span>
+                        ) : u.perfil === "Supervisor" ? (
+                          <span style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>🎖️ Supervisor</span>
+                        ) : (
+                          <span style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>👤 Atendente</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        {equipe ? (
+                          <span style={{ background: `${corEquipe}15`, color: corEquipe, border: `1px solid ${corEquipe}40`, padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+                            {iconeHashFromString(equipe.nome)} {equipe.nome}
+                          </span>
+                        ) : <span style={{ color: "#d1d5db", fontSize: 12 }}>—</span>}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        {filasUser.length === 0 ? <span style={{ color: "#d1d5db", fontSize: 12 }}>—</span> : filasUser.length === 1 ? (
+                          <span style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{iconeFilaFromString(filasUser[0])} {filasUser[0]}</span>
+                        ) : (
+                          <span style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }} title={filasUser.join(", ")}>📋 {filasUser.length} filas</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        {grupo ? (
+                          <span style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{grupo.nome}</span>
+                        ) : <span style={{ color: "#d1d5db", fontSize: 12 }}>—</span>}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <span style={{
+                          background: u.status === "online" ? "#f0fdf4" : "#f3f4f6",
+                          color: u.status === "online" ? "#16a34a" : "#6b7280",
+                          border: `1px solid ${u.status === "online" ? "#bbf7d0" : "#e5e7eb"}`,
+                          padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700,
+                        }}>{u.status === "online" ? "🟢 Online" : "⚫ Offline"}</span>
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => abrirEditar(u)}
+                            style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
+                          <button onClick={() => excluirUsuario(u)}
+                            style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-  const abrirEditarGrupo = (g: GrupoPermissao) => {
-    setEditandoGrupo(g);
-    setFormGrupo({ nome: g.nome, descricao: g.descricao || "", permissoes: { ...PERMISSOES_PADRAO, ...g.permissoes } });
-    setShowFormGrupo(true);
-  };
+// ═══════════════════════════════════════════════════════════════════════
+// 🏢 ABA EQUIPES
+// ═══════════════════════════════════════════════════════════════════════
+function AbaEquipes({ equipes, usuarios, filas, usuariosPorEquipe, filasPorEquipe, workspaceId, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
+  const [busca, setBusca] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState<Equipe | null>(null);
+  const [formEquipe, setFormEquipe] = useState({ nome: "", descricao: "" });
+  const [salvando, setSalvando] = useState(false);
 
-  const excluirGrupo = async (id: number) => {
-    if (!isDono && !isSuperAdmin && !permissoes.grupos_permissao) {
-      alert("❌ Você não tem permissão para excluir grupos de permissão.");
-      return;
-    }
-    if (!confirm("Excluir este grupo?")) return;
-    if (!workspaceId) { alert("Workspace não carregado."); return; }
-    await supabase.from("grupos_permissao").delete()
-      .eq("id", id)
-      .eq("workspace_id", workspaceId);
-    await fetchGrupos(workspaceId);
-  };
+  const equipesFiltradas = useMemo(() => {
+    if (!busca) return equipes;
+    const b = busca.toLowerCase();
+    return equipes.filter((e: Equipe) => e.nome.toLowerCase().includes(b) || (e.descricao || "").toLowerCase().includes(b));
+  }, [equipes, busca]);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 👥 CRUD de Equipes (empresas/times dentro do workspace)
-  // ═══════════════════════════════════════════════════════════════════
-  const abrirEditarEquipe = (e: Equipe) => {
-    setEditandoEquipe(e);
+  const abrirNova = () => {
+    if (!podeGerenciar) return alert("Sem permissão.");
+    setEditando(null);
+    setFormEquipe({ nome: "", descricao: "" });
+    setShowForm(true);
+  };
+  const abrirEditar = (e: Equipe) => {
+    if (!podeGerenciar) return alert("Sem permissão.");
+    setEditando(e);
     setFormEquipe({ nome: e.nome, descricao: e.descricao || "" });
-    setShowFormEquipe(true);
+    setShowForm(true);
   };
-
-  const salvarEquipe = async () => {
-    if (!isDono && !isSuperAdmin && !permissoes.usuarios_gerenciar) {
-      alert("❌ Você não tem permissão para gerenciar equipes.");
-      return;
-    }
-    if (!formEquipe.nome.trim()) { alert("Digite o nome da equipe!"); return; }
-    if (!workspaceId) { alert("Workspace não carregado."); return; }
-    setSalvandoEquipe(true);
+  const salvar = async () => {
+    if (!formEquipe.nome.trim()) return alert("Nome obrigatório.");
+    if (!workspaceId) return alert("Workspace não carregado.");
+    setSalvando(true);
     try {
-      if (editandoEquipe) {
+      if (editando) {
         const { error } = await supabase.from("equipes")
           .update({ nome: formEquipe.nome.trim(), descricao: formEquipe.descricao.trim() || null })
-          .eq("id", editandoEquipe.id)
-          .eq("workspace_id", workspaceId);
+          .eq("id", editando.id).eq("workspace_id", workspaceId);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("equipes").insert([{
@@ -431,710 +1004,638 @@ export default function Configuracoes() {
         }]);
         if (error) throw error;
       }
-      await fetchEquipes(workspaceId);
-      setShowFormEquipe(false); setEditandoEquipe(null);
+      await onRefetch();
+      setShowForm(false);
+      setEditando(null);
       setFormEquipe({ nome: "", descricao: "" });
     } catch (e: any) {
-      alert("Erro ao salvar equipe: " + e.message);
+      alert("Erro ao salvar: " + e.message);
     }
-    setSalvandoEquipe(false);
+    setSalvando(false);
   };
-
-  const excluirEquipe = async (eq: Equipe) => {
-    if (!isDono && !isSuperAdmin && !permissoes.usuarios_gerenciar) {
-      alert("❌ Você não tem permissão para excluir equipes.");
-      return;
-    }
-    const qtdUsuarios = usuarios.filter(u => u.equipe_id === eq.id).length;
-    const qtdFilas = filas.filter(f => f.equipe_id === eq.id).length;
-    const aviso = (qtdUsuarios > 0 || qtdFilas > 0)
-      ? `\n\nEla tem ${qtdUsuarios} usuário(s) e ${qtdFilas} fila(s) atrelada(s). Eles serão desassociados (ficarão "Sem equipe") mas não serão apagados.`
+  const excluir = async (eq: Equipe) => {
+    if (!podeGerenciar) return alert("Sem permissão.");
+    const qtdU = usuariosPorEquipe.get(eq.id) || 0;
+    const qtdF = filasPorEquipe.get(eq.id) || 0;
+    const aviso = (qtdU > 0 || qtdF > 0)
+      ? `\n\nEla tem ${qtdU} usuário(s) e ${qtdF} fila(s) atrelada(s). Eles serão desassociados (ficarão "Sem equipe") mas não serão apagados.`
       : "";
     if (!confirm(`Desativar a equipe "${eq.nome}"?${aviso}`)) return;
-    if (!workspaceId) { alert("Workspace não carregado."); return; }
     try {
-      // Desassocia usuários e filas
       await supabase.from("usuarios_workspace").update({ equipe_id: null })
         .eq("equipe_id", eq.id).eq("workspace_id", workspaceId);
       await supabase.from("filas").update({ equipe_id: null })
         .eq("equipe_id", eq.id).eq("workspace_id", workspaceId);
-      // Marca a equipe como inativa (preserva histórico de propostas)
-      const { error } = await supabase.from("equipes").update({ ativo: false })
+      await supabase.from("equipes").update({ ativo: false })
         .eq("id", eq.id).eq("workspace_id", workspaceId);
-      if (error) throw error;
-      await fetchEquipes(workspaceId);
-      await fetchUsuarios(workspaceId);
-      await fetchFilas(workspaceId);
+      await onRefetch();
     } catch (e: any) {
-      alert("Erro ao desativar: " + e.message);
+      alert("Erro: " + e.message);
     }
   };
 
-  const contarUsuariosPorFila = (nomeFila: string) => usuarios.filter(u => {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Info card explicativo */}
+      <div style={{
+        background: "linear-gradient(135deg, #f3e8ff 0%, #ddd6fe 100%)",
+        border: "1px solid #ddd6fe",
+        borderLeft: "4px solid #a855f7",
+        borderRadius: 12,
+        padding: "14px 18px",
+      }}>
+        <p style={{ color: "#6b21a8", fontSize: 13, margin: 0, fontWeight: 700 }}>🏢 Como funciona</p>
+        <p style={{ color: "#7c3aed", fontSize: 12, margin: "3px 0 0", lineHeight: 1.5 }}>
+          Organize seu workspace em <b>equipes/empresas/filiais</b>. Cada usuário ou fila pode ser atribuído a uma equipe — assim você filtra a visão por equipe e cada uma trabalha de forma isolada nos relatórios e dashboards.
+        </p>
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <input placeholder="🔍 Buscar equipes..." value={busca} onChange={e => setBusca(e.target.value)}
+          style={{ ...IS, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
+        <div style={{ flex: 1 }} />
+        <button onClick={abrirNova}
+          style={{
+            background: "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)",
+            color: "white", border: "none", borderRadius: 10,
+            padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
+          }}>+ Nova Equipe</button>
+      </div>
+
+      {/* Form */}
+      {showForm && (
+        <div style={{ ...cardStyle, padding: 22, borderTop: "3px solid #a855f7" }}>
+          <p style={{ color: "#a855f7", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
+            {editando ? "✏️ Editar Equipe" : "➕ Nova Equipe"}
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 2fr", gap: 12, marginBottom: 18 }}>
+            <div>
+              <label style={labelStyle}>Nome *</label>
+              <input autoFocus placeholder='Ex: "Filial Centro"' value={formEquipe.nome} onChange={e => setFormEquipe({ ...formEquipe, nome: e.target.value })} style={IS} />
+            </div>
+            <div>
+              <label style={labelStyle}>Descrição</label>
+              <input placeholder="Quem coordena, onde fica, etc." value={formEquipe.descricao} onChange={e => setFormEquipe({ ...formEquipe, descricao: e.target.value })} style={IS} />
+            </div>
+          </div>
+          {/* Preview */}
+          {formEquipe.nome && (
+            <div style={{ marginBottom: 14, padding: 14, background: "#f9fafb", borderRadius: 10, border: "1px dashed #e5e7eb" }}>
+              <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 8px", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>PREVIEW (cor e ícone gerados automaticamente)</p>
+              <span style={{
+                background: `${corHashFromString(formEquipe.nome)}15`,
+                color: corHashFromString(formEquipe.nome),
+                border: `1px solid ${corHashFromString(formEquipe.nome)}40`,
+                padding: "5px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+                display: "inline-flex", alignItems: "center", gap: 6
+              }}>
+                <span style={{ fontSize: 16 }}>{iconeHashFromString(formEquipe.nome)}</span>
+                <span>{formEquipe.nome}</span>
+              </span>
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button onClick={() => { setShowForm(false); setEditando(null); }}
+              style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              Cancelar
+            </button>
+            <button onClick={salvar} disabled={salvando}
+              style={{
+                background: salvando ? "#7e22ce" : "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)",
+                color: "white", border: "none", borderRadius: 10,
+                padding: "9px 22px", fontSize: 12, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
+                boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
+              }}>{salvando ? "Salvando..." : "💾 Salvar"}</button>
+          </div>
+        </div>
+      )}
+
+      {/* Lista */}
+      {equipesFiltradas.length === 0 ? (
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
+          <p style={{ fontSize: 40, margin: "0 0 8px" }}>{busca ? "🔍" : "🏢"}</p>
+          <p style={{ color: "#9ca3af", fontSize: 13 }}>{busca ? "Nenhuma equipe encontrada" : "Nenhuma equipe cadastrada"}</p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+          {equipesFiltradas.map((eq: Equipe) => {
+            const cor = corHashFromString(eq.nome);
+            const icone = iconeHashFromString(eq.nome);
+            const qtdU = usuariosPorEquipe.get(eq.id) || 0;
+            const qtdF = filasPorEquipe.get(eq.id) || 0;
+            return (
+              <div key={eq.id} style={{
+                ...cardStyle,
+                padding: 0,
+                overflow: "hidden",
+                transition: "all 0.15s",
+                borderTop: `4px solid ${cor}`,
+              }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 20px ${cor}20`; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; }}>
+                <div style={{ padding: "16px 18px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 10,
+                      background: `linear-gradient(135deg, ${cor} 0%, ${cor}cc 100%)`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 20,
+                      boxShadow: `0 4px 10px ${cor}40`,
+                      flexShrink: 0,
+                    }}><span style={{ filter: "saturate(0) brightness(2)" }}>{icone}</span></div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: 0, wordBreak: "break-word" }}>{eq.nome}</p>
+                      {eq.descricao && <p style={{ color: "#6b7280", fontSize: 11, margin: "3px 0 0", lineHeight: 1.3 }}>{eq.descricao}</p>}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
+                    <div style={{ flex: 1, background: `${cor}10`, border: `1px solid ${cor}30`, borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
+                      <p style={{ color: cor, fontSize: 9, margin: 0, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Usuários</p>
+                      <p style={{ color: cor, fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{qtdU}</p>
+                    </div>
+                    <div style={{ flex: 1, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
+                      <p style={{ color: "#15803d", fontSize: 9, margin: 0, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Filas</p>
+                      <p style={{ color: "#16a34a", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{qtdF}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 12, justifyContent: "flex-end" }}>
+                    <button onClick={() => abrirEditar(eq)}
+                      style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️ Editar</button>
+                    <button onClick={() => excluir(eq)}
+                      style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 📋 ABA FILAS
+// ═══════════════════════════════════════════════════════════════════════
+function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
+  const [busca, setBusca] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [formFila, setFormFila] = useState({ nome: "", conexao: "", equipe_id: "" });
+  const [salvando, setSalvando] = useState(false);
+
+  const filasFiltradas = useMemo(() => {
+    if (!busca) return filas;
+    const b = busca.toLowerCase();
+    return filas.filter((f: Fila) => f.nome.toLowerCase().includes(b) || (f.conexao || "").toLowerCase().includes(b));
+  }, [filas, busca]);
+
+  const contarUsuariosPorFila = (nomeFila: string) => usuarios.filter((u: Usuario) => {
     if (!u.fila) return false;
     return u.fila.split(",").map(s => s.trim()).includes(nomeFila);
   }).length;
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 20 : 28 }}>
+  const abrirNova = () => {
+    if (!podeGerenciar) return alert("Sem permissão.");
+    setFormFila({ nome: "", conexao: "", equipe_id: "" });
+    setShowForm(true);
+  };
+  const salvar = async () => {
+    if (!formFila.nome.trim()) return alert("Digite o nome da fila!");
+    setSalvando(true);
+    try {
+      const { error } = await supabase.from("filas").insert([{
+        nome: formFila.nome.trim(),
+        conexao: formFila.conexao.trim() || null,
+        workspace_id: workspaceId,
+        equipe_id: formFila.equipe_id || null,
+      }]);
+      if (error) {
+        if (error.code === "23505") alert("❌ Já existe uma fila com esse nome neste workspace!");
+        else alert("Erro: " + error.message);
+        setSalvando(false); return;
+      }
+      await onRefetch();
+      setShowForm(false);
+      setFormFila({ nome: "", conexao: "", equipe_id: "" });
+    } catch (e: any) { alert("Erro: " + e.message); }
+    setSalvando(false);
+  };
+  const excluir = async (f: Fila) => {
+    if (!podeGerenciar) return alert("Sem permissão.");
+    if (!confirm(`Excluir a fila "${f.nome}"?`)) return;
+    const { error } = await supabase.from("filas").delete()
+      .eq("id", f.id).eq("workspace_id", workspaceId);
+    if (error) { alert("Erro: " + error.message); return; }
+    await onRefetch();
+  };
 
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: 14,
-          background: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 24, boxShadow: "0 8px 20px rgba(107,114,128,0.25)",
-        }}>
-          <span style={{ filter: "saturate(0) brightness(2)" }}>⚙️</span>
-        </div>
-        <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Configurações do Workspace</h1>
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Toolbar */}
+      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <input placeholder="🔍 Buscar filas..." value={busca} onChange={e => setBusca(e.target.value)}
+          style={{ ...IS, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
+        <div style={{ flex: 1 }} />
+        <button onClick={abrirNova}
+          style={{
+            background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+            color: "white", border: "none", borderRadius: 10,
+            padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+          }}>+ Nova Fila</button>
       </div>
 
-      {!isDono && !isSuperAdmin && !permissoes.usuarios_gerenciar && !permissoes.filas && !permissoes.grupos_permissao && !permissoes.configuracoes_workspace && (
-        <div style={{ ...cardStyle, padding: 32, textAlign: "center", borderLeft: "4px solid #dc2626", background: "#fef2f2", borderColor: "#fecaca" }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 16,
-            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 30, margin: "0 auto 14px",
-            boxShadow: "0 8px 20px rgba(239,68,68,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
+      {showForm && (
+        <div style={{ ...cardStyle, padding: 22, borderTop: "3px solid #16a34a" }}>
+          <p style={{ color: "#16a34a", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
+            ➕ Nova Fila
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 18 }}>
+            <div>
+              <label style={labelStyle}>Nome *</label>
+              <input autoFocus placeholder='Ex: "Vendas Fibra"' value={formFila.nome} onChange={e => setFormFila({ ...formFila, nome: e.target.value })} style={IS} />
+            </div>
+            <div>
+              <label style={labelStyle}>🏢 Equipe responsável</label>
+              <select value={formFila.equipe_id} onChange={e => setFormFila({ ...formFila, equipe_id: e.target.value })} style={IS}>
+                <option value="">Sem equipe (global)</option>
+                {equipes.map((eq: Equipe) => <option key={eq.id} value={eq.id}>{iconeHashFromString(eq.nome)} {eq.nome}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Conexão (opcional)</label>
+              <input placeholder='Ex: "WhatsApp 01"' value={formFila.conexao} onChange={e => setFormFila({ ...formFila, conexao: e.target.value })} style={IS} />
+            </div>
           </div>
-          <p style={{ color: "#991b1b", fontSize: 15, fontWeight: 700, margin: 0 }}>Acesso restrito</p>
-          <p style={{ color: "#7f1d1d", fontSize: 13, margin: "8px 0 0" }}>Você não tem permissão para acessar as configurações do workspace. Entre em contato com o administrador.</p>
+          {formFila.nome && (
+            <div style={{ marginBottom: 14, padding: 14, background: "#f9fafb", borderRadius: 10, border: "1px dashed #e5e7eb" }}>
+              <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 8px", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>PREVIEW</p>
+              <span style={{
+                background: `${corHashFromString(formFila.nome)}15`,
+                color: corHashFromString(formFila.nome),
+                border: `1px solid ${corHashFromString(formFila.nome)}40`,
+                padding: "5px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+                display: "inline-flex", alignItems: "center", gap: 6
+              }}>
+                <span style={{ fontSize: 16 }}>{iconeFilaFromString(formFila.nome)}</span>
+                <span>{formFila.nome}</span>
+              </span>
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button onClick={() => { setShowForm(false); setFormFila({ nome: "", conexao: "", equipe_id: "" }); }}
+              style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              Cancelar
+            </button>
+            <button onClick={salvar} disabled={salvando}
+              style={{
+                background: salvando ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                color: "white", border: "none", borderRadius: 10,
+                padding: "9px 22px", fontSize: 12, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
+                boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+              }}>{salvando ? "Salvando..." : "💾 Salvar"}</button>
+          </div>
         </div>
       )}
 
-      {(isDono || isSuperAdmin || permissoes.usuarios_gerenciar) && (
-      <div style={{ ...cardStyle, overflow: "hidden" }}>
-        <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>👥</div>
-            <div>
-              <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>Usuários</h2>
-              {!isAdmin && <p style={{ color: limiteAtingido ? "#dc2626" : "#6b7280", fontSize: 12, margin: "3px 0 0" }}>{usuarios.length}/{limites.usuarios_liberados} usuários utilizados{limiteAtingido && " — Limite atingido!"}</p>}
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            {limiteAtingido && <span style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "6px 12px", fontSize: 12, fontWeight: 700 }}>🔒 Limite atingido</span>}
-            <button onClick={() => {
-              if (limiteAtingido) { alert(`❌ Você atingiu o limite de ${limites.usuarios_liberados} usuário(s).`); return; }
-              setEditandoUsuario(null);
-              setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "", equipe_id: "" });
-              setShowFormUsuario(!showFormUsuario);
-            }}
-              style={{
-                background: limiteAtingido ? "#f3f4f6" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
-                color: limiteAtingido ? "#9ca3af" : "white",
-                border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 12,
-                cursor: limiteAtingido ? "not-allowed" : "pointer", fontWeight: 700,
-                boxShadow: limiteAtingido ? "none" : "0 4px 12px rgba(59,130,246,0.3)",
-              }}>
-              {limiteAtingido ? "🔒 Limite Atingido" : "+ Adicionar Usuário"}
-            </button>
-          </div>
+      {filasFiltradas.length === 0 ? (
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
+          <p style={{ fontSize: 40, margin: "0 0 8px" }}>{busca ? "🔍" : "📋"}</p>
+          <p style={{ color: "#9ca3af", fontSize: 13 }}>{busca ? "Nenhuma fila encontrada" : "Nenhuma fila cadastrada"}</p>
         </div>
-
-        {!isAdmin && (
-          <div style={{ padding: "10px 24px", background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-              <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 600 }}>Usuários cadastrados</span>
-              <span style={{ color: limiteAtingido ? "#dc2626" : "#16a34a", fontSize: 11, fontWeight: 700 }}>{usuarios.length}/{limites.usuarios_liberados}</span>
-            </div>
-            <div style={{ background: "#e5e7eb", borderRadius: 4, height: 6, overflow: "hidden" }}>
-              <div style={{
-                background: limiteAtingido ? "linear-gradient(90deg, #dc2626, #ef4444)" : "linear-gradient(90deg, #16a34a, #22c55e)",
-                height: "100%", width: `${Math.min((usuarios.length / limites.usuarios_liberados) * 100, 100)}%`,
-                transition: "width 0.3s", borderRadius: 4,
-              }} />
-            </div>
-          </div>
-        )}
-
-        {showFormUsuario && (
-          <div style={{ padding: 22, borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
-            <p style={{ color: "#3b82f6", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>{editandoUsuario ? "✏️ Editar Usuário" : "➕ Novo Usuário"}</p>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
-              <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome *</label>
-                <input placeholder="Nome completo" value={formUsuario.nome} onChange={e => setFormUsuario({ ...formUsuario, nome: e.target.value })} style={IS} />
-              </div>
-              <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>E-mail *</label>
-                <input type="email" placeholder="email@exemplo.com" value={formUsuario.email} onChange={e => setFormUsuario({ ...formUsuario, email: e.target.value })} disabled={!!editandoUsuario}
-                  style={{ ...IS, background: editandoUsuario ? "#f3f4f6" : "#ffffff", color: editandoUsuario ? "#6b7280" : "#1f2937", opacity: editandoUsuario ? 0.6 : 1 }} />
-              </div>
-              <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Perfil</label>
-                <select value={formUsuario.perfil} onChange={e => setFormUsuario({ ...formUsuario, perfil: e.target.value })} style={IS}>
-                  <option value="Administrador">Administrador</option>
-                  <option value="Supervisor">Supervisor</option>
-                  <option value="Atendente">Atendente</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>👥 Equipe</label>
-                <select value={formUsuario.equipe_id} onChange={e => setFormUsuario({ ...formUsuario, equipe_id: e.target.value })} style={IS}>
-                  <option value="">Sem equipe (global)</option>
-                  {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
-                </select>
-                {equipes.length === 0 && (
-                  <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>
-                    Nenhuma equipe cadastrada ainda — role pra baixo até a seção "Equipes" e crie uma.
-                  </p>
-                )}
-              </div>
-              <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Filas</label>
-                {(() => {
-                  const filasSelecionadas = (formUsuario.fila || "").split(",").map(s => s.trim()).filter(Boolean);
-                  const labelBotao = filasSelecionadas.length === 0
-                    ? "Selecione..."
-                    : filasSelecionadas.length === 1
-                      ? filasSelecionadas[0]
-                      : `${filasSelecionadas.length} filas selecionadas`;
-                  const toggleFila = (nome: string) => {
-                    const novas = filasSelecionadas.includes(nome)
-                      ? filasSelecionadas.filter(f => f !== nome)
-                      : [...filasSelecionadas, nome];
-                    setFormUsuario({ ...formUsuario, fila: novas.join(",") });
-                  };
-                  return (
-                    <div style={{ position: "relative" }}>
-                      <button type="button" onClick={() => setShowDropdownFilas(!showDropdownFilas)}
-                        style={{ ...IS, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ color: filasSelecionadas.length === 0 ? "#9ca3af" : "#1f2937", fontWeight: filasSelecionadas.length > 0 ? 600 : 400 }}>{labelBotao}</span>
-                        <span style={{ color: "#9ca3af", fontSize: 10 }}>{showDropdownFilas ? "▲" : "▼"}</span>
-                      </button>
-                      {showDropdownFilas && (
-                        <>
-                          <div onClick={() => setShowDropdownFilas(false)}
-                            style={{ position: "fixed", inset: 0, zIndex: 100 }} />
-                          <div style={{
-                            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-                            background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10,
-                            maxHeight: 260, overflowY: "auto", zIndex: 101,
-                            boxShadow: "0 10px 25px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.04)",
-                          }}>
-                            {filas.length === 0 ? (
-                              <p style={{ color: "#9ca3af", fontSize: 12, padding: 14, textAlign: "center", margin: 0 }}>
-                                Nenhuma fila criada ainda. Crie uma fila primeiro abaixo.
-                              </p>
-                            ) : (
-                              <>
-                                {filas.map(f => {
-                                  const marcada = filasSelecionadas.includes(f.nome);
-                                  return (
-                                    <label key={f.id} style={{
-                                      display: "flex", alignItems: "center", gap: 10,
-                                      padding: "11px 14px", cursor: "pointer",
-                                      borderBottom: "1px solid #f3f4f6",
-                                      background: marcada ? "#eff6ff" : "transparent",
-                                      transition: "background 0.1s",
-                                    }}
-                                      onMouseEnter={(e) => { if (!marcada) e.currentTarget.style.background = "#f9fafb"; }}
-                                      onMouseLeave={(e) => { if (!marcada) e.currentTarget.style.background = "transparent"; }}
-                                    >
-                                      <input type="checkbox" checked={marcada}
-                                        onChange={() => toggleFila(f.nome)}
-                                        style={{ accentColor: "#3b82f6", cursor: "pointer", width: 16, height: 16 }} />
-                                      <span style={{ color: marcada ? "#3b82f6" : "#1f2937", fontSize: 13, fontWeight: marcada ? 700 : 500 }}>
-                                        {f.nome}
-                                      </span>
-                                    </label>
-                                  );
-                                })}
-                                {filasSelecionadas.length > 0 && (
-                                  <div style={{ padding: "8px 14px", borderTop: "1px solid #e5e7eb", background: "#f9fafb" }}>
-                                    <button type="button" onClick={() => setFormUsuario({ ...formUsuario, fila: "" })}
-                                      style={{ background: "none", border: "none", color: "#dc2626", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
-                                      ✕ Limpar seleção
-                                    </button>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </>
-                      )}
-                      {filasSelecionadas.length > 1 && (
-                        <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
-                          ℹ️ Atende {filasSelecionadas.length} filas: <b>{filasSelecionadas.join(", ")}</b>
-                        </p>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-              <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Grupo de Permissão</label>
-                <select value={formUsuario.grupo_id} onChange={e => setFormUsuario({ ...formUsuario, grupo_id: e.target.value })} style={IS}>
-                  <option value="">Sem grupo (usa padrão do perfil)</option>
-                  {gruposPermissao.map(g => <option key={g.id} value={g.id.toString()}>{g.nome}</option>)}
-                </select>
-              </div>
-              {!editandoUsuario && (
-                <div style={{ position: "relative" }}>
-                  <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Senha *</label>
-                  <input type={showSenha ? "text" : "password"} placeholder="Senha (mín 6)" value={formUsuario.senha} onChange={e => setFormUsuario({ ...formUsuario, senha: e.target.value })} style={{ ...IS, paddingRight: 40 }} />
-                  <button onClick={() => setShowSenha(!showSenha)}
-                    style={{ position: "absolute", right: 8, top: 32, background: "#f3f4f6", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 12, width: 28, height: 28, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {showSenha ? "🙈" : "👁️"}
-                  </button>
-                </div>
-              )}
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => { setShowFormUsuario(false); setEditandoUsuario(null); }}
-                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-                Cancelar
-              </button>
-              <button onClick={salvarUsuario} disabled={salvandoUsuario}
-                style={{
-                  background: salvandoUsuario ? "#2563eb" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
-                  color: "white", border: "none", borderRadius: 10,
-                  padding: "9px 22px", fontSize: 12, cursor: "pointer", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
-                }}>
-                {salvandoUsuario ? "Salvando..." : "💾 Salvar"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {usuarios.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center" }}>
-            <p style={{ fontSize: 36, margin: "0 0 8px" }}>👥</p>
-            <p style={{ color: "#9ca3af", fontSize: 13 }}>Nenhum usuário cadastrado ainda</p>
-          </div>
-        ) : (
-          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
+      ) : (
+        <div style={{ ...cardStyle, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 600 : "auto" }}>
               <thead>
                 <tr style={{ background: "#f9fafb" }}>
-                  {["Nome", "E-mail", "Perfil", "Equipe", "Fila", "Grupo Permissão", "Status", "Ações"].map(h => (
-                    <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                  {["Fila", "Equipe", "Conexão", "Usuários", "Ações"].map(h => (
+                    <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {usuarios.map((u, i) => (
-                  <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#ffffff" : "#fafbfc", transition: "background 0.1s" }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc"}
-                  >
-                    <td style={{ padding: "14px 16px", color: "#1f2937", fontSize: 13, fontWeight: 600 }}>{u.nome}</td>
-                    <td style={{ padding: "14px 16px", color: "#6b7280", fontSize: 13 }}>{u.email}</td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span style={{
-                        background: u.perfil === "Administrador" ? "#fffbeb" : u.perfil === "Supervisor" ? "#f3e8ff" : "#eff6ff",
-                        color: u.perfil === "Administrador" ? "#f59e0b" : u.perfil === "Supervisor" ? "#8b5cf6" : "#3b82f6",
-                        border: `1px solid ${u.perfil === "Administrador" ? "#fde68a" : u.perfil === "Supervisor" ? "#ddd6fe" : "#bfdbfe"}`,
-                        padding: "3px 12px", borderRadius: 10, fontSize: 11, fontWeight: 700,
-                      }}>{u.perfil}</span>
-                    </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      {u.equipe_id ? (
-                        <span style={{ background: "#f3e8ff", color: "#a855f7", border: "1px solid #ddd6fe", padding: "3px 12px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>
-                          👥 {equipes.find(eq => eq.id === u.equipe_id)?.nome || "—"}
+                {filasFiltradas.map((f: Fila, i: number) => {
+                  const cor = corHashFromString(f.nome);
+                  const icone = iconeFilaFromString(f.nome);
+                  const equipe = f.equipe_id ? equipeById.get(f.equipe_id) : null;
+                  const corEquipe = equipe ? corHashFromString(equipe.nome) : "#9ca3af";
+                  return (
+                    <tr key={f.id}
+                      style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#ffffff" : "#fafbfc" }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc"}
+                    >
+                      <td style={{ padding: "14px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{
+                            width: 34, height: 34, borderRadius: 8,
+                            background: `linear-gradient(135deg, ${cor} 0%, ${cor}cc 100%)`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 16, flexShrink: 0,
+                            boxShadow: `0 2px 6px ${cor}40`,
+                          }}><span style={{ filter: "saturate(0) brightness(2)" }}>{icone}</span></div>
+                          <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{f.nome}</p>
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        {equipe ? (
+                          <span style={{ background: `${corEquipe}15`, color: corEquipe, border: `1px solid ${corEquipe}40`, padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+                            {iconeHashFromString(equipe.nome)} {equipe.nome}
+                          </span>
+                        ) : <span style={{ color: "#d1d5db", fontSize: 12 }}>—</span>}
+                      </td>
+                      <td style={{ padding: "14px 16px", color: "#6b7280", fontSize: 13 }}>
+                        {f.conexao || <span style={{ color: "#d1d5db" }}>—</span>}
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", padding: "3px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
+                          {contarUsuariosPorFila(f.nome)}
                         </span>
-                      ) : <span style={{ color: "#d1d5db", fontSize: 13 }}>—</span>}
-                    </td>
-                    <td style={{ padding: "14px 16px", color: "#6b7280", fontSize: 13 }}>{u.fila || <span style={{ color: "#d1d5db" }}>—</span>}</td>
-                    <td style={{ padding: "14px 16px" }}>
-                      {u.grupo_id ? (
-                        <span style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", padding: "3px 12px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>
-                          {gruposPermissao.find(g => g.id === u.grupo_id)?.nome || "—"}
-                        </span>
-                      ) : <span style={{ color: "#d1d5db", fontSize: 13 }}>—</span>}
-                    </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span style={{
-                        background: u.status === "online" ? "#f0fdf4" : "#f3f4f6",
-                        color: u.status === "online" ? "#16a34a" : "#6b7280",
-                        border: `1px solid ${u.status === "online" ? "#bbf7d0" : "#e5e7eb"}`,
-                        padding: "3px 12px", borderRadius: 10, fontSize: 11, fontWeight: 700,
-                      }}>{u.status === "online" ? "🟢 Online" : "⚫ Offline"}</span>
-                    </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => abrirEditarUsuario(u)}
-                          style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
-                        <button onClick={() => excluirUsuario(u)}
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <button onClick={() => excluir(f)}
                           style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
       )}
+    </div>
+  );
+}
 
-      {(isDono || isSuperAdmin || permissoes.filas) && (
-      <div style={{ ...cardStyle, overflow: "hidden" }}>
-        <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📋</div>
+// ═══════════════════════════════════════════════════════════════════════
+// 🔐 ABA PERMISSÕES
+// ═══════════════════════════════════════════════════════════════════════
+function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
+  const [busca, setBusca] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState<GrupoPermissao | null>(null);
+  const [formGrupo, setFormGrupo] = useState({ nome: "", descricao: "", permissoes: { ...PERMISSOES_PADRAO } });
+  const [catsAbertas, setCatsAbertas] = useState<Record<string, boolean>>(
+    CATEGORIAS_PERMISSAO.reduce((acc, c) => { acc[c.nome] = true; return acc; }, {} as Record<string, boolean>)
+  );
+  const [salvando, setSalvando] = useState(false);
+
+  const gruposFiltrados = useMemo(() => {
+    if (!busca) return gruposPermissao;
+    const b = busca.toLowerCase();
+    return gruposPermissao.filter((g: GrupoPermissao) => g.nome.toLowerCase().includes(b) || (g.descricao || "").toLowerCase().includes(b));
+  }, [gruposPermissao, busca]);
+
+  const abrirNovo = () => {
+    if (!podeGerenciar) return alert("Sem permissão.");
+    setEditando(null);
+    setFormGrupo({ nome: "", descricao: "", permissoes: { ...PERMISSOES_PADRAO } });
+    setShowForm(true);
+  };
+  const abrirEditar = (g: GrupoPermissao) => {
+    if (!podeGerenciar) return alert("Sem permissão.");
+    setEditando(g);
+    setFormGrupo({ nome: g.nome, descricao: g.descricao || "", permissoes: { ...PERMISSOES_PADRAO, ...g.permissoes } });
+    setShowForm(true);
+  };
+  const toggleCategoriaToda = (catNome: string, marcar: boolean) => {
+    const cat = CATEGORIAS_PERMISSAO.find(c => c.nome === catNome);
+    if (!cat) return;
+    const novo = { ...formGrupo.permissoes };
+    cat.permissoes.forEach(p => { novo[p.key] = marcar; });
+    setFormGrupo({ ...formGrupo, permissoes: novo });
+  };
+  const salvar = async () => {
+    if (!formGrupo.nome) return alert("Nome obrigatório.");
+    if (!workspaceId) return alert("Workspace não carregado.");
+    setSalvando(true);
+    try {
+      if (editando) {
+        await supabase.from("grupos_permissao")
+          .update({ nome: formGrupo.nome, descricao: formGrupo.descricao, permissoes: formGrupo.permissoes })
+          .eq("id", editando.id).eq("workspace_id", workspaceId);
+      } else {
+        await supabase.from("grupos_permissao").insert([{
+          workspace_id: workspaceId,
+          nome: formGrupo.nome,
+          descricao: formGrupo.descricao,
+          permissoes: formGrupo.permissoes
+        }]);
+      }
+      await onRefetch();
+      setShowForm(false);
+      setEditando(null);
+      setFormGrupo({ nome: "", descricao: "", permissoes: { ...PERMISSOES_PADRAO } });
+    } catch (e: any) {
+      alert("Erro: " + e.message);
+    }
+    setSalvando(false);
+  };
+  const excluir = async (g: GrupoPermissao) => {
+    if (!podeGerenciar) return alert("Sem permissão.");
+    if (!confirm(`Excluir o grupo "${g.nome}"?\n\nUsuários que usavam esse grupo passam a usar o padrão do perfil.`)) return;
+    await supabase.from("grupos_permissao").delete().eq("id", g.id).eq("workspace_id", workspaceId);
+    await onRefetch();
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+      {/* Info card */}
+      <div style={{
+        background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+        border: "1px solid #bfdbfe",
+        borderLeft: "4px solid #3b82f6",
+        borderRadius: 12,
+        padding: "14px 18px",
+      }}>
+        <p style={{ color: "#1e40af", fontSize: 13, margin: 0, fontWeight: 700 }}>💡 Como funciona</p>
+        <p style={{ color: "#3b82f6", fontSize: 12, margin: "3px 0 0", lineHeight: 1.5 }}>
+          Cada usuário tem um <b>perfil</b> (Administrador / Supervisor / Atendente) que define os padrões. Os grupos abaixo são <b>permissões granulares opcionais</b> — vincule um grupo a um usuário pra dar acesso específico além do padrão do perfil. Útil quando um atendente precisa acessar relatórios, ou um supervisor não pode mexer em conexões.
+        </p>
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <input placeholder="🔍 Buscar grupos..." value={busca} onChange={e => setBusca(e.target.value)}
+          style={{ ...IS, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
+        <div style={{ flex: 1 }} />
+        <button onClick={abrirNovo}
+          style={{
+            background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+            color: "white", border: "none", borderRadius: 10,
+            padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(139,92,246,0.3)",
+          }}>+ Novo Grupo</button>
+      </div>
+
+      {/* Form */}
+      {showForm && (
+        <div style={{ ...cardStyle, padding: 22, borderTop: "3px solid #8b5cf6" }}>
+          <p style={{ color: "#8b5cf6", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
+            {editando ? "✏️ Editar Grupo" : "➕ Novo Grupo"}
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 18 }}>
             <div>
-              <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>Filas</h2>
-              <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0" }}>{filas.length} fila(s) cadastrada(s)</p>
+              <label style={labelStyle}>Nome *</label>
+              <input placeholder="Ex: Atendente Vendas" value={formGrupo.nome} onChange={e => setFormGrupo({ ...formGrupo, nome: e.target.value })} style={IS} />
+            </div>
+            <div>
+              <label style={labelStyle}>Descrição</label>
+              <input placeholder="Ex: Acesso às vendas e chat" value={formGrupo.descricao} onChange={e => setFormGrupo({ ...formGrupo, descricao: e.target.value })} style={IS} />
             </div>
           </div>
-          <button onClick={() => { setFormFila({ nome: "", conexao: "", equipe_id: "" }); setShowFormFila(!showFormFila); }}
-            style={{
-              background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-              color: "white", border: "none", borderRadius: 10,
-              padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700,
-              boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
-            }}>
-            + Nova Fila
-          </button>
-        </div>
-        {showFormFila && (
-          <div style={{ padding: 22, borderBottom: "1px solid #e5e7eb", background: "#f9fafb", display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome da Fila *</label>
-              <input placeholder="Ex: Fila Vendas" value={formFila.nome} onChange={e => setFormFila({ ...formFila, nome: e.target.value })} style={IS} />
-            </div>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>👥 Equipe</label>
-              <select value={formFila.equipe_id} onChange={e => setFormFila({ ...formFila, equipe_id: e.target.value })} style={IS}>
-                <option value="">Sem equipe (global)</option>
-                {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
-              </select>
-            </div>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Conexão (opcional)</label>
-              <input placeholder="Ex: WhatsApp 01" value={formFila.conexao} onChange={e => setFormFila({ ...formFila, conexao: e.target.value })} style={IS} />
-            </div>
-            <button onClick={() => { setShowFormFila(false); setFormFila({ nome: "", conexao: "", equipe_id: "" }); }}
-              style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 16px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {CATEGORIAS_PERMISSAO.map(cat => {
+              const todasMarcadas = cat.permissoes.every(p => formGrupo.permissoes[p.key]);
+              const algumaMarcada = cat.permissoes.some(p => formGrupo.permissoes[p.key]);
+              const aberta = catsAbertas[cat.nome] !== false;
+              return (
+                <div key={cat.nome} style={{ background: "#ffffff", border: `1px solid ${cat.cor}30`, borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: `${cat.cor}08`, cursor: "pointer", borderLeft: `4px solid ${cat.cor}` }}
+                    onClick={() => setCatsAbertas({ ...catsAbertas, [cat.nome]: !aberta })}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ color: cat.cor, fontSize: 13, fontWeight: 700 }}>{aberta ? "▼" : "▶"} {cat.nome}</span>
+                      <span style={{ background: `${cat.cor}15`, color: cat.cor, fontSize: 10, padding: "2px 8px", borderRadius: 8, fontWeight: 700, border: `1px solid ${cat.cor}30` }}>
+                        {cat.permissoes.filter(p => formGrupo.permissoes[p.key]).length}/{cat.permissoes.length}
+                      </span>
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); toggleCategoriaToda(cat.nome, !todasMarcadas); }}
+                      style={{
+                        background: todasMarcadas ? `${cat.cor}20` : algumaMarcada ? `${cat.cor}10` : "#ffffff",
+                        color: algumaMarcada || todasMarcadas ? cat.cor : "#6b7280",
+                        border: `1px solid ${cat.cor}40`,
+                        borderRadius: 8, padding: "4px 10px", fontSize: 10, cursor: "pointer", fontWeight: 700,
+                      }}>{todasMarcadas ? "✓ Todos" : "+ Todos"}</button>
+                  </div>
+                  {aberta && (
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 6, padding: 12 }}>
+                      {cat.permissoes.map(p => (
+                        <label key={p.key}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            background: formGrupo.permissoes[p.key] ? `${cat.cor}10` : "#f9fafb",
+                            borderRadius: 8, padding: "9px 12px", cursor: "pointer",
+                            border: `1px solid ${formGrupo.permissoes[p.key] ? `${cat.cor}50` : "#e5e7eb"}`,
+                            transition: "all 0.15s",
+                          }}>
+                          <input type="checkbox" checked={!!formGrupo.permissoes[p.key]}
+                            onChange={e => setFormGrupo({ ...formGrupo, permissoes: { ...formGrupo.permissoes, [p.key]: e.target.checked } })}
+                            style={{ accentColor: cat.cor, width: 16, height: 16 }} />
+                          <span style={{ color: formGrupo.permissoes[p.key] ? "#1f2937" : "#6b7280", fontSize: 12, fontWeight: formGrupo.permissoes[p.key] ? 600 : 500 }}>{p.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
+            <button onClick={() => { setShowForm(false); setEditando(null); }}
+              style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
               Cancelar
             </button>
-            <button onClick={salvarFila} disabled={salvandoFila}
+            <button onClick={salvar} disabled={salvando}
               style={{
-                background: salvandoFila ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                background: salvando ? "#6d28d9" : "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
                 color: "white", border: "none", borderRadius: 10,
-                padding: "10px 20px", fontSize: 12, cursor: "pointer", fontWeight: 700,
-                boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
-              }}>
-              {salvandoFila ? "Salvando..." : "💾 Salvar"}
-            </button>
+                padding: "9px 22px", fontSize: 12, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
+                boxShadow: "0 4px 12px rgba(139,92,246,0.3)",
+              }}>{salvando ? "Salvando..." : "💾 Salvar Grupo"}</button>
           </div>
-        )}
-        {filas.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center" }}>
-            <p style={{ fontSize: 36, margin: "0 0 8px" }}>📋</p>
-            <p style={{ color: "#9ca3af", fontSize: 13, margin: 0 }}>Nenhuma fila cadastrada ainda</p>
-          </div>
-        ) : (
-          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 520 : "auto" }}>
-              <thead><tr style={{ background: "#f9fafb" }}>{["Fila", "Equipe", "Conexão", "Usuários", "Ações"].map(h => (<th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>))}</tr></thead>
-              <tbody>{filas.map((f, i) => (
-                <tr key={f.id} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#ffffff" : "#fafbfc", transition: "background 0.1s" }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
-                  onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc"}
-                >
-                  <td style={{ padding: "14px 16px", color: "#1f2937", fontSize: 13, fontWeight: 600 }}>{f.nome}</td>
-                  <td style={{ padding: "14px 16px" }}>
-                    {f.equipe_id ? (
-                      <span style={{ background: "#f3e8ff", color: "#a855f7", border: "1px solid #ddd6fe", padding: "3px 12px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>
-                        👥 {equipes.find(eq => eq.id === f.equipe_id)?.nome || "—"}
-                      </span>
-                    ) : <span style={{ color: "#d1d5db", fontSize: 13 }}>—</span>}
-                  </td>
-                  <td style={{ padding: "14px 16px", color: "#6b7280", fontSize: 13 }}>{f.conexao || <span style={{ color: "#d1d5db" }}>—</span>}</td>
-                  <td style={{ padding: "14px 16px" }}>
-                    <span style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", padding: "3px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
-                      {contarUsuariosPorFila(f.nome)}
-                    </span>
-                  </td>
-                  <td style={{ padding: "14px 16px" }}>
-                    <button onClick={() => excluirFila(f)}
+        </div>
+      )}
+
+      {gruposFiltrados.length === 0 ? (
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
+          <p style={{ fontSize: 40, margin: "0 0 8px" }}>{busca ? "🔍" : "🔐"}</p>
+          <p style={{ color: "#9ca3af", fontSize: 13 }}>{busca ? "Nenhum grupo encontrado" : "Nenhum grupo criado ainda"}</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {gruposFiltrados.map((g: GrupoPermissao) => {
+            const qtdMarcadas = Object.values(g.permissoes || {}).filter(Boolean).length;
+            const total = TODAS_PERMISSOES.length;
+            const pct = Math.round((qtdMarcadas / total) * 100);
+            return (
+              <div key={g.id} style={{ ...cardStyle, padding: "16px 20px", borderLeft: "4px solid #8b5cf6", transition: "all 0.15s" }}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 12px rgba(139,92,246,0.10)"}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, gap: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: 0 }}>{g.nome}</p>
+                    {g.descricao && <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{g.descricao}</p>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                      <div style={{ flex: 1, maxWidth: 120, background: "#e5e7eb", borderRadius: 4, height: 6, overflow: "hidden" }}>
+                        <div style={{ background: "linear-gradient(90deg, #8b5cf6, #6366f1)", height: "100%", width: `${pct}%`, transition: "width 0.3s" }} />
+                      </div>
+                      <span style={{ color: "#8b5cf6", fontSize: 11, fontWeight: 700 }}>{qtdMarcadas}/{total} permissões ({pct}%)</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => abrirEditar(g)}
+                      style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
+                    <button onClick={() => excluir(g)}
                       style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
-                  </td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      )}
-
-      {(isDono || isSuperAdmin || permissoes.usuarios_gerenciar) && (
-      <div style={{ ...cardStyle, overflow: "hidden" }}>
-        <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#f3e8ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>👥</div>
-            <div>
-              <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>Equipes</h2>
-              <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0" }}>
-                Organize seu workspace em equipes/empresas. Tudo que você cadastra (usuário, fila, conexão, etc) pode ser atribuído a uma equipe — assim o admin geral filtra a visão por equipe e cada equipe trabalha isolada.
-              </p>
-            </div>
-          </div>
-          <button onClick={() => { setEditandoEquipe(null); setFormEquipe({ nome: "", descricao: "" }); setShowFormEquipe(!showFormEquipe); }}
-            style={{
-              background: "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)",
-              color: "white", border: "none", borderRadius: 10,
-              padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700,
-              boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
-            }}>
-            + Nova Equipe
-          </button>
-        </div>
-
-        {showFormEquipe && (
-          <div style={{ padding: 22, borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
-            <p style={{ color: "#a855f7", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
-              {editandoEquipe ? "✏️ Editar Equipe" : "➕ Nova Equipe"}
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 2fr", gap: 12, marginBottom: 14 }}>
-              <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome *</label>
-                <input autoFocus placeholder='Ex: "Filial Centro", "Time Norte"' value={formEquipe.nome} onChange={e => setFormEquipe({ ...formEquipe, nome: e.target.value })} style={IS} />
-              </div>
-              <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Descrição</label>
-                <input placeholder="Quem coordena, onde fica, etc." value={formEquipe.descricao} onChange={e => setFormEquipe({ ...formEquipe, descricao: e.target.value })} style={IS} />
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => { setShowFormEquipe(false); setEditandoEquipe(null); }}
-                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-                Cancelar
-              </button>
-              <button onClick={salvarEquipe} disabled={salvandoEquipe}
-                style={{
-                  background: salvandoEquipe ? "#7e22ce" : "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)",
-                  color: "white", border: "none", borderRadius: 10,
-                  padding: "9px 22px", fontSize: 12, cursor: salvandoEquipe ? "not-allowed" : "pointer", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
-                }}>
-                {salvandoEquipe ? "Salvando..." : "💾 Salvar"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {equipes.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center" }}>
-            <p style={{ fontSize: 36, margin: "0 0 8px" }}>👥</p>
-            <p style={{ color: "#9ca3af", fontSize: 13 }}>Nenhuma equipe criada ainda</p>
-          </div>
-        ) : (
-          <div style={{ padding: 18, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
-            {equipes.map(eq => {
-              const qtdUsuarios = usuarios.filter(u => u.equipe_id === eq.id).length;
-              const qtdFilas = filas.filter(f => f.equipe_id === eq.id).length;
-              return (
-                <div key={eq.id} style={{
-                  background: "#ffffff",
-                  borderRadius: 12, padding: "14px 16px",
-                  border: "1px solid #e5e7eb",
-                  borderLeft: "4px solid #a855f7",
-                  transition: "all 0.15s",
-                }}
-                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 12px rgba(168,85,247,0.10)"}
-                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = "none"}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: 0, wordBreak: "break-word" }}>{eq.nome}</p>
-                      {eq.descricao && <p style={{ color: "#6b7280", fontSize: 11, margin: "3px 0 0", lineHeight: 1.4 }}>{eq.descricao}</p>}
-                    </div>
-                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                      <button onClick={() => abrirEditarEquipe(eq)} title="Editar"
-                        style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
-                      <button onClick={() => excluirEquipe(eq)} title="Desativar"
-                        style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                    <div style={{ flex: 1, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "6px 10px", textAlign: "center" }}>
-                      <p style={{ color: "#1e40af", fontSize: 9, margin: 0, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Vendedores</p>
-                      <p style={{ color: "#3b82f6", fontSize: 16, fontWeight: 800, margin: "1px 0 0", letterSpacing: -0.3 }}>{qtdUsuarios}</p>
-                    </div>
-                    <div style={{ flex: 1, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "6px 10px", textAlign: "center" }}>
-                      <p style={{ color: "#15803d", fontSize: 9, margin: 0, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Filas</p>
-                      <p style={{ color: "#16a34a", fontSize: 16, fontWeight: 800, margin: "1px 0 0", letterSpacing: -0.3 }}>{qtdFilas}</p>
-                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {Object.entries(g.permissoes || {}).filter(([_, v]) => v).slice(0, 10).map(([k]) => (
+                    <span key={k} style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", fontSize: 10, padding: "3px 10px", borderRadius: 12, fontWeight: 600 }}>{LABELS_MAP[k] || k}</span>
+                  ))}
+                  {qtdMarcadas > 10 && <span style={{ color: "#9ca3af", fontSize: 10, padding: "3px 6px", fontStyle: "italic" }}>+{qtdMarcadas - 10} outras</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
+    </div>
+  );
+}
 
-      {(isDono || isSuperAdmin || permissoes.grupos_permissao) && (
-      <div style={{ ...cardStyle, overflow: "hidden" }}>
-        <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#f3e8ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🔒</div>
-            <div>
-              <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>Grupos de Permissão</h2>
-              <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0" }}>Defina o que cada grupo pode ver e fazer — 30 permissões em 8 categorias</p>
-            </div>
+// ═══════════════════════════════════════════════════════════════════════
+// ⚙️ ABA GERAL
+// ═══════════════════════════════════════════════════════════════════════
+function AbaGeral({ workspaceId, usuarios, isAdmin, limites, limiteAtingido, podeGerenciar, isMobile, IS, cardStyle, labelStyle }: any) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+      {/* Info cards top */}
+      <div style={{ ...cardStyle, padding: 22 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: "#fffbeb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚙️</div>
+          <div>
+            <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>Visão Geral do Workspace</h2>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0" }}>Estatísticas e configurações de comportamento</p>
           </div>
-          <button onClick={() => { setEditandoGrupo(null); setFormGrupo({ nome: "", descricao: "", permissoes: { ...PERMISSOES_PADRAO } }); setShowFormGrupo(!showFormGrupo); }}
-            style={{
-              background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-              color: "white", border: "none", borderRadius: 10,
-              padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700,
-              boxShadow: "0 4px 12px rgba(139,92,246,0.3)",
-            }}>
-            + Novo Grupo
-          </button>
         </div>
 
-        {showFormGrupo && (
-          <div style={{ padding: 26, borderBottom: "1px solid #e5e7eb", background: "#f9fafb", display: "flex", flexDirection: "column", gap: 22 }}>
-            <p style={{ color: "#8b5cf6", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>{editandoGrupo ? "✏️ Editar Grupo" : "➕ Novo Grupo"}</p>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-              <div><label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome *</label><input placeholder="Ex: Atendente Vendas" value={formGrupo.nome} onChange={e => setFormGrupo({ ...formGrupo, nome: e.target.value })} style={IS} /></div>
-              <div><label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Descrição</label><input placeholder="Ex: Acesso às vendas e chat" value={formGrupo.descricao} onChange={e => setFormGrupo({ ...formGrupo, descricao: e.target.value })} style={IS} /></div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {CATEGORIAS_PERMISSAO.map(cat => {
-                const todasMarcadas = cat.permissoes.every(p => formGrupo.permissoes[p.key]);
-                const algumaMarcada = cat.permissoes.some(p => formGrupo.permissoes[p.key]);
-                const aberta = catsAbertas[cat.nome] !== false;
-                return (
-                  <div key={cat.nome} style={{
-                    background: "#ffffff",
-                    border: `1px solid ${cat.cor}30`,
-                    borderRadius: 12, overflow: "hidden",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                  }}>
-                    <div style={{
-                      display: "flex", justifyContent: "space-between", alignItems: "center",
-                      padding: "12px 16px",
-                      background: `${cat.cor}08`,
-                      cursor: "pointer",
-                      borderLeft: `4px solid ${cat.cor}`,
-                    }}
-                      onClick={() => setCatsAbertas({ ...catsAbertas, [cat.nome]: !aberta })}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ color: cat.cor, fontSize: 13, fontWeight: 700 }}>{aberta ? "▼" : "▶"} {cat.nome}</span>
-                        <span style={{
-                          background: `${cat.cor}15`, color: cat.cor,
-                          fontSize: 10, padding: "2px 8px", borderRadius: 8,
-                          fontWeight: 700, border: `1px solid ${cat.cor}30`,
-                        }}>
-                          {cat.permissoes.filter(p => formGrupo.permissoes[p.key]).length}/{cat.permissoes.length}
-                        </span>
-                      </div>
-                      <button onClick={e => { e.stopPropagation(); toggleCategoriaToda(cat.nome, !todasMarcadas); }}
-                        style={{
-                          background: todasMarcadas ? `${cat.cor}20` : algumaMarcada ? `${cat.cor}10` : "#ffffff",
-                          color: algumaMarcada || todasMarcadas ? cat.cor : "#6b7280",
-                          border: `1px solid ${cat.cor}40`,
-                          borderRadius: 8, padding: "4px 10px", fontSize: 10, cursor: "pointer", fontWeight: 700,
-                        }}>
-                        {todasMarcadas ? "✓ Desmarcar todos" : "+ Marcar todos"}
-                      </button>
-                    </div>
-                    {aberta && (
-                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 6, padding: 12 }}>
-                        {cat.permissoes.map(p => (
-                          <label key={p.key}
-                            style={{
-                              display: "flex", alignItems: "center", gap: 10,
-                              background: formGrupo.permissoes[p.key] ? `${cat.cor}10` : "#f9fafb",
-                              borderRadius: 8, padding: "9px 12px", cursor: "pointer",
-                              border: `1px solid ${formGrupo.permissoes[p.key] ? `${cat.cor}50` : "#e5e7eb"}`,
-                              transition: "all 0.15s",
-                            }}>
-                            <input type="checkbox" checked={!!formGrupo.permissoes[p.key]}
-                              onChange={e => setFormGrupo({ ...formGrupo, permissoes: { ...formGrupo.permissoes, [p.key]: e.target.checked } })}
-                              style={{ accentColor: cat.cor, width: 16, height: 16 }} />
-                            <span style={{ color: formGrupo.permissoes[p.key] ? "#1f2937" : "#6b7280", fontSize: 12, fontWeight: formGrupo.permissoes[p.key] ? 600 : 500 }}>{p.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => { setShowFormGrupo(false); setEditandoGrupo(null); }}
-                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-                Cancelar
-              </button>
-              <button onClick={salvarGrupo}
-                style={{
-                  background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-                  color: "white", border: "none", borderRadius: 10,
-                  padding: "9px 22px", fontSize: 12, cursor: "pointer", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(139,92,246,0.3)",
-                }}>
-                💾 Salvar Grupo
-              </button>
-            </div>
-          </div>
-        )}
-
-        {gruposPermissao.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center" }}>
-            <p style={{ fontSize: 36, margin: "0 0 8px" }}>🔒</p>
-            <p style={{ color: "#9ca3af", fontSize: 13 }}>Nenhum grupo criado ainda</p>
-          </div>
-        ) : (
-          <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
-            {gruposPermissao.map(g => {
-              const qtdMarcadas = Object.values(g.permissoes || {}).filter(Boolean).length;
-              return (
-                <div key={g.id} style={{
-                  background: "#ffffff",
-                  borderRadius: 12, padding: "16px 20px",
-                  border: "1px solid #e5e7eb",
-                  borderLeft: "4px solid #8b5cf6",
-                  transition: "all 0.15s",
-                }}
-                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 12px rgba(139,92,246,0.10)"}
-                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = "none"}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 10 }}>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: 0 }}>{g.nome}</p>
-                      {g.descricao && <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>{g.descricao}</p>}
-                      <p style={{ color: "#8b5cf6", fontSize: 11, margin: "5px 0 0", fontWeight: 700 }}>{qtdMarcadas}/30 permissões ativas</p>
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => abrirEditarGrupo(g)}
-                        style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
-                      <button onClick={() => excluirGrupo(g.id)}
-                        style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                    {Object.entries(g.permissoes || {}).filter(([_, v]) => v).slice(0, 8).map(([k]) => (
-                      <span key={k} style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", fontSize: 10, padding: "3px 10px", borderRadius: 12, fontWeight: 600 }}>{LABELS_MAP[k] || k}</span>
-                    ))}
-                    {qtdMarcadas > 8 && <span style={{ color: "#9ca3af", fontSize: 10, padding: "3px 6px", fontStyle: "italic" }}>+{qtdMarcadas - 8} outras</span>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+          <InfoCard
+            titulo="Plano atual"
+            valor={isAdmin ? "Sem limite" : `${usuarios.length}/${limites.usuarios_liberados}`}
+            detalhe={isAdmin ? "Você é Super Admin (Wolf)" : limiteAtingido ? "⚠️ Limite atingido — Upgrade necessário" : `${limites.usuarios_liberados - usuarios.length} usuário(s) disponíveis`}
+            cor={isAdmin ? "#a855f7" : limiteAtingido ? "#dc2626" : "#16a34a"}
+            icone={isAdmin ? "⭐" : "📊"}
+          />
+          <InfoCard titulo="Banco de dados" valor="Supabase" detalhe="PostgreSQL · Realtime ativo" cor="#16a34a" icone="🗄️" />
+          <InfoCard titulo="Auth" valor="Email + Senha" detalhe="JWT · Multi-workspace" cor="#3b82f6" icone="🔐" />
+          <InfoCard titulo="Versão" valor="Wolf CRM 2.0" detalhe="SaaS Multi-tenant" cor="#f59e0b" icone="🏷️" />
+        </div>
       </div>
-      )}
 
-      {(isDono || isSuperAdmin || permissoes.configuracoes_workspace) && (
-        <ConfigGeraisWorkspace />
-      )}
+      {/* Bloqueio pós-finalização */}
+      <BloqueioPosFinalizacao workspaceId={workspaceId} podeGerenciar={podeGerenciar} IS={IS} cardStyle={cardStyle} labelStyle={labelStyle} />
 
+      {/* Dica roleta */}
       <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderLeft: "4px solid #3b82f6", borderRadius: 12, padding: "14px 18px" }}>
         <p style={{ color: "#1e40af", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
           💡 <b>A Roleta de Distribuição</b> agora fica em <b>Chatbot → Configurações → Roleta</b>, já que está mais relacionada ao fluxo de atendimento do que à configuração do workspace.
@@ -1144,10 +1645,34 @@ export default function Configuracoes() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// CONFIG GERAIS DO WORKSPACE — bloqueio pós-finalização
-// ═══════════════════════════════════════════════════════════════════════
-function ConfigGeraisWorkspace() {
+function InfoCard({ titulo, valor, detalhe, cor, icone }: any) {
+  return (
+    <div style={{
+      background: `linear-gradient(135deg, ${cor}08 0%, ${cor}03 100%)`,
+      border: `1px solid ${cor}30`,
+      borderRadius: 12,
+      padding: "14px 16px",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+    }}>
+      <div style={{
+        width: 40, height: 40, borderRadius: 10,
+        background: `linear-gradient(135deg, ${cor} 0%, ${cor}cc 100%)`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 20, flexShrink: 0,
+        boxShadow: `0 4px 10px ${cor}40`,
+      }}><span style={{ filter: "saturate(0) brightness(2)" }}>{icone}</span></div>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>{titulo}</p>
+        <p style={{ color: "#1f2937", fontSize: 15, margin: "2px 0 0", fontWeight: 800, letterSpacing: -0.3 }}>{valor}</p>
+        <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{detalhe}</p>
+      </div>
+    </div>
+  );
+}
+
+function BloqueioPosFinalizacao({ workspaceId, podeGerenciar, IS, cardStyle, labelStyle }: any) {
   const { workspace, wsId } = useWorkspace();
   const [horasBloqueio, setHorasBloqueio] = useState<number>(24);
   const [salvando, setSalvando] = useState(false);
@@ -1163,18 +1688,15 @@ function ConfigGeraisWorkspace() {
   const salvar = async () => {
     if (!wsId) return;
     setSalvando(true);
-
     const { error } = await supabase.from("workspaces")
       .update({ bloqueio_pos_finalizacao_horas: horasBloqueio })
       .eq("username", wsId);
-
     if (!error && horasBloqueio === 0) {
       await supabase.from("atendimentos")
         .update({ bloqueado_ate: null, atendente_finalizou: null })
         .eq("workspace_id", wsId)
         .not("bloqueado_ate", "is", null);
     }
-
     setSalvando(false);
     if (error) {
       alert("❌ Erro ao salvar: " + error.message);
@@ -1188,76 +1710,52 @@ function ConfigGeraisWorkspace() {
   };
 
   return (
-    <div style={{
-      background: "#ffffff",
-      borderRadius: 14, border: "1px solid #e5e7eb",
-      padding: 24,
-      boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#fffbeb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⚙️</div>
-          <div>
-            <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>Configurações Gerais</h2>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0" }}>Comportamento do atendimento neste workspace</p>
-          </div>
+    <div style={{ ...cardStyle, padding: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🔒</div>
+        <div>
+          <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>Bloqueio Pós-Finalização</h2>
+          <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0" }}>Quanto tempo um cliente fica bloqueado de reabrir após finalização</p>
         </div>
       </div>
 
       <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>
-        <label style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, display: "block", marginBottom: 6 }}>
-          🔒 Bloqueio pós-finalização (horas)
-        </label>
         <p style={{ color: "#6b7280", fontSize: 11, margin: "0 0 14px", lineHeight: 1.5 }}>
           Quando um atendente finaliza um chat, o cliente fica bloqueado de reabrir por essa quantidade de horas.
-          Mensagens dele nesse período são registradas mas o atendimento NÃO volta pra "Aguardando".
-          <br />
-          <b>0 = desativa o bloqueio</b> (cliente pode reabrir imediatamente após finalização).
-          <br />
-          <b>Recomendado: 24h.</b> Aplica só em finalização manual humana — fechamento por inatividade ou bot NÃO bloqueia.
+          Mensagens nesse período são registradas mas o atendimento <b>NÃO</b> volta pra "Aguardando".
+          <br /><b>0 = desativa o bloqueio</b>. Recomendado: <b>24h</b>. Aplica só em finalização manual humana.
         </p>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <input
-            type="number"
-            min="0"
-            max="720"
-            value={horasBloqueio}
+          <input type="number" min={0} max={720} value={horasBloqueio}
             onChange={e => { setHorasBloqueio(Math.max(0, Math.min(720, parseInt(e.target.value) || 0))); setEditado(true); }}
-            style={{
-              background: "#ffffff", border: "1px solid #e5e7eb",
-              color: "#1f2937", borderRadius: 10,
-              padding: "10px 14px", fontSize: 14, width: 100,
-              outline: "none", fontWeight: 600,
-            }}
-          />
+            disabled={!podeGerenciar}
+            style={{ ...IS, width: 110, fontWeight: 700 }} />
           <span style={{ color: "#6b7280", fontSize: 12, fontWeight: 500 }}>
             {horasBloqueio === 0 ? "(desativado)" : horasBloqueio === 24 ? "(1 dia)" : horasBloqueio === 48 ? "(2 dias)" : horasBloqueio === 168 ? "(1 semana)" : `(${horasBloqueio}h)`}
           </span>
           <div style={{ flex: 1 }} />
-          {editado && (
+          {editado && podeGerenciar && (
             <button onClick={salvar} disabled={salvando}
               style={{
                 background: salvando ? "#2563eb" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
                 color: "white", border: "none", borderRadius: 10,
-                padding: "10px 18px", fontSize: 13, fontWeight: 700,
-                cursor: salvando ? "wait" : "pointer",
+                padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: salvando ? "wait" : "pointer",
                 boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
-              }}>
-              {salvando ? "Salvando..." : "💾 Salvar"}
-            </button>
+              }}>{salvando ? "Salvando..." : "💾 Salvar"}</button>
           )}
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
           {[0, 12, 24, 48, 72, 168].map(h => {
             const ativo = horasBloqueio === h;
             return (
-              <button key={h} type="button" onClick={() => { setHorasBloqueio(h); setEditado(true); }}
+              <button key={h} disabled={!podeGerenciar} onClick={() => { setHorasBloqueio(h); setEditado(true); }}
                 style={{
                   background: ativo ? "#3b82f6" : "#ffffff",
                   color: ativo ? "white" : "#6b7280",
                   border: `1px solid ${ativo ? "#3b82f6" : "#e5e7eb"}`,
-                  borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700,
+                  borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: podeGerenciar ? "pointer" : "not-allowed", fontWeight: 700,
                   boxShadow: ativo ? "0 2px 6px rgba(59,130,246,0.25)" : "none",
+                  opacity: podeGerenciar ? 1 : 0.5,
                 }}>
                 {h === 0 ? "Off" : h < 24 ? `${h}h` : h === 24 ? "1d" : h === 48 ? "2d" : h === 72 ? "3d" : "1sem"}
               </button>
