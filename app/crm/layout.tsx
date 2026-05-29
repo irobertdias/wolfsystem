@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { usePermissao } from "../hooks/usePermissao";
 import { useModulos } from "../hooks/useModulos";
-import AuthGuard from "../../components/AuthGuard";  // 🔒 protege todo /crm/*
+import AuthGuard from "../components/AuthGuard";  // 🔒 protege todo /crm/*
 
 // ═══════════════════════════════════════════════════════════════════════
 // 🏛️ HIERARQUIA:

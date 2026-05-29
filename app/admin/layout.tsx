@@ -1,5 +1,5 @@
 "use client";
-import AuthGuard from "../../components/AuthGuard";
+import AuthGuard from "../components/AuthGuard";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔒 LAYOUT DO ADMIN — Wolf System
