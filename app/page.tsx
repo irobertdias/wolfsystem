@@ -51,6 +51,8 @@ export default function Site() {
         "🔌 API de Integração",
         "🎯 Roleta de Distribuição",
         "📤 Disparos em massa (Web)",
+        "👥 Equipes e Times separados",
+        "📊 Funil Visual com etapas",
       ],
     },
     {
@@ -77,6 +79,9 @@ export default function Site() {
         "🔌 API de Integração",
         "🎯 Roleta de Distribuição",
         "📤 Disparos em massa (Web + API Oficial)",
+        "👥 Equipes Ilimitadas",
+        "📊 Funil Premium com etiquetas",
+        "💰 Módulo de Cobrança Automatizada",
         "📞 Módulo de Ligações VOIP",
         "📸 Instagram Direct 🔜 (em breve)",
         "💬 Facebook Messenger 🔜 (em breve)",
@@ -116,7 +121,7 @@ export default function Site() {
           <span style={{ color: "#16a34a" }}>WhatsApp & IA</span>
         </h1>
         <p style={{ color: "#9ca3af", fontSize: 18, maxWidth: 600, margin: "0 auto 40px", lineHeight: 1.6 }}>
-          Automatize seu atendimento, gerencie seus leads e aumente suas vendas com o poder da Inteligência Artificial.
+          Automatize seu atendimento, gerencie seus leads, cobre seus clientes e aumente suas vendas com o poder da Inteligência Artificial.
         </p>
         <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
           <button onClick={irParaCadastro} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 10, padding: "14px 32px", fontSize: 16, cursor: "pointer", fontWeight: "bold" }}>
@@ -149,7 +154,7 @@ export default function Site() {
       <section id="recursos" style={{ padding: "80px 32px", maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 60 }}>
           <h2 style={{ fontSize: 36, fontWeight: "bold", margin: "0 0 16px 0" }}>Tudo que você precisa em <span style={{ color: "#16a34a" }}>um só lugar</span></h2>
-          <p style={{ color: "#9ca3af", fontSize: 16 }}>Do atendimento automatizado até o fechamento da venda</p>
+          <p style={{ color: "#9ca3af", fontSize: 16 }}>Do atendimento automatizado até a cobrança do cliente</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 24 }}>
           {[
@@ -157,10 +162,12 @@ export default function Site() {
             { icon: "💬", titulo: "Atendimento Humano", desc: "Assuma conversas quando necessário com chat em tempo real integrado ao WhatsApp." },
             { icon: "📊", titulo: "CRM de Vendas", desc: "Gerencie todo seu funil de vendas, propostas e clientes em um painel completo." },
             { icon: "🏢", titulo: "Filas e Departamentos", desc: "Organize seu time com filas de atendimento e distribuição automática por roleta." },
+            { icon: "👥", titulo: "Equipes Multi-time", desc: "Separe atendentes em equipes (vendas, suporte, cobrança) cada uma com suas próprias filas, etiquetas e respostas rápidas." },
             { icon: "📋", titulo: "Geração de Protocolo", desc: "Cada atendimento gera um protocolo automático para rastreabilidade total." },
             { icon: "🔗", titulo: "Integração ChatBot + CRM", desc: "Abra uma proposta de venda direto do chat com nome e número já preenchidos." },
             { icon: "🎯", titulo: "Roleta de Distribuição", desc: "Distribua leads automaticamente entre os atendentes — balanceada, ranqueada ou aleatória." },
             { icon: "📤", titulo: "Disparos em Massa", desc: "Envie campanhas pra milhares de contatos via WhatsApp Web ou API oficial da Meta." },
+            { icon: "💰", titulo: "Cobrança Automatizada", desc: "Gere faturas mensais automáticas pra clientes instalados, com regra de proporcional na 1ª fatura. Cobre via WhatsApp com mensagem personalizada por cliente." },
             { icon: "📞", titulo: "Ligações VOIP", desc: "Faça chamadas de voz direto do CRM via Twilio ou Zenvia — tudo no navegador, sem instalar nada." },
           ].map((r) => (
             <div key={r.titulo} style={{ background: "#111", borderRadius: 12, padding: 28, border: "1px solid #1f2937" }}>
@@ -224,6 +231,13 @@ export default function Site() {
               <div>
                 <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>Conexão extra</p>
                 <p style={{ color: "#3b82f6", fontSize: 17, margin: 0, fontWeight: "bold" }}>R$ 79,90<span style={{ color: "#6b7280", fontSize: 12, fontWeight: "normal" }}> /mês</span></p>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#0a0a0a", borderRadius: 10, padding: "14px 20px", border: "1px solid #1f2937" }}>
+              <span style={{ fontSize: 24 }}>💰</span>
+              <div>
+                <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>Módulo Cobrança</p>
+                <p style={{ color: "#dc2626", fontSize: 17, margin: 0, fontWeight: "bold" }}>R$ 99,90<span style={{ color: "#6b7280", fontSize: 12, fontWeight: "normal" }}> /mês</span></p>
               </div>
             </div>
           </div>
