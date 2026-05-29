@@ -50,11 +50,24 @@ type Campanha = {
 };
 
 // 🆕 Status de fatura — persistido na tabela `faturas_status`
-type StatusFatura = "pendente" | "paga" | "atrasada";
+type StatusFatura =
+  | "pendente"       // ⏳ A pagar
+  | "paga"           // ✅ Paga em dia
+  | "paga_atraso"    // ⏰ Paga com atraso
+  | "paga_parcial"   // 💰 Pagou parte
+  | "promessa"       // 🤝 Promessa de pagamento
+  | "negociacao"     // 📞 Em negociação
+  | "acordo"         // 📋 Em acordo / parcelada
+  | "nao_pagara"     // ❌ Não vai pagar
+  | "cancelada"      // 🚫 Cancelada / cortesia
+  | "juridico"       // ⚖️ Jurídico
+  | "protestada"     // 📋 Protestada
+  | "atrasada";      // 🔴 Atrasada (derivado: pendente vencida)
+
 type FaturaStatusDB = {
   workspace_id: string; proposta_id: number; numero_referencia: string;
   status: StatusFatura; data_pagamento?: string | null; forma_pagamento?: string | null;
-  valor_pago?: number | null; observacoes?: string | null;
+  valor_pago?: number | null; promessa_data?: string | null; observacoes?: string | null;
   atualizado_por?: string | null; updated_at?: string;
 };
 
@@ -163,15 +176,18 @@ const gerarFaturasDeProposta = (p: Proposta, ateMeses: number = 2): Fatura[] => 
   }));
 };
 
-// 🆕 Mescla cálculo + status do banco. Calcula dias_atraso e status_visual ("atrasada" se pendente vencida).
+// 🆕 Mescla cálculo + status do banco. status_visual = "atrasada" só se for pendente E venceu.
+//    Status como paga/paga_atraso/cancelada/etc não viram "atrasada" mesmo vencidos.
 const aplicarStatusEAtrasos = (faturas: Fatura[], statusMap: Map<string, FaturaStatusDB>): Fatura[] => {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   return faturas.map(f => {
     const chave = `${f.proposta.id}_${f.numero_referencia}`;
     const db = statusMap.get(chave);
-    const status = db?.status || "pendente";
+    const status = (db?.status || "pendente") as StatusFatura;
     const diasAtraso = Math.round((hoje.getTime() - f.data_vencimento.getTime()) / 86400000);
+    // Só vira "atrasada" visualmente se for pendente e vencida.
+    // Demais status mantêm seu próprio status visual (paga, promessa, jurídico, etc).
     const visual: StatusFatura = (status === "pendente" && diasAtraso > 0) ? "atrasada" : status;
     return {
       ...f, status, status_visual: visual, dias_atraso: diasAtraso,
@@ -181,11 +197,30 @@ const aplicarStatusEAtrasos = (faturas: Fatura[], statusMap: Map<string, FaturaS
   });
 };
 
-// 🆕 Helper visual: cor + label do status da fatura
+// 🆕 Metadata centralizada de cada status: cor, label, ícone, se conta como recebido.
+//    "recebido" = soma no KPI "Recebido (mês)" e no valor_pago.
+//    "pendencia" = ainda conta no "A receber" e pode ser cobrado.
+const STATUS_META: Record<StatusFatura, {
+  label: string; icone: string; bg: string; border: string; color: string;
+  recebido: boolean; pendencia: boolean; descricao: string;
+}> = {
+  pendente:     { label: "A pagar",            icone: "⏳", bg: "#fffbeb", border: "#fde68a", color: "#d97706", recebido: false, pendencia: true,  descricao: "Aguardando pagamento" },
+  atrasada:     { label: "Atrasada",           icone: "🔴", bg: "#fef2f2", border: "#fecaca", color: "#dc2626", recebido: false, pendencia: true,  descricao: "Venceu e não foi paga" },
+  paga:         { label: "Paga",               icone: "✅", bg: "#f0fdf4", border: "#bbf7d0", color: "#16a34a", recebido: true,  pendencia: false, descricao: "Paga em dia" },
+  paga_atraso:  { label: "Paga c/ atraso",     icone: "⏰", bg: "#ecfdf5", border: "#a7f3d0", color: "#059669", recebido: true,  pendencia: false, descricao: "Paga depois do vencimento" },
+  paga_parcial: { label: "Paga parcial",       icone: "💰", bg: "#fffbeb", border: "#fcd34d", color: "#b45309", recebido: true,  pendencia: true,  descricao: "Pagou só parte do valor" },
+  promessa:     { label: "Promessa pagto",     icone: "🤝", bg: "#eff6ff", border: "#bfdbfe", color: "#2563eb", recebido: false, pendencia: true,  descricao: "Cliente prometeu pagar" },
+  negociacao:   { label: "Em negociação",      icone: "📞", bg: "#f5f3ff", border: "#ddd6fe", color: "#7c3aed", recebido: false, pendencia: true,  descricao: "Renegociando prazo/valor" },
+  acordo:       { label: "Acordo / Parcelada", icone: "📋", bg: "#f0f9ff", border: "#bae6fd", color: "#0284c7", recebido: false, pendencia: true,  descricao: "Acordo de parcelamento ativo" },
+  nao_pagara:   { label: "Não vai pagar",      icone: "❌", bg: "#fef2f2", border: "#fca5a5", color: "#991b1b", recebido: false, pendencia: false, descricao: "Cliente recusou pagar" },
+  cancelada:    { label: "Cancelada",          icone: "🚫", bg: "#f3f4f6", border: "#d1d5db", color: "#6b7280", recebido: false, pendencia: false, descricao: "Fatura anulada / cortesia" },
+  juridico:     { label: "Jurídico",           icone: "⚖️", bg: "#fef2f2", border: "#fca5a5", color: "#7f1d1d", recebido: false, pendencia: true,  descricao: "Escalonada pro jurídico" },
+  protestada:   { label: "Protestada",         icone: "📋", bg: "#fef2f2", border: "#fca5a5", color: "#7f1d1d", recebido: false, pendencia: true,  descricao: "Em protesto em cartório" },
+};
+
 const corStatus = (s: StatusFatura) => {
-  if (s === "paga")     return { bg: "#f0fdf4", border: "#bbf7d0", color: "#16a34a", label: "✓ Paga" };
-  if (s === "atrasada") return { bg: "#fef2f2", border: "#fecaca", color: "#dc2626", label: "🔴 Atrasada" };
-  return                       { bg: "#fffbeb", border: "#fde68a", color: "#d97706", label: "⏳ A pagar" };
+  const m = STATUS_META[s] || STATUS_META.pendente;
+  return { bg: m.bg, border: m.border, color: m.color, label: `${m.icone} ${m.label}` };
 };
 
 const normalizarTelefone = (t: string | null | undefined): string => {
@@ -265,15 +300,17 @@ export default function CobrancaPage() {
   const [filtroBusca, setFiltroBusca] = useState("");
   // 🆕 Seleção agora é por chave de FATURA (propostaId_numRef), não por propostaId
   const [selecionadasFat, setSelecionadasFat] = useState<Set<string>>(new Set());
-  // 🆕 Filtro adicional de status da fatura
-  const [filtroStatus, setFiltroStatus] = useState<"todas" | "pendentes" | "atrasadas" | "pagas">("todas");
+  // 🆕 Filtro adicional de status da fatura (granular com todos os status)
+  const [filtroStatus, setFiltroStatus] = useState<string>("todas");
 
-  // 🆕 Modal "marcar como paga" — pergunta data, forma de pagamento, valor pago, obs
-  const [showMarcarPaga, setShowMarcarPaga] = useState<Fatura | null>(null);
-  const [marcarPagaData, setMarcarPagaData] = useState("");
-  const [marcarPagaForma, setMarcarPagaForma] = useState("");
-  const [marcarPagaValor, setMarcarPagaValor] = useState("");
-  const [marcarPagaObs, setMarcarPagaObs] = useState("");
+  // 🆕 Modal genérico "Mudar status da fatura" — substitui o antigo "marcar paga"
+  const [showStatus, setShowStatus] = useState<Fatura | null>(null);
+  const [novoStatus, setNovoStatus] = useState<StatusFatura>("paga");
+  const [statusData, setStatusData] = useState("");          // data_pagamento
+  const [statusForma, setStatusForma] = useState("");        // forma_pagamento
+  const [statusValor, setStatusValor] = useState("");        // valor_pago
+  const [statusPromessa, setStatusPromessa] = useState(""); // promessa_data
+  const [statusObs, setStatusObs] = useState("");            // observacoes
 
   // ─── ABA "PLANILHA" ─────────────────────────────────────────────────────
   const [planilhaLinhas, setPlanilhaLinhas] = useState<any[][]>([]);   // primeira linha = cabeçalho
@@ -427,9 +464,11 @@ export default function CobrancaPage() {
     }
 
     // Status da fatura
-    if (filtroStatus === "pendentes")      arr = arr.filter(f => f.status_visual === "pendente");
-    else if (filtroStatus === "atrasadas") arr = arr.filter(f => f.status_visual === "atrasada");
-    else if (filtroStatus === "pagas")     arr = arr.filter(f => f.status_visual === "paga");
+    // Status da fatura — pagas agrupa todos os status que contam como recebido
+    if (filtroStatus === "pendentes")        arr = arr.filter(f => f.status_visual === "pendente");
+    else if (filtroStatus === "atrasadas")   arr = arr.filter(f => f.status_visual === "atrasada");
+    else if (filtroStatus === "pagas")       arr = arr.filter(f => STATUS_META[f.status_visual]?.recebido);
+    else if (filtroStatus !== "todas")       arr = arr.filter(f => f.status_visual === filtroStatus);
 
     // Busca textual
     if (filtroBusca) {
@@ -451,17 +490,18 @@ export default function CobrancaPage() {
     });
   }, [todasFaturas, filtroVenc, filtroStatus, filtroBusca]);
 
-  // 🆕 KPIs baseados em faturas (não em clientes)
+  // 🆕 KPIs baseados em faturas (não em clientes) — usa STATUS_META pra classificar
   const kpis = useMemo(() => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     let aReceberMes = 0, recebidoMes = 0, atrasado = 0, totalMes = 0, pagasMes = 0, atrasadasCnt = 0;
     for (const f of todasFaturas) {
+      const meta = STATUS_META[f.status_visual];
       const ehDesteMes = f.data_vencimento.getMonth() === hoje.getMonth() && f.data_vencimento.getFullYear() === hoje.getFullYear();
       if (ehDesteMes) {
         totalMes++;
-        if (f.status_visual === "paga") { pagasMes++; recebidoMes += f.valor; }
-        else aReceberMes += f.valor;
+        if (meta?.recebido) { pagasMes++; recebidoMes += f.valor; }
+        if (meta?.pendencia) aReceberMes += f.valor;
       }
       if (f.status_visual === "atrasada") { atrasado += f.valor; atrasadasCnt++; }
     }
@@ -478,42 +518,65 @@ export default function CobrancaPage() {
     setSelecionadasFat(prev => prev.size === faturasFiltradas.length ? new Set() : new Set(faturasFiltradas.map(chaveSelecao)));
   };
 
-  // 🆕 AÇÕES POR FATURA — gravam status na tabela faturas_status (upsert)
-  const abrirMarcarPaga = (f: Fatura) => {
-    setMarcarPagaData(new Date().toISOString().slice(0, 10));
-    setMarcarPagaForma(f.proposta.forma_pagamento || "");
-    setMarcarPagaValor(String(f.valor.toFixed(2)));
-    setMarcarPagaObs("");
-    setShowMarcarPaga(f);
+  // 🆕 AÇÕES POR FATURA — abre modal genérico que muda conforme o status
+  const abrirStatus = (f: Fatura, statusInicial: StatusFatura = "paga") => {
+    setNovoStatus(statusInicial);
+    // Auto-detecta paga vs paga_atraso baseado em hoje vs vencimento
+    if (statusInicial === "paga" && f.dias_atraso > 0) setNovoStatus("paga_atraso");
+    setStatusData(new Date().toISOString().slice(0, 10));
+    setStatusForma(f.proposta.forma_pagamento || "");
+    setStatusValor(String(f.valor.toFixed(2)));
+    setStatusPromessa("");
+    setStatusObs(f.observacoes || "");
+    setShowStatus(f);
   };
 
-  const confirmarMarcarPaga = async () => {
-    if (!showMarcarPaga || !wsId) return;
-    const f = showMarcarPaga;
-    const { error } = await supabase.from("faturas_status").upsert({
+  const confirmarStatus = async () => {
+    if (!showStatus || !wsId) return;
+    const f = showStatus;
+    const meta = STATUS_META[novoStatus];
+    // Monta o payload conforme o status escolhido
+    const payload: any = {
       workspace_id: wsId,
       proposta_id: f.proposta.id,
       numero_referencia: f.numero_referencia,
-      status: "paga",
-      data_pagamento: marcarPagaData || new Date().toISOString().slice(0, 10),
-      forma_pagamento: marcarPagaForma || null,
-      valor_pago: marcarPagaValor ? parseFloat(marcarPagaValor.replace(",", ".")) : f.valor,
-      observacoes: marcarPagaObs || null,
+      status: novoStatus,
       atualizado_por: user?.email || null,
-    }, { onConflict: "workspace_id,proposta_id,numero_referencia" });
+      observacoes: statusObs || null,
+    };
+    // Campos que só fazem sentido pra status de pagamento
+    if (meta?.recebido) {
+      payload.data_pagamento = statusData || new Date().toISOString().slice(0, 10);
+      payload.forma_pagamento = statusForma || null;
+      payload.valor_pago = statusValor ? parseFloat(statusValor.replace(",", ".")) : f.valor;
+    } else {
+      payload.data_pagamento = null;
+      payload.valor_pago = null;
+    }
+    // Data prometida pra promessa de pagamento
+    if (novoStatus === "promessa" && statusPromessa) {
+      payload.promessa_data = statusPromessa;
+    } else {
+      payload.promessa_data = null;
+    }
+
+    const { error } = await supabase.from("faturas_status").upsert(payload, {
+      onConflict: "workspace_id,proposta_id,numero_referencia",
+    });
     if (error) {
-      setFeedback({ tipo: "erro", titulo: "Não foi possível marcar como paga", mensagem: error.message });
+      setFeedback({ tipo: "erro", titulo: "Não foi possível salvar", mensagem: error.message });
       return;
     }
-    setShowMarcarPaga(null);
+    setShowStatus(null);
     await fetchStatusFaturas();
   };
 
+  // Volta pra "pendente" (reverte status)
   const marcarAPagar = async (f: Fatura) => {
     if (!wsId) return;
     const { error } = await supabase.from("faturas_status").upsert({
       workspace_id: wsId, proposta_id: f.proposta.id, numero_referencia: f.numero_referencia,
-      status: "pendente", data_pagamento: null, valor_pago: null,
+      status: "pendente", data_pagamento: null, valor_pago: null, promessa_data: null,
       atualizado_por: user?.email || null,
     }, { onConflict: "workspace_id,proposta_id,numero_referencia" });
     if (error) {
@@ -871,18 +934,24 @@ export default function CobrancaPage() {
                   style={{ ...inputStyle, flex: 1, minWidth: 180, padding: "7px 12px" }} />
               </div>
 
-              {/* 🆕 Linha de filtro de STATUS da fatura */}
+              {/* 🆕 Linha de filtro de STATUS da fatura — expandido */}
               <div style={{ ...cardStyle, padding: isMobile ? 10 : 12, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                 <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, marginRight: 4 }}>Status:</span>
                 {([
-                  { k: "todas",     l: "🌐 Todas",      cor: "#374151" },
-                  { k: "pendentes", l: "⏳ A pagar",    cor: "#d97706" },
-                  { k: "atrasadas", l: "🔴 Atrasadas",  cor: "#dc2626" },
-                  { k: "pagas",     l: "✓ Pagas",       cor: "#16a34a" },
-                ] as { k: "todas" | "pendentes" | "atrasadas" | "pagas"; l: string; cor: string }[]).map(f => {
+                  { k: "todas",     l: "🌐 Todas",        cor: "#374151" },
+                  { k: "pendentes", l: "⏳ A pagar",      cor: "#d97706" },
+                  { k: "atrasadas", l: "🔴 Atrasadas",    cor: "#dc2626" },
+                  { k: "pagas",     l: "✅ Pagas",         cor: "#16a34a" },
+                  { k: "promessa",  l: "🤝 Promessa",     cor: "#2563eb" },
+                  { k: "negociacao",l: "📞 Negociação",   cor: "#7c3aed" },
+                  { k: "acordo",    l: "📋 Acordo",       cor: "#0284c7" },
+                  { k: "nao_pagara",l: "❌ Não vai pagar", cor: "#991b1b" },
+                  { k: "cancelada", l: "🚫 Canceladas",   cor: "#6b7280" },
+                  { k: "juridico",  l: "⚖️ Jurídico",     cor: "#7f1d1d" },
+                ] as { k: string; l: string; cor: string }[]).map(f => {
                   const at = filtroStatus === f.k;
                   return (
-                    <button key={f.k} onClick={() => { setFiltroStatus(f.k); setSelecionadasFat(new Set()); }}
+                    <button key={f.k} onClick={() => { setFiltroStatus(f.k as any); setSelecionadasFat(new Set()); }}
                       style={{ background: at ? `${f.cor}15` : "#ffffff", color: at ? f.cor : "#6b7280", border: `1px solid ${at ? f.cor : "#e5e7eb"}`, borderRadius: 20, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: at ? 700 : 600, whiteSpace: "nowrap" }}>
                       {f.l}
                     </button>
@@ -953,8 +1022,13 @@ export default function CobrancaPage() {
                                 {f.status_visual === "pendente" && f.dias_atraso < 0 && (
                                   <div style={{ color: "#16a34a", fontSize: 10, fontWeight: 600 }}>🟢 Em {Math.abs(f.dias_atraso)}d</div>
                                 )}
-                                {f.status_visual === "paga" && f.data_pagamento && (
-                                  <div style={{ color: "#16a34a", fontSize: 10, fontWeight: 600 }}>✓ Pago {formatData(f.data_pagamento)}</div>
+                                {(f.status_visual === "paga" || f.status_visual === "paga_atraso" || f.status_visual === "paga_parcial") && f.data_pagamento && (
+                                  <div style={{ color: STATUS_META[f.status_visual].color, fontSize: 10, fontWeight: 600 }}>✓ {STATUS_META[f.status_visual].icone} {formatData(f.data_pagamento)}</div>
+                                )}
+                                {f.observacoes && (
+                                  <div style={{ color: "#9ca3af", fontSize: 10, fontStyle: "italic", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis" }} title={f.observacoes}>
+                                    💬 {f.observacoes}
+                                  </div>
                                 )}
                               </td>
                               <td style={{ padding: "12px", color: "#16a34a", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{formatBRL(f.valor)}</td>
@@ -965,17 +1039,21 @@ export default function CobrancaPage() {
                               </td>
                               <td style={{ padding: "12px" }}>
                                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                                  {f.status === "paga" ? (
-                                    <button onClick={() => marcarAPagar(f)} title="Reverter pagamento"
-                                      style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
-                                      ↩ A pagar
-                                    </button>
-                                  ) : (
-                                    <button onClick={() => abrirMarcarPaga(f)} title="Marcar como paga"
+                                  {STATUS_META[f.status]?.pendencia !== false || f.status === "pendente" ? (
+                                    <button onClick={() => abrirStatus(f, "paga")} title="Marcar como paga / outras opções"
                                       style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
                                       ✓ Paga
                                     </button>
+                                  ) : (
+                                    <button onClick={() => marcarAPagar(f)} title="Reverter status"
+                                      style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                      ↩ A pagar
+                                    </button>
                                   )}
+                                  <button onClick={() => abrirStatus(f, "promessa")} title="Mais opções de status"
+                                    style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                    ⚙ Status
+                                  </button>
                                   <button onClick={() => clienteCancelou(f)} title="Cliente cancelou o serviço"
                                     style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
                                     ✕ Cancelou
@@ -1277,53 +1355,118 @@ export default function CobrancaPage() {
         </div>
       )}
 
-      {/* ════════════ MODAL: MARCAR FATURA COMO PAGA ════════════ */}
-      {showMarcarPaga && (
-        <div onClick={() => setShowMarcarPaga(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", borderRadius: 16, maxWidth: 500, width: "100%", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
-            <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", background: "linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)" }}>
-              <h3 style={{ color: "#14532d", fontSize: 16, fontWeight: 800, margin: 0 }}>✓ Marcar fatura como paga</h3>
-              <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
-                {showMarcarPaga.proposta.nome} · {formatMesExtenso(showMarcarPaga.numero_referencia)} · {formatBRL(showMarcarPaga.valor)}
-              </p>
-            </div>
-            <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <label style={labelStyle}>Data do pagamento</label>
-                <input type="date" value={marcarPagaData} onChange={e => setMarcarPagaData(e.target.value)} style={inputStyle} />
+      {/* ════════════ MODAL: MUDAR STATUS DA FATURA ════════════ */}
+      {showStatus && (() => {
+        const f = showStatus;
+        const meta = STATUS_META[novoStatus];
+        // Quais campos extras mostrar baseado no status escolhido
+        const mostraDataPag = meta?.recebido;
+        const mostraValor = meta?.recebido;
+        const mostraForma = meta?.recebido;
+        const mostraPromessa = novoStatus === "promessa";
+        return (
+          <div onClick={() => setShowStatus(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", borderRadius: 16, maxWidth: 560, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
+              <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", background: `linear-gradient(135deg, ${meta.bg} 0%, #ffffff 100%)` }}>
+                <h3 style={{ color: meta.color, fontSize: 16, fontWeight: 800, margin: 0 }}>{meta.icone} Mudar status da fatura</h3>
+                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
+                  {f.proposta.nome} · {formatMesExtenso(f.numero_referencia)} · {formatBRL(f.valor)} · venceu {formatData(f.data_vencimento)}
+                </p>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1 }}>
+                {/* GRID de status */}
                 <div>
-                  <label style={labelStyle}>Valor pago</label>
-                  <input type="text" value={marcarPagaValor} onChange={e => setMarcarPagaValor(e.target.value)} placeholder="0,00" style={inputStyle} />
+                  <label style={labelStyle}>Qual o status dessa fatura?</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 6 }}>
+                    {(Object.keys(STATUS_META) as StatusFatura[])
+                      .filter(s => s !== "atrasada" && s !== "pendente")  // atrasada é derivada; pendente usa botão "↩ A pagar"
+                      .map(s => {
+                        const m = STATUS_META[s];
+                        const at = novoStatus === s;
+                        return (
+                          <button key={s} type="button" onClick={() => setNovoStatus(s)}
+                            style={{
+                              background: at ? m.bg : "#ffffff",
+                              border: at ? `2px solid ${m.color}` : "1px solid #e5e7eb",
+                              borderRadius: 10, padding: "8px 10px", textAlign: "left",
+                              cursor: "pointer", fontWeight: at ? 700 : 600,
+                              color: at ? m.color : "#374151", fontSize: 12,
+                              transition: "all 0.15s",
+                            }}
+                            title={m.descricao}>
+                            <div>{m.icone} {m.label}</div>
+                            <div style={{ fontSize: 10, fontWeight: 500, color: at ? m.color : "#9ca3af", marginTop: 2 }}>{m.descricao}</div>
+                          </button>
+                        );
+                      })}
+                  </div>
                 </div>
+
+                {/* Campos extras condicionais */}
+                {mostraDataPag && (
+                  <div>
+                    <label style={labelStyle}>Data do pagamento</label>
+                    <input type="date" value={statusData} onChange={e => setStatusData(e.target.value)} style={inputStyle} />
+                  </div>
+                )}
+                {(mostraValor || mostraForma) && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {mostraValor && (
+                      <div>
+                        <label style={labelStyle}>
+                          {novoStatus === "paga_parcial" ? "Valor pago (parcial) *" : "Valor pago"}
+                        </label>
+                        <input type="text" value={statusValor} onChange={e => setStatusValor(e.target.value)} placeholder="0,00" style={inputStyle} />
+                      </div>
+                    )}
+                    {mostraForma && (
+                      <div>
+                        <label style={labelStyle}>Forma de pagamento</label>
+                        <select value={statusForma} onChange={e => setStatusForma(e.target.value)} style={inputStyle}>
+                          <option value="">—</option>
+                          <option value="PIX">PIX</option>
+                          <option value="Boleto">Boleto</option>
+                          <option value="Cartão de Crédito">Cartão de Crédito</option>
+                          <option value="Cartão de Débito">Cartão de Débito</option>
+                          <option value="Transferência">Transferência</option>
+                          <option value="Dinheiro">Dinheiro</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {mostraPromessa && (
+                  <div>
+                    <label style={labelStyle}>Data prometida pelo cliente *</label>
+                    <input type="date" value={statusPromessa} onChange={e => setStatusPromessa(e.target.value)} style={inputStyle} />
+                    <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>💡 Se passar dessa data sem pagar, a fatura volta a aparecer como atrasada.</p>
+                  </div>
+                )}
                 <div>
-                  <label style={labelStyle}>Forma de pagamento</label>
-                  <select value={marcarPagaForma} onChange={e => setMarcarPagaForma(e.target.value)} style={inputStyle}>
-                    <option value="">—</option>
-                    <option value="PIX">PIX</option>
-                    <option value="Boleto">Boleto</option>
-                    <option value="Cartão de Crédito">Cartão de Crédito</option>
-                    <option value="Cartão de Débito">Cartão de Débito</option>
-                    <option value="Transferência">Transferência</option>
-                    <option value="Dinheiro">Dinheiro</option>
-                  </select>
+                  <label style={labelStyle}>Observações (opcional)</label>
+                  <textarea value={statusObs} onChange={e => setStatusObs(e.target.value)} rows={2} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+                    placeholder={
+                      novoStatus === "negociacao"  ? "Ex: pediu pra renegociar valor pra R$ 80" :
+                      novoStatus === "acordo"      ? "Ex: parcelado em 3x" :
+                      novoStatus === "paga_parcial" ? "Ex: pagou metade, restante pra próxima semana" :
+                      novoStatus === "nao_pagara"  ? "Ex: cliente disse que vai cancelar" :
+                      novoStatus === "cancelada"   ? "Ex: cortesia / erro de cobrança" :
+                      novoStatus === "juridico"    ? "Ex: enviado pro dr. Fulano" :
+                      "Notas internas sobre essa fatura"
+                    } />
                 </div>
               </div>
-              <div>
-                <label style={labelStyle}>Observações (opcional)</label>
-                <textarea value={marcarPagaObs} onChange={e => setMarcarPagaObs(e.target.value)} rows={2} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} placeholder="Ex: pago com 10% de desconto" />
+              <div style={{ padding: "14px 22px", borderTop: "1px solid #e5e7eb", background: "#fafbfc", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button onClick={() => setShowStatus(null)} style={btnSecundario}>Cancelar</button>
+                <button onClick={confirmarStatus}
+                  style={{ background: `linear-gradient(135deg, ${meta.color} 0%, ${meta.color}dd 100%)`, color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: `0 4px 12px ${meta.color}40` }}>
+                  {meta.icone} Confirmar como {meta.label}
+                </button>
               </div>
-            </div>
-            <div style={{ padding: "14px 22px", borderTop: "1px solid #e5e7eb", background: "#fafbfc", display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button onClick={() => setShowMarcarPaga(null)} style={btnSecundario}>Cancelar</button>
-              <button onClick={confirmarMarcarPaga} style={{ background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)", color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>
-                ✓ Confirmar pagamento
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ════════════ MODAL DE FEEDBACK ════════════ */}
       {feedback && (() => {
