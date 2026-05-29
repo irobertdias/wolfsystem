@@ -14,6 +14,10 @@ type Cadastro = {
   permite_webjs?: boolean; permite_waba?: boolean; permite_instagram?: boolean;
   modulo_roleta?: boolean; modulo_disparos_web?: boolean; modulo_disparos_api?: boolean;
   modulo_voip?: boolean; modulo_api_integracao?: boolean; modulo_instagram?: boolean;
+  // 🆕 3 módulos novos
+  modulo_cobranca?: boolean;        // 💰 Cobrança Automatizada (Ultra)
+  modulo_equipes?: boolean;          // 👥 Equipes Multi-time (Intermediário, Ultra)
+  modulo_funil_avancado?: boolean;   // 📊 Funil Avançado com etiquetas (Intermediário, Ultra)
   ia?: string; senha?: string; user_id?: string;
 };
 
@@ -36,24 +40,31 @@ const planoPresets: Record<string, {
   webjs: boolean; waba: boolean; instagram: boolean;
   modulo_roleta: boolean; modulo_disparos_web: boolean; modulo_disparos_api: boolean;
   modulo_voip: boolean; modulo_api_integracao: boolean; modulo_instagram: boolean;
+  // 🆕 novos
+  modulo_cobranca: boolean; modulo_equipes: boolean; modulo_funil_avancado: boolean;
 }> = {
   basico: {
     usuarios: 5, conexoes: 1,
     webjs: true, waba: false, instagram: false,
     modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
+    modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
   },
   intermediario: {
     usuarios: 15, conexoes: 3,
     webjs: true, waba: true, instagram: false,
     modulo_roleta: true, modulo_disparos_web: true, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: true, modulo_instagram: false,
+    // Intermediário: Equipes + Funil Avançado (Cobrança fica só no Ultra)
+    modulo_cobranca: false, modulo_equipes: true, modulo_funil_avancado: true,
   },
   ultra: {
     usuarios: 50, conexoes: 10,
     webjs: true, waba: true, instagram: true,
     modulo_roleta: true, modulo_disparos_web: true, modulo_disparos_api: true,
     modulo_voip: true, modulo_api_integracao: true, modulo_instagram: true,
+    // Ultra: TUDO ligado
+    modulo_cobranca: true, modulo_equipes: true, modulo_funil_avancado: true,
   },
 };
 
@@ -94,6 +105,8 @@ export default function Clientes() {
     permite_webjs: true, permite_waba: false, permite_instagram: false,
     modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
+    // 🆕 novos módulos: começam desligados, presets/escolha manual ligam
+    modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
     ia: "gpt", autorizado: false, senha: "",
   });
 
@@ -218,6 +231,8 @@ export default function Clientes() {
       permite_webjs: true, permite_waba: false, permite_instagram: false,
       modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
       modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
+      // 🆕 novos
+      modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
       ia: "gpt", autorizado: false, senha: "",
     });
     setCadastroSelecionado(null);
@@ -248,6 +263,10 @@ export default function Clientes() {
         modulo_voip: preset.modulo_voip,
         modulo_api_integracao: preset.modulo_api_integracao,
         modulo_instagram: preset.modulo_instagram,
+        // 🆕 novos
+        modulo_cobranca: preset.modulo_cobranca,
+        modulo_equipes: preset.modulo_equipes,
+        modulo_funil_avancado: preset.modulo_funil_avancado,
       }));
     } else {
       setFormCadastro(prev => ({ ...prev, plano }));
@@ -273,6 +292,10 @@ export default function Clientes() {
           modulo_voip: !!formCadastro.modulo_voip,
           modulo_api_integracao: !!formCadastro.modulo_api_integracao,
           modulo_instagram: !!formCadastro.modulo_instagram,
+          // 🆕 novos
+          modulo_cobranca: !!formCadastro.modulo_cobranca,
+          modulo_equipes: !!formCadastro.modulo_equipes,
+          modulo_funil_avancado: !!formCadastro.modulo_funil_avancado,
           ia: formCadastro.ia, autorizado: formCadastro.autorizado,
         }).eq("id", cadastroSelecionado.id);
         if (error) { alert("Erro ao salvar: " + error.message); setSalvandoCliente(false); return; }
@@ -529,6 +552,10 @@ export default function Clientes() {
                 <Toggle value={!!formCadastro.modulo_voip} onChange={() => setFormCadastro({ ...formCadastro, modulo_voip: !formCadastro.modulo_voip })} label="📞 Ligações VOIP" desc="Apenas Ultra" color="#8b5cf6" />
                 <Toggle value={!!formCadastro.modulo_api_integracao} onChange={() => setFormCadastro({ ...formCadastro, modulo_api_integracao: !formCadastro.modulo_api_integracao })} label="🔌 API de Integração" desc="Intermediário, Ultra" color="#3b82f6" />
                 <Toggle value={!!formCadastro.modulo_instagram} onChange={() => setFormCadastro({ ...formCadastro, modulo_instagram: !formCadastro.modulo_instagram })} label="📸 Instagram Direct (Módulo)" desc="Apenas Ultra" color="#ec4899" />
+                {/* 🆕 3 módulos novos */}
+                <Toggle value={!!formCadastro.modulo_equipes} onChange={() => setFormCadastro({ ...formCadastro, modulo_equipes: !formCadastro.modulo_equipes })} label="👥 Equipes Multi-time" desc="Intermediário, Ultra" color="#a855f7" />
+                <Toggle value={!!formCadastro.modulo_funil_avancado} onChange={() => setFormCadastro({ ...formCadastro, modulo_funil_avancado: !formCadastro.modulo_funil_avancado })} label="📊 Funil Avançado" desc="Intermediário, Ultra" color="#3b82f6" />
+                <Toggle value={!!formCadastro.modulo_cobranca} onChange={() => setFormCadastro({ ...formCadastro, modulo_cobranca: !formCadastro.modulo_cobranca })} label="💰 Cobrança Automatizada" desc="Apenas Ultra" color="#dc2626" />
               </div>
             </div>
 
@@ -620,6 +647,10 @@ export default function Clientes() {
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_voip} icone="📞" label="VOIP" cor="#8b5cf6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_api_integracao} icone="🔌" label="API Integração" cor="#3b82f6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_instagram} icone="📸" label="Instagram" cor="#ec4899" />
+                {/* 🆕 novos */}
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_equipes} icone="👥" label="Equipes" cor="#a855f7" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_funil_avancado} icone="📊" label="Funil Avançado" cor="#3b82f6" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_cobranca} icone="💰" label="Cobrança" cor="#dc2626" />
               </div>
             </div>
 
@@ -825,7 +856,11 @@ export default function Clientes() {
                           {c.modulo_voip && <span style={{ fontSize: 14 }} title="Ligações VOIP">📞</span>}
                           {c.modulo_api_integracao && <span style={{ fontSize: 14 }} title="API Integração">🔌</span>}
                           {c.modulo_instagram && <span style={{ fontSize: 14 }} title="Instagram">📸</span>}
-                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
+                          {/* 🆕 novos */}
+                          {c.modulo_equipes && <span style={{ fontSize: 14 }} title="Equipes Multi-time">👥</span>}
+                          {c.modulo_funil_avancado && <span style={{ fontSize: 14 }} title="Funil Avançado">📊</span>}
+                          {c.modulo_cobranca && <span style={{ fontSize: 14 }} title="Cobrança">💰</span>}
+                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
                         </div>
                       </td>
 
