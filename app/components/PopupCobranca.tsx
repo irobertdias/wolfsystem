@@ -244,7 +244,7 @@ export default function PopupCobranca() {
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
             <button onClick={copiarPix}
               style={{
                 background: pixCopiado ? "#16a34a" : "#f9fafb",
@@ -270,8 +270,20 @@ export default function PopupCobranca() {
             </button>
           </div>
 
+          {/* 🆕 v2: botão pra fechar e voltar a trabalhar (re-exibe em 1h) */}
+          <button onClick={cobranca.fecharPopup}
+            style={{
+              width: "100%",
+              background: "white", color: "#6b7280",
+              border: "1px solid #e5e7eb", borderRadius: 10,
+              padding: "9px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600,
+              marginBottom: 10,
+            }}>
+            ✕ Fechar e continuar (re-exibe em 1h)
+          </button>
+
           <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, fontStyle: "italic" }}>
-            ⛔ Este aviso não pode ser fechado. Será exibido novamente em 1 hora.
+            Este aviso voltará a aparecer em 1 hora até a regularização do pagamento.
           </p>
         </div>
 

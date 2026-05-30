@@ -42,6 +42,7 @@ export type DadosCobranca = {
   cadastroId: number | null;
   nomeCliente: string | null;
   emailCliente: string | null;
+  bloqueioPostergadoAte: string | null; // 🆕 v2 — desbloqueio em confiança
 };
 
 export type LembretePagamentoState = DadosCobranca & {
@@ -61,10 +62,23 @@ function diasEntre(dataFutura: Date, hoje: Date): number {
 
 function determinarFase(
   statusPagamento: string,
-  diasAteVencimento: number | null
+  diasAteVencimento: number | null,
+  bloqueioPostergadoAte: string | null
 ): FaseCobranca {
-  // Suspenso manualmente sempre vence
+  // Suspenso manualmente sempre vence (não respeita postergação)
   if (statusPagamento === "suspenso") return "suspenso";
+
+  // 🆕 v2: Se admin postergou bloqueio e a data ainda tá no futuro, fica ATIVO
+  // (mesmo se tava pra bloquear). Isso é o "desbloqueio em confiança".
+  if (bloqueioPostergadoAte) {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const ate = new Date(bloqueioPostergadoAte + "T00:00:00");
+    if (ate.getTime() >= hoje.getTime()) {
+      // Confiança ativa: cliente continua usando, sem popup
+      return "ativo";
+    }
+  }
 
   // Bloqueado por atraso (2+ dias)
   if (statusPagamento === "bloqueado") return "bloqueado";
@@ -103,6 +117,7 @@ export function useLembretePagamento(): LembretePagamentoState {
     cadastroId: null,
     nomeCliente: null,
     emailCliente: null,
+    bloqueioPostergadoAte: null,
   });
 
   const [popupVisivel, setPopupVisivel] = useState(false);
@@ -164,7 +179,7 @@ export function useLembretePagamento(): LembretePagamentoState {
       // Busca o cadastro do dono
       const { data: cadastro } = await supabase
         .from("cadastros")
-        .select("id, nome, email, dia_vencimento, valor_mensalidade, proximo_vencimento, status_pagamento, ultimo_pagamento_em")
+        .select("id, nome, email, dia_vencimento, valor_mensalidade, proximo_vencimento, status_pagamento, ultimo_pagamento_em, bloqueio_postergado_ate")
         .eq("email", emailDono)
         .maybeSingle();
 
@@ -182,7 +197,8 @@ export function useLembretePagamento(): LembretePagamentoState {
         diasAteVencimento = diasEntre(venc, hoje);
       }
 
-      const fase = determinarFase(cadastro.status_pagamento || "ativo", diasAteVencimento);
+      const bloqueioPostergadoAte = cadastro.bloqueio_postergado_ate ?? null;
+      const fase = determinarFase(cadastro.status_pagamento || "ativo", diasAteVencimento, bloqueioPostergadoAte);
 
       setDados({
         fase,
@@ -194,6 +210,7 @@ export function useLembretePagamento(): LembretePagamentoState {
         cadastroId: cadastro.id,
         nomeCliente: nomeDono ?? cadastro.nome ?? null,
         emailCliente: emailDono,
+        bloqueioPostergadoAte,
       });
     } catch (e) {
       console.error("[useLembretePagamento] Erro ao buscar status:", e);

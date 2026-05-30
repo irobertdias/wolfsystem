@@ -24,6 +24,7 @@ type Cadastro = {
   proximo_vencimento?: string | null; // 'YYYY-MM-DD'
   status_pagamento?: string | null;   // ativo|pendente|atrasado|bloqueado|suspenso
   ultimo_pagamento_em?: string | null;
+  bloqueio_postergado_ate?: string | null; // 🆕 v3 — desbloqueio em confiança até essa data
 };
 
 type SubUsuario = {
@@ -88,7 +89,7 @@ function calcularDiasAteVencimento(proximoVencimento: string | null | undefined)
 }
 
 function getStatusCobranca(c: Cadastro): {
-  fase: "sem_config" | "em_dia" | "vence_breve" | "vence_hoje" | "atrasado" | "bloqueado" | "suspenso";
+  fase: "sem_config" | "em_dia" | "vence_breve" | "vence_hoje" | "atrasado" | "bloqueado" | "suspenso" | "confianca";
   label: string;
   cor: string;
   bg: string;
@@ -99,6 +100,23 @@ function getStatusCobranca(c: Cadastro): {
   if (c.status_pagamento === "suspenso") {
     return { fase: "suspenso", label: "Suspenso", cor: "#6b7280", bg: "#f3f4f6", borda: "#e5e7eb", icone: "⏸️", dias: null };
   }
+
+  // 🆕 v3: Postergação ativa (desbloqueio em confiança) — tem prioridade visual
+  if (c.bloqueio_postergado_ate) {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const ate = new Date(c.bloqueio_postergado_ate + "T00:00:00");
+    const diasRestantes = Math.round((ate.getTime() - hoje.getTime()) / 86400000);
+    if (diasRestantes >= 0) {
+      return {
+        fase: "confianca",
+        label: diasRestantes === 0 ? "Confiança termina hoje" : `Confiança ${diasRestantes}d`,
+        cor: "#7c3aed", bg: "#f5f3ff", borda: "#ddd6fe", icone: "🤝",
+        dias: diasRestantes,
+      };
+    }
+  }
+
   if (!c.dia_vencimento || !c.proximo_vencimento) {
     return { fase: "sem_config", label: "Sem cobrança", cor: "#9ca3af", bg: "#f9fafb", borda: "#e5e7eb", icone: "○", dias: null };
   }
@@ -195,6 +213,10 @@ export default function Clientes() {
   });
   const [salvandoPagamento, setSalvandoPagamento] = useState(false);
 
+  // 🆕 v3: modal de desbloqueio em confiança
+  const [showModalConfianca, setShowModalConfianca] = useState(false);
+  const [diasConfianca, setDiasConfianca] = useState<number>(7);
+
   const [formCadastro, setFormCadastro] = useState<Partial<Cadastro>>({
     nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
     username: "",
@@ -207,6 +229,7 @@ export default function Clientes() {
     // 🆕 cobrança
     dia_vencimento: null, valor_mensalidade: null, proximo_vencimento: null,
     status_pagamento: "ativo",
+    bloqueio_postergado_ate: null,
   });
 
   // 🎨 ESTILOS
@@ -401,10 +424,11 @@ export default function Clientes() {
         novoVencimento = "";
       }
 
-      // 3) Atualiza cadastro
+      // 3) Atualiza cadastro — limpa postergação (cliente pagou, não precisa mais)
       const updates: any = {
         status_pagamento: "ativo",
         ultimo_pagamento_em: new Date().toISOString(),
+        bloqueio_postergado_ate: null, // 🆕 v3
       };
       if (novoVencimento) updates.proximo_vencimento = novoVencimento;
 
@@ -422,6 +446,43 @@ export default function Clientes() {
     setSalvandoPagamento(false);
   };
 
+  // ═══ 🆕 v3: Desbloqueio em confiança ═══
+  const darConfianca = async (dias: number) => {
+    if (!cadastroSelecionado) return;
+    if (dias < 1 || dias > 90) { alert("Dias deve estar entre 1 e 90."); return; }
+    const hoje = new Date();
+    const ate = new Date(hoje.getTime() + dias * 86400000);
+    const ateIso = ate.toISOString().slice(0, 10);
+
+    const { error } = await supabase.from("cadastros").update({
+      bloqueio_postergado_ate: ateIso,
+      status_pagamento: "ativo", // volta ativo enquanto a confiança vigora
+    }).eq("id", cadastroSelecionado.id);
+
+    if (error) { alert("Erro: " + error.message); return; }
+
+    await fetchCadastros();
+    setCadastroSelecionado(prev => prev ? { ...prev, bloqueio_postergado_ate: ateIso, status_pagamento: "ativo" } : prev);
+    setFormCadastro(prev => ({ ...prev, bloqueio_postergado_ate: ateIso, status_pagamento: "ativo" }));
+    alert(`✅ Desbloqueado em confiança por ${dias} dia(s)!\nVolta a bloquear automaticamente em ${ate.toLocaleDateString("pt-BR")}.`);
+  };
+
+  const removerConfianca = async () => {
+    if (!cadastroSelecionado) return;
+    if (!confirm("Remover postergação? O bloqueio automático volta a valer.")) return;
+
+    const { error } = await supabase.from("cadastros").update({
+      bloqueio_postergado_ate: null,
+    }).eq("id", cadastroSelecionado.id);
+
+    if (error) { alert("Erro: " + error.message); return; }
+
+    await fetchCadastros();
+    setCadastroSelecionado(prev => prev ? { ...prev, bloqueio_postergado_ate: null } : prev);
+    setFormCadastro(prev => ({ ...prev, bloqueio_postergado_ate: null }));
+    alert("✅ Postergação removida.");
+  };
+
   const abrirNovo = () => {
     setFormCadastro({
       nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
@@ -434,6 +495,7 @@ export default function Clientes() {
       ia: "gpt", autorizado: false, senha: "",
       dia_vencimento: null, valor_mensalidade: null, proximo_vencimento: null,
       status_pagamento: "ativo",
+      bloqueio_postergado_ate: null,
     });
     setCadastroSelecionado(null);
     setShowModalCliente(true);
@@ -513,6 +575,7 @@ export default function Clientes() {
           valor_mensalidade: formCadastro.valor_mensalidade || null,
           proximo_vencimento: proximoVenc || null,
           status_pagamento: formCadastro.status_pagamento || "ativo",
+          bloqueio_postergado_ate: formCadastro.bloqueio_postergado_ate || null,
         }).eq("id", cadastroSelecionado.id);
         if (error) { alert("Erro ao salvar: " + error.message); setSalvandoCliente(false); return; }
         alert("✅ Cliente atualizado!");
@@ -769,6 +832,74 @@ export default function Clientes() {
               </div>
             </div>
 
+            {/* 🆕 v3 — CONTROLE DE PAGAMENTO (só em modo edit) */}
+            {cadastroSelecionado && (() => {
+              const st = getStatusCobranca(cadastroSelecionado);
+              const ehSuspenso = cadastroSelecionado.status_pagamento === "suspenso";
+              const temConfianca = !!cadastroSelecionado.bloqueio_postergado_ate;
+              return (
+                <div style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)", border: "1px solid #ddd6fe", borderRadius: 12, padding: 18 }}>
+                  <p style={{ color: "#6d28d9", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 4px" }}>⚙️ Controle de Pagamento</p>
+                  <p style={{ color: "#5b21b6", fontSize: 11, margin: "0 0 14px", lineHeight: 1.4 }}>
+                    Ações rápidas pra cobrar, bloquear ou dar tolerância ao cliente.
+                  </p>
+
+                  {/* Status atual */}
+                  <div style={{ background: "white", borderRadius: 10, padding: 12, marginBottom: 14, border: `1px solid ${st.borda}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <div>
+                        <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Status atual</p>
+                        <p style={{ color: st.cor, fontSize: 14, fontWeight: 800, margin: "2px 0 0" }}>{st.icone} {st.label}</p>
+                      </div>
+                      {temConfianca && (
+                        <button onClick={removerConfianca}
+                          style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+                          ✕ Remover postergação
+                        </button>
+                      )}
+                    </div>
+                    {temConfianca && (
+                      <p style={{ color: "#7c3aed", fontSize: 11, margin: "8px 0 0", fontStyle: "italic" }}>
+                        🤝 Cliente em confiança até <b>{formatarData(cadastroSelecionado.bloqueio_postergado_ate)}</b>. Bloqueio automático suspenso até lá.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 3 botões principais */}
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 8 }}>
+                    {/* 💰 MARCAR PAGO */}
+                    <button onClick={() => { abrirMarcarPago(cadastroSelecionado); setShowModalCliente(false); }}
+                      style={{ background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      <span style={{ fontSize: 18 }}>💰</span>
+                      <span>Marcar como Pago</span>
+                    </button>
+
+                    {/* 🔒 BLOQUEAR */}
+                    {ehSuspenso ? (
+                      <button onClick={() => liberarCliente(cadastroSelecionado)}
+                        style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                        <span style={{ fontSize: 18 }}>▶️</span>
+                        <span>Liberar</span>
+                      </button>
+                    ) : (
+                      <button onClick={() => suspenderCliente(cadastroSelecionado)}
+                        style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                        <span style={{ fontSize: 18 }}>🔒</span>
+                        <span>Bloquear por falta de pagamento</span>
+                      </button>
+                    )}
+
+                    {/* 🤝 CONFIANÇA */}
+                    <button onClick={() => setShowModalConfianca(true)}
+                      style={{ background: temConfianca ? "#f5f3ff" : "linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)", color: temConfianca ? "#7c3aed" : "white", border: temConfianca ? "1px solid #ddd6fe" : "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: temConfianca ? "none" : "0 4px 12px rgba(139,92,246,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      <span style={{ fontSize: 18 }}>🤝</span>
+                      <span>{temConfianca ? "Alterar confiança" : "Desbloquear por X dias"}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Limites Personalizados */}
             <div>
               <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>⚙️ Limites Personalizados</p>
@@ -932,6 +1063,71 @@ export default function Clientes() {
           </div>
         </div>
       )}
+
+{/* ═══════════════════════════════════════════════════════════════
+          🆕 v3 — MODAL "DESBLOQUEIO EM CONFIANÇA"
+      ═══════════════════════════════════════════════════════════════ */}
+      {showModalConfianca && cadastroSelecionado && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 500, display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ color: "#7c3aed", fontSize: 18, fontWeight: 700, margin: 0 }}>🤝 Desbloqueio em Confiança</h2>
+              <button onClick={() => setShowModalConfianca(false)}
+                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+            </div>
+            <div style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "#5b21b6", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
+              <p style={{ color: "#7c3aed", fontSize: 11, margin: "2px 0 0" }}>{cadastroSelecionado.email}</p>
+            </div>
+            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "#92400e", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+                ⚠️ <b>Como funciona:</b> o vencimento <b>NÃO muda</b>. O sistema só suspende o bloqueio automático por X dias.
+                Se o cliente pagar antes, a confiança é removida sozinha. Se não pagar até a data, o bloqueio volta automaticamente.
+              </p>
+            </div>
+            <div>
+              <label style={labelStyle}>📅 Quantos dias de confiança?</label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                {[3, 5, 7, 10, 15, 30].map(d => (
+                  <button key={d} onClick={() => setDiasConfianca(d)}
+                    style={{
+                      flex: 1, minWidth: 60,
+                      background: diasConfianca === d ? "linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)" : "#f9fafb",
+                      color: diasConfianca === d ? "white" : "#6b7280",
+                      border: diasConfianca === d ? "none" : "1px solid #e5e7eb",
+                      borderRadius: 10, padding: "8px 0", fontSize: 13, cursor: "pointer", fontWeight: 700,
+                      boxShadow: diasConfianca === d ? "0 4px 12px rgba(139,92,246,0.3)" : "none",
+                    }}>{d}d</button>
+                ))}
+              </div>
+              <input type="number" min={1} max={90} value={diasConfianca}
+                onChange={e => setDiasConfianca(parseInt(e.target.value) || 0)}
+                placeholder="Ou digite outro valor (1-90)"
+                style={inputStyle} />
+            </div>
+            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "#15803d", fontSize: 11, margin: 0 }}>
+                🗓️ Bloqueio automático volta em: <b>{new Date(Date.now() + diasConfianca * 86400000).toLocaleDateString("pt-BR")}</b>
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
+              <button onClick={() => setShowModalConfianca(false)}
+                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                Cancelar
+              </button>
+              <button onClick={async () => { await darConfianca(diasConfianca); setShowModalConfianca(false); }}
+                disabled={diasConfianca < 1 || diasConfianca > 90}
+                style={{
+                  background: (diasConfianca < 1 || diasConfianca > 90) ? "#a78bfa" : "linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)",
+                  color: "white", border: "none", borderRadius: 10,
+                  padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
+                  boxShadow: "0 4px 12px rgba(139,92,246,0.3)",
+                }}>🤝 Dar {diasConfianca}d de confiança</button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* ═══════════════════════════════════════════════════════════════
           MODAL DETALHE
