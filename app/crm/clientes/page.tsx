@@ -14,11 +14,16 @@ type Cadastro = {
   permite_webjs?: boolean; permite_waba?: boolean; permite_instagram?: boolean;
   modulo_roleta?: boolean; modulo_disparos_web?: boolean; modulo_disparos_api?: boolean;
   modulo_voip?: boolean; modulo_api_integracao?: boolean; modulo_instagram?: boolean;
-  // 🆕 3 módulos novos
-  modulo_cobranca?: boolean;        // 💰 Cobrança Automatizada (Ultra)
-  modulo_equipes?: boolean;          // 👥 Equipes Multi-time (Intermediário, Ultra)
-  modulo_funil_avancado?: boolean;   // 📊 Funil Avançado com etiquetas (Intermediário, Ultra)
+  modulo_cobranca?: boolean;
+  modulo_equipes?: boolean;
+  modulo_funil_avancado?: boolean;
   ia?: string; senha?: string; user_id?: string;
+  // 🆕 CAMPOS DE COBRANÇA
+  dia_vencimento?: number | null;
+  valor_mensalidade?: number | null;
+  proximo_vencimento?: string | null; // 'YYYY-MM-DD'
+  status_pagamento?: string | null;   // ativo|pendente|atrasado|bloqueado|suspenso
+  ultimo_pagamento_em?: string | null;
 };
 
 type SubUsuario = {
@@ -28,19 +33,24 @@ type SubUsuario = {
 
 type Grupo = { id: number; nome: string; };
 
-// ═══════════════════════════════════════════════════════════════════════
-// 🆕 presets de plano — agora incluem os 6 módulos novos
-// ═══════════════════════════════════════════════════════════════════════
-// Básico (R$ 444,27): 5 users, 1 conexão — SEM roleta/disparos/voip/API/instagram
-// Intermediário (R$ 744,27): 15 users, 3 conexões — COM roleta + disparos_web + api_integracao
-// Ultra (R$ 1.044,27): 50 users, 10 conexões — TUDO
-// ═══════════════════════════════════════════════════════════════════════
+// 🆕 Type do histórico de pagamentos
+type Pagamento = {
+  id: number;
+  cadastro_id: number;
+  mes_referencia: string;
+  valor: number;
+  data_pagamento: string;
+  forma_pagamento: string;
+  observacao: string | null;
+  marcado_por: string;
+  created_at: string;
+};
+
 const planoPresets: Record<string, {
   usuarios: number; conexoes: number;
   webjs: boolean; waba: boolean; instagram: boolean;
   modulo_roleta: boolean; modulo_disparos_web: boolean; modulo_disparos_api: boolean;
   modulo_voip: boolean; modulo_api_integracao: boolean; modulo_instagram: boolean;
-  // 🆕 novos
   modulo_cobranca: boolean; modulo_equipes: boolean; modulo_funil_avancado: boolean;
 }> = {
   basico: {
@@ -55,7 +65,6 @@ const planoPresets: Record<string, {
     webjs: true, waba: true, instagram: false,
     modulo_roleta: true, modulo_disparos_web: true, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: true, modulo_instagram: false,
-    // Intermediário: Equipes + Funil Avançado (Cobrança fica só no Ultra)
     modulo_cobranca: false, modulo_equipes: true, modulo_funil_avancado: true,
   },
   ultra: {
@@ -63,10 +72,86 @@ const planoPresets: Record<string, {
     webjs: true, waba: true, instagram: true,
     modulo_roleta: true, modulo_disparos_web: true, modulo_disparos_api: true,
     modulo_voip: true, modulo_api_integracao: true, modulo_instagram: true,
-    // Ultra: TUDO ligado
     modulo_cobranca: true, modulo_equipes: true, modulo_funil_avancado: true,
   },
 };
+
+// 🆕 ═══ Helpers de cobrança ═══
+
+function calcularDiasAteVencimento(proximoVencimento: string | null | undefined): number | null {
+  if (!proximoVencimento) return null;
+  const hoje = new Date();
+  const venc = new Date(proximoVencimento + "T00:00:00");
+  const a = new Date(venc.getFullYear(), venc.getMonth(), venc.getDate());
+  const b = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getStatusCobranca(c: Cadastro): {
+  fase: "sem_config" | "em_dia" | "vence_breve" | "vence_hoje" | "atrasado" | "bloqueado" | "suspenso";
+  label: string;
+  cor: string;
+  bg: string;
+  borda: string;
+  icone: string;
+  dias: number | null;
+} {
+  if (c.status_pagamento === "suspenso") {
+    return { fase: "suspenso", label: "Suspenso", cor: "#6b7280", bg: "#f3f4f6", borda: "#e5e7eb", icone: "⏸️", dias: null };
+  }
+  if (!c.dia_vencimento || !c.proximo_vencimento) {
+    return { fase: "sem_config", label: "Sem cobrança", cor: "#9ca3af", bg: "#f9fafb", borda: "#e5e7eb", icone: "○", dias: null };
+  }
+
+  const dias = calcularDiasAteVencimento(c.proximo_vencimento);
+  if (dias === null) return { fase: "sem_config", label: "Sem cobrança", cor: "#9ca3af", bg: "#f9fafb", borda: "#e5e7eb", icone: "○", dias: null };
+
+  if (dias <= -2) return { fase: "bloqueado", label: `Bloqueado ${Math.abs(dias)}d`, cor: "#7f1d1d", bg: "#fef2f2", borda: "#fecaca", icone: "🔒", dias };
+  if (dias < 0) return { fase: "atrasado", label: `Atrasado ${Math.abs(dias)}d`, cor: "#dc2626", bg: "#fef2f2", borda: "#fecaca", icone: "🔴", dias };
+  if (dias === 0) return { fase: "vence_hoje", label: "Vence hoje", cor: "#dc2626", bg: "#fffbeb", borda: "#fde68a", icone: "⚠️", dias };
+  if (dias <= 2) return { fase: "vence_breve", label: `Vence em ${dias}d`, cor: "#f59e0b", bg: "#fffbeb", borda: "#fde68a", icone: "🟡", dias };
+  return { fase: "em_dia", label: `Em dia (${dias}d)`, cor: "#16a34a", bg: "#f0fdf4", borda: "#bbf7d0", icone: "🟢", dias };
+}
+
+function formatarData(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso.length === 10 ? iso + "T00:00:00" : iso);
+    return d.toLocaleDateString("pt-BR");
+  } catch { return iso; }
+}
+
+function formatarReais(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// 🆕 Calcula data do PRÓXIMO vencimento (a partir de hoje) baseado no dia escolhido
+function proximaDataVencimentoSugerida(diaVenc: number): string {
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth();
+  // Tenta este mês
+  const ultimoDiaEsseMes = new Date(ano, mes + 1, 0).getDate();
+  let proxima = new Date(ano, mes, Math.min(diaVenc, ultimoDiaEsseMes));
+  if (proxima <= hoje) {
+    // Vai pro próximo mês
+    const ultimoDiaProxMes = new Date(ano, mes + 2, 0).getDate();
+    proxima = new Date(ano, mes + 1, Math.min(diaVenc, ultimoDiaProxMes));
+  }
+  return proxima.toISOString().slice(0, 10);
+}
+
+// 🆕 Avança 1 mês mantendo o dia (ajusta se não existir no próximo mês)
+function avancarUmMes(dataIso: string): string {
+  const d = new Date(dataIso + "T00:00:00");
+  const ano = d.getFullYear();
+  const mes = d.getMonth();
+  const dia = d.getDate();
+  const ultimoDiaProxMes = new Date(ano, mes + 2, 0).getDate();
+  const nova = new Date(ano, mes + 1, Math.min(dia, ultimoDiaProxMes));
+  return nova.toISOString().slice(0, 10);
+}
 
 export default function Clientes() {
   const router = useRouter();
@@ -79,7 +164,6 @@ export default function Clientes() {
   const [salvandoCliente, setSalvandoCliente] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState("todos");
 
-  // 🆕 FASE 3 MOBILE
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -88,7 +172,6 @@ export default function Clientes() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // 🔒 Controle de acesso
   const [permissaoLoading, setPermissaoLoading] = useState(true);
   const [temAcesso, setTemAcesso] = useState(false);
   const [emailUsuario, setEmailUsuario] = useState("");
@@ -98,6 +181,20 @@ export default function Clientes() {
   const [gruposMap, setGruposMap] = useState<Record<string, Grupo[]>>({});
   const [carregandoSubs, setCarregandoSubs] = useState<Set<string>>(new Set());
 
+  // 🆕 Histórico de pagamentos (carregado sob demanda no modal de detalhe)
+  const [pagamentosHist, setPagamentosHist] = useState<Pagamento[]>([]);
+  const [carregandoPagamentos, setCarregandoPagamentos] = useState(false);
+
+  // 🆕 Modal "Marcar como pago"
+  const [showModalPagamento, setShowModalPagamento] = useState(false);
+  const [formPagamento, setFormPagamento] = useState({
+    valor: "",
+    data_pagamento: new Date().toISOString().slice(0, 10),
+    forma_pagamento: "pix" as "pix" | "boleto" | "cartao" | "dinheiro" | "transferencia" | "outro",
+    observacao: "",
+  });
+  const [salvandoPagamento, setSalvandoPagamento] = useState(false);
+
   const [formCadastro, setFormCadastro] = useState<Partial<Cadastro>>({
     nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
     username: "",
@@ -105,33 +202,31 @@ export default function Clientes() {
     permite_webjs: true, permite_waba: false, permite_instagram: false,
     modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
-    // 🆕 novos módulos: começam desligados, presets/escolha manual ligam
     modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
     ia: "gpt", autorizado: false, senha: "",
+    // 🆕 cobrança
+    dia_vencimento: null, valor_mensalidade: null, proximo_vencimento: null,
+    status_pagamento: "ativo",
   });
 
-  // 🎨 ESTILOS LIGHT TECH
+  // 🎨 ESTILOS
   const inputStyle = {
-    width: "100%",
-    background: "#ffffff",
-    border: "1px solid #e5e7eb",
-    borderRadius: 10,
-    padding: "10px 14px",
-    color: "#1f2937",
-    fontSize: 14,
-    boxSizing: "border-box" as const,
-    outline: "none",
+    width: "100%", background: "#ffffff", border: "1px solid #e5e7eb",
+    borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 14,
+    boxSizing: "border-box" as const, outline: "none",
     transition: "border-color 0.15s, box-shadow 0.15s",
   };
   const inputSm = { ...inputStyle, padding: "9px 12px", fontSize: 13 };
   const cardStyle = {
-    background: "#ffffff",
-    borderRadius: 14,
-    border: "1px solid #e5e7eb",
+    background: "#ffffff", borderRadius: 14, border: "1px solid #e5e7eb",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
+  const labelStyle = {
+    color: "#6b7280", fontSize: 11, fontWeight: 700,
+    textTransform: "uppercase" as const, letterSpacing: 0.5,
+    display: "block" as const, marginBottom: 6,
+  };
 
-  // ═══ Controle de acesso ═══
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -161,12 +256,15 @@ export default function Clientes() {
     const ch = supabase.channel("cadastros_rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "cadastros" }, () => fetchCadastros())
       .on("postgres_changes", { event: "*", schema: "public", table: "workspaces" }, () => fetchCadastros())
+      .on("postgres_changes", { event: "*", schema: "public", table: "pagamentos" }, () => {
+        if (cadastroSelecionado) carregarPagamentos(cadastroSelecionado.id);
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace" }, () => {
         expandidas.forEach(username => carregarSubUsuarios(username));
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [temAcesso, expandidas]);
+  }, [temAcesso, expandidas, cadastroSelecionado]);
 
   const carregarSubUsuarios = async (username: string) => {
     if (!username) return;
@@ -180,6 +278,21 @@ export default function Clientes() {
       setGruposMap(prev => ({ ...prev, [username]: resGrupos.data || [] }));
     } catch (e) { console.error(e); }
     setCarregandoSubs(prev => { const n = new Set(prev); n.delete(username); return n; });
+  };
+
+  // 🆕 Carrega histórico de pagamentos do cliente
+  const carregarPagamentos = async (cadastroId: number) => {
+    setCarregandoPagamentos(true);
+    try {
+      const { data } = await supabase
+        .from("pagamentos")
+        .select("*")
+        .eq("cadastro_id", cadastroId)
+        .order("data_pagamento", { ascending: false })
+        .limit(24);
+      setPagamentosHist(data || []);
+    } catch (e) { console.error(e); }
+    setCarregandoPagamentos(false);
   };
 
   const toggleExpandir = (username: string) => {
@@ -205,6 +318,24 @@ export default function Clientes() {
     await fetchCadastros();
   };
 
+  // 🆕 Suspender manualmente
+  const suspenderCliente = async (c: Cadastro) => {
+    if (!confirm(`⏸️ Suspender ${c.nome}?\n\nEle e todos sub-usuários vão ver tela de bloqueio imediatamente. Você pode liberar a qualquer momento.`)) return;
+    await supabase.from("cadastros").update({ status_pagamento: "suspenso" }).eq("id", c.id);
+    await fetchCadastros();
+    setCadastroSelecionado(prev => prev ? { ...prev, status_pagamento: "suspenso" } : prev);
+    alert("✅ Cliente suspenso!");
+  };
+
+  // 🆕 Liberar (volta pra ativo SEM marcar pagamento)
+  const liberarCliente = async (c: Cadastro) => {
+    if (!confirm(`▶️ Liberar ${c.nome}?\n\nEle volta a ter acesso normal. ATENÇÃO: isso NÃO registra pagamento — só libera. Se quer registrar o pagamento, use "Marcar como Pago".`)) return;
+    await supabase.from("cadastros").update({ status_pagamento: "ativo" }).eq("id", c.id);
+    await fetchCadastros();
+    setCadastroSelecionado(prev => prev ? { ...prev, status_pagamento: "ativo" } : prev);
+    alert("✅ Cliente liberado!");
+  };
+
   const excluirCadastro = async (c: Cadastro) => {
     if (!confirm(`⚠️ ATENÇÃO: Isso vai apagar PERMANENTEMENTE:\n\n• A conta de login de ${c.email}\n• O workspace "${c.empresa || c.nome}"\n• Todas as conexões, fluxos, atendimentos e mensagens\n\nEsta ação NÃO pode ser desfeita.\n\nTem certeza?`)) return;
     const token = await getToken();
@@ -223,6 +354,74 @@ export default function Clientes() {
     } catch (e: any) { alert("Erro ao excluir: " + e.message); }
   };
 
+  // 🆕 Abre modal "Marcar como pago" pré-preenchido
+  const abrirMarcarPago = (c: Cadastro) => {
+    setCadastroSelecionado(c);
+    setFormPagamento({
+      valor: c.valor_mensalidade != null ? String(c.valor_mensalidade).replace(".", ",") : "",
+      data_pagamento: new Date().toISOString().slice(0, 10),
+      forma_pagamento: "pix",
+      observacao: "",
+    });
+    setShowModalPagamento(true);
+  };
+
+  // 🆕 Salva pagamento + avança próximo vencimento
+  const salvarPagamento = async () => {
+    if (!cadastroSelecionado) return;
+    const valorNum = parseFloat(formPagamento.valor.replace(",", "."));
+    if (!valorNum || valorNum <= 0) { alert("Valor inválido."); return; }
+    if (!formPagamento.data_pagamento) { alert("Data do pagamento obrigatória."); return; }
+
+    setSalvandoPagamento(true);
+    try {
+      // 1) Insere no histórico
+      const mesRef = formPagamento.data_pagamento.slice(0, 7) + "-01"; // mês referência = mês do pagamento
+      const { error: errIns } = await supabase.from("pagamentos").insert([{
+        cadastro_id: cadastroSelecionado.id,
+        mes_referencia: mesRef,
+        valor: valorNum,
+        data_pagamento: formPagamento.data_pagamento,
+        forma_pagamento: formPagamento.forma_pagamento,
+        observacao: formPagamento.observacao || null,
+        marcado_por: emailUsuario,
+      }]);
+      if (errIns) { alert("Erro ao registrar pagamento: " + errIns.message); setSalvandoPagamento(false); return; }
+
+      // 2) Calcula próximo vencimento
+      let novoVencimento: string;
+      if (cadastroSelecionado.proximo_vencimento) {
+        // Já tinha → avança 1 mês a partir do venc atual
+        novoVencimento = avancarUmMes(cadastroSelecionado.proximo_vencimento);
+      } else if (cadastroSelecionado.dia_vencimento) {
+        // Não tinha venc mas tem dia → calcula próximo
+        novoVencimento = proximaDataVencimentoSugerida(cadastroSelecionado.dia_vencimento);
+      } else {
+        // Sem dia configurado → não atualiza vencimento, só registra pagamento
+        novoVencimento = "";
+      }
+
+      // 3) Atualiza cadastro
+      const updates: any = {
+        status_pagamento: "ativo",
+        ultimo_pagamento_em: new Date().toISOString(),
+      };
+      if (novoVencimento) updates.proximo_vencimento = novoVencimento;
+
+      const { error: errUpd } = await supabase.from("cadastros").update(updates).eq("id", cadastroSelecionado.id);
+      if (errUpd) { alert("Erro ao atualizar cliente: " + errUpd.message); setSalvandoPagamento(false); return; }
+
+      await fetchCadastros();
+      await carregarPagamentos(cadastroSelecionado.id);
+      setCadastroSelecionado(prev => prev ? { ...prev, ...updates } : prev);
+      setShowModalPagamento(false);
+      alert(`✅ Pagamento registrado!${novoVencimento ? `\n\nPróximo vencimento: ${formatarData(novoVencimento)}` : ""}`);
+    } catch (e: any) {
+      alert("Erro: " + e.message);
+    }
+    setSalvandoPagamento(false);
+  };
+
   const abrirNovo = () => {
     setFormCadastro({
       nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
@@ -231,9 +430,10 @@ export default function Clientes() {
       permite_webjs: true, permite_waba: false, permite_instagram: false,
       modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
       modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
-      // 🆕 novos
       modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
       ia: "gpt", autorizado: false, senha: "",
+      dia_vencimento: null, valor_mensalidade: null, proximo_vencimento: null,
+      status_pagamento: "ativo",
     });
     setCadastroSelecionado(null);
     setShowModalCliente(true);
@@ -244,6 +444,13 @@ export default function Clientes() {
     setCadastroSelecionado(c);
     setShowModalCliente(true);
     setShowModalDetalhe(false);
+  };
+
+  // 🆕 Abre modal de detalhe E carrega histórico
+  const abrirDetalhe = (c: Cadastro) => {
+    setCadastroSelecionado(c);
+    setShowModalDetalhe(true);
+    carregarPagamentos(c.id);
   };
 
   const aplicarPresetPlano = (plano: string) => {
@@ -263,7 +470,6 @@ export default function Clientes() {
         modulo_voip: preset.modulo_voip,
         modulo_api_integracao: preset.modulo_api_integracao,
         modulo_instagram: preset.modulo_instagram,
-        // 🆕 novos
         modulo_cobranca: preset.modulo_cobranca,
         modulo_equipes: preset.modulo_equipes,
         modulo_funil_avancado: preset.modulo_funil_avancado,
@@ -277,6 +483,12 @@ export default function Clientes() {
     if (!formCadastro.nome || !formCadastro.email) { alert("Nome e email são obrigatórios!"); return; }
     setSalvandoCliente(true);
     try {
+      // 🆕 Auto-calcula proximo_vencimento se tem dia mas não tem data
+      let proximoVenc = formCadastro.proximo_vencimento;
+      if (formCadastro.dia_vencimento && !proximoVenc) {
+        proximoVenc = proximaDataVencimentoSugerida(formCadastro.dia_vencimento);
+      }
+
       if (cadastroSelecionado) {
         const { error } = await supabase.from("cadastros").update({
           nome: formCadastro.nome, empresa: formCadastro.empresa,
@@ -292,11 +504,15 @@ export default function Clientes() {
           modulo_voip: !!formCadastro.modulo_voip,
           modulo_api_integracao: !!formCadastro.modulo_api_integracao,
           modulo_instagram: !!formCadastro.modulo_instagram,
-          // 🆕 novos
           modulo_cobranca: !!formCadastro.modulo_cobranca,
           modulo_equipes: !!formCadastro.modulo_equipes,
           modulo_funil_avancado: !!formCadastro.modulo_funil_avancado,
           ia: formCadastro.ia, autorizado: formCadastro.autorizado,
+          // 🆕 cobrança
+          dia_vencimento: formCadastro.dia_vencimento || null,
+          valor_mensalidade: formCadastro.valor_mensalidade || null,
+          proximo_vencimento: proximoVenc || null,
+          status_pagamento: formCadastro.status_pagamento || "ativo",
         }).eq("id", cadastroSelecionado.id);
         if (error) { alert("Erro ao salvar: " + error.message); setSalvandoCliente(false); return; }
         alert("✅ Cliente atualizado!");
@@ -311,7 +527,7 @@ export default function Clientes() {
         const resp = await fetch("/api/admin/cliente", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify(formCadastro),
+          body: JSON.stringify({ ...formCadastro, proximo_vencimento: proximoVenc || null }),
         });
         const result = await resp.json();
         if (!result.success) {
@@ -329,7 +545,6 @@ export default function Clientes() {
     setSalvandoCliente(false);
   };
 
-  // 🎨 TOGGLE LIGHT TECH
   const Toggle = ({ value, onChange, label, desc, color = "#16a34a" }: { value: boolean; onChange: () => void; label: string; desc?: string; color?: string }) => (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -372,9 +587,33 @@ export default function Clientes() {
     </span>
   );
 
+  // 🆕 Stats com novos filtros
   const cadastrosFiltrados = cadastros
-    .filter(c => filtroStatus === "todos" || (filtroStatus === "ativos" ? c.autorizado : !c.autorizado))
+    .filter(c => {
+      if (filtroStatus === "todos") return true;
+      if (filtroStatus === "ativos") return c.autorizado && c.status_pagamento !== "suspenso";
+      if (filtroStatus === "pendentes") return !c.autorizado;
+      if (filtroStatus === "atrasados") {
+        const st = getStatusCobranca(c);
+        return st.fase === "atrasado" || st.fase === "vence_hoje";
+      }
+      if (filtroStatus === "bloqueados") {
+        const st = getStatusCobranca(c);
+        return st.fase === "bloqueado" || st.fase === "suspenso";
+      }
+      return true;
+    })
     .filter(c => !buscaCliente || c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.email?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.empresa?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.whatsapp?.includes(buscaCliente));
+
+  // 🆕 Contadores pra os stats novos
+  const qtdAtrasados = cadastros.filter(c => {
+    const st = getStatusCobranca(c);
+    return st.fase === "atrasado" || st.fase === "vence_hoje";
+  }).length;
+  const qtdBloqueados = cadastros.filter(c => {
+    const st = getStatusCobranca(c);
+    return st.fase === "bloqueado" || st.fase === "suspenso";
+  }).length;
 
   if (permissaoLoading) {
     return <div style={{ padding: 48, textAlign: "center", color: "#6b7280" }}>Carregando...</div>;
@@ -426,26 +665,26 @@ export default function Clientes() {
             <div>
               <p style={{ color: "#16a34a", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>👤 Dados Pessoais</p>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-                <div><label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome *</label><input placeholder="Nome completo" value={formCadastro.nome || ""} onChange={e => setFormCadastro({ ...formCadastro, nome: e.target.value })} style={inputSm} /></div>
-                <div><label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Empresa</label><input placeholder="Nome da empresa" value={formCadastro.empresa || ""} onChange={e => setFormCadastro({ ...formCadastro, empresa: e.target.value })} style={inputSm} /></div>
+                <div><label style={labelStyle}>Nome *</label><input placeholder="Nome completo" value={formCadastro.nome || ""} onChange={e => setFormCadastro({ ...formCadastro, nome: e.target.value })} style={inputSm} /></div>
+                <div><label style={labelStyle}>Empresa</label><input placeholder="Nome da empresa" value={formCadastro.empresa || ""} onChange={e => setFormCadastro({ ...formCadastro, empresa: e.target.value })} style={inputSm} /></div>
                 <div>
-                  <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>
+                  <label style={labelStyle}>
                     Email * {cadastroSelecionado && <span style={{ color: "#9ca3af", textTransform: "none", fontWeight: 500 }}>(não pode mudar)</span>}
                   </label>
                   <input placeholder="email@empresa.com" value={formCadastro.email || ""} onChange={e => setFormCadastro({ ...formCadastro, email: e.target.value })} style={{ ...inputSm, background: cadastroSelecionado ? "#f3f4f6" : "#ffffff", color: cadastroSelecionado ? "#6b7280" : "#1f2937" }} disabled={!!cadastroSelecionado} />
                 </div>
-                <div><label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>WhatsApp</label><input placeholder="(62) 99999-9999" value={formCadastro.whatsapp || ""} onChange={e => setFormCadastro({ ...formCadastro, whatsapp: e.target.value })} style={inputSm} /></div>
+                <div><label style={labelStyle}>WhatsApp</label><input placeholder="(62) 99999-9999" value={formCadastro.whatsapp || ""} onChange={e => setFormCadastro({ ...formCadastro, whatsapp: e.target.value })} style={inputSm} /></div>
                 {!cadastroSelecionado && (
                   <>
                     <div>
-                      <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Username *</label>
+                      <label style={labelStyle}>Username *</label>
                       <input placeholder="ex: abc_company" value={formCadastro.username || ""}
                         onChange={e => setFormCadastro({ ...formCadastro, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
                         style={{ ...inputSm, fontFamily: "monospace" }} maxLength={30} />
                       <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>a-z, 0-9, _ — 3 a 30 chars</p>
                     </div>
                     <div>
-                      <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Senha *</label>
+                      <label style={labelStyle}>Senha *</label>
                       <input type="password" placeholder="Senha de acesso (mín 6)" value={formCadastro.senha || ""} onChange={e => setFormCadastro({ ...formCadastro, senha: e.target.value })} style={inputSm} />
                     </div>
                   </>
@@ -486,12 +725,56 @@ export default function Clientes() {
               </p>
             </div>
 
+            {/* 🆕 SEÇÃO COBRANÇA */}
+            <div style={{ background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)", border: "1px solid #fcd34d", borderRadius: 12, padding: 18 }}>
+              <p style={{ color: "#92400e", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 4px" }}>💰 Cobrança Automática</p>
+              <p style={{ color: "#78350f", fontSize: 11, margin: "0 0 14px", lineHeight: 1.4 }}>
+                Pré-pago. Cliente paga antes de usar. 2 dias antes do venc o sistema começa a mostrar popup; 2 dias após vence, bloqueia.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>📅 Dia do vencimento</label>
+                  <select value={formCadastro.dia_vencimento || ""} onChange={e => {
+                    const dia = e.target.value ? parseInt(e.target.value) : null;
+                    setFormCadastro(prev => ({
+                      ...prev,
+                      dia_vencimento: dia,
+                      // Auto-recalcula próximo venc se ainda não tem
+                      proximo_vencimento: dia && !prev.proximo_vencimento ? proximaDataVencimentoSugerida(dia) : prev.proximo_vencimento,
+                    }));
+                  }} style={inputSm}>
+                    <option value="">— Sem cobrança automática —</option>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                      <option key={d} value={d}>Dia {d} de cada mês</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>💵 Valor mensal (R$)</label>
+                  <input type="text" placeholder="999,90" value={formCadastro.valor_mensalidade != null ? String(formCadastro.valor_mensalidade).replace(".", ",") : ""}
+                    onChange={e => {
+                      const v = e.target.value.replace(/[^0-9,.]/g, "").replace(",", ".");
+                      const num = v ? parseFloat(v) : null;
+                      setFormCadastro({ ...formCadastro, valor_mensalidade: (num && !isNaN(num)) ? num : null });
+                    }} style={inputSm} />
+                  <p style={{ color: "#78350f", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>Permite valor diferente por cliente (pra descontos)</p>
+                </div>
+                <div>
+                  <label style={labelStyle}>📆 Próximo vencimento</label>
+                  <input type="date" value={formCadastro.proximo_vencimento || ""}
+                    onChange={e => setFormCadastro({ ...formCadastro, proximo_vencimento: e.target.value || null })}
+                    style={inputSm} />
+                  <p style={{ color: "#78350f", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>Auto-preenche ao escolher o dia</p>
+                </div>
+              </div>
+            </div>
+
             {/* Limites Personalizados */}
             <div>
               <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>⚙️ Limites Personalizados</p>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
                 <div>
-                  <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 8 }}>👥 Usuários Liberados</label>
+                  <label style={labelStyle}>👥 Usuários Liberados</label>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {[1, 3, 5, 7, 10, 15, 20, 50].map(n => {
                       const ativo = formCadastro.usuarios_liberados === n;
@@ -509,7 +792,7 @@ export default function Clientes() {
                   </div>
                 </div>
                 <div>
-                  <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 8 }}>📱 Conexões Liberadas</label>
+                  <label style={labelStyle}>📱 Conexões Liberadas</label>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {[1, 2, 3, 5, 10, 15, 20].map(n => {
                       const ativo = formCadastro.conexoes_liberadas === n;
@@ -539,7 +822,7 @@ export default function Clientes() {
               </div>
             </div>
 
-            {/* 🆕 MÓDULOS LIBERADOS */}
+            {/* MÓDULOS LIBERADOS */}
             <div>
               <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 6px" }}>🎁 Módulos Liberados</p>
               <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 12px", fontStyle: "italic" }}>
@@ -552,14 +835,12 @@ export default function Clientes() {
                 <Toggle value={!!formCadastro.modulo_voip} onChange={() => setFormCadastro({ ...formCadastro, modulo_voip: !formCadastro.modulo_voip })} label="📞 Ligações VOIP" desc="Apenas Ultra" color="#8b5cf6" />
                 <Toggle value={!!formCadastro.modulo_api_integracao} onChange={() => setFormCadastro({ ...formCadastro, modulo_api_integracao: !formCadastro.modulo_api_integracao })} label="🔌 API de Integração" desc="Intermediário, Ultra" color="#3b82f6" />
                 <Toggle value={!!formCadastro.modulo_instagram} onChange={() => setFormCadastro({ ...formCadastro, modulo_instagram: !formCadastro.modulo_instagram })} label="📸 Instagram Direct (Módulo)" desc="Apenas Ultra" color="#ec4899" />
-                {/* 🆕 3 módulos novos */}
                 <Toggle value={!!formCadastro.modulo_equipes} onChange={() => setFormCadastro({ ...formCadastro, modulo_equipes: !formCadastro.modulo_equipes })} label="👥 Equipes Multi-time" desc="Intermediário, Ultra" color="#a855f7" />
                 <Toggle value={!!formCadastro.modulo_funil_avancado} onChange={() => setFormCadastro({ ...formCadastro, modulo_funil_avancado: !formCadastro.modulo_funil_avancado })} label="📊 Funil Avançado" desc="Intermediário, Ultra" color="#3b82f6" />
                 <Toggle value={!!formCadastro.modulo_cobranca} onChange={() => setFormCadastro({ ...formCadastro, modulo_cobranca: !formCadastro.modulo_cobranca })} label="💰 Cobrança Automatizada" desc="Apenas Ultra" color="#dc2626" />
               </div>
             </div>
 
-            {/* Autorização final */}
             <Toggle value={!!formCadastro.autorizado} onChange={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} label="✅ Autorizado — Permitir acesso ao sistema" color="#16a34a" />
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
@@ -582,11 +863,84 @@ export default function Clientes() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
+          🆕 MODAL "MARCAR COMO PAGO"
+      ═══════════════════════════════════════════════════════════════ */}
+      {showModalPagamento && cadastroSelecionado && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 500, display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ color: "#16a34a", fontSize: 18, fontWeight: 700, margin: 0 }}>💰 Marcar como Pago</h2>
+              <button onClick={() => setShowModalPagamento(false)}
+                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+            </div>
+            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "#15803d", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
+              <p style={{ color: "#16a34a", fontSize: 11, margin: "2px 0 0" }}>{cadastroSelecionado.email}</p>
+              {cadastroSelecionado.proximo_vencimento && (
+                <p style={{ color: "#15803d", fontSize: 11, margin: "6px 0 0" }}>
+                  Vencimento atual: <b>{formatarData(cadastroSelecionado.proximo_vencimento)}</b>
+                  {" → "}próximo: <b>{formatarData(avancarUmMes(cadastroSelecionado.proximo_vencimento))}</b>
+                </p>
+              )}
+            </div>
+            <div>
+              <label style={labelStyle}>💵 Valor pago *</label>
+              <input type="text" placeholder="999,90" value={formPagamento.valor}
+                onChange={e => setFormPagamento({ ...formPagamento, valor: e.target.value.replace(/[^0-9,.]/g, "") })}
+                style={inputStyle} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>📅 Data pagamento *</label>
+                <input type="date" value={formPagamento.data_pagamento}
+                  onChange={e => setFormPagamento({ ...formPagamento, data_pagamento: e.target.value })}
+                  style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>💳 Forma</label>
+                <select value={formPagamento.forma_pagamento}
+                  onChange={e => setFormPagamento({ ...formPagamento, forma_pagamento: e.target.value as any })}
+                  style={inputStyle}>
+                  <option value="pix">💸 PIX</option>
+                  <option value="boleto">🧾 Boleto</option>
+                  <option value="cartao">💳 Cartão</option>
+                  <option value="dinheiro">💵 Dinheiro</option>
+                  <option value="transferencia">🏦 Transferência</option>
+                  <option value="outro">📋 Outro</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>📝 Observação (opcional)</label>
+              <input placeholder="Ex: Desconto promocional, pago via terceiro, etc" value={formPagamento.observacao}
+                onChange={e => setFormPagamento({ ...formPagamento, observacao: e.target.value })}
+                style={inputStyle} />
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
+              <button onClick={() => setShowModalPagamento(false)}
+                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                Cancelar
+              </button>
+              <button onClick={salvarPagamento} disabled={salvandoPagamento}
+                style={{
+                  background: salvandoPagamento ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                  color: "white", border: "none", borderRadius: 10,
+                  padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
+                  boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                }}>{salvandoPagamento ? "Registrando..." : "✅ Registrar Pagamento"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
           MODAL DETALHE
       ═══════════════════════════════════════════════════════════════ */}
-      {showModalDetalhe && cadastroSelecionado && (
+      {showModalDetalhe && cadastroSelecionado && (() => {
+        const stCobranca = getStatusCobranca(cadastroSelecionado);
+        return (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 660, display: "flex", flexDirection: "column", gap: 18, maxHeight: "92vh", overflowY: "auto" }}>
+          <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 720, display: "flex", flexDirection: "column", gap: 18, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <div style={{
@@ -623,6 +977,94 @@ export default function Clientes() {
               ))}
             </div>
 
+            {/* 🆕 CARD DE COBRANÇA */}
+            <div style={{ background: stCobranca.bg, border: `1px solid ${stCobranca.borda}`, borderLeft: `4px solid ${stCobranca.cor}`, borderRadius: 12, padding: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 10, flexWrap: "wrap" }}>
+                <p style={{ color: stCobranca.cor, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>💰 Cobrança</p>
+                <span style={{ background: "white", color: stCobranca.cor, border: `1px solid ${stCobranca.borda}`, fontSize: 12, padding: "4px 12px", borderRadius: 10, fontWeight: 700 }}>
+                  {stCobranca.icone} {stCobranca.label}
+                </span>
+              </div>
+
+              {cadastroSelecionado.dia_vencimento ? (
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+                  <div style={{ background: "white", border: `1px solid ${stCobranca.borda}`, borderRadius: 10, padding: 10, textAlign: "center" }}>
+                    <p style={{ color: "#6b7280", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>📅 Dia venc</p>
+                    <p style={{ color: stCobranca.cor, fontSize: 18, fontWeight: 800, margin: "2px 0 0" }}>{cadastroSelecionado.dia_vencimento}</p>
+                  </div>
+                  <div style={{ background: "white", border: `1px solid ${stCobranca.borda}`, borderRadius: 10, padding: 10, textAlign: "center" }}>
+                    <p style={{ color: "#6b7280", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>💵 Mensal</p>
+                    <p style={{ color: stCobranca.cor, fontSize: 14, fontWeight: 800, margin: "2px 0 0" }}>{formatarReais(cadastroSelecionado.valor_mensalidade)}</p>
+                  </div>
+                  <div style={{ background: "white", border: `1px solid ${stCobranca.borda}`, borderRadius: 10, padding: 10, textAlign: "center", gridColumn: isMobile ? "span 2" : "auto" }}>
+                    <p style={{ color: "#6b7280", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>📆 Próximo</p>
+                    <p style={{ color: stCobranca.cor, fontSize: 13, fontWeight: 800, margin: "2px 0 0" }}>{formatarData(cadastroSelecionado.proximo_vencimento)}</p>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 14px", fontStyle: "italic" }}>
+                  Cliente sem cobrança automática configurada. Edite pra definir dia e valor.
+                </p>
+              )}
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => { abrirMarcarPago(cadastroSelecionado); setShowModalDetalhe(false); }}
+                  style={{ flex: 1, background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)", whiteSpace: "nowrap" }}>
+                  💰 Marcar como Pago
+                </button>
+                {cadastroSelecionado.status_pagamento === "suspenso" ? (
+                  <button onClick={() => liberarCliente(cadastroSelecionado)}
+                    style={{ flex: 1, background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                    ▶️ Liberar
+                  </button>
+                ) : (
+                  <button onClick={() => suspenderCliente(cadastroSelecionado)}
+                    style={{ flex: 1, background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                    ⏸️ Suspender
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 🆕 HISTÓRICO DE PAGAMENTOS */}
+            <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
+              <p style={{ color: "#1f2937", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>📜 Histórico de Pagamentos</p>
+              {carregandoPagamentos ? (
+                <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, fontStyle: "italic" }}>Carregando...</p>
+              ) : pagamentosHist.length === 0 ? (
+                <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, fontStyle: "italic" }}>
+                  Nenhum pagamento registrado ainda. Use o botão "Marcar como Pago" acima.
+                </p>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: "#ffffff" }}>
+                        {["Data", "Mês ref", "Valor", "Forma", "Obs"].map(h => (
+                          <th key={h} style={{ padding: "8px 10px", color: "#6b7280", fontSize: 10, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagamentosHist.map(p => (
+                        <tr key={p.id} style={{ borderTop: "1px solid #f3f4f6", background: "#ffffff" }}>
+                          <td style={{ padding: "8px 10px", color: "#1f2937", fontWeight: 600 }}>{formatarData(p.data_pagamento)}</td>
+                          <td style={{ padding: "8px 10px", color: "#6b7280" }}>
+                            {new Date(p.mes_referencia + "T00:00:00").toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
+                          </td>
+                          <td style={{ padding: "8px 10px", color: "#16a34a", fontWeight: 700 }}>{formatarReais(Number(p.valor))}</td>
+                          <td style={{ padding: "8px 10px" }}>
+                            <span style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", padding: "2px 8px", borderRadius: 8, fontSize: 10, fontWeight: 700 }}>{p.forma_pagamento}</span>
+                          </td>
+                          <td style={{ padding: "8px 10px", color: "#6b7280", fontSize: 11 }}>{p.observacao || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
             <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>
               <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>⚙️ Limites do Plano</p>
               <div style={{ display: "flex", gap: 14 }}>
@@ -637,7 +1079,6 @@ export default function Clientes() {
               </div>
             </div>
 
-            {/* 🆕 Módulos no detalhe */}
             <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>
               <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>🎁 Módulos Liberados</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -647,7 +1088,6 @@ export default function Clientes() {
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_voip} icone="📞" label="VOIP" cor="#8b5cf6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_api_integracao} icone="🔌" label="API Integração" cor="#3b82f6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_instagram} icone="📸" label="Instagram" cor="#ec4899" />
-                {/* 🆕 novos */}
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_equipes} icone="👥" label="Equipes" cor="#a855f7" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_funil_avancado} icone="📊" label="Funil Avançado" cor="#3b82f6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_cobranca} icone="💰" label="Cobrança" cor="#dc2626" />
@@ -676,7 +1116,7 @@ export default function Clientes() {
             </div>
           </div>
         </div>
-      )}
+      )})()}
 
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 14 }}>
@@ -709,16 +1149,18 @@ export default function Clientes() {
         </button>
       </div>
 
-      {/* ═══ STATS ═══ */}
+      {/* ═══ STATS (com 2 cards novos de cobrança) ═══ */}
       <div style={{ display: "flex", gap: isMobile ? 10 : 16, flexWrap: "wrap" }}>
         {[
           { label: "Total", value: cadastros.length, color: "#8b5cf6", icon: "📊" },
           { label: "Ativos", value: cadastros.filter(c => c.autorizado).length, color: "#16a34a", icon: "✅" },
           { label: "Pendentes", value: cadastros.filter(c => !c.autorizado).length, color: "#f59e0b", icon: "⏳" },
+          { label: "Em Atraso", value: qtdAtrasados, color: "#dc2626", icon: "🔴" },
+          { label: "Bloqueados", value: qtdBloqueados, color: "#7f1d1d", icon: "🔒" },
         ].map(card => (
           <div key={card.label}
             style={{
-              flex: isMobile ? "1 1 calc(33% - 7px)" : 1, minWidth: isMobile ? 0 : 120,
+              flex: isMobile ? "1 1 calc(50% - 5px)" : 1, minWidth: isMobile ? 0 : 120,
               ...cardStyle,
               padding: isMobile ? 14 : 20,
               borderTop: `3px solid ${card.color}`,
@@ -737,12 +1179,18 @@ export default function Clientes() {
         ))}
       </div>
 
-      {/* ═══ BUSCA E FILTROS ═══ */}
+      {/* ═══ BUSCA E FILTROS (com 2 filtros novos) ═══ */}
       <div style={{ display: "flex", gap: 12, alignItems: isMobile ? "stretch" : "center", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
         <input placeholder="🔍 Buscar por nome, email, empresa, WhatsApp..." value={buscaCliente} onChange={e => setBuscaCliente(e.target.value)}
           style={{ ...inputStyle, maxWidth: isMobile ? "100%" : 400, padding: "9px 14px", fontSize: 13, borderRadius: 20 }} />
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {[{ key: "todos", label: "Todos", color: "#8b5cf6" }, { key: "ativos", label: "✅ Ativos", color: "#16a34a" }, { key: "pendentes", label: "⏳ Pendentes", color: "#f59e0b" }].map(f => {
+          {[
+            { key: "todos", label: "Todos", color: "#8b5cf6" },
+            { key: "ativos", label: "✅ Ativos", color: "#16a34a" },
+            { key: "pendentes", label: "⏳ Pendentes", color: "#f59e0b" },
+            { key: "atrasados", label: "🔴 Em Atraso", color: "#dc2626" },
+            { key: "bloqueados", label: "🔒 Bloqueados", color: "#7f1d1d" },
+          ].map(f => {
             const ativo = filtroStatus === f.key;
             return (
               <button key={f.key} onClick={() => setFiltroStatus(f.key)}
@@ -760,7 +1208,7 @@ export default function Clientes() {
         </div>
       </div>
 
-      {/* ═══ LISTA / TABELA ═══ */}
+      {/* ═══ LISTA / TABELA (com coluna 💰 Cobrança) ═══ */}
       {loadingCadastros ? <p style={{ color: "#6b7280" }}>Carregando...</p> : cadastrosFiltrados.length === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
           <div style={{
@@ -785,10 +1233,10 @@ export default function Clientes() {
         </div>
       ) : (
         <div style={{ ...cardStyle, overflow: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1200 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1300 }}>
             <thead>
               <tr style={{ background: "#f9fafb" }}>
-                {["", "Cliente", "Plano", "👥", "📱", "Conexões", "🎁 Módulos", "Status", "Ações"].map((h, i) => (
+                {["", "Cliente", "Plano", "👥", "📱", "Conexões", "🎁 Módulos", "💰 Cobrança", "Status", "Ações"].map((h, i) => (
                   <th key={i} style={{ padding: "13px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
                 ))}
               </tr>
@@ -800,6 +1248,7 @@ export default function Clientes() {
                 const subs = subUsuariosMap[username] || [];
                 const grupos = gruposMap[username] || [];
                 const carregando = carregandoSubs.has(username);
+                const stCobranca = getStatusCobranca(c);
 
                 return (
                   <>
@@ -846,8 +1295,6 @@ export default function Clientes() {
                           {c.permite_instagram && <span style={{ fontSize: 14 }} title="Instagram">📸</span>}
                         </div>
                       </td>
-
-                      {/* 🆕 Coluna de módulos */}
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                           {c.modulo_roleta && <span style={{ fontSize: 14 }} title="Roleta">🎯</span>}
@@ -856,12 +1303,21 @@ export default function Clientes() {
                           {c.modulo_voip && <span style={{ fontSize: 14 }} title="Ligações VOIP">📞</span>}
                           {c.modulo_api_integracao && <span style={{ fontSize: 14 }} title="API Integração">🔌</span>}
                           {c.modulo_instagram && <span style={{ fontSize: 14 }} title="Instagram">📸</span>}
-                          {/* 🆕 novos */}
                           {c.modulo_equipes && <span style={{ fontSize: 14 }} title="Equipes Multi-time">👥</span>}
                           {c.modulo_funil_avancado && <span style={{ fontSize: 14 }} title="Funil Avançado">📊</span>}
                           {c.modulo_cobranca && <span style={{ fontSize: 14 }} title="Cobrança">💰</span>}
                           {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
                         </div>
+                      </td>
+
+                      {/* 🆕 COLUNA DE COBRANÇA */}
+                      <td style={{ padding: "14px 16px" }}>
+                        <span style={{
+                          background: stCobranca.bg, color: stCobranca.cor, border: `1px solid ${stCobranca.borda}`,
+                          fontSize: 10, padding: "3px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap",
+                        }} title={c.proximo_vencimento ? `Próx. venc: ${formatarData(c.proximo_vencimento)}` : "Sem cobrança configurada"}>
+                          {stCobranca.icone} {stCobranca.label}
+                        </span>
                       </td>
 
                       <td style={{ padding: "14px 16px" }}>
@@ -876,8 +1332,10 @@ export default function Clientes() {
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => { setCadastroSelecionado(c); setShowModalDetalhe(true); }}
+                          <button onClick={() => abrirDetalhe(c)}
                             style={{ background: "#f3f4f6", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>👁️</button>
+                          <button onClick={() => abrirMarcarPago(c)} title="Marcar como pago"
+                            style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>💰</button>
                           {!c.autorizado
                             ? <button onClick={() => autorizarCadastro(c)}
                                 style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>✅</button>
@@ -895,7 +1353,7 @@ export default function Clientes() {
                     {/* LINHA EXPANDIDA — SUB-USUÁRIOS */}
                     {expandida && (
                       <tr key={`${c.id}-expandido`} style={{ background: "#f0fdf4" }}>
-                        <td colSpan={9} style={{ padding: "0 24px 18px 50px" }}>
+                        <td colSpan={10} style={{ padding: "0 24px 18px 50px" }}>
                           <div style={{ borderLeft: "3px solid #16a34a", paddingLeft: 18, paddingTop: 10 }}>
                             <p style={{ color: "#16a34a", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>
                               👥 Sub-usuários do workspace <span style={{ fontFamily: "monospace" }}>@{username}</span>
