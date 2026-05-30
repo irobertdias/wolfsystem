@@ -5,11 +5,15 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { supabase } from "../../lib/supabase";
+import { useWorkspace } from "../../hooks/useWorkspace";
+import { usePermissao } from "../../hooks/usePermissao";
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💰 COBRANÇA — UnitaSystem
+// 💰 COBRANÇA — Wolf CRM (multi-tenant)
 // ───────────────────────────────────────────────────────────────────────────
-// Single-tenant · Cores azul Unita · Mantém 12 status de fatura e disparos
+// Mantém 12 status de fatura e disparos. Tudo filtrado por workspace_id.
+// Permissão: Dono · SuperAdmin · Administrador · Supervisor (perfil Wolf)
+//
 // Duas fontes:
 //   • "Do CRM"     → puxa propostas com status INSTALADA, gera faturas dinâmicas
 //   • "Da planilha" → upload CSV/XLSX
@@ -17,6 +21,7 @@ import { supabase } from "../../lib/supabase";
 
 type Proposta = {
   id: number;
+  workspace_id?: string;
   nome?: string | null;
   telefone1?: string | null;
   telefone2?: string | null;
@@ -48,7 +53,9 @@ type StatusFatura =
   | "protestada" | "atrasada";
 
 type FaturaStatusDB = {
-  proposta_id: number; numero_referencia: string;
+  proposta_id: number;
+  workspace_id?: string;
+  numero_referencia: string;
   status: StatusFatura; data_pagamento?: string | null; forma_pagamento?: string | null;
   valor_pago?: number | null; promessa_data?: string | null; observacoes?: string | null;
   atualizado_por?: string | null; updated_at?: string;
@@ -216,10 +223,10 @@ const labelStyle = {
   letterSpacing: 0.5, display: "block", marginBottom: 6,
 };
 const btnPrimario = {
-  background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+  background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
   color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 18px",
   fontSize: 13, cursor: "pointer", fontWeight: 700,
-  boxShadow: "0 4px 12px rgba(220,38,38,0.3)",
+  boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
 };
 const btnSecundario = {
   background: "#ffffff", color: "#374151", border: "1px solid #e5e7eb",
@@ -237,9 +244,17 @@ const CAMPOS_PLANILHA = [
 
 export default function CobrancaPage() {
   const router = useRouter();
+
+  // 🆕 Wolf: hooks de workspace e permissão
+  const { workspace, wsId } = useWorkspace();
+  const { isDono, isSuperAdmin, perfil } = usePermissao();
+
   const [userEmail, setUserEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
-  const [permitido, setPermitido] = useState<boolean | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  const permitido = isDono || isSuperAdmin || perfil === "Administrador" || perfil === "Supervisor";
+  const nomeWorkspace = workspace?.nome || "sua empresa";
 
   const [aba, setAba] = useState<AbaKey>("do_crm");
   const [loading, setLoading] = useState(true);
@@ -279,7 +294,7 @@ export default function CobrancaPage() {
   const [envioTipo, setEnvioTipo] = useState<"webjs" | "waba">("webjs");
   const [envioTemplateId, setEnvioTemplateId] = useState<number | null>(null);
   const [envioMensagem, setEnvioMensagem] = useState(
-    "Olá {{nome}}! 👋\n\nLembrete: sua fatura referente a {{mes_referencia}} no valor de {{valor}} vence em {{vencimento}}.\n\nPara evitar atrasos, faça o pagamento até o vencimento.\n\nQualquer dúvida, estou à disposição!\n\nGrupo Unita"
+    `Olá {{nome}}! 👋\n\nLembrete: sua fatura referente a {{mes_referencia}} no valor de {{valor}} vence em {{vencimento}}.\n\nPara evitar atrasos, faça o pagamento até o vencimento.\n\nQualquer dúvida, estou à disposição!\n\n{{empresa}}`
   );
   const [envioNomeCampanha, setEnvioNomeCampanha] = useState("");
   const [envioDelayMin, setEnvioDelayMin] = useState(30);
@@ -299,39 +314,31 @@ export default function CobrancaPage() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // 🔐 Verifica permissão (admin/supervisor)
+  // Auth basics
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/"); return; }
       setUserEmail(user.email || "");
       setUserId(user.id);
-      const { data: me, error } = await supabase.from("usuarios").select("role").eq("auth_user_id", user.id).maybeSingle();
-      if (error?.code === "PGRST205") {
-        // Tabela `usuarios` não existe → primeira instalação, libera
-        setPermitido(true);
-        return;
-      }
-      if (!me) {
-        const { count } = await supabase.from("usuarios").select("*", { count: "exact", head: true });
-        setPermitido((count || 0) === 0);
-        return;
-      }
-      setPermitido(me.role === "admin" || me.role === "supervisor");
+      setAuthLoading(false);
     })();
   }, [router]);
 
+  // Carrega dados quando temos workspace + permissão
   useEffect(() => {
-    if (permitido !== true) return;
+    if (authLoading) return;
+    if (!wsId) return;
+    if (!permitido) return;
     fetchTudo();
 
-    const ch = supabase.channel("cobranca_rt_unita")
-      .on("postgres_changes", { event: "*", schema: "public", table: "proposta" }, () => fetchPropostas())
-      .on("postgres_changes", { event: "*", schema: "public", table: "faturas_status" }, () => fetchStatusFaturas())
+    const ch = supabase.channel("cobranca_rt_wolf_" + wsId)
+      .on("postgres_changes", { event: "*", schema: "public", table: "proposta", filter: `workspace_id=eq.${wsId}` }, () => fetchPropostas())
+      .on("postgres_changes", { event: "*", schema: "public", table: "faturas_status", filter: `workspace_id=eq.${wsId}` }, () => fetchStatusFaturas())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permitido]);
+  }, [authLoading, wsId, permitido]);
 
   async function fetchTudo() {
     setLoading(true);
@@ -348,9 +355,17 @@ export default function CobrancaPage() {
   }
 
   async function fetchStatusFaturas(faltando?: string[]) {
-    const { data, error } = await supabase.from("faturas_status").select("*");
+    if (!wsId) return;
+    const { data, error } = await supabase
+      .from("faturas_status")
+      .select("*")
+      .eq("workspace_id", wsId);
     if (error) {
       if (error.code === "PGRST205") faltando?.push("faturas_status");
+      else if (String(error.message || "").toLowerCase().includes("workspace_id")) {
+        // tabela existe mas sem coluna workspace_id ainda
+        faltando?.push("faturas_status (sem workspace_id)");
+      }
       setStatusMap(new Map());
       return;
     }
@@ -360,18 +375,22 @@ export default function CobrancaPage() {
   }
 
   async function fetchPropostas(faltando?: string[]) {
+    if (!wsId) return;
     const { data, error } = await supabase
       .from("proposta")
-      .select("id, nome, telefone1, telefone2, telefone3, plano, valor_plano, vencimento, forma_pagamento, status_venda, data_instalacao, operadora, created_at")
+      .select("id, workspace_id, nome, telefone1, telefone2, telefone3, plano, valor_plano, vencimento, forma_pagamento, status_venda, data_instalacao, operadora, created_at")
+      .eq("workspace_id", wsId)
       .order("created_at", { ascending: false });
     if (error?.code === "PGRST205") faltando?.push("proposta");
     setPropostas(data || []);
   }
 
   async function fetchCanais(faltando?: string[]) {
+    if (!wsId) return;
     const { data, error } = await supabase
       .from("conexoes")
-      .select("id, nome, tipo, status, waba_id");
+      .select("id, nome, tipo, status, waba_id")
+      .eq("workspace_id", wsId);
     if (error?.code === "PGRST205") { faltando?.push("conexoes"); return; }
     setCanais(data || []);
     const primeiro = (data || []).find(c => c.status === "conectado" || c.status === "pronto");
@@ -379,26 +398,30 @@ export default function CobrancaPage() {
   }
 
   async function fetchTemplates(faltando?: string[]) {
+    if (!wsId) return;
     const { data, error } = await supabase
       .from("templates_waba")
       .select("id, canal_id, meta_template_name, nome_amigavel, categoria, idioma, status, componentes")
+      .eq("workspace_id", wsId)
       .eq("status", "aprovado");
     if (error?.code === "PGRST205") { faltando?.push("templates_waba"); return; }
     setTemplates(data || []);
   }
 
   async function fetchCampanhas(faltando?: string[]) {
+    if (!wsId) return;
     try {
       const { data, error } = await supabase
         .from("disparos")
         .select("id, nome, criado_por, status, total_contatos, total_enviados, total_falhas, created_at, finalizado_em, tipo, origem")
+        .eq("workspace_id", wsId)
         .eq("origem", "cobranca")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) {
         if (error.code === "PGRST205") faltando?.push("disparos");
         else if (String(error.message || "").toLowerCase().includes("origem")) {
-          console.warn("[Cobrança Unita] coluna disparos.origem ainda não existe");
+          console.warn("[Cobrança Wolf] coluna disparos.origem ainda não existe");
         }
         return;
       }
@@ -409,7 +432,7 @@ export default function CobrancaPage() {
         total_falhas: d.total_falhas || 0,
         created_at: d.created_at, finalizado_em: d.finalizado_em,
       })));
-    } catch (e) { console.warn("[Cobrança Unita]", e); }
+    } catch (e) { console.warn("[Cobrança Wolf]", e); }
   }
 
   const todasFaturas = useMemo<Fatura[]>(() => {
@@ -498,10 +521,11 @@ export default function CobrancaPage() {
   };
 
   const confirmarStatus = async () => {
-    if (!showStatus) return;
+    if (!showStatus || !wsId) return;
     const f = showStatus;
     const meta = STATUS_META[novoStatus];
     const payload: any = {
+      workspace_id: wsId,
       proposta_id: f.proposta.id,
       numero_referencia: f.numero_referencia,
       status: novoStatus,
@@ -523,7 +547,7 @@ export default function CobrancaPage() {
     }
 
     const { error } = await supabase.from("faturas_status").upsert(payload, {
-      onConflict: "proposta_id,numero_referencia",
+      onConflict: "workspace_id,proposta_id,numero_referencia",
     });
     if (error) {
       setFeedback({ tipo: "erro", titulo: "Não foi possível salvar", mensagem: error.message });
@@ -534,11 +558,13 @@ export default function CobrancaPage() {
   };
 
   const marcarAPagar = async (f: Fatura) => {
+    if (!wsId) return;
     const { error } = await supabase.from("faturas_status").upsert({
+      workspace_id: wsId,
       proposta_id: f.proposta.id, numero_referencia: f.numero_referencia,
       status: "pendente", data_pagamento: null, valor_pago: null, promessa_data: null,
       atualizado_por: userEmail || null,
-    }, { onConflict: "proposta_id,numero_referencia" });
+    }, { onConflict: "workspace_id,proposta_id,numero_referencia" });
     if (error) {
       setFeedback({ tipo: "erro", titulo: "Erro ao atualizar", mensagem: error.message });
       return;
@@ -547,6 +573,7 @@ export default function CobrancaPage() {
   };
 
   const clienteCancelou = (f: Fatura) => {
+    if (!wsId) return;
     setFeedback({
       tipo: "aviso",
       titulo: "Cliente cancelou o serviço?",
@@ -556,7 +583,8 @@ export default function CobrancaPage() {
         const { error } = await supabase
           .from("proposta")
           .update({ status_venda: "CANCELADA", data_cancelamento: new Date().toISOString().slice(0, 10) })
-          .eq("id", f.proposta.id);
+          .eq("id", f.proposta.id)
+          .eq("workspace_id", wsId);
         if (error) {
           setFeedback({ tipo: "erro", titulo: "Erro ao cancelar", mensagem: error.message });
           return;
@@ -587,6 +615,7 @@ export default function CobrancaPage() {
             mes_referencia: formatMesExtenso(f.numero_referencia),
             dias_atraso: f.dias_atraso > 0 ? String(f.dias_atraso) : "0",
             operadora: p.operadora || "",
+            empresa: nomeWorkspace,
           },
         };
       })
@@ -698,6 +727,7 @@ export default function CobrancaPage() {
         telefone: normalizarTelefone(l.telefone),
         plano: l.plano || "", valor: l.valor || "",
         vencimento: l.vencimento || "", codigo: l.codigo || "",
+        empresa: nomeWorkspace,
       },
     }));
     setEnvioFonte("planilha");
@@ -727,6 +757,7 @@ export default function CobrancaPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          workspace_id: wsId,
           canalId: envioCanalId,
           criadoPor: userEmail,
           nome: envioNomeCampanha,
@@ -770,11 +801,20 @@ export default function CobrancaPage() {
     return substituirVars(envioMensagem, envioContatos[0].vars);
   }, [envioMensagem, envioContatos]);
 
-  // Loading permissão
-  if (permitido === null) {
+  // Loading auth
+  if (authLoading) {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ color: "#6b7280", fontSize: 13 }}>⏳ Verificando permissões...</div>
+      </div>
+    );
+  }
+
+  // Sem workspace ainda carregado
+  if (!wsId) {
+    return (
+      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: "#6b7280", fontSize: 13 }}>⏳ Carregando workspace...</div>
       </div>
     );
   }
@@ -785,9 +825,9 @@ export default function CobrancaPage() {
         <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
           <div style={{ width: 80, height: 80, borderRadius: 20, background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, margin: "0 auto 16px", boxShadow: "0 12px 24px rgba(220,38,38,0.25)" }}>🔒</div>
           <h1 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 22px" }}>O módulo de Cobrança é restrito a <b>administradores</b> e <b>supervisores</b> no UnitaSystem.</p>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 22px" }}>O módulo de Cobrança é restrito a <b>Dono</b>, <b>Administradores</b> e <b>Supervisores</b> do workspace.</p>
           <button onClick={() => router.back()}
-            style={{ background: "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)", color: "white", border: "none", borderRadius: 12, padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(37,99,235,0.3)" }}>← Voltar</button>
+            style={{ background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", color: "white", border: "none", borderRadius: 12, padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }}>← Voltar</button>
         </div>
       </div>
     );
@@ -798,11 +838,11 @@ export default function CobrancaPage() {
       {/* HEADER */}
       <div style={{ ...cardStyle, padding: isMobile ? 16 : 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #4f46e5 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(37,99,235,0.3)" }}>💰</div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }}>💰</div>
           <div>
             <h1 style={{ color: "#1f2937", fontSize: isMobile ? 17 : 20, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Cobrança</h1>
             <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
-              UnitaSystem · <b style={{ color: "#2563eb" }}>Grupo Unita</b> · Cobre direto do CRM ou suba uma planilha
+              Wolf CRM · <b style={{ color: "#3b82f6" }}>{nomeWorkspace}</b> · Cobre direto do CRM ou suba uma planilha
             </p>
           </div>
         </div>
@@ -821,7 +861,7 @@ export default function CobrancaPage() {
             <p style={{ color: "#92400e", fontSize: 13, margin: 0, fontWeight: 700 }}>Algumas tabelas não foram encontradas no Supabase</p>
             <p style={{ color: "#78350f", fontSize: 12, margin: "4px 0 0", lineHeight: 1.5 }}>
               {tabelasFaltando.map(t => <code key={t} style={{ background: "#fef3c7", padding: "1px 6px", borderRadius: 4, fontFamily: "monospace", fontSize: 11.5, marginRight: 4 }}>{t}</code>)}
-              <br/>Rode o SQL de setup correspondente pra liberar essa funcionalidade. {tabelasFaltando.includes("faturas_status") && <b>(faturas_status guarda quais faturas foram pagas)</b>}
+              <br/>Rode o SQL de setup correspondente pra liberar essa funcionalidade. {tabelasFaltando.some(t => t.includes("faturas_status")) && <b>(faturas_status guarda quais faturas foram pagas)</b>}
             </p>
           </div>
         </div>
@@ -829,18 +869,18 @@ export default function CobrancaPage() {
 
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 10 : 14 }}>
-        <KPI cor="#2563eb" bg="#eff6ff" icone="📅" label="A receber (mês)" valor={formatBRLCompacto(kpis.aReceberMes)} sub={`${kpis.totalMes - kpis.pagasMes} fatura(s) pendente(s)`} isMobile={isMobile} />
+        <KPI cor="#3b82f6" bg="#eff6ff" icone="📅" label="A receber (mês)" valor={formatBRLCompacto(kpis.aReceberMes)} sub={`${kpis.totalMes - kpis.pagasMes} fatura(s) pendente(s)`} isMobile={isMobile} />
         <KPI cor="#16a34a" bg="#f0fdf4" icone="💵" label="Recebido (mês)"  valor={formatBRLCompacto(kpis.recebidoMes)} sub={`${kpis.pagasMes} fatura(s) paga(s)`} isMobile={isMobile} />
         <KPI cor="#dc2626" bg="#fef2f2" icone="🔴" label="Atrasado"         valor={formatBRLCompacto(kpis.atrasado)}    sub={`${kpis.atrasadasCnt} fatura(s) vencida(s)`} isMobile={isMobile} />
-        <KPI cor="#4f46e5" bg="#eef2ff" icone="📊" label="Inadimplência"    valor={`${kpis.inadimplencia}%`}             sub="Atrasadas / total do mês" isMobile={isMobile} />
+        <KPI cor="#8b5cf6" bg="#f5f3ff" icone="📊" label="Inadimplência"    valor={`${kpis.inadimplencia}%`}             sub="Atrasadas / total do mês" isMobile={isMobile} />
       </div>
 
       {/* TABS */}
       <div style={{ ...cardStyle, padding: 6, display: "flex", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         {([
-          { key: "do_crm",    label: "📅 Do CRM",   color: "#dc2626" },
+          { key: "do_crm",    label: "📅 Do CRM",   color: "#3b82f6" },
           { key: "planilha",  label: "📤 Planilha", color: "#a855f7" },
-          { key: "campanhas", label: "📊 Campanhas", color: "#2563eb" },
+          { key: "campanhas", label: "📊 Campanhas", color: "#16a34a" },
         ] as { key: AbaKey; label: string; color: string }[]).map(t => {
           const at = aba === t.key;
           return (
@@ -864,7 +904,7 @@ export default function CobrancaPage() {
                   { k: "vencendo_7d", l: "🟡 Próximos 7 dias", cor: "#f59e0b" },
                   { k: "hoje",        l: "⏰ Vencendo hoje",    cor: "#ea580c" },
                   { k: "vencidos",    l: "🔴 Vencidos",         cor: "#dc2626" },
-                  { k: "este_mes",    l: "📅 Este mês",         cor: "#2563eb" },
+                  { k: "este_mes",    l: "📅 Este mês",         cor: "#3b82f6" },
                   { k: "todos",       l: "🌐 Todos",            cor: "#6b7280" },
                 ] as { k: FiltroVenc; l: string; cor: string }[]).map(f => {
                   const at = filtroVenc === f.k;
@@ -886,7 +926,7 @@ export default function CobrancaPage() {
                   { k: "pendentes", l: "⏳ A pagar",      cor: "#d97706" },
                   { k: "atrasadas", l: "🔴 Atrasadas",    cor: "#dc2626" },
                   { k: "pagas",     l: "✅ Pagas",         cor: "#16a34a" },
-                  { k: "promessa",  l: "🤝 Promessa",     cor: "#2563eb" },
+                  { k: "promessa",  l: "🤝 Promessa",     cor: "#3b82f6" },
                   { k: "negociacao",l: "📞 Negociação",   cor: "#7c3aed" },
                   { k: "acordo",    l: "📋 Acordo",       cor: "#0284c7" },
                   { k: "nao_pagara",l: "❌ Não vai pagar", cor: "#991b1b" },
@@ -947,7 +987,7 @@ export default function CobrancaPage() {
                             <tr key={k}
                               style={{ borderTop: "1px solid #f3f4f6", background: sel ? "#eff6ff" : (i % 2 === 0 ? "#ffffff" : "#fafbfc") }}>
                               <td style={{ padding: "12px", textAlign: "center" }}>
-                                <input type="checkbox" checked={sel} onChange={() => toggleSelFat(k)} style={{ cursor: "pointer", width: 16, height: 16, accentColor: "#2563eb" }} />
+                                <input type="checkbox" checked={sel} onChange={() => toggleSelFat(k)} style={{ cursor: "pointer", width: 16, height: 16, accentColor: "#3b82f6" }} />
                               </td>
                               <td style={{ padding: "12px", maxWidth: 220, overflow: "hidden" }}>
                                 <div style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.proposta.nome || "—"}</div>
@@ -994,7 +1034,7 @@ export default function CobrancaPage() {
                                     </button>
                                   )}
                                   <button onClick={() => abrirStatus(f, "promessa")} title="Mais opções de status"
-                                    style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                    style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
                                     ⚙ Status
                                   </button>
                                   <button onClick={() => clienteCancelou(f)} title="Cliente cancelou o serviço"
@@ -1022,14 +1062,14 @@ export default function CobrancaPage() {
                 <input ref={inputArquivoRef} type="file" accept=".csv,.xlsx,.xls" onChange={onArquivoSelecionado} style={{ display: "none" }} />
                 <div style={{ border: "2px dashed #93c5fd", borderRadius: 12, padding: 24, textAlign: "center", background: "#eff6ff", cursor: "pointer" }} onClick={() => inputArquivoRef.current?.click()}>
                   <div style={{ fontSize: 36, marginBottom: 6 }}>📤</div>
-                  <p style={{ color: "#2563eb", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>
+                  <p style={{ color: "#3b82f6", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>
                     {planilhaNomeArquivo || "Clique pra escolher um arquivo"}
                   </p>
-                  <p style={{ color: "#3b82f6", fontSize: 12, margin: 0 }}>Aceita .csv, .xlsx, .xls — primeira linha geralmente é o cabeçalho.</p>
+                  <p style={{ color: "#6366f1", fontSize: 12, margin: 0 }}>Aceita .csv, .xlsx, .xls — primeira linha geralmente é o cabeçalho.</p>
                 </div>
                 {planilhaLinhas.length > 0 && (
                   <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, color: "#374151", fontSize: 12, cursor: "pointer" }}>
-                    <input type="checkbox" checked={primeiraLinhaCabecalho} onChange={e => setPrimeiraLinhaCabecalho(e.target.checked)} style={{ accentColor: "#2563eb" }} />
+                    <input type="checkbox" checked={primeiraLinhaCabecalho} onChange={e => setPrimeiraLinhaCabecalho(e.target.checked)} style={{ accentColor: "#3b82f6" }} />
                     Primeira linha é o cabeçalho da planilha
                   </label>
                 )}
@@ -1111,7 +1151,7 @@ export default function CobrancaPage() {
                                 style={{ borderTop: "1px solid #f3f4f6", background: !valido ? "#fef2f2" : (sel ? "#eff6ff" : (i % 2 === 0 ? "#ffffff" : "#fafbfc")), cursor: valido ? "pointer" : "default", opacity: valido ? 1 : 0.5 }}>
                                 <td style={{ padding: "12px", textAlign: "center" }}>
                                   {valido && (
-                                    <input type="checkbox" checked={sel} onChange={() => toggleSelPlanilha(idxValido)} onClick={e => e.stopPropagation()} style={{ cursor: "pointer", width: 16, height: 16, accentColor: "#2563eb" }} />
+                                    <input type="checkbox" checked={sel} onChange={() => toggleSelPlanilha(idxValido)} onClick={e => e.stopPropagation()} style={{ cursor: "pointer", width: 16, height: 16, accentColor: "#3b82f6" }} />
                                   )}
                                 </td>
                                 <td style={{ padding: "12px", color: "#9ca3af", fontSize: 11 }}>{i + 1}</td>
@@ -1177,7 +1217,7 @@ export default function CobrancaPage() {
                               {c.status}
                             </span>
                           </td>
-                          <td style={{ padding: "12px", color: "#2563eb", fontSize: 12, fontWeight: 700 }}>{c.total_contatos}</td>
+                          <td style={{ padding: "12px", color: "#3b82f6", fontSize: 12, fontWeight: 700 }}>{c.total_contatos}</td>
                           <td style={{ padding: "12px", color: "#16a34a", fontSize: 12, fontWeight: 700 }}>{c.total_enviados}</td>
                           <td style={{ padding: "12px", color: "#dc2626", fontSize: 12, fontWeight: 700 }}>{c.total_falhas}</td>
                           <td style={{ padding: "12px", color: "#9ca3af", fontSize: 11 }}>{new Date(c.created_at).toLocaleString("pt-BR")}</td>
@@ -1218,7 +1258,7 @@ export default function CobrancaPage() {
                     { v: "waba",  l: "📨 WABA (template aprovado)" },
                   ] as { v: "webjs" | "waba"; l: string }[]).map(o => (
                     <button key={o.v} onClick={() => setEnvioTipo(o.v)}
-                      style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: envioTipo === o.v ? "2px solid #2563eb" : "1px solid #e5e7eb", background: envioTipo === o.v ? "#eff6ff" : "#ffffff", color: envioTipo === o.v ? "#2563eb" : "#6b7280", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                      style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: envioTipo === o.v ? "2px solid #3b82f6" : "1px solid #e5e7eb", background: envioTipo === o.v ? "#eff6ff" : "#ffffff", color: envioTipo === o.v ? "#3b82f6" : "#6b7280", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                       {o.l}
                     </button>
                   ))}
@@ -1241,7 +1281,7 @@ export default function CobrancaPage() {
               {envioTipo === "webjs" && (
                 <>
                   <div>
-                    <label style={labelStyle}>Mensagem (use {`{{nome}}, {{valor}}, {{vencimento}}, {{plano}}`})</label>
+                    <label style={labelStyle}>Mensagem (use {`{{nome}}, {{valor}}, {{vencimento}}, {{plano}}, {{empresa}}`})</label>
                     <textarea value={envioMensagem} onChange={e => setEnvioMensagem(e.target.value)} rows={6} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} />
                   </div>
                   {envioContatos.length > 0 && (
@@ -1407,7 +1447,7 @@ export default function CobrancaPage() {
           erro:    { bg: "#fef2f2", border: "#fecaca", iconBg: "#fee2e2", icon: "#dc2626", titulo: "#991b1b", botao: "#dc2626", emoji: "⚠️" },
           aviso:   { bg: "#fffbeb", border: "#fde68a", iconBg: "#fef3c7", icon: "#d97706", titulo: "#92400e", botao: "#d97706", emoji: "🛡️" },
           sucesso: { bg: "#f0fdf4", border: "#bbf7d0", iconBg: "#dcfce7", icon: "#16a34a", titulo: "#14532d", botao: "#16a34a", emoji: "✅" },
-          info:    { bg: "#eff6ff", border: "#bfdbfe", iconBg: "#dbeafe", icon: "#2563eb", titulo: "#1e3a8a", botao: "#2563eb", emoji: "ℹ️" },
+          info:    { bg: "#eff6ff", border: "#bfdbfe", iconBg: "#dbeafe", icon: "#3b82f6", titulo: "#1e3a8a", botao: "#3b82f6", emoji: "ℹ️" },
         }[feedback.tipo];
         const ehConfirm = !!feedback.onConfirmar;
         return (
