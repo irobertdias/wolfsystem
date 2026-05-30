@@ -8,6 +8,7 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 // ═══════════════════════════════════════════════════════════════════════
 // ⚙️ CONFIGURAÇÕES — Wolf CRM (multi-tenant, premium)
 // ───────────────────────────────────────────────────────────────────────
+// 🆕 v2: Cascade Equipe → Filas no formulário de usuário
 // 5 abas em tabs visuais: Usuários · Equipes · Filas · Permissões · Geral
 // Estado persistido em ?tab=...
 // Real-time em tudo · Busca + filtros por aba · Cards visuais premium
@@ -508,7 +509,7 @@ export default function Configuracoes() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// 👥 ABA USUÁRIOS
+// 👥 ABA USUÁRIOS — 🆕 v2 com cascade Equipe → Filas
 // ═══════════════════════════════════════════════════════════════════════
 function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, workspaceId, isAdmin, limites, limiteAtingido, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
   const [busca, setBusca] = useState("");
@@ -535,6 +536,14 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
     return l;
   }, [usuarios, busca, filtroPerfil, filtroEquipe]);
 
+  // 🆕 v2: Filtra filas pela equipe selecionada no form
+  // - Sem equipe selecionada → mostra TODAS as filas (filas globais + filas de qualquer equipe)
+  // - Com equipe selecionada → mostra só filas da equipe + filas globais (sem equipe atribuída)
+  const filasDisponiveis = useMemo(() => {
+    if (!formUsuario.equipe_id) return filas;
+    return filas.filter((f: Fila) => f.equipe_id === formUsuario.equipe_id || f.equipe_id == null);
+  }, [filas, formUsuario.equipe_id]);
+
   const abrirNovo = () => {
     if (!podeGerenciar) { alert("Sem permissão."); return; }
     if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); return; }
@@ -552,6 +561,22 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
       grupo_id: u.grupo_id?.toString() || "", equipe_id: u.equipe_id || "",
     });
     setShowForm(true);
+  };
+
+  // 🆕 v2: Ao mudar a equipe, reseta as filas selecionadas que não pertencem à nova equipe
+  const mudarEquipe = (novaEquipeId: string) => {
+    if (!novaEquipeId) {
+      // Sem equipe → mantém todas as filas que já estavam (são globais ou de qualquer equipe)
+      setFormUsuario({ ...formUsuario, equipe_id: "" });
+      return;
+    }
+    // Com equipe → filtra das filas selecionadas só as que pertencem a essa equipe (ou são globais)
+    const filasAtuais = (formUsuario.fila || "").split(",").map(s => s.trim()).filter(Boolean);
+    const filasValidasNaNovaEquipe = filas
+      .filter((f: Fila) => f.equipe_id === novaEquipeId || f.equipe_id == null)
+      .map((f: Fila) => f.nome);
+    const filasMantidas = filasAtuais.filter(nome => filasValidasNaNovaEquipe.includes(nome));
+    setFormUsuario({ ...formUsuario, equipe_id: novaEquipeId, fila: filasMantidas.join(",") });
   };
 
   const salvarUsuario = async () => {
@@ -724,7 +749,8 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
             </div>
             <div>
               <label style={labelStyle}>🏢 Equipe</label>
-              <select value={formUsuario.equipe_id} onChange={e => setFormUsuario({ ...formUsuario, equipe_id: e.target.value })} style={IS}>
+              {/* 🆕 v2: usa mudarEquipe() pra resetar as filas que não pertencem à nova equipe */}
+              <select value={formUsuario.equipe_id} onChange={e => mudarEquipe(e.target.value)} style={IS}>
                 <option value="">Sem equipe (global)</option>
                 {equipes.map((eq: Equipe) => (
                   <option key={eq.id} value={eq.id}>{iconeHashFromString(eq.nome)} {eq.nome}</option>
@@ -737,7 +763,15 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
               )}
             </div>
             <div>
-              <label style={labelStyle}>📋 Filas atendidas</label>
+              <label style={labelStyle}>
+                📋 Filas atendidas
+                {/* 🆕 v2: badge mostrando contexto da equipe */}
+                {formUsuario.equipe_id && filasDisponiveis.length > 0 && (
+                  <span style={{ color: "#9ca3af", fontWeight: 500, marginLeft: 6, textTransform: "none", letterSpacing: 0, fontSize: 10 }}>
+                    · {filasDisponiveis.length} disponível{filasDisponiveis.length !== 1 ? "is" : ""}
+                  </span>
+                )}
+              </label>
               {(() => {
                 const filasSelecionadas = (formUsuario.fila || "").split(",").map(s => s.trim()).filter(Boolean);
                 const labelBotao = filasSelecionadas.length === 0
@@ -767,14 +801,18 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
                           maxHeight: 260, overflowY: "auto", zIndex: 101,
                           boxShadow: "0 10px 25px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.04)",
                         }}>
-                          {filas.length === 0 ? (
-                            <p style={{ color: "#9ca3af", fontSize: 12, padding: 14, textAlign: "center", margin: 0 }}>
-                              Nenhuma fila criada ainda. Crie uma fila na aba "Filas" primeiro.
+                          {/* 🆕 v2: usa filasDisponiveis em vez de filas */}
+                          {filasDisponiveis.length === 0 ? (
+                            <p style={{ color: "#9ca3af", fontSize: 12, padding: 14, textAlign: "center", margin: 0, lineHeight: 1.5 }}>
+                              {formUsuario.equipe_id
+                                ? "Esta equipe ainda não tem filas. Crie filas na aba \"Filas\" e atribua-as a esta equipe."
+                                : "Nenhuma fila criada ainda. Crie uma fila na aba \"Filas\" primeiro."}
                             </p>
                           ) : (
                             <>
-                              {filas.map((f: Fila) => {
+                              {filasDisponiveis.map((f: Fila) => {
                                 const marcada = filasSelecionadas.includes(f.nome);
+                                const ehGlobal = !f.equipe_id;
                                 return (
                                   <label key={f.id} style={{
                                     display: "flex", alignItems: "center", gap: 10,
@@ -786,9 +824,13 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
                                     onMouseLeave={(e) => { if (!marcada) e.currentTarget.style.background = "transparent"; }}>
                                     <input type="checkbox" checked={marcada} onChange={() => toggleFila(f.nome)}
                                       style={{ accentColor: "#3b82f6", cursor: "pointer", width: 16, height: 16 }} />
-                                    <span style={{ color: marcada ? "#3b82f6" : "#1f2937", fontSize: 13, fontWeight: marcada ? 700 : 500 }}>
+                                    <span style={{ color: marcada ? "#3b82f6" : "#1f2937", fontSize: 13, fontWeight: marcada ? 700 : 500, flex: 1 }}>
                                       {iconeFilaFromString(f.nome)} {f.nome}
                                     </span>
+                                    {/* 🆕 v2: badge "Global" pra distinguir filas sem equipe específica */}
+                                    {ehGlobal && formUsuario.equipe_id && (
+                                      <span style={{ background: "#f3f4f6", color: "#6b7280", fontSize: 9, padding: "2px 6px", borderRadius: 6, fontWeight: 700 }}>GLOBAL</span>
+                                    )}
                                   </label>
                                 );
                               })}
@@ -808,6 +850,12 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
                     {filasSelecionadas.length > 1 && (
                       <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
                         ℹ️ Atende {filasSelecionadas.length} filas: <b>{filasSelecionadas.join(", ")}</b>
+                      </p>
+                    )}
+                    {/* 🆕 v2: dica contextual da cascade */}
+                    {!formUsuario.equipe_id && filas.length > 0 && (
+                      <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3, fontStyle: "italic" }}>
+                        💡 Selecione uma equipe acima para filtrar as filas automaticamente.
                       </p>
                     )}
                   </div>
@@ -959,7 +1007,7 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// 🏢 ABA EQUIPES
+// 🏢 ABA EQUIPES (sem mudanças)
 // ═══════════════════════════════════════════════════════════════════════
 function AbaEquipes({ equipes, usuarios, filas, usuariosPorEquipe, filasPorEquipe, workspaceId, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
   const [busca, setBusca] = useState("");
@@ -1177,7 +1225,7 @@ function AbaEquipes({ equipes, usuarios, filas, usuariosPorEquipe, filasPorEquip
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// 📋 ABA FILAS
+// 📋 ABA FILAS (sem mudanças)
 // ═══════════════════════════════════════════════════════════════════════
 function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
   const [busca, setBusca] = useState("");
@@ -1372,7 +1420,7 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// 🔐 ABA PERMISSÕES
+// 🔐 ABA PERMISSÕES (sem mudanças)
 // ═══════════════════════════════════════════════════════════════════════
 function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
   const [busca, setBusca] = useState("");
@@ -1602,7 +1650,7 @@ function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, 
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// ⚙️ ABA GERAL
+// ⚙️ ABA GERAL (sem mudanças)
 // ═══════════════════════════════════════════════════════════════════════
 function AbaGeral({ workspaceId, usuarios, isAdmin, limites, limiteAtingido, podeGerenciar, isMobile, IS, cardStyle, labelStyle }: any) {
   return (
