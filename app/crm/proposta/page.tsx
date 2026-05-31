@@ -26,11 +26,13 @@ import {
 // • Atalhos de teclado (Ctrl+S, Esc)
 // • Confirmação ao sair com mudanças
 // • Suporte a anexos e tipos auto-populados
+// • 🔒 Trava por equipe: usuário restrito (Diretor preso à equipe) só vê e
+//     já vem com a EQUIPE dele selecionada; fila filtra pela equipe dele.
 // ═══════════════════════════════════════════════════════════════════════
 
 type UsuarioWs = { email: string; nome: string; };
 type EquipeOpt = { id: string | number; nome: string; cor?: string; icone?: string; };
-type FilaOpt = { id: string | number; nome: string; cor?: string; icone?: string; };
+type FilaOpt = { id: string | number; nome: string; cor?: string; icone?: string; equipe_id?: string | null; };
 type EtiquetaOpt = { id: string | number; nome: string; cor?: string; icone?: string; };
 type AnexoMeta = { url: string; nome: string; tipo: string; tamanho: number; enviado_em: string; };
 
@@ -113,7 +115,8 @@ function PropostaForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { workspace } = useWorkspace();
-  const { isDono, isSuperAdmin, permissoes } = usePermissao();
+  // 🔒 Permissões + equipe do usuário logado
+  const { isDono, isSuperAdmin, permissoes, equipeId: minhaEquipeId, veTudo } = usePermissao();
 
   const [loading, setLoading] = useState(false);
   const [salvandoRascunho, setSalvandoRascunho] = useState(false);
@@ -165,6 +168,20 @@ function PropostaForm() {
   // 🔑 Chave do rascunho (por workspace)
   // ═══════════════════════════════════════════════════════════════════
   const rascunhoKey = workspace?.username ? `rascunho_proposta_${workspace.username}` : null;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 TRAVA POR EQUIPE — usuário restrito preso à equipe dele
+  // veTudo = dono / admin / super → escolhe qualquer equipe.
+  // Caso contrário, se tem equipe atribuída, fica travado nela.
+  // ═══════════════════════════════════════════════════════════════════
+  const travadoEquipe = !veTudo && minhaEquipeId != null;
+  const equipeForcada = travadoEquipe ? String(minhaEquipeId) : null;
+  const equipesVisiveis = equipeForcada
+    ? equipesAuto.filter(e => String(e.id) === equipeForcada)
+    : equipesAuto;
+  const filasVisiveis = equipeForcada
+    ? filasAuto.filter(f => String(f.equipe_id ?? "") === equipeForcada)
+    : filasAuto;
 
   // ═══════════════════════════════════════════════════════════════════
   // 📜 INIT — carrega user, workspace, usuarios, campos, listas auto
@@ -278,7 +295,7 @@ function PropostaForm() {
         if (tiposPresentes.has("fila")) {
           promises.push(
             supabase.from("filas")
-              .select("id, nome, cor, icone")
+              .select("id, nome, cor, icone, equipe_id")
               .eq("workspace_id", workspace.username)
               .order("nome")
               .then(r => setFilasAuto(r.data || []))
@@ -299,6 +316,25 @@ function PropostaForm() {
     };
     carregar();
   }, [workspace]);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 PRÉ-SELEÇÃO — força a equipe do usuário restrito nos campos "equipe"
+  // ═══════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (!equipeForcada || camposUnificados.length === 0) return;
+    setDadosCustomizados(prev => {
+      const novo = { ...prev };
+      let mudou = false;
+      for (const c of camposUnificados) {
+        if (c.origem === "custom" && (c.tipo as string) === "equipe" && !novo[c.slug]) {
+          novo[c.slug] = equipeForcada;
+          mudou = true;
+        }
+      }
+      return mudou ? novo : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [equipeForcada, camposUnificados]);
 
   // ═══════════════════════════════════════════════════════════════════
   // 💾 RASCUNHO — checa localStorage quando carregar
@@ -515,6 +551,15 @@ function PropostaForm() {
 
     setLoading(true);
 
+    // 🔒 Equipe da proposta: usuário restrito grava a equipe dele;
+    //    dono/admin pode ter escolhido num campo custom tipo "equipe".
+    const equipeCustom = (() => {
+      const campoEq = camposUnificados.find(c => c.origem === "custom" && (c.tipo as string) === "equipe");
+      const v = campoEq ? dadosCustomizados[campoEq.slug] : null;
+      return v ? String(v) : null;
+    })();
+    const equipeIdProposta = equipeForcada || equipeCustom || null;
+
     const payload: any = {
       data_proposta: form.data_proposta || null,
       nome: form.nome || "",
@@ -542,6 +587,7 @@ function PropostaForm() {
       data_cancelamento: form.data_cancelamento || null,
       operadora: form.operadora || "",
       workspace_id: workspace.username,
+      equipe_id: equipeIdProposta,
       dados_customizados: dadosCustomizados,
     };
 
@@ -862,7 +908,7 @@ function PropostaForm() {
       return (
         <div style={{ display: "flex", flexDirection: "column" as const }}>
           <label style={labelStyle}>{labelComObr}</label>
-          {renderCampoAuto(c, equipesAuto)}
+          {renderCampoAuto(c, equipesVisiveis)}
         </div>
       );
     }
@@ -870,7 +916,7 @@ function PropostaForm() {
       return (
         <div style={{ display: "flex", flexDirection: "column" as const }}>
           <label style={labelStyle}>{labelComObr}</label>
-          {renderCampoAuto(c, filasAuto)}
+          {renderCampoAuto(c, filasVisiveis)}
         </div>
       );
     }
@@ -1267,7 +1313,7 @@ function PropostaForm() {
                     gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr",
                     gap: isMobile ? 12 : 16,
                   }}>
-                    {s.campos.map(c => (
+                    {s.campos.map((c: CampoUnificado) => (
                       <div key={`${c.origem}-${c.slug}`}
                         style={c.larguraTotal || c.tipo === "textarea" || (c.tipo as string) === "arquivo" ? { gridColumn: "1 / -1" } : undefined}>
                         {renderCampo(c)}

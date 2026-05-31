@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { usePermissao } from "../../hooks/usePermissao";
 import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
 import * as XLSX from "xlsx";
 
@@ -36,8 +37,17 @@ export default function Contatos() {
   const [wsId, setWsId] = useState<string | null>(null);
   const [truncado, setTruncado] = useState(false);
 
-  // 👥 Filtro por equipe
-  const { equipeId, EquipeSelector } = useEquipeFiltro(wsId || "");
+  // 🔒 Permissões + equipe do usuário logado
+  const { equipeId: minhaEquipeId, veTudo } = usePermissao();
+  // 👥 Filtro por equipe (dropdown que aparece pro admin)
+  const { equipes, equipeId, EquipeSelector } = useEquipeFiltro(wsId || "");
+
+  // 🔒 TRAVA POR EQUIPE — Diretor preso à equipe dele; dono/admin escolhe.
+  const travadoEquipe = !veTudo && minhaEquipeId != null;
+  const equipeEfetiva = travadoEquipe ? String(minhaEquipeId) : (equipeId || "");
+  const minhaEquipeNome = minhaEquipeId
+    ? (equipes.find((e: any) => e.id === minhaEquipeId)?.nome || "Minha equipe")
+    : "";
 
   // Busca e filtros
   const [busca, setBusca] = useState("");
@@ -159,11 +169,13 @@ export default function Contatos() {
   }, [wsId]);
 
   // ═══ AGREGA atendimentos por número = contatos únicos ═══
-  // Aplica filtro de equipe ANTES da agregação: se admin escolheu Equipe X,
-  // o contato aparece só com os atendimentos que pertencem à X
+  // 🔒 Aplica filtro de equipe ANTES da agregação:
+  //    • Diretor travado → só os atendimentos da equipe dele
+  //    • admin com Equipe X escolhida → só os atendimentos da X
+  //    • admin sem escolha → todos
   const contatos: Contato[] = useMemo(() => {
-    const fonte = equipeId
-      ? atendimentos.filter(a => a.equipe_id === equipeId)
+    const fonte = equipeEfetiva
+      ? atendimentos.filter(a => String(a.equipe_id ?? "") === String(equipeEfetiva))
       : atendimentos;
     const mapa = new Map<string, Contato>();
     for (const a of fonte) {
@@ -203,7 +215,7 @@ export default function Contatos() {
       }
     }
     return Array.from(mapa.values()).sort((a, b) => new Date(b.ultimaData).getTime() - new Date(a.ultimaData).getTime());
-  }, [atendimentos, etiquetasPorAtend, equipeId]);
+  }, [atendimentos, etiquetasPorAtend, equipeEfetiva]);
 
   // ═══ FILTROS ═══
   const contatosFiltrados = useMemo(() => {
@@ -558,8 +570,15 @@ export default function Contatos() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          {/* 👥 Filtro de Equipe */}
-          <EquipeSelector />
+          {/* 🔒 Equipe — admin escolhe; Diretor travado mostra rótulo fixo */}
+          {veTudo && <EquipeSelector />}
+          {travadoEquipe && minhaEquipeNome && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "8px 14px" }}>
+              <span style={{ fontSize: 14, lineHeight: 1 }}>👥</span>
+              <span style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Equipe</span>
+              <span style={{ color: "#2563eb", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
+            </div>
+          )}
           <button onClick={exportar} disabled={exportando || contatosFiltrados.length === 0}
             style={{
               background: (exportando || contatosFiltrados.length === 0) ? "#f3f4f6" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",

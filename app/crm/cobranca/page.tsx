@@ -1,38 +1,44 @@
 "use client";
-export const dynamic = "force-dynamic";
-
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
+import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💰 COBRANÇA — Wolf CRM (multi-tenant)
+// 💰 COBRANÇA — Sistema integrado ao CRM + Importação de planilha
 // ───────────────────────────────────────────────────────────────────────────
-// Mantém 12 status de fatura e disparos. Tudo filtrado por workspace_id.
-// Permissão: Dono · SuperAdmin · Administrador · Supervisor (perfil Wolf)
+// Duas fontes de cobrança:
+//   • "Do CRM"     → puxa clientes com status_venda = INSTALADA, filtra
+//                    por vencimento (hoje / 7d / atrasados / todos).
+//   • "Da planilha" → upload CSV/XLSX. Mapeia colunas (Nome, Telefone,
+//                    Valor, Vencimento, Plano) e dispara em massa.
 //
-// Duas fontes:
-//   • "Do CRM"     → puxa propostas com status INSTALADA, gera faturas dinâmicas
-//   • "Da planilha" → upload CSV/XLSX
+// 🔒 Trava por equipe: dono/admin/super veem tudo (dropdown de equipe livre);
+//    Diretor preso a uma equipe só vê as faturas dos clientes daquela equipe.
+//
+// Disparo passa pelo backend wolf-whatsapp existente (rota /api/whatsapp?rota=disparos/criar)
+// com `origem: "cobranca"` e contatos personalizados. Aba Campanhas filtra disparos.origem='cobranca'.
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ─── TIPOS ─────────────────────────────────────────────────────────────────
 type Proposta = {
   id: number;
-  workspace_id?: string;
+  workspace_id: string;
   nome?: string | null;
   telefone1?: string | null;
   telefone2?: string | null;
   telefone3?: string | null;
   plano?: string | null;
   valor_plano?: number | null;
-  vencimento?: string | null;
+  vencimento?: string | null;       // dia do mês ("5", "10", "15"…)
   forma_pagamento?: string | null;
   status_venda?: string | null;
   data_instalacao?: string | null;
   operadora?: string | null;
+  equipe_id?: string | null;
   created_at: string;
 };
 
@@ -42,37 +48,47 @@ type Template = {
   categoria: string; idioma: string; status: string; componentes: any[];
 };
 type Campanha = {
-  id: number; nome: string; criado_por: string; status: string; modo: string;
-  total_contatos: number; total_enviados: number; total_falhas: number;
-  created_at: string; finalizado_em?: string;
+  id: number; workspace_id: string; nome: string; criado_por: string;
+  status: string; modo: string; total_contatos: number; total_enviados: number;
+  total_falhas: number; created_at: string; finalizado_em?: string;
 };
 
+// 🆕 Status de fatura — persistido na tabela `faturas_status`
 type StatusFatura =
-  | "pendente" | "paga" | "paga_atraso" | "paga_parcial" | "promessa"
-  | "negociacao" | "acordo" | "nao_pagara" | "cancelada" | "juridico"
-  | "protestada" | "atrasada";
+  | "pendente"       // ⏳ A pagar
+  | "paga"           // ✅ Paga em dia
+  | "paga_atraso"    // ⏰ Paga com atraso
+  | "paga_parcial"   // 💰 Pagou parte
+  | "promessa"       // 🤝 Promessa de pagamento
+  | "negociacao"     // 📞 Em negociação
+  | "acordo"         // 📋 Em acordo / parcelada
+  | "nao_pagara"     // ❌ Não vai pagar
+  | "cancelada"      // 🚫 Cancelada / cortesia
+  | "juridico"       // ⚖️ Jurídico
+  | "protestada"     // 📋 Protestada
+  | "atrasada";      // 🔴 Atrasada (derivado: pendente vencida)
 
 type FaturaStatusDB = {
-  proposta_id: number;
-  workspace_id?: string;
-  numero_referencia: string;
+  workspace_id: string; proposta_id: number; numero_referencia: string;
   status: StatusFatura; data_pagamento?: string | null; forma_pagamento?: string | null;
   valor_pago?: number | null; promessa_data?: string | null; observacoes?: string | null;
   atualizado_por?: string | null; updated_at?: string;
 };
 
+// 🆕 Fatura calculada dinamicamente a partir de proposta.data_instalacao + vencimento + valor_plano
+//    O VALOR e a DATA não ficam no banco — só o status (paga/atrasada/etc).
 type Fatura = {
   proposta: Proposta;
-  numero_referencia: string;
+  numero_referencia: string;     // "2026-06" — chave do mês
   data_vencimento: Date;
   valor: number;
-  proporcional: boolean;
+  proporcional: boolean;          // true só pra primeira fatura (com dias extras)
   dias_cobertos: number;
-  status: StatusFatura;
-  status_visual: StatusFatura;
+  status: StatusFatura;            // status NO BANCO
+  status_visual: StatusFatura;     // status considerando vencimento (pendente vencida → "atrasada")
   data_pagamento?: string | null;
   observacoes?: string | null;
-  dias_atraso: number;
+  dias_atraso: number;             // negativo = ainda não venceu; positivo = atrasada
 };
 
 type AbaKey = "do_crm" | "planilha" | "campanhas";
@@ -89,6 +105,7 @@ const formatBRLCompacto = (v: number): string => {
   return formatBRL(v);
 };
 
+// 🆕 Formata data como DD/MM/AA
 const formatData = (d: Date | string | null | undefined) => {
   if (!d) return "—";
   const dt = typeof d === "string" ? new Date(d + (d.length === 10 ? "T00:00:00" : "")) : d;
@@ -96,6 +113,7 @@ const formatData = (d: Date | string | null | undefined) => {
   return dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 };
 
+// 🆕 numero_referencia = "YYYY-MM" do mês de vencimento
 const formatNumeroRef = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 
@@ -105,6 +123,9 @@ const formatMesExtenso = (numRef: string): string => {
   return `${meses[parseInt(mes, 10) - 1]}/${ano.slice(2)}`;
 };
 
+// 🆕 Regra do Robert pra 1ª fatura:
+//   • vence em (data_instalacao + 30d) ajustado pro próximo dia X do vencimento
+//   • valor = mensalidade + proporcional dos dias EXTRAS (entre +30d e o dia X)
 const calcularPrimeiraFatura = (dataInstalacao: Date, diaVencimento: number) => {
   if (isNaN(dataInstalacao.getTime())) return null;
   if (diaVencimento < 1 || diaVencimento > 31) return null;
@@ -118,6 +139,7 @@ const calcularPrimeiraFatura = (dataInstalacao: Date, diaVencimento: number) => 
   return { vencimento: venc, diasCobertos: 30 + diasProp, proporcional: diasProp };
 };
 
+// 🆕 Gera todas as faturas até "hoje + ateMeses" pra dar visibilidade do que tá por vir.
 const gerarFaturasDeProposta = (p: Proposta, ateMeses: number = 2): Fatura[] => {
   if (!p.data_instalacao || !p.vencimento || !p.valor_plano) return [];
   const diaVenc = parseInt(String(p.vencimento).replace(/\D/g, ""), 10);
@@ -158,6 +180,8 @@ const gerarFaturasDeProposta = (p: Proposta, ateMeses: number = 2): Fatura[] => 
   }));
 };
 
+// 🆕 Mescla cálculo + status do banco. status_visual = "atrasada" só se for pendente E venceu.
+//    Status como paga/paga_atraso/cancelada/etc não viram "atrasada" mesmo vencidos.
 const aplicarStatusEAtrasos = (faturas: Fatura[], statusMap: Map<string, FaturaStatusDB>): Fatura[] => {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -166,6 +190,8 @@ const aplicarStatusEAtrasos = (faturas: Fatura[], statusMap: Map<string, FaturaS
     const db = statusMap.get(chave);
     const status = (db?.status || "pendente") as StatusFatura;
     const diasAtraso = Math.round((hoje.getTime() - f.data_vencimento.getTime()) / 86400000);
+    // Só vira "atrasada" visualmente se for pendente e vencida.
+    // Demais status mantêm seu próprio status visual (paga, promessa, jurídico, etc).
     const visual: StatusFatura = (status === "pendente" && diasAtraso > 0) ? "atrasada" : status;
     return {
       ...f, status, status_visual: visual, dias_atraso: diasAtraso,
@@ -175,6 +201,9 @@ const aplicarStatusEAtrasos = (faturas: Fatura[], statusMap: Map<string, FaturaS
   });
 };
 
+// 🆕 Metadata centralizada de cada status: cor, label, ícone, se conta como recebido.
+//    "recebido" = soma no KPI "Recebido (mês)" e no valor_pago.
+//    "pendencia" = ainda conta no "A receber" e pode ser cobrado.
 const STATUS_META: Record<StatusFatura, {
   label: string; icone: string; bg: string; border: string; color: string;
   recebido: boolean; pendencia: boolean; descricao: string;
@@ -203,8 +232,10 @@ const normalizarTelefone = (t: string | null | undefined): string => {
   return String(t).replace(/\D/g, "");
 };
 
-const substituirVars = (texto: string, vars: Record<string, string>): string =>
-  texto.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
+// Substitui {{var}} no template pelos valores
+const substituirVars = (texto: string, vars: Record<string, string>): string => {
+  return texto.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
+};
 
 // ─── ESTILOS ───────────────────────────────────────────────────────────────
 const cardStyle = {
@@ -223,16 +254,17 @@ const labelStyle = {
   letterSpacing: 0.5, display: "block", marginBottom: 6,
 };
 const btnPrimario = {
-  background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+  background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
   color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 18px",
   fontSize: 13, cursor: "pointer", fontWeight: 700,
-  boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+  boxShadow: "0 4px 12px rgba(220,38,38,0.3)",
 };
 const btnSecundario = {
   background: "#ffffff", color: "#374151", border: "1px solid #e5e7eb",
   borderRadius: 10, padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600,
 };
 
+// Campos canônicos da planilha pra mapear
 const CAMPOS_PLANILHA = [
   { key: "telefone", label: "📱 Telefone (obrigatório)", obrigatorio: true },
   { key: "nome",     label: "👤 Nome do cliente",         obrigatorio: false },
@@ -242,51 +274,65 @@ const CAMPOS_PLANILHA = [
   { key: "codigo",   label: "🔖 Código / identificador",  obrigatorio: false },
 ] as const;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🎯 COMPONENTE PRINCIPAL
+// ═══════════════════════════════════════════════════════════════════════════
 export default function CobrancaPage() {
   const router = useRouter();
+  const { workspace, wsId, user } = useWorkspace();
+  // 🔒 Permissões + equipe do usuário logado
+  const { isDono, isSuperAdmin, permissoes, equipeId: minhaEquipeId, veTudo } = usePermissao();
+  const { equipes, equipeId, EquipeSelector } = useEquipeFiltro(wsId);
 
-  // 🆕 Wolf: hooks de workspace e permissão
-  const { workspace, wsId } = useWorkspace();
-  const { isDono, isSuperAdmin, perfil } = usePermissao();
+  // Acesso restrito a dono + admin (ajuste se quiser permissão própria depois)
+  const podeAcessar = isDono || isSuperAdmin || (permissoes as any)?.cobranca;
 
-  const [userEmail, setUserEmail] = useState<string>("");
-  const [userId, setUserId] = useState<string>("");
-  const [authLoading, setAuthLoading] = useState(true);
+  // 🔒 TRAVA POR EQUIPE — Diretor preso à equipe dele; dono/admin escolhe.
+  const travadoEquipe = !veTudo && minhaEquipeId != null;
+  const equipeEfetiva = travadoEquipe ? String(minhaEquipeId) : (equipeId || "");
+  const minhaEquipeNome = minhaEquipeId
+    ? (equipes.find((e: any) => e.id === minhaEquipeId)?.nome || "Minha equipe")
+    : "";
 
-  const permitido = isDono || isSuperAdmin || perfil === "Administrador" || perfil === "Supervisor";
-  const nomeWorkspace = workspace?.nome || "sua empresa";
-
+  // ─── ESTADO GERAL ───────────────────────────────────────────────────────
   const [aba, setAba] = useState<AbaKey>("do_crm");
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const [tabelasFaltando, setTabelasFaltando] = useState<string[]>([]);
 
+  // Dados
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [canais, setCanais] = useState<Canal[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
+  // 🆕 Status persistido das faturas (chave = "propostaId_YYYY-MM")
   const [statusMap, setStatusMap] = useState<Map<string, FaturaStatusDB>>(new Map());
 
+  // ─── ABA "DO CRM" ───────────────────────────────────────────────────────
   const [filtroVenc, setFiltroVenc] = useState<FiltroVenc>("vencendo_7d");
   const [filtroBusca, setFiltroBusca] = useState("");
+  // 🆕 Seleção agora é por chave de FATURA (propostaId_numRef), não por propostaId
   const [selecionadasFat, setSelecionadasFat] = useState<Set<string>>(new Set());
+  // 🆕 Filtro adicional de status da fatura (granular com todos os status)
   const [filtroStatus, setFiltroStatus] = useState<string>("todas");
 
+  // 🆕 Modal genérico "Mudar status da fatura" — substitui o antigo "marcar paga"
   const [showStatus, setShowStatus] = useState<Fatura | null>(null);
   const [novoStatus, setNovoStatus] = useState<StatusFatura>("paga");
-  const [statusData, setStatusData] = useState("");
-  const [statusForma, setStatusForma] = useState("");
-  const [statusValor, setStatusValor] = useState("");
-  const [statusPromessa, setStatusPromessa] = useState("");
-  const [statusObs, setStatusObs] = useState("");
+  const [statusData, setStatusData] = useState("");          // data_pagamento
+  const [statusForma, setStatusForma] = useState("");        // forma_pagamento
+  const [statusValor, setStatusValor] = useState("");        // valor_pago
+  const [statusPromessa, setStatusPromessa] = useState(""); // promessa_data
+  const [statusObs, setStatusObs] = useState("");            // observacoes
 
-  const [planilhaLinhas, setPlanilhaLinhas] = useState<any[][]>([]);
+  // ─── ABA "PLANILHA" ─────────────────────────────────────────────────────
+  const [planilhaLinhas, setPlanilhaLinhas] = useState<any[][]>([]);   // primeira linha = cabeçalho
   const [planilhaNomeArquivo, setPlanilhaNomeArquivo] = useState("");
-  const [mapeamento, setMapeamento] = useState<Record<string, number>>({});
+  const [mapeamento, setMapeamento] = useState<Record<string, number>>({}); // {campoCanonico: indiceColuna}
   const [primeiraLinhaCabecalho, setPrimeiraLinhaCabecalho] = useState(true);
   const [selecionadosPlanilha, setSelecionadosPlanilha] = useState<Set<number>>(new Set());
   const inputArquivoRef = useRef<HTMLInputElement>(null);
 
+  // ─── MODAL DE ENVIO ─────────────────────────────────────────────────────
   const [showEnvio, setShowEnvio] = useState(false);
   const [envioFonte, setEnvioFonte] = useState<"crm" | "planilha">("crm");
   const [envioContatos, setEnvioContatos] = useState<{ nome: string; telefone: string; vars: Record<string, string> }[]>([]);
@@ -294,19 +340,21 @@ export default function CobrancaPage() {
   const [envioTipo, setEnvioTipo] = useState<"webjs" | "waba">("webjs");
   const [envioTemplateId, setEnvioTemplateId] = useState<number | null>(null);
   const [envioMensagem, setEnvioMensagem] = useState(
-    `Olá {{nome}}! 👋\n\nLembrete: sua fatura referente a {{mes_referencia}} no valor de {{valor}} vence em {{vencimento}}.\n\nPara evitar atrasos, faça o pagamento até o vencimento.\n\nQualquer dúvida, estou à disposição!\n\n{{empresa}}`
+    "Olá {{nome}}! 👋\n\nLembrete: sua fatura referente a {{mes_referencia}} no valor de {{valor}} vence em {{vencimento}}.\n\nPara evitar atrasos, faça o pagamento até o vencimento.\n\nQualquer dúvida, estou à disposição!"
   );
   const [envioNomeCampanha, setEnvioNomeCampanha] = useState("");
   const [envioDelayMin, setEnvioDelayMin] = useState(30);
   const [envioDelayMax, setEnvioDelayMax] = useState(60);
   const [envioEnviando, setEnvioEnviando] = useState(false);
 
+  // ─── FEEDBACK MODAL ─────────────────────────────────────────────────────
   const [feedback, setFeedback] = useState<{
     tipo: "erro" | "aviso" | "sucesso" | "info";
     titulo: string; mensagem: string; detalhes?: string[];
     onConfirmar?: () => void; confirmarLabel?: string;
   } | null>(null);
 
+  // ─── INIT ───────────────────────────────────────────────────────────────
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -314,139 +362,133 @@ export default function CobrancaPage() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Auth basics
   useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/"); return; }
-      setUserEmail(user.email || "");
-      setUserId(user.id);
-      setAuthLoading(false);
-    })();
-  }, [router]);
-
-  // Carrega dados quando temos workspace + permissão
-  useEffect(() => {
-    if (authLoading) return;
     if (!wsId) return;
-    if (!permitido) return;
     fetchTudo();
 
-    const ch = supabase.channel("cobranca_rt_wolf_" + wsId)
+    const ch = supabase.channel("cobranca_rt_" + wsId)
       .on("postgres_changes", { event: "*", schema: "public", table: "proposta", filter: `workspace_id=eq.${wsId}` }, () => fetchPropostas())
+      .on("postgres_changes", { event: "*", schema: "public", table: "conexoes", filter: `workspace_id=eq.${wsId}` }, () => fetchCanais())
       .on("postgres_changes", { event: "*", schema: "public", table: "faturas_status", filter: `workspace_id=eq.${wsId}` }, () => fetchStatusFaturas())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, wsId, permitido]);
+  }, [wsId]);
 
   async function fetchTudo() {
     setLoading(true);
-    const fts: string[] = [];
-    await Promise.all([
-      fetchPropostas(fts),
-      fetchStatusFaturas(fts),
-      fetchCanais(fts),
-      fetchTemplates(fts),
-      fetchCampanhas(fts),
-    ]);
-    setTabelasFaltando(fts);
+    await Promise.all([fetchPropostas(), fetchStatusFaturas(), fetchCanais(), fetchTemplates(), fetchCampanhas()]);
     setLoading(false);
   }
 
-  async function fetchStatusFaturas(faltando?: string[]) {
+  // 🆕 Status das faturas (paga/atrasada/etc) — gracioso se a tabela ainda não existir
+  async function fetchStatusFaturas() {
     if (!wsId) return;
-    const { data, error } = await supabase
-      .from("faturas_status")
-      .select("*")
-      .eq("workspace_id", wsId);
-    if (error) {
-      if (error.code === "PGRST205") faltando?.push("faturas_status");
-      else if (String(error.message || "").toLowerCase().includes("workspace_id")) {
-        // tabela existe mas sem coluna workspace_id ainda
-        faltando?.push("faturas_status (sem workspace_id)");
+    try {
+      const { data, error } = await supabase
+        .from("faturas_status")
+        .select("*")
+        .eq("workspace_id", wsId);
+      if (error) {
+        console.warn("[Cobrança] tabela faturas_status ainda não existe — rode migration-faturas-status.sql");
+        setStatusMap(new Map());
+        return;
       }
-      setStatusMap(new Map());
-      return;
-    }
-    const m = new Map<string, FaturaStatusDB>();
-    for (const r of (data || [])) m.set(`${r.proposta_id}_${r.numero_referencia}`, r);
-    setStatusMap(m);
+      const m = new Map<string, FaturaStatusDB>();
+      for (const r of (data || [])) m.set(`${r.proposta_id}_${r.numero_referencia}`, r);
+      setStatusMap(m);
+    } catch { setStatusMap(new Map()); }
   }
 
-  async function fetchPropostas(faltando?: string[]) {
+  async function fetchPropostas() {
     if (!wsId) return;
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("proposta")
-      .select("id, workspace_id, nome, telefone1, telefone2, telefone3, plano, valor_plano, vencimento, forma_pagamento, status_venda, data_instalacao, operadora, created_at")
+      .select("id, workspace_id, nome, telefone1, telefone2, telefone3, plano, valor_plano, vencimento, forma_pagamento, status_venda, data_instalacao, operadora, equipe_id, created_at")
       .eq("workspace_id", wsId)
       .order("created_at", { ascending: false });
-    if (error?.code === "PGRST205") faltando?.push("proposta");
     setPropostas(data || []);
   }
 
-  async function fetchCanais(faltando?: string[]) {
+  async function fetchCanais() {
     if (!wsId) return;
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("conexoes")
       .select("id, nome, tipo, status, waba_id")
       .eq("workspace_id", wsId);
-    if (error?.code === "PGRST205") { faltando?.push("conexoes"); return; }
     setCanais(data || []);
+    // pré-seleciona o primeiro canal pronto
     const primeiro = (data || []).find(c => c.status === "conectado" || c.status === "pronto");
     if (primeiro && !envioCanalId) setEnvioCanalId(primeiro.id);
   }
 
-  async function fetchTemplates(faltando?: string[]) {
+  async function fetchTemplates() {
     if (!wsId) return;
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("templates_waba")
       .select("id, canal_id, meta_template_name, nome_amigavel, categoria, idioma, status, componentes")
       .eq("workspace_id", wsId)
       .eq("status", "aprovado");
-    if (error?.code === "PGRST205") { faltando?.push("templates_waba"); return; }
     setTemplates(data || []);
   }
 
-  async function fetchCampanhas(faltando?: string[]) {
+  async function fetchCampanhas() {
     if (!wsId) return;
+    // 🆕 Reaproveita a tabela `disparos` do wolf-whatsapp — filtra origem='cobranca'
+    //    pra mostrar só as campanhas de cobrança, separadas dos disparos manuais.
     try {
       const { data, error } = await supabase
         .from("disparos")
-        .select("id, nome, criado_por, status, total_contatos, total_enviados, total_falhas, created_at, finalizado_em, tipo, origem")
+        .select("id, workspace_id, nome, criado_por, status, total_contatos, total_enviados, total_falhas, created_at, finalizado_em, tipo, origem")
         .eq("workspace_id", wsId)
         .eq("origem", "cobranca")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) {
-        if (error.code === "PGRST205") faltando?.push("disparos");
-        else if (String(error.message || "").toLowerCase().includes("origem")) {
-          console.warn("[Cobrança Wolf] coluna disparos.origem ainda não existe");
+        // Coluna `origem` ainda não existe → rode migration-disparos-cobranca.sql
+        if (String(error.message || "").toLowerCase().includes("origem")) {
+          console.warn("[Cobrança] coluna disparos.origem ainda não existe — rode migration-disparos-cobranca.sql");
         }
         return;
       }
+      // Mapeia campos pra struct Campanha esperada pela UI
       setCampanhas((data || []).map((d: any) => ({
-        id: d.id, nome: d.nome, criado_por: d.criado_por, status: d.status, modo: "crm",
+        id: d.id,
+        workspace_id: d.workspace_id,
+        nome: d.nome,
+        criado_por: d.criado_por,
+        status: d.status,
+        modo: "crm",  // já que veio de origem=cobranca
         total_contatos: d.total_contatos || 0,
         total_enviados: d.total_enviados || 0,
         total_falhas: d.total_falhas || 0,
-        created_at: d.created_at, finalizado_em: d.finalizado_em,
+        created_at: d.created_at,
+        finalizado_em: d.finalizado_em,
       })));
-    } catch (e) { console.warn("[Cobrança Wolf]", e); }
+    } catch (e) {
+      console.warn("[Cobrança] erro ao listar campanhas:", e);
+    }
   }
 
+  // 🆕 TODAS as faturas geradas pra clientes INSTALADOS (calculadas dinamicamente).
+  //    🔒 Recorta por equipe: dono/admin com dropdown; Diretor travado na dele.
+  //    Cada fatura tem status_visual ("atrasada" se pendente e vencida).
   const todasFaturas = useMemo<Fatura[]>(() => {
-    const instalados = propostas.filter(p => (p.status_venda || "").toUpperCase() === "INSTALADA");
+    const instalados = propostas.filter(p =>
+      (p.status_venda || "").toUpperCase() === "INSTALADA" &&
+      (!equipeEfetiva || String(p.equipe_id ?? "") === String(equipeEfetiva))
+    );
     const result: Fatura[] = [];
     for (const p of instalados) result.push(...gerarFaturasDeProposta(p));
     return aplicarStatusEAtrasos(result, statusMap);
-  }, [propostas, statusMap]);
+  }, [propostas, statusMap, equipeEfetiva]);
 
+  // Filtros aplicados na aba "Do CRM"
   const faturasFiltradas = useMemo(() => {
     let arr = todasFaturas;
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
+    // Período de vencimento
     if (filtroVenc !== "todos") {
       arr = arr.filter(f => {
         const dias = f.dias_atraso;
@@ -460,11 +502,14 @@ export default function CobrancaPage() {
       });
     }
 
+    // Status da fatura
+    // Status da fatura — pagas agrupa todos os status que contam como recebido
     if (filtroStatus === "pendentes")        arr = arr.filter(f => f.status_visual === "pendente");
     else if (filtroStatus === "atrasadas")   arr = arr.filter(f => f.status_visual === "atrasada");
     else if (filtroStatus === "pagas")       arr = arr.filter(f => STATUS_META[f.status_visual]?.recebido);
     else if (filtroStatus !== "todas")       arr = arr.filter(f => f.status_visual === filtroStatus);
 
+    // Busca textual
     if (filtroBusca) {
       const b = filtroBusca.toLowerCase();
       arr = arr.filter(f =>
@@ -474,15 +519,17 @@ export default function CobrancaPage() {
       );
     }
 
+    // Ordena: atrasada → pendente → paga; dentro disso, por data
     return [...arr].sort((a, b) => {
       const ordem = { atrasada: 0, pendente: 1, paga: 2 };
-      const oa = ordem[a.status_visual as keyof typeof ordem] ?? 3;
-      const ob = ordem[b.status_visual as keyof typeof ordem] ?? 3;
+      const oa = ordem[a.status_visual] ?? 3;
+      const ob = ordem[b.status_visual] ?? 3;
       if (oa !== ob) return oa - ob;
       return a.data_vencimento.getTime() - b.data_vencimento.getTime();
     });
   }, [todasFaturas, filtroVenc, filtroStatus, filtroBusca]);
 
+  // 🆕 KPIs baseados em faturas (não em clientes) — usa STATUS_META pra classificar
   const kpis = useMemo(() => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -501,6 +548,7 @@ export default function CobrancaPage() {
     return { aReceberMes, recebidoMes, atrasado, atrasadasCnt, pagasMes, totalMes, inadimplencia };
   }, [todasFaturas]);
 
+  // ─── SELEÇÃO (por chave de fatura: "propostaId_numRef") ────────────────
   const chaveSelecao = (f: Fatura) => `${f.proposta.id}_${f.numero_referencia}`;
   const toggleSelFat = (k: string) => {
     setSelecionadasFat(prev => { const n = new Set(prev); if (n.has(k)) n.delete(k); else n.add(k); return n; });
@@ -509,8 +557,10 @@ export default function CobrancaPage() {
     setSelecionadasFat(prev => prev.size === faturasFiltradas.length ? new Set() : new Set(faturasFiltradas.map(chaveSelecao)));
   };
 
+  // 🆕 AÇÕES POR FATURA — abre modal genérico que muda conforme o status
   const abrirStatus = (f: Fatura, statusInicial: StatusFatura = "paga") => {
     setNovoStatus(statusInicial);
+    // Auto-detecta paga vs paga_atraso baseado em hoje vs vencimento
     if (statusInicial === "paga" && f.dias_atraso > 0) setNovoStatus("paga_atraso");
     setStatusData(new Date().toISOString().slice(0, 10));
     setStatusForma(f.proposta.forma_pagamento || "");
@@ -524,14 +574,16 @@ export default function CobrancaPage() {
     if (!showStatus || !wsId) return;
     const f = showStatus;
     const meta = STATUS_META[novoStatus];
+    // Monta o payload conforme o status escolhido
     const payload: any = {
       workspace_id: wsId,
       proposta_id: f.proposta.id,
       numero_referencia: f.numero_referencia,
       status: novoStatus,
-      atualizado_por: userEmail || null,
+      atualizado_por: user?.email || null,
       observacoes: statusObs || null,
     };
+    // Campos que só fazem sentido pra status de pagamento
     if (meta?.recebido) {
       payload.data_pagamento = statusData || new Date().toISOString().slice(0, 10);
       payload.forma_pagamento = statusForma || null;
@@ -540,6 +592,7 @@ export default function CobrancaPage() {
       payload.data_pagamento = null;
       payload.valor_pago = null;
     }
+    // Data prometida pra promessa de pagamento
     if (novoStatus === "promessa" && statusPromessa) {
       payload.promessa_data = statusPromessa;
     } else {
@@ -557,13 +610,13 @@ export default function CobrancaPage() {
     await fetchStatusFaturas();
   };
 
+  // Volta pra "pendente" (reverte status)
   const marcarAPagar = async (f: Fatura) => {
     if (!wsId) return;
     const { error } = await supabase.from("faturas_status").upsert({
-      workspace_id: wsId,
-      proposta_id: f.proposta.id, numero_referencia: f.numero_referencia,
+      workspace_id: wsId, proposta_id: f.proposta.id, numero_referencia: f.numero_referencia,
       status: "pendente", data_pagamento: null, valor_pago: null, promessa_data: null,
-      atualizado_por: userEmail || null,
+      atualizado_por: user?.email || null,
     }, { onConflict: "workspace_id,proposta_id,numero_referencia" });
     if (error) {
       setFeedback({ tipo: "erro", titulo: "Erro ao atualizar", mensagem: error.message });
@@ -572,14 +625,16 @@ export default function CobrancaPage() {
     await fetchStatusFaturas();
   };
 
+  // 🆕 "Cliente cancelou" → atualiza a PROPOSTA (status_venda=CANCELADA).
+  //    As faturas dele param de aparecer (filtro INSTALADA), mas histórico continua.
   const clienteCancelou = (f: Fatura) => {
-    if (!wsId) return;
     setFeedback({
       tipo: "aviso",
       titulo: "Cliente cancelou o serviço?",
       mensagem: `Isso vai mudar o status da proposta de ${f.proposta.nome || "—"} para CANCELADA. As faturas dele param de aparecer na cobrança. Faturas já pagas ficam no histórico.`,
       onConfirmar: async () => {
         setFeedback(null);
+        if (!wsId) return;
         const { error } = await supabase
           .from("proposta")
           .update({ status_venda: "CANCELADA", data_cancelamento: new Date().toISOString().slice(0, 10) })
@@ -595,6 +650,7 @@ export default function CobrancaPage() {
     });
   };
 
+  // ─── ABRIR MODAL DE ENVIO ──────────────────────────────────────────────
   const abrirEnvioCrm = () => {
     if (selecionadasFat.size === 0) {
       setFeedback({ tipo: "aviso", titulo: "Nenhuma fatura selecionada", mensagem: "Marque ao menos uma fatura pra disparar a cobrança." });
@@ -615,7 +671,6 @@ export default function CobrancaPage() {
             mes_referencia: formatMesExtenso(f.numero_referencia),
             dias_atraso: f.dias_atraso > 0 ? String(f.dias_atraso) : "0",
             operadora: p.operadora || "",
-            empresa: nomeWorkspace,
           },
         };
       })
@@ -630,6 +685,7 @@ export default function CobrancaPage() {
     setShowEnvio(true);
   };
 
+  // ─── UPLOAD DE PLANILHA ────────────────────────────────────────────────
   const onArquivoSelecionado = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -647,6 +703,7 @@ export default function CobrancaPage() {
         }
         setPlanilhaLinhas(rows);
         setSelecionadosPlanilha(new Set());
+        // Auto-mapeamento por palavras-chave no cabeçalho
         const cabec = (rows[0] || []).map((c: any) => String(c || "").toLowerCase().trim());
         const novoMap: Record<string, number> = {};
         const padroes = {
@@ -667,21 +724,26 @@ export default function CobrancaPage() {
       }
     };
     reader.readAsArrayBuffer(f);
+    // Limpa o input pra permitir re-upload do mesmo arquivo
     if (inputArquivoRef.current) inputArquivoRef.current.value = "";
   };
 
+  // Linhas de dados (sem cabeçalho)
   const planilhaDados = useMemo(() => {
     if (planilhaLinhas.length === 0) return [];
     return primeiraLinhaCabecalho ? planilhaLinhas.slice(1) : planilhaLinhas;
   }, [planilhaLinhas, primeiraLinhaCabecalho]);
 
+  // Cabeçalho original (pra dropdowns de mapeamento)
   const cabecalhoColunas = useMemo(() => {
     if (planilhaLinhas.length === 0) return [];
     if (primeiraLinhaCabecalho) return (planilhaLinhas[0] || []).map((c: any) => String(c || "").trim() || "(vazio)");
+    // Sem cabeçalho: gera "Coluna A", "Coluna B"...
     const n = (planilhaLinhas[0] || []).length;
     return Array.from({ length: n }, (_, i) => `Coluna ${String.fromCharCode(65 + i)}`);
   }, [planilhaLinhas, primeiraLinhaCabecalho]);
 
+  // Linhas mapeadas (objeto canônico)
   const linhasMapeadas = useMemo(() => {
     return planilhaDados.map(linha => {
       const obj: Record<string, string> = {};
@@ -693,6 +755,7 @@ export default function CobrancaPage() {
     });
   }, [planilhaDados, mapeamento]);
 
+  // Validação: linhas válidas têm pelo menos telefone com 10+ dígitos
   const linhasValidas = useMemo(() => {
     return linhasMapeadas.filter(l => normalizarTelefone(l.telefone).length >= 10);
   }, [linhasMapeadas]);
@@ -711,31 +774,37 @@ export default function CobrancaPage() {
     });
   };
 
+  // ─── ABRIR MODAL DE ENVIO PRA PLANILHA ─────────────────────────────────
   const abrirEnvioPlanilha = () => {
     const idsParaEnvio = selecionadosPlanilha.size > 0
       ? linhasValidas.filter((_, i) => selecionadosPlanilha.has(i))
       : linhasValidas;
+
     if (idsParaEnvio.length === 0) {
       setFeedback({ tipo: "aviso", titulo: "Nenhuma linha válida", mensagem: "Faça o mapeamento de pelo menos a coluna Telefone, ou selecione linhas com telefone válido." });
       return;
     }
+
     const contatos = idsParaEnvio.map(l => ({
       nome: l.nome || "Cliente",
       telefone: normalizarTelefone(l.telefone),
       vars: {
         nome: l.nome || "Cliente",
         telefone: normalizarTelefone(l.telefone),
-        plano: l.plano || "", valor: l.valor || "",
-        vencimento: l.vencimento || "", codigo: l.codigo || "",
-        empresa: nomeWorkspace,
+        plano: l.plano || "",
+        valor: l.valor || "",
+        vencimento: l.vencimento || "",
+        codigo: l.codigo || "",
       },
     }));
+
     setEnvioFonte("planilha");
     setEnvioContatos(contatos);
     setEnvioNomeCampanha(`Cobrança planilha ${planilhaNomeArquivo || ""} (${contatos.length} contatos)`);
     setShowEnvio(true);
   };
 
+  // ─── DISPARAR ───────────────────────────────────────────────────────────
   const dispararCobranca = async () => {
     if (!envioCanalId) {
       setFeedback({ tipo: "aviso", titulo: "Selecione um canal", mensagem: "Escolha qual WhatsApp vai disparar a cobrança." });
@@ -752,16 +821,20 @@ export default function CobrancaPage() {
 
     setEnvioEnviando(true);
     try {
+      // 🆕 Reaproveita o backend wolf-whatsapp existente!
+      //    Endpoint /disparos/criar agora aceita contatos personalizados com vars,
+      //    e a coluna `origem='cobranca'` permite filtrar na aba Campanhas.
       const rota = envioTipo === "waba" ? "disparos/criar-waba" : "disparos/criar";
       const resp = await fetch(`/api/whatsapp?rota=${rota}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          workspace_id: wsId,
+          workspaceId: wsId,
           canalId: envioCanalId,
-          criadoPor: userEmail,
+          criadoPor: user?.email,
           nome: envioNomeCampanha,
-          origem: "cobranca",
+          origem: "cobranca",  // 💰 distingue de disparos manuais na UI
+          // Modo cobrança: contatos personalizados com vars próprias (substituídas no envio)
           contatos: envioContatos.map(c => ({ numero: c.telefone, vars: c.vars })),
           mensagem: envioTipo === "webjs" ? envioMensagem : undefined,
           templateId: envioTipo === "waba" ? envioTemplateId : undefined,
@@ -769,6 +842,7 @@ export default function CobrancaPage() {
           delayMaxSeg: envioDelayMax,
         }),
       });
+
       const data = await resp.json();
       if (data.success) {
         setShowEnvio(false);
@@ -790,97 +864,72 @@ export default function CobrancaPage() {
         tipo: "erro",
         titulo: "Erro de rede ao disparar",
         mensagem: e?.message || "Não consegui conectar com o servidor de WhatsApp.",
-        detalhes: ["Verifique se o backend de WhatsApp está rodando."],
+        detalhes: ["Verifique se o backend wolf-whatsapp está rodando.", "Se acabou de rodar a migration, faça `pm2 restart wolf-whatsapp`."],
       });
     }
     setEnvioEnviando(false);
   };
 
+  // Preview da mensagem com vars do primeiro contato
   const previewMensagem = useMemo(() => {
     if (envioContatos.length === 0) return envioMensagem;
     return substituirVars(envioMensagem, envioContatos[0].vars);
   }, [envioMensagem, envioContatos]);
 
-  // Loading auth
-  if (authLoading) {
-    return (
-      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: "#6b7280", fontSize: 13 }}>⏳ Verificando permissões...</div>
-      </div>
-    );
-  }
-
-  // Sem workspace ainda carregado
-  if (!wsId) {
-    return (
-      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: "#6b7280", fontSize: 13 }}>⏳ Carregando workspace...</div>
-      </div>
-    );
-  }
-
-  if (!permitido) {
+  // ═══════════════════════════════════════════════════════════════════════
+  // 🚫 ACESSO RESTRITO
+  // ═══════════════════════════════════════════════════════════════════════
+  if (!podeAcessar) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", padding: 32 }}>
         <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
           <div style={{ width: 80, height: 80, borderRadius: 20, background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, margin: "0 auto 16px", boxShadow: "0 12px 24px rgba(220,38,38,0.25)" }}>🔒</div>
           <h1 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 22px" }}>O módulo de Cobrança é restrito a <b>Dono</b>, <b>Administradores</b> e <b>Supervisores</b> do workspace.</p>
-          <button onClick={() => router.back()}
-            style={{ background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", color: "white", border: "none", borderRadius: 12, padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }}>← Voltar</button>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Vc não tem permissão pra ver o módulo de Cobrança.</p>
         </div>
       </div>
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // 🎨 RENDER
+  // ═══════════════════════════════════════════════════════════════════════
   return (
     <div style={{ padding: isMobile ? 14 : 24, background: "#f8fafc", minHeight: "100vh", display: "flex", flexDirection: "column", gap: 14 }}>
       {/* HEADER */}
       <div style={{ ...cardStyle, padding: isMobile ? 16 : 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }}>💰</div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(220,38,38,0.3)" }}>💰</div>
           <div>
             <h1 style={{ color: "#1f2937", fontSize: isMobile ? 17 : 20, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Cobrança</h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
-              Wolf CRM · <b style={{ color: "#3b82f6" }}>{nomeWorkspace}</b> · Cobre direto do CRM ou suba uma planilha
-            </p>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>Cobre direto do CRM ou suba uma planilha de números.</p>
           </div>
         </div>
+        {/* 🔒 Equipe — admin escolhe; Diretor travado mostra rótulo fixo */}
+        {veTudo && <EquipeSelector />}
+        {travadoEquipe && minhaEquipeNome && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "6px 14px" }}>
+            <span style={{ fontSize: 14, lineHeight: 1 }}>👥</span>
+            <span style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Equipe</span>
+            <span style={{ color: "#b91c1c", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
+          </div>
+        )}
       </div>
-
-      {/* BANNER TABELAS FALTANDO */}
-      {tabelasFaltando.length > 0 && (
-        <div style={{
-          background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-          border: "1px solid #fcd34d", borderLeft: "4px solid #f59e0b",
-          borderRadius: 12, padding: "12px 16px",
-          display: "flex", gap: 12, alignItems: "flex-start",
-        }}>
-          <span style={{ fontSize: 22 }}>⚠️</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ color: "#92400e", fontSize: 13, margin: 0, fontWeight: 700 }}>Algumas tabelas não foram encontradas no Supabase</p>
-            <p style={{ color: "#78350f", fontSize: 12, margin: "4px 0 0", lineHeight: 1.5 }}>
-              {tabelasFaltando.map(t => <code key={t} style={{ background: "#fef3c7", padding: "1px 6px", borderRadius: 4, fontFamily: "monospace", fontSize: 11.5, marginRight: 4 }}>{t}</code>)}
-              <br/>Rode o SQL de setup correspondente pra liberar essa funcionalidade. {tabelasFaltando.some(t => t.includes("faturas_status")) && <b>(faturas_status guarda quais faturas foram pagas)</b>}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 10 : 14 }}>
         <KPI cor="#3b82f6" bg="#eff6ff" icone="📅" label="A receber (mês)" valor={formatBRLCompacto(kpis.aReceberMes)} sub={`${kpis.totalMes - kpis.pagasMes} fatura(s) pendente(s)`} isMobile={isMobile} />
         <KPI cor="#16a34a" bg="#f0fdf4" icone="💵" label="Recebido (mês)"  valor={formatBRLCompacto(kpis.recebidoMes)} sub={`${kpis.pagasMes} fatura(s) paga(s)`} isMobile={isMobile} />
         <KPI cor="#dc2626" bg="#fef2f2" icone="🔴" label="Atrasado"         valor={formatBRLCompacto(kpis.atrasado)}    sub={`${kpis.atrasadasCnt} fatura(s) vencida(s)`} isMobile={isMobile} />
-        <KPI cor="#8b5cf6" bg="#f5f3ff" icone="📊" label="Inadimplência"    valor={`${kpis.inadimplencia}%`}             sub="Atrasadas / total do mês" isMobile={isMobile} />
+        <KPI cor="#a855f7" bg="#f3e8ff" icone="📊" label="Inadimplência"    valor={`${kpis.inadimplencia}%`}             sub="Atrasadas / total do mês" isMobile={isMobile} />
       </div>
 
       {/* TABS */}
       <div style={{ ...cardStyle, padding: 6, display: "flex", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         {([
-          { key: "do_crm",    label: "📅 Do CRM",   color: "#3b82f6" },
+          { key: "do_crm",    label: "📅 Do CRM",   color: "#dc2626" },
           { key: "planilha",  label: "📤 Planilha", color: "#a855f7" },
-          { key: "campanhas", label: "📊 Campanhas", color: "#16a34a" },
+          { key: "campanhas", label: "📊 Campanhas", color: "#3b82f6" },
         ] as { key: AbaKey; label: string; color: string }[]).map(t => {
           const at = aba === t.key;
           return (
@@ -899,6 +948,7 @@ export default function CobrancaPage() {
           {/* ════════════ ABA: DO CRM ════════════ */}
           {aba === "do_crm" && (
             <>
+              {/* Filtros */}
               <div style={{ ...cardStyle, padding: isMobile ? 12 : 16, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 {([
                   { k: "vencendo_7d", l: "🟡 Próximos 7 dias", cor: "#f59e0b" },
@@ -919,6 +969,7 @@ export default function CobrancaPage() {
                   style={{ ...inputStyle, flex: 1, minWidth: 180, padding: "7px 12px" }} />
               </div>
 
+              {/* 🆕 Linha de filtro de STATUS da fatura — expandido */}
               <div style={{ ...cardStyle, padding: isMobile ? 10 : 12, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                 <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, marginRight: 4 }}>Status:</span>
                 {([
@@ -926,7 +977,7 @@ export default function CobrancaPage() {
                   { k: "pendentes", l: "⏳ A pagar",      cor: "#d97706" },
                   { k: "atrasadas", l: "🔴 Atrasadas",    cor: "#dc2626" },
                   { k: "pagas",     l: "✅ Pagas",         cor: "#16a34a" },
-                  { k: "promessa",  l: "🤝 Promessa",     cor: "#3b82f6" },
+                  { k: "promessa",  l: "🤝 Promessa",     cor: "#2563eb" },
                   { k: "negociacao",l: "📞 Negociação",   cor: "#7c3aed" },
                   { k: "acordo",    l: "📋 Acordo",       cor: "#0284c7" },
                   { k: "nao_pagara",l: "❌ Não vai pagar", cor: "#991b1b" },
@@ -935,7 +986,7 @@ export default function CobrancaPage() {
                 ] as { k: string; l: string; cor: string }[]).map(f => {
                   const at = filtroStatus === f.k;
                   return (
-                    <button key={f.k} onClick={() => { setFiltroStatus(f.k); setSelecionadasFat(new Set()); }}
+                    <button key={f.k} onClick={() => { setFiltroStatus(f.k as any); setSelecionadasFat(new Set()); }}
                       style={{ background: at ? `${f.cor}15` : "#ffffff", color: at ? f.cor : "#6b7280", border: `1px solid ${at ? f.cor : "#e5e7eb"}`, borderRadius: 20, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: at ? 700 : 600, whiteSpace: "nowrap" }}>
                       {f.l}
                     </button>
@@ -943,6 +994,7 @@ export default function CobrancaPage() {
                 })}
               </div>
 
+              {/* Lista de FATURAS (1 linha por fatura, não por cliente) */}
               <div style={{ ...cardStyle, overflow: "hidden" }}>
                 <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                   <div style={{ color: "#6b7280", fontSize: 12, fontWeight: 600 }}>
@@ -985,9 +1037,9 @@ export default function CobrancaPage() {
                           const c = corStatus(f.status_visual);
                           return (
                             <tr key={k}
-                              style={{ borderTop: "1px solid #f3f4f6", background: sel ? "#eff6ff" : (i % 2 === 0 ? "#ffffff" : "#fafbfc") }}>
+                              style={{ borderTop: "1px solid #f3f4f6", background: sel ? "#fef2f2" : (i % 2 === 0 ? "#ffffff" : "#fafbfc") }}>
                               <td style={{ padding: "12px", textAlign: "center" }}>
-                                <input type="checkbox" checked={sel} onChange={() => toggleSelFat(k)} style={{ cursor: "pointer", width: 16, height: 16, accentColor: "#3b82f6" }} />
+                                <input type="checkbox" checked={sel} onChange={() => toggleSelFat(k)} style={{ cursor: "pointer", width: 16, height: 16 }} />
                               </td>
                               <td style={{ padding: "12px", maxWidth: 220, overflow: "hidden" }}>
                                 <div style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.proposta.nome || "—"}</div>
@@ -1034,7 +1086,7 @@ export default function CobrancaPage() {
                                     </button>
                                   )}
                                   <button onClick={() => abrirStatus(f, "promessa")} title="Mais opções de status"
-                                    style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                    style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 6, padding: "5px 9px", fontSize: 11, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
                                     ⚙ Status
                                   </button>
                                   <button onClick={() => clienteCancelou(f)} title="Cliente cancelou o serviço"
@@ -1057,24 +1109,26 @@ export default function CobrancaPage() {
           {/* ════════════ ABA: PLANILHA ════════════ */}
           {aba === "planilha" && (
             <>
+              {/* Upload */}
               <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
                 <h3 style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 12px" }}>1. Suba sua planilha</h3>
                 <input ref={inputArquivoRef} type="file" accept=".csv,.xlsx,.xls" onChange={onArquivoSelecionado} style={{ display: "none" }} />
-                <div style={{ border: "2px dashed #93c5fd", borderRadius: 12, padding: 24, textAlign: "center", background: "#eff6ff", cursor: "pointer" }} onClick={() => inputArquivoRef.current?.click()}>
+                <div style={{ border: "2px dashed #d1d5db", borderRadius: 12, padding: 24, textAlign: "center", background: "#fafbfc", cursor: "pointer" }} onClick={() => inputArquivoRef.current?.click()}>
                   <div style={{ fontSize: 36, marginBottom: 6 }}>📤</div>
-                  <p style={{ color: "#3b82f6", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>
+                  <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>
                     {planilhaNomeArquivo || "Clique pra escolher um arquivo"}
                   </p>
-                  <p style={{ color: "#6366f1", fontSize: 12, margin: 0 }}>Aceita .csv, .xlsx, .xls — primeira linha geralmente é o cabeçalho.</p>
+                  <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>Aceita .csv, .xlsx, .xls — primeira linha geralmente é o cabeçalho.</p>
                 </div>
                 {planilhaLinhas.length > 0 && (
                   <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, color: "#374151", fontSize: 12, cursor: "pointer" }}>
-                    <input type="checkbox" checked={primeiraLinhaCabecalho} onChange={e => setPrimeiraLinhaCabecalho(e.target.checked)} style={{ accentColor: "#3b82f6" }} />
+                    <input type="checkbox" checked={primeiraLinhaCabecalho} onChange={e => setPrimeiraLinhaCabecalho(e.target.checked)} />
                     Primeira linha é o cabeçalho da planilha
                   </label>
                 )}
               </div>
 
+              {/* Mapeamento */}
               {planilhaLinhas.length > 0 && (
                 <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
                   <h3 style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>2. Mapeie as colunas</h3>
@@ -1107,6 +1161,7 @@ export default function CobrancaPage() {
                 </div>
               )}
 
+              {/* Preview + Disparo */}
               {planilhaLinhas.length > 0 && (
                 <div style={{ ...cardStyle, overflow: "hidden" }}>
                   <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -1148,10 +1203,10 @@ export default function CobrancaPage() {
                             return (
                               <tr key={i}
                                 onClick={() => { if (valido && idxValido >= 0) toggleSelPlanilha(idxValido); }}
-                                style={{ borderTop: "1px solid #f3f4f6", background: !valido ? "#fef2f2" : (sel ? "#eff6ff" : (i % 2 === 0 ? "#ffffff" : "#fafbfc")), cursor: valido ? "pointer" : "default", opacity: valido ? 1 : 0.5 }}>
+                                style={{ borderTop: "1px solid #f3f4f6", background: !valido ? "#fef2f2" : (sel ? "#f0fdf4" : (i % 2 === 0 ? "#ffffff" : "#fafbfc")), cursor: valido ? "pointer" : "default", opacity: valido ? 1 : 0.5 }}>
                                 <td style={{ padding: "12px", textAlign: "center" }}>
                                   {valido && (
-                                    <input type="checkbox" checked={sel} onChange={() => toggleSelPlanilha(idxValido)} onClick={e => e.stopPropagation()} style={{ cursor: "pointer", width: 16, height: 16, accentColor: "#3b82f6" }} />
+                                    <input type="checkbox" checked={sel} onChange={() => toggleSelPlanilha(idxValido)} onClick={e => e.stopPropagation()} style={{ cursor: "pointer", width: 16, height: 16 }} />
                                   )}
                                 </td>
                                 <td style={{ padding: "12px", color: "#9ca3af", fontSize: 11 }}>{i + 1}</td>
@@ -1194,7 +1249,7 @@ export default function CobrancaPage() {
                   <div style={{ fontSize: 40, marginBottom: 8 }}>📊</div>
                   <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>Nenhuma campanha ainda</p>
                   <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>
-                    Dispare uma cobrança na aba Do CRM ou Planilha que ela aparece aqui.
+                    Dispare uma cobrança na aba Faturas ou Planilha que ela aparece aqui.
                   </p>
                 </div>
               ) : (
@@ -1232,11 +1287,11 @@ export default function CobrancaPage() {
         </>
       )}
 
-      {/* MODAL DE ENVIO */}
+      {/* ════════════ MODAL DE ENVIO ════════════ */}
       {showEnvio && (
         <div onClick={() => !envioEnviando && setShowEnvio(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", borderRadius: 16, maxWidth: 720, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
-            <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", background: "linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 800, margin: 0 }}>📤 Disparar cobrança</h3>
                 <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>{envioContatos.length} contato(s) · fonte: {envioFonte === "crm" ? "📅 CRM" : "📤 Planilha"}</p>
@@ -1245,11 +1300,13 @@ export default function CobrancaPage() {
             </div>
 
             <div style={{ padding: 22, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* Nome da campanha */}
               <div>
                 <label style={labelStyle}>Nome da campanha</label>
                 <input value={envioNomeCampanha} onChange={e => setEnvioNomeCampanha(e.target.value)} style={inputStyle} placeholder="Ex: Cobrança Janeiro" />
               </div>
 
+              {/* Tipo */}
               <div>
                 <label style={labelStyle}>Tipo de envio</label>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -1258,13 +1315,14 @@ export default function CobrancaPage() {
                     { v: "waba",  l: "📨 WABA (template aprovado)" },
                   ] as { v: "webjs" | "waba"; l: string }[]).map(o => (
                     <button key={o.v} onClick={() => setEnvioTipo(o.v)}
-                      style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: envioTipo === o.v ? "2px solid #3b82f6" : "1px solid #e5e7eb", background: envioTipo === o.v ? "#eff6ff" : "#ffffff", color: envioTipo === o.v ? "#3b82f6" : "#6b7280", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                      style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: envioTipo === o.v ? "2px solid #dc2626" : "1px solid #e5e7eb", background: envioTipo === o.v ? "#fef2f2" : "#ffffff", color: envioTipo === o.v ? "#dc2626" : "#6b7280", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                       {o.l}
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Canal */}
               <div>
                 <label style={labelStyle}>Canal WhatsApp</label>
                 <select value={envioCanalId ?? ""} onChange={e => setEnvioCanalId(e.target.value ? parseInt(e.target.value) : null)} style={inputStyle}>
@@ -1273,15 +1331,13 @@ export default function CobrancaPage() {
                     <option key={c.id} value={c.id}>{c.nome} ({c.tipo})</option>
                   ))}
                 </select>
-                {canais.length === 0 && (
-                  <p style={{ color: "#f59e0b", fontSize: 11, margin: "4px 0 0" }}>⚠️ Nenhum canal cadastrado. Configure em Chatbot → Conexões.</p>
-                )}
               </div>
 
+              {/* Mensagem WebJS */}
               {envioTipo === "webjs" && (
                 <>
                   <div>
-                    <label style={labelStyle}>Mensagem (use {`{{nome}}, {{valor}}, {{vencimento}}, {{plano}}, {{empresa}}`})</label>
+                    <label style={labelStyle}>Mensagem (use {`{{nome}}, {{valor}}, {{vencimento}}, {{plano}}`})</label>
                     <textarea value={envioMensagem} onChange={e => setEnvioMensagem(e.target.value)} rows={6} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} />
                   </div>
                   {envioContatos.length > 0 && (
@@ -1293,6 +1349,7 @@ export default function CobrancaPage() {
                 </>
               )}
 
+              {/* Template WABA */}
               {envioTipo === "waba" && (
                 <div>
                   <label style={labelStyle}>Template aprovado</label>
@@ -1308,6 +1365,7 @@ export default function CobrancaPage() {
                 </div>
               )}
 
+              {/* Delay */}
               <div>
                 <label style={labelStyle}>Delay entre envios (segundos)</label>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -1318,6 +1376,7 @@ export default function CobrancaPage() {
               </div>
             </div>
 
+            {/* Footer */}
             <div style={{ padding: "14px 22px", borderTop: "1px solid #e5e7eb", background: "#fafbfc", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
               <span style={{ color: "#6b7280", fontSize: 12 }}>Vão ser enviadas {envioContatos.length} mensagens.</span>
               <div style={{ display: "flex", gap: 8 }}>
@@ -1331,10 +1390,11 @@ export default function CobrancaPage() {
         </div>
       )}
 
-      {/* MODAL: MUDAR STATUS DA FATURA */}
+      {/* ════════════ MODAL: MUDAR STATUS DA FATURA ════════════ */}
       {showStatus && (() => {
         const f = showStatus;
         const meta = STATUS_META[novoStatus];
+        // Quais campos extras mostrar baseado no status escolhido
         const mostraDataPag = meta?.recebido;
         const mostraValor = meta?.recebido;
         const mostraForma = meta?.recebido;
@@ -1349,11 +1409,12 @@ export default function CobrancaPage() {
                 </p>
               </div>
               <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1 }}>
+                {/* GRID de status */}
                 <div>
                   <label style={labelStyle}>Qual o status dessa fatura?</label>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 6 }}>
                     {(Object.keys(STATUS_META) as StatusFatura[])
-                      .filter(s => s !== "atrasada" && s !== "pendente")
+                      .filter(s => s !== "atrasada" && s !== "pendente")  // atrasada é derivada; pendente usa botão "↩ A pagar"
                       .map(s => {
                         const m = STATUS_META[s];
                         const at = novoStatus === s;
@@ -1376,6 +1437,7 @@ export default function CobrancaPage() {
                   </div>
                 </div>
 
+                {/* Campos extras condicionais */}
                 {mostraDataPag && (
                   <div>
                     <label style={labelStyle}>Data do pagamento</label>
@@ -1441,13 +1503,13 @@ export default function CobrancaPage() {
         );
       })()}
 
-      {/* MODAL DE FEEDBACK */}
+      {/* ════════════ MODAL DE FEEDBACK ════════════ */}
       {feedback && (() => {
         const cores = {
           erro:    { bg: "#fef2f2", border: "#fecaca", iconBg: "#fee2e2", icon: "#dc2626", titulo: "#991b1b", botao: "#dc2626", emoji: "⚠️" },
           aviso:   { bg: "#fffbeb", border: "#fde68a", iconBg: "#fef3c7", icon: "#d97706", titulo: "#92400e", botao: "#d97706", emoji: "🛡️" },
           sucesso: { bg: "#f0fdf4", border: "#bbf7d0", iconBg: "#dcfce7", icon: "#16a34a", titulo: "#14532d", botao: "#16a34a", emoji: "✅" },
-          info:    { bg: "#eff6ff", border: "#bfdbfe", iconBg: "#dbeafe", icon: "#3b82f6", titulo: "#1e3a8a", botao: "#3b82f6", emoji: "ℹ️" },
+          info:    { bg: "#eff6ff", border: "#bfdbfe", iconBg: "#dbeafe", icon: "#2563eb", titulo: "#1e3a8a", botao: "#2563eb", emoji: "ℹ️" },
         }[feedback.tipo];
         const ehConfirm = !!feedback.onConfirmar;
         return (
@@ -1487,6 +1549,7 @@ export default function CobrancaPage() {
   );
 }
 
+// ─── SUBCOMPONENTES ────────────────────────────────────────────────────────
 function KPI({ cor, bg, icone, label, valor, sub, isMobile }: {
   cor: string; bg: string; icone: string; label: string; valor: string; sub: string; isMobile: boolean;
 }) {
@@ -1500,4 +1563,8 @@ function KPI({ cor, bg, icone, label, valor, sub, isMobile }: {
       <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", fontWeight: 500 }}>{sub}</p>
     </div>
   );
+}
+
+function formatNum(n: number): string {
+  return (n || 0).toLocaleString("pt-BR");
 }

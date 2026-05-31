@@ -21,6 +21,11 @@ import { supabase } from "../lib/supabase";
 //   🔍 Supervisor / 👤 Atendente = "Ministros comuns"
 //      → Respeita o grupo de permissão configurado pelo Dono
 //      → Respeita o plano do workspace
+//
+// 🆕 INTEGRAÇÃO EQUIPES (multi-tenant): além das permissões, o hook agora
+//    expõe `equipeId` e `workspaceId` do usuário logado, e um helper
+//    `escopoVisao()` que diz se a tela deve mostrar TUDO do workspace,
+//    só a EQUIPE do usuário, só o que é DELE, ou NADA.
 // ═══════════════════════════════════════════════════════════════════════
 
 // 🔒 Email do super admin Wolf (você)
@@ -126,11 +131,21 @@ export const PERMISSOES_ZERO: Permissoes = Object.keys(PERMISSOES_DONO).reduce((
 // Versão com TUDO true — usada como fallback pro super admin Wolf
 const PERMISSOES_SUPER_ADMIN: Permissoes = { ...PERMISSOES_DONO };
 
+// 🆕 Escopo de visão de uma área (vendas, chat, etc.)
+//   "all"  → vê tudo do workspace (dono / admin / super admin / sem equipe atribuída)
+//   "team" → vê só a equipe dele
+//   "own"  → vê só o que é dele (vendedor = email dele)
+//   "none" → não vê nada
+export type EscopoVisao = "all" | "team" | "own" | "none";
+
 export function usePermissao() {
   const [permissoes, setPermissoes] = useState<Permissoes>(PERMISSOES_ZERO);
   const [isDono, setIsDono] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [perfil, setPerfil] = useState("");
+  const [equipeId, setEquipeId] = useState<string | null>(null);  // 🆕 uuid da equipe (null = sem recorte)
+  const [workspaceId, setWorkspaceId] = useState<string>("");      // 🆕 username do workspace atual
+  const [userEmail, setUserEmail] = useState<string>("");          // 🆕 email do usuário logado
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -138,19 +153,22 @@ export function usePermissao() {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
+      setUserEmail(user.email || "");
 
       // Detecta SUPER ADMIN Wolf — bypass total em qualquer workspace
       const ehSuperAdmin = (user.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
       setIsSuperAdmin(ehSuperAdmin);
 
       // ═══ É dono do workspace atual? ═══
-      const { data: ws } = await supabase.from("workspaces").select("id")
+      const { data: ws } = await supabase.from("workspaces").select("id, username")
         .eq("owner_id", user.id).maybeSingle();
 
       if (ws) {
         setIsDono(true);
         setPerfil(ehSuperAdmin ? "super_admin" : "dono");
         setPermissoes(PERMISSOES_DONO);
+        setWorkspaceId(ws.username || "");
+        setEquipeId(null);              // dono enxerga todas as equipes do workspace
         setLoading(false);
         return;
       }
@@ -161,13 +179,22 @@ export function usePermissao() {
         setIsDono(false);
         setPerfil("super_admin");
         setPermissoes(PERMISSOES_SUPER_ADMIN);
+        // Tenta descobrir o workspace via vínculo de sub-usuário (se houver)
+        const { data: suWs } = await supabase.from("usuarios_workspace")
+          .select("workspace_id")
+          .eq("email", user.email)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setWorkspaceId(suWs?.workspace_id || "");
+        setEquipeId(null);
         setLoading(false);
         return;
       }
 
       // ═══ É sub-usuário? ═══
       const { data: usuarioWs } = await supabase.from("usuarios_workspace")
-        .select("perfil, grupo_id")
+        .select("perfil, grupo_id, equipe_id, workspace_id")
         .eq("email", user.email)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -175,13 +202,10 @@ export function usePermissao() {
 
       if (usuarioWs) {
         setPerfil(usuarioWs.perfil || "Atendente");
+        setEquipeId(usuarioWs.equipe_id || null);       // 🆕 equipe do sub-usuário
+        setWorkspaceId(usuarioWs.workspace_id || "");   // 🆕 workspace do sub-usuário
 
         // 🆕 FIX (sessão 18): Administrador SEMPRE tem acesso total, IGNORA grupo.
-        // ─────────────────────────────────────────────────────────────────────
-        // Antes essa checagem vinha DEPOIS de "if (usuarioWs.grupo_id)" — então
-        // qualquer Admin com grupo atribuído pegava as permissões do grupo
-        // (geralmente incompletas) e perdia acesso a coisas que deveria ter.
-        //
         // Por design: "Administrador" implica acesso TOTAL, igual ao Dono.
         // Pra criar "admin com restrições", use perfil Supervisor + grupo.
         if (usuarioWs.perfil === "Administrador") {
@@ -217,5 +241,43 @@ export function usePermissao() {
     init();
   }, []);
 
-  return { permissoes, isDono, isSuperAdmin, perfil, loading };
+  // ─── Helpers ────────────────────────────────────────────────────────
+
+  // Checa uma permissão pontual (dono/admin/super admin sempre passam)
+  const tem = (key: keyof Permissoes): boolean =>
+    isSuperAdmin || isDono || !!permissoes[key];
+
+  // Manda total? (dono, super admin ou perfil Administrador)
+  const veTudo = isSuperAdmin || isDono || perfil === "Administrador";
+
+  // 🆕 Escopo de visão pra uma área que tem permissão "de equipe" e "própria".
+  // Ex: vendas → escopoVisao("vendas_equipe", "vendas_proprio")
+  //   - dono/admin/super       → "all"
+  //   - tem _equipe + tem equipe atribuída → "team"
+  //   - tem _equipe sem equipe atribuída   → "all" (não dá pra recortar, vê o workspace)
+  //   - só tem _proprio          → "own"
+  //   - não tem nenhuma          → "none"
+  const escopoVisao = (
+    keyEquipe: keyof Permissoes,
+    keyProprio: keyof Permissoes
+  ): EscopoVisao => {
+    if (veTudo) return "all";
+    if (permissoes[keyEquipe]) return equipeId ? "team" : "all";
+    if (permissoes[keyProprio]) return "own";
+    return "none";
+  };
+
+  return {
+    permissoes,
+    isDono,
+    isSuperAdmin,
+    perfil,
+    equipeId,      // 🆕
+    workspaceId,   // 🆕
+    userEmail,     // 🆕
+    loading,
+    tem,           // 🆕
+    veTudo,        // 🆕
+    escopoVisao,   // 🆕
+  };
 }

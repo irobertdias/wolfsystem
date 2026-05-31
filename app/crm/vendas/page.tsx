@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
@@ -12,6 +12,20 @@ import {
   type ConfigCampoPadrao,
   type CampoCustom,
 } from "../../lib/campos_proposta_definicao";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 💰 VENDAS — Wolf CRM (multi-tenant)
+// ───────────────────────────────────────────────────────────────────────────
+// Tabela mestra de propostas. Isola por workspace_id em TODAS as queries.
+//   • 🛡️ Permissões reais via usePermissao (Fase 2):
+//       escopoVisao("vendas_equipe","vendas_proprio") → all | team | own | none
+//       - none → tela bloqueada
+//       - own  → vê só onde vendedor == email dele
+//       - team → vê só a equipe_id dele (dropdown vira rótulo fixo)
+//       - all  → vê o workspace todo (dropdown de equipe livre)
+//   • KPIs rápidos (Visíveis / Instaladas / Pendentes / Canceladas / Receita)
+//   • Real-time channel por workspace
+// ═══════════════════════════════════════════════════════════════════════════
 
 type Proposta = {
   id: number; created_at: string; data_proposta: string; nome: string;
@@ -39,7 +53,13 @@ const statusColor: Record<string, string> = {
 
 export default function Vendas() {
   const router = useRouter();
-  const { isDono, perfil, permissoes } = usePermissao();
+  // 🛡️ Permissões reais (Fase 2): escopo + equipe do usuário logado
+  const {
+    isDono, perfil, permissoes,
+    escopoVisao, equipeId: minhaEquipeId, userEmail: meuEmailPerm,
+    loading: permLoading,
+  } = usePermissao();
+
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [loading, setLoading] = useState(true);
   const [workspaceId, setWorkspaceId] = useState("");
@@ -95,7 +115,6 @@ export default function Vendas() {
       }
     };
     medir();
-    // Mede depois do paint também (cobre primeira renderização da tabela)
     const t = setTimeout(medir, 50);
     window.addEventListener("resize", medir);
     return () => { clearTimeout(t); window.removeEventListener("resize", medir); };
@@ -108,9 +127,20 @@ export default function Vendas() {
   const [dadosCustomizadosEdit, setDadosCustomizadosEdit] = useState<Record<string, any>>({});
   const [salvando, setSalvando] = useState(false);
 
+  // 🛡️ ESCOPO de visão (Fase 2)
+  const esc = escopoVisao("vendas_equipe", "vendas_proprio"); // all | team | own | none
+  const travadoEquipe = esc === "team";
+  const podeVerTudo = esc === "all";                 // dono / admin / super → vê o workspace todo
+  const podeEscolherVendedor = esc === "all" || esc === "team";
+
+  // Equipe efetivamente aplicada: Diretor travado na dele; admin usa o dropdown
+  const equipeEfetiva = travadoEquipe ? (minhaEquipeId || "") : equipeId;
+  const minhaEquipeNome = minhaEquipeId
+    ? (equipes.find(e => e.id === minhaEquipeId)?.nome || "Minha equipe")
+    : "";
+
   const podeExcluir = isDono || perfil === "Administrador";
   const podeEditarCamposCustom = isDono || perfil === "Administrador";
-  const podeVerTudo = isDono || perfil === "Administrador" || !!permissoes?.vendas_equipe;
 
   // 🎨 ESTILOS LIGHT TECH
   const inputStyle = {
@@ -137,7 +167,6 @@ export default function Vendas() {
       ? (v as any)[c.slug]
       : v.dados_customizados?.[c.slug];
 
-    // Estilizações especiais por slug (mantêm visual original)
     if (c.slug === "status_venda") {
       const cor = statusColor[raw] || "#6b7280";
       return raw ? (
@@ -164,12 +193,10 @@ export default function Vendas() {
       return <span style={{ color: "#6b7280", fontSize: 12, fontFamily: "monospace" }}>{raw || <span style={{ color: "#d1d5db" }}>—</span>}</span>;
     }
 
-    // Vazios genéricos
     if (raw === undefined || raw === null || raw === "") {
       return <span style={{ color: "#d1d5db" }}>—</span>;
     }
 
-    // Formatação por tipo
     if (c.tipo === "data") {
       try {
         return <span style={{ color: "#6b7280", fontSize: 12, whiteSpace: "nowrap" }}>
@@ -220,11 +247,14 @@ export default function Vendas() {
   const renderFiltroColuna = (c: CampoUnificado): ReactNode => {
     const val = filtrosColuna[c.slug] ?? "";
 
-    // Vendedor → dropdown com a lista de usuários do workspace (filtrada por equipe se houver)
     if (c.slug === "vendedor" || c.tipo === "vendedor") {
-      const vendedoresVisiveis = equipeId
-        ? usuariosWs.filter(u => u.equipe_id === equipeId)
+      // Pro travado na equipe, só mostra vendedores da equipe dele
+      const baseVend = travadoEquipe
+        ? usuariosWs.filter(u => String(u.equipe_id ?? "") === String(minhaEquipeId))
         : usuariosWs;
+      const vendedoresVisiveis = equipeEfetiva
+        ? baseVend.filter(u => String(u.equipe_id ?? "") === String(equipeEfetiva))
+        : baseVend;
       return (
         <select value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle}>
           <option value="">Todos</option>
@@ -233,7 +263,6 @@ export default function Vendas() {
       );
     }
 
-    // Dropdowns em geral (status_venda, vencimento, e custom dropdowns)
     if (c.tipo === "dropdown") {
       const prefixoVenc = c.slug === "vencimento";
       return (
@@ -246,7 +275,6 @@ export default function Vendas() {
       );
     }
 
-    // Checkbox → Sim / Não / Todos
     if (c.tipo === "checkbox") {
       return (
         <select value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle}>
@@ -257,16 +285,13 @@ export default function Vendas() {
       );
     }
 
-    // Data → date input (filtra por data exata)
     if (c.tipo === "data") {
       return <input type="date" value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle} />;
     }
 
-    // Default → texto contém
     return <input placeholder="filtrar..." value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle} />;
   };
 
-  // Aplica TODOS os filtros de coluna sobre uma proposta
   const passaFiltrosColuna = (p: Proposta): boolean => {
     for (const [slug, valor] of Object.entries(filtrosColuna)) {
       if (!valor) continue;
@@ -277,26 +302,22 @@ export default function Vendas() {
         ? (p as any)[slug]
         : p.dados_customizados?.[slug];
 
-      // Checkbox: compara booleano
       if (campo.tipo === "checkbox") {
         const esperado = valor === "sim";
         if (!!raw !== esperado) return false;
         continue;
       }
 
-      // Dropdown e Vendedor: igualdade exata
       if (campo.tipo === "dropdown" || campo.tipo === "vendedor" || slug === "vendedor") {
         if (String(raw ?? "") !== valor) return false;
         continue;
       }
 
-      // Data: igualdade exata (formato YYYY-MM-DD)
       if (campo.tipo === "data") {
         if (String(raw ?? "") !== valor) return false;
         continue;
       }
 
-      // Padrão: contém (case-insensitive). Pra vendedor também tenta pelo nome amigável.
       const txt = String(raw ?? "").toLowerCase();
       if (!txt.includes(valor.toLowerCase())) return false;
     }
@@ -359,7 +380,6 @@ export default function Vendas() {
       placeholder: c.placeholder, ativo: c.ativo,
     }));
 
-    // 📊 Slugs marcados pelo editor pra aparecer na tabela principal
     const slugs = new Set<string>();
     for (const c of (respConfig.data || [])) {
       if (c.mostrar_na_lista) slugs.add(c.campo_slug);
@@ -492,13 +512,17 @@ export default function Vendas() {
       const set = (v: any) => setForm({ ...form, [c.slug]: v });
 
       if (c.tipo === "vendedor") {
+        // Pro travado na equipe, lista só vendedores da equipe dele
+        const vendedoresModal = travadoEquipe
+          ? usuariosWs.filter(u => String(u.equipe_id ?? "") === String(minhaEquipeId))
+          : usuariosWs;
         return (
           <div>{lab}
-            {podeVerTudo ? (
+            {podeEscolherVendedor ? (
               <select value={val} onChange={e => set(e.target.value)} style={inputStyle}>
                 <option value="">Selecione...</option>
-                {usuariosWs.map(u => <option key={u.email} value={u.email}>{u.nome}</option>)}
-                {val && !usuariosWs.find(u => u.email?.toLowerCase() === String(val).toLowerCase()) && (
+                {vendedoresModal.map(u => <option key={u.email} value={u.email}>{u.nome}</option>)}
+                {val && !vendedoresModal.find(u => u.email?.toLowerCase() === String(val).toLowerCase()) && (
                   <option value={val}>⚠️ {val} (legado)</option>
                 )}
               </select>
@@ -565,8 +589,16 @@ export default function Vendas() {
   };
 
   const propostasFiltradas = propostas
-    .filter(p => podeVerTudo || (p.vendedor && p.vendedor.toLowerCase() === userEmail.toLowerCase()))
-    .filter(p => !equipeId || p.equipe_id === equipeId)
+    // 🛡️ ESCOPO: own → só minhas; team/all → recorte de equipe abaixo
+    .filter(p => {
+      if (esc === "own") {
+        const meu = (meuEmailPerm || userEmail || "").toLowerCase();
+        return (p.vendedor || "").toLowerCase() === meu;
+      }
+      return true;
+    })
+    // 👥 EQUIPE: Diretor travado na dele; admin usa o dropdown. Sem equipe = todas.
+    .filter(p => !equipeEfetiva || String(p.equipe_id ?? "") === String(equipeEfetiva))
     .filter(p => filtroStatus === "todos" || p.status_venda === filtroStatus)
     .filter(p => !busca || p.nome?.toLowerCase().includes(busca.toLowerCase()) || p.cpf?.includes(busca) || nomeVendedor(p.vendedor).toLowerCase().includes(busca.toLowerCase()))
     .filter(p => {
@@ -578,9 +610,7 @@ export default function Vendas() {
     })
     .filter(p => passaFiltrosColuna(p));
 
-  // 📊 Colunas a renderizar na tabela:
-  //    - se o editor marcou pelo menos 1 campo, usa apenas os marcados
-  //    - se ninguém marcou nada (workspace recém-migrado), cai nos 7 clássicos
+  // 📊 Colunas a renderizar na tabela
   const COLUNAS_LEGADO = ["nome", "cpf", "vendedor", "plano", "valor_plano", "status_venda", "data_proposta"];
   const colunasTabela = slugsNaLista.size > 0
     ? camposUnificados.filter(c => slugsNaLista.has(c.slug))
@@ -588,6 +618,42 @@ export default function Vendas() {
 
   const totalVisivel = propostasFiltradas.length;
   const totalGeral = propostas.length;
+
+  // 📊 KPIs rápidos (sobre o que está visível)
+  const kpis = useMemo(() => {
+    const instaladas = propostasFiltradas.filter(p => p.status_venda === "INSTALADA").length;
+    const pendentes = propostasFiltradas.filter(p => p.status_venda === "PENDENTE" || p.status_venda === "AGUARDANDO AUDITORIA").length;
+    const canceladas = propostasFiltradas.filter(p => p.status_venda === "CANCELADA" || p.status_venda === "REPROVADA").length;
+    const instaladasArr = propostasFiltradas.filter(p => p.status_venda === "INSTALADA");
+    const receita = instaladasArr.reduce((a, p) => a + (Number(p.valor_plano) || 0), 0);
+    const ticketMedio = instaladas > 0 ? receita / instaladas : 0;
+    return { instaladas, pendentes, canceladas, ticketMedio, receita };
+  }, [propostasFiltradas]);
+
+  // 🛡️ Guards visuais
+  if (permLoading) {
+    return (
+      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "#6b7280", fontSize: 13 }}>⏳ Verificando permissões...</p>
+      </div>
+    );
+  }
+  if (esc === "none") {
+    return (
+      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>
+        <div style={{ background: "white", borderRadius: 14, padding: 48, textAlign: "center", maxWidth: 480, border: "1px solid #e5e7eb" }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+          <h1 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Sem acesso a Vendas</h1>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 8px" }}>
+            Teu grupo de permissão não tem acesso às vendas.
+          </p>
+          <p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>
+            Peça ao admin pra ativar <code style={{ background: "#f3f4f6", padding: "1px 6px", borderRadius: 4, fontFamily: "monospace" }}>Ver próprias vendas</code> ou <code style={{ background: "#f3f4f6", padding: "1px 6px", borderRadius: 4, fontFamily: "monospace" }}>Ver vendas da equipe</code> no teu grupo.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
@@ -657,14 +723,27 @@ export default function Vendas() {
             <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Vendas</h1>
             <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
               {podeVerTudo
-                ? <><b style={{ color: "#16a34a" }}>{totalGeral}</b> proposta(s) cadastrada(s)</>
-                : <><b style={{ color: "#16a34a" }}>{totalVisivel}</b> proposta(s) suas{totalGeral > totalVisivel ? <> · {totalGeral - totalVisivel} de outros vendedores ocultas</> : ""}</>}
+                ? <><b style={{ color: "#16a34a" }}>{totalGeral}</b> proposta(s) cadastrada(s){totalVisivel !== totalGeral && <> · <b>{totalVisivel}</b> filtradas</>}</>
+                : travadoEquipe
+                  ? <><b style={{ color: "#16a34a" }}>{totalVisivel}</b> proposta(s) da sua equipe</>
+                  : <><b style={{ color: "#16a34a" }}>{totalVisivel}</b> proposta(s) suas</>}
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          {/* 👥 Seletor de Equipe — só pra quem pode ver tudo, e só se houver equipes */}
+          {/* 👥 Equipe — admin escolhe; Diretor travado mostra rótulo fixo */}
           {podeVerTudo && <EquipeSelector />}
+          {travadoEquipe && minhaEquipeNome && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              background: "#f0fdf4", border: "1px solid #bbf7d0",
+              borderRadius: 12, padding: "6px 14px",
+            }}>
+              <span style={{ fontSize: 14, lineHeight: 1 }}>👥</span>
+              <span style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Equipe</span>
+              <span style={{ color: "#15803d", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
+            </div>
+          )}
 
           {podeEditarCamposCustom && (
             <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos da proposta"
@@ -687,6 +766,35 @@ export default function Vendas() {
             }}>
             📋 Nova Proposta
           </button>
+        </div>
+      </div>
+
+      {/* ═══ KPIs QUICK STATS ═══ */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: isMobile ? 10 : 12 }}>
+        <div style={{ ...cardStyle, padding: 14, borderTop: "3px solid #16a34a" }}>
+          <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>📊 Visíveis</p>
+          <p style={{ color: "#16a34a", fontSize: 22, fontWeight: 800, margin: "4px 0 0", letterSpacing: -0.5 }}>{totalVisivel.toLocaleString("pt-BR")}</p>
+        </div>
+        <div style={{ ...cardStyle, padding: 14, borderTop: "3px solid #16a34a" }}>
+          <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>✅ Instaladas</p>
+          <p style={{ color: "#16a34a", fontSize: 22, fontWeight: 800, margin: "4px 0 0", letterSpacing: -0.5 }}>{kpis.instaladas.toLocaleString("pt-BR")}</p>
+        </div>
+        <div style={{ ...cardStyle, padding: 14, borderTop: "3px solid #f59e0b" }}>
+          <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>⏳ Pendentes</p>
+          <p style={{ color: "#f59e0b", fontSize: 22, fontWeight: 800, margin: "4px 0 0", letterSpacing: -0.5 }}>{kpis.pendentes.toLocaleString("pt-BR")}</p>
+        </div>
+        <div style={{ ...cardStyle, padding: 14, borderTop: "3px solid #dc2626" }}>
+          <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>❌ Canceladas</p>
+          <p style={{ color: "#dc2626", fontSize: 22, fontWeight: 800, margin: "4px 0 0", letterSpacing: -0.5 }}>{kpis.canceladas.toLocaleString("pt-BR")}</p>
+        </div>
+        <div style={{ ...cardStyle, padding: 14, borderTop: "3px solid #06b6d4", gridColumn: isMobile ? "1 / -1" : undefined }}>
+          <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>💰 Receita Instaladas</p>
+          <p style={{ color: "#16a34a", fontSize: 18, fontWeight: 800, margin: "4px 0 0", letterSpacing: -0.3 }}>
+            R$ {kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </p>
+          <p style={{ color: "#9ca3af", fontSize: 10, margin: "2px 0 0", fontWeight: 500 }}>
+            ticket: R$ {kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </p>
         </div>
       </div>
 
@@ -716,7 +824,6 @@ export default function Vendas() {
 
       {/* ═══ TABELA ═══ */}
       <div style={{ ...cardStyle, overflow: "hidden" }}>
-        {/* 📏 Scrollbar superior sincronizado — só aparece se a tabela transborda */}
         {tabelaTransborda && (
           <div ref={topScrollerRef}
             onScroll={() => {
@@ -760,7 +867,6 @@ export default function Vendas() {
                   Ações
                 </th>
               </tr>
-              {/* 🔎 Linha de filtros por coluna */}
               <tr style={{ background: "#fbfbfc" }}>
                 {colunasTabela.map(c => (
                   <th key={`fil-${c.origem}-${c.slug}`}
@@ -786,7 +892,13 @@ export default function Vendas() {
                     <span style={{ filter: "saturate(0) brightness(2)" }}>💰</span>
                   </div>
                   <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>
-                    {busca || filtroStatus !== "todos" ? "Nenhum resultado pros filtros" : podeVerTudo ? "Nenhuma proposta cadastrada ainda" : "Você ainda não cadastrou nenhuma proposta"}
+                    {busca || filtroStatus !== "todos"
+                      ? "Nenhum resultado pros filtros"
+                      : podeVerTudo
+                        ? "Nenhuma proposta cadastrada ainda"
+                        : travadoEquipe
+                          ? "Nenhuma proposta na sua equipe ainda"
+                          : "Você ainda não cadastrou nenhuma proposta"}
                   </p>
                 </td></tr>
               ) : propostasFiltradas.map((v, i) => {
@@ -829,8 +941,11 @@ export default function Vendas() {
       {!podeExcluir && propostas.length > 0 && (
         <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>🔒 Apenas o dono do workspace ou administrador podem excluir propostas.</p>
       )}
-      {!podeVerTudo && (
+      {esc === "own" && (
         <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>👤 Você só vê suas próprias propostas. Pra ver as da equipe, peça ao admin para habilitar <b style={{ color: "#6b7280" }}>"Ver vendas da equipe"</b>.</p>
+      )}
+      {travadoEquipe && (
+        <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>👥 Você vê as propostas da sua equipe (<b style={{ color: "#6b7280" }}>{minhaEquipeNome}</b>).</p>
       )}
 
       {/* ═══ MODAL DE VISUALIZAÇÃO ═══ */}
@@ -866,7 +981,6 @@ export default function Vendas() {
             </div>
 
             <div style={{ padding: 24, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* Destaques no topo */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
                 <div style={{
                   background: "#f9fafb", borderRadius: 12, padding: 14,
