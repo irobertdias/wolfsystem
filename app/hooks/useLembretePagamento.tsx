@@ -48,6 +48,7 @@ export type DadosCobranca = {
   nomeCliente: string | null;
   emailCliente: string | null;
   bloqueioPostergadoAte: string | null; // 🆕 v2 — desbloqueio em confiança
+  ehAdm: boolean;                        // 🆕 dono do workspace OU perfil Administrador → vê o VALOR no popup
 };
 
 export type LembretePagamentoState = DadosCobranca & {
@@ -123,6 +124,7 @@ export function useLembretePagamento(): LembretePagamentoState {
     nomeCliente: null,
     emailCliente: null,
     bloqueioPostergadoAte: null,
+    ehAdm: false,
   });
 
   const [popupVisivel, setPopupVisivel] = useState(false);
@@ -147,6 +149,7 @@ export function useLembretePagamento(): LembretePagamentoState {
       // Tenta encontrar o dono do workspace (cadastros tem coluna email do dono)
       let emailDono = user.email!;
       let nomeDono: string | null = null;
+      let ehAdm = false; // 🆕 dono OU sub-usuário perfil "Administrador"
 
       // É dono direto?
       const { data: wsDono } = await supabase
@@ -158,17 +161,20 @@ export function useLembretePagamento(): LembretePagamentoState {
       if (wsDono?.owner_email) {
         emailDono = wsDono.owner_email;
         nomeDono = wsDono.nome ?? null;
+        ehAdm = true; // 🆕 dono do workspace = ADM (vê o valor)
       } else {
         // É sub-usuário? Procura o workspace dele
         const { data: usuarioWs } = await supabase
           .from("usuarios_workspace")
-          .select("workspace_id")
+          .select("workspace_id, perfil")
           .eq("email", user.email)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (usuarioWs?.workspace_id) {
+          // 🆕 sub-usuário com perfil "Administrador" também é ADM (vê o valor)
+          ehAdm = usuarioWs.perfil === "Administrador";
           const { data: wsSub } = await supabase
             .from("workspaces")
             .select("owner_email, nome")
@@ -216,6 +222,7 @@ export function useLembretePagamento(): LembretePagamentoState {
         nomeCliente: nomeDono ?? cadastro.nome ?? null,
         emailCliente: emailDono,
         bloqueioPostergadoAte,
+        ehAdm,
       });
     } catch (e) {
       console.error("[useLembretePagamento] Erro ao buscar status:", e);

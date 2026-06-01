@@ -11,6 +11,10 @@ import { useLembretePagamento } from "../hooks/useLembretePagamento";
 //   - "agressivo" → popup vermelho que NÃO fecha (a cada 1h)
 //   - "bloqueado"/"suspenso" → tela cheia bloqueando tudo
 //
+// 🆕 VALOR (R$) só aparece pra ADM (cobranca.ehAdm === true):
+//    dono do workspace ou sub-usuário perfil "Administrador".
+//    Os demais veem o aviso de vencimento + meios de pagamento, sem o preço.
+//
 // Pra integrar: adicionar <PopupCobranca /> no app/layout.tsx
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -39,6 +43,9 @@ export default function PopupCobranca() {
   const cobranca = useLembretePagamento();
   const [pixCopiado, setPixCopiado] = useState(false);
   const [emailCopiado, setEmailCopiado] = useState(false);
+
+  // 🆕 Só ADM (dono / Administrador) vê o valor da mensalidade
+  const mostrarValor = cobranca.ehAdm && cobranca.valorMensalidade != null;
 
   // Não renderiza nada em fases que não precisam de popup
   if (
@@ -119,7 +126,8 @@ export default function PopupCobranca() {
             }
           </p>
 
-          {!ehSuspenso && cobranca.valorMensalidade && (
+          {/* 🆕 Valor só pra ADM */}
+          {!ehSuspenso && mostrarValor && (
             <div style={{
               background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626",
               borderRadius: 12, padding: 16, marginBottom: 20, textAlign: "left",
@@ -133,6 +141,19 @@ export default function PopupCobranca() {
                   Vencimento: <b>{formatarData(cobranca.proximoVencimento)}</b>
                 </p>
               )}
+            </div>
+          )}
+
+          {/* 🆕 Sem valor (não-ADM): mostra só o vencimento */}
+          {!ehSuspenso && !mostrarValor && cobranca.proximoVencimento && (
+            <div style={{
+              background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626",
+              borderRadius: 12, padding: 16, marginBottom: 20, textAlign: "left",
+            }}>
+              <p style={{ color: "#7f1d1d", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 6px" }}>Vencimento</p>
+              <p style={{ color: "#dc2626", fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>
+                {formatarData(cobranca.proximoVencimento)}
+              </p>
             </div>
           )}
 
@@ -229,7 +250,8 @@ export default function PopupCobranca() {
             ⚠️ <b>O sistema será bloqueado em {2 + (cobranca.diasAteVencimento || 0)} {2 + (cobranca.diasAteVencimento || 0) === 1 ? "dia" : "dias"}</b> se não regularizar.
           </p>
 
-          {cobranca.valorMensalidade && (
+          {/* 🆕 Valor só pra ADM */}
+          {mostrarValor && (
             <div style={{
               background: "#fef2f2", border: "1px solid #fecaca",
               borderRadius: 10, padding: 14, marginBottom: 14,
@@ -241,6 +263,19 @@ export default function PopupCobranca() {
               {cobranca.proximoVencimento && (
                 <p style={{ color: "#991b1b", fontSize: 11, margin: 0 }}>Venceu em {formatarData(cobranca.proximoVencimento)}</p>
               )}
+            </div>
+          )}
+
+          {/* 🆕 Sem valor (não-ADM): mostra só o vencimento */}
+          {!mostrarValor && cobranca.proximoVencimento && (
+            <div style={{
+              background: "#fef2f2", border: "1px solid #fecaca",
+              borderRadius: 10, padding: 14, marginBottom: 14,
+            }}>
+              <p style={{ color: "#7f1d1d", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Vencimento</p>
+              <p style={{ color: "#dc2626", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>
+                Venceu em {formatarData(cobranca.proximoVencimento)}
+              </p>
             </div>
           )}
 
@@ -345,7 +380,8 @@ export default function PopupCobranca() {
           )}
         </p>
 
-        {cobranca.valorMensalidade && (
+        {/* 🆕 Valor só pra ADM */}
+        {mostrarValor && (
           <div style={{
             background: bgPrincipal, border: `1px solid ${borderPrincipal}`,
             borderRadius: 10, padding: 14, marginBottom: 14,
