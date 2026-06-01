@@ -16,6 +16,11 @@ import { supabase } from "../lib/supabase";
 //   - 2+ dias depois do venc → BLOQUEIO TOTAL
 //   - Quando admin marca PAGO → popup some e recalcula próximo venc
 //   - Quando admin SUSPENDE manualmente → BLOQUEIO imediato
+//
+// 🆕 FIX (popup só no F5): o <PopupCobranca/> fica no app/layout.tsx, que
+//    NÃO remonta ao navegar de /login → /crm. O hook agora escuta
+//    supabase.auth.onAuthStateChange e recalcula a fase no exato momento
+//    do login (SIGNED_IN / INITIAL_SESSION / TOKEN_REFRESHED), sem F5.
 // ═══════════════════════════════════════════════════════════════════════
 
 const ADMIN_EMAIL = "robert.dias@live.com";
@@ -272,12 +277,37 @@ export function useLembretePagamento(): LembretePagamentoState {
     buscarStatus();
   }, [buscarStatus]);
 
-  // ─── Effect: busca inicial + periódica (a cada 5min) ───
+  // ─── Effect: busca inicial + periódica (a cada 5min) + escuta login ───
   useEffect(() => {
+    // 1) Carregamento inicial (cobre o caso de já estar logado no F5)
     buscarStatus();
+
+    // 2) Recheck periódico (renova fase mesmo sem evento de auth, ex: virou o dia)
     intervalRef.current = setInterval(buscarStatus, 5 * 60 * 1000);
+
+    // 3) 🆕 Escuta a sessão. O <PopupCobranca/> vive no layout, que NÃO remonta
+    //    quando o usuário sai do /login pro /crm. Sem isso, a fase só seria
+    //    recalculada no próximo F5 (ou no intervalo de 5min). Aqui recalculamos
+    //    na hora exata em que a sessão é estabelecida.
+    const { data: authSub } = supabase.auth.onAuthStateChange((event: string) => {
+      if (
+        event === "SIGNED_IN" ||
+        event === "INITIAL_SESSION" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "USER_UPDATED"
+      ) {
+        buscarStatus();
+      } else if (event === "SIGNED_OUT") {
+        // Logout: zera tudo e some com qualquer popup pendente
+        try { localStorage.removeItem(LS_KEY_PROXIMO_POPUP); } catch { /* ignore */ }
+        setPopupVisivel(false);
+        setDados(d => ({ ...d, fase: "ativo" }));
+      }
+    });
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      authSub?.subscription?.unsubscribe?.();
     };
   }, [buscarStatus]);
 
