@@ -1,0 +1,508 @@
+"use client";
+import { useState, useMemo, useEffect } from "react";
+import { supabase } from "../../../lib/supabase";
+import { useWorkspace } from "../../../hooks/useWorkspace";
+// 🧑‍💼 RH · Vale Transporte (CONECTADO — 'vale_transporte'; valorDiario↔valor_diario, diasUteis↔dias_uteis)
+const COR = "#4f46e5";
+const COR_TEXTO = "#4338ca";
+const card = {
+  background: "#ffffff",
+  borderRadius: 14,
+  border: "1px solid #e5e7eb",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+};
+const inputStyle = {
+  width: "100%",
+  background: "#ffffff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 10,
+  padding: "10px 14px",
+  color: "#1f2937",
+  fontSize: 13,
+  boxSizing: "border-box" as const,
+  outline: "none",
+};
+const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+type VT = {
+  id: string;
+  nome: string;
+  cargo: string;
+  salario: number;
+  linha: string;
+  valorDiario: number;
+  diasUteis: number;
+};
+const FORM_VAZIO: VT = { id: "", nome: "", cargo: "", salario: 0, linha: "", valorDiario: 0, diasUteis: 22 };
+const mensal = (v: VT) => v.valorDiario * v.diasUteis;
+const descontoFunc = (v: VT) => Math.min(mensal(v), v.salario * 0.06); // teto 6% do salário
+export function ValeTransporteSection() {
+  // 🏢 Workspace ativo (multi-tenant Wolf)
+  const { wsId } = useWorkspace();
+  const [lista, setLista] = useState<VT[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState<VT>(FORM_VAZIO);
+  const [salvando, setSalvando] = useState(false);
+  const [funcionarios, setFuncionarios] = useState<{ nome: string; cargo: string; salario: number }[]>([]);
+  const carregar = async () => {
+    if (!wsId) { setCarregando(false); return; }
+    setCarregando(true);
+    const { data, error } = await supabase
+      .from("vale_transporte")
+      .select("*")
+      .eq("workspace_id", wsId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error(error);
+      alert("Erro: " + error.message);
+    } else
+      setLista(
+        (data || []).map((r: any) => ({
+          id: r.id,
+          nome: r.nome,
+          cargo: r.cargo || "",
+          salario: Number(r.salario) || 0,
+          linha: r.linha || "",
+          valorDiario: Number(r.valor_diario) || 0,
+          diasUteis: r.dias_uteis || 22,
+        }))
+      );
+    setCarregando(false);
+  };
+  useEffect(() => {
+    carregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wsId]);
+
+  // carrega os funcionários cadastrados pro select
+  useEffect(() => {
+    if (!wsId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("funcionarios")
+        .select("nome, cargo, salario")
+        .eq("workspace_id", wsId)
+        .order("nome", { ascending: true });
+      if (data) setFuncionarios(data as { nome: string; cargo: string; salario: number }[]);
+    })();
+  }, [wsId]);
+  const totalEmpresa = useMemo(() => lista.reduce((s, v) => s + (mensal(v) - descontoFunc(v)), 0), [lista]);
+  const totalGeral = useMemo(() => lista.reduce((s, v) => s + mensal(v), 0), [lista]);
+  const salvar = async () => {
+    if (!form.nome.trim()) {
+      alert("Informe o colaborador.");
+      return;
+    }
+    if (!wsId) {
+      alert("Workspace não identificado. Recarregue a página.");
+      return;
+    }
+    setSalvando(true);
+    const payload = {
+      nome: form.nome,
+      cargo: form.cargo,
+      salario: form.salario || 0,
+      linha: form.linha,
+      valor_diario: form.valorDiario || 0,
+      dias_uteis: form.diasUteis || 22,
+      workspace_id: wsId,
+    };
+    const { error } = await supabase.from("vale_transporte").insert(payload);
+    setSalvando(false);
+    if (error) {
+      alert("Erro: " + error.message);
+      return;
+    }
+    setModal(false);
+    setForm(FORM_VAZIO);
+    carregar();
+  };
+  const excluir = async (v: VT) => {
+    if (!wsId) return;
+    if (!confirm(`Remover VT de ${v.nome}?`)) return;
+    const { error } = await supabase.from("vale_transporte").delete().eq("workspace_id", wsId).eq("id", v.id);
+    if (error) {
+      alert("Erro: " + error.message);
+      return;
+    }
+    carregar();
+  };
+  const set = (k: keyof VT, val: any) => setForm((f) => ({ ...f, [k]: val }));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 14,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 24,
+              boxShadow: `0 8px 20px ${COR}30`,
+            }}
+          >
+            <span style={{ filter: "saturate(0) brightness(2)" }}>🚌</span>
+          </div>
+          <div>
+            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+              Vale Transporte
+            </h1>
+            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+              Benefício de transporte (desconto limitado a 6% do salário)
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            setForm(FORM_VAZIO);
+            setModal(true);
+          }}
+          style={{
+            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            color: "white",
+            border: "none",
+            borderRadius: 12,
+            padding: "11px 20px",
+            fontSize: 13,
+            cursor: "pointer",
+            fontWeight: 700,
+            boxShadow: `0 4px 12px ${COR}40`,
+            whiteSpace: "nowrap",
+          }}
+        >
+          + Adicionar VT
+        </button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+        {[
+          { label: "Beneficiários", value: String(lista.length), cor: "#6366f1", icon: "🚌" },
+          { label: "Custo empresa/mês", value: real(totalEmpresa), cor: "#f59e0b", icon: "💰" },
+          { label: "Valor total/mês", value: real(totalGeral), cor: "#0ea5e9", icon: "📊" },
+        ].map((s) => (
+          <div key={s.label} style={{ ...card, padding: 16, borderTop: `3px solid ${s.cor}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: `${s.cor}15`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                }}
+              >
+                {s.icon}
+              </div>
+              <p
+                style={{
+                  color: "#6b7280",
+                  fontSize: 11,
+                  margin: 0,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                }}
+              >
+                {s.label}
+              </p>
+            </div>
+            <p style={{ color: s.cor, fontSize: 19, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>
+              {s.value}
+            </p>
+          </div>
+        ))}
+      </div>
+      {carregando ? (
+        <div style={{ ...card, padding: 40, textAlign: "center" }}>
+          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+        </div>
+      ) : lista.length === 0 ? (
+        <div style={{ ...card, padding: 40, textAlign: "center" }}>
+          <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
+          <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum vale transporte cadastrado.</p>
+        </div>
+      ) : (
+        <div style={{ ...card, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f9fafb" }}>
+                  {[
+                    "Colaborador",
+                    "Linha",
+                    "Diário",
+                    "Dias",
+                    "Total/mês",
+                    "Desconto func.",
+                    "Empresa paga",
+                    "",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: "12px 16px",
+                        color: "#6b7280",
+                        fontSize: 11,
+                        textAlign: "left",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        whiteSpace: "nowrap",
+                        fontWeight: 700,
+                        borderBottom: "1px solid #e5e7eb",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {lista.map((v, i) => (
+                  <tr
+                    key={v.id}
+                    style={{
+                      borderTop: "1px solid #f3f4f6",
+                      background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                    }}
+                  >
+                    <td style={{ padding: "12px 16px" }}>
+                      <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{v.nome}</p>
+                      <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{v.cargo}</p>
+                    </td>
+                    <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>{v.linha}</td>
+                    <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12 }}>
+                      {real(v.valorDiario)}
+                    </td>
+                    <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12 }}>{v.diasUteis}</td>
+                    <td style={{ padding: "12px 16px", color: "#1f2937", fontSize: 12, fontWeight: 700 }}>
+                      {real(mensal(v))}
+                    </td>
+                    <td style={{ padding: "12px 16px", color: "#dc2626", fontSize: 12 }}>
+                      {real(descontoFunc(v))}
+                    </td>
+                    <td style={{ padding: "12px 16px", color: "#16a34a", fontSize: 12, fontWeight: 700 }}>
+                      {real(mensal(v) - descontoFunc(v))}
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <button
+                        onClick={() => excluir(v)}
+                        style={{
+                          background: "#fef2f2",
+                          color: "#dc2626",
+                          border: "1px solid #fecaca",
+                          borderRadius: 8,
+                          padding: "5px 11px",
+                          fontSize: 11,
+                          cursor: "pointer",
+                          fontWeight: 600,
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {modal && (
+        <div
+          onClick={() => setModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.5)",
+            backdropFilter: "blur(4px)",
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ ...card, width: "100%", maxWidth: 520, overflow: "hidden" }}
+          >
+            <div
+              style={{
+                padding: "18px 24px",
+                borderBottom: "1px solid #e5e7eb",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+                Adicionar Vale Transporte
+              </h3>
+              <button
+                onClick={() => setModal(false)}
+                style={{
+                  background: "#f3f4f6",
+                  border: "none",
+                  color: "#6b7280",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <Campo label="Colaborador">
+                  <select
+                    value={form.nome}
+                    onChange={(e) => {
+                      const f = funcionarios.find((x) => x.nome === e.target.value);
+                      setForm((prev) => ({
+                        ...prev,
+                        nome: e.target.value,
+                        cargo: f?.cargo || "",
+                        salario: f?.salario ?? 0,
+                      }));
+                    }}
+                    style={inputStyle}
+                  >
+                    <option value="">— Selecione o funcionário —</option>
+                    {funcionarios.map((f) => (
+                      <option key={f.nome} value={f.nome}>
+                        {f.nome}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo label="Cargo">
+                  <input
+                    value={form.cargo}
+                    onChange={(e) => set("cargo", e.target.value)}
+                    style={inputStyle}
+                    placeholder="Preenchido pelo funcionário"
+                  />
+                </Campo>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
+                <Campo label="Linha / trajeto">
+                  <input
+                    value={form.linha}
+                    onChange={(e) => set("linha", e.target.value)}
+                    style={inputStyle}
+                    placeholder="Ex: 405 + Metrô"
+                  />
+                </Campo>
+                <Campo label="Salário (R$)">
+                  <input
+                    type="number"
+                    value={form.salario || ""}
+                    onChange={(e) => set("salario", Number(e.target.value))}
+                    style={inputStyle}
+                  />
+                </Campo>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <Campo label="Valor diário (R$)">
+                  <input
+                    type="number"
+                    value={form.valorDiario || ""}
+                    onChange={(e) => set("valorDiario", Number(e.target.value))}
+                    style={inputStyle}
+                  />
+                </Campo>
+                <Campo label="Dias úteis">
+                  <input
+                    type="number"
+                    value={form.diasUteis || ""}
+                    onChange={(e) => set("diasUteis", Number(e.target.value))}
+                    style={inputStyle}
+                  />
+                </Campo>
+              </div>
+            </div>
+            <div
+              style={{
+                padding: "14px 24px",
+                borderTop: "1px solid #e5e7eb",
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                background: "#f9fafb",
+              }}
+            >
+              <button
+                onClick={() => setModal(false)}
+                style={{
+                  background: "#ffffff",
+                  color: "#374151",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 10,
+                  padding: "9px 18px",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvar}
+                disabled={salvando}
+                style={{
+                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  color: "white",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "9px 22px",
+                  fontSize: 13,
+                  cursor: salvando ? "wait" : "pointer",
+                  fontWeight: 700,
+                  opacity: salvando ? 0.7 : 1,
+                }}
+              >
+                {salvando ? "Salvando..." : "+ Adicionar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label
+        style={{
+          color: "#6b7280",
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          display: "block",
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}

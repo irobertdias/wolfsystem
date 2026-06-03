@@ -139,6 +139,10 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const podeVerChatbot = isSuperAdmin || isDono || permissoes.chat_proprio || permissoes.chat_todos;
   // 🆕 Cobrança: por enquanto só dono/admin. Quando criar permissão granular `cobranca` em permissoes_perfis, troca aqui.
   const podeVerCobranca = isSuperAdmin || isDono || (permissoes as any).cobranca;
+  // 🆕 RH: por enquanto dono/admin. Quando criar permissão granular `rh`, ela passa a valer aqui.
+  const podeVerRH = isSuperAdmin || isDono || (permissoes as any).rh;
+  // 🆕 Bater Ponto: liberado pra qualquer usuário logado (colaborador bate o próprio ponto).
+  const podeBaterPonto = true;
 
   const perfilLabel = isSuperAdmin ? "👑 Super Admin Wolf"
     : isDono ? "🏢 Dono do Workspace"
@@ -293,7 +297,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           );
         })}
 
-        {/* Separador + atalhos (Chatbot, Telefonia) */}
+        {/* Separador + atalhos (Chatbot, Telefonia, Cobrança, RH, Bater Ponto) */}
         <div style={{ borderTop: "1px solid #e5e7eb", marginTop: 10, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
           {podeVerChatbot && (
             <button onClick={() => navegarPara("/chatbot")}
@@ -346,6 +350,42 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               onMouseLeave={(e) => { if (!isActive("/crm/cobranca")) { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.boxShadow = "none"; } }}
             >
               <span>💰</span> Cobrança
+            </button>
+          )}
+
+          {podeVerRH && (
+            <button onClick={() => navegarPara("/crm/rh")}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px",
+                background: isActive("/crm/rh") ? "#e0e7ff" : "#eef2ff",
+                border: `1px solid ${isActive("/crm/rh") ? "#4f46e5" : "#c7d2fe"}`,
+                borderRadius: 10, cursor: "pointer",
+                color: "#4f46e5", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!isActive("/crm/rh")) { e.currentTarget.style.background = "#e0e7ff"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(79,70,229,0.15)"; } }}
+              onMouseLeave={(e) => { if (!isActive("/crm/rh")) { e.currentTarget.style.background = "#eef2ff"; e.currentTarget.style.boxShadow = "none"; } }}
+            >
+              <span>🧑‍💼</span> RH
+            </button>
+          )}
+
+          {podeBaterPonto && (
+            <button onClick={() => navegarPara("/crm/ponto")}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px",
+                background: isActive("/crm/ponto") ? "#cffafe" : "#ecfeff",
+                border: `1px solid ${isActive("/crm/ponto") ? "#0891b2" : "#a5f3fc"}`,
+                borderRadius: 10, cursor: "pointer",
+                color: "#0891b2", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!isActive("/crm/ponto")) { e.currentTarget.style.background = "#cffafe"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(8,145,178,0.15)"; } }}
+              onMouseLeave={(e) => { if (!isActive("/crm/ponto")) { e.currentTarget.style.background = "#ecfeff"; e.currentTarget.style.boxShadow = "none"; } }}
+            >
+              <span>🕐</span> Bater Ponto
             </button>
           )}
         </div>
