@@ -94,6 +94,10 @@ const CATEGORIAS_PERMISSAO = [
     { key: "roleta_gerenciar", label: "Gerenciar roleta de distribuição" },
     { key: "configuracoes_workspace", label: "Configurações do workspace" },
   ]},
+  { nome: "🧑‍💼 RH & Ponto", cor: "#4f46e5", permissoes: [
+    { key: "rh", label: "Acessar módulo RH" },
+    { key: "bater_ponto", label: "Bater ponto (registrar ponto)" },
+  ]},
   { nome: "📊 Relatórios", cor: "#8b5cf6", permissoes: [
     { key: "relatorios", label: "Relatórios de atendimento" },
     { key: "relatorios_voip", label: "Relatórios de telefonia" },

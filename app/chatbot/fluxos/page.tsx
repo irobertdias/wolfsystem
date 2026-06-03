@@ -12,6 +12,7 @@ type TipoNo =
   | "condicao" | "variavel" | "redirecionar" | "script" | "espera"
   | "teste_ab" | "webhook" | "pular" | "retornar"
   | "google_sheets" | "http_request" | "openai" | "claude_ai" | "gmail"
+  | "meta_capi"  // 🆕 v20: dispara evento de conversão pra Meta (Pixel + Conversions API)
   | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar"
   | "enviar_venda"  // 🆕 v18: cria proposta no CRM com as variáveis salvas + aplica etiqueta
   | "etiqueta";    // 🆕 v19: aplica/remove etiqueta no atendimento ativo
@@ -56,6 +57,8 @@ const B: Record<TipoNo, BC> = {
   openai:               {label:"OpenAI",          icone:"🤖", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
   claude_ai:            {label:"Claude AI",       icone:"🧠", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
   gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
+  // 🆕 v20: Meta Pixel / Conversions API — manda evento de conversão pra Meta (Lead, Purchase, etc)
+  meta_capi:            {label:"Meta Pixel/CAPI", icone:"📈", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   inicio:               {label:"Início",          icone:"🚀", cor:"#22c55e", saidas:["Próximo"],                     grupo:"Eventos"},
   comando:              {label:"Comando",         icone:"⚡", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
   reply:                {label:"Reply",           icone:"↩️", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
@@ -125,7 +128,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     input_data:{pergunta:"Qual a data?",variavel:"data"},
     input_hora:{pergunta:"Qual a hora?",variavel:"hora"},
     input_telefone:{pergunta:"Qual telefone?",variavel:"telefone"},
-    input_botao:{texto:"Escolha:",botoes:["Opção 1","Opção 2"]},
+    input_botao:{texto:"Escolha:",botoes:["Opção 1","Opção 2"],modo_envio:"interativo"},
     input_selecao_imagem:{texto:"Selecione:",itens:[]},
     input_pagamento:{valor:0,descricao:"Pagamento"},
     input_avaliacao:{pergunta:"Como avalia?",max:5,variavel:"avaliacao"},
@@ -142,6 +145,17 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
+    // 🆕 v20: Meta Pixel / Conversions API
+    meta_capi:{
+      pixel_id:"",            // ID do Pixel / Dataset (Events Manager da Meta)
+      access_token:"",        // token da Conversions API (gerado no Events Manager)
+      evento:"Lead",          // evento padrão da Meta (Lead, Contact, Purchase...) ou "custom"
+      evento_custom:"",       // nome do evento custom (usado se evento === "custom")
+      valor:"",               // valor da conversão (opcional, pra Purchase) — aceita {{variavel}}
+      moeda:"BRL",            // moeda do valor
+      test_event_code:"",     // opcional: código de teste do Events Manager → Testar Eventos
+      api_version:"v21.0",    // versão da Graph API
+    },
     inicio:{mensagem:"Olá! Como posso te ajudar?"},
     comando:{comando:"/start"},reply:{palavras:""},
     invalido:{mensagem:"Não entendi."},
@@ -177,7 +191,10 @@ function getPreview(no: No): string {
     case "input_texto":case"input_numero":case"input_email":case"input_website":
     case"input_data":case"input_hora":case"input_telefone":case"input_arquivo":case"input_avaliacao":
       return `${d.pergunta||"?"} → {{${d.variavel||"var"}}}`;
-    case "input_botao": return `${d.botoes?.length||0} botões`;
+    case "input_botao": {
+      const modo = d.modo_envio === "numerado" ? "numerado" : "interativo";
+      return `${modo === "numerado" ? "1️⃣" : "🔘"} ${d.botoes?.length||0} botões`;
+    }
     case "input_selecao_imagem": return `${d.itens?.length||0} imgs`;
     case "input_pagamento": return `R$ ${d.valor||0}`;
     case "input_cards": return `${d.cards?.length||0} cards`;
@@ -207,6 +224,11 @@ function getPreview(no: No): string {
     case "openai": return `GPT: ${d.modelo}`;
     case "claude_ai": return `Claude: ${d.modelo}`;
     case "gmail": return d.smtp_user ? `📨 ${d.para||"?"}` : "⚠️ SMTP não configurado";
+    // 🆕 v20: preview do bloco Meta Pixel/CAPI
+    case "meta_capi": {
+      const ev = d.evento === "custom" ? (d.evento_custom || "custom") : (d.evento || "Lead");
+      return d.pixel_id ? `📈 ${ev} → Pixel ${String(d.pixel_id).slice(0,8)}…` : "⚠️ Pixel não configurado";
+    }
     case "inicio": return d.mensagem||"Início";
     case "comando": return d.comando||"/start";
     case "reply": return d.palavras||"Palavras-chave";
@@ -778,24 +800,110 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
         </p>
         {VarPill("Salvar opção escolhida em", "variavel", "ex: produto_escolhido")}
       </div>;
-    case "input_botao":
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🆕 v20 — BOTÃO reformulado
+    // ═══════════════════════════════════════════════════════════════════════
+    // FIX do bug "apaguei um botão e não consigo adicionar outro": a versão antiga usava
+    // um <textarea> com .split("\n").filter(Boolean). O filter(Boolean) apagava a linha em
+    // branco no exato momento que você dava Enter pra criar o próximo botão — a nova linha
+    // sumia e o cursor voltava. Agora cada botão é um <input> próprio, com ✕ pra remover e
+    // "+ Adicionar botão". Sem parsing de linha = sem bug.
+    //
+    // NOVO: toggle modo_envio:
+    //   - "interativo" → backend manda botões clicáveis nativos do WhatsApp (interactive/button)
+    //   - "numerado"   → backend manda texto numerado (1, 2, 3) e casa a resposta pelo número
+    // ⚠️ BACKEND (executor do fluxo na VPS) precisa ler dados.modo_envio:
+    //   • interativo + canal WABA/Cloud → POST interactive type:"button" (até 3 reply buttons)
+    //   • interativo + WhatsApp Web (webjs) → não tem botão nativo → cai pra numerado
+    //   • numerado → monta "texto\n\n1. botao1\n2. botao2..." e mapeia a resposta pelo número
+    // ═══════════════════════════════════════════════════════════════════════
+    case "input_botao": {
+      const botoes: string[] = Array.isArray(d.botoes) ? d.botoes : [];
+      const modoEnvio = d.modo_envio === "numerado" ? "numerado" : "interativo";
+      // Atualiza botões E mantém as saídas do nó em sincronia (pras conexões do canvas baterem)
+      const setBotoes = (novos: string[]) => {
+        const limpos = novos.slice(0, 3);
+        u({ botoes: limpos });
+        setNos(p => p.map(n => n.id === id
+          ? { ...n, saidas: limpos.length ? limpos.map((b, i) => (b.trim() || `Botão ${i + 1}`)) : ["Botão 1"] }
+          : n));
+      };
+      const updateBotao = (i: number, val: string) => {
+        const novos = botoes.slice();
+        novos[i] = val;
+        setBotoes(novos);
+      };
+      const addBotao = () => { if (botoes.length < 3) setBotoes([...botoes, ""]); };
+      const removeBotao = (i: number) => { setBotoes(botoes.filter((_, idx) => idx !== i)); };
       return <>
         {TVar("Texto","texto","Escolha:",60)}
+
+        {/* Toggle: botões interativos da API vs lista numerada */}
         <div>
-          <label style={LS}>Botões (máx 3, um por linha)</label>
-          <textarea
-            value={(d.botoes||[]).join("\n")}
-            onChange={e => {
-              const b = e.target.value.split("\n").filter(Boolean).slice(0,3);
-              u({botoes: b});
-              setNos(p => p.map(n => n.id===id ? {...n, saidas: b.length ? b : ["Botão 1"]} : n));
-            }}
-            style={{...IS, height:80, resize:"vertical"}}
-            placeholder={"Sim\nNão\nTalvez"}
-          />
+          <label style={LS}>Como enviar</label>
+          <div style={{display:"flex",gap:6}}>
+            {[
+              {key:"interativo", label:"🔘 Botões interativos", hint:"Botões clicáveis nativos do WhatsApp (Cloud/WABA). O cliente toca no botão."},
+              {key:"numerado",   label:"1️⃣ Lista numerada",     hint:"Manda como texto numerado. O cliente responde com o número. Funciona em qualquer canal."},
+            ].map(opt => (
+              <button key={opt.key} type="button" onClick={() => u({modo_envio: opt.key})}
+                style={{
+                  flex:1,
+                  background: modoEnvio===opt.key ? "#22c55e22" : "#ffffff",
+                  border: `1px solid ${modoEnvio===opt.key ? "#22c55e" : "#e5e7eb"}`,
+                  color: modoEnvio===opt.key ? "#16a34a" : "#6b7280",
+                  borderRadius:8, padding:"8px 10px", fontSize:11, cursor:"pointer", fontWeight:"bold",
+                }}
+                title={opt.hint}>{opt.label}</button>
+            ))}
+          </div>
+          <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+            {modoEnvio==="interativo"
+              ? "💡 Botões nativos do WhatsApp (máx 3, até 20 caracteres cada). Precisa de canal WABA/Cloud API. No WhatsApp Web (webjs) o sistema cai pra lista numerada automaticamente."
+              : "💡 Envia como texto numerado (1, 2, 3...). Funciona em qualquer canal (Web/WABA/Meta)."}
+          </p>
         </div>
+
+        {/* Lista de botões — cada um é um input próprio (resolve o bug de re-adicionar) */}
+        <div>
+          <label style={LS}>Botões (máx 3)</label>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {botoes.length === 0 && (
+              <p style={{color:"#9ca3af",fontSize:11,margin:"2px 0",fontStyle:"italic"}}>
+                Nenhum botão. Clique em "+ Adicionar botão".
+              </p>
+            )}
+            {botoes.map((b, i) => (
+              <div key={i} style={{display:"flex",gap:6,alignItems:"center"}}>
+                <span style={{background:"#22c55e22",color:"#16a34a",fontSize:11,fontWeight:"bold",borderRadius:6,padding:"6px 9px",flexShrink:0}}>{i+1}</span>
+                <input
+                  value={b}
+                  onChange={e => updateBotao(i, e.target.value)}
+                  maxLength={modoEnvio==="interativo" ? 20 : undefined}
+                  placeholder={`Botão ${i+1}`}
+                  style={{...IS, flex:1}}
+                />
+                <button type="button" onClick={() => removeBotao(i)} title="Remover botão"
+                  style={{background:"#fef2f2",color:"#ef4444",border:"1px solid #fecaca",borderRadius:6,padding:"7px 11px",fontSize:12,cursor:"pointer",flexShrink:0,fontWeight:"bold"}}>✕</button>
+              </div>
+            ))}
+          </div>
+          {botoes.length < 3 && (
+            <button type="button" onClick={addBotao}
+              style={{width:"100%",marginTop:6,background:"#22c55e11",color:"#16a34a",border:"1px dashed #22c55e",borderRadius:8,padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>
+              + Adicionar botão
+            </button>
+          )}
+          {modoEnvio==="interativo" && botoes.some(b => (b||"").length > 20) && (
+            <p style={{color:"#f59e0b",fontSize:10,margin:"4px 0 0"}}>
+              ⚠️ Botões interativos do WhatsApp aceitam no máximo 20 caracteres por botão.
+            </p>
+          )}
+        </div>
+
         {VarPill("Salvar resposta em (opcional)", "variavel", "ex: opcao_escolhida")}
       </>;
+    }
     case "input_cards":
       return <div>
         <label style={LS}>Cards (Título|Descrição, um por linha)</label>
@@ -1248,6 +1356,91 @@ function saida(obj) {
           💡 Use {`{{variavel}}`} no Para/Assunto/Corpo. Saídas: <b>Enviado</b> (ok) / <b>Erro</b> (falha SMTP).
         </p>
       </>;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🆕 v20 — META PIXEL / CONVERSIONS API
+    // ═══════════════════════════════════════════════════════════════════════
+    // Manda um evento de conversão pra Meta (Lead, Purchase, etc), pro pixel/anúncio
+    // do cliente "aprender" e otimizar campanhas com base nas conversões do chatbot.
+    //
+    // ⚠️ BACKEND (executor do fluxo na VPS) — ao processar este bloco:
+    //   1. Resolver {{variaveis}} em valor/evento_custom
+    //   2. POST https://graph.facebook.com/{api_version}/{pixel_id}/events?access_token={access_token}
+    //        body: { data: [{
+    //          event_name, event_time: <unix>, action_source: "business_messaging",
+    //          user_data: { ph: sha256(telefone_e164_sem_mais) },  // hashear PII com SHA-256
+    //          custom_data: { value, currency }   // só se houver valor
+    //        }], test_event_code? }
+    //   3. Sucesso (HTTP 200, sem "error") → saída 0; falha → saída 1
+    // Doc: https://developers.facebook.com/docs/marketing-api/conversions-api
+    // ═══════════════════════════════════════════════════════════════════════
+    case "meta_capi": {
+      const evento = d.evento || "Lead";
+      return <>
+        <div style={{background:"#10b98111", border:"1px solid #10b98133", borderRadius:8, padding:12, marginBottom:8}}>
+          <p style={{color:"#059669", fontSize:12, fontWeight:"bold", margin:"0 0 4px"}}>📈 Meta Pixel / Conversions API</p>
+          <p style={{color:"#6b7280", fontSize:11, margin:0, lineHeight:1.5}}>
+            Dispara um evento de conversão pro Pixel da Meta. Serve pra seus anúncios "aprenderem"
+            com quem converteu no chatbot (Lead, compra, etc) e otimizarem a entrega. O telefone do
+            contato é enviado com hash (SHA-256) pra fazer o match com a Meta.
+          </p>
+        </div>
+
+        {F("Pixel ID / Dataset ID","pixel_id","text","Ex: 1473534314246940")}
+        <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 8px", lineHeight:1.3}}>
+          💡 Pega no <b>Gerenciador de Eventos da Meta → Configurações do conjunto de dados</b>.
+        </p>
+
+        {F("Access Token (Conversions API)","access_token","password","EAAB...")}
+        <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 8px", lineHeight:1.3}}>
+          💡 Gerado em <b>Gerenciador de Eventos → Configurações → Gerar token de acesso</b>.
+        </p>
+
+        {S("Evento de conversão","evento",[
+          {value:"Lead",                 label:"🎯 Lead (contato/interesse)"},
+          {value:"Contact",              label:"📞 Contact"},
+          {value:"CompleteRegistration", label:"📝 CompleteRegistration (cadastro)"},
+          {value:"Schedule",             label:"📅 Schedule (agendamento)"},
+          {value:"Purchase",             label:"💰 Purchase (compra)"},
+          {value:"SubmitApplication",    label:"📄 SubmitApplication (proposta)"},
+          {value:"custom",               label:"⚙️ Evento personalizado..."},
+        ])}
+
+        {evento === "custom" && (
+          <>
+            {F("Nome do evento personalizado","evento_custom","text","Ex: PropostaInternet")}
+            <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 8px"}}>
+              💡 Crie eventos personalizados no Gerenciador de Eventos antes de usar aqui.
+            </p>
+          </>
+        )}
+
+        {/* Valor + moeda — fazem sentido pra Purchase, mas ficam disponíveis sempre (opcional) */}
+        <div style={{display:"grid", gridTemplateColumns:"1fr 90px", gap:8}}>
+          {F("Valor da conversão (opcional)","valor","text","Ex: 99.90 ou {{valor_plano}}")}
+          {S("Moeda","moeda",[
+            {value:"BRL",label:"BRL"},
+            {value:"USD",label:"USD"},
+            {value:"EUR",label:"EUR"},
+          ])}
+        </div>
+        <p style={{color:"#6b7280", fontSize:10, margin:"-2px 0 8px", lineHeight:1.3}}>
+          💡 Aceita {`{{variavel}}`}. Use ponto como separador decimal (99.90). Deixe vazio pra eventos sem valor.
+        </p>
+
+        {F("Test Event Code (opcional)","test_event_code","text","Ex: TEST12345")}
+        <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 0", lineHeight:1.3}}>
+          💡 Use enquanto testa: pega em <b>Gerenciador de Eventos → Testar eventos</b>. Os eventos
+          aparecem lá em tempo real. <b>Remova quando for pra produção.</b>
+        </p>
+
+        <p style={{color:"#6b7280", fontSize:10, margin:"10px 0 0", lineHeight:1.4, fontStyle:"italic"}}>
+          ⚠️ Saídas: <span style={{color:"#22c55e"}}>0=Sucesso</span> (Meta recebeu) /{" "}
+          <span style={{color:"#ef4444"}}>1=Erro</span> (token inválido, pixel errado, etc).
+        </p>
+      </>;
+    }
+
     case "inicio":    return <>{TVar("Mensagem de boas-vindas","mensagem","Olá! Como posso ajudar?",100)}</>;
     case "comando":   return <>{F("Comando","comando","text","/start")}</>;
     case "reply":
@@ -1918,6 +2111,14 @@ export default function FluxosPage() {
       }
       if (n.tipo === "google_sheets") {
         if (!n.dados?.webhook_url) problemas.push("📊 Google Sheets → URL do webhook não preenchida");
+      }
+      // 🆕 v20: validação do bloco Meta CAPI
+      if (n.tipo === "meta_capi") {
+        const faltam: string[] = [];
+        if (!n.dados?.pixel_id) faltam.push("Pixel ID");
+        if (!n.dados?.access_token) faltam.push("Access Token");
+        if (n.dados?.evento === "custom" && !n.dados?.evento_custom) faltam.push("nome do evento personalizado");
+        if (faltam.length > 0) problemas.push(`📈 Meta Pixel/CAPI → falta: ${faltam.join(", ")}`);
       }
     }
     if (problemas.length > 0) {
