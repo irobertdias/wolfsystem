@@ -148,9 +148,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const podeVerCobranca = isSuperAdmin || isDono || (permissoes as any).cobranca;
   const crmRotaAtiva = crmItems.some((i) => isActive(i.path));
   // 🆕 RH: por enquanto dono/admin. Quando criar permissão granular `rh`, ela passa a valer aqui.
-  const podeVerRH = isSuperAdmin || isDono || (permissoes as any).rh;
+  const podeVerRH = podeVerComHierarquia(modulos.rh, "rh" as any);
   // 🆕 Bater Ponto: liberado pra qualquer usuário logado (colaborador bate o próprio ponto).
-  const podeBaterPonto = true;
+  const podeBaterPonto = podeVerComHierarquia(modulos.bater_ponto, "bater_ponto" as any);
 
   const perfilLabel = isSuperAdmin ? "👑 Super Admin Wolf"
     : isDono ? "🏢 Dono do Workspace"
@@ -380,7 +380,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
             </button>
           )}
 
-          {podeVerRH && (
+          {modulosCarregados && podeVerRH && (
             <button onClick={() => navegarPara("/crm/rh")}
               style={{
                 display: "flex", alignItems: "center", gap: 10,
@@ -398,7 +398,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
             </button>
           )}
 
-          {podeBaterPonto && (
+          {modulosCarregados && podeBaterPonto && (
             <button onClick={() => navegarPara("/crm/ponto")}
               style={{
                 display: "flex", alignItems: "center", gap: 10,

@@ -24,12 +24,15 @@ export type Modulos = {
   voip: boolean;
   api_integracao: boolean;
   instagram: boolean;
+  rh: boolean;            // 🆕 Recursos Humanos
+  bater_ponto: boolean;   // 🆕 Bater Ponto
   plano: "basico" | "intermediario" | "ultra" | string;
 };
 
 const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
   roleta: false, disparos_web: false, disparos_api: false,
   voip: false, api_integracao: false, instagram: false,
+  rh: false, bater_ponto: false,
   plano: "basico",
 };
 
@@ -50,7 +53,7 @@ export function useModulos() {
         // Admin Wolf: tudo liberado sempre
         if (user?.email === ADMIN_EMAIL) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, plano: "ultra" });
+            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, rh: true, bater_ponto: true, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -82,7 +85,7 @@ export function useModulos() {
 
         // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
-          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, plano")
+          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_rh, modulo_bater_ponto, plano")
           .eq("email", ownerEmail)
           .maybeSingle();
 
@@ -94,6 +97,8 @@ export function useModulos() {
             voip: !!cad?.modulo_voip,
             api_integracao: !!cad?.modulo_api_integracao,
             instagram: !!cad?.modulo_instagram,
+            rh: !!cad?.modulo_rh,                 // 🆕
+            bater_ponto: !!cad?.modulo_bater_ponto, // 🆕
             plano: cad?.plano || "basico",
           });
           setCarregado(true);
@@ -118,7 +123,7 @@ export function useModulos() {
 //   if (!modulos.voip) return <ModuloBloqueado modulo="voip" />;
 // ═══════════════════════════════════════════════════════════════════════
 
-type ModuloKey = "roleta" | "disparos_web" | "disparos_api" | "voip" | "api_integracao" | "instagram";
+type ModuloKey = "roleta" | "disparos_web" | "disparos_api" | "voip" | "api_integracao" | "instagram" | "rh" | "bater_ponto";
 
 const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: string; planoNecessario: string; cor: string }> = {
   roleta: {
@@ -162,6 +167,20 @@ const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: strin
     desc: "Atendimento unificado no Instagram Direct Messages. Responda mensagens do Instagram pela mesma tela do WhatsApp.",
     planoNecessario: "Ultra",
     cor: "#8b5cf6",
+  },
+  rh: {
+    icone: "🧑‍💼",
+    nome: "Recursos Humanos",
+    desc: "Gestão completa de pessoas: funcionários, cargos, folha, férias, benefícios, treinamentos, avaliações, documentos e muito mais.",
+    planoNecessario: "Intermediário ou Ultra",
+    cor: "#4f46e5",
+  },
+  bater_ponto: {
+    icone: "🕐",
+    nome: "Bater Ponto",
+    desc: "Registro de ponto pelos colaboradores com selfie e geolocalização. Banco de horas e folha de ponto integrados ao RH.",
+    planoNecessario: "Intermediário ou Ultra",
+    cor: "#0891b2",
   },
 };
 
