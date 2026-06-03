@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
-import { usePermissao } from "../../hooks/usePermissao";
-import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
+import { supabase } from "../../../lib/supabase";
+import { usePermissao } from "../../../hooks/usePermissao";
+import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 import {
   CAMPOS_FIXOS_MAP,
   STATUS_OPCOES,
@@ -11,7 +11,7 @@ import {
   type CampoUnificado,
   type ConfigCampoPadrao,
   type CampoCustom,
-} from "../../lib/campos_proposta_definicao";
+} from "../../../lib/campos_proposta_definicao";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💰 VENDAS — Wolf CRM (multi-tenant)

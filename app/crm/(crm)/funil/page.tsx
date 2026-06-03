@@ -8,15 +8,15 @@ import {
   PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { supabase } from "../../lib/supabase";
-import { usePermissao } from "../../hooks/usePermissao";
-import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
+import { supabase } from "../../../lib/supabase";
+import { usePermissao } from "../../../hooks/usePermissao";
+import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 import {
   montarCamposUnificados,
   type CampoUnificado,
   type ConfigCampoPadrao,
   type CampoCustom,
-} from "../../lib/campos_proposta_definicao";
+} from "../../../lib/campos_proposta_definicao";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎯 FUNIL DE VENDAS — MOTOR GENÉRICO MULTI-VERTICAL

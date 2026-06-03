@@ -5,8 +5,8 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
-import { supabase } from "../../lib/supabase";
-import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
+import { supabase } from "../../../lib/supabase";
+import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 
 // ═══════════════════════════════════════════════════════════════════════
 // DASHBOARD — Wolf System (multi-tenant, verde premium)

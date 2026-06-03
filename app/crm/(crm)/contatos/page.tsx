@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
-import { usePermissao } from "../../hooks/usePermissao";
-import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
+import { supabase } from "../../../lib/supabase";
+import { usePermissao } from "../../../hooks/usePermissao";
+import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 import * as XLSX from "xlsx";
 
 type Atendimento = {
