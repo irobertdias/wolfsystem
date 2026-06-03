@@ -17,6 +17,8 @@ type Cadastro = {
   modulo_cobranca?: boolean;
   modulo_equipes?: boolean;
   modulo_funil_avancado?: boolean;
+  modulo_rh?: boolean;
+  modulo_bater_ponto?: boolean;
   ia?: string; senha?: string; user_id?: string;
   // 🆕 CAMPOS DE COBRANÇA
   dia_vencimento?: number | null;
@@ -53,6 +55,7 @@ const planoPresets: Record<string, {
   modulo_roleta: boolean; modulo_disparos_web: boolean; modulo_disparos_api: boolean;
   modulo_voip: boolean; modulo_api_integracao: boolean; modulo_instagram: boolean;
   modulo_cobranca: boolean; modulo_equipes: boolean; modulo_funil_avancado: boolean;
+  modulo_rh: boolean; modulo_bater_ponto: boolean;
 }> = {
   basico: {
     usuarios: 5, conexoes: 1,
@@ -60,6 +63,7 @@ const planoPresets: Record<string, {
     modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
     modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
+    modulo_rh: false, modulo_bater_ponto: false,
   },
   intermediario: {
     usuarios: 15, conexoes: 3,
@@ -67,6 +71,7 @@ const planoPresets: Record<string, {
     modulo_roleta: true, modulo_disparos_web: true, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: true, modulo_instagram: false,
     modulo_cobranca: false, modulo_equipes: true, modulo_funil_avancado: true,
+    modulo_rh: false, modulo_bater_ponto: false,
   },
   ultra: {
     usuarios: 50, conexoes: 10,
@@ -74,6 +79,7 @@ const planoPresets: Record<string, {
     modulo_roleta: true, modulo_disparos_web: true, modulo_disparos_api: true,
     modulo_voip: true, modulo_api_integracao: true, modulo_instagram: true,
     modulo_cobranca: true, modulo_equipes: true, modulo_funil_avancado: true,
+    modulo_rh: true, modulo_bater_ponto: true,
   },
 };
 
@@ -225,6 +231,7 @@ export default function Clientes() {
     modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
     modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
+    modulo_rh: false, modulo_bater_ponto: false,
     ia: "gpt", autorizado: false, senha: "",
     // 🆕 cobrança
     dia_vencimento: null, valor_mensalidade: null, proximo_vencimento: null,
@@ -492,6 +499,7 @@ export default function Clientes() {
       modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
       modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
       modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
+      modulo_rh: false, modulo_bater_ponto: false,
       ia: "gpt", autorizado: false, senha: "",
       dia_vencimento: null, valor_mensalidade: null, proximo_vencimento: null,
       status_pagamento: "ativo",
@@ -535,6 +543,8 @@ export default function Clientes() {
         modulo_cobranca: preset.modulo_cobranca,
         modulo_equipes: preset.modulo_equipes,
         modulo_funil_avancado: preset.modulo_funil_avancado,
+        modulo_rh: preset.modulo_rh,
+        modulo_bater_ponto: preset.modulo_bater_ponto,
       }));
     } else {
       setFormCadastro(prev => ({ ...prev, plano }));
@@ -569,6 +579,8 @@ export default function Clientes() {
           modulo_cobranca: !!formCadastro.modulo_cobranca,
           modulo_equipes: !!formCadastro.modulo_equipes,
           modulo_funil_avancado: !!formCadastro.modulo_funil_avancado,
+          modulo_rh: !!formCadastro.modulo_rh,
+          modulo_bater_ponto: !!formCadastro.modulo_bater_ponto,
           ia: formCadastro.ia, autorizado: formCadastro.autorizado,
           // 🆕 cobrança
           dia_vencimento: formCadastro.dia_vencimento || null,
@@ -969,6 +981,8 @@ export default function Clientes() {
                 <Toggle value={!!formCadastro.modulo_equipes} onChange={() => setFormCadastro({ ...formCadastro, modulo_equipes: !formCadastro.modulo_equipes })} label="👥 Equipes Multi-time" desc="Intermediário, Ultra" color="#a855f7" />
                 <Toggle value={!!formCadastro.modulo_funil_avancado} onChange={() => setFormCadastro({ ...formCadastro, modulo_funil_avancado: !formCadastro.modulo_funil_avancado })} label="📊 Funil Avançado" desc="Intermediário, Ultra" color="#3b82f6" />
                 <Toggle value={!!formCadastro.modulo_cobranca} onChange={() => setFormCadastro({ ...formCadastro, modulo_cobranca: !formCadastro.modulo_cobranca })} label="💰 Cobrança Automatizada" desc="Apenas Ultra" color="#dc2626" />
+                <Toggle value={!!formCadastro.modulo_rh} onChange={() => setFormCadastro({ ...formCadastro, modulo_rh: !formCadastro.modulo_rh })} label="🧑‍💼 RH — Recursos Humanos" desc="Gestão de pessoas, folha, férias" color="#4f46e5" />
+                <Toggle value={!!formCadastro.modulo_bater_ponto} onChange={() => setFormCadastro({ ...formCadastro, modulo_bater_ponto: !formCadastro.modulo_bater_ponto })} label="🕐 Bater Ponto" desc="Ponto com selfie e GPS" color="#0891b2" />
               </div>
             </div>
 
@@ -1287,6 +1301,8 @@ export default function Clientes() {
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_equipes} icone="👥" label="Equipes" cor="#a855f7" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_funil_avancado} icone="📊" label="Funil Avançado" cor="#3b82f6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_cobranca} icone="💰" label="Cobrança" cor="#dc2626" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_rh} icone="🧑‍💼" label="RH" cor="#4f46e5" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_bater_ponto} icone="🕐" label="Bater Ponto" cor="#0891b2" />
               </div>
             </div>
 
@@ -1502,7 +1518,9 @@ export default function Clientes() {
                           {c.modulo_equipes && <span style={{ fontSize: 14 }} title="Equipes Multi-time">👥</span>}
                           {c.modulo_funil_avancado && <span style={{ fontSize: 14 }} title="Funil Avançado">📊</span>}
                           {c.modulo_cobranca && <span style={{ fontSize: 14 }} title="Cobrança">💰</span>}
-                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
+                          {c.modulo_rh && <span style={{ fontSize: 14 }} title="RH">🧑‍💼</span>}
+                          {c.modulo_bater_ponto && <span style={{ fontSize: 14 }} title="Bater Ponto">🕐</span>}
+                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
                         </div>
                       </td>
 
