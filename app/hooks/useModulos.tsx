@@ -83,6 +83,17 @@ export function useModulos() {
         // Email do owner: usa direto da tabela workspaces (funciona pra dono E sub-usuário)
         const ownerEmail = ws.owner_email;
 
+        // 🆕 Workspace do próprio admin Wolf → tudo liberado (inclusive pros
+        // sub-usuários dele). O admin não tem linha em `cadastros`, então sem
+        // isso os módulos voltariam todos false pro time interno da casa.
+        if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+          if (!cancelado) {
+            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, rh: true, bater_ponto: true, plano: "ultra" });
+            setCarregado(true);
+          }
+          return;
+        }
+
         // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
           .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_rh, modulo_bater_ponto, plano")
