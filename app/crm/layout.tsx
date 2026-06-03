@@ -124,14 +124,21 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   const ehDonoOuAdmin = isDono || perfil === "Administrador";
 
+  // 🏠 Menu principal: só a Visão Geral (dashboard global, landing do login).
   const menuItems = [
     ...(isSuperAdmin ? [{ path: "/crm/clientes", icon: "👥", label: "Clientes Wolf", badge: cadastrosCount }] : []),
-    ...((isSuperAdmin || isDono || permissoes.dashboard) ? [{ path: "/crm/dashboard", icon: "📊", label: "Dashboard" }] : []),
+    { path: "/crm/visao", icon: "📊", label: "Visão Geral", badge: 0 },
+  ];
+
+  // 🎯 CRM vira um grupo expansível nos atalhos (mesma gating de antes).
+  const crmItems = [
+    ...((isSuperAdmin || isDono || permissoes.dashboard) ? [{ path: "/crm/dashboard", icon: "📈", label: "Dashboard de Vendas" }] : []),
     ...((isSuperAdmin || isDono || permissoes.funil || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/funil", icon: "🎯", label: "Funil de Vendas" }] : []),
     ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/vendas", icon: "💰", label: "Vendas" }] : []),
-    ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos) ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos", badge: 0 }] : []),
-    ...((isSuperAdmin || isDono || permissoes.configuracoes_workspace) ? [{ path: "/crm/configuracoes", icon: "⚙️", label: "Configurações", badge: 0 }] : []),
+    ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos) ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos" }] : []),
   ];
+  const podeVerCRM = crmItems.length > 0;
+  const podeVerConfig = isSuperAdmin || isDono || permissoes.configuracoes_workspace;
 
   const isActive = (path: string) => pathname === path;
 
@@ -139,6 +146,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const podeVerChatbot = isSuperAdmin || isDono || permissoes.chat_proprio || permissoes.chat_todos;
   // 🆕 Cobrança: por enquanto só dono/admin. Quando criar permissão granular `cobranca` em permissoes_perfis, troca aqui.
   const podeVerCobranca = isSuperAdmin || isDono || (permissoes as any).cobranca;
+  const crmRotaAtiva = crmItems.some((i) => isActive(i.path));
   // 🆕 RH: por enquanto dono/admin. Quando criar permissão granular `rh`, ela passa a valer aqui.
   const podeVerRH = isSuperAdmin || isDono || (permissoes as any).rh;
   // 🆕 Bater Ponto: liberado pra qualquer usuário logado (colaborador bate o próprio ponto).
@@ -297,8 +305,27 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           );
         })}
 
-        {/* Separador + atalhos (Chatbot, Telefonia, Cobrança, RH, Bater Ponto) */}
+        {/* Separador + atalhos (CRM, Chatbot, Telefonia, Cobrança, RH, Bater Ponto, Configurações) */}
         <div style={{ borderTop: "1px solid #e5e7eb", marginTop: 10, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+          {/* 🎯 CRM — botão do módulo (sub-barra vive dentro de (crm)/layout) */}
+          {podeVerCRM && (
+            <button onClick={() => navegarPara("/crm/dashboard")}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px",
+                background: crmRotaAtiva ? "#dcfce7" : "#f0fdf4",
+                border: `1px solid ${crmRotaAtiva ? "#16a34a" : "#bbf7d0"}`,
+                borderRadius: 10, cursor: "pointer",
+                color: "#16a34a", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!crmRotaAtiva) { e.currentTarget.style.background = "#dcfce7"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(22,163,74,0.15)"; } }}
+              onMouseLeave={(e) => { if (!crmRotaAtiva) { e.currentTarget.style.background = "#f0fdf4"; e.currentTarget.style.boxShadow = "none"; } }}
+            >
+              <span>🎯</span> CRM
+            </button>
+          )}
+
           {podeVerChatbot && (
             <button onClick={() => navegarPara("/chatbot")}
               style={{
@@ -386,6 +413,25 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               onMouseLeave={(e) => { if (!isActive("/crm/ponto")) { e.currentTarget.style.background = "#ecfeff"; e.currentTarget.style.boxShadow = "none"; } }}
             >
               <span>🕐</span> Bater Ponto
+            </button>
+          )}
+
+          {/* ⚙️ Configurações — botão separado */}
+          {podeVerConfig && (
+            <button onClick={() => navegarPara("/crm/configuracoes")}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px",
+                background: isActive("/crm/configuracoes") ? "#f1f5f9" : "#f8fafc",
+                border: `1px solid ${isActive("/crm/configuracoes") ? "#64748b" : "#e2e8f0"}`,
+                borderRadius: 10, cursor: "pointer",
+                color: "#475569", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!isActive("/crm/configuracoes")) e.currentTarget.style.background = "#f1f5f9"; }}
+              onMouseLeave={(e) => { if (!isActive("/crm/configuracoes")) e.currentTarget.style.background = "#f8fafc"; }}
+            >
+              <span>⚙️</span> Configurações
             </button>
           )}
         </div>

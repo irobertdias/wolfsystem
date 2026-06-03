@@ -4,6 +4,6 @@ import { useRouter } from "next/navigation";
 
 export default function CRMPage() {
   const router = useRouter();
-  useEffect(() => { router.replace("/crm/dashboard"); }, []);
+  useEffect(() => { router.replace("/crm/visao"); }, []);
   return null;
 }
