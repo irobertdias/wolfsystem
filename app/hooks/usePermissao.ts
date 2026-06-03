@@ -54,6 +54,31 @@ export type Permissoes = {
 
   // 🧑‍💼 RH & PONTO
   rh: boolean;
+  // 🧑‍💼 RH — telas (granular)
+  rh_dashboard: boolean;
+  rh_indicadores: boolean;
+  rh_funcionarios: boolean;
+  rh_departamentos: boolean;
+  rh_cargos: boolean;
+  rh_folha: boolean;
+  rh_holerites: boolean;
+  rh_encargos: boolean;
+  rh_ponto: boolean;
+  rh_ferias: boolean;
+  rh_afastamentos: boolean;
+  rh_banco_horas: boolean;
+  rh_beneficios: boolean;
+  rh_vale_transporte: boolean;
+  rh_vale_refeicao: boolean;
+  rh_plano_saude: boolean;
+  rh_vagas: boolean;
+  rh_candidatos: boolean;
+  rh_selecao: boolean;
+  rh_treinamentos: boolean;
+  rh_avaliacoes: boolean;
+  rh_documentos: boolean;
+  rh_contratos: boolean;
+  rh_config: boolean;
   bater_ponto: boolean;
 
   // 💰 COBRANÇA
@@ -99,6 +124,7 @@ const PERMISSOES_DONO: Permissoes = {
   contatos_ver: true, contatos_editar: true, etiquetas: true,
   dashboard: true, vendas_proprio: true, vendas_equipe: true, funil: true, proposta_criar: true,
   rh: true, bater_ponto: true, cobranca: true,
+  rh_dashboard: true, rh_indicadores: true, rh_funcionarios: true, rh_departamentos: true, rh_cargos: true, rh_folha: true, rh_holerites: true, rh_encargos: true, rh_ponto: true, rh_ferias: true, rh_afastamentos: true, rh_banco_horas: true, rh_beneficios: true, rh_vale_transporte: true, rh_vale_refeicao: true, rh_plano_saude: true, rh_vagas: true, rh_candidatos: true, rh_selecao: true, rh_treinamentos: true, rh_avaliacoes: true, rh_documentos: true, rh_contratos: true, rh_config: true,
   disparo_enviar: true, templates_waba: true,
   voip_usar: true, voip_conexoes: true, voip_campanhas: true,
   conexoes: true, filas: true, usuarios_gerenciar: true, grupos_permissao: true,
@@ -128,6 +154,7 @@ const PERMISSOES_ATENDENTE: Permissoes = {
   contatos_ver: true, contatos_editar: false, etiquetas: false,
   dashboard: true, vendas_proprio: true, vendas_equipe: false, funil: false, proposta_criar: true,
   rh: false, bater_ponto: true, cobranca: false,
+  rh_dashboard: false, rh_indicadores: false, rh_funcionarios: false, rh_departamentos: false, rh_cargos: false, rh_folha: false, rh_holerites: false, rh_encargos: false, rh_ponto: false, rh_ferias: false, rh_afastamentos: false, rh_banco_horas: false, rh_beneficios: false, rh_vale_transporte: false, rh_vale_refeicao: false, rh_plano_saude: false, rh_vagas: false, rh_candidatos: false, rh_selecao: false, rh_treinamentos: false, rh_avaliacoes: false, rh_documentos: false, rh_contratos: false, rh_config: false,
   disparo_enviar: false, templates_waba: false,
   voip_usar: true, voip_conexoes: false, voip_campanhas: false,
   conexoes: false, filas: false, usuarios_gerenciar: false, grupos_permissao: false,
