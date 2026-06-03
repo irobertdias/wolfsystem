@@ -24,6 +24,7 @@ export type Modulos = {
   voip: boolean;
   api_integracao: boolean;
   instagram: boolean;
+  cobranca: boolean;
   rh: boolean;            // 🆕 Recursos Humanos
   bater_ponto: boolean;   // 🆕 Bater Ponto
   plano: "basico" | "intermediario" | "ultra" | string;
@@ -32,7 +33,7 @@ export type Modulos = {
 const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
   roleta: false, disparos_web: false, disparos_api: false,
   voip: false, api_integracao: false, instagram: false,
-  rh: false, bater_ponto: false,
+  cobranca: false, rh: false, bater_ponto: false,
   plano: "basico",
 };
 
@@ -53,7 +54,7 @@ export function useModulos() {
         // Admin Wolf: tudo liberado sempre
         if (user?.email === ADMIN_EMAIL) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, rh: true, bater_ponto: true, plano: "ultra" });
+            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, rh: true, bater_ponto: true, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -88,7 +89,7 @@ export function useModulos() {
         // isso os módulos voltariam todos false pro time interno da casa.
         if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, rh: true, bater_ponto: true, plano: "ultra" });
+            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, rh: true, bater_ponto: true, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -96,7 +97,7 @@ export function useModulos() {
 
         // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
-          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_rh, modulo_bater_ponto, plano")
+          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_rh, modulo_bater_ponto, plano")
           .eq("email", ownerEmail)
           .maybeSingle();
 
@@ -108,6 +109,7 @@ export function useModulos() {
             voip: !!cad?.modulo_voip,
             api_integracao: !!cad?.modulo_api_integracao,
             instagram: !!cad?.modulo_instagram,
+            cobranca: !!cad?.modulo_cobranca,
             rh: !!cad?.modulo_rh,                 // 🆕
             bater_ponto: !!cad?.modulo_bater_ponto, // 🆕
             plano: cad?.plano || "basico",

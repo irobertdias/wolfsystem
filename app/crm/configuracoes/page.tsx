@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
+import { useModulos } from "../../hooks/useModulos";
 import { useWorkspace } from "../../hooks/useWorkspace";
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -58,6 +59,7 @@ type Aba = "usuarios" | "equipes" | "filas" | "permissoes" | "geral";
 
 const CATEGORIAS_PERMISSAO = [
   { nome: "🎯 CRM", cor: "#16a34a", permissoes: [
+    { key: "crm_acessar", label: "✅ Acessar o CRM" },
     { key: "dashboard", label: "Dashboard de vendas" },
     { key: "funil", label: "Ver funil de vendas" },
     { key: "vendas_proprio", label: "Ver próprias vendas" },
@@ -68,6 +70,7 @@ const CATEGORIAS_PERMISSAO = [
     { key: "etiquetas", label: "Gerenciar etiquetas" },
   ]},
   { nome: "💬 Chatbot", cor: "#3b82f6", permissoes: [
+    { key: "chatbot_acessar", label: "✅ Acessar o Chatbot" },
     { key: "chat_proprio", label: "Ver próprios atendimentos" },
     { key: "chat_todos", label: "Ver todos atendimentos" },
     { key: "chat_interno", label: "Chat interno (conversar c/ equipe)" },
@@ -77,19 +80,20 @@ const CATEGORIAS_PERMISSAO = [
     { key: "disparo_enviar", label: "Enviar disparos em massa" },
     { key: "templates_waba", label: "Gerenciar templates WABA" },
   ]},
-  { nome: "📞 Telefonia", cor: "#14b8a6", permissoes: [
+  { nome: "📞 Telefonia", cor: "#14b8a6", mod: "voip", permissoes: [
+    { key: "telefonia_acessar", label: "✅ Acessar a Telefonia" },
     { key: "voip_usar", label: "Usar softphone (fazer ligações)" },
     { key: "voip_conexoes", label: "Gerenciar conexões VOIP" },
     { key: "voip_campanhas", label: "Criar campanhas VOIP" },
   ]},
-  { nome: "💰 Cobrança", cor: "#dc2626", permissoes: [
-    { key: "cobranca", label: "Acessar módulo de Cobrança" },
+  { nome: "💰 Cobrança", cor: "#dc2626", mod: "cobranca", permissoes: [
+    { key: "cobranca", label: "✅ Acessar a Cobrança" },
   ]},
-  { nome: "🧑‍💼 RH", cor: "#4f46e5", permissoes: [
-    { key: "rh", label: "Acessar módulo RH" },
+  { nome: "🧑‍💼 RH", cor: "#4f46e5", mod: "rh", permissoes: [
+    { key: "rh", label: "✅ Acessar o RH" },
   ]},
-  { nome: "🕐 Bater Ponto", cor: "#0891b2", permissoes: [
-    { key: "bater_ponto", label: "Bater ponto (registrar ponto)" },
+  { nome: "🕐 Bater Ponto", cor: "#0891b2", mod: "bater_ponto", permissoes: [
+    { key: "bater_ponto", label: "✅ Acessar o Bater Ponto" },
   ]},
   { nome: "⚙️ Configurações", cor: "#64748b", permissoes: [
     { key: "conexoes", label: "Gerenciar conexões WhatsApp" },
@@ -149,6 +153,7 @@ export default function Configuracoes() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isDono, isSuperAdmin, permissoes } = usePermissao();
+  const { modulos, carregado: modulosCarregados } = useModulos();
 
   const [workspaceId, setWorkspaceId] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -492,6 +497,8 @@ export default function Configuracoes() {
           gruposPermissao={gruposPermissao}
           workspaceId={workspaceId}
           podeGerenciar={podeGerenciarGrupos}
+          modulos={modulos}
+          modulosCarregados={modulosCarregados}
           isMobile={isMobile}
           IS={IS} cardStyle={cardStyle} labelStyle={labelStyle}
           onRefetch={() => fetchGrupos(workspaceId)}
@@ -1427,7 +1434,7 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
 // ═══════════════════════════════════════════════════════════════════════
 // 🔐 ABA PERMISSÕES (sem mudanças)
 // ═══════════════════════════════════════════════════════════════════════
-function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
+function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch, modulos, modulosCarregados }: any) {
   const [busca, setBusca] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<GrupoPermissao | null>(null);
@@ -1544,7 +1551,7 @@ function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, 
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {CATEGORIAS_PERMISSAO.map(cat => {
+            {CATEGORIAS_PERMISSAO.filter((c: any) => !c.mod || (modulosCarregados && modulos && modulos[c.mod])).map(cat => {
               const todasMarcadas = cat.permissoes.every(p => formGrupo.permissoes[p.key]);
               const algumaMarcada = cat.permissoes.some(p => formGrupo.permissoes[p.key]);
               const aberta = catsAbertas[cat.nome] !== false;

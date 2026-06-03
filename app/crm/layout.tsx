@@ -137,15 +137,15 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/vendas", icon: "💰", label: "Vendas" }] : []),
     ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos) ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos" }] : []),
   ];
-  const podeVerCRM = crmItems.length > 0;
+  const podeVerCRM = isSuperAdmin || isDono || (permissoes as any).crm_acessar;
   const podeVerConfig = isSuperAdmin || isDono || permissoes.configuracoes_workspace;
 
   const isActive = (path: string) => pathname === path;
 
-  const podeVerTelefonia = podeVerComHierarquia(modulos.voip, "voip_usar");
-  const podeVerChatbot = isSuperAdmin || isDono || permissoes.chat_proprio || permissoes.chat_todos;
+  const podeVerTelefonia = podeVerComHierarquia(modulos.voip, "telefonia_acessar" as any);
+  const podeVerChatbot = isSuperAdmin || isDono || (permissoes as any).chatbot_acessar;
   // 🆕 Cobrança: por enquanto só dono/admin. Quando criar permissão granular `cobranca` em permissoes_perfis, troca aqui.
-  const podeVerCobranca = isSuperAdmin || isDono || (permissoes as any).cobranca;
+  const podeVerCobranca = podeVerComHierarquia(modulos.cobranca, "cobranca" as any);
   const crmRotaAtiva = crmItems.some((i) => isActive(i.path));
   // 🆕 RH: por enquanto dono/admin. Quando criar permissão granular `rh`, ela passa a valer aqui.
   const podeVerRH = podeVerComHierarquia(modulos.rh, "rh" as any);
@@ -309,7 +309,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         <div style={{ borderTop: "1px solid #e5e7eb", marginTop: 10, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
           {/* 🎯 CRM — botão do módulo (sub-barra vive dentro de (crm)/layout) */}
           {podeVerCRM && (
-            <button onClick={() => navegarPara("/crm/dashboard")}
+            <button onClick={() => navegarPara(crmItems[0]?.path || "/crm/dashboard")}
               style={{
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "10px 14px",
@@ -362,7 +362,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
             </button>
           )}
 
-          {podeVerCobranca && (
+          {modulosCarregados && podeVerCobranca && (
             <button onClick={() => navegarPara("/crm/cobranca")}
               style={{
                 display: "flex", alignItems: "center", gap: 10,

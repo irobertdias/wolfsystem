@@ -85,6 +85,11 @@ export type Permissoes = {
 
   // ⚠️ ADMIN (usado por perfil === "Administrador")
   administrador: boolean;
+
+  // 🚪 ACESSO AOS MÓDULOS (mostra/esconde o botão na barra lateral)
+  crm_acessar: boolean;
+  chatbot_acessar: boolean;
+  telefonia_acessar: boolean;
 };
 
 // Dono e Administrador recebem TUDO habilitado
@@ -101,6 +106,7 @@ const PERMISSOES_DONO: Permissoes = {
   relatorios: true, relatorios_voip: true,
   config_proprio: true,
   administrador: true,
+  crm_acessar: true, chatbot_acessar: true, telefonia_acessar: true,
 };
 
 // Supervisor: tudo menos admin de workspace
@@ -112,6 +118,7 @@ const PERMISSOES_SUPERVISOR: Permissoes = {
   configuracoes_workspace: false,
   voip_conexoes: false,
   administrador: false,
+  crm_acessar: true, chatbot_acessar: true, telefonia_acessar: true,
 };
 
 // Atendente padrão
