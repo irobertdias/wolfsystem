@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { usePermissao } from "../../hooks/usePermissao";
 import type { ComponentType } from "react";
 import { DashboardSection } from "./_sections/dashboardsection";
 import { IndicadoresSection } from "./_sections/indicadoressection";
@@ -163,6 +164,8 @@ const LABELS: Record<string, string> = Object.fromEntries(
 );
 
 export default function RHLayolt() {
+  const { permissoes, isDono, isSuperAdmin, perfil } = usePermissao();
+  const veTudoRH = isSuperAdmin || isDono || perfil === "Administrador";
   const [aba, setAba] = useState("dashboard");
   const [grupoAberto, setGrupoAberto] = useState<string | null>("visao");
   const [isMobile, setIsMobile] = useState(false);
@@ -174,6 +177,16 @@ export default function RHLayolt() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  const gruposVisiveis = GRUPOS
+    .map((g) => ({ ...g, itens: g.itens.filter((i) => veTudoRH || !!(permissoes as any)["rh_" + i.key]) }))
+    .filter((g) => g.itens.length > 0);
+
+  useEffect(() => {
+    const visiveis = GRUPOS.flatMap((g) => g.itens.map((i) => i.key)).filter((k) => veTudoRH || !!(permissoes as any)["rh_" + k]);
+    if (visiveis.length && !visiveis.includes(aba)) setAba(visiveis[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissoes, veTudoRH]);
 
   const selecionar = (key: string) => {
     setAba(key);
@@ -307,7 +320,7 @@ export default function RHLayolt() {
 
         {/* Menus agrupados */}
         <div style={{ padding: 10, flex: 1 }}>
-          {GRUPOS.map((g) => {
+          {gruposVisiveis.map((g) => {
             const aberto = grupoAberto === g.key;
             const temAtivo = g.itens.some((i) => i.key === aba);
             return (
