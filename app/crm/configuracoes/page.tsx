@@ -57,46 +57,47 @@ type Equipe = {
 type Aba = "usuarios" | "equipes" | "filas" | "permissoes" | "geral";
 
 const CATEGORIAS_PERMISSAO = [
-  { nome: "💬 Atendimento", cor: "#3b82f6", permissoes: [
+  { nome: "🎯 CRM", cor: "#16a34a", permissoes: [
+    { key: "dashboard", label: "Dashboard de vendas" },
+    { key: "funil", label: "Ver funil de vendas" },
+    { key: "vendas_proprio", label: "Ver próprias vendas" },
+    { key: "vendas_equipe", label: "Ver vendas da equipe" },
+    { key: "proposta_criar", label: "Criar propostas" },
+    { key: "contatos_ver", label: "Ver contatos" },
+    { key: "contatos_editar", label: "Editar cadastro de contatos" },
+    { key: "etiquetas", label: "Gerenciar etiquetas" },
+  ]},
+  { nome: "💬 Chatbot", cor: "#3b82f6", permissoes: [
     { key: "chat_proprio", label: "Ver próprios atendimentos" },
     { key: "chat_todos", label: "Ver todos atendimentos" },
     { key: "chat_interno", label: "Chat interno (conversar c/ equipe)" },
     { key: "respostas_rapidas", label: "Usar respostas rápidas" },
     { key: "transferir_chat", label: "Transferir conversas" },
     { key: "finalizar_chat", label: "Finalizar atendimentos" },
-  ]},
-  { nome: "🏷️ Contatos & Etiquetas", cor: "#06b6d4", permissoes: [
-    { key: "contatos_ver", label: "Ver contatos" },
-    { key: "contatos_editar", label: "Editar cadastro de contatos" },
-    { key: "etiquetas", label: "Gerenciar etiquetas" },
-  ]},
-  { nome: "💰 Vendas & CRM", cor: "#f59e0b", permissoes: [
-    { key: "dashboard", label: "Dashboard de atendimentos" },
-    { key: "vendas_proprio", label: "Ver próprias vendas" },
-    { key: "vendas_equipe", label: "Ver vendas da equipe" },
-    { key: "funil", label: "Ver funil de vendas" },
-    { key: "proposta_criar", label: "Criar propostas" },
-  ]},
-  { nome: "📤 Marketing & Disparos", cor: "#ec4899", permissoes: [
     { key: "disparo_enviar", label: "Enviar disparos em massa" },
     { key: "templates_waba", label: "Gerenciar templates WABA" },
   ]},
-  { nome: "📞 Telefonia VOIP", cor: "#16a34a", permissoes: [
+  { nome: "📞 Telefonia", cor: "#14b8a6", permissoes: [
     { key: "voip_usar", label: "Usar softphone (fazer ligações)" },
     { key: "voip_conexoes", label: "Gerenciar conexões VOIP" },
     { key: "voip_campanhas", label: "Criar campanhas VOIP" },
   ]},
-  { nome: "⚙️ Administração", cor: "#dc2626", permissoes: [
+  { nome: "💰 Cobrança", cor: "#dc2626", permissoes: [
+    { key: "cobranca", label: "Acessar módulo de Cobrança" },
+  ]},
+  { nome: "🧑‍💼 RH", cor: "#4f46e5", permissoes: [
+    { key: "rh", label: "Acessar módulo RH" },
+  ]},
+  { nome: "🕐 Bater Ponto", cor: "#0891b2", permissoes: [
+    { key: "bater_ponto", label: "Bater ponto (registrar ponto)" },
+  ]},
+  { nome: "⚙️ Configurações", cor: "#64748b", permissoes: [
     { key: "conexoes", label: "Gerenciar conexões WhatsApp" },
     { key: "filas", label: "Gerenciar filas" },
     { key: "usuarios_gerenciar", label: "Gerenciar usuários" },
     { key: "grupos_permissao", label: "Gerenciar grupos de permissão" },
     { key: "roleta_gerenciar", label: "Gerenciar roleta de distribuição" },
     { key: "configuracoes_workspace", label: "Configurações do workspace" },
-  ]},
-  { nome: "🧑‍💼 RH & Ponto", cor: "#4f46e5", permissoes: [
-    { key: "rh", label: "Acessar módulo RH" },
-    { key: "bater_ponto", label: "Bater ponto (registrar ponto)" },
   ]},
   { nome: "📊 Relatórios", cor: "#8b5cf6", permissoes: [
     { key: "relatorios", label: "Relatórios de atendimento" },

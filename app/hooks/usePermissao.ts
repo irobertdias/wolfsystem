@@ -56,6 +56,9 @@ export type Permissoes = {
   rh: boolean;
   bater_ponto: boolean;
 
+  // 💰 COBRANÇA
+  cobranca: boolean;
+
   // 📤 MARKETING & DISPAROS
   disparo_enviar: boolean;
   templates_waba: boolean;
@@ -90,7 +93,7 @@ const PERMISSOES_DONO: Permissoes = {
   transferir_chat: true, finalizar_chat: true,
   contatos_ver: true, contatos_editar: true, etiquetas: true,
   dashboard: true, vendas_proprio: true, vendas_equipe: true, funil: true, proposta_criar: true,
-  rh: true, bater_ponto: true,
+  rh: true, bater_ponto: true, cobranca: true,
   disparo_enviar: true, templates_waba: true,
   voip_usar: true, voip_conexoes: true, voip_campanhas: true,
   conexoes: true, filas: true, usuarios_gerenciar: true, grupos_permissao: true,
@@ -117,7 +120,7 @@ const PERMISSOES_ATENDENTE: Permissoes = {
   transferir_chat: true, finalizar_chat: true,
   contatos_ver: true, contatos_editar: false, etiquetas: false,
   dashboard: true, vendas_proprio: true, vendas_equipe: false, funil: false, proposta_criar: true,
-  rh: false, bater_ponto: true,
+  rh: false, bater_ponto: true, cobranca: false,
   disparo_enviar: false, templates_waba: false,
   voip_usar: true, voip_conexoes: false, voip_campanhas: false,
   conexoes: false, filas: false, usuarios_gerenciar: false, grupos_permissao: false,
