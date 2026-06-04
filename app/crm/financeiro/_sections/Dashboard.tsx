@@ -2,12 +2,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
+import { Page, PageHeader, Stats, Stat, Card, brl, hoje, mesAtual, dataBR, C, cardStyle } from "./_ui";
 
-// 📊 Dashboard financeiro — visão geral (lê de fin_contas + fin_lancamentos)
-const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const hoje = () => new Date().toISOString().slice(0, 10);
-const mesAtual = () => new Date().toISOString().slice(0, 7);
-
+// 📊 Dashboard financeiro — visão geral (fin_contas + fin_lancamentos)
 export default function DashboardFinanceiro() {
   const { wsId } = useWorkspace();
   const [contas, setContas] = useState<any[]>([]);
@@ -34,58 +31,44 @@ export default function DashboardFinanceiro() {
   const recebidoMes = lancs.filter((l) => l.tipo === "receita" && l.status === "pago" && (l.pago_em || "").slice(0, 7) === mes).reduce((s, l) => s + (l.valor || 0), 0);
   const pagoMes = lancs.filter((l) => l.tipo === "despesa" && l.status === "pago" && (l.pago_em || "").slice(0, 7) === mes).reduce((s, l) => s + (l.valor || 0), 0);
   const atrasados = lancs.filter((l) => l.status === "pendente" && l.vencimento && l.vencimento < hoje());
-
   const proximos = lancs
     .filter((l) => l.status === "pendente" && l.vencimento && l.vencimento >= hoje())
     .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""))
-    .slice(0, 8);
-
-  function Card({ label, valor, cor, icone }: any) {
-    return (
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderTop: `3px solid ${cor}`, borderRadius: 12, padding: "16px 18px" }}>
-        <div style={{ fontSize: 11, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{icone} {label}</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: cor, marginTop: 6 }}>{brl(valor)}</div>
-      </div>
-    );
-  }
-
-  if (carregando) return <div style={{ padding: 24, color: "#9ca3af" }}>Carregando…</div>;
+    .slice(0, 10);
 
   return (
-    <div style={{ padding: 24, maxWidth: 1000 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <span style={{ fontSize: 26 }}>📊</span>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#111827" }}>Dashboard financeiro</h1>
-      </div>
+    <Page>
+      <PageHeader icone="📊" titulo="Dashboard financeiro" subtitulo="Resumo do mês e próximos vencimentos" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14, marginBottom: 22 }}>
-        <Card label="Saldo em contas" valor={saldoTotal} cor={saldoTotal >= 0 ? "#16a34a" : "#dc2626"} icone="🏦" />
-        <Card label="A receber" valor={aReceber} cor="#16a34a" icone="📥" />
-        <Card label="A pagar" valor={aPagar} cor="#dc2626" icone="📤" />
-        <Card label="Recebido no mês" valor={recebidoMes} cor="#2563eb" icone="✅" />
-        <Card label="Pago no mês" valor={pagoMes} cor="#d97706" icone="💸" />
-      </div>
+      {carregando ? <p style={{ color: "#9ca3af", fontSize: 14 }}>Carregando…</p> : (
+        <>
+          <Stats>
+            <Stat label="Saldo em contas" valor={brl(saldoTotal)} cor={saldoTotal >= 0 ? C.green : C.red} icone="🏦" />
+            <Stat label="A receber" valor={brl(aReceber)} cor={C.green} icone="📥" />
+            <Stat label="A pagar" valor={brl(aPagar)} cor={C.red} icone="📤" />
+            <Stat label="Recebido no mês" valor={brl(recebidoMes)} cor={C.blue} icone="✅" />
+            <Stat label="Pago no mês" valor={brl(pagoMes)} cor={C.amber} icone="💸" />
+          </Stats>
 
-      {atrasados.length > 0 && (
-        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "12px 16px", marginBottom: 22, color: "#dc2626", fontSize: 14, fontWeight: 600 }}>
-          ⚠️ {atrasados.length} lançamento(s) em atraso — total {brl(atrasados.reduce((s, l) => s + (l.valor || 0), 0))}
-        </div>
-      )}
-
-      <h3 style={{ fontSize: 14, fontWeight: 800, color: "#111827", textTransform: "uppercase", letterSpacing: 0.4, margin: "0 0 10px" }}>Próximos vencimentos</h3>
-      {proximos.length === 0 ? (
-        <p style={{ color: "#9ca3af", fontSize: 14, fontStyle: "italic" }}>Nada pendente à frente.</p>
-      ) : (
-        <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden", background: "#fff" }}>
-          {proximos.map((l, i) => (
-            <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderTop: i === 0 ? "none" : "1px solid #f3f4f6" }}>
-              <span style={{ fontSize: 12, color: "#9ca3af", minWidth: 80 }}>{(l.vencimento || "").split("-").reverse().join("/")}</span>
-              <span style={{ flex: 1, fontSize: 14, color: "#111827" }}>{l.descricao}</span>
-              <span style={{ fontSize: 14, fontWeight: 800, color: l.tipo === "receita" ? "#16a34a" : "#dc2626" }}>{l.tipo === "receita" ? "+" : "-"}{brl(l.valor)}</span>
+          {atrasados.length > 0 && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "14px 18px", color: "#dc2626", fontSize: 14, fontWeight: 600 }}>
+              ⚠️ {atrasados.length} lançamento(s) em atraso — total {brl(atrasados.reduce((s, l) => s + (l.valor || 0), 0))}
             </div>
-          ))}
-        </div>
+          )}
+
+          <Card titulo="Próximos vencimentos" pad={0}>
+            {proximos.length === 0 ? (
+              <p style={{ color: "#9ca3af", fontSize: 14, fontStyle: "italic", padding: 20, margin: 0 }}>Nada pendente à frente.</p>
+            ) : proximos.map((l, i) => (
+              <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderTop: i === 0 ? "none" : "1px solid #f3f4f6" }}>
+                <span style={{ fontSize: 12, color: "#9ca3af", minWidth: 84, fontWeight: 600 }}>{dataBR(l.vencimento)}</span>
+                <span style={{ flex: 1, fontSize: 14, color: "#1f2937", fontWeight: 600 }}>{l.descricao}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: l.tipo === "receita" ? C.green : C.red }}>{l.tipo === "receita" ? "+" : "-"}{brl(l.valor)}</span>
+              </div>
+            ))}
+          </Card>
+        </>
       )}
-    </div>
+    </Page>
   );
 }
