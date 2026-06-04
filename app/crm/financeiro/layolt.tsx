@@ -57,7 +57,7 @@ const GRUPOS: Grupo[] = [
   ]},
 ];
 
-const COR = "#059669"; // emerald — identidade do Financeiro
+const COR = "#d97706"; // âmbar — identidade do Financeiro (bate com o botão da barra)
 
 // 🚧 Fallback pras telas ainda não construídas
 function EmConstrucao({ titulo }: { titulo: string }) {

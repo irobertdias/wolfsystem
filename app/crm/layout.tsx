@@ -350,14 +350,14 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               style={{
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "10px 14px",
-                background: isActive("/crm/telefonia") ? "#dcfce7" : "#f0fdf4",
-                border: `1px solid ${isActive("/crm/telefonia") ? "#16a34a" : "#bbf7d0"}`,
+                background: isActive("/crm/telefonia") ? "#ccfbf1" : "#f0fdfa",
+                border: `1px solid ${isActive("/crm/telefonia") ? "#0d9488" : "#99f6e4"}`,
                 borderRadius: 10, cursor: "pointer",
-                color: "#16a34a", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                color: "#0d9488", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
                 transition: "all 0.15s",
               }}
-              onMouseEnter={(e) => { if (!isActive("/crm/telefonia")) { e.currentTarget.style.background = "#dcfce7"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(22,163,74,0.15)"; } }}
-              onMouseLeave={(e) => { if (!isActive("/crm/telefonia")) { e.currentTarget.style.background = "#f0fdf4"; e.currentTarget.style.boxShadow = "none"; } }}
+              onMouseEnter={(e) => { if (!isActive("/crm/telefonia")) { e.currentTarget.style.background = "#ccfbf1"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(13,148,136,0.15)"; } }}
+              onMouseLeave={(e) => { if (!isActive("/crm/telefonia")) { e.currentTarget.style.background = "#f0fdfa"; e.currentTarget.style.boxShadow = "none"; } }}
             >
               <span>📞</span> Telefonia
             </button>
@@ -404,14 +404,14 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               style={{
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "10px 14px",
-                background: isActive("/crm/ponto") ? "#cffafe" : "#ecfeff",
-                border: `1px solid ${isActive("/crm/ponto") ? "#0891b2" : "#a5f3fc"}`,
+                background: isActive("/crm/ponto") ? "#fce7f3" : "#fdf2f8",
+                border: `1px solid ${isActive("/crm/ponto") ? "#db2777" : "#f9a8d4"}`,
                 borderRadius: 10, cursor: "pointer",
-                color: "#0891b2", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                color: "#db2777", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
                 transition: "all 0.15s",
               }}
-              onMouseEnter={(e) => { if (!isActive("/crm/ponto")) { e.currentTarget.style.background = "#cffafe"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(8,145,178,0.15)"; } }}
-              onMouseLeave={(e) => { if (!isActive("/crm/ponto")) { e.currentTarget.style.background = "#ecfeff"; e.currentTarget.style.boxShadow = "none"; } }}
+              onMouseEnter={(e) => { if (!isActive("/crm/ponto")) { e.currentTarget.style.background = "#fce7f3"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(219,39,119,0.15)"; } }}
+              onMouseLeave={(e) => { if (!isActive("/crm/ponto")) { e.currentTarget.style.background = "#fdf2f8"; e.currentTarget.style.boxShadow = "none"; } }}
             >
               <span>🕐</span> Bater Ponto
             </button>
@@ -422,14 +422,14 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               style={{
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "10px 14px",
-                background: isActive("/crm/financeiro") ? "#d1fae5" : "#ecfdf5",
-                border: `1px solid ${isActive("/crm/financeiro") ? "#059669" : "#6ee7b7"}`,
+                background: isActive("/crm/financeiro") ? "#fef3c7" : "#fffbeb",
+                border: `1px solid ${isActive("/crm/financeiro") ? "#d97706" : "#fcd34d"}`,
                 borderRadius: 10, cursor: "pointer",
-                color: "#059669", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                color: "#d97706", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
                 transition: "all 0.15s",
               }}
-              onMouseEnter={(e) => { if (!isActive("/crm/financeiro")) { e.currentTarget.style.background = "#d1fae5"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(5,150,105,0.15)"; } }}
-              onMouseLeave={(e) => { if (!isActive("/crm/financeiro")) { e.currentTarget.style.background = "#ecfdf5"; e.currentTarget.style.boxShadow = "none"; } }}
+              onMouseEnter={(e) => { if (!isActive("/crm/financeiro")) { e.currentTarget.style.background = "#fef3c7"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(217,119,6,0.15)"; } }}
+              onMouseLeave={(e) => { if (!isActive("/crm/financeiro")) { e.currentTarget.style.background = "#fffbeb"; e.currentTarget.style.boxShadow = "none"; } }}
             >
               <span>💰</span> Financeiro
             </button>
