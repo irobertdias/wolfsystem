@@ -2,6 +2,25 @@
 import { useState, useEffect } from "react";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useModulos } from "../../hooks/useModulos";
+import PlanoContas from "./_sections/PlanoContas";
+import ContasBancarias from "./_sections/ContasBancarias";
+import CentrosCusto from "./_sections/CentrosCusto";
+import Contatos from "./_sections/Contatos";
+import FormasPagamento from "./_sections/FormasPagamento";
+import ConfigFinanceiro from "./_sections/ConfigFinanceiro";
+import Lancamentos from "./_sections/Lancamentos";
+import Transferencias from "./_sections/Transferencias";
+import DashboardFinanceiro from "./_sections/Dashboard";
+import DRE from "./_sections/DRE";
+import FluxoCaixa from "./_sections/FluxoCaixa";
+import Indicadores from "./_sections/Indicadores";
+import Relatorios from "./_sections/Relatorios";
+import Boletos from "./_sections/Boletos";
+import NotasRecebidas from "./_sections/NotasRecebidas";
+import EmitirNota from "./_sections/EmitirNota";
+import Conciliacao from "./_sections/Conciliacao";
+import ImportarExtrato from "./_sections/ImportarExtrato";
+import IntegracaoBanco from "./_sections/IntegracaoBanco";
 
 // ═══════════════════════════════════════════════════════════════════════
 // 💰 Financeiro — SHELL (registro de seções + menu interno)
@@ -72,7 +91,27 @@ function EmConstrucao({ titulo }: { titulo: string }) {
 
 // 🗂️ Registro de seções reais (vai crescendo conforme entrego cada tela)
 const SECTIONS: Record<string, React.ComponentType<any>> = {
-  // ex.: dashboard: DashboardSection,
+  plano_contas: PlanoContas,
+  contas_bancarias: ContasBancarias,
+  centros_custo: CentrosCusto,
+  contatos: Contatos,
+  formas_pagamento: FormasPagamento,
+  config: ConfigFinanceiro,
+  dashboard: DashboardFinanceiro,
+  caixa: Lancamentos,
+  contas_receber: Lancamentos,
+  contas_pagar: Lancamentos,
+  transferencias: Transferencias,
+  dre: DRE,
+  fluxo_caixa: FluxoCaixa,
+  indicadores: Indicadores,
+  relatorios: Relatorios,
+  boletos: Boletos,
+  notas_recebidas: NotasRecebidas,
+  emitir_nota: EmitirNota,
+  conciliacao: Conciliacao,
+  extrato: ImportarExtrato,
+  integracao_banco: IntegracaoBanco,
 };
 
 const LABELS: Record<string, string> = Object.fromEntries(
@@ -188,7 +227,7 @@ export default function FinanceiroLayolt() {
 
       {/* Conteúdo */}
       <main style={{ flex: 1, minWidth: 0 }}>
-        <Comp />
+        <Comp secKey={aba} />
       </main>
     </div>
   );
