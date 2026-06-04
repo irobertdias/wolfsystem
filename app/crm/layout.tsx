@@ -149,6 +149,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const crmRotaAtiva = crmItems.some((i) => isActive(i.path));
   // 🆕 RH: por enquanto dono/admin. Quando criar permissão granular `rh`, ela passa a valer aqui.
   const podeVerRH = podeVerComHierarquia(modulos.rh, "rh" as any);
+  const podeVerFinanceiro = podeVerComHierarquia(modulos.financeiro, "financeiro_acessar" as any);
   // 🆕 Bater Ponto: liberado pra qualquer usuário logado (colaborador bate o próprio ponto).
   const podeBaterPonto = podeVerComHierarquia(modulos.bater_ponto, "bater_ponto" as any);
 
@@ -413,6 +414,24 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               onMouseLeave={(e) => { if (!isActive("/crm/ponto")) { e.currentTarget.style.background = "#ecfeff"; e.currentTarget.style.boxShadow = "none"; } }}
             >
               <span>🕐</span> Bater Ponto
+            </button>
+          )}
+
+          {modulosCarregados && podeVerFinanceiro && (
+            <button onClick={() => navegarPara("/crm/financeiro")}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px",
+                background: isActive("/crm/financeiro") ? "#d1fae5" : "#ecfdf5",
+                border: `1px solid ${isActive("/crm/financeiro") ? "#059669" : "#6ee7b7"}`,
+                borderRadius: 10, cursor: "pointer",
+                color: "#059669", fontSize: 13, fontWeight: 700, textAlign: "left", width: "100%",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!isActive("/crm/financeiro")) { e.currentTarget.style.background = "#d1fae5"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(5,150,105,0.15)"; } }}
+              onMouseLeave={(e) => { if (!isActive("/crm/financeiro")) { e.currentTarget.style.background = "#ecfdf5"; e.currentTarget.style.boxShadow = "none"; } }}
+            >
+              <span>💰</span> Financeiro
             </button>
           )}
 

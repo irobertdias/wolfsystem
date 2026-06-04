@@ -79,6 +79,29 @@ export type Permissoes = {
   rh_documentos: boolean;
   rh_contratos: boolean;
   rh_config: boolean;
+  // 💰 FINANCEIRO — acesso + telas (granular)
+  financeiro_acessar: boolean;
+  fin_dashboard: boolean;
+  fin_indicadores: boolean;
+  fin_contas_receber: boolean;
+  fin_contas_pagar: boolean;
+  fin_caixa: boolean;
+  fin_transferencias: boolean;
+  fin_contas_bancarias: boolean;
+  fin_conciliacao: boolean;
+  fin_extrato: boolean;
+  fin_integracao_banco: boolean;
+  fin_emitir_nota: boolean;
+  fin_notas_recebidas: boolean;
+  fin_boletos: boolean;
+  fin_plano_contas: boolean;
+  fin_centros_custo: boolean;
+  fin_contatos: boolean;
+  fin_formas_pagamento: boolean;
+  fin_dre: boolean;
+  fin_fluxo_caixa: boolean;
+  fin_relatorios: boolean;
+  fin_config: boolean;
   bater_ponto: boolean;
 
   // 💰 COBRANÇA
@@ -125,6 +148,7 @@ const PERMISSOES_DONO: Permissoes = {
   dashboard: true, vendas_proprio: true, vendas_equipe: true, funil: true, proposta_criar: true,
   rh: true, bater_ponto: true, cobranca: true,
   rh_dashboard: true, rh_indicadores: true, rh_funcionarios: true, rh_departamentos: true, rh_cargos: true, rh_folha: true, rh_holerites: true, rh_encargos: true, rh_ponto: true, rh_ferias: true, rh_afastamentos: true, rh_banco_horas: true, rh_beneficios: true, rh_vale_transporte: true, rh_vale_refeicao: true, rh_plano_saude: true, rh_vagas: true, rh_candidatos: true, rh_selecao: true, rh_treinamentos: true, rh_avaliacoes: true, rh_documentos: true, rh_contratos: true, rh_config: true,
+  financeiro_acessar: true, fin_dashboard: true, fin_indicadores: true, fin_contas_receber: true, fin_contas_pagar: true, fin_caixa: true, fin_transferencias: true, fin_contas_bancarias: true, fin_conciliacao: true, fin_extrato: true, fin_integracao_banco: true, fin_emitir_nota: true, fin_notas_recebidas: true, fin_boletos: true, fin_plano_contas: true, fin_centros_custo: true, fin_contatos: true, fin_formas_pagamento: true, fin_dre: true, fin_fluxo_caixa: true, fin_relatorios: true, fin_config: true,
   disparo_enviar: true, templates_waba: true,
   voip_usar: true, voip_conexoes: true, voip_campanhas: true,
   conexoes: true, filas: true, usuarios_gerenciar: true, grupos_permissao: true,
@@ -155,6 +179,7 @@ const PERMISSOES_ATENDENTE: Permissoes = {
   dashboard: true, vendas_proprio: true, vendas_equipe: false, funil: false, proposta_criar: true,
   rh: false, bater_ponto: true, cobranca: false,
   rh_dashboard: false, rh_indicadores: false, rh_funcionarios: false, rh_departamentos: false, rh_cargos: false, rh_folha: false, rh_holerites: false, rh_encargos: false, rh_ponto: false, rh_ferias: false, rh_afastamentos: false, rh_banco_horas: false, rh_beneficios: false, rh_vale_transporte: false, rh_vale_refeicao: false, rh_plano_saude: false, rh_vagas: false, rh_candidatos: false, rh_selecao: false, rh_treinamentos: false, rh_avaliacoes: false, rh_documentos: false, rh_contratos: false, rh_config: false,
+  financeiro_acessar: false, fin_dashboard: false, fin_indicadores: false, fin_contas_receber: false, fin_contas_pagar: false, fin_caixa: false, fin_transferencias: false, fin_contas_bancarias: false, fin_conciliacao: false, fin_extrato: false, fin_integracao_banco: false, fin_emitir_nota: false, fin_notas_recebidas: false, fin_boletos: false, fin_plano_contas: false, fin_centros_custo: false, fin_contatos: false, fin_formas_pagamento: false, fin_dre: false, fin_fluxo_caixa: false, fin_relatorios: false, fin_config: false,
   disparo_enviar: false, templates_waba: false,
   voip_usar: true, voip_conexoes: false, voip_campanhas: false,
   conexoes: false, filas: false, usuarios_gerenciar: false, grupos_permissao: false,

@@ -27,13 +27,25 @@ export type Modulos = {
   cobranca: boolean;
   rh: boolean;            // 🆕 Recursos Humanos
   bater_ponto: boolean;   // 🆕 Bater Ponto
+  financeiro: boolean;                          // 🆕 Financeiro (master)
+  financeiro_opcoes: Record<string, boolean>;   // 🆕 subset de opções do workspace
   plano: "basico" | "intermediario" | "ultra" | string;
 };
+
+export const FIN_OPCOES = [
+  "dashboard","indicadores","contas_receber","contas_pagar","caixa","transferencias",
+  "contas_bancarias","conciliacao","extrato","integracao_banco",
+  "emitir_nota","notas_recebidas","boletos",
+  "plano_contas","centros_custo","contatos","formas_pagamento",
+  "dre","fluxo_caixa","relatorios","config",
+] as const;
+const FIN_TODAS: Record<string, boolean> = Object.fromEntries(FIN_OPCOES.map((k) => [k, true]));
 
 const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
   roleta: false, disparos_web: false, disparos_api: false,
   voip: false, api_integracao: false, instagram: false,
   cobranca: false, rh: false, bater_ponto: false,
+  financeiro: false, financeiro_opcoes: {},
   plano: "basico",
 };
 
@@ -54,7 +66,7 @@ export function useModulos() {
         // Admin Wolf: tudo liberado sempre
         if (user?.email === ADMIN_EMAIL) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, rh: true, bater_ponto: true, plano: "ultra" });
+            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -89,7 +101,7 @@ export function useModulos() {
         // isso os módulos voltariam todos false pro time interno da casa.
         if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, rh: true, bater_ponto: true, plano: "ultra" });
+            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -97,7 +109,7 @@ export function useModulos() {
 
         // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
-          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_rh, modulo_bater_ponto, plano")
+          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
           .eq("email", ownerEmail)
           .maybeSingle();
 
@@ -112,6 +124,8 @@ export function useModulos() {
             cobranca: !!cad?.modulo_cobranca,
             rh: !!cad?.modulo_rh,                 // 🆕
             bater_ponto: !!cad?.modulo_bater_ponto, // 🆕
+            financeiro: !!cad?.modulo_financeiro,
+            financeiro_opcoes: (cad?.financeiro_opcoes as Record<string, boolean>) || {},
             plano: cad?.plano || "basico",
           });
           setCarregado(true);
