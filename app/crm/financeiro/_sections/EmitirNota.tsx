@@ -2,14 +2,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
+import { Page, PageHeader, Stats, Stat, Table, Card, Banner, Modal, Btn, Field, Row, Vazio, brl, hoje, mesAtual, dataBR, C, inputStyle, tdStyle } from "./_ui";
 
-// 🧾 Emitir NF-e — registro de notas emitidas (+ slot pra emissão ao-vivo)
-const COR = "#d97706";
-const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const hoje = () => new Date().toISOString().slice(0, 10);
-const inputStyle: any = { width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 14, outline: "none", boxSizing: "border-box" };
-const labelStyle: any = { fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 6 };
-
+// 🧾 Emitir NF-e — registro de notas emitidas (+ slot do provedor)
 export default function EmitirNota() {
   const { wsId } = useWorkspace();
   const [lista, setLista] = useState<any[]>([]);
@@ -28,8 +23,7 @@ export default function EmitirNota() {
       supabase.from("fin_contatos").select("*").eq("workspace_id", wsId).eq("ativo", true).order("nome"),
       supabase.from("fin_config").select("config").eq("workspace_id", wsId).maybeSingle(),
     ]);
-    setLista((n.data as any[]) || []);
-    setContatos((c.data as any[]) || []);
+    setLista((n.data as any[]) || []); setContatos((c.data as any[]) || []);
     setProvedor((cfg.data?.config?.nfe_provedor) || "");
     setCarregando(false);
   }, [wsId]);
@@ -42,17 +36,10 @@ export default function EmitirNota() {
     const valor = parseFloat(String(form.valor_total).replace(",", ".")) || 0;
     let lancamento_id: string | null = null;
     if (form.gerarReceber) {
-      const { data } = await supabase.from("fin_lancamentos").insert({
-        workspace_id: wsId, tipo: "receita", descricao: `NF-e ${form.numero || ""} ${form.destinatario_nome}`.trim(),
-        valor, vencimento: form.emissao, status: "pendente",
-      }).select("id").maybeSingle();
+      const { data } = await supabase.from("fin_lancamentos").insert({ workspace_id: wsId, tipo: "receita", descricao: `NF-e ${form.numero || ""} ${form.destinatario_nome}`.trim(), valor, vencimento: form.emissao, status: "pendente" }).select("id").maybeSingle();
       lancamento_id = data?.id || null;
     }
-    await supabase.from("fin_notas").insert({
-      workspace_id: wsId, tipo: "nfe", direcao: "emitida", status: "emitida",
-      destinatario_nome: form.destinatario_nome.trim(), numero: form.numero.trim() || null,
-      valor_total: valor, emissao: form.emissao, lancamento_id,
-    });
+    await supabase.from("fin_notas").insert({ workspace_id: wsId, tipo: "nfe", direcao: "emitida", status: "emitida", destinatario_nome: form.destinatario_nome.trim(), numero: form.numero.trim() || null, valor_total: valor, emissao: form.emissao, lancamento_id });
     setSalvando(false); setModal(false); carregar();
   }
   async function remover(n: any) {
@@ -61,72 +48,60 @@ export default function EmitirNota() {
     carregar();
   }
 
+  const mes = mesAtual();
+  const totalEmitido = lista.reduce((s, n) => s + (n.valor_total || 0), 0);
+  const noMes = lista.filter((n) => (n.emissao || "").slice(0, 7) === mes);
+  const totalMes = noMes.reduce((s, n) => s + (n.valor_total || 0), 0);
+
   return (
-    <div style={{ padding: 24, maxWidth: 900 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 26 }}>🧾</span>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#111827" }}>Emitir NF-e</h1>
-        </div>
-        <button onClick={abrir} style={{ background: COR, color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ Nova nota</button>
-      </div>
+    <Page>
+      <PageHeader icone="🧾" titulo="Emitir NF-e" subtitulo="Notas fiscais emitidas e geração de contas a receber"
+        acao={<Btn onClick={abrir}>+ Nova nota</Btn>} />
 
-      <div style={{ background: provedor ? "#ecfdf5" : "#fffbeb", border: `1px solid ${provedor ? "#6ee7b7" : "#fcd34d"}`, borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 13, color: "#374151" }}>
+      <Banner tipo={provedor ? "ok" : "warn"}>
         {provedor
-          ? <>🔌 Provedor configurado: <strong>{provedor}</strong>. A emissão ao-vivo na SEFAZ entra quando ligarmos a integração.</>
-          : <>⚠️ Sem provedor de NF-e configurado. Por aqui você <strong>registra</strong> as notas emitidas e gera o "a receber"; a <strong>emissão automática na SEFAZ</strong> precisa de um provedor (PlugNotas, Focus, eNotas) — configure em <strong>Configurações</strong>.</>}
-      </div>
+          ? <>Provedor configurado: <b>{provedor}</b>. A emissão ao-vivo na SEFAZ entra quando ligarmos a integração.</>
+          : <>Sem provedor de NF-e. Aqui você <b>registra</b> as notas e gera o "a receber"; a <b>emissão automática na SEFAZ</b> precisa de um provedor (PlugNotas, Focus, eNotas) — configure em <b>Configurações</b>.</>}
+      </Banner>
 
-      {carregando ? <p style={{ color: "#9ca3af", fontSize: 14 }}>Carregando…</p> : lista.length === 0 ? (
-        <p style={{ color: "#9ca3af", fontSize: 14, fontStyle: "italic" }}>Nenhuma nota emitida registrada.</p>
-      ) : (
-        <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden", background: "#fff" }}>
-          {lista.map((n, i) => (
-            <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderTop: i === 0 ? "none" : "1px solid #f3f4f6" }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>{n.destinatario_nome}{n.numero ? <span style={{ color: "#9ca3af", fontWeight: 400 }}> · NF {n.numero}</span> : null}</div>
-                <div style={{ fontSize: 12, color: "#9ca3af" }}>{(n.emissao || "").split("-").reverse().join("/")}</div>
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#16a34a", minWidth: 100, textAlign: "right" }}>{brl(n.valor_total)}</div>
-              <button onClick={() => remover(n)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15 }}>🗑️</button>
-            </div>
+      <Stats>
+        <Stat label="Notas emitidas" valor={lista.length} cor={C.amber} icone="🧾" />
+        <Stat label="Total emitido" valor={brl(totalEmitido)} cor={C.green} icone="💰" />
+        <Stat label="Emitido no mês" valor={brl(totalMes)} cor={C.blue} icone="📅" sub={`${noMes.length} nota(s)`} />
+      </Stats>
+
+      <Card titulo="Notas emitidas" pad={0} cor={C.amber}>
+        <Table cols={[{ label: "Destinatário" }, { label: "NF", width: 90 }, { label: "Emissão", width: 120 }, { label: "Valor", align: "right" }, { label: "", align: "right", width: 60 }]}
+          empty={carregando ? <span style={{ color: "#9ca3af" }}>Carregando…</span> : lista.length === 0 ? <Vazio icone="🧾" titulo="Nenhuma nota emitida" sub="Registre uma nota emitida e, se quiser, gere a conta a receber automaticamente." acao={<Btn onClick={abrir}>+ Nova nota</Btn>} /> : null}>
+          {lista.map((n) => (
+            <tr key={n.id}>
+              <td style={{ ...tdStyle, fontWeight: 600 }}>{n.destinatario_nome}</td>
+              <td style={{ ...tdStyle, color: "#6b7280" }}>{n.numero || "—"}</td>
+              <td style={{ ...tdStyle, color: "#6b7280" }}>{dataBR(n.emissao)}</td>
+              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800, color: C.green }}>{brl(n.valor_total)}</td>
+              <td style={{ ...tdStyle, textAlign: "right" }}><button onClick={() => remover(n)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15 }}>🗑️</button></td>
+            </tr>
           ))}
-        </div>
-      )}
+        </Table>
+      </Card>
 
       {modal && (
-        <div onClick={() => setModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 24, width: "100%", maxWidth: 460, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-            <h2 style={{ margin: "0 0 18px", fontSize: 18, fontWeight: 800, color: "#111827" }}>Nova nota emitida</h2>
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Destinatário *</label>
-              <input list="fin-clientes" value={form.destinatario_nome} onChange={(e) => setForm({ ...form, destinatario_nome: e.target.value })} style={inputStyle} />
-              <datalist id="fin-clientes">{contatos.map((c) => <option key={c.id} value={c.nome} />)}</datalist>
-            </div>
-            <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-              <div style={{ width: 120 }}>
-                <label style={labelStyle}>Nº</label>
-                <input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} style={inputStyle} />
-              </div>
-              <div style={{ width: 140 }}>
-                <label style={labelStyle}>Valor</label>
-                <input value={form.valor_total} onChange={(e) => setForm({ ...form, valor_total: e.target.value })} style={inputStyle} placeholder="0,00" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Emissão</label>
-                <input type="date" value={form.emissao} onChange={(e) => setForm({ ...form, emissao: e.target.value })} style={inputStyle} />
-              </div>
-            </div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer", fontSize: 14, color: "#374151" }}>
-              <input type="checkbox" checked={form.gerarReceber} onChange={(e) => setForm({ ...form, gerarReceber: e.target.checked })} /> Gerar conta a receber automaticamente
-            </label>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setModal(false)} style={{ background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando || !form.destinatario_nome.trim()} style={{ background: COR, color: "#fff", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: salvando || !form.destinatario_nome.trim() ? 0.6 : 1 }}>{salvando ? "Salvando…" : "Registrar"}</button>
-            </div>
-          </div>
-        </div>
+        <Modal titulo="Nova nota emitida" onClose={() => setModal(false)} maxWidth={480}
+          footer={<><Btn variante="ghost" cor="#6b7280" onClick={() => setModal(false)}>Cancelar</Btn><Btn onClick={salvar} disabled={salvando || !form.destinatario_nome.trim()}>{salvando ? "Salvando…" : "Registrar"}</Btn></>}>
+          <Field label="Destinatário *">
+            <input list="fin-clientes-emit" value={form.destinatario_nome} onChange={(e) => setForm({ ...form, destinatario_nome: e.target.value })} style={inputStyle} />
+            <datalist id="fin-clientes-emit">{contatos.map((c) => <option key={c.id} value={c.nome} />)}</datalist>
+          </Field>
+          <Row>
+            <Field label="Nº" flex="0 0 110px"><input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} style={inputStyle} /></Field>
+            <Field label="Valor" flex="0 0 140px"><input value={form.valor_total} onChange={(e) => setForm({ ...form, valor_total: e.target.value })} style={inputStyle} placeholder="0,00" /></Field>
+            <Field label="Emissão" flex="1 1 130px"><input type="date" value={form.emissao} onChange={(e) => setForm({ ...form, emissao: e.target.value })} style={inputStyle} /></Field>
+          </Row>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, color: "#374151" }}>
+            <input type="checkbox" checked={form.gerarReceber} onChange={(e) => setForm({ ...form, gerarReceber: e.target.checked })} /> Gerar conta a receber automaticamente
+          </label>
+        </Modal>
       )}
-    </div>
+    </Page>
   );
 }
