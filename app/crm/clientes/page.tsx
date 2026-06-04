@@ -19,6 +19,8 @@ type Cadastro = {
   modulo_funil_avancado?: boolean;
   modulo_rh?: boolean;
   modulo_bater_ponto?: boolean;
+  modulo_financeiro?: boolean;
+  financeiro_opcoes?: Record<string, boolean> | null;
   ia?: string; senha?: string; user_id?: string;
   // 🆕 CAMPOS DE COBRANÇA
   dia_vencimento?: number | null;
@@ -49,6 +51,47 @@ type Pagamento = {
   created_at: string;
 };
 
+// 💰 Telas do módulo Financeiro (espelha o menu de financeiro/layolt.tsx)
+const FIN_GRUPOS: { nome: string; itens: { key: string; label: string; icone: string }[] }[] = [
+  { nome: "Visão Geral", itens: [
+    { key: "dashboard", label: "Dashboard", icone: "📊" },
+    { key: "indicadores", label: "Indicadores", icone: "📈" },
+  ]},
+  { nome: "Movimentações", itens: [
+    { key: "contas_receber", label: "Contas a Receber", icone: "📥" },
+    { key: "contas_pagar", label: "Contas a Pagar", icone: "📤" },
+    { key: "caixa", label: "Lançamentos / Caixa", icone: "💵" },
+    { key: "transferencias", label: "Transferências", icone: "🔄" },
+  ]},
+  { nome: "Bancos", itens: [
+    { key: "contas_bancarias", label: "Contas bancárias", icone: "🏦" },
+    { key: "conciliacao", label: "Conciliação", icone: "🔁" },
+    { key: "extrato", label: "Importar extrato (OFX)", icone: "📑" },
+    { key: "integracao_banco", label: "Integração bancária", icone: "🔌" },
+  ]},
+  { nome: "Notas & Documentos", itens: [
+    { key: "emitir_nota", label: "Emitir NF-e", icone: "🧾" },
+    { key: "notas_recebidas", label: "Notas recebidas", icone: "📨" },
+    { key: "boletos", label: "Boletos", icone: "🎫" },
+  ]},
+  { nome: "Cadastros", itens: [
+    { key: "plano_contas", label: "Plano de Contas", icone: "🏷️" },
+    { key: "centros_custo", label: "Centros de Custo", icone: "🎯" },
+    { key: "contatos", label: "Clientes / Fornecedores", icone: "🧑‍🤝‍🧑" },
+    { key: "formas_pagamento", label: "Formas de Pagamento", icone: "💳" },
+  ]},
+  { nome: "Relatórios", itens: [
+    { key: "dre", label: "DRE", icone: "📈" },
+    { key: "fluxo_caixa", label: "Fluxo de Caixa", icone: "🌊" },
+    { key: "relatorios", label: "Relatórios", icone: "📊" },
+  ]},
+  { nome: "Configurações", itens: [
+    { key: "config", label: "Configurações", icone: "⚙️" },
+  ]},
+];
+const FIN_OPCOES_KEYS = FIN_GRUPOS.flatMap((g) => g.itens.map((i) => i.key));
+const todasFinOpcoes = (v: boolean): Record<string, boolean> => FIN_OPCOES_KEYS.reduce((a, k) => { a[k] = v; return a; }, {} as Record<string, boolean>);
+
 const planoPresets: Record<string, {
   usuarios: number; conexoes: number;
   webjs: boolean; waba: boolean; instagram: boolean;
@@ -56,6 +99,7 @@ const planoPresets: Record<string, {
   modulo_voip: boolean; modulo_api_integracao: boolean; modulo_instagram: boolean;
   modulo_cobranca: boolean; modulo_equipes: boolean; modulo_funil_avancado: boolean;
   modulo_rh: boolean; modulo_bater_ponto: boolean;
+  modulo_financeiro: boolean;
 }> = {
   basico: {
     usuarios: 5, conexoes: 1,
@@ -64,6 +108,7 @@ const planoPresets: Record<string, {
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
     modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
     modulo_rh: false, modulo_bater_ponto: false,
+    modulo_financeiro: false,
   },
   intermediario: {
     usuarios: 15, conexoes: 3,
@@ -72,6 +117,7 @@ const planoPresets: Record<string, {
     modulo_voip: false, modulo_api_integracao: true, modulo_instagram: false,
     modulo_cobranca: false, modulo_equipes: true, modulo_funil_avancado: true,
     modulo_rh: false, modulo_bater_ponto: false,
+    modulo_financeiro: false,
   },
   ultra: {
     usuarios: 50, conexoes: 10,
@@ -80,6 +126,7 @@ const planoPresets: Record<string, {
     modulo_voip: true, modulo_api_integracao: true, modulo_instagram: true,
     modulo_cobranca: true, modulo_equipes: true, modulo_funil_avancado: true,
     modulo_rh: true, modulo_bater_ponto: true,
+    modulo_financeiro: true,
   },
 };
 
@@ -232,6 +279,7 @@ export default function Clientes() {
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
     modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
     modulo_rh: false, modulo_bater_ponto: false,
+    modulo_financeiro: false, financeiro_opcoes: {},
     ia: "gpt", autorizado: false, senha: "",
     // 🆕 cobrança
     dia_vencimento: null, valor_mensalidade: null, proximo_vencimento: null,
@@ -500,6 +548,7 @@ export default function Clientes() {
       modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
       modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
       modulo_rh: false, modulo_bater_ponto: false,
+      modulo_financeiro: false, financeiro_opcoes: {},
       ia: "gpt", autorizado: false, senha: "",
       dia_vencimento: null, valor_mensalidade: null, proximo_vencimento: null,
       status_pagamento: "ativo",
@@ -545,11 +594,21 @@ export default function Clientes() {
         modulo_funil_avancado: preset.modulo_funil_avancado,
         modulo_rh: preset.modulo_rh,
         modulo_bater_ponto: preset.modulo_bater_ponto,
+        modulo_financeiro: preset.modulo_financeiro,
+        financeiro_opcoes: preset.modulo_financeiro ? todasFinOpcoes(true) : {},
       }));
     } else {
       setFormCadastro(prev => ({ ...prev, plano }));
     }
   };
+
+  const toggleFinanceiroMaster = () => setFormCadastro((prev) => {
+    const novo = !prev.modulo_financeiro;
+    const temOpc = prev.financeiro_opcoes && Object.keys(prev.financeiro_opcoes).length > 0;
+    return { ...prev, modulo_financeiro: novo, financeiro_opcoes: novo ? (temOpc ? prev.financeiro_opcoes : todasFinOpcoes(true)) : (prev.financeiro_opcoes || {}) };
+  });
+  const setTodasFin = (v: boolean) => setFormCadastro((prev) => ({ ...prev, financeiro_opcoes: todasFinOpcoes(v) }));
+  const toggleFinOpcao = (key: string) => setFormCadastro((prev) => ({ ...prev, financeiro_opcoes: { ...(prev.financeiro_opcoes || {}), [key]: !((prev.financeiro_opcoes || {})[key]) } }));
 
   const salvarCadastro = async () => {
     if (!formCadastro.nome || !formCadastro.email) { alert("Nome e email são obrigatórios!"); return; }
@@ -581,6 +640,8 @@ export default function Clientes() {
           modulo_funil_avancado: !!formCadastro.modulo_funil_avancado,
           modulo_rh: !!formCadastro.modulo_rh,
           modulo_bater_ponto: !!formCadastro.modulo_bater_ponto,
+          modulo_financeiro: !!formCadastro.modulo_financeiro,
+          financeiro_opcoes: formCadastro.financeiro_opcoes || {},
           ia: formCadastro.ia, autorizado: formCadastro.autorizado,
           // 🆕 cobrança
           dia_vencimento: formCadastro.dia_vencimento || null,
@@ -983,6 +1044,33 @@ export default function Clientes() {
                 <Toggle value={!!formCadastro.modulo_cobranca} onChange={() => setFormCadastro({ ...formCadastro, modulo_cobranca: !formCadastro.modulo_cobranca })} label="💰 Cobrança Automatizada" desc="Apenas Ultra" color="#dc2626" />
                 <Toggle value={!!formCadastro.modulo_rh} onChange={() => setFormCadastro({ ...formCadastro, modulo_rh: !formCadastro.modulo_rh })} label="🧑‍💼 RH — Recursos Humanos" desc="Gestão de pessoas, folha, férias" color="#4f46e5" />
                 <Toggle value={!!formCadastro.modulo_bater_ponto} onChange={() => setFormCadastro({ ...formCadastro, modulo_bater_ponto: !formCadastro.modulo_bater_ponto })} label="🕐 Bater Ponto" desc="Ponto com selfie e GPS" color="#0891b2" />
+                <Toggle value={!!formCadastro.modulo_financeiro} onChange={toggleFinanceiroMaster} label="💰 Financeiro" desc="Caixa, contas, DRE, notas, conciliação" color="#d97706" />
+                {formCadastro.modulo_financeiro && (
+                  <div style={{ border: "1px solid #fde68a", background: "#fffbeb", borderRadius: 10, padding: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: 0.5 }}>Telas liberadas no Financeiro</span>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button type="button" onClick={() => setTodasFin(true)} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d97706", background: "#fff", color: "#b45309", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Marcar todas</button>
+                        <button type="button" onClick={() => setTodasFin(false)} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", color: "#9ca3af", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Limpar</button>
+                      </div>
+                    </div>
+                    {FIN_GRUPOS.map((g) => (
+                      <div key={g.nome} style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#b45309", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.4 }}>{g.nome}</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {g.itens.map((it) => {
+                            const on = !!(formCadastro.financeiro_opcoes || {})[it.key];
+                            return (
+                              <button key={it.key} type="button" onClick={() => toggleFinOpcao(it.key)} style={{ padding: "5px 10px", borderRadius: 8, border: on ? "1px solid #d97706" : "1px solid #e5e7eb", background: on ? "#fef3c7" : "#fff", color: on ? "#92400e" : "#9ca3af", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+                                {it.icone} {it.label}{on ? " ✓" : ""}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1303,6 +1391,7 @@ export default function Clientes() {
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_cobranca} icone="💰" label="Cobrança" cor="#dc2626" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_rh} icone="🧑‍💼" label="RH" cor="#4f46e5" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_bater_ponto} icone="🕐" label="Bater Ponto" cor="#0891b2" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_financeiro} icone="💰" label="Financeiro" cor="#d97706" />
               </div>
             </div>
 
@@ -1520,7 +1609,8 @@ export default function Clientes() {
                           {c.modulo_cobranca && <span style={{ fontSize: 14 }} title="Cobrança">💰</span>}
                           {c.modulo_rh && <span style={{ fontSize: 14 }} title="RH">🧑‍💼</span>}
                           {c.modulo_bater_ponto && <span style={{ fontSize: 14 }} title="Bater Ponto">🕐</span>}
-                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
+                          {c.modulo_financeiro && <span style={{ fontSize: 14 }} title="Financeiro">💰</span>}
+                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && !c.modulo_financeiro && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
                         </div>
                       </td>
 
