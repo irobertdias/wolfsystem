@@ -1895,8 +1895,8 @@ function ConfigPontoSelfie({ podeGerenciar, IS, cardStyle }: any) {
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, background: "#ecfeff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{"\ud83e\udd33"}</div>
         <div>
-          <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>Bater Ponto \u2014 Selfie</h2>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0" }}>Escolha se o funcion\u00e1rio precisa tirar selfie ao registrar o ponto</p>
+          <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>Bater Ponto — Selfie</h2>
+          <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0" }}>Escolha se o funcionário precisa tirar selfie ao registrar o ponto</p>
         </div>
       </div>
       <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>

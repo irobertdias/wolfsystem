@@ -65,6 +65,9 @@ function pegarLocalizacao(): Promise<{ lat: number; lng: number; acc: number } |
 export default function BaterPontoPage() {
   // 🏢 Workspace ativo (multi-tenant Wolf)
   const { wsId } = useWorkspace();
+  // 🤳 Selfie obrigatória? Lida DIRETO da tabela workspaces (robusto p/ funcionário).
+  //    Default true (com selfie) enquanto não configurado.
+  const [exigeSelfie, setExigeSelfie] = useState(true);
 
   const [func, setFunc] = useState<Func | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -95,6 +98,10 @@ export default function BaterPontoPage() {
       const { data: auth } = await supabase.auth.getUser();
       const email = auth?.user?.email || "";
       setEmailLogado(email);
+      // 🤳 Config de selfie do workspace (direto da tabela — não depende do hook)
+      const { data: wsCfg } = await supabase.from("workspaces")
+        .select("ponto_selfie_obrigatoria").eq("username", wsId).maybeSingle();
+      setExigeSelfie(wsCfg ? ((wsCfg as any).ponto_selfie_obrigatoria !== false) : true);
       if (!email) {
         setCarregando(false);
         setSemVinculo(true);
@@ -208,31 +215,11 @@ export default function BaterPontoPage() {
     setFoto(c.toDataURL("image/jpeg", 0.8));
   };
 
-  // Confirma: faz upload da selfie e registra o ponto (com GPS se disponível)
-  const confirmar = async () => {
-    if (!func || !foto) return;
-    if (!wsId) {
-      setErroCam("Workspace não identificado. Recarregue a página.");
-      return;
-    }
+  // Registra o ponto (com ou sem selfie). selfieUrl = "" → bate só com GPS.
+  const registrarPonto = async (selfieUrl: string) => {
+    if (!func || !wsId) return;
     setEnviando(true);
     const loc = await pegarLocalizacao();
-    let selfieUrl = "";
-    try {
-      const blob = await (await fetch(foto)).blob();
-      const path = `${wsId}/${func.nome.replace(/[^a-zA-Z0-9]/g, "_")}/${Date.now()}.jpg`;
-      const { error: upErr } = await supabase.storage
-        .from("ponto-selfies")
-        .upload(path, blob, { contentType: "image/jpeg", upsert: false });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("ponto-selfies").getPublicUrl(path);
-      selfieUrl = pub?.publicUrl || "";
-    } catch (e) {
-      console.error("[ponto] upload selfie", e);
-      setEnviando(false);
-      setErroCam("Não consegui salvar a selfie. Verifique a conexão e tente de novo.");
-      return;
-    }
     const tipo = TIPOS[batidasHoje.length] || "Marcação";
     const agora = new Date();
     const { error } = await supabase.from("ponto_registros").insert({
@@ -257,6 +244,40 @@ export default function BaterPontoPage() {
     setFoto("");
     setUltima({ tipo, hora: hora(agora.toISOString()), comGps: !!loc });
     carregarBatidasHoje(func.nome);
+  };
+
+  // Com selfie: faz upload da foto e registra
+  const confirmar = async () => {
+    if (!func || !foto) return;
+    if (!wsId) {
+      setErroCam("Workspace não identificado. Recarregue a página.");
+      return;
+    }
+    setEnviando(true);
+    let selfieUrl = "";
+    try {
+      const blob = await (await fetch(foto)).blob();
+      const path = `${wsId}/${func.nome.replace(/[^a-zA-Z0-9]/g, "_")}/${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from("ponto-selfies")
+        .upload(path, blob, { contentType: "image/jpeg", upsert: false });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("ponto-selfies").getPublicUrl(path);
+      selfieUrl = pub?.publicUrl || "";
+    } catch (e) {
+      console.error("[ponto] upload selfie", e);
+      setEnviando(false);
+      setErroCam("Não consegui salvar a selfie. Verifique a conexão e tente de novo.");
+      return;
+    }
+    await registrarPonto(selfieUrl);
+  };
+
+  // Sem selfie: bate direto (só GPS)
+  const baterDireto = async () => {
+    if (!func) return;
+    if (!wsId) { setErroCam("Workspace não identificado. Recarregue a página."); return; }
+    await registrarPonto("");
   };
 
   const proximoTipo = TIPOS[batidasHoje.length] || "Marcação";
@@ -360,7 +381,7 @@ export default function BaterPontoPage() {
                 Próxima batida: <b style={{ color: TIPO_COR[proximoTipo] || COR }}>{proximoTipo}</b>
               </p>
               <button
-                onClick={abrirCamera}
+                onClick={exigeSelfie ? abrirCamera : baterDireto}
                 style={{
                   width: "100%",
                   background: `linear-gradient(135deg, ${COR} 0%, #3b82f6 100%)`,
@@ -374,7 +395,7 @@ export default function BaterPontoPage() {
                   boxShadow: `0 8px 24px ${COR}50`,
                 }}
               >
-                📸 Bater Ponto com selfie
+                {exigeSelfie ? "📸 Bater Ponto com selfie" : "📍 Bater Ponto"}
               </button>
             </div>
 
