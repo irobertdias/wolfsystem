@@ -22,6 +22,7 @@ type User = {
 export function useWorkspace() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [wsIdDireto, setWsIdDireto] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,7 +56,13 @@ export function useWorkspace() {
         .maybeSingle();
 
       if (usuarioWs?.workspace_id) {
-        // ✅ Busca o workspace pelo username (workspace_id sempre guarda o username)
+        // ✅ FIX: o wsId vem DIRETO do vínculo do sub-usuário. É o mesmo valor
+        //    carimbado em funcionarios/ponto_registros. Não pode depender de
+        //    achar a linha em `workspaces` (RLS bloqueia funcionário de ler
+        //    essa tabela, ou o username diverge → wsId vazio → ponto quebra).
+        setWsIdDireto(usuarioWs.workspace_id);
+
+        // Busca o objeto workspace só pra exibição (best-effort — não trava o wsId)
         const { data: wsSub } = await supabase
           .from("workspaces")
           .select("*")
@@ -83,9 +90,14 @@ export function useWorkspace() {
             return;
           }
         }
+
+        // Não achou o objeto workspace (provável RLS), mas o wsId direto já
+        // está setado — o ponto e os filtros por workspace_id seguem funcionando.
+        setLoading(false);
+        return;
       }
 
-      // Não encontrou
+      // Não encontrou nenhum vínculo
       setWorkspace(null);
       setLoading(false);
     };
@@ -98,7 +110,7 @@ export function useWorkspace() {
   };
 
   // ✅ MULTI-TENANT: wsId é SEMPRE o username do workspace
-  const wsId = workspace?.username || "";
+  const wsId = workspace?.username || wsIdDireto || "";
   const wsPronto = !loading && !!wsId;
 
   return { workspace, user, loading, signOut, wsId, wsPronto };
