@@ -1719,6 +1719,9 @@ function AbaGeral({ workspaceId, usuarios, isAdmin, limites, limiteAtingido, pod
       {/* Bloqueio pós-finalização */}
       <BloqueioPosFinalizacao workspaceId={workspaceId} podeGerenciar={podeGerenciar} IS={IS} cardStyle={cardStyle} labelStyle={labelStyle} />
 
+      {/* 🤳 Bater Ponto — com/sem selfie (só aparece se o módulo estiver liberado) */}
+      <ConfigPontoSelfie podeGerenciar={podeGerenciar} IS={IS} cardStyle={cardStyle} />
+
       {/* Dica roleta */}
       <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderLeft: "4px solid #3b82f6", borderRadius: 12, padding: "14px 18px" }}>
         <p style={{ color: "#1e40af", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
@@ -1846,6 +1849,89 @@ function BloqueioPosFinalizacao({ workspaceId, podeGerenciar, IS, cardStyle, lab
             );
           })}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// \u2550\u2550\u2550 CONFIG PONTO \u2014 selfie obrigat\u00f3ria ou n\u00e3o (escolha do dono) \u2550\u2550\u2550
+// S\u00f3 aparece se o m\u00f3dulo "bater_ponto" estiver liberado pro workspace.
+// Grava em workspaces.ponto_selfie_obrigatoria (default true = com selfie).
+function ConfigPontoSelfie({ podeGerenciar, IS, cardStyle }: any) {
+  const { workspace, wsId } = useWorkspace();
+  const { modulos, carregado } = useModulos();
+  const [selfie, setSelfie] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [editado, setEditado] = useState(false);
+
+  useEffect(() => {
+    if (workspace && (workspace as any).ponto_selfie_obrigatoria != null) {
+      setSelfie(!!(workspace as any).ponto_selfie_obrigatoria);
+    }
+  }, [workspace]);
+
+  // S\u00f3 mostra se o m\u00f3dulo Bater Ponto estiver liberado pra este workspace
+  if (carregado && modulos && !modulos.bater_ponto) return null;
+
+  const salvar = async () => {
+    if (!wsId) return;
+    setSalvando(true);
+    const { error } = await supabase.from("workspaces")
+      .update({ ponto_selfie_obrigatoria: selfie })
+      .eq("username", wsId);
+    setSalvando(false);
+    if (error) { alert("\u274c Erro ao salvar: " + error.message); return; }
+    setEditado(false);
+    alert("\u2705 Configura\u00e7\u00e3o do ponto salva!");
+  };
+
+  const opcoes = [
+    { v: true, t: "\ud83e\udd33 Com selfie", d: "Exige foto + GPS a cada batida" },
+    { v: false, t: "\ud83d\udccd Sem selfie", d: "Registra s\u00f3 com GPS, sem c\u00e2mera" },
+  ];
+
+  return (
+    <div style={{ ...cardStyle, padding: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: "#ecfeff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{"\ud83e\udd33"}</div>
+        <div>
+          <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>Bater Ponto \u2014 Selfie</h2>
+          <p style={{ color: "#6b7280", fontSize: 12, margin: "3px 0 0" }}>Escolha se o funcion\u00e1rio precisa tirar selfie ao registrar o ponto</p>
+        </div>
+      </div>
+      <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {opcoes.map(op => {
+            const ativo = selfie === op.v;
+            return (
+              <button key={String(op.v)} disabled={!podeGerenciar}
+                onClick={() => { setSelfie(op.v); setEditado(true); }}
+                style={{
+                  flex: "1 1 200px", textAlign: "left",
+                  background: ativo ? "#ecfeff" : "#ffffff",
+                  border: "1px solid " + (ativo ? "#0891b2" : "#e5e7eb"),
+                  borderRadius: 10, padding: "12px 14px",
+                  cursor: podeGerenciar ? "pointer" : "not-allowed",
+                  boxShadow: ativo ? "0 2px 8px rgba(8,145,178,0.15)" : "none",
+                  opacity: podeGerenciar ? 1 : 0.6,
+                }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: ativo ? "#0891b2" : "#1f2937" }}>{op.t}</p>
+                <p style={{ margin: "3px 0 0", fontSize: 11, color: "#6b7280" }}>{op.d}</p>
+              </button>
+            );
+          })}
+        </div>
+        {editado && podeGerenciar && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+            <button onClick={salvar} disabled={salvando}
+              style={{
+                background: salvando ? "#0e7490" : "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
+                color: "white", border: "none", borderRadius: 10,
+                padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: salvando ? "wait" : "pointer",
+                boxShadow: "0 4px 12px rgba(8,145,178,0.3)",
+              }}>{salvando ? "Salvando..." : "\ud83d\udcbe Salvar"}</button>
+          </div>
+        )}
       </div>
     </div>
   );
