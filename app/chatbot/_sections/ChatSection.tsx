@@ -676,8 +676,18 @@ export function ChatSection() {
   const WA_BASE = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
   // 🆕 Backend wolf-meta — usado pra Instagram/Messenger (rotas /send/*)
   const META_BASE = process.env.NEXT_PUBLIC_META_URL || "https://meta.api.wolfgyn.com.br";
-  const isAudioMsg = (txt: string) => typeof txt === "string" && txt.startsWith("[audio:") && txt.endsWith("]");
-  const audioFilename = (txt: string) => txt.replace(/^\[audio:/, "").replace(/\]$/, "");
+
+  // 🆕 Áudio com OU sem transcrição
+  //    Formato do backend: "[audio:filename]"  ou  "[audio:filename]\n📝 transcrição..."
+  //    Detecta áudio só pelo PREFIXO [audio:NOME]. O que vem depois é transcrição opcional.
+  const matchAudio = (txt: string) => {
+    if (typeof txt !== "string") return null;
+    const m = txt.match(/^\[audio:([^\]]+)\](?:\n📝\s*([\s\S]+))?$/);
+    return m ? { filename: m[1], transcricao: m[2] || null } : null;
+  };
+  const isAudioMsg = (txt: string) => matchAudio(txt) !== null;
+  const audioFilename = (txt: string) => matchAudio(txt)?.filename || "";
+  const audioTranscricao = (txt: string) => matchAudio(txt)?.transcricao || null;
 
   // 🔔 ═══════════════════════════════════════════════════════════════════════════
   // FUNÇÕES DE NOTIFICAÇÃO SONORA
@@ -2732,7 +2742,25 @@ export function ChatSection() {
                               </button>
                             </div>
                           )}
-                          {ehAudio && <AudioPlayer src={audioUrl(audioFilename(msg.mensagem), msg.canal_id)} isOwn={!isCliente} />}
+                          {ehAudio && (
+                            <>
+                              <AudioPlayer src={audioUrl(audioFilename(msg.mensagem), msg.canal_id)} isOwn={!isCliente} />
+                              {audioTranscricao(msg.mensagem) && (
+                                <div style={{
+                                  marginTop: 6, padding: "6px 10px",
+                                  background: isCliente ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.55)",
+                                  borderLeft: `3px solid ${isCliente ? "#16a34a" : "#3b82f6"}`,
+                                  borderRadius: 4,
+                                  fontSize: 12, lineHeight: 1.45,
+                                  color: "#1f2937", fontStyle: "italic",
+                                  whiteSpace: "pre-wrap", wordBreak: "break-word",
+                                }}>
+                                  <span style={{ fontWeight: 700, color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4, marginRight: 6 }}>📝 Transcrição</span>
+                                  {audioTranscricao(msg.mensagem)}
+                                </div>
+                              )}
+                            </>
+                          )}
                           {midia.tipo === "img" && (
                             <div>
                               <a href={audioUrl(midia.filename, msg.canal_id)} target="_blank" rel="noreferrer">
