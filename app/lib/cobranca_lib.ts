@@ -1,0 +1,347 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// 💰 lib/cobranca_lib.ts — núcleo compartilhado da Cobrança (Wolf System)
+// Usado por: crm/cobranca, crm/cobranca/dashboard, crm/cobranca/negociacoes,
+//            crm/cobranca/atualizacao
+// ───────────────────────────────────────────────────────────────────────────
+// 🆕 multi-tenant: carregarPropostas() e carregarFaturasStatus() agora EXIGEM
+//    o wsId (workspaces.username) pra filtrar por workspace.
+//
+// Regra de inadimplência: "não pagou" continua PENDENTE até o próximo
+// vencimento (vencimento + 1 mês). Passou disso → INADIMPLENTE.
+// ═══════════════════════════════════════════════════════════════════════════
+import { supabase } from "./supabase";
+
+// ─── TIPOS ───────────────────────────────────────────────────────────────────
+export type Proposta = {
+  id: number;
+  nome?: string | null;
+  telefone1?: string | null;
+  plano?: string | null;
+  valor_plano?: number | null;
+  vencimento?: string | null;
+  status_venda?: string | null;
+  cpf?: string | null;
+  dados_customizados?: Record<string, any> | null;
+  created_at: string;
+};
+
+export type StatusFatura = "paga" | "paga_atraso" | "pendente" | "atrasada";
+export type Bucket = "paga" | "pendente" | "inadimplente";
+
+export type FaturaStatusDB = {
+  proposta_id: number;
+  numero_referencia: string;
+  status: StatusFatura;
+  data_pagamento?: string | null;
+  promessa_data?: string | null;
+  observacoes?: string | null;
+  atualizado_por?: string | null;
+  updated_at?: string;
+};
+
+export type FaturaPlan = {
+  ref: string;                  // "YYYY-MM" do vencimento
+  status: StatusFatura;
+  bucket: Bucket;
+  venc: Date | null;
+  pag: string | null;           // ISO "YYYY-MM-DD"
+  diasPagamento: number | null; // pag - venc (dias), só pra pagas
+  // 🆕 dados CRUS da planilha (subimos exatamente o que vem)
+  numeroFatura: number | null;  // NÚMERO FATURA (1..10)
+  codigo: string | null;        // "01".."05" — código bruto do STATUS PAGAMENTO
+  statusPlanilha: string | null;// texto cru: "02 - PAGOU ATÉ 30 DIAS..."
+  detalhamento: string | null;  // DETALHAMENTO FATURA
+  mesGross: string | null;      // MÊS GROSS (mês da instalação) ISO "YYYY-MM-DD"
+  observacao: string | null;    // RETORNO INSUCESSO DACC (motivo)
+  suspensaoFraude: boolean | null;
+  churn: boolean | null;
+  insucessoDacc: boolean | null;
+  nomeBanco: string | null;
+  opcaoPagamento: string | null;// BOLETO / DACC
+};
+
+export type ProxVenc = {
+  estado: "a_vencer" | "inadimplente" | "em_dia";
+  dias: number;                 // a_vencer: dias que faltam; inadimplente: dias vencido
+  data: Date | null;            // data limite (próximo vencimento)
+};
+
+export type ClienteCob = {
+  ordem: string;
+  custcode: string;
+  proposta?: Proposta;
+  nome: string;
+  faturas: FaturaPlan[];
+  pagas: number;
+  pendentes: number;
+  inadimplentes: number;
+  somaDiasPagamento: number;    // soma dos dias de pagamento (pagas)
+  matched: boolean;
+  custcodeNovo: boolean;
+  prox: ProxVenc;
+  precoce: boolean;             // 🆕 pagou após 30 dias (cód 03/04) em ALGUMA fatura
+};
+
+export type ColKey = "ordem" | "custcode" | "status" | "vencimento" | "pagamento" | "numero_fatura" | "detalhamento" | "mes_gross" | "observacao" | "suspensao_fraude" | "churn" | "insucesso_dacc" | "nome_banco" | "opcao_pagamento";
+
+// ─── DETECÇÃO DE COLUNAS DA PLANILHA ─────────────────────────────────────────
+export const DETECTAR: { key: ColKey; label: string; obrig: boolean; testa: (h: string) => boolean }[] = [
+  { key: "ordem",         label: "Número da ordem (cliente)", obrig: true,  testa: h => /ordem/.test(h) },
+  { key: "custcode",      label: "Custcode do cliente",       obrig: true,  testa: h => /custcode/.test(h) && /cliente/.test(h) },
+  { key: "status",        label: "Status do pagamento",       obrig: true,  testa: h => /status/.test(h) && /pagamento|pagto/.test(h) },
+  { key: "vencimento",    label: "Data de vencimento",        obrig: true,  testa: h => /data/.test(h) && /vencimento|venc/.test(h) },
+  { key: "pagamento",     label: "Data de pagamento",         obrig: false, testa: h => /data/.test(h) && /pagamento|pagto/.test(h) },
+  { key: "numero_fatura", label: "Número da fatura",          obrig: false, testa: h => /n[uú]mero/.test(h) && /fatura/.test(h) },
+  { key: "detalhamento",     label: "Detalhamento da fatura",  obrig: false, testa: h => /detalhamento/.test(h) },
+  { key: "mes_gross",        label: "Mês gross (instalação)",  obrig: false, testa: h => /m[eê]s/.test(h) && /gross/.test(h) },
+  { key: "observacao",       label: "Observação (retorno DACC)", obrig: false, testa: h => /retorno/.test(h) && /dacc|insucesso/.test(h) },
+  { key: "suspensao_fraude", label: "Suspensão de fraude",     obrig: false, testa: h => /suspens/.test(h) && /fraude/.test(h) },
+  { key: "churn",            label: "Churn",                   obrig: false, testa: h => /^churn$/.test(h.trim()) },
+  { key: "insucesso_dacc",   label: "Insucesso DACC",          obrig: false, testa: h => /insucesso/.test(h) && /dacc/.test(h) && !/retorno/.test(h) },
+  { key: "nome_banco",       label: "Nome do banco",           obrig: false, testa: h => /nome/.test(h) && /banco/.test(h) },
+  { key: "opcao_pagamento",  label: "Opção de pagamento",      obrig: false, testa: h => /op[cç][aã]o/.test(h) && /pagamento/.test(h) },
+];
+
+// "Sim"/"Não" da planilha -> boolean
+export const simNao = (v: any): boolean | null => {
+  const t = String(v || "").trim().toLowerCase();
+  if (t === "sim") return true;
+  if (t === "não" || t === "nao") return false;
+  return null;
+};
+
+// ─── HELPERS DE FORMATO ──────────────────────────────────────────────────────
+export const formatNum = (v: number) => (v || 0).toLocaleString("pt-BR");
+export const formatBRL = (v: number) => `R$ ${(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const pctOf = (parte: number, total: number) => (total > 0 ? Math.round((parte / total) * 100) : 0);
+export const refDe = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+export const formatData = (d: Date | string | null | undefined) => {
+  if (!d) return "—";
+  const dt = typeof d === "string" ? parseData(d) : d;
+  if (!dt || isNaN(dt.getTime())) return "—";
+  return dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+};
+
+export function parseData(v: any): Date | null {
+  if (v == null || v === "") return null;
+  const criarData = (ano: number, mes: number, dia: number) => {
+    const d = new Date(ano, mes - 1, dia);
+    // Impede datas inválidas como 31/02
+    return d.getFullYear() === ano &&
+      d.getMonth() === mes - 1 &&
+      d.getDate() === dia
+      ? d
+      : null;
+  };
+  // Número serial do Excel
+  if (typeof v === "number" && isFinite(v) && v > 59 && v < 600000) {
+    const ms = Math.round((v - 25569) * 86400000);
+    const utc = new Date(ms);
+    return criarData(
+      utc.getUTCFullYear(),
+      utc.getUTCMonth() + 1,
+      utc.getUTCDate()
+    );
+  }
+  if (v instanceof Date && !isNaN(v.getTime())) {
+    return criarData(v.getFullYear(), v.getMonth() + 1, v.getDate());
+  }
+  const s = String(v).trim();
+  // ISO: 2025-08-07
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) {
+    return criarData(Number(m[1]), Number(m[2]), Number(m[3]));
+  }
+  // Brasileiro: 07/08/25 ou 07/08/2025
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})$/);
+  if (m) {
+    const dia = Number(m[1]);
+    const mes = Number(m[2]);
+    let ano = Number(m[3]);
+    if (ano < 100) ano += 2000;
+    return criarData(ano, mes, dia);
+  }
+  // Meses em português: ago/25, set/2025
+  const meses: Record<string, number> = {
+    jan: 1,
+    fev: 2,
+    mar: 3,
+    abr: 4,
+    mai: 5,
+    jun: 6,
+    jul: 7,
+    ago: 8,
+    set: 9,
+    out: 10,
+    nov: 11,
+    dez: 12,
+  };
+  m = s.toLowerCase().match(/^([a-z\u00e7]{3,})[\/\-\s.]+(\d{2}|\d{4})$/);
+  if (m) {
+    const mes = meses[m[1].slice(0, 3)];
+    let ano = Number(m[2]);
+    if (ano < 100) ano += 2000;
+    if (mes) return criarData(ano, mes, 1);
+  }
+  // Mês/ano: 08/25 ou 08/2025
+  m = s.match(/^(\d{1,2})[\/-](\d{2}|\d{4})$/);
+  if (m) {
+    const mes = Number(m[1]);
+    let ano = Number(m[2]);
+    if (ano < 100) ano += 2000;
+    if (mes >= 1 && mes <= 12) return criarData(ano, mes, 1);
+  }
+  // Não usar new Date(s) em datas ambíguas
+  return null;
+}
+
+export const codigoStatus = (txt: string): number | null => {
+  const m = String(txt || "").trim().match(/^\s*0?(\d)/);
+  return m ? Number(m[1]) : null;
+};
+// código como veio ("01".."05") pra gravar cru na planilha
+export const codigoStatusStr = (txt: string): string | null => {
+  const m = String(txt || "").trim().match(/^\s*(\d{1,2})/);
+  return m ? m[1].padStart(2, "0") : null;
+};
+// 🆕 pagou DEPOIS de 30 dias do vencimento? (cód 03 = até 60d, 04 = +60d) → inadimplência precoce
+export const pagouComAtrasoGrave = (txt: string): boolean => {
+  const c = codigoStatus(txt);
+  return c === 3 || c === 4 || /após 30 dias|apos 30 dias|60 dias/i.test(String(txt || ""));
+};
+
+// próximo vencimento = vencimento + 1 mês (+ carência opcional em dias)
+export function proximoVencimento(venc: Date, carenciaDias = 0): Date {
+  const d = new Date(venc);
+  d.setMonth(d.getMonth() + 1);
+  if (carenciaDias) d.setDate(d.getDate() + carenciaDias);
+  return d;
+}
+
+// classifica uma fatura. "não pagou" só vira inadimplente depois do próximo vencimento.
+export function classificar(statusTxt: string, venc: Date | null, hoje: Date, carenciaDias = 0): { status: StatusFatura; bucket: Bucket } {
+  const cod = codigoStatus(statusTxt);
+  const t = String(statusTxt || "").toLowerCase();
+  if (cod === 1 || /pagou at[eé] a data/.test(t)) return { status: "paga", bucket: "paga" };
+  if (cod === 2 || cod === 3 || cod === 4 || (/pagou/.test(t) && !/n[aã]o pagou/.test(t))) return { status: "paga_atraso", bucket: "paga" };
+  if (cod === 5 || /n[aã]o pagou/.test(t)) {
+    if (!venc) return { status: "pendente", bucket: "pendente" };
+    const limite = proximoVencimento(venc, carenciaDias);
+    return hoje > limite ? { status: "atrasada", bucket: "inadimplente" } : { status: "pendente", bucket: "pendente" };
+  }
+  if (venc) {
+    const limite = proximoVencimento(venc, carenciaDias);
+    if (hoje > limite) return { status: "atrasada", bucket: "inadimplente" };
+  }
+  return { status: "pendente", bucket: "pendente" };
+}
+
+// dias que faltam para o próximo vencimento (pra não virar inadimplente)
+export function calcularProxVenc(faturas: FaturaPlan[], hoje: Date, carenciaDias = 0): ProxVenc {
+  const naoPagas = faturas.filter(f => f.bucket !== "paga" && f.venc);
+  if (naoPagas.length === 0) return { estado: "em_dia", dias: 0, data: null };
+  const comLimite = naoPagas.map(f => {
+    const limite = proximoVencimento(f.venc as Date, carenciaDias);
+    const dias = Math.ceil((limite.getTime() - hoje.getTime()) / 86400000);
+    return { limite, dias };
+  });
+  // a mais urgente = menor "dias" (negativo = já passou)
+  comLimite.sort((a, b) => a.dias - b.dias);
+  const u = comLimite[0];
+  if (u.dias < 0) return { estado: "inadimplente", dias: -u.dias, data: u.limite };
+  return { estado: "a_vencer", dias: u.dias, data: u.limite };
+}
+
+// ─── META DE STATUS / BUCKET ─────────────────────────────────────────────────
+export const STATUS_META: Record<StatusFatura, { label: string; icone: string; bg: string; border: string; color: string }> = {
+  paga:        { label: "Paga",           icone: "✅", bg: "#f0fdf4", border: "#bbf7d0", color: "#16a34a" },
+  paga_atraso: { label: "Paga c/ atraso", icone: "⏰", bg: "#ecfdf5", border: "#a7f3d0", color: "#059669" },
+  pendente:    { label: "A vencer",       icone: "⏳", bg: "#fffbeb", border: "#fde68a", color: "#d97706" },
+  atrasada:    { label: "Inadimplente",   icone: "🔴", bg: "#fef2f2", border: "#fecaca", color: "#dc2626" },
+};
+export const BUCKET_META: Record<Bucket, { label: string; icone: string; cor: string; bg: string; border: string }> = {
+  paga:         { label: "Pagas",         icone: "✅", cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+  pendente:     { label: "Pendentes",     icone: "⏳", cor: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+  inadimplente: { label: "Inadimplentes", icone: "🔴", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+};
+
+// rótulo curto do "próximo vencimento" pra mostrar ao lado do nome
+export function rotuloProx(p: ProxVenc): { texto: string; cor: string; bg: string; border: string } {
+  if (p.estado === "em_dia") return { texto: "Em dia", cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" };
+  if (p.estado === "inadimplente") return { texto: `Vencida há ${p.dias}d`, cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" };
+  const urgente = p.dias <= 5;
+  return {
+    texto: `Faltam ${p.dias}d${p.data ? ` (${p.data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })})` : ""}`,
+    cor: urgente ? "#d97706" : "#2563eb",
+    bg: urgente ? "#fffbeb" : "#eff6ff",
+    border: urgente ? "#fde68a" : "#bfdbfe",
+  };
+}
+
+// ─── CARREGAMENTO ────────────────────────────────────────────────────────────
+// 🆕 multi-tenant: recebe wsId e filtra TODAS as queries por workspace_id.
+//    Sem wsId, retorna vazio — evita vazar dados de outros workspaces.
+export async function carregarPropostas(wsId: string | null | undefined): Promise<{ propostas: Proposta[]; faltando: boolean }> {
+  if (!wsId) return { propostas: [], faltando: false };
+  const COLS = "id, nome, telefone1, plano, valor_plano, vencimento, status_venda, cpf, dados_customizados, created_at";
+  const PAGE = 1000; let acc: any[] = []; let off = 0;
+  try {
+    while (off < 600000) {
+      const { data, error } = await supabase.from("proposta").select(COLS)
+        .eq("workspace_id", wsId)   // 🆕 multi-tenant
+        .order("id", { ascending: true })
+        .range(off, off + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      acc = acc.concat(data);
+      if (data.length < PAGE) break;
+      off += PAGE;
+    }
+    return { propostas: acc as Proposta[], faltando: false };
+  } catch (e: any) {
+    return { propostas: [], faltando: e?.code === "PGRST205" };
+  }
+}
+
+export async function carregarFaturasStatus(wsId: string | null | undefined): Promise<{ statusMap: Map<string, FaturaStatusDB>; faltando: boolean }> {
+  if (!wsId) return { statusMap: new Map(), faltando: false };
+  const PAGE = 1000; let acc: any[] = []; let off = 0;
+  try {
+    while (off < 600000) {
+      const { data, error } = await supabase.from("faturas_status").select("*")
+        .eq("workspace_id", wsId)   // 🆕 multi-tenant
+        .order("proposta_id", { ascending: true })
+        .range(off, off + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      acc = acc.concat(data);
+      if (data.length < PAGE) break;
+      off += PAGE;
+    }
+    const m = new Map<string, FaturaStatusDB>();
+    for (const r of acc) m.set(`${r.proposta_id}_${r.numero_referencia}`, r as FaturaStatusDB);
+    return { statusMap: m, faltando: false };
+  } catch (e: any) {
+    return { statusMap: new Map(), faltando: e?.code === "PGRST205" };
+  }
+}
+
+// índice ordem de serviço (dados_customizados.os) → proposta
+export function indicePorOrdem(propostas: Proposta[]): Map<string, Proposta> {
+  const m = new Map<string, Proposta>();
+  for (const p of propostas) {
+    const os = String(p.dados_customizados?.os || "").toLowerCase().trim();
+    if (os) m.set(os, p);
+  }
+  return m;
+}
+
+// dia de vencimento (1-31) a partir do campo proposta.vencimento
+export function diaVencimento(p?: Proposta): number {
+  if (!p?.vencimento) return 10;
+  const s = String(p.vencimento).trim();
+  const d = parseData(s);
+  if (d) return d.getDate();
+  const n = parseInt(s, 10);
+  return n >= 1 && n <= 31 ? n : 10;
+}
