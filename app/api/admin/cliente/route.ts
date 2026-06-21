@@ -29,6 +29,7 @@ async function isAdmin(req: NextRequest): Promise<boolean> {
 
 // ═══════════════════════════════════════════════════════
 // POST — Cria cliente completo (auth + workspace + cadastro)
+// 🆕 Agora aceita TODOS os módulos comerciais + dados de cobrança
 // ═══════════════════════════════════════════════════════
 export async function POST(req: NextRequest) {
   if (!(await isAdmin(req))) {
@@ -37,10 +38,29 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const {
-    email, senha, nome, empresa, whatsapp, username, plano,
+    email, senha, nome, empresa, cpf, cnpj, whatsapp, username, plano,
     usuarios_liberados, conexoes_liberadas,
     permite_webjs, permite_waba, permite_instagram,
     ia, autorizado,
+    // 🆕 MÓDULOS COMERCIAIS — todos os boleanos do schema cadastros
+    modulo_roleta,
+    modulo_disparos_web,
+    modulo_disparos_api,
+    modulo_voip,
+    modulo_api_integracao,
+    modulo_instagram,
+    modulo_cobranca,
+    modulo_equipes,
+    modulo_funil_avancado,
+    modulo_rh,
+    modulo_bater_ponto,
+    modulo_financeiro,
+    financeiro_opcoes,
+    // 🆕 COBRANÇA AUTOMÁTICA — dados que o useLembretePagamento usa
+    dia_vencimento,
+    valor_mensalidade,
+    proximo_vencimento,
+    status_pagamento,
   } = body;
 
   try {
@@ -104,9 +124,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Erro ao criar workspace: " + wsError.message });
     }
 
-    // ═══ 4. Salva na tabela cadastros ═══
+    // ═══ 4. Salva na tabela cadastros (com TODOS os módulos novos) ═══
     const { error: cadError } = await supabase.from("cadastros").insert([{
-      nome, empresa, email, whatsapp, username: usernameLimpo, plano,
+      nome, empresa, cpf, cnpj, email, whatsapp, username: usernameLimpo, plano,
       usuarios_liberados: usuarios_liberados || 7,
       conexoes_liberadas: conexoes_liberadas || 1,
       permite_webjs: permite_webjs !== false,
@@ -115,13 +135,92 @@ export async function POST(req: NextRequest) {
       ia: ia || "gpt",
       autorizado: !!autorizado,
       user_id: userId,
+      workspace_id: usernameLimpo,    // 🆕 mesma string que o workspace.username
+
+      // 🆕 MÓDULOS COMERCIAIS (default = false — admin libera o que vendeu)
+      modulo_roleta:         !!modulo_roleta,
+      modulo_disparos_web:   !!modulo_disparos_web,
+      modulo_disparos_api:   !!modulo_disparos_api,
+      modulo_voip:           !!modulo_voip,
+      modulo_api_integracao: !!modulo_api_integracao,
+      modulo_instagram:      !!modulo_instagram,
+      modulo_cobranca:       !!modulo_cobranca,
+      modulo_equipes:        !!modulo_equipes,
+      modulo_funil_avancado: !!modulo_funil_avancado,
+      modulo_rh:             !!modulo_rh,
+      modulo_bater_ponto:    !!modulo_bater_ponto,
+      modulo_financeiro:     !!modulo_financeiro,
+      financeiro_opcoes:     financeiro_opcoes || {},   // JSONB com as 22 sub-opções
+
+      // 🆕 COBRANÇA AUTOMÁTICA (usada pelo useLembretePagamento)
+      dia_vencimento:      dia_vencimento || null,        // 1-31
+      valor_mensalidade:   valor_mensalidade || null,     // numeric
+      proximo_vencimento:  proximo_vencimento || null,    // date
+      status_pagamento:    status_pagamento || "ativo",   // ativo | suspenso | bloqueado
     }]);
 
     if (cadError) {
-      console.error("Erro ao salvar em cadastros:", cadError.message);
+      console.error("[admin/cliente] Erro ao salvar em cadastros:", cadError.message);
+      // Não faz rollback — workspace + auth já estão criados.
+      // Admin pode editar o cadastro manualmente depois.
     }
 
     return NextResponse.json({ success: true, userId });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message });
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// PATCH — Atualiza módulos/limites de um cliente existente
+// 🆕 Pra editar plano sem recriar tudo
+// ═══════════════════════════════════════════════════════
+export async function PATCH(req: NextRequest) {
+  if (!(await isAdmin(req))) {
+    return NextResponse.json({ success: false, error: "Sem permissão" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const { email, ...campos } = body;
+
+  if (!email) {
+    return NextResponse.json({ success: false, error: "email é obrigatório" });
+  }
+
+  // Só campos válidos do schema cadastros (whitelist)
+  const camposValidos = [
+    "nome", "empresa", "cpf", "cnpj", "whatsapp", "plano",
+    "usuarios_liberados", "conexoes_liberadas",
+    "permite_webjs", "permite_waba", "permite_instagram",
+    "ia", "autorizado",
+    "modulo_roleta", "modulo_disparos_web", "modulo_disparos_api",
+    "modulo_voip", "modulo_api_integracao", "modulo_instagram",
+    "modulo_cobranca", "modulo_equipes", "modulo_funil_avancado",
+    "modulo_rh", "modulo_bater_ponto", "modulo_financeiro", "financeiro_opcoes",
+    "dia_vencimento", "valor_mensalidade", "proximo_vencimento", "status_pagamento",
+    "ultimo_pagamento_em", "bloqueio_postergado_ate",
+  ];
+
+  const update: Record<string, any> = {};
+  for (const k of camposValidos) {
+    if (k in campos) update[k] = campos[k];
+  }
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ success: false, error: "Nenhum campo válido pra atualizar" });
+  }
+
+  try {
+    const { error } = await supabase
+      .from("cadastros")
+      .update(update)
+      .eq("email", email);
+
+    if (error) {
+      return NextResponse.json({ success: false, error: "Erro ao atualizar: " + error.message });
+    }
+
+    return NextResponse.json({ success: true, atualizados: Object.keys(update) });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message });
   }
@@ -177,6 +276,15 @@ export async function DELETE(req: NextRequest) {
       await supabase.from("contato_logs").delete().eq("workspace_id", username).then(() => {}, () => {});
       await supabase.from("mensagens_agendadas").delete().eq("workspace_id", username).then(() => {}, () => {});
       await supabase.from("usuarios_workspace").delete().eq("workspace_id", username).then(() => {}, () => {});
+      // 🆕 Cobrança + permissões + equipes (módulos novos)
+      await supabase.from("faturas_status").delete().eq("workspace_id", username).then(() => {}, () => {});
+      await supabase.from("disparos").delete().eq("workspace_id", username).then(() => {}, () => {});
+      await supabase.from("disparo_contatos").delete().eq("workspace_id", username).then(() => {}, () => {});
+      await supabase.from("grupos_permissao").delete().eq("workspace_id", username).then(() => {}, () => {});
+      await supabase.from("equipes").delete().eq("workspace_id", username).then(() => {}, () => {});
+      await supabase.from("filas").delete().eq("workspace_id", username).then(() => {}, () => {});
+      // proposta também — é grande, vai por último
+      await supabase.from("proposta").delete().eq("workspace_id", username).then(() => {}, () => {});
     }
 
     // ═══ 3. Apaga o workspace ═══
