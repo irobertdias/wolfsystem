@@ -26,6 +26,7 @@ type Usuario = {
   status: string;
   grupo_id?: number;
   equipe_id?: string | null;
+  exige_ponto?: boolean | null; // 🕐 precisa bater ponto pra acessar o sistema?
   created_at?: string;
 };
 
@@ -486,6 +487,8 @@ export default function Configuracoes() {
           podeGerenciar={podeGerenciarUsuarios}
           isMobile={isMobile}
           IS={IS} cardStyle={cardStyle} labelStyle={labelStyle}
+          modulos={modulos}
+          modulosCarregados={modulosCarregados}
           onRefetch={() => fetchUsuarios(workspaceId)}
         />
       )}
@@ -547,13 +550,13 @@ export default function Configuracoes() {
 // ═══════════════════════════════════════════════════════════════════════
 // 👥 ABA USUÁRIOS — 🆕 v2 com cascade Equipe → Filas
 // ═══════════════════════════════════════════════════════════════════════
-function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, workspaceId, isAdmin, limites, limiteAtingido, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
+function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, workspaceId, isAdmin, limites, limiteAtingido, podeGerenciar, isMobile, IS, cardStyle, labelStyle, modulos, modulosCarregados, onRefetch }: any) {
   const [busca, setBusca] = useState("");
   const [filtroPerfil, setFiltroPerfil] = useState<"todos" | "Administrador" | "Supervisor" | "Atendente">("todos");
   const [filtroEquipe, setFiltroEquipe] = useState<string>("todas");
   const [showForm, setShowForm] = useState(false);
   const [editandoUsuario, setEditandoUsuario] = useState<Usuario | null>(null);
-  const [formUsuario, setFormUsuario] = useState({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente" as "Administrador" | "Supervisor" | "Atendente", fila: "", grupo_id: "", equipe_id: "" });
+  const [formUsuario, setFormUsuario] = useState({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente" as "Administrador" | "Supervisor" | "Atendente", fila: "", grupo_id: "", equipe_id: "", exige_ponto: true });
   const [showSenha, setShowSenha] = useState(false);
   const [showDropdownFilas, setShowDropdownFilas] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -584,7 +587,7 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
     if (!podeGerenciar) { alert("Sem permissão."); return; }
     if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); return; }
     setEditandoUsuario(null);
-    setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "", equipe_id: "" });
+    setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "", equipe_id: "", exige_ponto: true });
     setShowForm(true);
   };
 
@@ -595,6 +598,7 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
       nome: u.nome, email: u.email, telefone: "", senha: "",
       perfil: u.perfil, fila: u.fila || "",
       grupo_id: u.grupo_id?.toString() || "", equipe_id: u.equipe_id || "",
+      exige_ponto: u.exige_ponto !== false, // default true (se nunca foi setado, exige)
     });
     setShowForm(true);
   };
@@ -628,6 +632,7 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
             fila: formUsuario.fila,
             grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
             equipe_id: formUsuario.equipe_id || null,
+            exige_ponto: formUsuario.exige_ponto, // 🕐 trava de acesso por ponto
           })
           .eq("email", editandoUsuario.email)
           .eq("workspace_id", workspaceId);
@@ -656,6 +661,7 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
           fila: formUsuario.fila,
           grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
           equipe_id: formUsuario.equipe_id || null,
+          exige_ponto: formUsuario.exige_ponto, // 🕐 trava de acesso por ponto
         }),
       });
       const data = await resp.json();
@@ -907,6 +913,63 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
                 ))}
               </select>
             </div>
+
+            {/* 🕐 EXIGE BATER PONTO — só aparece se o módulo Bater Ponto estiver liberado pro workspace */}
+            {modulosCarregados && modulos?.bater_ponto && (
+              <div style={{ gridColumn: isMobile ? "1" : "span 2" }}>
+                <label style={labelStyle}>🕐 Bater Ponto pra Acessar</label>
+                <div
+                  onClick={() => setFormUsuario({ ...formUsuario, exige_ponto: !formUsuario.exige_ponto })}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14,
+                    padding: "12px 14px",
+                    background: formUsuario.exige_ponto ? "#fdf2f8" : "#f9fafb",
+                    border: "1px solid " + (formUsuario.exige_ponto ? "#fbcfe8" : "#e5e7eb"),
+                    borderRadius: 10,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: formUsuario.exige_ponto ? "#db2777" : "#e5e7eb",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 18, flexShrink: 0, transition: "background 0.15s",
+                  }}>🕐</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                      <span style={{ color: "#0f172a", fontSize: 13.5, fontWeight: 700 }}>
+                        Exige bater ponto pra acessar?
+                      </span>
+                      <div style={{
+                        width: 40, height: 22, borderRadius: 999,
+                        background: formUsuario.exige_ponto ? "#db2777" : "#cbd5e1",
+                        position: "relative", flexShrink: 0,
+                        transition: "background 0.15s", marginLeft: "auto",
+                      }}>
+                        <div style={{
+                          width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                          position: "absolute", top: 2,
+                          left: formUsuario.exige_ponto ? 20 : 2,
+                          transition: "left 0.15s",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                        }} />
+                      </div>
+                    </div>
+                    <p style={{
+                      color: formUsuario.exige_ponto ? "#db2777" : "#64748b",
+                      fontSize: 11.5, margin: 0, lineHeight: 1.45, fontWeight: 500,
+                    }}>
+                      {formUsuario.exige_ponto
+                        ? "Sim — o sistema fica BLOQUEADO até esse usuário bater o ponto de entrada do dia"
+                        : "Não — esse usuário entra direto, sem precisar bater ponto (sócio, gerente, freelancer)"
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {!editandoUsuario && (
               <div style={{ position: "relative", gridColumn: isMobile ? "1" : "span 2" }}>
                 <label style={labelStyle}>Senha *</label>

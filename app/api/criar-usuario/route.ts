@@ -10,7 +10,11 @@ const ADMIN_EMAIL = "robert.dias@live.com";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { email, senha, nome, perfil, fila, workspace_id, grupo_id } = body;
+  const {
+    email, senha, nome, perfil, fila, workspace_id, grupo_id,
+    equipe_id,         // 🆕 era ignorado (front manda mas API não salvava)
+    exige_ponto,       // 🆕 trava de acesso por ponto
+  } = body;
 
   if (!email || !senha || !nome || !workspace_id) {
     return NextResponse.json({ success: false, error: "Campos obrigatórios faltando" });
@@ -49,14 +53,6 @@ export async function POST(req: NextRequest) {
     const ehDono = ws.owner_id === authUser.id || ws.owner_email?.toLowerCase() === chamadorEmail;
 
     // 🆕 FIX (sessão 18): também aceita SUB-USUÁRIO com perfil "Administrador"
-    // ─────────────────────────────────────────────────────────────────────
-    // Antes a API só permitia Dono ou Super Admin Wolf. Mas o perfil
-    // "Administrador" (sub-usuário com poderes de dono) tava sendo barrado
-    // com 403 mesmo o frontend liberando o botão.
-    //
-    // Agora consulta usuarios_workspace pra confirmar que o chamador é
-    // Administrador DESSE workspace especificamente (não basta ser admin
-    // de outro workspace e enviar workspace_id arbitrário).
     let ehAdminSubUsuario = false;
     if (!ehDono && !isAdminMaster) {
       const { data: subUser } = await supabase
@@ -76,9 +72,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Você não tem permissão para criar usuários neste workspace" }, { status: 403 });
     }
 
-    // 🛡️ Hardening de segurança: Administrador sub-usuário NÃO pode criar
-    // outro "Administrador" (pra evitar escalada de privilégios em chain).
-    // Só o Dono ou Super Admin Wolf podem criar Administradores.
+    // 🛡️ Hardening: Administrador sub-usuário NÃO pode criar outro Administrador
     if (ehAdminSubUsuario && !ehDono && !isAdminMaster && perfil === "Administrador") {
       return NextResponse.json({
         success: false,
@@ -88,7 +82,6 @@ export async function POST(req: NextRequest) {
 
     // ═══ 3. VALIDAÇÃO DE LIMITE — servidor (não tem como burlar) ═══
     if (!isAdminMaster) {
-      // Busca o limite do plano no cadastro
       const { data: cadastro } = await supabase
         .from("cadastros")
         .select("usuarios_liberados, autorizado")
@@ -105,7 +98,6 @@ export async function POST(req: NextRequest) {
 
       const limite = cadastro.usuarios_liberados || 1;
 
-      // Conta quantos sub-usuários já existem nesse workspace
       const { count: usadosCount } = await supabase
         .from("usuarios_workspace")
         .select("*", { count: "exact", head: true })
@@ -149,6 +141,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ═══ 6. Salva na tabela usuarios_workspace ═══
+    //    🆕 Agora salva equipe_id e exige_ponto também
     const { error: dbError } = await supabase.from("usuarios_workspace").insert([{
       nome,
       email,
@@ -158,6 +151,8 @@ export async function POST(req: NextRequest) {
       workspace_id,
       user_id: authData.user?.id,
       grupo_id: grupo_id || null,
+      equipe_id: equipe_id || null,          // 🆕
+      exige_ponto: exige_ponto !== false,    // 🆕 default true se não veio explicitamente false
     }]);
 
     if (dbError) {
