@@ -22,11 +22,17 @@ type Usuario = {
   nome: string;
   email: string;
   perfil: "Administrador" | "Supervisor" | "Atendente";
-  fila: string; // multi-fila separadas por vírgula
+  fila: string; // multi-fila separadas por vírgula (compat antigo)
   status: string;
   grupo_id?: number;
-  equipe_id?: string | null;
-  exige_ponto?: boolean | null; // 🕐 precisa bater ponto pra acessar o sistema?
+  equipe_id?: string | null;            // equipe primária
+  equipes_acesso?: string[] | null;     // 🆕 múltiplas equipes que enxerga (UUID[])
+  filas_acesso?: number[] | null;       // 🆕 múltiplas filas que atende (INT[])
+  canais_acesso?: number[] | null;      // 🆕 canais (conexões) que pode usar (INT[])
+  ramal?: string | null;                // 🆕 ramal VOIP
+  telefone?: string | null;             // 🆕 telefone pessoal
+  exige_selfie?: boolean | null;        // 🆕 exige selfie ao bater ponto (override por usuário)
+  exige_ponto?: boolean | null;         // 🕐 precisa bater ponto pra acessar o sistema?
   created_at?: string;
 };
 
@@ -190,6 +196,7 @@ export default function Configuracoes() {
   const [gruposPermissao, setGruposPermissao] = useState<GrupoPermissao[]>([]);
   const [filas, setFilas] = useState<Fila[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const [conexoes, setConexoes] = useState<any[]>([]);  // 🆕 canais que o usuário pode atender
 
   const podeGerenciarUsuarios = isDono || isSuperAdmin || !!permissoes?.usuarios_gerenciar;
   const podeGerenciarFilas = isDono || isSuperAdmin || !!permissoes?.filas;
@@ -248,6 +255,14 @@ export default function Configuracoes() {
     const { data } = await supabase.from("equipes").select("*").eq("workspace_id", wsId).eq("ativo", true).order("nome", { ascending: true });
     if (data) setEquipes(data);
   };
+  // 🆕 Canais (conexões WhatsApp/Instagram) que o usuário pode atender
+  const fetchConexoes = async (wsId: string) => {
+    const { data } = await supabase.from("conexoes")
+      .select("id, nome, tipo, status")
+      .eq("workspace_id", wsId)
+      .order("nome", { ascending: true });
+    if (data) setConexoes(data);
+  };
 
   // ═══ INIT ═══
   useEffect(() => {
@@ -263,7 +278,7 @@ export default function Configuracoes() {
         const wsId = wsDono.username;
         if (!wsId) { alert("Erro: workspace sem username."); setCarregandoInit(false); return; }
         setWorkspaceId(wsId);
-        await Promise.all([fetchUsuarios(wsId), fetchGrupos(wsId), fetchFilas(wsId), fetchEquipes(wsId)]);
+        await Promise.all([fetchUsuarios(wsId), fetchGrupos(wsId), fetchFilas(wsId), fetchEquipes(wsId), fetchConexoes(wsId)]);
         if (!admin) {
           const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).maybeSingle();
           if (cadastro) setLimites({ usuarios_liberados: cadastro.usuarios_liberados || 1 });
@@ -288,7 +303,7 @@ export default function Configuracoes() {
 
       const wsId = usuarioWs.workspace_id;
       setWorkspaceId(wsId);
-      await Promise.all([fetchUsuarios(wsId), fetchGrupos(wsId), fetchFilas(wsId), fetchEquipes(wsId)]);
+      await Promise.all([fetchUsuarios(wsId), fetchGrupos(wsId), fetchFilas(wsId), fetchEquipes(wsId), fetchConexoes(wsId)]);
 
       const { data: wsSub } = await supabase.from("workspaces").select("owner_email").eq("username", wsId).maybeSingle();
       if (wsSub?.owner_email) {
@@ -478,6 +493,7 @@ export default function Configuracoes() {
           usuarios={usuarios}
           equipes={equipes}
           filas={filas}
+          conexoes={conexoes}
           gruposPermissao={gruposPermissao}
           equipeById={equipeById}
           workspaceId={workspaceId}
@@ -550,13 +566,23 @@ export default function Configuracoes() {
 // ═══════════════════════════════════════════════════════════════════════
 // 👥 ABA USUÁRIOS — 🆕 v2 com cascade Equipe → Filas
 // ═══════════════════════════════════════════════════════════════════════
-function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, workspaceId, isAdmin, limites, limiteAtingido, podeGerenciar, isMobile, IS, cardStyle, labelStyle, modulos, modulosCarregados, onRefetch }: any) {
+function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equipeById, workspaceId, isAdmin, limites, limiteAtingido, podeGerenciar, isMobile, IS, cardStyle, labelStyle, modulos, modulosCarregados, onRefetch }: any) {
   const [busca, setBusca] = useState("");
   const [filtroPerfil, setFiltroPerfil] = useState<"todos" | "Administrador" | "Supervisor" | "Atendente">("todos");
   const [filtroEquipe, setFiltroEquipe] = useState<string>("todas");
   const [showForm, setShowForm] = useState(false);
   const [editandoUsuario, setEditandoUsuario] = useState<Usuario | null>(null);
-  const [formUsuario, setFormUsuario] = useState({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente" as "Administrador" | "Supervisor" | "Atendente", fila: "", grupo_id: "", equipe_id: "", exige_ponto: true });
+  const [formUsuario, setFormUsuario] = useState({
+    nome: "", email: "", telefone: "", senha: "",
+    perfil: "Atendente" as "Administrador" | "Supervisor" | "Atendente",
+    fila: "", grupo_id: "", equipe_id: "",
+    equipes_acesso: [] as string[],     // 🆕 UUID[]
+    filas_acesso: [] as number[],       // 🆕 INT[]
+    canais_acesso: [] as number[],      // 🆕 INT[]
+    ramal: "",                          // 🆕
+    exige_ponto: true,
+    exige_selfie: true,                 // 🆕
+  });
   const [showSenha, setShowSenha] = useState(false);
   const [showDropdownFilas, setShowDropdownFilas] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -587,7 +613,13 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
     if (!podeGerenciar) { alert("Sem permissão."); return; }
     if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); return; }
     setEditandoUsuario(null);
-    setFormUsuario({ nome: "", email: "", telefone: "", senha: "", perfil: "Atendente", fila: "", grupo_id: "", equipe_id: "", exige_ponto: true });
+    setFormUsuario({
+      nome: "", email: "", telefone: "", senha: "",
+      perfil: "Atendente", fila: "", grupo_id: "", equipe_id: "",
+      equipes_acesso: [], filas_acesso: [], canais_acesso: [],
+      ramal: "",
+      exige_ponto: true, exige_selfie: true,
+    });
     setShowForm(true);
   };
 
@@ -595,10 +627,18 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
     if (!podeGerenciar) { alert("Sem permissão."); return; }
     setEditandoUsuario(u);
     setFormUsuario({
-      nome: u.nome, email: u.email, telefone: "", senha: "",
+      nome: u.nome, email: u.email,
+      telefone: u.telefone || "",
+      senha: "",
       perfil: u.perfil, fila: u.fila || "",
-      grupo_id: u.grupo_id?.toString() || "", equipe_id: u.equipe_id || "",
-      exige_ponto: u.exige_ponto !== false, // default true (se nunca foi setado, exige)
+      grupo_id: u.grupo_id?.toString() || "",
+      equipe_id: u.equipe_id || "",
+      equipes_acesso: Array.isArray(u.equipes_acesso) ? u.equipes_acesso : [],   // 🆕
+      filas_acesso: Array.isArray(u.filas_acesso) ? u.filas_acesso : [],         // 🆕
+      canais_acesso: Array.isArray(u.canais_acesso) ? u.canais_acesso : [],      // 🆕
+      ramal: u.ramal || "",                                                       // 🆕
+      exige_ponto: u.exige_ponto !== false,
+      exige_selfie: u.exige_selfie !== false,                                     // 🆕
     });
     setShowForm(true);
   };
@@ -632,7 +672,13 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
             fila: formUsuario.fila,
             grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
             equipe_id: formUsuario.equipe_id || null,
-            exige_ponto: formUsuario.exige_ponto, // 🕐 trava de acesso por ponto
+            equipes_acesso: formUsuario.equipes_acesso,    // 🆕
+            filas_acesso: formUsuario.filas_acesso,        // 🆕
+            canais_acesso: formUsuario.canais_acesso,      // 🆕
+            ramal: formUsuario.ramal || null,              // 🆕
+            telefone: formUsuario.telefone || null,        // 🆕
+            exige_ponto: formUsuario.exige_ponto,
+            exige_selfie: formUsuario.exige_selfie,        // 🆕
           })
           .eq("email", editandoUsuario.email)
           .eq("workspace_id", workspaceId);
@@ -661,7 +707,13 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
           fila: formUsuario.fila,
           grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
           equipe_id: formUsuario.equipe_id || null,
-          exige_ponto: formUsuario.exige_ponto, // 🕐 trava de acesso por ponto
+          equipes_acesso: formUsuario.equipes_acesso,   // 🆕
+          filas_acesso: formUsuario.filas_acesso,       // 🆕
+          canais_acesso: formUsuario.canais_acesso,     // 🆕
+          ramal: formUsuario.ramal || null,             // 🆕
+          telefone: formUsuario.telefone || null,       // 🆕
+          exige_ponto: formUsuario.exige_ponto,
+          exige_selfie: formUsuario.exige_selfie,       // 🆕
         }),
       });
       const data = await resp.json();
@@ -769,9 +821,11 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
           <p style={{ color: "#3b82f6", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
             {editandoUsuario ? "✏️ Editar Usuário" : "➕ Novo Usuário"}
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
+
+          {/* ─── LINHA 1: Nome + E-mail ─── */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 14 }}>
             <div>
-              <label style={labelStyle}>Nome *</label>
+              <label style={labelStyle}>Nome Completo *</label>
               <input placeholder="Nome completo" value={formUsuario.nome} onChange={e => setFormUsuario({ ...formUsuario, nome: e.target.value })} style={IS} />
             </div>
             <div>
@@ -781,208 +835,294 @@ function AbaUsuarios({ usuarios, equipes, filas, gruposPermissao, equipeById, wo
                 disabled={!!editandoUsuario}
                 style={{ ...IS, background: editandoUsuario ? "#f3f4f6" : "#ffffff", opacity: editandoUsuario ? 0.6 : 1 }} />
             </div>
-            <div>
-              <label style={labelStyle}>Perfil</label>
-              <select value={formUsuario.perfil} onChange={e => setFormUsuario({ ...formUsuario, perfil: e.target.value as any })} style={IS}>
-                <option value="Administrador">👑 Administrador</option>
-                <option value="Supervisor">🎖️ Supervisor</option>
-                <option value="Atendente">👤 Atendente</option>
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>🏢 Equipe</label>
-              {/* 🆕 v2: usa mudarEquipe() pra resetar as filas que não pertencem à nova equipe */}
-              <select value={formUsuario.equipe_id} onChange={e => mudarEquipe(e.target.value)} style={IS}>
-                <option value="">Sem equipe (global)</option>
-                {equipes.map((eq: Equipe) => (
-                  <option key={eq.id} value={eq.id}>{iconeHashFromString(eq.nome)} {eq.nome}</option>
-                ))}
-              </select>
-              {equipes.length === 0 && (
-                <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>
-                  Nenhuma equipe ainda — vá na aba "Equipes" pra criar.
+          </div>
+
+          {/* ─── LINHA 2: Grupo de Permissão (largura total) ─── */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ ...labelStyle, color: "#8b5cf6" }}>🔐 Cargo / Grupo de Permissão *</label>
+            <select value={formUsuario.grupo_id} onChange={e => setFormUsuario({ ...formUsuario, grupo_id: e.target.value })}
+              style={{ ...IS, borderColor: formUsuario.grupo_id ? "#8b5cf6" : "#e5e7eb" }}>
+              <option value="">— Sem grupo (usa padrão do perfil) —</option>
+              {gruposPermissao.map((g: GrupoPermissao) => (
+                <option key={g.id} value={g.id.toString()}>👥 {g.nome}</option>
+              ))}
+            </select>
+            <p style={{ color: "#f59e0b", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+              💡 É o GRUPO que define todas as permissões do usuário (configuráveis em <b>Permissões</b>).
+            </p>
+          </div>
+
+          {/* ─── LINHA 3: Perfil (Administrador/Supervisor/Atendente) ─── */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>👔 Perfil do Sistema</label>
+            <select value={formUsuario.perfil} onChange={e => setFormUsuario({ ...formUsuario, perfil: e.target.value as any })} style={IS}>
+              <option value="Administrador">👑 Administrador — poder total no workspace</option>
+              <option value="Supervisor">🎖️ Supervisor — gerencia equipes/filas</option>
+              <option value="Atendente">👤 Atendente — usa o sistema</option>
+            </select>
+          </div>
+
+          {/* ─── LINHA 4: EQUIPES (botões multi-seleção) ─── */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>
+              🏢 Equipes (clique pra selecionar — libera as filas abaixo)
+            </label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {equipes.length === 0 ? (
+                <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>
+                  Nenhuma equipe ainda — crie na aba "Equipes".
                 </p>
-              )}
-            </div>
-            <div>
-              <label style={labelStyle}>
-                📋 Filas atendidas
-                {/* 🆕 v2: badge mostrando contexto da equipe */}
-                {formUsuario.equipe_id && filasDisponiveis.length > 0 && (
-                  <span style={{ color: "#9ca3af", fontWeight: 500, marginLeft: 6, textTransform: "none", letterSpacing: 0, fontSize: 10 }}>
-                    · {filasDisponiveis.length} disponível{filasDisponiveis.length !== 1 ? "is" : ""}
-                  </span>
-                )}
-              </label>
-              {(() => {
-                const filasSelecionadas = (formUsuario.fila || "").split(",").map(s => s.trim()).filter(Boolean);
-                const labelBotao = filasSelecionadas.length === 0
-                  ? "Selecione..."
-                  : filasSelecionadas.length === 1
-                    ? filasSelecionadas[0]
-                    : `${filasSelecionadas.length} filas selecionadas`;
-                const toggleFila = (nome: string) => {
-                  const novas = filasSelecionadas.includes(nome)
-                    ? filasSelecionadas.filter(f => f !== nome)
-                    : [...filasSelecionadas, nome];
-                  setFormUsuario({ ...formUsuario, fila: novas.join(",") });
+              ) : equipes.map((eq: Equipe) => {
+                const ativa = formUsuario.equipes_acesso.includes(eq.id);
+                const toggleEq = () => {
+                  const novas = ativa
+                    ? formUsuario.equipes_acesso.filter(id => id !== eq.id)
+                    : [...formUsuario.equipes_acesso, eq.id];
+                  // Se desmarcou uma equipe, remove suas filas do filas_acesso
+                  const filasDessaEquipe = filas.filter((f: Fila) => f.equipe_id === eq.id).map((f: Fila) => f.id);
+                  const novasFilas = ativa
+                    ? formUsuario.filas_acesso.filter(id => !filasDessaEquipe.includes(id))
+                    : formUsuario.filas_acesso;
+                  setFormUsuario({ ...formUsuario, equipes_acesso: novas, filas_acesso: novasFilas });
                 };
                 return (
-                  <div style={{ position: "relative" }}>
-                    <button type="button" onClick={() => setShowDropdownFilas(!showDropdownFilas)}
-                      style={{ ...IS, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ color: filasSelecionadas.length === 0 ? "#9ca3af" : "#1f2937", fontWeight: filasSelecionadas.length > 0 ? 600 : 400 }}>{labelBotao}</span>
-                      <span style={{ color: "#9ca3af", fontSize: 10 }}>{showDropdownFilas ? "▲" : "▼"}</span>
-                    </button>
-                    {showDropdownFilas && (
-                      <>
-                        <div onClick={() => setShowDropdownFilas(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }} />
-                        <div style={{
-                          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-                          background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10,
-                          maxHeight: 260, overflowY: "auto", zIndex: 101,
-                          boxShadow: "0 10px 25px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.04)",
-                        }}>
-                          {/* 🆕 v2: usa filasDisponiveis em vez de filas */}
-                          {filasDisponiveis.length === 0 ? (
-                            <p style={{ color: "#9ca3af", fontSize: 12, padding: 14, textAlign: "center", margin: 0, lineHeight: 1.5 }}>
-                              {formUsuario.equipe_id
-                                ? "Esta equipe ainda não tem filas. Crie filas na aba \"Filas\" e atribua-as a esta equipe."
-                                : "Nenhuma fila criada ainda. Crie uma fila na aba \"Filas\" primeiro."}
-                            </p>
-                          ) : (
-                            <>
-                              {filasDisponiveis.map((f: Fila) => {
-                                const marcada = filasSelecionadas.includes(f.nome);
-                                const ehGlobal = !f.equipe_id;
-                                return (
-                                  <label key={f.id} style={{
-                                    display: "flex", alignItems: "center", gap: 10,
-                                    padding: "11px 14px", cursor: "pointer",
-                                    borderBottom: "1px solid #f3f4f6",
-                                    background: marcada ? "#eff6ff" : "transparent",
-                                  }}
-                                    onMouseEnter={(e) => { if (!marcada) e.currentTarget.style.background = "#f9fafb"; }}
-                                    onMouseLeave={(e) => { if (!marcada) e.currentTarget.style.background = "transparent"; }}>
-                                    <input type="checkbox" checked={marcada} onChange={() => toggleFila(f.nome)}
-                                      style={{ accentColor: "#3b82f6", cursor: "pointer", width: 16, height: 16 }} />
-                                    <span style={{ color: marcada ? "#3b82f6" : "#1f2937", fontSize: 13, fontWeight: marcada ? 700 : 500, flex: 1 }}>
-                                      {iconeFilaFromString(f.nome)} {f.nome}
-                                    </span>
-                                    {/* 🆕 v2: badge "Global" pra distinguir filas sem equipe específica */}
-                                    {ehGlobal && formUsuario.equipe_id && (
-                                      <span style={{ background: "#f3f4f6", color: "#6b7280", fontSize: 9, padding: "2px 6px", borderRadius: 6, fontWeight: 700 }}>GLOBAL</span>
-                                    )}
-                                  </label>
-                                );
-                              })}
-                              {filasSelecionadas.length > 0 && (
-                                <div style={{ padding: "8px 14px", borderTop: "1px solid #e5e7eb", background: "#f9fafb" }}>
-                                  <button type="button" onClick={() => setFormUsuario({ ...formUsuario, fila: "" })}
-                                    style={{ background: "none", border: "none", color: "#dc2626", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
-                                    ✕ Limpar seleção
-                                  </button>
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </>
-                    )}
-                    {filasSelecionadas.length > 1 && (
-                      <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
-                        ℹ️ Atende {filasSelecionadas.length} filas: <b>{filasSelecionadas.join(", ")}</b>
-                      </p>
-                    )}
-                    {/* 🆕 v2: dica contextual da cascade */}
-                    {!formUsuario.equipe_id && filas.length > 0 && (
-                      <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3, fontStyle: "italic" }}>
-                        💡 Selecione uma equipe acima para filtrar as filas automaticamente.
-                      </p>
-                    )}
-                  </div>
+                  <button key={eq.id} type="button" onClick={toggleEq}
+                    style={{
+                      background: ativa ? "#eff6ff" : "#ffffff",
+                      color: ativa ? "#2563eb" : "#6b7280",
+                      border: "1.5px solid " + (ativa ? "#3b82f6" : "#e5e7eb"),
+                      borderRadius: 10, padding: "9px 16px",
+                      fontSize: 12.5, fontWeight: 700,
+                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                      transition: "all 0.15s",
+                    }}>
+                    {ativa && <span>✓</span>}
+                    {iconeHashFromString(eq.nome)} {eq.nome.toUpperCase()}
+                  </button>
                 );
-              })()}
+              })}
+            </div>
+            <p style={{ color: "#9ca3af", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+              Marque as equipes deste usuário. As vendas dessas equipes ficam visíveis pra ele (útil pra BKO e gerentes).
+            </p>
+          </div>
+
+          {/* ─── LINHA 5: FILAS DE ATENDIMENTO (botões multi-seleção, baseadas nas equipes marcadas) ─── */}
+          {(() => {
+            // Filas disponíveis = das equipes selecionadas + filas globais (sem equipe)
+            const filasDisp = filas.filter((f: Fila) =>
+              !f.equipe_id || formUsuario.equipes_acesso.includes(f.equipe_id)
+            );
+            return (
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>
+                  🎯 Filas de Atendimento (pode marcar várias)
+                  <span style={{ color: "#9ca3af", marginLeft: 8, fontWeight: 500, textTransform: "none", letterSpacing: 0 }}>
+                    · {filasDisp.length} disponíve{filasDisp.length !== 1 ? "is" : "l"}
+                  </span>
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {/* Botão "Todas as filas" */}
+                  <button type="button" onClick={() => {
+                    const todasIds = filasDisp.map((f: Fila) => f.id);
+                    const jaTudo = todasIds.length > 0 && todasIds.every((id: number) => formUsuario.filas_acesso.includes(id));
+                    setFormUsuario({ ...formUsuario, filas_acesso: jaTudo ? [] : todasIds });
+                  }}
+                    style={{
+                      background: "#ffffff", color: "#6b7280",
+                      border: "1.5px dashed #d1d5db",
+                      borderRadius: 10, padding: "9px 14px",
+                      fontSize: 12, fontWeight: 700, cursor: "pointer",
+                    }}>
+                    📞 Todas as filas
+                  </button>
+                  {filasDisp.length === 0 ? (
+                    <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0, alignSelf: "center" }}>
+                      Selecione uma equipe acima pra ver as filas.
+                    </p>
+                  ) : filasDisp.map((f: Fila) => {
+                    const ativa = formUsuario.filas_acesso.includes(f.id);
+                    const toggleF = () => {
+                      const novas = ativa
+                        ? formUsuario.filas_acesso.filter(id => id !== f.id)
+                        : [...formUsuario.filas_acesso, f.id];
+                      setFormUsuario({ ...formUsuario, filas_acesso: novas });
+                    };
+                    return (
+                      <button key={f.id} type="button" onClick={toggleF}
+                        style={{
+                          background: ativa ? "#fff7ed" : "#ffffff",
+                          color: ativa ? "#ea580c" : "#6b7280",
+                          border: "1.5px solid " + (ativa ? "#fb923c" : "#e5e7eb"),
+                          borderRadius: 10, padding: "9px 14px",
+                          fontSize: 12, fontWeight: 700, cursor: "pointer",
+                          display: "flex", alignItems: "center", gap: 6,
+                        }}>
+                        {ativa && <span>✓</span>}
+                        {iconeFilaFromString(f.nome)} {f.nome.toUpperCase()}
+                      </button>
+                    );
+                  })}
+                </div>
+                {formUsuario.filas_acesso.length > 0 && (
+                  <p style={{ color: "#10b981", fontSize: 10.5, margin: "5px 0 0", fontWeight: 600 }}>
+                    ✅ Usuário verá {formUsuario.filas_acesso.length} fila(s) selecionada(s)
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ─── LINHA 6: Ramal VOIP + Telefone ─── */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 14 }}>
+            <div>
+              <label style={{ ...labelStyle, color: "#dc2626" }}>📞 Ramal VOIP</label>
+              <input placeholder="Ex: 1001" value={formUsuario.ramal}
+                onChange={e => setFormUsuario({ ...formUsuario, ramal: e.target.value })}
+                style={IS} />
             </div>
             <div>
-              <label style={labelStyle}>🔐 Grupo de Permissão</label>
-              <select value={formUsuario.grupo_id} onChange={e => setFormUsuario({ ...formUsuario, grupo_id: e.target.value })} style={IS}>
-                <option value="">Sem grupo (usa padrão do perfil)</option>
-                {gruposPermissao.map((g: GrupoPermissao) => (
-                  <option key={g.id} value={g.id.toString()}>{g.nome}</option>
-                ))}
-              </select>
+              <label style={labelStyle}>📱 Telefone</label>
+              <input placeholder="(62) 99999-9999" value={formUsuario.telefone}
+                onChange={e => setFormUsuario({ ...formUsuario, telefone: e.target.value })}
+                style={IS} />
+            </div>
+          </div>
+
+          {/* ─── LINHA 7: Canais que pode atender + Selfie ao bater ponto (lado a lado) ─── */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 14 }}>
+            {/* Canais (conexões) */}
+            <div>
+              <label style={labelStyle}>📡 Canais que pode atender</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {conexoes.length === 0 ? (
+                  <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>
+                    Nenhum canal cadastrado — vá em <b>Conexões</b>.
+                  </p>
+                ) : conexoes.map((c: any) => {
+                  const ativo = formUsuario.canais_acesso.includes(c.id);
+                  const toggleC = () => {
+                    const novos = ativo
+                      ? formUsuario.canais_acesso.filter(id => id !== c.id)
+                      : [...formUsuario.canais_acesso, c.id];
+                    setFormUsuario({ ...formUsuario, canais_acesso: novos });
+                  };
+                  const iconeCanal = c.tipo === "instagram" ? "📸" : c.tipo === "waba" ? "✅" : "💬";
+                  return (
+                    <button key={c.id} type="button" onClick={toggleC}
+                      style={{
+                        background: ativo ? "#f0fdf4" : "#ffffff",
+                        color: ativo ? "#16a34a" : "#6b7280",
+                        border: "1.5px solid " + (ativo ? "#22c55e" : "#e5e7eb"),
+                        borderRadius: 10, padding: "8px 12px",
+                        fontSize: 11.5, fontWeight: 700, cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 5,
+                      }}>
+                      {ativo && <span>✓</span>}
+                      {iconeCanal} {c.nome}
+                    </button>
+                  );
+                })}
+              </div>
+              <p style={{ color: "#9ca3af", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+                Marque os canais que esse usuário pode ver no chat. Soma com os canais do grupo dele.
+              </p>
             </div>
 
-            {/* 🕐 EXIGE BATER PONTO — só aparece se o módulo Bater Ponto estiver liberado pro workspace */}
+            {/* Selfie ao bater ponto (só se módulo bater_ponto liberado) */}
             {modulosCarregados && modulos?.bater_ponto && (
-              <div style={{ gridColumn: isMobile ? "1" : "span 2" }}>
-                <label style={labelStyle}>🕐 Bater Ponto pra Acessar</label>
+              <div>
+                <label style={labelStyle}>🤳 Selfie ao bater ponto</label>
                 <div
-                  onClick={() => setFormUsuario({ ...formUsuario, exige_ponto: !formUsuario.exige_ponto })}
+                  onClick={() => setFormUsuario({ ...formUsuario, exige_selfie: !formUsuario.exige_selfie })}
                   style={{
-                    display: "flex", alignItems: "center", gap: 14,
-                    padding: "12px 14px",
-                    background: formUsuario.exige_ponto ? "#fdf2f8" : "#f9fafb",
-                    border: "1px solid " + (formUsuario.exige_ponto ? "#fbcfe8" : "#e5e7eb"),
-                    borderRadius: 10,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "11px 14px",
+                    background: formUsuario.exige_selfie ? "#eff6ff" : "#f9fafb",
+                    border: "1px solid " + (formUsuario.exige_selfie ? "#bfdbfe" : "#e5e7eb"),
+                    borderRadius: 10, cursor: "pointer", transition: "all 0.15s",
+                  }}>
                   <div style={{
-                    width: 38, height: 38, borderRadius: 10,
-                    background: formUsuario.exige_ponto ? "#db2777" : "#e5e7eb",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 18, flexShrink: 0, transition: "background 0.15s",
-                  }}>🕐</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                      <span style={{ color: "#0f172a", fontSize: 13.5, fontWeight: 700 }}>
-                        Exige bater ponto pra acessar?
-                      </span>
-                      <div style={{
-                        width: 40, height: 22, borderRadius: 999,
-                        background: formUsuario.exige_ponto ? "#db2777" : "#cbd5e1",
-                        position: "relative", flexShrink: 0,
-                        transition: "background 0.15s", marginLeft: "auto",
-                      }}>
-                        <div style={{
-                          width: 18, height: 18, borderRadius: "50%", background: "#fff",
-                          position: "absolute", top: 2,
-                          left: formUsuario.exige_ponto ? 20 : 2,
-                          transition: "left 0.15s",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                        }} />
-                      </div>
-                    </div>
-                    <p style={{
-                      color: formUsuario.exige_ponto ? "#db2777" : "#64748b",
-                      fontSize: 11.5, margin: 0, lineHeight: 1.45, fontWeight: 500,
-                    }}>
-                      {formUsuario.exige_ponto
-                        ? "Sim — o sistema fica BLOQUEADO até esse usuário bater o ponto de entrada do dia"
-                        : "Não — esse usuário entra direto, sem precisar bater ponto (sócio, gerente, freelancer)"
-                      }
-                    </p>
+                    width: 40, height: 22, borderRadius: 999,
+                    background: formUsuario.exige_selfie ? "#2563eb" : "#cbd5e1",
+                    position: "relative", flexShrink: 0, transition: "background 0.15s",
+                  }}>
+                    <div style={{
+                      width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                      position: "absolute", top: 2,
+                      left: formUsuario.exige_selfie ? 20 : 2,
+                      transition: "left 0.15s",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    }} />
                   </div>
+                  <span style={{
+                    color: formUsuario.exige_selfie ? "#1d4ed8" : "#6b7280",
+                    fontSize: 12.5, fontWeight: 700,
+                  }}>
+                    {formUsuario.exige_selfie ? "Sim — exige selfie + GPS" : "Não — só localização (GPS)"}
+                  </span>
                 </div>
-              </div>
-            )}
-
-            {!editandoUsuario && (
-              <div style={{ position: "relative", gridColumn: isMobile ? "1" : "span 2" }}>
-                <label style={labelStyle}>Senha *</label>
-                <input type={showSenha ? "text" : "password"} placeholder="Mínimo 6 caracteres" value={formUsuario.senha}
-                  onChange={e => setFormUsuario({ ...formUsuario, senha: e.target.value })}
-                  style={{ ...IS, paddingRight: 40 }} />
-                <button onClick={() => setShowSenha(!showSenha)} type="button"
-                  style={{ position: "absolute", right: 8, top: 32, background: "#f3f4f6", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 12, width: 28, height: 28, borderRadius: 6 }}>
-                  {showSenha ? "🙈" : "👁️"}
-                </button>
+                <p style={{ color: "#9ca3af", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+                  Funcionários internos podem bater só com localização.
+                </p>
               </div>
             )}
           </div>
+
+          {/* ─── LINHA 8: Bater Ponto pra Acessar (largura total — só se módulo liberado) ─── */}
+          {modulosCarregados && modulos?.bater_ponto && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>🕐 Bater Ponto para Acessar</label>
+              <div
+                onClick={() => setFormUsuario({ ...formUsuario, exige_ponto: !formUsuario.exige_ponto })}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "11px 14px",
+                  background: formUsuario.exige_ponto ? "#fdf2f8" : "#f9fafb",
+                  border: "1px solid " + (formUsuario.exige_ponto ? "#fbcfe8" : "#e5e7eb"),
+                  borderRadius: 10, cursor: "pointer", transition: "all 0.15s",
+                }}>
+                <div style={{
+                  width: 40, height: 22, borderRadius: 999,
+                  background: formUsuario.exige_ponto ? "#db2777" : "#cbd5e1",
+                  position: "relative", flexShrink: 0, transition: "background 0.15s",
+                }}>
+                  <div style={{
+                    width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                    position: "absolute", top: 2,
+                    left: formUsuario.exige_ponto ? 20 : 2,
+                    transition: "left 0.15s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  }} />
+                </div>
+                <span style={{
+                  color: formUsuario.exige_ponto ? "#be185d" : "#6b7280",
+                  fontSize: 12.5, fontWeight: 700,
+                }}>
+                  {formUsuario.exige_ponto ? "Sim — precisa bater ponto pra entrar" : "Não — entra direto, sem bater ponto"}
+                </span>
+              </div>
+              <p style={{ color: "#9ca3af", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+                Logins administrativos (sócios, gerentes, freelancers) podem acessar sem bater ponto.
+              </p>
+            </div>
+          )}
+
+          {/* ─── LINHA 9: Senha (só ao criar) ─── */}
+          {!editandoUsuario && (
+            <div style={{ position: "relative", marginBottom: 14 }}>
+              <label style={labelStyle}>Senha *</label>
+              <input type={showSenha ? "text" : "password"} placeholder="Mínimo 6 caracteres" value={formUsuario.senha}
+                onChange={e => setFormUsuario({ ...formUsuario, senha: e.target.value })}
+                style={{ ...IS, paddingRight: 40 }} />
+              <button onClick={() => setShowSenha(!showSenha)} type="button"
+                style={{ position: "absolute", right: 8, top: 32, background: "#f3f4f6", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 12, width: 28, height: 28, borderRadius: 6 }}>
+                {showSenha ? "🙈" : "👁️"}
+              </button>
+            </div>
+          )}
+
+          {/* ─── BOTÕES ─── */}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button onClick={() => { setShowForm(false); setEditandoUsuario(null); }}
               style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>

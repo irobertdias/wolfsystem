@@ -12,8 +12,14 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const {
     email, senha, nome, perfil, fila, workspace_id, grupo_id,
-    equipe_id,         // 🆕 era ignorado (front manda mas API não salvava)
-    exige_ponto,       // 🆕 trava de acesso por ponto
+    equipe_id,                    // 🆕 equipe primária
+    equipes_acesso,               // 🆕 múltiplas equipes (UUID[])
+    filas_acesso,                 // 🆕 múltiplas filas (INT[])
+    canais_acesso,                // 🆕 canais/conexões (INT[])
+    ramal,                        // 🆕 ramal VOIP
+    telefone,                     // 🆕 telefone pessoal
+    exige_ponto,                  // 🕐 trava de acesso por ponto
+    exige_selfie,                 // 🤳 selfie obrigatória no ponto
   } = body;
 
   if (!email || !senha || !nome || !workspace_id) {
@@ -141,7 +147,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ═══ 6. Salva na tabela usuarios_workspace ═══
-    //    🆕 Agora salva equipe_id e exige_ponto também
+    //    🆕 Agora salva TODOS os campos da tela de configurações
     const { error: dbError } = await supabase.from("usuarios_workspace").insert([{
       nome,
       email,
@@ -151,8 +157,14 @@ export async function POST(req: NextRequest) {
       workspace_id,
       user_id: authData.user?.id,
       grupo_id: grupo_id || null,
-      equipe_id: equipe_id || null,          // 🆕
-      exige_ponto: exige_ponto !== false,    // 🆕 default true se não veio explicitamente false
+      equipe_id: equipe_id || null,                                              // 🆕
+      equipes_acesso: Array.isArray(equipes_acesso) ? equipes_acesso : [],       // 🆕
+      filas_acesso: Array.isArray(filas_acesso) ? filas_acesso : [],             // 🆕
+      canais_acesso: Array.isArray(canais_acesso) ? canais_acesso : [],          // 🆕
+      ramal: ramal || null,                                                       // 🆕
+      telefone: telefone || null,                                                 // 🆕
+      exige_ponto: exige_ponto !== false,                                         // default true
+      exige_selfie: exige_selfie !== false,                                       // 🆕 default true
     }]);
 
     if (dbError) {

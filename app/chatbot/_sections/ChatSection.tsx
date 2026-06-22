@@ -5,6 +5,7 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useSoftphone } from "../../hooks/useSoftphone";
 import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
+import { useCanaisPermitidos } from "../../hooks/useCanaisPermitidos";
 import { montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom } from "../../lib/campos_proposta_definicao";
 
 type Atendimento = {
@@ -232,6 +233,8 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
 export function ChatSection() {
   const { workspace, wsId, user } = useWorkspace();
   const { permissoes, isDono } = usePermissao();
+  // 📡 Trava de canais por usuário/grupo — controla quais conexões o user vê
+  const { veTudoCanais, canaisPermitidos } = useCanaisPermitidos();
   // 🆕 Softphone — botão de ligar chama iniciarChamada(numero, nome)
   const { iniciarChamada } = useSoftphone();
   // 👥 Filtro de equipe (mesmo padrão de Vendas / Contatos / Dashboard)
@@ -987,7 +990,7 @@ export function ChatSection() {
 
   const fetchCanais = async () => {
     if (!wsId) return;
-    const { data } = await supabase.from("conexoes").select("id, nome, tipo").eq("workspace_id", wsId);
+    const { data } = await supabase.from("conexoes").select("id, nome, tipo, modulos").eq("workspace_id", wsId);
     setCanais(data || []);
   };
 
@@ -1119,7 +1122,19 @@ export function ChatSection() {
       }
     }
 
-    setAtendimentos(lista);
+    // 📡 TRAVA DE CANAIS — atendente só vê atendimentos dos canais que o usuário/grupo libera
+    //    Dono / Super Admin / usuários com permissoes.chat_todos → veTudoCanais=true (ignora a trava)
+    //    Atendentes restritos → só vê canais que estão em (usuarios_workspace.canais_acesso ∪ grupos_permissao.canais_acesso)
+    let listaFinal = lista;
+    if (!veTudoCanais && canaisPermitidos) {
+      listaFinal = listaFinal.filter(a => {
+        // Atendimento sem canal_id → fica de fora (não tem como decidir, mais seguro esconder)
+        if (a.canal_id === null || a.canal_id === undefined) return false;
+        return canaisPermitidos.has(Number(a.canal_id));
+      });
+    }
+
+    setAtendimentos(listaFinal);
 
     // 🆕 Dispara auto-limpeza em background (não aguarda).
     // Só dono/supervisor dispara — atendente comum não tem permissão de fazer update em massa.
