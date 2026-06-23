@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
-import { STATUS_OPCOES } from "../../lib/campos_proposta_definicao";
+import { STATUS_OPCOES, CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
 
 type TipoNo =
   | "texto" | "imagem" | "video" | "audio" | "embed"
@@ -476,7 +476,7 @@ function TVarComponent({
   );
 }
 
-function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, nos, statusVendaOpcoes }: {
+function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, nos, statusVendaOpcoes, camposPropostaUnif }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
@@ -485,6 +485,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   atendentesBanco: AtendenteItem[]; // 🆕 lista de atendentes do workspace
   nos: No[]; // 🆕 lista completa de nós pra detectar variáveis criadas
   statusVendaOpcoes: {value:string;label:string}[]; // 📋 status disponíveis no workspace
+  camposPropostaUnif: CampoUnificado[]; // 📋 campos da proposta (fixos + customs) do workspace
 }) {
   const d = noSel.dados;
   const id = noSel.id;
@@ -1554,34 +1555,18 @@ function saida(obj) {
     // ─────────────────────────────────────────────────────────────────────────
     case "enviar_venda": {
       const modoMap = d.modo_mapeamento || "automatico";
-      // Campos REAIS da tabela `proposta` no Supabase (espelha o schema do CRM).
-      // Se a tabela ganhar/perder colunas no banco, atualizar aqui também.
-      const camposPropostaPadrao = [
-        { key: "nome", label: "Nome completo" },
-        { key: "cpf", label: "CPF" },
-        { key: "rg", label: "RG" },
-        { key: "data_nascimento", label: "Data de nascimento" },
-        { key: "nome_mae", label: "Nome da mãe" },
-        { key: "email", label: "E-mail" },
-        { key: "endereco", label: "Endereço completo" },
-        { key: "cep", label: "CEP" },
-        { key: "cidade", label: "Cidade" },
-        { key: "estado", label: "Estado" },
-        { key: "telefone1", label: "Telefone principal" },
-        { key: "telefone2", label: "Telefone 2" },
-        { key: "telefone3", label: "Telefone 3" },
-        { key: "plano", label: "Plano escolhido" },
-        { key: "valor_plano", label: "Valor do plano (R$)" },
-        { key: "vencimento", label: "Dia de vencimento" },
-        { key: "forma_pagamento", label: "Forma de pagamento" },
-        { key: "data_agendamento", label: "Data de agendamento" },
-        { key: "periodo_instalacao", label: "Período de instalação" },
-        { key: "data_instalacao", label: "Data de instalação" },
-        { key: "data_cancelamento", label: "Data de cancelamento" },
-        { key: "operadora", label: "Operadora" },
-        { key: "vendedor", label: "Vendedor" },
-        { key: "data_proposta", label: "Data da proposta" },
-      ];
+      // 📋 Campos disponíveis = lista UNIFICADA carregada do workspace:
+      //   - Campos FIXOS (nome, cpf, telefone, etc) respeitando configs do Editor de Vendas
+      //     (oculta os marcados como invisível, usa label customizado)
+      //   - Campos CUSTOMIZADOS criados pelo cliente no Editor de Vendas
+      // Vem via prop `camposPropostaUnif` (carregada uma vez no componente raiz).
+      // Mostra só os visíveis e ativos. Filtra o "vendedor" porque é setado automático pelo backend.
+      const camposVisiveis = camposPropostaUnif.filter(c =>
+        c.visivel !== false && c.slug !== "vendedor"
+      );
+      // Separa em fixos / customs pra mostrar em seções diferentes
+      const camposFixos = camposVisiveis.filter(c => c.origem === "fixo");
+      const camposCustoms = camposVisiveis.filter(c => c.origem === "custom");
       const mapeamento: Record<string,string> = d.mapeamento || {};
       const updateMap = (campo: string, varName: string) => {
         const novo = { ...mapeamento };
@@ -1633,22 +1618,76 @@ function saida(obj) {
             <label style={LS}>Defina qual variável preenche cada campo</label>
             <p style={{color:"#6b7280",fontSize:10,margin:"-2px 0 8px",lineHeight:1.3}}>
               Deixe em branco os campos que não quer preencher. O sistema só cria os que você mapear.
+              <br/>📅 Datas devem vir no formato <code style={{color:"#22c55e"}}>YYYY-MM-DD</code> ou <code style={{color:"#22c55e"}}>DD/MM/YYYY</code>.
+              💰 Valores monetários: ponto como separador decimal (ex: <code style={{color:"#22c55e"}}>99.90</code>).
             </p>
-            <div style={{display:"flex",flexDirection:"column",gap:6,background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:10,maxHeight:300,overflowY:"auto"}}>
-              {camposPropostaPadrao.map(c => (
-                <div key={c.key} style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{color:"#9ca3af",fontSize:11,flex:"0 0 130px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
-                    title={c.label}>{c.label}</span>
-                  <span style={{color:"#e5e7eb",fontSize:11}}>←</span>
-                  <select value={mapeamento[c.key] || ""} onChange={e => updateMap(c.key, e.target.value)}
-                    style={{...IS,flex:1,fontSize:11,padding:"5px 8px"}}>
-                    <option value="">— sem mapeamento —</option>
-                    {variaveisDoFluxo.map(v => (
-                      <option key={v} value={v}>{`{{${v}}}`}</option>
+            <div style={{display:"flex",flexDirection:"column",gap:10,background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:10,maxHeight:380,overflowY:"auto"}}>
+
+              {/* ──── Seção 1: Campos fixos da proposta ──── */}
+              {camposFixos.length > 0 && (
+                <>
+                  <p style={{color:"#6b7280",fontSize:10,margin:"0 0 2px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>
+                    📋 Campos da Proposta
+                  </p>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {camposFixos.map(c => (
+                      <div key={c.slug} style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{color:"#9ca3af",fontSize:11,flex:"0 0 140px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
+                          title={`${c.label} (${c.tipo})`}>
+                          {c.label}
+                          {c.obrigatorio && <span style={{color:"#ef4444"}}> *</span>}
+                          {(c.tipo === "data") && " 📅"}
+                          {(c.tipo === "moeda") && " 💰"}
+                        </span>
+                        <span style={{color:"#e5e7eb",fontSize:11}}>←</span>
+                        <select value={mapeamento[c.slug] || ""} onChange={e => updateMap(c.slug, e.target.value)}
+                          style={{...IS,flex:1,fontSize:11,padding:"5px 8px"}}>
+                          <option value="">— sem mapeamento —</option>
+                          {variaveisDoFluxo.map(v => (
+                            <option key={v} value={v}>{`{{${v}}}`}</option>
+                          ))}
+                        </select>
+                      </div>
                     ))}
-                  </select>
-                </div>
-              ))}
+                  </div>
+                </>
+              )}
+
+              {/* ──── Seção 2: Campos customizados do workspace ──── */}
+              {camposCustoms.length > 0 && (
+                <>
+                  <p style={{color:"#8b5cf6",fontSize:10,margin:"8px 0 2px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,borderTop:"1px dashed #d1d5db",paddingTop:8}}>
+                    ✨ Campos Customizados ({camposCustoms.length})
+                  </p>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {camposCustoms.map(c => (
+                      <div key={c.slug} style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{color:"#8b5cf6",fontSize:11,flex:"0 0 140px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
+                          title={`${c.label} (${c.tipo})`}>
+                          {c.label}
+                          {c.obrigatorio && <span style={{color:"#ef4444"}}> *</span>}
+                          {(c.tipo === "data") && " 📅"}
+                          {(c.tipo === "moeda") && " 💰"}
+                        </span>
+                        <span style={{color:"#e5e7eb",fontSize:11}}>←</span>
+                        <select value={mapeamento[c.slug] || ""} onChange={e => updateMap(c.slug, e.target.value)}
+                          style={{...IS,flex:1,fontSize:11,padding:"5px 8px"}}>
+                          <option value="">— sem mapeamento —</option>
+                          {variaveisDoFluxo.map(v => (
+                            <option key={v} value={v}>{`{{${v}}}`}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {camposFixos.length === 0 && camposCustoms.length === 0 && (
+                <p style={{color:"#9ca3af",fontSize:11,fontStyle:"italic",margin:0,padding:12,textAlign:"center"}}>
+                  Carregando campos da proposta...
+                </p>
+              )}
             </div>
             {Object.keys(mapeamento).length > 0 && (
               <p style={{color:"#22c55e",fontSize:10,margin:"6px 0 0"}}>
@@ -1940,6 +1979,13 @@ export default function FluxosPage() {
   const [statusVendaOpcoes, setStatusVendaOpcoes] = useState<{value:string;label:string}[]>(
     STATUS_OPCOES.map(s => ({ value: s, label: s }))
   );
+  // 📋 Campos da proposta — fixos + customizados do workspace.
+  //    Carrega de `proposta_campos_padrao_config` (configs de campos fixos: oculto/label custom)
+  //    e `proposta_campos_customizados` (campos extras criados pelo cliente no Editor de Vendas).
+  //    Fallback: se as tabelas não existirem ou estiverem vazias, usa só os CAMPOS_FIXOS default.
+  const [camposPropostaUnif, setCamposPropostaUnif] = useState<CampoUnificado[]>(
+    montarCamposUnificados([], [])  // só os fixos default
+  );
   const [fluxos,setFluxos]         = useState<Fluxo[]>([]);
   const [filasBanco,setFilasBanco] = useState<FilaItem[]>([]); // 🆕
   const [atendentesBanco,setAtendentesBanco] = useState<AtendenteItem[]>([]); // 🆕 atendentes do workspace
@@ -1971,6 +2017,41 @@ export default function FluxosPage() {
     };
     return () => { delete (window as any).__wolfMoveNo; };
   }, []);
+
+  // 📋 Carrega campos da proposta do workspace — multi-tenant:
+  //    Fixos (CAMPOS_FIXOS default) + configs (visibilidade/labels) + customizados.
+  //    Igual ao que o CRM usa, garantindo paridade: o que tá no Editor de Vendas
+  //    aparece aqui no bloco de fluxo automaticamente.
+  useEffect(() => {
+    if (!wsId) return;
+    let cancelado = false;
+    (async () => {
+      try {
+        const [{ data: cfgs }, { data: customs }] = await Promise.all([
+          supabase.from("proposta_campos_padrao_config")
+            .select("id, campo_slug, label_custom, obrigatorio, visivel, ordem, opcoes, placeholder_custom")
+            .eq("workspace_id", wsId),
+          supabase.from("proposta_campos_customizados")
+            .select("id, slug, label, tipo, obrigatorio, ordem, opcoes, placeholder, ativo")
+            .eq("workspace_id", wsId)
+            .order("ordem", { ascending: true }),
+        ]);
+
+        if (cancelado) return;
+
+        // Monta a lista unificada (fixos + customs, respeitando configs do workspace)
+        const unif = montarCamposUnificados(
+          (cfgs as ConfigCampoPadrao[]) || [],
+          (customs as CampoCustom[]) || []
+        );
+        setCamposPropostaUnif(unif);
+      } catch (e) {
+        // Se as tabelas não existem ou deu erro, mantém os defaults já carregados no state inicial
+        console.warn("[fluxos] não consegui carregar campos customizados, usando padrão:", e);
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [wsId]);
 
   // 📋 Carrega status disponíveis pro bloco "Enviar Venda" — multi-tenant:
   //    Defaults do sistema (STATUS_OPCOES) + status que JÁ EXISTEM nas propostas
@@ -2854,6 +2935,7 @@ export default function FluxosPage() {
                 atendentesBanco={atendentesBanco}
                 nos={nos}
                 statusVendaOpcoes={statusVendaOpcoes}
+                camposPropostaUnif={camposPropostaUnif}
               />
             </div>
 
