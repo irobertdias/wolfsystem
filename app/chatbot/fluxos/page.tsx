@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { STATUS_OPCOES } from "../../lib/campos_proposta_definicao";
 
 type TipoNo =
   | "texto" | "imagem" | "video" | "audio" | "embed"
@@ -475,7 +476,7 @@ function TVarComponent({
   );
 }
 
-function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, nos }: {
+function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, nos, statusVendaOpcoes }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
@@ -483,6 +484,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   filasBanco: FilaItem[]; // 🆕
   atendentesBanco: AtendenteItem[]; // 🆕 lista de atendentes do workspace
   nos: No[]; // 🆕 lista completa de nós pra detectar variáveis criadas
+  statusVendaOpcoes: {value:string;label:string}[]; // 📋 status disponíveis no workspace
 }) {
   const d = noSel.dados;
   const id = noSel.id;
@@ -1675,14 +1677,13 @@ function saida(obj) {
           )}
         </div>
 
-        {/* Status inicial da proposta */}
+        {/* Status inicial da proposta — dinâmico por workspace */}
         <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
-          {S("Status inicial da proposta","status_inicial",[
-            {value:"aguardando",label:"⏳ Aguardando análise"},
-            {value:"em_analise",label:"🔍 Em análise"},
-            {value:"aprovada",label:"✅ Aprovada"},
-            {value:"agendada",label:"📅 Agendada"},
-          ])}
+          {S("Status inicial da proposta","status_inicial", statusVendaOpcoes)}
+          <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+            💡 As opções mostradas são os status que <b>já existem nas suas propostas</b> + os padrões do sistema.
+            Pra ter um status novo aqui, crie uma venda com ele primeiro no CRM (ou ajuste no Editor de Vendas).
+          </p>
         </div>
 
         {/* Mensagens enviadas ao cliente */}
@@ -1932,6 +1933,13 @@ export default function FluxosPage() {
 
   // ✅ Agora é username (string como "wolf_admin"), nunca id numérico
   const [wsId,setWsId]             = useState<string|null>(null);
+  // 📋 Status disponíveis pro bloco "Enviar Venda" — carregados dinamicamente do workspace:
+  //    1. STATUS_OPCOES default (PENDENTE, AGUARDANDO AUDITORIA, etc)
+  //    2. + status customizados que JÁ APARECEM em propostas do workspace
+  //    Sem precisar de Editor de Vendas: o que o cliente usa, o fluxo enxerga.
+  const [statusVendaOpcoes, setStatusVendaOpcoes] = useState<{value:string;label:string}[]>(
+    STATUS_OPCOES.map(s => ({ value: s, label: s }))
+  );
   const [fluxos,setFluxos]         = useState<Fluxo[]>([]);
   const [filasBanco,setFilasBanco] = useState<FilaItem[]>([]); // 🆕
   const [atendentesBanco,setAtendentesBanco] = useState<AtendenteItem[]>([]); // 🆕 atendentes do workspace
@@ -1963,6 +1971,42 @@ export default function FluxosPage() {
     };
     return () => { delete (window as any).__wolfMoveNo; };
   }, []);
+
+  // 📋 Carrega status disponíveis pro bloco "Enviar Venda" — multi-tenant:
+  //    Defaults do sistema (STATUS_OPCOES) + status que JÁ EXISTEM nas propostas
+  //    do workspace. Assim cada cliente vê seus próprios status sem precisar
+  //    configurar nada extra.
+  useEffect(() => {
+    if (!wsId) return;
+    let cancelado = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("proposta")
+          .select("status_venda")
+          .eq("workspace_id", wsId)
+          .not("status_venda", "is", null)
+          .limit(2000);  // amostra grande o suficiente pra pegar tudo
+
+        if (cancelado) return;
+
+        // União: defaults + status únicos que aparecem em propostas
+        const setStatus = new Set<string>(STATUS_OPCOES);
+        for (const row of (data || [])) {
+          const s = String(row.status_venda || "").trim();
+          if (s) setStatus.add(s);
+        }
+
+        setStatusVendaOpcoes(
+          Array.from(setStatus).map(s => ({ value: s, label: s }))
+        );
+      } catch (e) {
+        // Em erro, mantém os defaults já carregados no state inicial
+        console.warn("[fluxos] não consegui carregar status_venda do workspace:", e);
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [wsId]);
 
   // ✅ Carrega username + fluxos iniciais + Realtime + polling 5s
   useEffect(() => {
@@ -2809,6 +2853,7 @@ export default function FluxosPage() {
                 filasBanco={filasBanco}
                 atendentesBanco={atendentesBanco}
                 nos={nos}
+                statusVendaOpcoes={statusVendaOpcoes}
               />
             </div>
 
