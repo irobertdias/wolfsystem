@@ -576,12 +576,14 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
     nome: "", email: "", telefone: "", senha: "",
     perfil: "Atendente" as "Administrador" | "Supervisor" | "Atendente",
     fila: "", grupo_id: "", equipe_id: "",
-    equipes_acesso: [] as string[],     // 🆕 UUID[]
-    filas_acesso: [] as number[],       // 🆕 INT[]
-    canais_acesso: [] as number[],      // 🆕 INT[]
-    ramal: "",                          // 🆕
+    equipes_acesso: [] as string[],
+    filas_acesso: [] as number[],
+    canais_acesso: [] as number[],
+    ramal: "",
     exige_ponto: true,
-    exige_selfie: true,                 // 🆕
+    exige_selfie: true,
+    novo_email: "",   // 🆕 admin pode trocar email do alvo (só modo edição)
+    nova_senha: "",   // 🆕 admin pode trocar senha do alvo (só modo edição)
   });
   const [showSenha, setShowSenha] = useState(false);
   const [showDropdownFilas, setShowDropdownFilas] = useState(false);
@@ -619,6 +621,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
       equipes_acesso: [], filas_acesso: [], canais_acesso: [],
       ramal: "",
       exige_ponto: true, exige_selfie: true,
+      novo_email: "", nova_senha: "",
     });
     setShowForm(true);
   };
@@ -633,12 +636,14 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
       perfil: u.perfil, fila: u.fila || "",
       grupo_id: u.grupo_id?.toString() || "",
       equipe_id: u.equipe_id || "",
-      equipes_acesso: Array.isArray(u.equipes_acesso) ? u.equipes_acesso : [],   // 🆕
-      filas_acesso: Array.isArray(u.filas_acesso) ? u.filas_acesso : [],         // 🆕
-      canais_acesso: Array.isArray(u.canais_acesso) ? u.canais_acesso : [],      // 🆕
-      ramal: u.ramal || "",                                                       // 🆕
+      equipes_acesso: Array.isArray(u.equipes_acesso) ? u.equipes_acesso : [],
+      filas_acesso: Array.isArray(u.filas_acesso) ? u.filas_acesso : [],
+      canais_acesso: Array.isArray(u.canais_acesso) ? u.canais_acesso : [],
+      ramal: u.ramal || "",
       exige_ponto: u.exige_ponto !== false,
-      exige_selfie: u.exige_selfie !== false,                                     // 🆕
+      exige_selfie: u.exige_selfie !== false,
+      novo_email: "",  // sempre começa vazio — admin só preenche se quer trocar
+      nova_senha: "",  // idem
     });
     setShowForm(true);
   };
@@ -664,28 +669,71 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
     if (!formUsuario.nome || !formUsuario.email) { alert("Preencha Nome e E-mail!"); return; }
     setSalvando(true);
     try {
+      // 🔧 SYNC com campos legacy:
+      //   - equipe_id (single)  ← primeiro de equipes_acesso (UUIDs)
+      //   - fila (TEXT, CSV de nomes) ← nomes resolvidos de filas_acesso (IDs)
+      // O resto do sistema (lista, filtros, CRM, ChatSection) ainda usa esses
+      // campos antigos. Sem essa sincronização, as equipes/filas que o admin
+      // marca no form novo "somem" da lista e dos filtros.
+      const equipePrimaria = formUsuario.equipes_acesso[0] || null;
+      const filasCSV = formUsuario.filas_acesso
+        .map(id => filas.find((f: Fila) => f.id === id)?.nome)
+        .filter(Boolean)
+        .join(",");
+
       if (editandoUsuario) {
-        await supabase.from("usuarios_workspace")
-          .update({
+        // 🔧 Valida senha nova (se preencheu)
+        if (formUsuario.nova_senha && formUsuario.nova_senha.length < 6) {
+          alert("Nova senha deve ter no mínimo 6 caracteres");
+          setSalvando(false);
+          return;
+        }
+
+        // 🔧 Edição agora vai TODA pela /api/atualizar-usuario (modo=admin).
+        //    Vantagens: API valida permissões + suporta troca de email/senha do auth.users.
+        const tokenAdmin = await getToken();
+        if (!tokenAdmin) { alert("Sessão expirou."); setSalvando(false); return; }
+        const respAdmin = await fetch("/api/atualizar-usuario", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${tokenAdmin}` },
+          body: JSON.stringify({
+            modo: "admin",
+            email_alvo: editandoUsuario.email,
+            workspace_id: workspaceId,
+            // Email/senha — só envia se admin preencheu, senão não mexe
+            novo_email: formUsuario.novo_email && formUsuario.novo_email !== editandoUsuario.email ? formUsuario.novo_email : undefined,
+            nova_senha: formUsuario.nova_senha || undefined,
+            // Dados básicos
             nome: formUsuario.nome,
+            telefone: formUsuario.telefone,
             perfil: formUsuario.perfil,
-            fila: formUsuario.fila,
+            // Equipes/Filas/Canais (com sync de campos legacy)
+            fila: filasCSV,
+            equipe_id: equipePrimaria,
+            equipes_acesso: formUsuario.equipes_acesso,
+            filas_acesso: formUsuario.filas_acesso,
+            canais_acesso: formUsuario.canais_acesso,
+            // Grupo de permissão
             grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
-            equipe_id: formUsuario.equipe_id || null,
-            equipes_acesso: formUsuario.equipes_acesso,    // 🆕
-            filas_acesso: formUsuario.filas_acesso,        // 🆕
-            canais_acesso: formUsuario.canais_acesso,      // 🆕
-            ramal: formUsuario.ramal || null,              // 🆕
-            telefone: formUsuario.telefone || null,        // 🆕
+            // Voip + ponto
+            ramal: formUsuario.ramal,
             exige_ponto: formUsuario.exige_ponto,
-            exige_selfie: formUsuario.exige_selfie,        // 🆕
-          })
-          .eq("email", editandoUsuario.email)
-          .eq("workspace_id", workspaceId);
+            exige_selfie: formUsuario.exige_selfie,
+          }),
+        });
+        const dataAdmin = await respAdmin.json();
+        if (!dataAdmin.success) {
+          alert("❌ " + (dataAdmin.error || "Falha ao salvar"));
+          setSalvando(false);
+          return;
+        }
         await onRefetch();
         setEditandoUsuario(null);
         setShowForm(false);
-        alert("✅ Usuário atualizado!");
+        const msgsExtras = [];
+        if (formUsuario.novo_email && formUsuario.novo_email !== editandoUsuario.email) msgsExtras.push("e-mail trocado");
+        if (formUsuario.nova_senha) msgsExtras.push("senha atualizada");
+        alert(`✅ Usuário atualizado!${msgsExtras.length ? " (" + msgsExtras.join(", ") + ")" : ""}`);
         setSalvando(false);
         return;
       }
@@ -704,14 +752,14 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
           nome: formUsuario.nome,
           workspace_id: workspaceId,
           perfil: formUsuario.perfil,
-          fila: formUsuario.fila,
+          fila: filasCSV,                                // 🔧 sincronizado com filas_acesso
           grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
-          equipe_id: formUsuario.equipe_id || null,
-          equipes_acesso: formUsuario.equipes_acesso,   // 🆕
-          filas_acesso: formUsuario.filas_acesso,       // 🆕
-          canais_acesso: formUsuario.canais_acesso,     // 🆕
-          ramal: formUsuario.ramal || null,             // 🆕
-          telefone: formUsuario.telefone || null,       // 🆕
+          equipe_id: equipePrimaria,                     // 🔧 sincronizado com equipes_acesso[0]
+          equipes_acesso: formUsuario.equipes_acesso,
+          filas_acesso: formUsuario.filas_acesso,
+          canais_acesso: formUsuario.canais_acesso,
+          ramal: formUsuario.ramal || null,
+          telefone: formUsuario.telefone || null,
           exige_ponto: formUsuario.exige_ponto,
           exige_selfie: formUsuario.exige_selfie,       // 🆕
         }),
@@ -1105,6 +1153,49 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
               <p style={{ color: "#9ca3af", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
                 Logins administrativos (sócios, gerentes, freelancers) podem acessar sem bater ponto.
               </p>
+            </div>
+          )}
+
+          {/* ─── LINHA: ADMIN troca E-mail + Senha do usuário (só modo EDIÇÃO) ─── */}
+          {editandoUsuario && (
+            <div style={{
+              marginBottom: 14,
+              padding: 14,
+              background: "#fef3c7",
+              border: "1px solid #fde68a",
+              borderLeft: "3px solid #f59e0b",
+              borderRadius: 10,
+            }}>
+              <p style={{ color: "#92400e", fontSize: 12, fontWeight: 800, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                🔐 Trocar Credenciais (Admin)
+              </p>
+              <p style={{ color: "#a16207", fontSize: 11, margin: "0 0 12px", lineHeight: 1.4 }}>
+                Deixe em branco pra não mexer. O usuário <b>não vai receber e-mail de aviso</b> — comunique manualmente.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={labelStyle}>📧 Novo E-mail</label>
+                  <input
+                    type="email"
+                    placeholder={editandoUsuario.email}
+                    value={formUsuario.novo_email}
+                    onChange={e => setFormUsuario({ ...formUsuario, novo_email: e.target.value })}
+                    style={IS}
+                    autoComplete="off"
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>🔑 Nova Senha</label>
+                  <input
+                    type="text"
+                    placeholder="Mínimo 6 caracteres"
+                    value={formUsuario.nova_senha}
+                    onChange={e => setFormUsuario({ ...formUsuario, nova_senha: e.target.value })}
+                    style={IS}
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
             </div>
           )}
 
