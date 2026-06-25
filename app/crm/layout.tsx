@@ -22,6 +22,8 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const { permissoes, isDono, isSuperAdmin, perfil } = usePermissao();
   const { modulos, carregado: modulosCarregados } = useModulos();
   const [userEmail, setUserEmail] = useState("");
+  const [userNome, setUserNome] = useState("");      // 👤 nome do usuário logado
+  const [userFotoUrl, setUserFotoUrl] = useState(""); // 🖼️ foto de perfil
   const [workspaceNome, setWorkspaceNome] = useState("");
   const [cadastrosCount, setCadastrosCount] = useState(0);
   const [usuariosCount, setUsuariosCount] = useState(0);
@@ -47,6 +49,10 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
       if (!user) { router.push("/"); return; }
       setUserEmail(user.email || "");
 
+      // 🖼️ Carrega nome + foto pro card clicável (dono → user_metadata; sub → usuarios_workspace)
+      setUserNome((user.user_metadata as any)?.nome || "");
+      setUserFotoUrl((user.user_metadata as any)?.foto_url || "");
+
       let wsId: string | null = null;
       let ownerEmail: string | null = null;
       let workspaceNomeLocal: string | null = null;
@@ -60,11 +66,15 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         ownerEmail = wsDono.owner_email;
       } else {
         const { data: usuarioWs } = await supabase
-          .from("usuarios_workspace").select("workspace_id")
+          .from("usuarios_workspace").select("workspace_id, nome, foto_url")
           .eq("email", user.email)
           .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
         if (usuarioWs?.workspace_id) {
+          // 🖼️ Sub-usuário: sobrescreve com nome/foto da usuarios_workspace
+          if (usuarioWs.nome) setUserNome(usuarioWs.nome);
+          if (usuarioWs.foto_url) setUserFotoUrl(usuarioWs.foto_url);
+
           const { data: wsData } = await supabase
             .from("workspaces").select("nome, username, owner_email")
             .eq("username", usuarioWs.workspace_id).maybeSingle();
@@ -248,15 +258,58 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
-        {/* Card "Logado como" */}
-        <div style={{
-          background: "#f9fafb", border: "1px solid #e5e7eb",
-          borderRadius: 10, padding: "9px 12px", marginBottom: 6,
-        }}>
-          <p style={{ color: "#9ca3af", fontSize: 10, margin: "0 0 2px", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>Logado como</p>
-          <p style={{ color: "#1f2937", fontSize: 11, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>{userEmail}</p>
-          <p style={{ color: "#6b7280", fontSize: 10, margin: "3px 0 0", fontWeight: 500 }}>{perfilLabel}</p>
-        </div>
+        {/* Card "Logado como" — agora é CLICÁVEL e abre /meu-perfil */}
+        <button
+          onClick={() => navegarPara("/meu-perfil")}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.borderColor = "#6366f1"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#e5e7eb"; }}
+          title="Clique pra editar seu perfil"
+          style={{
+            background: "#f9fafb", border: "1px solid #e5e7eb",
+            borderRadius: 10, padding: "9px 12px", marginBottom: 6,
+            cursor: "pointer", transition: "all 0.15s",
+            display: "flex", alignItems: "center", gap: 10,
+            width: "100%", textAlign: "left",
+          }}>
+          {/* Avatar circular — foto ou iniciais */}
+          {(() => {
+            const iniciais = (userNome || userEmail || "?")
+              .split(" ").map(p => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+            const cor = (() => {
+              // hash simples do email pra cor consistente
+              let h = 0;
+              for (let i = 0; i < userEmail.length; i++) h = userEmail.charCodeAt(i) + ((h << 5) - h);
+              const cores = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#ef4444", "#0ea5e9", "#a855f7"];
+              return cores[Math.abs(h) % cores.length];
+            })();
+            return (
+              <div style={{
+                width: 36, height: 36, borderRadius: "50%",
+                background: userFotoUrl
+                  ? `url(${userFotoUrl}) center/cover`
+                  : `linear-gradient(135deg, ${cor} 0%, ${cor}cc 100%)`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontSize: 13, fontWeight: 800,
+                flexShrink: 0,
+                boxShadow: `0 2px 6px ${cor}40`,
+              }}>
+                {!userFotoUrl && iniciais}
+              </div>
+            );
+          })()}
+
+          {/* Nome + email + perfil */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: "#9ca3af", fontSize: 9, margin: "0 0 1px", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>Logado como</p>
+            <p style={{ color: "#1f2937", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 700 }}>
+              {userNome || userEmail.split("@")[0]}
+            </p>
+            <p style={{ color: "#6b7280", fontSize: 10, margin: "1px 0 0", fontWeight: 500 }}>{perfilLabel}</p>
+          </div>
+
+          {/* Ícone de "editável" */}
+          <span style={{ color: "#9ca3af", fontSize: 12, flexShrink: 0 }}>✏️</span>
+        </button>
 
         {/* Card do Plano */}
         {ehDonoOuAdmin && !isSuperAdmin && (

@@ -40,6 +40,7 @@ const ROTAS_LIVRES = [
   "/",
   "/login",
   "/bater-ponto",
+  "/meu-perfil",   // 🆕 usuário precisa acessar perfil mesmo sem bater ponto
   "/redirect",
 ];
 
