@@ -25,6 +25,7 @@ export default function MeuPerfilPage() {
 
   // Dados do usuário
   const [userId, setUserId] = useState<string>("");
+  const [workspaceId, setWorkspaceId] = useState<string>("");  // 🔒 multi-tenant
   const [email, setEmail] = useState<string>("");
   const [nome, setNome] = useState<string>("");
   const [telefone, setTelefone] = useState<string>("");
@@ -54,12 +55,13 @@ export default function MeuPerfilPage() {
 
       // É dono de algum workspace?
       const { data: wsDono } = await supabase.from("workspaces")
-        .select("nome, owner_email")
+        .select("nome, username, owner_email")
         .eq("owner_id", user.id)
         .maybeSingle();
 
       if (wsDono) {
         setPerfil("Dono do Workspace");
+        setWorkspaceId(wsDono.username || "");   // 🔒 multi-tenant
         setNome((user.user_metadata as any)?.nome || user.email?.split("@")[0] || "");
         setFotoUrl((user.user_metadata as any)?.foto_url || "");
         setTelefone((user.user_metadata as any)?.telefone || "");
@@ -74,6 +76,7 @@ export default function MeuPerfilPage() {
           .maybeSingle();
 
         if (usr) {
+          setWorkspaceId(usr.workspace_id || "");   // 🔒 multi-tenant
           setNome(usr.nome || "");
           setPerfil(usr.perfil || "Atendente");
           setTelefone(usr.telefone || "");
@@ -166,6 +169,11 @@ export default function MeuPerfilPage() {
         return;
       }
 
+      if (!workspaceId) {
+        alert("⚠️ Workspace não identificado. Recarregue a página.");
+        return;
+      }
+
       const resp = await fetch("/api/atualizar-usuario", {
         method: "POST",
         headers: {
@@ -174,6 +182,7 @@ export default function MeuPerfilPage() {
         },
         body: JSON.stringify({
           modo: "proprio",
+          workspace_id: workspaceId,   // 🔒 isolamento multi-tenant
           senha_atual: senhaAtual || undefined,
           nova_senha: novaSenha || undefined,
           nome: nome || undefined,

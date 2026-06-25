@@ -51,9 +51,45 @@ export async function POST(req: NextRequest) {
     // MODO PRÓPRIO — usuário trocando seu próprio cadastro
     // ───────────────────────────────────────────────────────────────────────
     if (modo === "proprio") {
-      const { senha_atual, nova_senha, nome, telefone, foto_url } = body;
+      const { workspace_id, senha_atual, nova_senha, nome, telefone, foto_url } = body;
 
-      // Confirma senha atual (se vai trocar senha)
+      if (!workspace_id) {
+        return NextResponse.json({ success: false, error: "workspace_id obrigatório" }, { status: 400 });
+      }
+
+      // ═══ Valida que o user logado realmente pertence ao workspace_id enviado ═══
+      // Cenário A: É dono do workspace (workspaces.owner_id)
+      // Cenário B: É sub-usuário (linha em usuarios_workspace com esse workspace_id)
+      const { data: wsDono } = await supabase
+        .from("workspaces")
+        .select("id, username")
+        .eq("owner_id", authUser.id)
+        .eq("username", workspace_id)
+        .maybeSingle();
+
+      let ehDono = !!wsDono;
+      let subUserRow: { id: number; user_id: string | null } | null = null;
+
+      if (!ehDono) {
+        const { data: sub } = await supabase
+          .from("usuarios_workspace")
+          .select("id, user_id")
+          .eq("email", authUser.email)
+          .eq("workspace_id", workspace_id)  // 🔒 isolamento multi-tenant
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        subUserRow = sub || null;
+      }
+
+      if (!ehDono && !subUserRow) {
+        return NextResponse.json({
+          success: false,
+          error: "Você não pertence a esse workspace",
+        }, { status: 403 });
+      }
+
+      // ═══ Confirma senha atual (se vai trocar senha) ═══
       if (nova_senha) {
         if (!senha_atual) {
           return NextResponse.json({ success: false, error: "Informe sua senha atual" });
@@ -61,7 +97,6 @@ export async function POST(req: NextRequest) {
         if (nova_senha.length < 6) {
           return NextResponse.json({ success: false, error: "Nova senha deve ter no mínimo 6 caracteres" });
         }
-        // Tenta sign-in com a senha atual usando um cliente separado (não polui sessão)
         const sbTeste = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -74,7 +109,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Atualiza Auth (só senha — email no modo próprio é fixo)
+      // ═══ Atualiza Auth (só senha — email no modo próprio é fixo) ═══
       if (nova_senha) {
         const { error: authUpdateErr } = await supabase.auth.admin.updateUserById(authUser.id, {
           password: nova_senha,
@@ -84,17 +119,30 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Atualiza usuarios_workspace (só os campos que o usuário pode mexer)
-      const updateWs: any = {};
-      if (typeof nome === "string" && nome.trim()) updateWs.nome = nome.trim();
-      if (typeof telefone === "string") updateWs.telefone = telefone || null;
-      if (typeof foto_url === "string") updateWs.foto_url = foto_url || null;
+      // ═══ Atualiza dados (nome, telefone, foto) ═══
+      const updates: any = {};
+      if (typeof nome === "string" && nome.trim()) updates.nome = nome.trim();
+      if (typeof telefone === "string") updates.telefone = telefone || null;
+      if (typeof foto_url === "string") updates.foto_url = foto_url || null;
 
-      // Se for sub-usuário, atualiza linha em usuarios_workspace pelo email
-      if (Object.keys(updateWs).length > 0) {
-        await supabase.from("usuarios_workspace")
-          .update(updateWs)
-          .eq("email", authUser.email);
+      if (Object.keys(updates).length > 0) {
+        if (ehDono) {
+          // Dono não tem linha em usuarios_workspace → salva em auth.users.user_metadata
+          const novosMetadados = {
+            ...(authUser.user_metadata || {}),
+            ...updates,
+          };
+          await supabase.auth.admin.updateUserById(authUser.id, {
+            user_metadata: novosMetadados,
+          });
+        } else if (subUserRow) {
+          // Sub-usuário → filtra POR workspace_id + id da linha (defesa em profundidade)
+          await supabase.from("usuarios_workspace")
+            .update(updates)
+            .eq("id", subUserRow.id)
+            .eq("workspace_id", workspace_id)   // 🔒 isolamento multi-tenant
+            .eq("email", authUser.email);       // 🔒 garante que é a linha do próprio user
+        }
       }
 
       return NextResponse.json({ success: true });
