@@ -41,6 +41,7 @@ export default function MeuPerfilPage() {
 
   // Upload de foto
   const [uploadando, setUploadando] = useState(false);
+  const [removendoFoto, setRemovendoFoto] = useState(false);
 
   // ─── Carrega dados do usuário ───
   useEffect(() => {
@@ -139,6 +140,49 @@ export default function MeuPerfilPage() {
     }
   }
 
+  // ─── Remover foto atual ───
+  async function removerFoto() {
+    if (!fotoUrl) return;
+    if (!confirm("Tem certeza que quer remover sua foto de perfil?")) return;
+
+    setRemovendoFoto(true);
+    try {
+      // Apaga TODOS os arquivos do path do user (avatar.png, avatar.jpg, etc)
+      // Multi-tenant não se aplica aqui — o Storage usa user_id como namespace.
+      const { data: arquivos } = await supabase.storage.from("avatares").list(userId);
+      if (arquivos && arquivos.length > 0) {
+        const paths = arquivos.map(a => `${userId}/${a.name}`);
+        await supabase.storage.from("avatares").remove(paths);
+      }
+
+      // Limpa do state — o salvar() vai mandar foto_url="" pra API limpar do banco
+      setFotoUrl("");
+
+      // Persiste imediatamente (não precisa esperar clicar em Salvar)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && workspaceId) {
+        await fetch("/api/atualizar-usuario", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            modo: "proprio",
+            workspace_id: workspaceId,
+            foto_url: "",  // string vazia → API trata como null e limpa
+          }),
+        });
+      }
+
+      alert("✅ Foto removida!");
+    } catch (e: any) {
+      alert("❌ Erro ao remover foto: " + e.message);
+    } finally {
+      setRemovendoFoto(false);
+    }
+  }
+
   // ─── Salvar mudanças ───
   async function salvar() {
     // Validações de senha (se preencheu)
@@ -187,7 +231,7 @@ export default function MeuPerfilPage() {
           nova_senha: novaSenha || undefined,
           nome: nome || undefined,
           telefone: telefone || undefined,
-          foto_url: fotoUrl || undefined,
+          foto_url: fotoUrl,  // sempre envia (mesmo "" — API trata como remover)
         }),
       });
 
@@ -300,6 +344,25 @@ export default function MeuPerfilPage() {
             />
           </div>
         </div>
+
+        {/* Link "Remover foto" — só aparece quando o user TEM foto */}
+        {fotoUrl && (
+          <div style={{ display: "flex", justifyContent: "center", marginTop: -2, marginBottom: 8 }}>
+            <button
+              onClick={removerFoto}
+              disabled={removendoFoto}
+              style={{
+                background: "transparent", border: "none",
+                color: "#ef4444", fontSize: 11.5, fontWeight: 600,
+                cursor: removendoFoto ? "wait" : "pointer",
+                textDecoration: "underline",
+                padding: "4px 8px",
+              }}
+              title="Remover foto de perfil">
+              {removendoFoto ? "⏳ Removendo..." : "🗑️ Remover foto de perfil"}
+            </button>
+          </div>
+        )}
 
         {/* Conteúdo */}
         <div style={{ padding: "8px 32px 32px" }}>
