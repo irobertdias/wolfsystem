@@ -586,37 +586,84 @@ export function ChatSection() {
   // 🆕 ═══════════════════════════════════════════════════════════════════
   // RESPOSTAS RÁPIDAS — buscadas do banco (tabela respostas_rapidas)
   // ═══════════════════════════════════════════════════════════════════════
-  // Antes era array hardcoded com 4 fixos (/oi, /planos, /aguarda, /encerrar).
-  // Bug: usuário cadastrava em Configurações → Respostas Rápidas mas o popup
-  // do chat NUNCA mostrava — ficava só nos 4 fixos do código.
-  // Agora: useState + fetch do banco filtrando por workspace_id.
-  // Fallback: se vier vazio do banco, mostra os 4 padrão (UX).
-  const respostasRapidasFallback = [
-    { atalho: "/oi", mensagem: "Olá! Seja bem-vindo(a)! Como posso te ajudar hoje?" },
-    { atalho: "/planos", mensagem: "Temos planos a partir de R$ 89,90. Posso te passar mais detalhes!" },
-    { atalho: "/aguarda", mensagem: "Por favor, aguarde um momento que já vou te atender!" },
-    { atalho: "/encerrar", mensagem: "Obrigado pelo contato! Tenha um ótimo dia!" },
-  ];
-  const [respostasRapidasDB, setRespostasRapidasDB] = useState<{ atalho: string; mensagem: string }[]>([]);
-  const respostasRapidas = respostasRapidasDB.length > 0 ? respostasRapidasDB : respostasRapidasFallback;
+  // 🔄 v2: Removido fallback hardcoded que confundia ("/oi", "/planos", etc).
+  //   Quando workspace tinha respostas no banco mas a query falhava silenciosamente
+  //   OU rodava antes do wsKey chegar, caía no fallback e o atendente nunca via as
+  //   respostas cadastradas pela empresa.
+  // 👥 v2: Agora respeita o equipe_id da resposta:
+  //   - equipe_id=NULL    → geral, todo mundo vê
+  //   - equipe_id setado  → só atendentes daquela equipe veem
+  //   - Dono/Admin (chat_todos) → vê TODAS
+  // 📡 v2: Realtime — admin cria/edita/remove → atendente atualiza na hora.
+  const [respostasRapidasDB, setRespostasRapidasDB] = useState<{ atalho: string; mensagem: string; equipe_id?: string | null }[]>([]);
+  // 👥 Equipes que o atendente pertence (pra filtrar respostas)
+  const [equipesDoUser, setEquipesDoUser] = useState<string[]>([]);
 
   // 🔒 Mesma fórmula de chave usada no RespostasRapidasSection — multi-tenant consistente
   useEffect(() => {
     const wsKey = workspace?.username || workspace?.id?.toString() || wsId;
     if (!wsKey) return;
-    (async () => {
+
+    const fetchRespostas = async () => {
       try {
         const { data, error } = await supabase
           .from("respostas_rapidas")
-          .select("atalho, mensagem")
-          .eq("workspace_id", wsKey)
+          .select("atalho, mensagem, equipe_id")
+          .eq("workspace_id", wsKey)   // 🔒 multi-tenant
           .order("created_at", { ascending: true });
-        if (!error && data) setRespostasRapidasDB(data);
-      } catch (e) {
-        console.warn("[ChatSection] erro ao buscar respostas_rapidas:", e);
+        if (error) {
+          console.warn("[ChatSection] erro ao buscar respostas_rapidas:", error.message);
+          setRespostasRapidasDB([]);
+          return;
+        }
+        setRespostasRapidasDB(data || []);
+      } catch (e: any) {
+        console.warn("[ChatSection] exceção ao buscar respostas_rapidas:", e?.message || e);
+        setRespostasRapidasDB([]);
       }
-    })();
+    };
+
+    // 👥 Carrega equipes do atendente logado pra filtrar respostas por equipe
+    const fetchEquipesDoUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) return;
+      const { data: u } = await supabase
+        .from("usuarios_workspace")
+        .select("equipes_acesso")
+        .eq("email", user.email)
+        .eq("workspace_id", wsKey)    // 🔒 multi-tenant
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setEquipesDoUser(Array.isArray(u?.equipes_acesso) ? u!.equipes_acesso : []);
+    };
+
+    fetchRespostas();
+    fetchEquipesDoUser();
+
+    // 📡 Realtime: admin cria/edita/remove → atualiza na hora
+    const sub = supabase
+      .channel(`respostas_rapidas_${wsKey}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "respostas_rapidas", filter: `workspace_id=eq.${wsKey}` },
+        () => fetchRespostas()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(sub); };
   }, [workspace, wsId]);
+
+  // 👥 Filtra respostas pela equipe do atendente:
+  //    - Dono/Admin com chat_todos → vê TODAS
+  //    - Senão → vê gerais (equipe_id=NULL) + as da própria equipe
+  const respostasRapidas = (() => {
+    const ehDonoOuAdmin = isDono || permissoes.chat_todos;
+    if (ehDonoOuAdmin) return respostasRapidasDB;
+    return respostasRapidasDB.filter(r => {
+      if (!r.equipe_id) return true;                  // geral
+      return equipesDoUser.includes(r.equipe_id);     // da minha equipe
+    });
+  })();
 
   // 🎯 ═══════════════════════════════════════════════════════════════════════
   // ETAPAS DO FUNIL CONFIGURADAS NO WORKSPACE (multi-vertical)
@@ -2845,7 +2892,17 @@ export function ChatSection() {
 
             {showRespostas && permissoes.respostas_rapidas && !gravando && (
               <div style={{ background: "#dcfce7", borderTop: "1px solid #2a3942", padding: 10, maxHeight: 180, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
-                {respostasRapidas.map((r, i) => (
+                {respostasRapidas.length === 0 ? (
+                  <div style={{ background: "#fff", border: "1px dashed #94a3b8", borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
+                    <p style={{ color: "#475569", fontSize: 12, margin: 0, fontWeight: 600 }}>
+                      💡 Nenhuma resposta rápida cadastrada
+                    </p>
+                    <p style={{ color: "#64748b", fontSize: 11, margin: "4px 0 0", lineHeight: 1.4 }}>
+                      O administrador do workspace pode cadastrar em<br/>
+                      <b>Chatbot → Respostas Rápidas</b>
+                    </p>
+                  </div>
+                ) : respostasRapidas.map((r, i) => (
                   <button key={i} onClick={() => { setMensagem(r.mensagem); setShowRespostas(false); }}
                     style={{ background: "#ffffff", border: "1px solid #2a3942", borderRadius: 8, padding: "8px 12px", color: "#1f2937", fontSize: 12, cursor: "pointer", textAlign: "left", display: "flex", gap: 10 }}>
                     <span style={{ color: "#00a884", fontWeight: "bold", minWidth: 60 }}>{r.atalho}</span>
