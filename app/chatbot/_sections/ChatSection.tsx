@@ -1843,6 +1843,10 @@ export function ChatSection() {
     .filter(a => filtroFila === "todas" || a.fila === filtroFila)
     .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente)
     .filter(a => filtroCanal === "todos" || String(a.canal_id) === filtroCanal)
+    // 🆕 FILTRO DE ETIQUETA — estava declarado e no <select>, mas nunca era aplicado na lista.
+    //    etiquetasPorAtendimento é Record<atendimento_id, etiqueta_id[]> — comparamos como string
+    //    porque filtroEtiqueta vem do <select> (sempre string, ex: "12").
+    .filter(a => filtroEtiqueta === "todas" || (etiquetasPorAtendimento[a.id] || []).some(id => String(id) === filtroEtiqueta))
     // 👥 FILTRO DE EQUIPE — mostra os da equipe selecionada + os SEM equipe (pool não atribuído).
     // Esconde só os de OUTRAS equipes. Assim "Aguardando" não fica vazia.
     .filter(a => !equipeId || a.equipe_id === equipeId || !a.equipe_id)
