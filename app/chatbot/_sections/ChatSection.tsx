@@ -1790,12 +1790,40 @@ export function ChatSection() {
     return true;
   };
 
+  // 🆕 FILTROS DO PAINEL (fila/atendente/canal/etiqueta/equipe/tempo) — extraído pra função
+  //    reutilizável. Antes só era aplicado na lista (atendimentosFiltrados); os badges
+  //    numéricos das abas (contadoresAbas) ignoravam esses filtros e sempre mostravam o
+  //    total, mesmo com um filtro ativo. Agora os dois usam a mesma regra.
+  const passaPeloFiltroPainel = (a: Atendimento) => {
+    if (filtroFila !== "todas" && a.fila !== filtroFila) return false;
+    if (filtroAtendente !== "todos" && a.atendente !== filtroAtendente) return false;
+    if (filtroCanal !== "todos" && String(a.canal_id) !== filtroCanal) return false;
+    // Etiqueta: etiquetasPorAtendimento é Record<atendimento_id, etiqueta_id[]>; filtroEtiqueta vem
+    // do <select> (sempre string, ex: "12"), por isso compara como string.
+    if (filtroEtiqueta !== "todas" && !(etiquetasPorAtendimento[a.id] || []).some(id => String(id) === filtroEtiqueta)) return false;
+    // 👥 Equipe — mostra os da equipe selecionada + os SEM equipe (pool não atribuído).
+    if (equipeId && a.equipe_id && a.equipe_id !== equipeId) return false;
+    // Tempo — aplicado por último, mesmo critério usado na lista
+    if (filtroTempo !== "tudo") {
+      const dataRef = a.updated_at || a.created_at;
+      if (!dataRef) return false;
+      const ts = new Date(dataRef).getTime();
+      const agora = Date.now();
+      if (filtroTempo === "ultima_hora" && (agora - ts) > 60 * 60 * 1000) return false;
+      if (filtroTempo === "ultimos_15min" && (agora - ts) > 15 * 60 * 1000) return false;
+      if (filtroTempo === "sem_resposta" && !(a.status === "pendente" && (!a.visualizado_em || a.atendente === "BOT" || !a.atendente))) return false;
+    }
+    return true;
+  };
+
   const contadoresAbas = { automatico: 0, aguardando: 0, abertos: 0, finalizados: 0 };
   atendimentos.forEach(a => {
     const aba = classificarAba(a);
     if (!podeVerAtendimento(a, aba)) return;
-    // 👥 respeita o filtro de equipe (mesma regra da lista)
-    if (equipeId && a.equipe_id && a.equipe_id !== equipeId) return;
+    // 🆕 respeita os filtros do painel (fila/atendente/canal/etiqueta/equipe/tempo) —
+    //    mesma regra usada na lista, mas avaliada pela ABA REAL de cada atendimento
+    //    (não pela abaConversa selecionada), pra cada badge contar certo a sua própria aba.
+    if (!passaPeloFiltroPainel(a)) return;
     contadoresAbas[aba]++;
   });
 
@@ -1840,32 +1868,7 @@ export function ChatSection() {
       }
       return false;
     })
-    .filter(a => filtroFila === "todas" || a.fila === filtroFila)
-    .filter(a => filtroAtendente === "todos" || a.atendente === filtroAtendente)
-    .filter(a => filtroCanal === "todos" || String(a.canal_id) === filtroCanal)
-    // 🆕 FILTRO DE ETIQUETA — estava declarado e no <select>, mas nunca era aplicado na lista.
-    //    etiquetasPorAtendimento é Record<atendimento_id, etiqueta_id[]> — comparamos como string
-    //    porque filtroEtiqueta vem do <select> (sempre string, ex: "12").
-    .filter(a => filtroEtiqueta === "todas" || (etiquetasPorAtendimento[a.id] || []).some(id => String(id) === filtroEtiqueta))
-    // 👥 FILTRO DE EQUIPE — mostra os da equipe selecionada + os SEM equipe (pool não atribuído).
-    // Esconde só os de OUTRAS equipes. Assim "Aguardando" não fica vazia.
-    .filter(a => !equipeId || a.equipe_id === equipeId || !a.equipe_id)
-    // 🆕 FILTRO DE TEMPO — aplicado por último pra não quebrar a lógica das abas
-    .filter(a => {
-      if (filtroTempo === "tudo") return true;
-      const dataRef = a.updated_at || a.created_at;
-      if (!dataRef) return false;
-      const ts = new Date(dataRef).getTime();
-      const agora = Date.now();
-      if (filtroTempo === "ultima_hora") return (agora - ts) <= 60 * 60 * 1000;
-      if (filtroTempo === "ultimos_15min") return (agora - ts) <= 15 * 60 * 1000;
-      if (filtroTempo === "sem_resposta") {
-        // Critério: visualizado_em é null E status pendente (cliente mandou, ninguém abriu ainda)
-        // OU é um chat aguardando (status pendente, sem atendente humano)
-        return a.status === "pendente" && (!a.visualizado_em || a.atendente === "BOT" || !a.atendente);
-      }
-      return true;
-    });
+    .filter(passaPeloFiltroPainel);
 
   const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas" || filtroCanal !== "todos" || filtroTempo !== "tudo";
 
