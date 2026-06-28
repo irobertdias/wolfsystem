@@ -187,6 +187,10 @@ const PERMISSOES_ATENDENTE: Permissoes = {
   relatorios: false, relatorios_voip: false,
   config_proprio: true,
   administrador: false,
+  // 🆕 FIX: faltavam essas 3 chaves — ficavam `undefined` (efetivamente "false" em
+  // condicionais), o que podia esconder esses módulos do menu do atendente mesmo
+  // quando ele deveria ter acesso (ex: chat_proprio=true mas chatbot_acessar ausente).
+  crm_acessar: true, chatbot_acessar: true, telefonia_acessar: true,
 };
 
 // Objeto-base: se um grupo salvo tiver campos faltando (ex: foi criado antes dessa atualização),
@@ -211,7 +215,8 @@ export function usePermissao() {
   const [isDono, setIsDono] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [perfil, setPerfil] = useState("");
-  const [equipeId, setEquipeId] = useState<string | null>(null);  // 🆕 uuid da equipe (null = sem recorte)
+  const [equipeId, setEquipeId] = useState<string | null>(null);  // 🆕 uuid da equipe (null = sem recorte) — primeira equipe, por compat
+  const [equipeIds, setEquipeIds] = useState<string[]>([]);        // 🆕 TODAS as equipes do atendente (equipes_acesso)
   const [workspaceId, setWorkspaceId] = useState<string>("");      // 🆕 username do workspace atual
   const [userEmail, setUserEmail] = useState<string>("");          // 🆕 email do usuário logado
   const [loading, setLoading] = useState(true);
@@ -261,8 +266,13 @@ export function usePermissao() {
       }
 
       // ═══ É sub-usuário? ═══
+      // 🆕 FIX: buscava a coluna "equipe_id" (singular) — que não é onde o sistema
+      // grava a equipe do atendente. A coluna real é "equipes_acesso" (array de UUIDs,
+      // o mesmo campo que o ChatSection já usa pra filtrar respostas rápidas). Com a
+      // coluna errada, equipeId ficava sempre null pro atendente comum, e qualquer tela
+      // que dependesse de escopoVisao() pra recortar por equipe não recortava nada.
       const { data: usuarioWs } = await supabase.from("usuarios_workspace")
-        .select("perfil, grupo_id, equipe_id, workspace_id")
+        .select("perfil, grupo_id, equipes_acesso, workspace_id")
         .eq("email", user.email)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -270,7 +280,12 @@ export function usePermissao() {
 
       if (usuarioWs) {
         setPerfil(usuarioWs.perfil || "Atendente");
-        setEquipeId(usuarioWs.equipe_id || null);       // 🆕 equipe do sub-usuário
+        // 🆕 equipes_acesso é array (atendente pode estar em mais de uma equipe).
+        // equipeId (singular) fica como a primeira, mantido só por compatibilidade
+        // com código existente que já lê esse campo; equipeIds traz o array completo.
+        const equipesDoUsuario: string[] = Array.isArray(usuarioWs.equipes_acesso) ? usuarioWs.equipes_acesso : [];
+        setEquipeIds(equipesDoUsuario);
+        setEquipeId(equipesDoUsuario[0] || null);
         setWorkspaceId(usuarioWs.workspace_id || "");   // 🆕 workspace do sub-usuário
 
         // 🆕 FIX (sessão 18): Administrador SEMPRE tem acesso total, IGNORA grupo.
@@ -321,8 +336,8 @@ export function usePermissao() {
   // 🆕 Escopo de visão pra uma área que tem permissão "de equipe" e "própria".
   // Ex: vendas → escopoVisao("vendas_equipe", "vendas_proprio")
   //   - dono/admin/super       → "all"
-  //   - tem _equipe + tem equipe atribuída → "team"
-  //   - tem _equipe sem equipe atribuída   → "all" (não dá pra recortar, vê o workspace)
+  //   - tem _equipe + tem equipe(s) atribuída(s) → "team"
+  //   - tem _equipe sem nenhuma equipe atribuída → "all" (não dá pra recortar, vê o workspace)
   //   - só tem _proprio          → "own"
   //   - não tem nenhuma          → "none"
   const escopoVisao = (
@@ -330,7 +345,7 @@ export function usePermissao() {
     keyProprio: keyof Permissoes
   ): EscopoVisao => {
     if (veTudo) return "all";
-    if (permissoes[keyEquipe]) return equipeId ? "team" : "all";
+    if (permissoes[keyEquipe]) return equipeIds.length > 0 ? "team" : "all";
     if (permissoes[keyProprio]) return "own";
     return "none";
   };
@@ -340,7 +355,8 @@ export function usePermissao() {
     isDono,
     isSuperAdmin,
     perfil,
-    equipeId,      // 🆕
+    equipeId,      // 🆕 primeira equipe (compat)
+    equipeIds,     // 🆕 todas as equipes do atendente
     workspaceId,   // 🆕
     userEmail,     // 🆕
     loading,

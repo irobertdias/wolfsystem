@@ -83,23 +83,22 @@ export function RespostasRapidasSection() {
 
     setSalvando(true);
     try {
-      const { data, error } = await supabase.from("respostas_rapidas").insert([{
+      // 🆕 FIX: antes fazia insert() sem equipe_id e depois um update() separado
+      // "best-effort" pra gravar a equipe — se esse segundo passo falhasse (e o erro
+      // só ia pro console.warn, nunca pro admin), a resposta ficava salva como "Geral"
+      // mesmo o admin tendo escolhido uma equipe específica. Atendentes da equipe
+      // selecionada nunca viam essa resposta, e o admin não tinha como saber, porque
+      // a tela mostrava "salvo com sucesso" do mesmo jeito.
+      // Agora grava equipe_id no MESMO insert — atômico, sem janela de falha silenciosa.
+      const { error } = await supabase.from("respostas_rapidas").insert([{
         atalho: form.atalho.trim(),
         mensagem: form.mensagem.trim(),
         workspace_id: ws,
-      }]).select("id").single();
+        equipe_id: form.equipeId || null,
+      }]);
       if (error) {
         alert("Erro ao salvar: " + error.message);
       } else {
-        // 👥 best-effort: grava a equipe (requer coluna respostas_rapidas.equipe_id — ver migration).
-        // Se a coluna ainda não existe, ignora o erro pra não quebrar o fluxo principal.
-        if (data?.id) {
-          const { error: eqErr } = await supabase.from("respostas_rapidas")
-            .update({ equipe_id: form.equipeId || null })
-            .eq("id", data.id)
-            .eq("workspace_id", ws);
-          if (eqErr) console.warn("[RespostasRapidas] equipe_id não gravado (rode migration-equipes-etiquetas-respostas.sql):", eqErr.message);
-        }
         await fetchRespostas();
         setForm({ atalho: "", mensagem: "", equipeId: "" });
         setShowForm(false);
