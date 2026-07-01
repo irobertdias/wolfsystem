@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 
@@ -8,7 +8,9 @@ type RespostaRapida = {
   atalho: string;
   mensagem: string;
   workspace_id?: string;
-  equipe_id?: string | null; // 👥 equipe dona da resposta (NULL = geral, vale pra todas)
+  equipe_id?: string | null;
+  midia_url?: string | null;   // 🆕 URL pública no Supabase Storage (isolada por workspace)
+  midia_nome?: string | null;  // 🆕 nome original do arquivo (pra exibir na lista)
 };
 // 👥 Equipe (time/empresa dentro do workspace)
 type Equipe = { id: string; nome: string; };
@@ -16,13 +18,17 @@ type Equipe = { id: string; nome: string; };
 export function RespostasRapidasSection() {
   const { workspace, wsId } = useWorkspace();
   const [respostas, setRespostas] = useState<RespostaRapida[]>([]);
-  // 👥 equipes do workspace + filtro de equipe da lista
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState<string>("todas");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ atalho: "", mensagem: "", equipeId: "" });
   const [salvando, setSalvando] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  // 🆕 mídia pré-anexada na resposta rápida
+  const midiaInputRef = useRef<HTMLInputElement>(null);
+  const [midiaArquivo, setMidiaArquivo] = useState<File | null>(null);
+  const [midiaPreview, setMidiaPreview] = useState<string>("");
+  const [uploadandoMidia, setUploadandoMidia] = useState(false);
 
   const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
 
@@ -39,6 +45,61 @@ export function RespostasRapidasSection() {
   // Agora a fórmula é única e consistente.
   const wsKey = (): string | null => {
     return workspace?.username || workspace?.id?.toString() || wsId || null;
+  };
+
+  // 🆕 Upload de mídia pro Supabase Storage
+  // Bucket: "respostas-rapidas-midia" (crie no Supabase Storage se não existir)
+  // Estrutura: /{workspace_id}/{timestamp}_{nome_original}
+  // 🔒 MULTI-TENANT: pasta isolada por workspace_id — arquivo de um workspace
+  //    nunca fica acessível pra outro porque o path inclui o wsId como prefixo.
+  const uploadMidia = async (file: File): Promise<{ url: string; nome: string } | null> => {
+    const ws = wsKey();
+    if (!ws) return null;
+    const ext = file.name.split(".").pop() || "";
+    const nomeSeguro = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${ws}/${Date.now()}_${nomeSeguro}`;
+    setUploadandoMidia(true);
+    try {
+      const { error } = await supabase.storage
+        .from("respostas-rapidas-midia")
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (error) { alert("Erro ao fazer upload da mídia: " + error.message); return null; }
+      const { data: urlData } = supabase.storage
+        .from("respostas-rapidas-midia")
+        .getPublicUrl(path);
+      return { url: urlData.publicUrl, nome: file.name };
+    } catch (e: any) {
+      alert("Erro no upload: " + (e?.message || "desconhecido"));
+      return null;
+    } finally {
+      setUploadandoMidia(false);
+    }
+  };
+
+  // 🆕 Limpa mídia selecionada no formulário
+  const limparMidia = () => {
+    setMidiaArquivo(null);
+    if (midiaPreview) URL.revokeObjectURL(midiaPreview);
+    setMidiaPreview("");
+    if (midiaInputRef.current) midiaInputRef.current.value = "";
+  };
+
+  // 🆕 Ao selecionar arquivo no input
+  const handleMidiaSelecionada = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const limiteMB = file.type.startsWith("video/") ? 16 : file.type.startsWith("image/") ? 5 : 100;
+    if (file.size > limiteMB * 1024 * 1024) {
+      alert(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Limite: ${limiteMB}MB.`);
+      if (midiaInputRef.current) midiaInputRef.current.value = "";
+      return;
+    }
+    setMidiaArquivo(file);
+    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
+      setMidiaPreview(URL.createObjectURL(file));
+    } else {
+      setMidiaPreview("");
+    }
   };
 
   const fetchRespostas = async () => {
@@ -76,31 +137,44 @@ export function RespostasRapidasSection() {
   useEffect(() => { fetchRespostas(); fetchEquipes(); }, [workspace, wsId]);
 
   const salvar = async () => {
-    if (!form.atalho.trim() || !form.mensagem.trim()) { alert("Preencha atalho e mensagem!"); return; }
-    if (!form.atalho.startsWith("/")) { alert("O atalho deve começar com /"); return; }
+    if (!form.atalho.trim() && !midiaArquivo) { alert("Preencha pelo menos o atalho!"); return; }
+    if (form.atalho.trim() && !form.atalho.startsWith("/")) { alert("O atalho deve começar com /"); return; }
+    if (!form.atalho.trim()) { alert("Preencha o atalho!"); return; }
+    if (!form.mensagem.trim() && !midiaArquivo) { alert("Preencha a mensagem ou selecione uma mídia!"); return; }
     const ws = wsKey();
     if (!ws) { alert("Workspace não carregado. Recarregue a página."); return; }
 
     setSalvando(true);
     try {
-      // 🆕 FIX: antes fazia insert() sem equipe_id e depois um update() separado
-      // "best-effort" pra gravar a equipe — se esse segundo passo falhasse (e o erro
-      // só ia pro console.warn, nunca pro admin), a resposta ficava salva como "Geral"
-      // mesmo o admin tendo escolhido uma equipe específica. Atendentes da equipe
-      // selecionada nunca viam essa resposta, e o admin não tinha como saber, porque
-      // a tela mostrava "salvo com sucesso" do mesmo jeito.
-      // Agora grava equipe_id no MESMO insert — atômico, sem janela de falha silenciosa.
+      // 🆕 Se tiver mídia, faz upload pro Supabase Storage primeiro
+      let midiaUrl: string | null = null;
+      let midiaNome: string | null = null;
+      if (midiaArquivo) {
+        const resultado = await uploadMidia(midiaArquivo);
+        if (!resultado) { setSalvando(false); return; } // erro já alertado dentro de uploadMidia
+        midiaUrl = resultado.url;
+        midiaNome = resultado.nome;
+      }
+
       const { error } = await supabase.from("respostas_rapidas").insert([{
         atalho: form.atalho.trim(),
         mensagem: form.mensagem.trim(),
         workspace_id: ws,
         equipe_id: form.equipeId || null,
+        midia_url: midiaUrl,
+        midia_nome: midiaNome,
       }]);
       if (error) {
         alert("Erro ao salvar: " + error.message);
+        // 🆕 Se o insert falhou mas o upload já aconteceu, remove o arquivo do Storage
+        if (midiaUrl) {
+          const pathNoStorage = midiaUrl.split("/respostas-rapidas-midia/")[1];
+          if (pathNoStorage) await supabase.storage.from("respostas-rapidas-midia").remove([pathNoStorage]);
+        }
       } else {
         await fetchRespostas();
         setForm({ atalho: "", mensagem: "", equipeId: "" });
+        limparMidia();
         setShowForm(false);
       }
     } catch (e: any) {
@@ -118,14 +192,19 @@ export function RespostasRapidasSection() {
     const ws = wsKey();
     if (!ws) { alert("Workspace não carregado. Recarregue a página."); return; }
 
-    // 🔒 MULTI-TENANT: defesa em profundidade — só deleta se for deste workspace.
     const { error } = await supabase.from("respostas_rapidas").delete()
       .eq("id", r.id)
       .eq("workspace_id", ws);
-    if (error) {
-      alert("Erro ao remover: " + error.message);
-      return;
+    if (error) { alert("Erro ao remover: " + error.message); return; }
+
+    // 🆕 Remove o arquivo do Storage se existia mídia anexada
+    if (r.midia_url) {
+      const pathNoStorage = r.midia_url.split("/respostas-rapidas-midia/")[1];
+      if (pathNoStorage) {
+        await supabase.storage.from("respostas-rapidas-midia").remove([pathNoStorage]);
+      }
     }
+
     await fetchRespostas();
   };
 
@@ -199,6 +278,54 @@ export function RespostasRapidasSection() {
               <input placeholder="Olá! Como posso te ajudar?" value={form.mensagem} onChange={e => setForm({ ...form, mensagem: e.target.value })} style={IS} />
             </div>
           </div>
+          {/* 🆕 MÍDIA */}
+          <div>
+            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>
+              📎 Mídia (opcional — imagem, vídeo, áudio ou documento)
+            </label>
+            <input
+              ref={midiaInputRef}
+              type="file"
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar"
+              onChange={handleMidiaSelecionada}
+              style={{ display: "none" }}
+            />
+            {!midiaArquivo ? (
+              <button type="button" onClick={() => midiaInputRef.current?.click()}
+                style={{
+                  background: "#f8fafc", border: "2px dashed #e5e7eb", borderRadius: 10,
+                  padding: "14px 20px", cursor: "pointer", color: "#6b7280", fontSize: 13,
+                  fontWeight: 600, width: "100%", textAlign: "center" as const, transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.color = "#3b82f6"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#6b7280"; }}>
+                📎 Clique para anexar uma mídia
+              </button>
+            ) : (
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 12, background: "#f8fafc", display: "flex", alignItems: "center", gap: 12 }}>
+                {/* Preview: imagem inline, outros como ícone */}
+                {midiaPreview && midiaArquivo.type.startsWith("image/") ? (
+                  <img src={midiaPreview} alt="preview" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
+                ) : midiaPreview && midiaArquivo.type.startsWith("video/") ? (
+                  <video src={midiaPreview} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} muted />
+                ) : (
+                  <div style={{ width: 48, height: 48, borderRadius: 8, background: "#e0e7ef", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
+                    {midiaArquivo.type.startsWith("audio/") ? "🎵" : "📄"}
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{midiaArquivo.name}</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "#6b7280" }}>{(midiaArquivo.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+                <button type="button" onClick={limparMidia}
+                  style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>
+                  ✕ Remover
+                </button>
+              </div>
+            )}
+            <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Imagem: máx 5MB · Vídeo/Áudio: máx 16MB · Documento: máx 100MB</p>
+          </div>
+
           {/* 👥 EQUIPE */}
           {equipes.length > 0 && (
             <div>
@@ -211,18 +338,18 @@ export function RespostasRapidasSection() {
             </div>
           )}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
-            <button onClick={() => { setShowForm(false); setForm({ atalho: "", mensagem: "", equipeId: "" }); }}
+            <button onClick={() => { setShowForm(false); setForm({ atalho: "", mensagem: "", equipeId: "" }); limparMidia(); }}
               style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
               Cancelar
             </button>
-            <button onClick={salvar} disabled={salvando}
+            <button onClick={salvar} disabled={salvando || uploadandoMidia}
               style={{
-                background: salvando ? "#2563eb" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                background: (salvando || uploadandoMidia) ? "#2563eb" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "9px 22px", fontSize: 12, cursor: "pointer", fontWeight: 700,
                 boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
               }}>
-              {salvando ? "⏳ Salvando..." : "💾 Salvar"}
+              {uploadandoMidia ? "⏳ Enviando mídia..." : salvando ? "⏳ Salvando..." : "💾 Salvar"}
             </button>
           </div>
         </div>
@@ -273,6 +400,25 @@ export function RespostasRapidasSection() {
               {r.atalho}
             </span>
             <p style={{ color: "#4b5563", fontSize: 13, margin: 0, flex: 1 }}>{r.mensagem}</p>
+            {/* 🆕 preview de mídia anexada */}
+            {r.midia_url && (
+              <a href={r.midia_url} target="_blank" rel="noopener noreferrer"
+                style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", flexShrink: 0 }}
+                title={r.midia_nome || "Mídia anexada"}>
+                {r.midia_url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) ? (
+                  <img src={r.midia_url} alt={r.midia_nome || "imagem"} style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6, border: "1px solid #e5e7eb" }} />
+                ) : r.midia_url.match(/\.(mp4|mov|webm)(\?|$)/i) ? (
+                  <span style={{ fontSize: 24 }} title={r.midia_nome || "vídeo"}>🎬</span>
+                ) : r.midia_url.match(/\.(mp3|ogg|wav|m4a|oga)(\?|$)/i) ? (
+                  <span style={{ fontSize: 24 }} title={r.midia_nome || "áudio"}>🎵</span>
+                ) : (
+                  <span style={{ fontSize: 24 }} title={r.midia_nome || "documento"}>📄</span>
+                )}
+                <span style={{ fontSize: 10, color: "#6b7280", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
+                  {r.midia_nome || "mídia"}
+                </span>
+              </a>
+            )}
             {equipeNomeDe(r.equipe_id) && (
               <span style={{ background: "#a855f715", color: "#a855f7", border: "1px solid #a855f730", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>👥 {equipeNomeDe(r.equipe_id)}</span>
             )}
