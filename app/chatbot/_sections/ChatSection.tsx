@@ -595,7 +595,7 @@ export function ChatSection() {
   //   - equipe_id setado  → só atendentes daquela equipe veem
   //   - Dono/Admin (chat_todos) → vê TODAS
   // 📡 v2: Realtime — admin cria/edita/remove → atendente atualiza na hora.
-  const [respostasRapidasDB, setRespostasRapidasDB] = useState<{ atalho: string; mensagem: string; equipe_id?: string | null }[]>([]);
+  const [respostasRapidasDB, setRespostasRapidasDB] = useState<{ atalho: string; mensagem: string; equipe_id?: string | null; midia_url?: string | null; midia_nome?: string | null }[]>([]);
   // 👥 Equipes que o atendente pertence (pra filtrar respostas)
   const [equipesDoUser, setEquipesDoUser] = useState<string[]>([]);
 
@@ -608,7 +608,7 @@ export function ChatSection() {
       try {
         const { data, error } = await supabase
           .from("respostas_rapidas")
-          .select("atalho, mensagem, equipe_id")
+          .select("atalho, mensagem, equipe_id, midia_url, midia_nome")
           .eq("workspace_id", wsKey)   // 🔒 multi-tenant
           .order("created_at", { ascending: true });
         if (error) {
@@ -2910,10 +2910,53 @@ export function ChatSection() {
                     </p>
                   </div>
                 ) : respostasRapidas.map((r, i) => (
-                  <button key={i} onClick={() => { setMensagem(r.mensagem); setShowRespostas(false); }}
-                    style={{ background: "#ffffff", border: "1px solid #2a3942", borderRadius: 8, padding: "8px 12px", color: "#1f2937", fontSize: 12, cursor: "pointer", textAlign: "left", display: "flex", gap: 10 }}>
+                  <button key={i} onClick={async () => {
+                    // Sempre popula o texto (pode ser vazio se a resposta for só mídia)
+                    setMensagem(r.mensagem || "");
+                    setShowRespostas(false);
+
+                    // 🆕 Se tiver mídia pré-anexada, envia ela agora via /enviar-midia-url
+                    if (r.midia_url && atendimentoAtivo) {
+                      if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal.", "aviso"); return; }
+                      const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
+                      const ehMeta = canalAtual?.tipo === "meta" || canalAtual?.tipo === "instagram" || canalAtual?.tipo === "messenger";
+                      // 🔒 MULTI-TENANT: workspaceId obrigatório — validado no backend também
+                      try {
+                        const resp = await fetch(`${WA_BASE}/enviar-midia-url`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            midiaUrl: r.midia_url,
+                            midiaNome: r.midia_nome || "",
+                            numero: atendimentoAtivo.numero,
+                            canalId: String(atendimentoAtivo.canal_id),
+                            workspaceId: wsId,
+                            legenda: r.mensagem || "",
+                          }),
+                        });
+                        const data = await resp.json();
+                        if (!data.success) {
+                          notify("Erro ao enviar mídia da resposta rápida: " + (data.error || "desconhecido"), "erro");
+                        } else {
+                          // Mídia enviada com legenda — limpa o texto do input pra não mandar em duplicata
+                          if (r.mensagem) setMensagem("");
+                        }
+                      } catch (e: any) {
+                        notify("Erro ao enviar mídia da resposta rápida: " + (e?.message || "desconhecido"), "erro");
+                      }
+                    }
+                  }}
+                    style={{ background: "#ffffff", border: "1px solid #2a3942", borderRadius: 8, padding: "8px 12px", color: "#1f2937", fontSize: 12, cursor: "pointer", textAlign: "left", display: "flex", gap: 10, alignItems: "center" }}>
                     <span style={{ color: "#00a884", fontWeight: "bold", minWidth: 60 }}>{r.atalho}</span>
-                    <span style={{ color: "#4b5563" }}>{r.mensagem}</span>
+                    <span style={{ color: "#4b5563", flex: 1 }}>{r.mensagem}</span>
+                    {r.midia_url && (
+                      <span title={r.midia_nome || "mídia"} style={{ fontSize: 16, flexShrink: 0 }}>
+                        {r.midia_url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) ? "🖼️"
+                          : r.midia_url.match(/\.(mp4|mov|webm)(\?|$)/i) ? "🎬"
+                          : r.midia_url.match(/\.(mp3|ogg|wav|m4a)(\?|$)/i) ? "🎵"
+                          : "📄"}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
