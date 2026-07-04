@@ -174,6 +174,9 @@ export async function POST(req: NextRequest) {
 // ═══════════════════════════════════════════════════════
 // PATCH — Atualiza módulos/limites de um cliente existente
 // 🆕 Pra editar plano sem recriar tudo
+// 🆕 Agora também suporta trocar EMAIL (login no Auth) e
+//    USERNAME (renomeação em cascata via rpc_renomear_workspace)
+//    de forma segura, através de "novo_email" / "novo_username"
 // ═══════════════════════════════════════════════════════
 export async function PATCH(req: NextRequest) {
   if (!(await isAdmin(req))) {
@@ -181,46 +184,155 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { email, ...campos } = body;
+  const { email, novo_email, novo_username, ...campos } = body;
 
   if (!email) {
     return NextResponse.json({ success: false, error: "email é obrigatório" });
   }
 
-  // Só campos válidos do schema cadastros (whitelist)
-  const camposValidos = [
-    "nome", "empresa", "cpf", "cnpj", "whatsapp", "plano",
-    "usuarios_liberados", "conexoes_liberadas",
-    "permite_webjs", "permite_waba", "permite_instagram",
-    "ia", "autorizado",
-    "modulo_roleta", "modulo_disparos_web", "modulo_disparos_api",
-    "modulo_voip", "modulo_api_integracao", "modulo_instagram",
-    "modulo_cobranca", "modulo_equipes", "modulo_funil_avancado",
-    "modulo_rh", "modulo_bater_ponto", "modulo_financeiro", "financeiro_opcoes",
-    "dia_vencimento", "valor_mensalidade", "proximo_vencimento", "status_pagamento",
-    "ultimo_pagamento_em", "bloqueio_postergado_ate",
-  ];
-
-  const update: Record<string, any> = {};
-  for (const k of camposValidos) {
-    if (k in campos) update[k] = campos[k];
-  }
-
-  if (Object.keys(update).length === 0) {
-    return NextResponse.json({ success: false, error: "Nenhum campo válido pra atualizar" });
-  }
-
   try {
-    const { error } = await supabase
+    // ═══ Busca o cadastro atual — precisamos do user_id e do username pra
+    //     conseguir trocar o email no Auth e/ou renomear o workspace ═══
+    const { data: cadastro, error: cadFindError } = await supabase
       .from("cadastros")
-      .update(update)
-      .eq("email", email);
+      .select("id, user_id, username, email")
+      .eq("email", email)
+      .maybeSingle();
 
-    if (error) {
-      return NextResponse.json({ success: false, error: "Erro ao atualizar: " + error.message });
+    if (cadFindError || !cadastro) {
+      return NextResponse.json({ success: false, error: "Cliente não encontrado" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, atualizados: Object.keys(update) });
+    let emailAtual = cadastro.email as string;
+
+    // ═══════════════════════════════════════════════════════
+    // Troca de E-MAIL — atualiza Auth + cadastros + workspaces.owner_email
+    // ═══════════════════════════════════════════════════════
+    if (novo_email && String(novo_email).toLowerCase().trim() !== emailAtual.toLowerCase().trim()) {
+      const novoEmailLimpo = String(novo_email).toLowerCase().trim();
+
+      if (!cadastro.user_id) {
+        return NextResponse.json({
+          success: false,
+          error: "Este cadastro não tem user_id vinculado ao Auth — não dá pra trocar o e-mail com segurança.",
+        }, { status: 400 });
+      }
+
+      const { data: emailExiste } = await supabase
+        .from("cadastros")
+        .select("id")
+        .ilike("email", novoEmailLimpo)
+        .maybeSingle();
+
+      if (emailExiste) {
+        return NextResponse.json({ success: false, error: "email_exists" });
+      }
+
+      const { error: authUpdError } = await supabase.auth.admin.updateUserById(cadastro.user_id, {
+        email: novoEmailLimpo,
+        email_confirm: true,
+      });
+
+      if (authUpdError) {
+        if (authUpdError.message.includes("already been registered") || authUpdError.message.includes("already exists")) {
+          return NextResponse.json({ success: false, error: "email_exists" });
+        }
+        return NextResponse.json({ success: false, error: "Erro ao atualizar e-mail no Auth: " + authUpdError.message });
+      }
+
+      const { error: cadEmailError } = await supabase
+        .from("cadastros")
+        .update({ email: novoEmailLimpo })
+        .eq("id", cadastro.id);
+
+      if (cadEmailError) {
+        return NextResponse.json({
+          success: false,
+          error: "E-mail já foi trocado no Auth, mas falhou ao atualizar em cadastros: " + cadEmailError.message,
+        });
+      }
+
+      // owner_email em workspaces não é a chave primária — melhor esforço, não trava o fluxo
+      await supabase.from("workspaces").update({ owner_email: novoEmailLimpo }).eq("owner_email", emailAtual);
+
+      emailAtual = novoEmailLimpo;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Troca de USERNAME — cascata completa via função no banco
+    // (rpc_renomear_workspace atualiza cadastros, workspaces e
+    //  todas as ~58 tabelas com workspace_id numa única transação)
+    // ═══════════════════════════════════════════════════════
+    let usernameAlterado = false;
+    if (novo_username && String(novo_username).toLowerCase().trim() !== (cadastro.username || "").toLowerCase().trim()) {
+      const novoUsernameLimpo = String(novo_username).toLowerCase().trim();
+
+      if (!USERNAME_REGEX.test(novoUsernameLimpo)) {
+        return NextResponse.json({ success: false, error: "Username inválido (use a-z, 0-9, _ — 3 a 30 caracteres)" });
+      }
+
+      if (!cadastro.username) {
+        return NextResponse.json({
+          success: false,
+          error: "Este cadastro não tem username atual — não dá pra renomear.",
+        }, { status: 400 });
+      }
+
+      const { error: rpcError } = await supabase.rpc("rpc_renomear_workspace", {
+        p_username_antigo: cadastro.username,
+        p_username_novo: novoUsernameLimpo,
+      });
+
+      if (rpcError) {
+        const msg = rpcError.message || "";
+        if (msg.includes("username_novo_ja_existe")) return NextResponse.json({ success: false, error: "username_exists" });
+        if (msg.includes("username_invalido")) return NextResponse.json({ success: false, error: "Username inválido" });
+        if (msg.includes("username_antigo_nao_encontrado")) return NextResponse.json({ success: false, error: "Username atual não encontrado no banco" });
+        return NextResponse.json({ success: false, error: "Erro ao renomear workspace: " + msg });
+      }
+
+      usernameAlterado = true;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Demais campos — whitelist original, aplicada pelo email já atualizado
+    // ═══════════════════════════════════════════════════════
+    const camposValidos = [
+      "nome", "empresa", "cpf", "cnpj", "whatsapp", "plano",
+      "usuarios_liberados", "conexoes_liberadas",
+      "permite_webjs", "permite_waba", "permite_instagram",
+      "ia", "autorizado",
+      "modulo_roleta", "modulo_disparos_web", "modulo_disparos_api",
+      "modulo_voip", "modulo_api_integracao", "modulo_instagram",
+      "modulo_cobranca", "modulo_equipes", "modulo_funil_avancado",
+      "modulo_rh", "modulo_bater_ponto", "modulo_financeiro", "financeiro_opcoes",
+      "dia_vencimento", "valor_mensalidade", "proximo_vencimento", "status_pagamento",
+      "ultimo_pagamento_em", "bloqueio_postergado_ate",
+    ];
+
+    const update: Record<string, any> = {};
+    for (const k of camposValidos) {
+      if (k in campos) update[k] = campos[k];
+    }
+
+    if (Object.keys(update).length > 0) {
+      const { error } = await supabase
+        .from("cadastros")
+        .update(update)
+        .eq("email", emailAtual);
+
+      if (error) {
+        return NextResponse.json({ success: false, error: "Erro ao atualizar: " + error.message });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      email_atual: emailAtual,
+      email_alterado: emailAtual !== email,
+      username_alterado: usernameAlterado,
+      atualizados: Object.keys(update),
+    });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message });
   }

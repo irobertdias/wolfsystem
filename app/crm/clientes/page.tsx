@@ -621,6 +621,35 @@ export default function Clientes() {
       }
 
       if (cadastroSelecionado) {
+        // 🆕 Se o email e/ou o username mudaram, isso precisa passar pela rota
+        // admin (só ela tem service role pra tocar no Auth e chamar a
+        // renomeação em cascata do workspace). Os demais campos continuam
+        // sendo salvos direto pelo update abaixo.
+        const emailMudou = !!formCadastro.email && formCadastro.email !== cadastroSelecionado.email;
+        const usernameMudou = !!formCadastro.username && formCadastro.username !== cadastroSelecionado.username;
+
+        if (emailMudou || usernameMudou) {
+          const token = await getToken();
+          if (!token) { alert("Sessão expirou."); setSalvandoCliente(false); return; }
+          const respRename = await fetch("/api/admin/cliente", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({
+              email: cadastroSelecionado.email,
+              ...(emailMudou ? { novo_email: formCadastro.email } : {}),
+              ...(usernameMudou ? { novo_username: formCadastro.username } : {}),
+            }),
+          });
+          const renameResult = await respRename.json();
+          if (!renameResult.success) {
+            if (renameResult.error === "email_exists") alert("❌ Este e-mail já está em uso por outro cliente!");
+            else if (renameResult.error === "username_exists") alert("❌ Este username já está em uso!");
+            else alert("Erro ao trocar e-mail/username: " + renameResult.error);
+            setSalvandoCliente(false);
+            return;
+          }
+        }
+
         const { error } = await supabase.from("cadastros").update({
           nome: formCadastro.nome, empresa: formCadastro.empresa,
           whatsapp: formCadastro.whatsapp, plano: formCadastro.plano,
@@ -805,25 +834,29 @@ export default function Clientes() {
                 <div><label style={labelStyle}>Empresa</label><input placeholder="Nome da empresa" value={formCadastro.empresa || ""} onChange={e => setFormCadastro({ ...formCadastro, empresa: e.target.value })} style={inputSm} /></div>
                 <div>
                   <label style={labelStyle}>
-                    Email * {cadastroSelecionado && <span style={{ color: "#9ca3af", textTransform: "none", fontWeight: 500 }}>(não pode mudar)</span>}
+                    Email * {cadastroSelecionado && <span style={{ color: "#f59e0b", textTransform: "none", fontWeight: 500 }}>(troca o login do cliente)</span>}
                   </label>
-                  <input placeholder="email@empresa.com" value={formCadastro.email || ""} onChange={e => setFormCadastro({ ...formCadastro, email: e.target.value })} style={{ ...inputSm, background: cadastroSelecionado ? "#f3f4f6" : "#ffffff", color: cadastroSelecionado ? "#6b7280" : "#1f2937" }} disabled={!!cadastroSelecionado} />
+                  <input placeholder="email@empresa.com" value={formCadastro.email || ""} onChange={e => setFormCadastro({ ...formCadastro, email: e.target.value })} style={inputSm} />
+                  {cadastroSelecionado && formCadastro.email !== cadastroSelecionado.email && (
+                    <p style={{ color: "#f59e0b", fontSize: 10, margin: "4px 0 0" }}>⚠️ Ao salvar, o cliente passa a logar com esse novo e-mail.</p>
+                  )}
                 </div>
                 <div><label style={labelStyle}>WhatsApp</label><input placeholder="(62) 99999-9999" value={formCadastro.whatsapp || ""} onChange={e => setFormCadastro({ ...formCadastro, whatsapp: e.target.value })} style={inputSm} /></div>
+                <div>
+                  <label style={labelStyle}>Username *</label>
+                  <input placeholder="ex: abc_company" value={formCadastro.username || ""}
+                    onChange={e => setFormCadastro({ ...formCadastro, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
+                    style={{ ...inputSm, fontFamily: "monospace" }} maxLength={30} />
+                  <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>a-z, 0-9, _ — 3 a 30 chars</p>
+                  {cadastroSelecionado && formCadastro.username !== cadastroSelecionado.username && (
+                    <p style={{ color: "#f59e0b", fontSize: 10, margin: "4px 0 0" }}>⚠️ Isso renomeia o workspace inteiro (conversas, fluxos, financeiro etc). Só salve se tiver certeza.</p>
+                  )}
+                </div>
                 {!cadastroSelecionado && (
-                  <>
-                    <div>
-                      <label style={labelStyle}>Username *</label>
-                      <input placeholder="ex: abc_company" value={formCadastro.username || ""}
-                        onChange={e => setFormCadastro({ ...formCadastro, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
-                        style={{ ...inputSm, fontFamily: "monospace" }} maxLength={30} />
-                      <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>a-z, 0-9, _ — 3 a 30 chars</p>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Senha *</label>
-                      <input type="password" placeholder="Senha de acesso (mín 6)" value={formCadastro.senha || ""} onChange={e => setFormCadastro({ ...formCadastro, senha: e.target.value })} style={inputSm} />
-                    </div>
-                  </>
+                  <div>
+                    <label style={labelStyle}>Senha *</label>
+                    <input type="password" placeholder="Senha de acesso (mín 6)" value={formCadastro.senha || ""} onChange={e => setFormCadastro({ ...formCadastro, senha: e.target.value })} style={inputSm} />
+                  </div>
                 )}
               </div>
             </div>
