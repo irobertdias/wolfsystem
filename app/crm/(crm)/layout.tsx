@@ -21,28 +21,28 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
 
   const [isMobile, setIsMobile] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
-  const [submenuRecolhido, setSubmenuRecolhido] = useState(false);
-
-  const submenuCompacto = !isMobile && submenuRecolhido;
+  const [shellRecolhido, setShellRecolhido] = useState(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
-    check();
 
-    const salvo = localStorage.getItem("wolf_crm_submenu_recolhido");
-    if (salvo === "true") setSubmenuRecolhido(true);
+    const syncShell = () => {
+      setShellRecolhido(localStorage.getItem("wolf_crm_sidebar_recolhida") === "true");
+    };
+
+    check();
+    syncShell();
 
     window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
+    window.addEventListener("storage", syncShell);
+    window.addEventListener("wolf-crm-sidebar-toggle", syncShell);
 
-  const alternarSubmenu = () => {
-    setSubmenuRecolhido((atual) => {
-      const novo = !atual;
-      localStorage.setItem("wolf_crm_submenu_recolhido", String(novo));
-      return novo;
-    });
-  };
+    return () => {
+      window.removeEventListener("resize", check);
+      window.removeEventListener("storage", syncShell);
+      window.removeEventListener("wolf-crm-sidebar-toggle", syncShell);
+    };
+  }, []);
 
   const itens: Item[] = [
     ...((isSuperAdmin || isDono || permissoes.dashboard)
@@ -65,6 +65,8 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
     router.push(path);
     if (isMobile) setMenuAberto(false);
   };
+
+  const esconderSubmenuDesktop = !isMobile && shellRecolhido;
 
   return (
     <div
@@ -118,44 +120,34 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
         />
       )}
 
-      <div
-        style={{
-          width: isMobile ? 260 : submenuCompacto ? 72 : 224,
-          background: "#ffffff",
-          borderRight: "1px solid #e5e7eb",
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto",
-          overflowX: "hidden",
-          flexShrink: 0,
-          position: isMobile ? "fixed" : "relative",
-          top: isMobile ? 0 : "auto",
-          left: isMobile ? 0 : "auto",
-          bottom: isMobile ? 0 : "auto",
-          height: isMobile ? "100vh" : "auto",
-          zIndex: isMobile ? 1100 : "auto",
-          transform: isMobile && !menuAberto ? "translateX(-100%)" : "translateX(0)",
-          transition: "width 0.2s ease, transform 0.25s ease",
-          boxShadow: isMobile ? "4px 0 16px rgba(0,0,0,0.1)" : "none",
-        }}
-      >
+      {!esconderSubmenuDesktop && (
         <div
           style={{
-            padding: submenuCompacto ? "16px 10px" : 16,
-            borderBottom: "1px solid #e5e7eb",
+            width: isMobile ? 260 : 224,
+            background: "#ffffff",
+            borderRight: "1px solid #e5e7eb",
             display: "flex",
-            alignItems: "center",
-            justifyContent: submenuCompacto ? "center" : "space-between",
-            gap: 10,
+            flexDirection: "column",
+            overflowY: "auto",
+            flexShrink: 0,
+            position: isMobile ? "fixed" : "relative",
+            top: isMobile ? 0 : "auto",
+            left: isMobile ? 0 : "auto",
+            bottom: isMobile ? 0 : "auto",
+            height: isMobile ? "100vh" : "auto",
+            zIndex: isMobile ? 1100 : "auto",
+            transform: isMobile && !menuAberto ? "translateX(-100%)" : "translateX(0)",
+            transition: "transform 0.25s ease",
+            boxShadow: isMobile ? "4px 0 16px rgba(0,0,0,0.1)" : "none",
           }}
         >
           <div
             style={{
+              padding: 16,
+              borderBottom: "1px solid #e5e7eb",
               display: "flex",
               alignItems: "center",
-              justifyContent: submenuCompacto ? "center" : "flex-start",
               gap: 10,
-              minWidth: 0,
             }}
           >
             <div
@@ -175,136 +167,95 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
               <span style={{ filter: "saturate(0) brightness(2)" }}>🎯</span>
             </div>
 
-            {!submenuCompacto && (
-              <div style={{ minWidth: 0 }}>
-                <span
-                  style={{
-                    color: "#1f2937",
-                    fontWeight: 800,
-                    fontSize: 14,
-                    display: "block",
-                    letterSpacing: -0.3,
-                  }}
-                >
-                  CRM
-                </span>
-                <span
-                  style={{
-                    color: COR_TEXTO,
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: 0.5,
-                    textTransform: "uppercase",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Comercial &amp; Vendas
-                </span>
-              </div>
-            )}
-          </div>
-
-          {!isMobile && (
-            <button
-              onClick={alternarSubmenu}
-              title={submenuCompacto ? "Expandir submenu" : "Recolher submenu"}
-              style={{
-                background: COR_BG,
-                border: `1px solid ${COR}`,
-                color: COR_TEXTO,
-                fontSize: 18,
-                cursor: "pointer",
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                fontWeight: 800,
-                lineHeight: 1,
-              }}
-            >
-              {submenuCompacto ? "›" : "‹"}
-            </button>
-          )}
-        </div>
-
-        <div
-          style={{
-            padding: submenuCompacto ? "10px 8px" : 10,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-          }}
-        >
-          {itens.map((item) => {
-            const selecionado = ativo(item.path);
-
-            return (
-              <button
-                key={item.path}
-                onClick={() => ir(item.path)}
-                title={submenuCompacto ? item.label : undefined}
-                onMouseEnter={(e) => {
-                  if (!selecionado) e.currentTarget.style.background = "#f3f4f6";
-                }}
-                onMouseLeave={(e) => {
-                  if (!selecionado) e.currentTarget.style.background = "transparent";
-                }}
+            <div style={{ minWidth: 0 }}>
+              <span
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: submenuCompacto ? "center" : "flex-start",
-                  gap: 10,
-                  width: "100%",
-                  minHeight: 46,
-                  padding: submenuCompacto ? "10px 0" : "10px 12px",
-                  background: selecionado ? COR_BG : "transparent",
-                  border: "none",
-                  borderLeft: selecionado && !submenuCompacto ? `3px solid ${COR}` : "3px solid transparent",
-                  borderRadius: selecionado && !submenuCompacto ? "0 8px 8px 0" : 8,
-                  cursor: "pointer",
-                  color: selecionado ? COR_TEXTO : "#374151",
-                  fontSize: 13,
-                  fontWeight: selecionado ? 700 : 500,
-                  textAlign: "left",
-                  transition: "background .12s",
-                  marginLeft: selecionado && !submenuCompacto ? -3 : 0,
+                  color: "#1f2937",
+                  fontWeight: 800,
+                  fontSize: 14,
+                  display: "block",
+                  letterSpacing: -0.3,
                 }}
               >
-                <span
+                CRM
+              </span>
+              <span
+                style={{
+                  color: COR_TEXTO,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase",
+                }}
+              >
+                Comercial &amp; Vendas
+              </span>
+            </div>
+          </div>
+
+          <div style={{ padding: 10, flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+            {itens.map((item) => {
+              const selecionado = ativo(item.path);
+
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => ir(item.path)}
+                  onMouseEnter={(e) => {
+                    if (!selecionado) e.currentTarget.style.background = "#f3f4f6";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!selecionado) e.currentTarget.style.background = "transparent";
+                  }}
                   style={{
-                    display: "inline-flex",
+                    display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    width: 26,
-                    height: 26,
-                    borderRadius: 7,
-                    background: selecionado ? COR : COR_BG,
+                    gap: 10,
+                    width: "100%",
+                    padding: "10px 12px",
+                    background: selecionado ? COR_BG : "transparent",
+                    border: "none",
+                    borderLeft: selecionado ? `3px solid ${COR}` : "3px solid transparent",
+                    borderRadius: selecionado ? "0 8px 8px 0" : 8,
+                    cursor: "pointer",
+                    color: selecionado ? COR_TEXTO : "#374151",
                     fontSize: 13,
-                    filter: selecionado ? "saturate(0) brightness(2)" : "none",
-                    boxShadow: selecionado ? `0 2px 6px ${COR}40` : "none",
-                    flexShrink: 0,
+                    fontWeight: selecionado ? 700 : 500,
+                    textAlign: "left",
+                    transition: "background .12s",
                   }}
                 >
-                  {item.icon}
-                </span>
-
-                {!submenuCompacto && item.label}
-              </button>
-            );
-          })}
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 26,
+                      height: 26,
+                      borderRadius: 7,
+                      background: selecionado ? COR : COR_BG,
+                      fontSize: 13,
+                      filter: selecionado ? "saturate(0) brightness(2)" : "none",
+                      boxShadow: selecionado ? `0 2px 6px ${COR}40` : "none",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         style={{
           flex: 1,
           overflowY: "auto",
           minWidth: 0,
-          padding: isMobile ? "56px 12px 16px" : 28,
+          padding: isMobile ? "56px 12px 16px" : esconderSubmenuDesktop ? 0 : 28,
         }}
       >
         {children}
