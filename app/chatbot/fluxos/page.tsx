@@ -166,9 +166,11 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     // 🆕 v18: bloco enviar_venda — defaults
     enviar_venda:{
       modo_mapeamento: "automatico",          // "automatico" (por nome) ou "manual" (define cada campo)
-      mapeamento: {},                         // só usado se modo_mapeamento === "manual": { campo_proposta: "nome_variavel" }
+      mapeamento: {},                         // so usado se modo_mapeamento === "manual": { campo_proposta: "nome_variavel" }
+      usar_vendedor_atendimento: true,        // usa o mesmo atendente real do atendimento como vendedor da proposta
+      fallback_roleta_atendimento: true,      // se ainda estiver sem atendente/BOT, sorteia pela roleta_config oficial
       etiqueta: "proposta_finalizada",        // tag aplicada ao atendimento ao criar a proposta
-      aplicar_etiqueta: true,                 // se false, só cria proposta sem aplicar tag
+      aplicar_etiqueta: true,                 // se false, so cria proposta sem aplicar tag
       status_inicial: "aguardando",           // status da proposta criada
       mensagem_sucesso: "✅ Sua proposta foi registrada! Em breve nossa equipe entra em contato.",
       mensagem_erro: "⚠️ Não consegui registrar agora, mas seu atendente vai te ajudar.",
@@ -245,8 +247,11 @@ function getPreview(no: No): string {
     // 🆕 v18: preview do bloco "Enviar Venda"
     case "enviar_venda": {
       const modo = d.modo_mapeamento === "manual" ? "manual" : "auto";
+      const vendedor = d.usar_vendedor_atendimento !== false
+        ? ` 👤 atendimento${d.fallback_roleta_atendimento !== false ? " + 🎯 roleta" : ""}`
+        : (d.fallback_roleta_atendimento !== false ? " 🎯 roleta" : "");
       const tag = d.aplicar_etiqueta !== false ? ` 🏷️ ${d.etiqueta||"proposta_finalizada"}` : "";
-      return `💰 Cria proposta (${modo})${tag}`;
+      return `💰 Cria proposta (${modo})${vendedor}${tag}`;
     }
     // 🆕 v19: preview do bloco "Aplicar Etiqueta"
     case "etiqueta": {
@@ -1547,11 +1552,15 @@ function saida(obj) {
     // FRONTEND: configuração do bloco (este case)
     // BACKEND: o executor de fluxo na VPS precisa, ao processar este tipo de bloco:
     //   1. Carregar `variaveis` da fluxo_sessoes do contato atual
-    //   2. Resolver o mapeamento (automático por nome OU manual)
-    //   3. INSERT em `propostas` (workspace_id, contato_id, status, dados JSON)
-    //   4. Se aplicar_etiqueta=true: INSERT em `atendimento_etiquetas` com nome da tag
-    //   5. Enviar `mensagem_sucesso` ao cliente (se preenchida) e seguir saída "Sucesso"
-    //   6. Em erro: enviar `mensagem_erro` e seguir saída "Erro"
+    //   2. Resolver o mapeamento (automatico por nome OU manual)
+    //   3. Resolver o vendedor da proposta:
+    //      - primeiro usa `atendimentos.atendente` se for um e-mail real
+    //      - se estiver vazio/BOT/Humano e fallback_roleta_atendimento=true, usa a roleta_config oficial
+    //      - se a roleta escolher alguem, atualiza o atendimento com o MESMO e-mail
+    //   4. INSERT em `propostas` com `vendedor` igual ao atendente resolvido
+    //   5. Se aplicar_etiqueta=true: INSERT em `atendimento_etiquetas` com nome da tag
+    //   6. Enviar `mensagem_sucesso` ao cliente (se preenchida) e seguir saida "Sucesso"
+    //   7. Em erro: enviar `mensagem_erro` e seguir saida "Erro"
     // ─────────────────────────────────────────────────────────────────────────
     case "enviar_venda": {
       const modoMap = d.modo_mapeamento || "automatico";
@@ -1696,6 +1705,49 @@ function saida(obj) {
             )}
           </div>
         )}
+
+        {/* Vendedor da proposta integrado com a roleta de atendimento */}
+        <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
+          <label style={LS}>Vendedor da proposta</label>
+          <div style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:10,display:"flex",flexDirection:"column",gap:8}}>
+            <label style={{display:"flex",alignItems:"flex-start",gap:8,cursor:"pointer"}}>
+              <input
+                type="checkbox"
+                checked={d.usar_vendedor_atendimento !== false}
+                onChange={e => u({usar_vendedor_atendimento: e.target.checked})}
+                style={{accentColor:"#22c55e",marginTop:2}}
+              />
+              <span style={{color:"#1f2937",fontSize:11,lineHeight:1.35}}>
+                <b>Usar o mesmo atendente do atendimento</b>
+                <br/>
+                A proposta recebe o mesmo e-mail salvo em <code style={{color:"#22c55e"}}>atendimentos.atendente</code>.
+              </span>
+            </label>
+
+            <label style={{display:"flex",alignItems:"flex-start",gap:8,cursor:"pointer"}}>
+              <input
+                type="checkbox"
+                checked={d.fallback_roleta_atendimento !== false}
+                onChange={e => u({fallback_roleta_atendimento: e.target.checked})}
+                style={{accentColor:"#22c55e",marginTop:2}}
+              />
+              <span style={{color:"#1f2937",fontSize:11,lineHeight:1.35}}>
+                <b>Se ainda estiver sem vendedor, sortear pela roleta de atendimento</b>
+                <br/>
+                Usa a roleta já configurada na seção de atendimento e grava o mesmo vendedor no chat e na venda.
+              </span>
+            </label>
+
+            {(d.usar_vendedor_atendimento === false && d.fallback_roleta_atendimento === false) && (
+              <p style={{color:"#ef4444",fontSize:10,margin:"2px 0 0",lineHeight:1.35}}>
+                ⚠️ Com as duas opções desligadas, a proposta pode ser criada sem vendedor.
+              </p>
+            )}
+          </div>
+          <p style={{color:"#6b7280",fontSize:10,margin:"6px 0 0",lineHeight:1.35}}>
+            💡 Essa integração evita o problema de um vendedor ficar com o chat e outro aparecer como vendedor da proposta.
+          </p>
+        </div>
 
         {/* Etiqueta a aplicar */}
         <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
