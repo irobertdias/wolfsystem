@@ -167,8 +167,10 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     enviar_venda:{
       modo_mapeamento: "automatico",          // "automatico" (por nome) ou "manual" (define cada campo)
       mapeamento: {},                         // so usado se modo_mapeamento === "manual": { campo_proposta: "nome_variavel" }
-      usar_vendedor_atendimento: true,        // usa o mesmo atendente real do atendimento como vendedor da proposta
-      fallback_roleta_atendimento: true,      // se ainda estiver sem atendente/BOT, sorteia pela roleta_config oficial
+      roleta_vendas_ativa: true,              // ativa a roleta propria deste bloco quando o atendimento ainda nao tem vendedor
+      roleta_vendedores: [],                  // emails dos vendedores marcados no modal do bloco
+      roleta_vendas_index: 0,                 // ponteiro round-robin salvo no proprio fluxo pelo backend
+      usar_vendedor_atendimento: true,        // se o atendimento ja tiver vendedor real, a proposta usa esse mesmo vendedor
       etiqueta: "proposta_finalizada",        // tag aplicada ao atendimento ao criar a proposta
       aplicar_etiqueta: true,                 // se false, so cria proposta sem aplicar tag
       status_inicial: "aguardando",           // status da proposta criada
@@ -247,11 +249,10 @@ function getPreview(no: No): string {
     // 🆕 v18: preview do bloco "Enviar Venda"
     case "enviar_venda": {
       const modo = d.modo_mapeamento === "manual" ? "manual" : "auto";
-      const vendedor = d.usar_vendedor_atendimento !== false
-        ? ` 👤 atendimento${d.fallback_roleta_atendimento !== false ? " + 🎯 roleta" : ""}`
-        : (d.fallback_roleta_atendimento !== false ? " 🎯 roleta" : "");
+      const qtdVend = Array.isArray(d.roleta_vendedores) ? d.roleta_vendedores.length : 0;
+      const roleta = d.roleta_vendas_ativa !== false ? ` 🎯 ${qtdVend} vendedor(es)` : "";
       const tag = d.aplicar_etiqueta !== false ? ` 🏷️ ${d.etiqueta||"proposta_finalizada"}` : "";
-      return `💰 Cria proposta (${modo})${vendedor}${tag}`;
+      return `💰 Cria proposta (${modo})${roleta}${tag}`;
     }
     // 🆕 v19: preview do bloco "Aplicar Etiqueta"
     case "etiqueta": {
@@ -1582,6 +1583,19 @@ function saida(obj) {
         if (!varName) delete novo[campo]; else novo[campo] = varName;
         u({ mapeamento: novo });
       };
+      const vendedoresRoleta: string[] = Array.isArray(d.roleta_vendedores) ? d.roleta_vendedores : [];
+      const toggleVendedorRoleta = (email: string) => {
+        const atual = new Set(vendedoresRoleta.map(e => String(e).toLowerCase()));
+        const key = String(email || "").toLowerCase();
+        if (!key) return;
+        if (atual.has(key)) atual.delete(key); else atual.add(key);
+        u({ roleta_vendedores: Array.from(atual), roleta_vendas_ativa: true });
+      };
+      const marcarTodosVendedores = () => u({
+        roleta_vendedores: atendentesBanco.map(a => String(a.email || "").toLowerCase()).filter(Boolean),
+        roleta_vendas_ativa: true,
+      });
+      const limparVendedores = () => u({ roleta_vendedores: [] });
       return <>
         <div style={{background:"#22c55e11",border:"1px solid #22c55e33",borderRadius:8,padding:12,marginBottom:8}}>
           <p style={{color:"#22c55e",fontSize:12,fontWeight:"bold",margin:"0 0 4px"}}>💰 Enviar Venda pro CRM</p>
@@ -1591,6 +1605,93 @@ function saida(obj) {
             no atendimento. O vendedor já abre o chat com a venda pronta.
           </p>
         </div>
+
+        {/* Roleta de vendas por vendedores selecionados */}
+        <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:8,padding:12,marginBottom:10}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:8}}>
+            <div>
+              <p style={{color:"#c2410c",fontSize:12,fontWeight:"bold",margin:"0 0 3px"}}>🎯 Roleta de vendas</p>
+              <p style={{color:"#9a3412",fontSize:10,margin:0,lineHeight:1.35}}>
+                Marque quais vendedores podem receber vendas criadas pelo BOT neste fluxo.
+              </p>
+            </div>
+            <span style={{background:"#ffedd5",border:"1px solid #fdba74",borderRadius:999,padding:"4px 8px",color:"#c2410c",fontSize:10,fontWeight:700,whiteSpace:"nowrap"}}>
+              {vendedoresRoleta.length} selecionado(s)
+            </span>
+          </div>
+
+          <label style={{display:"flex",alignItems:"flex-start",gap:8,cursor:"pointer",background:"#ffffff",border:"1px solid #fed7aa",borderRadius:7,padding:"8px 9px",marginBottom:8}}>
+            <input
+              type="checkbox"
+              checked={d.roleta_vendas_ativa !== false}
+              onChange={e => u({roleta_vendas_ativa: e.target.checked})}
+              style={{accentColor:"#f97316",marginTop:2}}
+            />
+            <span style={{color:"#1f2937",fontSize:11,lineHeight:1.35}}>
+              <b>Ativar roleta de vendas deste bloco</b>
+              <br/>
+              Se o atendimento já tiver vendedor real, usa ele. Se não tiver, sorteia um vendedor marcado abaixo e transfere o atendimento para ele.
+            </span>
+          </label>
+
+          {d.roleta_vendas_ativa !== false && (
+            <>
+              <div style={{display:"flex",gap:6,marginBottom:8}}>
+                <button type="button" onClick={marcarTodosVendedores}
+                  style={{background:"#fff",border:"1px solid #fdba74",color:"#c2410c",borderRadius:7,padding:"6px 9px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                  Marcar todos
+                </button>
+                <button type="button" onClick={limparVendedores}
+                  style={{background:"#fff",border:"1px solid #e5e7eb",color:"#6b7280",borderRadius:7,padding:"6px 9px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                  Limpar
+                </button>
+              </div>
+
+              {atendentesBanco.length === 0 ? (
+                <p style={{color:"#9a3412",fontSize:10,margin:0,lineHeight:1.35}}>
+                  Nenhum usuário encontrado neste workspace ainda. Cadastre usuários para aparecerem aqui.
+                </p>
+              ) : (
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,maxHeight:130,overflowY:"auto",paddingRight:2}}>
+                  {atendentesBanco.map(a => {
+                    const email = String(a.email || "").toLowerCase();
+                    const marcado = vendedoresRoleta.map(v => String(v).toLowerCase()).includes(email);
+                    return (
+                      <label key={email} style={{
+                        display:"flex",alignItems:"center",gap:7,cursor:"pointer",
+                        background: marcado ? "#ffedd5" : "#ffffff",
+                        border:`1px solid ${marcado ? "#fb923c" : "#fed7aa"}`,
+                        borderRadius:7,padding:"7px 8px",minWidth:0
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={marcado}
+                          onChange={() => toggleVendedorRoleta(email)}
+                          style={{accentColor:"#f97316"}}
+                        />
+                        <span style={{minWidth:0}}>
+                          <span style={{display:"block",color:"#1f2937",fontSize:11,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                            {a.nome || a.email}
+                          </span>
+                          <span style={{display:"block",color:"#9ca3af",fontSize:9,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                            {a.email}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              {vendedoresRoleta.length === 0 && (
+                <p style={{color:"#dc2626",fontSize:10,margin:"8px 0 0",lineHeight:1.35,fontWeight:600}}>
+                  ⚠️ Marque pelo menos um vendedor para a roleta funcionar quando o lead ainda não tiver atendente.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
 
         {/* Toggle modo automático / manual */}
         <div>
@@ -1705,49 +1806,6 @@ function saida(obj) {
             )}
           </div>
         )}
-
-        {/* Vendedor da proposta integrado com a roleta de atendimento */}
-        <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
-          <label style={LS}>Vendedor da proposta</label>
-          <div style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:10,display:"flex",flexDirection:"column",gap:8}}>
-            <label style={{display:"flex",alignItems:"flex-start",gap:8,cursor:"pointer"}}>
-              <input
-                type="checkbox"
-                checked={d.usar_vendedor_atendimento !== false}
-                onChange={e => u({usar_vendedor_atendimento: e.target.checked})}
-                style={{accentColor:"#22c55e",marginTop:2}}
-              />
-              <span style={{color:"#1f2937",fontSize:11,lineHeight:1.35}}>
-                <b>Usar o mesmo atendente do atendimento</b>
-                <br/>
-                A proposta recebe o mesmo e-mail salvo em <code style={{color:"#22c55e"}}>atendimentos.atendente</code>.
-              </span>
-            </label>
-
-            <label style={{display:"flex",alignItems:"flex-start",gap:8,cursor:"pointer"}}>
-              <input
-                type="checkbox"
-                checked={d.fallback_roleta_atendimento !== false}
-                onChange={e => u({fallback_roleta_atendimento: e.target.checked})}
-                style={{accentColor:"#22c55e",marginTop:2}}
-              />
-              <span style={{color:"#1f2937",fontSize:11,lineHeight:1.35}}>
-                <b>Se ainda estiver sem vendedor, sortear pela roleta de atendimento</b>
-                <br/>
-                Usa a roleta já configurada na seção de atendimento e grava o mesmo vendedor no chat e na venda.
-              </span>
-            </label>
-
-            {(d.usar_vendedor_atendimento === false && d.fallback_roleta_atendimento === false) && (
-              <p style={{color:"#ef4444",fontSize:10,margin:"2px 0 0",lineHeight:1.35}}>
-                ⚠️ Com as duas opções desligadas, a proposta pode ser criada sem vendedor.
-              </p>
-            )}
-          </div>
-          <p style={{color:"#6b7280",fontSize:10,margin:"6px 0 0",lineHeight:1.35}}>
-            💡 Essa integração evita o problema de um vendedor ficar com o chat e outro aparecer como vendedor da proposta.
-          </p>
-        </div>
 
         {/* Etiqueta a aplicar */}
         <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
