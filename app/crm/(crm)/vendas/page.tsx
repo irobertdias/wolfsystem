@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import * as XLSX from "xlsx";
 import { supabase } from "../../../lib/supabase";
 import { usePermissao } from "../../../hooks/usePermissao";
 import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
@@ -39,8 +40,38 @@ type Proposta = {
   data_instalacao?: string; data_cancelamento?: string;
   dados_customizados?: Record<string, any>;
   equipe_id?: string | null;
+  criado_por?: string | null;
+  equipe_id_criador?: number | string | null;
+  updated_at?: string | null;
+  atualizado_por?: string | null;
 };
 type UsuarioWs = { email: string; nome: string; equipe_id?: string | null; };
+type AnexoMeta = { url: string; nome: string; tipo: string; tamanho: number; enviado_em: string };
+
+const isoLocal = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const formatarTamanhoArquivo = (bytes: number): string => {
+  if (!bytes) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+};
+
+const iconeArquivo = (tipo?: string): string => {
+  if (tipo?.startsWith("image/")) return "Imagem";
+  if (tipo?.includes("pdf")) return "PDF";
+  if (tipo?.includes("word") || tipo?.includes("document")) return "DOC";
+  if (tipo?.includes("sheet") || tipo?.includes("excel")) return "XLS";
+  return "ARQ";
+};
+
+const fmtLogVal = (v: any): string => {
+  if (v === null || v === undefined || v === "") return "-";
+  let s = typeof v === "object" ? JSON.stringify(v) : String(v);
+  if (s.length > 64) s = s.slice(0, 61) + "...";
+  return s;
+};
 
 const statusColor: Record<string, string> = {
   PENDENTE: "#f59e0b",
@@ -88,9 +119,12 @@ export default function Vendas() {
   // 👥 Filtro por equipe (dropdown que aparece pro admin)
   const { equipes, equipeId, EquipeSelector } = useEquipeFiltro(workspaceId);
   const [busca, setBusca] = useState("");
+  const [buscaDebounced, setBuscaDebounced] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroDataInicio, setFiltroDataInicio] = useState("");
   const [filtroDataFim, setFiltroDataFim] = useState("");
+  const [rangeRapido, setRangeRapido] = useState<"todos" | "hoje" | "7d" | "30d" | "mes" | "custom">("todos");
+  const [filtroModif, setFiltroModif] = useState<"qualquer" | "hoje" | "7d" | "30d">("qualquer");
   const [propostaVisualizando, setPropostaVisualizando] = useState<Proposta | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
@@ -167,6 +201,43 @@ export default function Vendas() {
   const [form, setForm] = useState<Record<string, any>>({});
   const [dadosCustomizadosEdit, setDadosCustomizadosEdit] = useState<Record<string, any>>({});
   const [salvando, setSalvando] = useState(false);
+  const [logsProposta, setLogsProposta] = useState<any[]>([]);
+  const [carregandoLogs, setCarregandoLogs] = useState(false);
+  const [logsTabelaFalta, setLogsTabelaFalta] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportCampos, setExportCampos] = useState<string[]>([]);
+  const [exportando, setExportando] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setBuscaDebounced(busca.trim()), 250);
+    return () => clearTimeout(t);
+  }, [busca]);
+
+  const aplicarRange = (r: "todos" | "hoje" | "7d" | "30d" | "mes" | "custom") => {
+    setRangeRapido(r);
+    if (r === "custom") return;
+    if (r === "todos") {
+      setFiltroDataInicio("");
+      setFiltroDataFim("");
+      return;
+    }
+    const hoje = new Date();
+    let ini = isoLocal(hoje);
+    const fim = isoLocal(hoje);
+    if (r === "7d") {
+      const d = new Date(hoje);
+      d.setDate(d.getDate() - 6);
+      ini = isoLocal(d);
+    } else if (r === "30d") {
+      const d = new Date(hoje);
+      d.setDate(d.getDate() - 29);
+      ini = isoLocal(d);
+    } else if (r === "mes") {
+      ini = isoLocal(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+    }
+    setFiltroDataInicio(ini);
+    setFiltroDataFim(fim);
+  };
 
   // 🛡️ ESCOPO de visão (Fase 2)
   const esc = escopoVisao("vendas_equipe", "vendas_proprio"); // all | team | own | none
@@ -473,6 +544,97 @@ export default function Vendas() {
     return () => { supabase.removeChannel(ch); };
   }, [workspaceId]);
 
+
+  const fetchLogsProposta = async (propostaId: number) => {
+    setCarregandoLogs(true);
+    setLogsTabelaFalta(false);
+    try {
+      const { data, error } = await supabase
+        .from("proposta_logs")
+        .select("*")
+        .eq("proposta_id", propostaId)
+        .order("created_at", { ascending: false })
+        .limit(80);
+      if (error) {
+        if (["42P01", "PGRST205", "PGRST116"].includes((error as any).code)) {
+          setLogsTabelaFalta(true);
+          setLogsProposta([]);
+          return;
+        }
+        console.warn("Erro ao buscar historico da proposta:", error);
+        setLogsProposta([]);
+        return;
+      }
+      setLogsProposta(data || []);
+    } finally {
+      setCarregandoLogs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (propostaVisualizando?.id) fetchLogsProposta(propostaVisualizando.id);
+    else setLogsProposta([]);
+  }, [propostaVisualizando?.id]);
+
+  const registrarLogProposta = async (propostaId: number, acao: string, campo: string, antes: any, depois: any) => {
+    try {
+      const payload: any = {
+        workspace_id: workspaceId,
+        proposta_id: propostaId,
+        acao,
+        campo,
+        valor_anterior: antes,
+        valor_novo: depois,
+        usuario_email: meuEmailPerm || userEmail || null,
+        usuario_nome: nomeVendedor(meuEmailPerm || userEmail || ""),
+        created_at: new Date().toISOString(),
+      };
+      let resp = await supabase.from("proposta_logs").insert(payload);
+      if (resp.error && String(resp.error.message || "").toLowerCase().includes("workspace_id")) {
+        delete payload.workspace_id;
+        resp = await supabase.from("proposta_logs").insert(payload);
+      }
+      if (resp.error && ["42P01", "PGRST205", "PGRST116"].includes((resp.error as any).code)) setLogsTabelaFalta(true);
+    } catch (e) {
+      console.warn("Nao foi possivel gravar historico da proposta:", e);
+    }
+  };
+
+  const anexosDoCampo = (slug: string): AnexoMeta[] => {
+    const raw = dadosCustomizadosEdit[slug];
+    if (Array.isArray(raw)) return raw as AnexoMeta[];
+    if (raw && typeof raw === "object" && raw.url) return [raw as AnexoMeta];
+    return [];
+  };
+
+  const uploadArquivoCampo = async (c: CampoUnificado, files: FileList | null) => {
+    if (!files || !files.length || !workspaceId) return;
+    const atuais = anexosDoCampo(c.slug);
+    const enviados: AnexoMeta[] = [];
+    for (const file of Array.from(files)) {
+      const nomeSeguro = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const caminho = `${workspaceId}/${propostaEditando?.id || "nova"}/${c.slug}/${Date.now()}_${nomeSeguro}`;
+      const { error } = await supabase.storage.from("propostas-anexos").upload(caminho, file, { upsert: false });
+      if (error) {
+        alert("Erro ao enviar arquivo: " + error.message);
+        continue;
+      }
+      const { data } = supabase.storage.from("propostas-anexos").getPublicUrl(caminho);
+      enviados.push({ url: data.publicUrl, nome: file.name, tipo: file.type, tamanho: file.size, enviado_em: new Date().toISOString() });
+    }
+    if (enviados.length) {
+      setDadosCustomizadosEdit(prev => ({ ...prev, [c.slug]: [...atuais, ...enviados] }));
+    }
+  };
+
+  const removerArquivoCampo = (slug: string, idx: number) => {
+    setDadosCustomizadosEdit(prev => {
+      const lista = Array.isArray(prev[slug]) ? [...prev[slug]] : [];
+      lista.splice(idx, 1);
+      return { ...prev, [slug]: lista };
+    });
+  };
+
   const abrirEditar = (p: Proposta) => {
     setPropostaEditando(p);
     setForm({ ...p });
@@ -497,7 +659,7 @@ export default function Vendas() {
     }
     setSalvando(true);
     try {
-      const { error } = await supabase.from("proposta").update({
+      const updatePayload: any = {
         data_proposta: form.data_proposta, nome: form.nome, cpf: form.cpf, rg: form.rg,
         data_nascimento: form.data_nascimento, nome_mae: form.nome_mae, email: form.email,
         endereco: form.endereco, cep: form.cep, cidade: form.cidade, estado: form.estado,
@@ -509,14 +671,38 @@ export default function Vendas() {
         data_instalacao: form.data_instalacao, data_cancelamento: form.data_cancelamento,
         operadora: form.operadora,
         dados_customizados: dadosCustomizadosEdit,
-      })
+        updated_at: new Date().toISOString(),
+        atualizado_por: meuEmailPerm || userEmail || null,
+      };
+
+      const executarUpdate = (payload: any) => supabase.from("proposta").update(payload)
         .eq("id", propostaEditando.id)
         .eq("workspace_id", workspaceId);
+
+      let { error } = await executarUpdate(updatePayload);
+      if (error && /updated_at|atualizado_por/i.test(error.message || "")) {
+        const fallback = { ...updatePayload };
+        delete fallback.updated_at;
+        delete fallback.atualizado_por;
+        const resp = await executarUpdate(fallback);
+        error = resp.error;
+      }
       if (error) { alert("Erro ao salvar: " + error.message); setSalvando(false); return; }
+
+      const mudancas: Array<{ campo: string; antes: any; depois: any }> = [];
+      for (const c of camposUnificados) {
+        const antes = c.origem === "fixo" ? (propostaEditando as any)[c.slug] : propostaEditando.dados_customizados?.[c.slug];
+        const depois = c.origem === "fixo" ? updatePayload[c.slug] : dadosCustomizadosEdit[c.slug];
+        if (JSON.stringify(antes ?? "") !== JSON.stringify(depois ?? "")) mudancas.push({ campo: c.label, antes, depois });
+      }
+      for (const m of mudancas.slice(0, 20)) {
+        await registrarLogProposta(propostaEditando.id, "edicao", m.campo, m.antes, m.depois);
+      }
+
       await fetchPropostas(workspaceId);
       setShowModal(false);
       setPropostaEditando(null);
-      alert("✅ Proposta atualizada!");
+      alert("Proposta atualizada!");
     } catch (e: any) { alert("Erro: " + e.message); }
     setSalvando(false);
   };
@@ -526,6 +712,7 @@ export default function Vendas() {
     if (!confirm(`⚠️ Excluir a proposta de ${p.nome}?\n\nEsta ação NÃO pode ser desfeita.`)) return;
     if (!workspaceId) { alert("Workspace não carregado."); return; }
     try {
+      await registrarLogProposta(p.id, "exclusao", "proposta", p.nome, "Proposta excluida");
       const { error } = await supabase.from("proposta").delete()
         .eq("id", p.id).eq("workspace_id", workspaceId);
       if (error) { alert("Erro ao excluir: " + error.message); return; }
@@ -597,6 +784,28 @@ export default function Vendas() {
     const val = dadosCustomizadosEdit[c.slug];
     const set = (v: any) => setDadosCustomizadosEdit(prev => ({ ...prev, [c.slug]: v }));
 
+    if (c.tipo === "arquivo") {
+      const anexos = anexosDoCampo(c.slug);
+      return (
+        <div>{lab}
+          <div style={{ border: "1px dashed #bfdbfe", borderRadius: 10, padding: 12, background: "#f8fbff" }}>
+            <input type="file" multiple onChange={e => uploadArquivoCampo(c, e.target.files)} style={{ ...inputStyle, background: "#ffffff" }} />
+            {anexos.length > 0 && (
+              <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                {anexos.map((a, idx) => (
+                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 10px", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8 }}>
+                    <a href={a.url} target="_blank" rel="noreferrer" style={{ color: "#2563eb", fontSize: 12, fontWeight: 700, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {iconeArquivo(a.tipo)} · {a.nome} · {formatarTamanhoArquivo(a.tamanho)}
+                    </a>
+                    <button type="button" onClick={() => removerArquivoCampo(c.slug, idx)} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Remover</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
     if (c.tipo === "textarea") return <div>{lab}<textarea placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" as const, fontFamily: "inherit" }} /></div>;
     if (c.tipo === "numero") return <div>{lab}<input type="number" placeholder={c.placeholder || ""} value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
     if (c.tipo === "moeda") return <div>{lab}<input type="number" step="0.01" placeholder={c.placeholder || "0,00"} value={val || ""} onChange={e => set(e.target.value)} style={inputStyle} /></div>;
@@ -630,7 +839,6 @@ export default function Vendas() {
   };
 
   const propostasFiltradas = propostas
-    // 🛡️ ESCOPO: own → só minhas; team/all → recorte de equipe abaixo
     .filter(p => {
       if (esc === "own") {
         const meu = (meuEmailPerm || userEmail || "").toLowerCase();
@@ -638,16 +846,26 @@ export default function Vendas() {
       }
       return true;
     })
-    // 👥 EQUIPE: Diretor travado na dele; admin usa o dropdown. Sem equipe = todas.
     .filter(p => !equipeEfetiva || String(p.equipe_id ?? "") === String(equipeEfetiva))
     .filter(p => filtroStatus === "todos" || p.status_venda === filtroStatus)
-    .filter(p => !busca || p.nome?.toLowerCase().includes(busca.toLowerCase()) || p.cpf?.includes(busca) || nomeVendedor(p.vendedor).toLowerCase().includes(busca.toLowerCase()))
+    .filter(p => !buscaDebounced || p.nome?.toLowerCase().includes(buscaDebounced.toLowerCase()) || p.cpf?.includes(buscaDebounced) || nomeVendedor(p.vendedor).toLowerCase().includes(buscaDebounced.toLowerCase()))
     .filter(p => {
       if (!filtroDataInicio && !filtroDataFim) return true;
-      const dt = p.data_proposta || "";
+      const dt = String(p.data_proposta || p.created_at?.slice(0, 10) || "");
+      if (!dt) return false;
       if (filtroDataInicio && dt < filtroDataInicio) return false;
       if (filtroDataFim && dt > filtroDataFim) return false;
       return true;
+    })
+    .filter(p => {
+      if (filtroModif === "qualquer") return true;
+      const dt = String((p.updated_at || p.created_at || "").slice(0, 10));
+      if (!dt) return false;
+      const hoje = new Date();
+      if (filtroModif === "hoje") return dt === isoLocal(hoje);
+      const ini = new Date(hoje);
+      ini.setDate(ini.getDate() - (filtroModif === "7d" ? 6 : 29));
+      return dt >= isoLocal(ini) && dt <= isoLocal(hoje);
     })
     .filter(p => passaFiltrosColuna(p));
 
@@ -684,6 +902,55 @@ export default function Vendas() {
     };
   }, [propostasFiltradas, statusOpcoesFiltro]);
 
+
+  const colunasExportaveis = useMemo(() => [
+    { slug: "id", label: "ID", origem: "fixo" as const, tipo: "texto" },
+    { slug: "created_at", label: "Criado em", origem: "fixo" as const, tipo: "data" },
+    ...camposUnificados,
+  ], [camposUnificados]);
+
+  const abrirExportacao = () => {
+    setExportCampos(colunasTabela.map(c => c.slug));
+    setShowExportModal(true);
+  };
+
+  const toggleCampoExport = (slug: string) => {
+    setExportCampos(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]);
+  };
+
+  const valorCampoExport = (p: Proposta, c: any) => {
+    let v = c.origem === "fixo" ? (p as any)[c.slug] : p.dados_customizados?.[c.slug];
+    if (c.slug === "vendedor") return nomeVendedor(v);
+    if (c.tipo === "checkbox") return v === true ? "Sim" : v === false ? "Nao" : "";
+    if (c.tipo === "moeda") return Number(v || 0);
+    if (c.tipo === "arquivo") {
+      const anexos = Array.isArray(v) ? v : v?.url ? [v] : [];
+      return anexos.map((a: AnexoMeta) => a.url).join(" | ");
+    }
+    if (typeof v === "object" && v !== null) return JSON.stringify(v);
+    return v ?? "";
+  };
+
+  const exportarExcel = () => {
+    if (exportCampos.length === 0) return;
+    setExportando(true);
+    try {
+      const selecionadas = colunasExportaveis.filter(c => exportCampos.includes(c.slug));
+      const rows = propostasFiltradas.map(p => {
+        const row: Record<string, any> = {};
+        for (const c of selecionadas) row[c.label] = valorCampoExport(p, c);
+        return row;
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Vendas");
+      XLSX.writeFile(wb, `vendas_${workspaceId || "workspace"}_${isoLocal(new Date())}.xlsx`);
+      setShowExportModal(false);
+    } finally {
+      setExportando(false);
+    }
+  };
+
   // 🛡️ Guards visuais
   if (permLoading) {
     return (
@@ -711,6 +978,42 @@ export default function Vendas() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+
+
+      {showExportModal && (
+        <div onClick={() => setShowExportModal(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.52)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...cardStyle, width: "100%", maxWidth: 720, maxHeight: "88vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 900, margin: 0 }}>Exportar vendas</h2>
+                <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>{propostasFiltradas.length.toLocaleString("pt-BR")} venda(s) filtrada(s) neste workspace</p>
+              </div>
+              <button onClick={() => setShowExportModal(false)} style={{ background: "#f8fafc", border: "1px solid #e5e7eb", color: "#64748b", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontWeight: 900 }}>x</button>
+            </div>
+            <div style={{ padding: 20, overflowY: "auto" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                <button onClick={() => setExportCampos(colunasExportaveis.map(c => c.slug))} style={{ background: "#ecfdf5", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Selecionar tudo</button>
+                <button onClick={() => setExportCampos([])} style={{ background: "#f8fafc", color: "#64748b", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Limpar</button>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+                {colunasExportaveis.map(c => (
+                  <label key={c.slug} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 10, background: exportCampos.includes(c.slug) ? "#f0fdf4" : "#ffffff", cursor: "pointer" }}>
+                    <input type="checkbox" checked={exportCampos.includes(c.slug)} onChange={() => toggleCampoExport(c.slug)} style={{ accentColor: "#16a34a", width: 16, height: 16 }} />
+                    <span style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>{c.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: "14px 20px", borderTop: "1px solid #e5e7eb", background: "#f8fafc", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setShowExportModal(false)} style={{ background: "#ffffff", color: "#64748b", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Cancelar</button>
+              <button onClick={exportarExcel} disabled={exportando || exportCampos.length === 0} style={{ background: exportCampos.length === 0 ? "#94a3b8" : "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)", color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, fontWeight: 900, cursor: exportCampos.length === 0 ? "not-allowed" : "pointer", boxShadow: "0 6px 16px rgba(37,99,235,0.25)" }}>
+                {exportando ? "Exportando..." : "Baixar Excel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ MODAL EDITAR ═══ */}
       {showModal && propostaEditando && (
@@ -799,6 +1102,16 @@ export default function Vendas() {
             </div>
           )}
 
+          <button onClick={abrirExportacao} title="Exportar vendas filtradas"
+            style={{
+              flex: isMobile ? 1 : "0 0 auto",
+              background: "#ecfeff", color: "#0891b2", border: "1px solid #a5f3fc",
+              borderRadius: 10, padding: "10px 18px", fontSize: 13,
+              cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap",
+            }}>
+            Exportar
+          </button>
+
           {podeEditarCamposCustom && (
             <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos da proposta"
               style={{
@@ -823,97 +1136,55 @@ export default function Vendas() {
         </div>
       </div>
 
-      {/* ═══ KPIs QUICK STATS ═══ */}
-      {/* Painel de vendas dinâmico por status do workspace */}
-      <section style={{
-        ...cardStyle,
-        padding: isMobile ? 14 : 18,
-        border: "1px solid #dbeafe",
-        background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 48%, #ecfdf5 100%)",
-        boxShadow: "0 14px 32px rgba(15,23,42,0.08)",
-      }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBottom: 14 }}>
-          <div>
-            <p style={{ color: "#16a34a", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.8, margin: 0 }}>Painel de status</p>
-            <h3 style={{ color: "#0f172a", fontSize: isMobile ? 18 : 22, lineHeight: 1.15, fontWeight: 900, margin: "3px 0 0", letterSpacing: -0.4 }}>
-              Vendas por etapa do workspace
-            </h3>
-            <p style={{ color: "#64748b", fontSize: 12, margin: "5px 0 0" }}>
-              Os cards usam os status configurados no Editor de Proposta e os status reais das vendas.
-            </p>
-          </div>
-          <div style={{
-            background: "#ffffff",
-            border: "1px solid #bbf7d0",
-            borderRadius: 12,
-            padding: "8px 12px",
-            minWidth: 120,
-            textAlign: "right",
-            boxShadow: "0 6px 16px rgba(22,163,74,0.12)",
-          }}>
-            <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, textTransform: "uppercase", margin: 0 }}>Visíveis</p>
-            <p style={{ color: "#16a34a", fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: -0.7 }}>{totalVisivel.toLocaleString("pt-BR")}</p>
-          </div>
-        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))", gap: 12 }}>
+      {/* Resumo operacional */}
+      <section style={{ ...cardStyle, padding: isMobile ? 14 : 16, border: "1px solid #e2e8f0", background: "#ffffff" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, minmax(0, 1fr))", gap: 10 }}>
           {[
-            { label: "Instaladas", valor: kpis.instaladas, detalhe: `R$ ${kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#16a34a", bg: "#ecfdf5", border: "#86efac", emoji: "✅" },
-            { label: "Em andamento", valor: kpis.andamento, detalhe: `R$ ${kpis.receitaAndamento.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#f59e0b", bg: "#fffbeb", border: "#fde68a", emoji: "⏳" },
-            { label: "Canceladas/Reprovadas", valor: kpis.canceladas, detalhe: "perdas e reprovações", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca", emoji: "✕" },
-            { label: "Ticket instaladas", valor: `R$ ${kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, detalhe: "média das instaladas", cor: "#06b6d4", bg: "#ecfeff", border: "#a5f3fc", emoji: "💰" },
+            { label: "Visiveis", valor: totalVisivel, detalhe: `${totalGeral} no workspace`, cor: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
+            { label: "Instaladas", valor: kpis.instaladas, detalhe: `R$ ${kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#16a34a", bg: "#ecfdf5", border: "#bbf7d0" },
+            { label: "Em andamento", valor: kpis.andamento, detalhe: "aguardando/geradas", cor: "#f59e0b", bg: "#fffbeb", border: "#fde68a" },
+            { label: "Canceladas", valor: kpis.canceladas, detalhe: "canceladas/reprovadas", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+            { label: "Ticket", valor: `R$ ${kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, detalhe: "media instalada", cor: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" },
           ].map(card => (
-            <div key={card.label} style={{
-              background: "#ffffff",
+            <button key={card.label} type="button" style={{
+              textAlign: "left",
+              background: card.bg,
               border: `1px solid ${card.border}`,
-              borderRadius: 12,
-              padding: 14,
-              boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
-              minHeight: 92,
-              position: "relative",
-              overflow: "hidden",
+              borderRadius: 10,
+              padding: "12px 13px",
+              cursor: "default",
+              minHeight: 84,
             }}>
-              <div style={{ position: "absolute", right: 12, top: 10, color: card.cor, opacity: 0.14, fontSize: 34, fontWeight: 900 }}>{card.emoji}</div>
-              <p style={{ color: "#64748b", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6, margin: 0 }}>{card.label}</p>
-              <p style={{ color: card.cor, fontSize: 26, fontWeight: 900, margin: "6px 0 0", letterSpacing: -0.8 }}>{typeof card.valor === "number" ? card.valor.toLocaleString("pt-BR") : card.valor}</p>
-              <p style={{ color: "#94a3b8", fontSize: 11, margin: "2px 0 0", fontWeight: 700 }}>{card.detalhe}</p>
-            </div>
+              <p style={{ color: "#64748b", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>{card.label}</p>
+              <p style={{ color: card.cor, fontSize: 24, fontWeight: 900, margin: "6px 0 0", letterSpacing: -0.5 }}>{typeof card.valor === "number" ? card.valor.toLocaleString("pt-BR") : card.valor}</p>
+              <p style={{ color: "#64748b", fontSize: 11, margin: "2px 0 0", fontWeight: 700 }}>{card.detalhe}</p>
+            </button>
           ))}
         </div>
 
-        <div style={{ marginTop: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
-            <p style={{ color: "#334155", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.7, margin: 0 }}>
-              Todos os status do workspace
-            </p>
-            <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 700, margin: 0 }}>{statusOpcoesFiltro.length} status disponíveis</p>
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e5e7eb" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <p style={{ color: "#334155", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6, margin: 0 }}>Status do workspace</p>
+            <span style={{ color: "#94a3b8", fontSize: 10, fontWeight: 800 }}>{statusOpcoesFiltro.length} disponiveis</span>
           </div>
-          <div style={{
-            display: "flex",
-            gap: 8,
-            overflowX: "auto",
-            paddingBottom: 4,
-            scrollbarWidth: "thin",
-          }}>
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "thin" }}>
             <button onClick={() => setFiltroStatus("todos")} style={{
               flex: "0 0 auto",
-              background: filtroStatus === "todos" ? "#16a34a" : "#ffffff",
-              color: filtroStatus === "todos" ? "#ffffff" : "#166534",
-              border: "1px solid #bbf7d0",
+              background: filtroStatus === "todos" ? "#0f172a" : "#ffffff",
+              color: filtroStatus === "todos" ? "#ffffff" : "#334155",
+              border: "1px solid #cbd5e1",
               borderRadius: 999,
               padding: "8px 12px",
               fontSize: 11,
               fontWeight: 900,
               cursor: "pointer",
               whiteSpace: "nowrap",
-            }}>
-              Todos · {totalVisivel.toLocaleString("pt-BR")}
-            </button>
+            }}>Todos · {totalVisivel.toLocaleString("pt-BR")}</button>
             {kpis.statusResumo.map(item => {
               const ativo = filtroStatus === item.status;
               return (
-                <button key={item.status} onClick={() => setFiltroStatus(item.status)}
-                  title={item.status}
+                <button key={item.status} onClick={() => setFiltroStatus(item.status)} title={item.status}
                   style={{
                     flex: "0 0 auto",
                     background: ativo ? item.cor : item.bg,
@@ -925,38 +1196,67 @@ export default function Vendas() {
                     fontWeight: 900,
                     cursor: "pointer",
                     whiteSpace: "nowrap",
-                    boxShadow: ativo ? `0 6px 16px ${item.cor}30` : "none",
-                  }}>
-                  {item.emoji} {item.status} · {item.total.toLocaleString("pt-BR")}
-                </button>
+                  }}>{item.emoji} {item.status} · {item.total.toLocaleString("pt-BR")}</button>
               );
             })}
           </div>
         </div>
-      </section>      {/* ═══ FILTROS ═══ */}
+      </section>
+
+      {/* Filtros */}
       <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <input placeholder="🔍 Buscar por nome, CPF, vendedor..." value={busca} onChange={e => setBusca(e.target.value)}
-          style={{ ...inputStyle, maxWidth: 360, flex: "1 1 200px", borderRadius: 20 }} />
+        <input placeholder="Buscar por nome, CPF, vendedor..." value={busca} onChange={e => setBusca(e.target.value)}
+          style={{ ...inputStyle, maxWidth: 360, flex: "1 1 220px", borderRadius: 20 }} />
         <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={{ ...inputStyle, maxWidth: 220 }}>
           <option value="todos">Status: Todos</option>
-          {statusOpcoesFiltro.map(s => <option key={s} value={s}>{statusMeta(s).emoji} {s}</option>)}
+          {statusOpcoesFiltro.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10, padding: "5px 12px" }}>
-          <span style={{ color: "#6b7280", fontSize: 11, whiteSpace: "nowrap", fontWeight: 600 }}>📅 De:</span>
-          <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)} max={filtroDataFim || undefined}
-            style={{ background: "transparent", border: "none", color: "#1f2937", fontSize: 12, padding: "5px 0", outline: "none", fontWeight: 600 }} />
-          <span style={{ color: "#6b7280", fontSize: 11, whiteSpace: "nowrap", fontWeight: 600 }}>Até:</span>
-          <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)} min={filtroDataInicio || undefined}
-            style={{ background: "transparent", border: "none", color: "#1f2937", fontSize: 12, padding: "5px 0", outline: "none", fontWeight: 600 }} />
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {[
+            ["todos", "Todo periodo"],
+            ["hoje", "Hoje"],
+            ["7d", "7 dias"],
+            ["30d", "30 dias"],
+            ["mes", "Mes atual"],
+            ["custom", "Personalizado"],
+          ].map(([k, label]) => (
+            <button key={k} onClick={() => aplicarRange(k as any)} style={{
+              background: rangeRapido === k ? "#eff6ff" : "#ffffff",
+              color: rangeRapido === k ? "#2563eb" : "#475569",
+              border: `1px solid ${rangeRapido === k ? "#bfdbfe" : "#e5e7eb"}`,
+              borderRadius: 9,
+              padding: "8px 10px",
+              fontSize: 12,
+              fontWeight: 800,
+              cursor: "pointer",
+            }}>{label}</button>
+          ))}
         </div>
-        {(busca || filtroStatus !== "todos" || filtroDataInicio || filtroDataFim || Object.keys(filtrosColuna).length > 0) && (
-          <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltroDataInicio(""); setFiltroDataFim(""); setFiltrosColuna({}); }}
-            style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
-            ✕ Limpar filtros
+        {rangeRapido === "custom" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, padding: "5px 10px" }}>
+            <span style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>De</span>
+            <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)} max={filtroDataFim || undefined}
+              style={{ background: "transparent", border: "none", color: "#0f172a", fontSize: 12, padding: "5px 0", outline: "none", fontWeight: 700 }} />
+            <span style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>Ate</span>
+            <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)} min={filtroDataInicio || undefined}
+              style={{ background: "transparent", border: "none", color: "#0f172a", fontSize: 12, padding: "5px 0", outline: "none", fontWeight: 700 }} />
+          </div>
+        )}
+        <select value={filtroModif} onChange={e => setFiltroModif(e.target.value as any)} style={{ ...inputStyle, maxWidth: 230, borderColor: filtroModif !== "qualquer" ? "#bfdbfe" : "#e5e7eb", background: filtroModif !== "qualquer" ? "#eff6ff" : "#ffffff", fontWeight: filtroModif !== "qualquer" ? 800 : 500 }}>
+          <option value="qualquer">Modificacao: qualquer</option>
+          <option value="hoje">Modificada hoje</option>
+          <option value="7d">Modificada em 7 dias</option>
+          <option value="30d">Modificada em 30 dias</option>
+        </select>
+        {(busca || filtroStatus !== "todos" || rangeRapido !== "todos" || filtroModif !== "qualquer" || Object.keys(filtrosColuna).length > 0) && (
+          <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltrosColuna({}); setFiltroModif("qualquer"); aplicarRange("todos"); }}
+            style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 800 }}>
+            Limpar filtros
           </button>
         )}
       </div>
 
+      {/* ═══ TABELA ═══ */}
       {/* ═══ TABELA ═══ */}
       <div style={{ ...cardStyle, overflow: "hidden" }}>
         {tabelaTransborda && (
@@ -1083,84 +1383,112 @@ export default function Vendas() {
         <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>👥 Você vê as propostas da sua equipe (<b style={{ color: "#6b7280" }}>{minhaEquipeNome}</b>).</p>
       )}
 
+
       {/* ═══ MODAL DE VISUALIZAÇÃO ═══ */}
       {propostaVisualizando && (
         <div onClick={() => setPropostaVisualizando(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.52)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={e => e.stopPropagation()}
-            style={{
-              ...cardStyle,
-              width: "100%", maxWidth: 760, maxHeight: "92vh",
-              display: "flex", flexDirection: "column", overflow: "hidden",
-              boxShadow: "0 20px 50px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.08)",
-            }}>
-            <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#ffffff" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>👁️</div>
-                <div>
-                  <h2 style={{ color: "#1f2937", fontSize: 17, fontWeight: 700, margin: 0 }}>Detalhes da Proposta</h2>
-                  <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>{propostaVisualizando.nome} <span style={{ color: "#d1d5db" }}>·</span> #{propostaVisualizando.id}</p>
-                </div>
+            style={{ ...cardStyle, width: "100%", maxWidth: 920, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.15)" }}>
+            <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#ffffff", gap: 12 }}>
+              <div>
+                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 900, margin: 0 }}>Venda #{propostaVisualizando.id}</h2>
+                <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>{propostaVisualizando.nome || "Sem nome"} · {nomeVendedor(propostaVisualizando.vendedor)}</p>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <button onClick={() => { const p = propostaVisualizando; setPropostaVisualizando(null); abrirEditar(p); }}
-                  style={{
-                    background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
-                    color: "white", border: "none", borderRadius: 10,
-                    padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
-                  }}>✏️ Editar</button>
+                  style={{ background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 12px rgba(59,130,246,0.28)" }}>Editar</button>
                 <button onClick={() => setPropostaVisualizando(null)}
-                  style={{ background: "#f3f4f6", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✕ Fechar</button>
+                  style={{ background: "#f8fafc", color: "#64748b", border: "1px solid #e5e7eb", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 800 }}>Fechar</button>
               </div>
             </div>
 
-            <div style={{ padding: 24, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 20 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-                <div style={{
-                  background: "#f9fafb", borderRadius: 12, padding: 14,
-                  border: "1px solid #e5e7eb",
-                  borderLeft: `4px solid ${statusColor[propostaVisualizando.status_venda] || "#6b7280"}`,
-                }}>
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Status</p>
-                  <p style={{ color: statusColor[propostaVisualizando.status_venda] || "#1f2937", fontSize: 14, margin: "5px 0 0", fontWeight: 700 }}>{propostaVisualizando.status_venda || "—"}</p>
-                </div>
-                <div style={{
-                  background: "#f0fdf4", borderRadius: 12, padding: 14,
-                  border: "1px solid #bbf7d0",
-                  borderLeft: "4px solid #16a34a",
-                }}>
-                  <p style={{ color: "#15803d", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Valor</p>
-                  <p style={{ color: "#16a34a", fontSize: 16, margin: "5px 0 0", fontWeight: 800, letterSpacing: -0.3 }}>R$ {Number(propostaVisualizando.valor_plano || 0).toFixed(2).replace(".", ",")}</p>
-                </div>
-                <div style={{
-                  background: "#eff6ff", borderRadius: 12, padding: 14,
-                  border: "1px solid #bfdbfe",
-                  borderLeft: "4px solid #3b82f6",
-                }}>
-                  <p style={{ color: "#1e40af", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Vendedor</p>
-                  <p style={{ color: "#1e40af", fontSize: 14, margin: "5px 0 0", fontWeight: 700 }}>{nomeVendedor(propostaVisualizando.vendedor)}</p>
-                </div>
+            <div style={{ padding: 22, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
+                {[
+                  { label: "Status", value: propostaVisualizando.status_venda || "-", cor: statusMeta(propostaVisualizando.status_venda).cor, bg: statusMeta(propostaVisualizando.status_venda).bg, border: statusMeta(propostaVisualizando.status_venda).border },
+                  { label: "Valor", value: `R$ ${Number(propostaVisualizando.valor_plano || 0).toFixed(2).replace(".", ",")}`, cor: "#16a34a", bg: "#ecfdf5", border: "#bbf7d0" },
+                  { label: "Data proposta", value: propostaVisualizando.data_proposta ? new Date(propostaVisualizando.data_proposta + "T00:00:00").toLocaleDateString("pt-BR") : "-", cor: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
+                  { label: "Modificado", value: propostaVisualizando.updated_at ? new Date(propostaVisualizando.updated_at).toLocaleString("pt-BR") : "-", cor: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
+                ].map(card => (
+                  <div key={card.label} style={{ background: card.bg, border: `1px solid ${card.border}`, borderRadius: 10, padding: 13 }}>
+                    <p style={{ color: "#64748b", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: 900, letterSpacing: 0.5 }}>{card.label}</p>
+                    <p style={{ color: card.cor, fontSize: 14, margin: "5px 0 0", fontWeight: 900, wordBreak: "break-word" }}>{card.value}</p>
+                  </div>
+                ))}
               </div>
 
               <ViewSection
-                titulo="📋 Informações"
+                titulo="Informacoes da venda"
                 campos={camposUnificados
-                  .filter(c => c.slug !== "status_venda" && c.slug !== "valor_plano" && c.slug !== "vendedor")
+                  .filter(c => c.slug !== "status_venda" && c.slug !== "valor_plano" && c.slug !== "vendedor" && c.tipo !== "arquivo")
                   .map(c => {
                     let v = c.origem === "fixo" ? (propostaVisualizando as any)[c.slug] : propostaVisualizando.dados_customizados?.[c.slug];
-                    if (c.tipo === "checkbox") v = v === true ? "Sim" : v === false ? "Não" : "";
+                    if (c.tipo === "checkbox") v = v === true ? "Sim" : v === false ? "Nao" : "";
                     else if (c.tipo === "moeda" && v) v = `R$ ${Number(v).toFixed(2).replace(".", ",")}`;
                     else if (c.tipo === "data" && v) v = new Date(v + "T00:00:00").toLocaleDateString("pt-BR");
                     else if (c.tipo === "vendedor" && v) v = nomeVendedor(v);
                     return [c.label, v] as [string, any];
                   })}
               />
+
+              <div>
+                <h3 style={{ color: "#334155", fontSize: 12, fontWeight: 900, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>Anexos e arquivos</h3>
+                {(() => {
+                  const anexos = camposUnificados
+                    .filter(c => c.tipo === "arquivo")
+                    .flatMap(c => {
+                      const raw = c.origem === "fixo" ? (propostaVisualizando as any)[c.slug] : propostaVisualizando.dados_customizados?.[c.slug];
+                      const lista = Array.isArray(raw) ? raw : raw?.url ? [raw] : [];
+                      return lista.map((a: AnexoMeta) => ({ ...a, campo: c.label }));
+                    });
+                  if (!anexos.length) return <p style={{ color: "#94a3b8", fontSize: 12, margin: 0, fontStyle: "italic" }}>Nenhum arquivo anexado nesta venda.</p>;
+                  return (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {anexos.map((a, idx) => (
+                        <a key={idx} href={a.url} target="_blank" rel="noreferrer" style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, color: "#2563eb", textDecoration: "none", fontSize: 12, fontWeight: 800 }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{iconeArquivo(a.tipo)} · {a.nome}</span>
+                          <span style={{ color: "#64748b", flexShrink: 0 }}>{a.campo} · {formatarTamanhoArquivo(a.tamanho)}</span>
+                        </a>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div>
+                <h3 style={{ color: "#334155", fontSize: 12, fontWeight: 900, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>Historico</h3>
+                {logsTabelaFalta ? (
+                  <p style={{ color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 12, fontSize: 12, margin: 0 }}>A tabela proposta_logs ainda nao existe neste banco. Crie essa tabela para salvar o historico das alteracoes.</p>
+                ) : carregandoLogs ? (
+                  <p style={{ color: "#64748b", fontSize: 12, margin: 0 }}>Carregando historico...</p>
+                ) : logsProposta.length === 0 ? (
+                  <p style={{ color: "#94a3b8", fontSize: 12, margin: 0, fontStyle: "italic" }}>Nenhuma alteracao registrada para esta venda.</p>
+                ) : (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {logsProposta.map((l, idx) => (
+                      <div key={l.id || idx} style={{ padding: 12, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                          <strong style={{ color: "#0f172a", fontSize: 12 }}>{l.acao || "alteracao"} · {l.campo || "proposta"}</strong>
+                          <span style={{ color: "#64748b", fontSize: 11 }}>{l.created_at ? new Date(l.created_at).toLocaleString("pt-BR") : ""}</span>
+                        </div>
+                        <p style={{ color: "#64748b", fontSize: 11, margin: "5px 0 0" }}>{l.usuario_nome || l.usuario_email || "Sistema"}</p>
+                        <p style={{ color: "#334155", fontSize: 12, margin: "6px 0 0" }}>
+                          <span style={{ color: "#dc2626" }}>{fmtLogVal(l.valor_anterior ?? l.antes)}</span>
+                          <span style={{ color: "#94a3b8" }}> → </span>
+                          <span style={{ color: "#16a34a" }}>{fmtLogVal(l.valor_novo ?? l.depois)}</span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* ═══ BOTÕES FLUTUANTES ↑↓ ═══ */}
       {/* ═══ BOTÕES FLUTUANTES ↑↓ ═══ */}
       <div style={{
         position: "fixed", right: 16, bottom: 20, zIndex: 1500,
