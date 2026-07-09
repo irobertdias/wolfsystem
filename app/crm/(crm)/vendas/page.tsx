@@ -45,10 +45,31 @@ type UsuarioWs = { email: string; nome: string; equipe_id?: string | null; };
 const statusColor: Record<string, string> = {
   PENDENTE: "#f59e0b",
   "AGUARDANDO AUDITORIA": "#3b82f6",
+  "AGUARDANDO INSTALACAO": "#0ea5e9",
+  "AGUARDANDO INSTALAÇÃO": "#0ea5e9",
+  "PENDENTE DE INSTALACAO": "#f59e0b",
+  "PENDENTE DE INSTALAÇÃO": "#f59e0b",
   CANCELADA: "#dc2626",
   INSTALADA: "#16a34a",
   GERADA: "#8b5cf6",
   REPROVADA: "#ef4444",
+};
+
+const normalizarStatusVenda = (s: any): string =>
+  String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase();
+
+const statusMeta = (s: any): { cor: string; bg: string; border: string; emoji: string; grupo: "instaladas" | "andamento" | "canceladas" | "outros" } => {
+  const t = normalizarStatusVenda(s);
+  if (/INSTALAD|ATIVAD|CONCLUID|FINALIZAD/.test(t) && !/NAO|CANCEL|REPROV|CHURN/.test(t)) {
+    return { cor: "#16a34a", bg: "#ecfdf5", border: "#86efac", emoji: "✅", grupo: "instaladas" };
+  }
+  if (/CANCEL|REPROV|CHURN|FRAUDE|PERDID|NEGAD|RECUSAD|FR PREV/.test(t)) {
+    return { cor: "#dc2626", bg: "#fef2f2", border: "#fecaca", emoji: "✕", grupo: "canceladas" };
+  }
+  if (/AGUARD|PENDENT|GERAD|AUDITOR|BIOMETR|ANALIS|ANALISE|PROCESS|ANDAMENTO|ABERT|ENVIAD|VALIDA|INSTALACAO|INSTALAÇÃO/.test(t)) {
+    return { cor: "#f59e0b", bg: "#fffbeb", border: "#fde68a", emoji: "⏳", grupo: "andamento" };
+  }
+  return { cor: statusColor[t] || "#64748b", bg: "#f8fafc", border: "#cbd5e1", emoji: "•", grupo: "outros" };
 };
 
 export default function Vendas() {
@@ -79,6 +100,26 @@ export default function Vendas() {
 
   // 🔎 Filtros dinâmicos por coluna (slug → valor)
   const [filtrosColuna, setFiltrosColuna] = useState<Record<string, string>>({});
+
+  const statusOpcoesFiltro = useMemo(() => {
+    const set = new Set<string>();
+    const campoStatus = camposUnificados.find(c => c.slug === "status_venda");
+    if (Array.isArray(campoStatus?.opcoes)) {
+      for (const s of campoStatus.opcoes) {
+        const v = String(s || "").trim();
+        if (v) set.add(v);
+      }
+    }
+    for (const s of (STATUS_OPCOES as string[])) {
+      const v = String(s || "").trim();
+      if (v) set.add(v);
+    }
+    for (const p of propostas) {
+      const v = String(p.status_venda || "").trim();
+      if (v) set.add(v);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+  }, [camposUnificados, propostas]);
 
   // 📏 Refs pro scrollbar superior sincronizado com o de baixo
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -168,12 +209,12 @@ export default function Vendas() {
       : v.dados_customizados?.[c.slug];
 
     if (c.slug === "status_venda") {
-      const cor = statusColor[raw] || "#6b7280";
+      const meta = statusMeta(raw);
       return raw ? (
         <span style={{
-          background: `${cor}15`, color: cor, border: `1px solid ${cor}40`,
-          padding: "3px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap",
-        }}>{raw}</span>
+          background: meta.bg, color: meta.cor, border: `1px solid ${meta.border}`,
+          padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 800, whiteSpace: "nowrap",
+        }}>{meta.emoji} {raw}</span>
       ) : <span style={{ color: "#d1d5db" }}>—</span>;
     }
     if (c.slug === "valor_plano") {
@@ -619,16 +660,29 @@ export default function Vendas() {
   const totalVisivel = propostasFiltradas.length;
   const totalGeral = propostas.length;
 
-  // 📊 KPIs rápidos (sobre o que está visível)
+  // KPIs dinâmicos sobre o que está visível, usando os status reais/configurados do workspace.
   const kpis = useMemo(() => {
-    const instaladas = propostasFiltradas.filter(p => p.status_venda === "INSTALADA").length;
-    const pendentes = propostasFiltradas.filter(p => p.status_venda === "PENDENTE" || p.status_venda === "AGUARDANDO AUDITORIA").length;
-    const canceladas = propostasFiltradas.filter(p => p.status_venda === "CANCELADA" || p.status_venda === "REPROVADA").length;
-    const instaladasArr = propostasFiltradas.filter(p => p.status_venda === "INSTALADA");
+    const statusResumo = statusOpcoesFiltro.map(status => {
+      const total = propostasFiltradas.filter(p => normalizarStatusVenda(p.status_venda) === normalizarStatusVenda(status)).length;
+      const meta = statusMeta(status);
+      return { status, total, ...meta };
+    });
+    const instaladasArr = propostasFiltradas.filter(p => statusMeta(p.status_venda).grupo === "instaladas");
+    const andamentoArr = propostasFiltradas.filter(p => statusMeta(p.status_venda).grupo === "andamento");
+    const canceladasArr = propostasFiltradas.filter(p => statusMeta(p.status_venda).grupo === "canceladas");
     const receita = instaladasArr.reduce((a, p) => a + (Number(p.valor_plano) || 0), 0);
-    const ticketMedio = instaladas > 0 ? receita / instaladas : 0;
-    return { instaladas, pendentes, canceladas, ticketMedio, receita };
-  }, [propostasFiltradas]);
+    const receitaAndamento = andamentoArr.reduce((a, p) => a + (Number(p.valor_plano) || 0), 0);
+    const ticketMedio = instaladasArr.length > 0 ? receita / instaladasArr.length : 0;
+    return {
+      instaladas: instaladasArr.length,
+      andamento: andamentoArr.length,
+      canceladas: canceladasArr.length,
+      receita,
+      receitaAndamento,
+      ticketMedio,
+      statusResumo,
+    };
+  }, [propostasFiltradas, statusOpcoesFiltro]);
 
   // 🛡️ Guards visuais
   if (permLoading) {
@@ -770,41 +824,122 @@ export default function Vendas() {
       </div>
 
       {/* ═══ KPIs QUICK STATS ═══ */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: isMobile ? 10 : 12 }}>
-        <div style={{ ...cardStyle, padding: 14, borderTop: "3px solid #16a34a" }}>
-          <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>📊 Visíveis</p>
-          <p style={{ color: "#16a34a", fontSize: 22, fontWeight: 800, margin: "4px 0 0", letterSpacing: -0.5 }}>{totalVisivel.toLocaleString("pt-BR")}</p>
+      {/* Painel de vendas dinâmico por status do workspace */}
+      <section style={{
+        ...cardStyle,
+        padding: isMobile ? 14 : 18,
+        border: "1px solid #dbeafe",
+        background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 48%, #ecfdf5 100%)",
+        boxShadow: "0 14px 32px rgba(15,23,42,0.08)",
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBottom: 14 }}>
+          <div>
+            <p style={{ color: "#16a34a", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.8, margin: 0 }}>Painel de status</p>
+            <h3 style={{ color: "#0f172a", fontSize: isMobile ? 18 : 22, lineHeight: 1.15, fontWeight: 900, margin: "3px 0 0", letterSpacing: -0.4 }}>
+              Vendas por etapa do workspace
+            </h3>
+            <p style={{ color: "#64748b", fontSize: 12, margin: "5px 0 0" }}>
+              Os cards usam os status configurados no Editor de Proposta e os status reais das vendas.
+            </p>
+          </div>
+          <div style={{
+            background: "#ffffff",
+            border: "1px solid #bbf7d0",
+            borderRadius: 12,
+            padding: "8px 12px",
+            minWidth: 120,
+            textAlign: "right",
+            boxShadow: "0 6px 16px rgba(22,163,74,0.12)",
+          }}>
+            <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, textTransform: "uppercase", margin: 0 }}>Visíveis</p>
+            <p style={{ color: "#16a34a", fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: -0.7 }}>{totalVisivel.toLocaleString("pt-BR")}</p>
+          </div>
         </div>
-        <div style={{ ...cardStyle, padding: 14, borderTop: "3px solid #16a34a" }}>
-          <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>✅ Instaladas</p>
-          <p style={{ color: "#16a34a", fontSize: 22, fontWeight: 800, margin: "4px 0 0", letterSpacing: -0.5 }}>{kpis.instaladas.toLocaleString("pt-BR")}</p>
-        </div>
-        <div style={{ ...cardStyle, padding: 14, borderTop: "3px solid #f59e0b" }}>
-          <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>⏳ Pendentes</p>
-          <p style={{ color: "#f59e0b", fontSize: 22, fontWeight: 800, margin: "4px 0 0", letterSpacing: -0.5 }}>{kpis.pendentes.toLocaleString("pt-BR")}</p>
-        </div>
-        <div style={{ ...cardStyle, padding: 14, borderTop: "3px solid #dc2626" }}>
-          <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>❌ Canceladas</p>
-          <p style={{ color: "#dc2626", fontSize: 22, fontWeight: 800, margin: "4px 0 0", letterSpacing: -0.5 }}>{kpis.canceladas.toLocaleString("pt-BR")}</p>
-        </div>
-        <div style={{ ...cardStyle, padding: 14, borderTop: "3px solid #06b6d4", gridColumn: isMobile ? "1 / -1" : undefined }}>
-          <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>💰 Receita Instaladas</p>
-          <p style={{ color: "#16a34a", fontSize: 18, fontWeight: 800, margin: "4px 0 0", letterSpacing: -0.3 }}>
-            R$ {kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          </p>
-          <p style={{ color: "#9ca3af", fontSize: 10, margin: "2px 0 0", fontWeight: 500 }}>
-            ticket: R$ {kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          </p>
-        </div>
-      </div>
 
-      {/* ═══ FILTROS ═══ */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))", gap: 12 }}>
+          {[
+            { label: "Instaladas", valor: kpis.instaladas, detalhe: `R$ ${kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#16a34a", bg: "#ecfdf5", border: "#86efac", emoji: "✅" },
+            { label: "Em andamento", valor: kpis.andamento, detalhe: `R$ ${kpis.receitaAndamento.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#f59e0b", bg: "#fffbeb", border: "#fde68a", emoji: "⏳" },
+            { label: "Canceladas/Reprovadas", valor: kpis.canceladas, detalhe: "perdas e reprovações", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca", emoji: "✕" },
+            { label: "Ticket instaladas", valor: `R$ ${kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, detalhe: "média das instaladas", cor: "#06b6d4", bg: "#ecfeff", border: "#a5f3fc", emoji: "💰" },
+          ].map(card => (
+            <div key={card.label} style={{
+              background: "#ffffff",
+              border: `1px solid ${card.border}`,
+              borderRadius: 12,
+              padding: 14,
+              boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
+              minHeight: 92,
+              position: "relative",
+              overflow: "hidden",
+            }}>
+              <div style={{ position: "absolute", right: 12, top: 10, color: card.cor, opacity: 0.14, fontSize: 34, fontWeight: 900 }}>{card.emoji}</div>
+              <p style={{ color: "#64748b", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6, margin: 0 }}>{card.label}</p>
+              <p style={{ color: card.cor, fontSize: 26, fontWeight: 900, margin: "6px 0 0", letterSpacing: -0.8 }}>{typeof card.valor === "number" ? card.valor.toLocaleString("pt-BR") : card.valor}</p>
+              <p style={{ color: "#94a3b8", fontSize: 11, margin: "2px 0 0", fontWeight: 700 }}>{card.detalhe}</p>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
+            <p style={{ color: "#334155", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.7, margin: 0 }}>
+              Todos os status do workspace
+            </p>
+            <p style={{ color: "#94a3b8", fontSize: 10, fontWeight: 700, margin: 0 }}>{statusOpcoesFiltro.length} status disponíveis</p>
+          </div>
+          <div style={{
+            display: "flex",
+            gap: 8,
+            overflowX: "auto",
+            paddingBottom: 4,
+            scrollbarWidth: "thin",
+          }}>
+            <button onClick={() => setFiltroStatus("todos")} style={{
+              flex: "0 0 auto",
+              background: filtroStatus === "todos" ? "#16a34a" : "#ffffff",
+              color: filtroStatus === "todos" ? "#ffffff" : "#166534",
+              border: "1px solid #bbf7d0",
+              borderRadius: 999,
+              padding: "8px 12px",
+              fontSize: 11,
+              fontWeight: 900,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}>
+              Todos · {totalVisivel.toLocaleString("pt-BR")}
+            </button>
+            {kpis.statusResumo.map(item => {
+              const ativo = filtroStatus === item.status;
+              return (
+                <button key={item.status} onClick={() => setFiltroStatus(item.status)}
+                  title={item.status}
+                  style={{
+                    flex: "0 0 auto",
+                    background: ativo ? item.cor : item.bg,
+                    color: ativo ? "#ffffff" : item.cor,
+                    border: `1px solid ${ativo ? item.cor : item.border}`,
+                    borderRadius: 999,
+                    padding: "8px 12px",
+                    fontSize: 11,
+                    fontWeight: 900,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    boxShadow: ativo ? `0 6px 16px ${item.cor}30` : "none",
+                  }}>
+                  {item.emoji} {item.status} · {item.total.toLocaleString("pt-BR")}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>      {/* ═══ FILTROS ═══ */}
       <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <input placeholder="🔍 Buscar por nome, CPF, vendedor..." value={busca} onChange={e => setBusca(e.target.value)}
           style={{ ...inputStyle, maxWidth: 360, flex: "1 1 200px", borderRadius: 20 }} />
         <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={{ ...inputStyle, maxWidth: 220 }}>
           <option value="todos">Status: Todos</option>
-          {STATUS_OPCOES.map(s => <option key={s} value={s}>{s}</option>)}
+          {statusOpcoesFiltro.map(s => <option key={s} value={s}>{statusMeta(s).emoji} {s}</option>)}
         </select>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10, padding: "5px 12px" }}>
           <span style={{ color: "#6b7280", fontSize: 11, whiteSpace: "nowrap", fontWeight: 600 }}>📅 De:</span>
