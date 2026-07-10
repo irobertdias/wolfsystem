@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
@@ -62,6 +62,65 @@ const norm = (v: any) =>
     .trim()
     .toUpperCase();
 
+
+function addWsId(lista: string[], valor: any) {
+  const v = String(valor ?? "").trim();
+  if (v && !lista.includes(v)) lista.push(v);
+}
+
+async function resolverTenantAtual(userEmail?: string | null, userId?: string | null, fallbackWsId?: string, fallbackWorkspace?: any) {
+  const wsIds: string[] = [];
+  let nome = fallbackWorkspace?.nome || "";
+  let ownerEmail = fallbackWorkspace?.owner_email || "";
+
+  addWsId(wsIds, fallbackWsId);
+  addWsId(wsIds, fallbackWorkspace?.username);
+  addWsId(wsIds, fallbackWorkspace?.id);
+
+  if (userId) {
+    const { data: wsDono } = await supabase
+      .from("workspaces")
+      .select("id, username, nome, owner_email")
+      .eq("owner_id", userId)
+      .maybeSingle();
+    if (wsDono) {
+      addWsId(wsIds, wsDono.username);
+      addWsId(wsIds, wsDono.id);
+      nome = wsDono.nome || nome;
+      ownerEmail = wsDono.owner_email || ownerEmail;
+    }
+  }
+
+  if (userEmail) {
+    const { data: usuarioWs } = await supabase
+      .from("usuarios_workspace")
+      .select("workspace_id")
+      .eq("email", userEmail)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (usuarioWs?.workspace_id) {
+      addWsId(wsIds, usuarioWs.workspace_id);
+      const idRaw = String(usuarioWs.workspace_id);
+      const filtro = /^\d+$/.test(idRaw) ? `username.eq.${idRaw},id.eq.${idRaw}` : `username.eq.${idRaw}`;
+      const { data: wsSub } = await supabase
+        .from("workspaces")
+        .select("id, username, nome, owner_email")
+        .or(filtro)
+        .maybeSingle();
+      if (wsSub) {
+        addWsId(wsIds, wsSub.username);
+        addWsId(wsIds, wsSub.id);
+        nome = wsSub.nome || nome;
+        ownerEmail = wsSub.owner_email || ownerEmail;
+      }
+    }
+  }
+
+  return { wsIds: [...new Set(wsIds)], nome, ownerEmail };
+}
+
 function diasAteVenc(iso: string | null): number | null {
   if (!iso) return null;
   const hoje = new Date();
@@ -100,6 +159,8 @@ export default function VisaoGeralPage() {
   const [canais, setCanais] = useState<Canal[]>([]);
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [workspaces, setWorkspaces] = useState<WorkspaceRow[]>([]);
+  const [tenantWsIds, setTenantWsIds] = useState<string[]>([]);
+  const [tenantNome, setTenantNome] = useState("");
 
   const workspaceUsername = String((workspace as any)?.username || wsId || "").toLowerCase();
   const workspaceNome = String((workspace as any)?.nome || "");
@@ -154,31 +215,48 @@ export default function VisaoGeralPage() {
     if (workspaceLoading || permLoading) return;
     if (isWolfAdmin) return;
 
-    if (!wsId) {
-      setCarregando(false);
-      return;
-    }
-
-    if (!modulosCarregados) return;
-
     let cancelado = false;
     (async () => {
       setCarregando(true);
+
+      const { data: auth } = await supabase.auth.getUser();
+      const user = auth?.user;
+      const ctx = await resolverTenantAtual(user?.email, user?.id, wsId, workspace);
+      if (cancelado) return;
+
+      setTenantWsIds(ctx.wsIds);
+      setTenantNome(ctx.nome || (workspace as any)?.nome || "");
+
+      if (ctx.wsIds.length === 0) {
+        setPropostas([]);
+        setUsuarios(0);
+        setFuncs([]);
+        setFolha([]);
+        setPontoHoje(0);
+        setLancamentos([]);
+        setCanais([]);
+        setCarregando(false);
+        return;
+      }
+
       const inicioDia = new Date();
       inicioDia.setHours(0, 0, 0, 0);
 
       const basePromises: Promise<any>[] = [
         supabase
           .from("proposta")
-          .select("status_venda, valor_plano, vendedor, created_at, data_proposta, proximo_vencimento, status_pagamento")
-          .eq("workspace_id", wsId),
-        supabase.from("usuarios_workspace").select("email", { count: "exact", head: false }).eq("workspace_id", wsId),
+          .select("workspace_id, status_venda, valor_plano, vendedor, created_at, data_proposta, proximo_vencimento, status_pagamento")
+          .in("workspace_id", ctx.wsIds),
+        supabase
+          .from("usuarios_workspace")
+          .select("email, workspace_id")
+          .in("workspace_id", ctx.wsIds),
       ];
 
       const extras: Array<{ key: string; promise: Promise<any> }> = [];
       if (temRH || temPonto) {
-        extras.push({ key: "funcs", promise: supabase.from("funcionarios").select("status, salario").eq("workspace_id", wsId) });
-        extras.push({ key: "folha", promise: supabase.from("folha_itens").select("competencia, base, comissao").eq("workspace_id", wsId) });
+        extras.push({ key: "funcs", promise: supabase.from("funcionarios").select("status, salario, workspace_id").in("workspace_id", ctx.wsIds) });
+        extras.push({ key: "folha", promise: supabase.from("folha_itens").select("competencia, base, comissao, workspace_id").in("workspace_id", ctx.wsIds) });
       }
       if (temPonto) {
         extras.push({
@@ -186,7 +264,7 @@ export default function VisaoGeralPage() {
           promise: supabase
             .from("ponto_registros")
             .select("id", { count: "exact", head: true })
-            .eq("workspace_id", wsId)
+            .in("workspace_id", ctx.wsIds)
             .gte("data_hora", inicioDia.toISOString()),
         });
       }
@@ -195,8 +273,8 @@ export default function VisaoGeralPage() {
           key: "fin",
           promise: supabase
             .from("fin_lancamentos")
-            .select("tipo, valor, status, vencimento, pago_em")
-            .eq("workspace_id", wsId),
+            .select("tipo, valor, status, vencimento, pago_em, workspace_id")
+            .in("workspace_id", ctx.wsIds),
         });
       }
       if (temTelefonia || temDisparos || temIntegracoes) {
@@ -204,8 +282,8 @@ export default function VisaoGeralPage() {
           key: "canais",
           promise: supabase
             .from("conexoes")
-            .select("id, tipo, status, nome")
-            .eq("workspace_id", wsId),
+            .select("id, tipo, status, nome, workspace_id")
+            .in("workspace_id", ctx.wsIds),
         });
       }
 
@@ -215,8 +293,12 @@ export default function VisaoGeralPage() {
       extras.forEach((e, i) => { byKey[e.key] = extraResults[i]; });
 
       if (cancelado) return;
+      const usuariosSubs = (usr.data || []) as Array<{ email?: string | null }>;
+      const emails = new Set(usuariosSubs.map((u) => String(u.email || "").toLowerCase()).filter(Boolean));
+      if (ctx.ownerEmail) emails.add(String(ctx.ownerEmail).toLowerCase());
+
       setPropostas((prop.data || []) as Proposta[]);
-      setUsuarios((usr.data || []).length);
+      setUsuarios(emails.size);
       setFuncs((byKey.funcs?.data || []) as FuncRow[]);
       setFolha((byKey.folha?.data || []) as FolhaRow[]);
       setPontoHoje(byKey.ponto?.count || 0);
@@ -229,7 +311,7 @@ export default function VisaoGeralPage() {
     });
 
     return () => { cancelado = true; };
-  }, [wsId, workspaceLoading, modulosCarregados, permLoading, isWolfAdmin, temRH, temPonto, temFinanceiro, temTelefonia, temDisparos, temIntegracoes]);
+  }, [wsId, workspaceLoading, modulosCarregados, permLoading, isWolfAdmin, temRH, temPonto, temFinanceiro, temTelefonia, temDisparos, temIntegracoes, workspace]);
 
   const vendas = useMemo(() => {
     const comp = compAtual();
@@ -335,7 +417,7 @@ export default function VisaoGeralPage() {
     return Array.from(mapa.values()).sort((a, b) => b.receita - a.receita || b.vendas - a.vendas).slice(0, 8);
   }, [propostas, canais]);
 
-  const loadingTenant = workspaceLoading || permLoading || (!isWolfAdmin && !!wsId && !modulosCarregados) || carregando;
+  const loadingTenant = workspaceLoading || permLoading || (!isWolfAdmin && !modulosCarregados && tenantWsIds.length === 0) || carregando;
 
   if (isWolfAdmin) {
     return (
@@ -401,12 +483,12 @@ export default function VisaoGeralPage() {
       <Hero
         badge="Painel vivo do workspace"
         title="Visao Geral"
-        subtitle={`${(workspace as any)?.nome || "Workspace"} em modo operacional. A tela mostra apenas os modulos liberados no plano deste tenant e resume o que merece atencao agora.`}
+        subtitle={`${tenantNome || (workspace as any)?.nome || "Workspace"} em modo operacional. A tela mostra apenas os modulos liberados no plano deste tenant e resume o que merece atencao agora.`}
         pills={[
           `Plano ${String(modulos.plano || "basico").replace("_", " ")}`,
           `${modulosAtivos.length} modulo(s) ativo(s)`,
           `${usuarios} usuario(s)`,
-          `Workspace ${wsId || "-"}`,
+          `Workspace ${tenantWsIds[0] || wsId || "-"}`,
         ]}
         pulse={[
           ["Receita instalada no mes", real(vendas.receitaMes), "#16a34a"],
@@ -417,7 +499,7 @@ export default function VisaoGeralPage() {
       />
 
       {loadingTenant ? (
-        <LoadingBox text={!wsId && !workspaceLoading ? "Nao encontrei workspace para este login." : "Carregando panorama do tenant..."} />
+        <LoadingBox text={tenantWsIds.length === 0 && !workspaceLoading ? "Localizando dados do workspace..." : "Carregando panorama do tenant..."} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <ModuleStrip items={modulosAtivos} />
@@ -618,3 +700,4 @@ function TenantTable({ rows }: { rows: Array<{ workspace: string; vendas: number
     </section>
   );
 }
+
