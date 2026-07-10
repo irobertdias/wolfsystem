@@ -176,7 +176,7 @@ export default function DisparosPage() {
   const fetchCanais = async () => {
     if (workspaceIds.length === 0) return;
     const { data } = await supabase.from("conexoes")
-      .select("id, nome, tipo, status, waba_id, phone_number_id, numero, workspace_id, updated_at, created_at")
+      .select("*")
       .in("workspace_id", workspaceIds)
       .order("created_at", { ascending: false });
 
@@ -184,14 +184,10 @@ export default function DisparosPage() {
     const filtrados = lista.filter((c: Canal) => {
       const tipo = String(c.tipo || "").toLowerCase();
       if (tipoDisparo === "webjs") return tipo === "webjs";
-      return tipo === "waba" || !!c.phone_number_id || !!c.waba_id;
+      return tipo === "waba";
     });
 
     setCanais(filtrados);
-    if (tipoDisparo === "waba" && !canalSelecionado && filtrados.length > 0) {
-      const conectado = filtrados.find((c: Canal) => normalizarStatusCanal(c.status));
-      setCanalSelecionado((conectado || filtrados[0]).id);
-    }
   };
 
   const fetchTemplatesAprovados = async () => {
@@ -757,7 +753,7 @@ export default function DisparosPage() {
         </div>
       )}
 
-      {tipoDisparo === "waba" && (
+      {false && tipoDisparo === "waba" && (
         <div style={{
           ...cardStyle,
           border: `1px solid ${corScore}55`,
@@ -889,6 +885,52 @@ export default function DisparosPage() {
             <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Black Friday" style={IS} />
           </div>
         </div>
+
+        {tipoDisparo === "waba" && canalSelecionado && (
+          <div style={{
+            background: "#f8fafc",
+            border: `1px solid ${corScore}55`,
+            borderLeft: `4px solid ${corScore}`,
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 14,
+            flexWrap: "wrap",
+          }}>
+            <div style={{ minWidth: 240, flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                <b style={{ color: "#0f172a", fontSize: 13 }}>Integridade da API</b>
+                <span style={{ background: `${corScore}18`, color: corScore, border: `1px solid ${corScore}55`, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
+                  {integridadeApi.score}/100
+                </span>
+                <span style={{ background: `${corQualidade}18`, color: corQualidade, border: `1px solid ${corQualidade}55`, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
+                  {integridadeApi.qualidade}
+                </span>
+                <span style={{ background: canalConectado ? "#dcfce7" : "#fee2e2", color: canalConectado ? "#15803d" : "#b91c1c", border: `1px solid ${canalConectado ? "#86efac" : "#fecaca"}`, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
+                  {canalConectado ? "Conectado" : "Desconectado"}
+                </span>
+              </div>
+              <p style={{ color: "#64748b", fontSize: 11, margin: 0, lineHeight: 1.5 }}>
+                24h: <b>{integridadeApi.enviados24h}/{integridadeApi.limite24h}</b> · 1h: <b>{integridadeApi.enviados1h}/{integridadeApi.limite1h}</b> · Falhas 24h: <b style={{ color: integridadeApi.falhas24h ? "#dc2626" : "#16a34a" }}>{integridadeApi.falhas24h}</b> · Templates: <b>{integridadeApi.templatesAprovados}</b>
+              </p>
+              {(integridadeApi.alertas[0] || integridadeApi.erro) && (
+                <p style={{ color: "#92400e", fontSize: 11, margin: "6px 0 0", fontWeight: 700 }}>
+                  {integridadeApi.erro || integridadeApi.alertas[0]}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => fetchIntegridadeApi(true)}
+              disabled={atualizandoIntegridade}
+              style={{ background: "#ffffff", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 10, padding: "8px 12px", fontSize: 11, fontWeight: 800, cursor: atualizandoIntegridade ? "wait" : "pointer" }}
+            >
+              {atualizandoIntegridade ? "Atualizando..." : "Atualizar"}
+            </button>
+          </div>
+        )}
 
         {tipoDisparo === "waba" && canalSelecionado && (
           <div style={{ marginBottom: 16 }}>
