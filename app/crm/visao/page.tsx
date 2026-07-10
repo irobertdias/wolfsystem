@@ -7,6 +7,7 @@ import { useModulos } from "../../hooks/useModulos";
 import { usePermissao } from "../../hooks/usePermissao";
 
 type Proposta = {
+  workspace_id?: string | null;
   status_venda: string | null;
   valor_plano: number | null;
   vendedor: string | null;
@@ -19,7 +20,27 @@ type Proposta = {
 type FuncRow = { status: string | null; salario: number | null };
 type FolhaRow = { competencia: string | null; base: number | null; comissao: number | null };
 type Lancamento = { tipo: string | null; valor: number | null; status: string | null; vencimento: string | null; pago_em?: string | null };
-type Canal = { id: number; tipo: string | null; status: string | null; nome: string | null };
+type Canal = { id: number; tipo: string | null; status: string | null; nome: string | null; workspace_id?: string | null };
+type Cadastro = {
+  id?: number;
+  nome?: string | null;
+  empresa?: string | null;
+  email?: string | null;
+  plano?: string | null;
+  autorizado?: boolean | null;
+  status_pagamento?: string | null;
+  usuarios_liberados?: number | null;
+  conexoes_liberadas?: number | null;
+  modulo_cobranca?: boolean | null;
+  modulo_rh?: boolean | null;
+  modulo_bater_ponto?: boolean | null;
+  modulo_financeiro?: boolean | null;
+  modulo_voip?: boolean | null;
+  modulo_disparos_web?: boolean | null;
+  modulo_disparos_api?: boolean | null;
+  created_at?: string | null;
+};
+type WorkspaceRow = { id?: number; username?: string | null; nome?: string | null; owner_email?: string | null; ativo?: boolean | null };
 
 const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const num = (v: number) => (v || 0).toLocaleString("pt-BR");
@@ -57,7 +78,7 @@ const shell: React.CSSProperties = {
 };
 
 const panel: React.CSSProperties = {
-  background: "rgba(255,255,255,0.92)",
+  background: "rgba(255,255,255,0.93)",
   border: "1px solid rgba(226,232,240,0.95)",
   borderRadius: 12,
   boxShadow: "0 10px 30px rgba(15,23,42,0.07)",
@@ -69,6 +90,7 @@ export default function VisaoGeralPage() {
   const { isDono, isSuperAdmin, perfil, permissoes, loading: permLoading } = usePermissao();
 
   const [carregando, setCarregando] = useState(true);
+  const [adminCarregando, setAdminCarregando] = useState(true);
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [funcs, setFuncs] = useState<FuncRow[]>([]);
   const [folha, setFolha] = useState<FolhaRow[]>([]);
@@ -76,11 +98,17 @@ export default function VisaoGeralPage() {
   const [usuarios, setUsuarios] = useState(0);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [canais, setCanais] = useState<Canal[]>([]);
+  const [cadastros, setCadastros] = useState<Cadastro[]>([]);
+  const [workspaces, setWorkspaces] = useState<WorkspaceRow[]>([]);
+
+  const workspaceUsername = String((workspace as any)?.username || wsId || "").toLowerCase();
+  const workspaceNome = String((workspace as any)?.nome || "");
+  const isWolfAdmin = isSuperAdmin || workspaceUsername === "wolf_admin" || workspaceNome.toLowerCase() === "wolf_admin";
 
   const podeVerTudo = isSuperAdmin || isDono || perfil === "Administrador";
-  const temCRM = isSuperAdmin || isDono || perfil === "Administrador" || !!(permissoes as any).crm_acessar || !!permissoes.dashboard || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe;
-  const temVendas = temCRM && (podeVerTudo || !!permissoes.dashboard || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe);
-  const temEquipe = podeVerTudo || !!permissoes.usuarios_gerenciar || !!permissoes.grupos_permissao;
+  const temCRM = isWolfAdmin || isSuperAdmin || isDono || perfil === "Administrador" || !!(permissoes as any).crm_acessar || !!permissoes.dashboard || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe;
+  const temVendas = temCRM && (podeVerTudo || !!permissoes.dashboard || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe || isWolfAdmin);
+  const temEquipe = podeVerTudo || !!permissoes.usuarios_gerenciar || !!permissoes.grupos_permissao || isWolfAdmin;
   const temCobranca = (isSuperAdmin || !!modulos.cobranca) && (podeVerTudo || !!permissoes.cobranca);
   const temRH = (isSuperAdmin || !!modulos.rh) && (podeVerTudo || !!permissoes.rh || !!permissoes.rh_dashboard);
   const temPonto = (isSuperAdmin || !!modulos.bater_ponto) && (podeVerTudo || !!permissoes.bater_ponto);
@@ -90,7 +118,48 @@ export default function VisaoGeralPage() {
   const temIntegracoes = isSuperAdmin || !!modulos.api_integracao || !!modulos.instagram || !!modulos.roleta;
 
   useEffect(() => {
-    if (!wsId || !modulosCarregados || permLoading) return;
+    if (workspaceLoading || permLoading) return;
+    if (!isWolfAdmin) return;
+
+    let cancelado = false;
+    (async () => {
+      setAdminCarregando(true);
+      const [cad, ws, prop, con, usr] = await Promise.all([
+        supabase.from("cadastros").select("*").order("created_at", { ascending: false }).limit(5000),
+        supabase.from("workspaces").select("id, username, nome, owner_email, ativo").limit(5000),
+        supabase.from("proposta").select("workspace_id, status_venda, valor_plano, vendedor, created_at, data_proposta, proximo_vencimento, status_pagamento").limit(10000),
+        supabase.from("conexoes").select("id, tipo, status, nome, workspace_id").limit(5000),
+        supabase.from("usuarios_workspace").select("email, workspace_id").limit(10000),
+      ]);
+      if (cancelado) return;
+      setCadastros((cad.data || []) as Cadastro[]);
+      setWorkspaces((ws.data || []) as WorkspaceRow[]);
+      setPropostas((prop.data || []) as Proposta[]);
+      setCanais((con.data || []) as Canal[]);
+      setUsuarios((usr.data || []).length);
+      setAdminCarregando(false);
+      setCarregando(false);
+    })().catch((e) => {
+      console.error("visao wolf_admin:", e);
+      if (!cancelado) {
+        setAdminCarregando(false);
+        setCarregando(false);
+      }
+    });
+
+    return () => { cancelado = true; };
+  }, [workspaceLoading, permLoading, isWolfAdmin]);
+
+  useEffect(() => {
+    if (workspaceLoading || permLoading) return;
+    if (isWolfAdmin) return;
+
+    if (!wsId) {
+      setCarregando(false);
+      return;
+    }
+
+    if (!modulosCarregados) return;
 
     let cancelado = false;
     (async () => {
@@ -154,10 +223,13 @@ export default function VisaoGeralPage() {
       setLancamentos((byKey.fin?.data || []) as Lancamento[]);
       setCanais((byKey.canais?.data || []) as Canal[]);
       setCarregando(false);
-    })();
+    })().catch((e) => {
+      console.error("visao tenant:", e);
+      if (!cancelado) setCarregando(false);
+    });
 
     return () => { cancelado = true; };
-  }, [wsId, modulosCarregados, permLoading, temRH, temPonto, temFinanceiro, temTelefonia, temDisparos, temIntegracoes]);
+  }, [wsId, workspaceLoading, modulosCarregados, permLoading, isWolfAdmin, temRH, temPonto, temFinanceiro, temTelefonia, temDisparos, temIntegracoes]);
 
   const vendas = useMemo(() => {
     const comp = compAtual();
@@ -230,47 +302,122 @@ export default function VisaoGeralPage() {
     return items.filter((i) => i.ativo);
   }, [temCRM, temCobranca, temRH, temPonto, temFinanceiro, temTelefonia, temDisparos, temIntegracoes]);
 
-  const loading = workspaceLoading || !modulosCarregados || permLoading || carregando;
+  const adminStats = useMemo(() => {
+    const ativos = cadastros.filter((c) => c.autorizado !== false && norm(c.status_pagamento) !== "SUSPENSO").length;
+    const suspensos = cadastros.filter((c) => norm(c.status_pagamento) === "SUSPENSO").length;
+    const basico = cadastros.filter((c) => norm(c.plano) === "BASICO").length;
+    const intermediario = cadastros.filter((c) => norm(c.plano) === "INTERMEDIARIO").length;
+    const ultra = cadastros.filter((c) => norm(c.plano) === "ULTRA").length;
+    const wsAtivos = workspaces.filter((w) => w.ativo !== false).length;
+    const clientesComCobranca = cadastros.filter((c) => c.modulo_cobranca).length;
+    const clientesComRH = cadastros.filter((c) => c.modulo_rh).length;
+    const clientesComFinanceiro = cadastros.filter((c) => c.modulo_financeiro).length;
+    const clientesComVoip = cadastros.filter((c) => c.modulo_voip).length;
+    const clientesComApi = cadastros.filter((c) => c.modulo_disparos_api).length;
+    return { ativos, suspensos, basico, intermediario, ultra, wsAtivos, clientesComCobranca, clientesComRH, clientesComFinanceiro, clientesComVoip, clientesComApi };
+  }, [cadastros, workspaces]);
+
+  const topTenants = useMemo(() => {
+    const mapa = new Map<string, { workspace: string; vendas: number; receita: number; canais: number }>();
+    for (const p of propostas) {
+      const key = p.workspace_id || "sem_workspace";
+      const atual = mapa.get(key) || { workspace: key, vendas: 0, receita: 0, canais: 0 };
+      atual.vendas += 1;
+      if (/INSTALAD|ATIVAD|CONCLUID|FINALIZAD/.test(norm(p.status_venda))) atual.receita += Number(p.valor_plano || 0);
+      mapa.set(key, atual);
+    }
+    for (const c of canais) {
+      const key = c.workspace_id || "sem_workspace";
+      const atual = mapa.get(key) || { workspace: key, vendas: 0, receita: 0, canais: 0 };
+      atual.canais += 1;
+      mapa.set(key, atual);
+    }
+    return Array.from(mapa.values()).sort((a, b) => b.receita - a.receita || b.vendas - a.vendas).slice(0, 8);
+  }, [propostas, canais]);
+
+  const loadingTenant = workspaceLoading || permLoading || (!isWolfAdmin && !!wsId && !modulosCarregados) || carregando;
+
+  if (isWolfAdmin) {
+    return (
+      <div style={shell}>
+        <Hero
+          badge="Central wolf_admin"
+          title="Comando Multi-Tenant"
+          subtitle="Visao de dono da plataforma: clientes, workspaces, modulos, canais e movimento geral do ecossistema Wolf."
+          pills={[
+            `${cadastros.length} cliente(s) cadastrados`,
+            `${workspaces.length} workspace(s)`,
+            `${usuarios} usuario(s) vinculados`,
+            `${canaisResumo.conectados}/${canaisResumo.total} canais conectados`,
+          ]}
+          pulse={[
+            ["Receita instalada total", real(vendas.receitaMes), "#16a34a"],
+            ["Clientes ativos", num(adminStats.ativos), "#2563eb"],
+            ["Workspaces ativos", num(adminStats.wsAtivos), "#7c3aed"],
+            ["Canais WABA/API", num(canaisResumo.waba), "#0891b2"],
+          ]}
+        />
+
+        {adminCarregando ? (
+          <LoadingBox text="Carregando centro de comando da plataforma..." />
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <Section title="Plataforma" subtitle="Saude comercial e operacional do Wolf System." accent="#0f172a">
+              <Metric label="Clientes ativos" value={num(adminStats.ativos)} color="#16a34a" note="autorizados e nao suspensos" />
+              <Metric label="Suspensos" value={num(adminStats.suspensos)} color="#dc2626" note="bloqueio financeiro" />
+              <Metric label="Workspaces ativos" value={num(adminStats.wsAtivos)} color="#2563eb" note="ambientes operacionais" />
+              <Metric label="Usuarios vinculados" value={num(usuarios)} color="#7c3aed" note="usuarios_workspace" />
+            </Section>
+
+            <Section title="Planos e modulos" subtitle="Distribuicao do que esta vendido e liberado por cliente." accent="#7c3aed">
+              <Metric label="Basico" value={num(adminStats.basico)} color="#16a34a" note="clientes no plano" />
+              <Metric label="Intermediario" value={num(adminStats.intermediario)} color="#2563eb" note="clientes no plano" />
+              <Metric label="Ultra" value={num(adminStats.ultra)} color="#7c3aed" note="clientes no plano" />
+              <Metric label="Cobranca" value={num(adminStats.clientesComCobranca)} color="#dc2626" note="modulo liberado" />
+              <Metric label="RH" value={num(adminStats.clientesComRH)} color="#4f46e5" note="modulo liberado" />
+              <Metric label="Financeiro" value={num(adminStats.clientesComFinanceiro)} color="#d97706" note="modulo liberado" />
+              <Metric label="Telefonia" value={num(adminStats.clientesComVoip)} color="#0891b2" note="modulo liberado" />
+              <Metric label="API oficial" value={num(adminStats.clientesComApi)} color="#0f766e" note="disparos api" />
+            </Section>
+
+            <Section title="Operacao global" subtitle="Movimento agregado de vendas e canais de todos os tenants visiveis." accent="#16a34a">
+              <Metric label="Propostas totais" value={num(propostas.length)} color="#2563eb" note="todos os workspaces" />
+              <Metric label="Instaladas" value={num(vendas.instaladas)} color="#16a34a" note="status instalados" />
+              <Metric label="Em andamento" value={num(vendas.emAndamento)} color="#f59e0b" note="pendentes e geradas" />
+              <Metric label="Canceladas" value={num(vendas.canceladas)} color="#dc2626" note="perdas e reprovas" />
+              <Metric label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#0891b2" note="webjs + waba" />
+              <Metric label="WebJS / WABA" value={`${num(canaisResumo.webjs)} / ${num(canaisResumo.waba)}`} color="#7c3aed" note="mix de conexoes" />
+            </Section>
+
+            <TenantTable rows={topTenants} />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={shell}>
-      <div style={{ position: "relative", overflow: "hidden", borderRadius: 16, marginBottom: 18, border: "1px solid #dbeafe", background: "linear-gradient(135deg, #f8fafc 0%, #eefdf4 42%, #eff6ff 100%)" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 12% 20%, rgba(22,163,74,0.18), transparent 28%), radial-gradient(circle at 85% 25%, rgba(14,165,233,0.18), transparent 28%), linear-gradient(120deg, rgba(255,255,255,0.72), rgba(255,255,255,0.36))" }} />
-        <div style={{ position: "relative", padding: "24px 26px", display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(280px, 0.65fr)", gap: 18, alignItems: "stretch" }}>
-          <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 999, background: "rgba(15,23,42,0.06)", border: "1px solid rgba(15,23,42,0.08)", marginBottom: 12 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 999, background: "#16a34a", boxShadow: "0 0 0 5px rgba(22,163,74,0.12)" }} />
-              <span style={{ color: "#334155", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6 }}>Painel vivo do workspace</span>
-            </div>
-            <h1 style={{ color: "#07111f", fontSize: 34, lineHeight: 1.05, fontWeight: 950, margin: 0, letterSpacing: -1.2 }}>
-              Visao Geral
-            </h1>
-            <p style={{ color: "#475569", fontSize: 13, lineHeight: 1.55, margin: "10px 0 0", maxWidth: 760 }}>
-              {(workspace as any)?.nome || "Workspace"} em modo operacional. A tela mostra apenas os modulos liberados no plano deste tenant e resume o que merece atencao agora.
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
-              <Pill label={`Plano ${String(modulos.plano || "basico").replace("_", " ")}`} color="#0f172a" />
-              <Pill label={`${modulosAtivos.length} modulo(s) ativo(s)`} color="#16a34a" />
-              <Pill label={`${usuarios} usuario(s)`} color="#2563eb" />
-              <Pill label={`Workspace ${wsId || "-"}`} color="#64748b" />
-            </div>
-          </div>
+      <Hero
+        badge="Painel vivo do workspace"
+        title="Visao Geral"
+        subtitle={`${(workspace as any)?.nome || "Workspace"} em modo operacional. A tela mostra apenas os modulos liberados no plano deste tenant e resume o que merece atencao agora.`}
+        pills={[
+          `Plano ${String(modulos.plano || "basico").replace("_", " ")}`,
+          `${modulosAtivos.length} modulo(s) ativo(s)`,
+          `${usuarios} usuario(s)`,
+          `Workspace ${wsId || "-"}`,
+        ]}
+        pulse={[
+          ["Receita instalada no mes", real(vendas.receitaMes), "#16a34a"],
+          ["Vendas em andamento", num(vendas.emAndamento), "#f59e0b"],
+          ["Conversao acumulada", `${vendas.conversao}%`, "#7c3aed"],
+          ...(temTelefonia ? [["Canais conectados", `${canaisResumo.conectados}/${canaisResumo.total}`, "#0891b2"] as [string, string, string]] : []),
+        ]}
+      />
 
-          <div style={{ ...panel, padding: 16, display: "grid", gap: 10 }}>
-            <p style={{ color: "#64748b", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6, margin: 0 }}>Pulso geral</p>
-            <PulseRow label="Receita instalada no mes" value={real(vendas.receitaMes)} color="#16a34a" />
-            <PulseRow label="Vendas em andamento" value={num(vendas.emAndamento)} color="#f59e0b" />
-            <PulseRow label="Conversao acumulada" value={`${vendas.conversao}%`} color="#7c3aed" />
-            {temTelefonia && <PulseRow label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#0891b2" />}
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div style={{ ...panel, padding: 44, textAlign: "center" }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, margin: "0 auto 12px", background: "linear-gradient(135deg,#16a34a,#0ea5e9)", boxShadow: "0 12px 24px rgba(14,165,233,0.18)" }} />
-          <p style={{ color: "#64748b", fontSize: 13, margin: 0, fontWeight: 700 }}>Carregando panorama do tenant...</p>
-        </div>
+      {loadingTenant ? (
+        <LoadingBox text={!wsId && !workspaceLoading ? "Nao encontrei workspace para este login." : "Carregando panorama do tenant..."} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <ModuleStrip items={modulosAtivos} />
@@ -342,6 +489,41 @@ export default function VisaoGeralPage() {
   );
 }
 
+function Hero({ badge, title, subtitle, pills, pulse }: { badge: string; title: string; subtitle: string; pills: string[]; pulse: Array<[string, string, string]> }) {
+  return (
+    <div style={{ position: "relative", overflow: "hidden", borderRadius: 16, marginBottom: 18, border: "1px solid #dbeafe", background: "linear-gradient(135deg, #f8fafc 0%, #eefdf4 42%, #eff6ff 100%)" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 12% 20%, rgba(22,163,74,0.18), transparent 28%), radial-gradient(circle at 85% 25%, rgba(14,165,233,0.18), transparent 28%), linear-gradient(120deg, rgba(255,255,255,0.72), rgba(255,255,255,0.36))" }} />
+      <div style={{ position: "relative", padding: "24px 26px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18, alignItems: "stretch" }}>
+        <div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 999, background: "rgba(15,23,42,0.06)", border: "1px solid rgba(15,23,42,0.08)", marginBottom: 12 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: "#16a34a", boxShadow: "0 0 0 5px rgba(22,163,74,0.12)" }} />
+            <span style={{ color: "#334155", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6 }}>{badge}</span>
+          </div>
+          <h1 style={{ color: "#07111f", fontSize: 34, lineHeight: 1.05, fontWeight: 950, margin: 0, letterSpacing: -1.2 }}>{title}</h1>
+          <p style={{ color: "#475569", fontSize: 13, lineHeight: 1.55, margin: "10px 0 0", maxWidth: 780 }}>{subtitle}</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+            {pills.map((p, i) => <Pill key={i} label={p} color={i === 0 ? "#0f172a" : i === 1 ? "#16a34a" : i === 2 ? "#2563eb" : "#64748b"} />)}
+          </div>
+        </div>
+
+        <div style={{ ...panel, padding: 16, display: "grid", gap: 10 }}>
+          <p style={{ color: "#64748b", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6, margin: 0 }}>Pulso geral</p>
+          {pulse.map(([label, value, color]) => <PulseRow key={label} label={label} value={value} color={color} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoadingBox({ text }: { text: string }) {
+  return (
+    <div style={{ ...panel, padding: 44, textAlign: "center" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 12, margin: "0 auto 12px", background: "linear-gradient(135deg,#16a34a,#0ea5e9)", boxShadow: "0 12px 24px rgba(14,165,233,0.18)" }} />
+      <p style={{ color: "#64748b", fontSize: 13, margin: 0, fontWeight: 700 }}>{text}</p>
+    </div>
+  );
+}
+
 function Pill({ label, color }: { label: string; color: string }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 999, background: "#ffffff", border: `1px solid ${color}22`, color, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.35 }}>
@@ -400,5 +582,39 @@ function Metric({ label, value, color, note }: { label: string; value: string; c
         <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 800, margin: "5px 0 0" }}>{note}</p>
       </div>
     </div>
+  );
+}
+
+function TenantTable({ rows }: { rows: Array<{ workspace: string; vendas: number; receita: number; canais: number }> }) {
+  return (
+    <section style={{ ...panel, overflow: "hidden" }}>
+      <div style={{ padding: "16px 18px", borderBottom: "1px solid #e5e7eb", background: "linear-gradient(90deg, rgba(15,23,42,0.08), rgba(255,255,255,0.9))" }}>
+        <h2 style={{ color: "#0f172a", fontSize: 16, fontWeight: 950, margin: 0 }}>Tenants em destaque</h2>
+        <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>Ranking por receita instalada e volume de propostas.</p>
+      </div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
+          <thead>
+            <tr style={{ background: "#f8fafc" }}>
+              {["Workspace", "Propostas", "Receita instalada", "Canais"].map((h) => (
+                <th key={h} style={{ textAlign: "left", padding: "12px 16px", color: "#64748b", fontSize: 11, fontWeight: 950, textTransform: "uppercase", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr><td colSpan={4} style={{ padding: 22, color: "#94a3b8", fontSize: 13 }}>Sem dados para montar ranking ainda.</td></tr>
+            ) : rows.map((r, i) => (
+              <tr key={r.workspace} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#ffffff" : "#fbfdff" }}>
+                <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13, fontWeight: 900 }}>{r.workspace}</td>
+                <td style={{ padding: "12px 16px", color: "#2563eb", fontSize: 13, fontWeight: 900 }}>{num(r.vendas)}</td>
+                <td style={{ padding: "12px 16px", color: "#16a34a", fontSize: 13, fontWeight: 900 }}>{real(r.receita)}</td>
+                <td style={{ padding: "12px 16px", color: "#7c3aed", fontSize: 13, fontWeight: 900 }}>{num(r.canais)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
