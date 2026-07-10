@@ -14,6 +14,7 @@ type Canal = {
   waba_id?: string;
   phone_number_id?: string | null;
   numero?: string | null;
+  workspace_id?: string | null;
   updated_at?: string | null;
   created_at?: string | null;
 };
@@ -137,6 +138,12 @@ export default function DisparosPage() {
     || perfil === "Administrador"
     || !!(permissoes && (permissoes as any).disparo_enviar)
     || !!(permissoes && (permissoes as any).templates_waba);
+  const workspaceIds = Array.from(new Set(
+    [wsId, workspace?.username, workspace?.id ? String(workspace.id) : null]
+      .filter(Boolean)
+      .map(String)
+  ));
+  const workspaceKey = workspaceIds.join("|");
 
   useEffect(() => {
     if (tipoDisparo === "waba") {
@@ -167,43 +174,56 @@ export default function DisparosPage() {
   };
 
   const fetchCanais = async () => {
-    if (!wsId) return;
-    const filtro = tipoDisparo === "webjs" ? "webjs" : "waba";
+    if (workspaceIds.length === 0) return;
     const { data } = await supabase.from("conexoes")
-      .select("id, nome, tipo, status, waba_id, phone_number_id, numero, updated_at, created_at")
-      .eq("workspace_id", wsId).eq("tipo", filtro);
-    setCanais(data || []);
+      .select("id, nome, tipo, status, waba_id, phone_number_id, numero, workspace_id, updated_at, created_at")
+      .in("workspace_id", workspaceIds)
+      .order("created_at", { ascending: false });
+
+    const lista = data || [];
+    const filtrados = lista.filter((c: Canal) => {
+      const tipo = String(c.tipo || "").toLowerCase();
+      if (tipoDisparo === "webjs") return tipo === "webjs";
+      return tipo === "waba" || !!c.phone_number_id || !!c.waba_id;
+    });
+
+    setCanais(filtrados);
+    if (tipoDisparo === "waba" && !canalSelecionado && filtrados.length > 0) {
+      const conectado = filtrados.find((c: Canal) => normalizarStatusCanal(c.status));
+      setCanalSelecionado((conectado || filtrados[0]).id);
+    }
   };
 
   const fetchTemplatesAprovados = async () => {
-    if (!wsId || !canalSelecionado) { setTemplates([]); return; }
+    if (workspaceIds.length === 0 || !canalSelecionado) { setTemplates([]); return; }
     const { data } = await supabase.from("templates_waba")
-      .select("*").eq("workspace_id", wsId).eq("canal_id", canalSelecionado).eq("status", "aprovado")
+      .select("*").in("workspace_id", workspaceIds).eq("canal_id", canalSelecionado).eq("status", "aprovado")
       .order("created_at", { ascending: false });
     setTemplates(data || []);
   };
 
   const fetchDisparos = async () => {
-    if (!wsId) return;
-    const { data } = await supabase.from("disparos").select("*").eq("workspace_id", wsId).order("created_at", { ascending: false }).limit(50);
+    if (workspaceIds.length === 0) return;
+    const { data } = await supabase.from("disparos").select("*").in("workspace_id", workspaceIds).order("created_at", { ascending: false }).limit(50);
     setDisparos(data || []);
   };
 
   useEffect(() => {
-    if (!wsId) return;
+    if (workspaceIds.length === 0) return;
     fetchCanais();
     fetchDisparos();
-    const ch = supabase.channel("disparos_rt_" + wsId)
-      .on("postgres_changes", { event: "*", schema: "public", table: "disparos", filter: `workspace_id=eq.${wsId}` }, () => fetchDisparos())
+    const ch = supabase.channel("disparos_rt_" + workspaceKey)
+      .on("postgres_changes", { event: "*", schema: "public", table: "disparos" }, () => fetchDisparos())
+      .on("postgres_changes", { event: "*", schema: "public", table: "conexoes" }, () => fetchCanais())
       .subscribe();
     const interval = setInterval(() => { fetchDisparos(); fetchCanais(); }, 5000);
     return () => { supabase.removeChannel(ch); clearInterval(interval); };
-  }, [wsId, tipoDisparo]);
+  }, [workspaceKey, tipoDisparo]);
 
-  useEffect(() => { fetchTemplatesAprovados(); }, [canalSelecionado, wsId]);
+  useEffect(() => { fetchTemplatesAprovados(); }, [canalSelecionado, workspaceKey]);
 
   useEffect(() => {
-    if (tipoDisparo !== "waba" || !wsId || !canalSelecionado) {
+    if (tipoDisparo !== "waba" || workspaceIds.length === 0 || !canalSelecionado) {
       setIntegridadeApi(integridadeInicial);
       return;
     }
@@ -211,7 +231,7 @@ export default function DisparosPage() {
     fetchIntegridadeApi();
     const interval = setInterval(() => fetchIntegridadeApi(), 10000);
     return () => clearInterval(interval);
-  }, [tipoDisparo, wsId, canalSelecionado, canais.length, disparos.length]);
+  }, [tipoDisparo, workspaceKey, canalSelecionado, canais.length, disparos.length]);
 
   useEffect(() => {
     if (!disparoDetalhe) return;
@@ -472,12 +492,13 @@ export default function DisparosPage() {
   };
 
   const fetchIntegridadeApi = async (_manual = false) => {
-    if (tipoDisparo !== "waba" || !wsId || !canalSelecionado) {
+    if (tipoDisparo !== "waba" || workspaceIds.length === 0 || !canalSelecionado) {
       setIntegridadeApi(integridadeInicial);
       return;
     }
 
     const canalAtual = canais.find(c => c.id === canalSelecionado);
+    const workspaceDoCanal = canalAtual?.workspace_id || wsId || workspaceIds[0];
     setAtualizandoIntegridade(true);
     setIntegridadeApi(prev => ({ ...prev, loading: true }));
 
@@ -485,13 +506,13 @@ export default function DisparosPage() {
       const desde24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const desde1h = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-      const statusPromise = fetch(`/api/whatsapp?rota=waba/verificar-status&canalId=${canalSelecionado}&workspaceId=${encodeURIComponent(wsId)}`)
+      const statusPromise = fetch(`/api/whatsapp?rota=waba/verificar-status&canalId=${canalSelecionado}&workspaceId=${encodeURIComponent(workspaceDoCanal)}`)
         .then(r => r.json())
         .catch((e: any) => ({ success: false, error: e?.message || "falha ao consultar API" }));
 
       const disparosPromise = supabase.from("disparos")
         .select("id,status,total_enviados,total_falhas,erro_msg,created_at,iniciado_em,finalizado_em")
-        .eq("workspace_id", wsId)
+        .in("workspace_id", workspaceIds)
         .eq("canal_id", canalSelecionado)
         .eq("tipo", "waba")
         .gte("created_at", desde24h)
@@ -500,7 +521,7 @@ export default function DisparosPage() {
 
       const templatesPromise = supabase.from("templates_waba")
         .select("status")
-        .eq("workspace_id", wsId)
+        .in("workspace_id", workspaceIds)
         .eq("canal_id", canalSelecionado);
 
       const [statusResp, disparosResp, templatesResp] = await Promise.all([statusPromise, disparosPromise, templatesPromise]);
@@ -736,7 +757,7 @@ export default function DisparosPage() {
         </div>
       )}
 
-      {tipoDisparo === "waba" && canalSelecionado && (
+      {tipoDisparo === "waba" && (
         <div style={{
           ...cardStyle,
           border: `1px solid ${corScore}55`,
@@ -773,8 +794,8 @@ export default function DisparosPage() {
               </span>
               <button
                 onClick={() => fetchIntegridadeApi(true)}
-                disabled={atualizandoIntegridade}
-                style={{ background: "#ffffff", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 800, cursor: atualizandoIntegridade ? "wait" : "pointer", boxShadow: "0 1px 3px rgba(15,23,42,0.08)" }}
+                disabled={atualizandoIntegridade || !canalSelecionado}
+                style={{ background: "#ffffff", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 800, cursor: atualizandoIntegridade ? "wait" : !canalSelecionado ? "not-allowed" : "pointer", opacity: !canalSelecionado ? 0.6 : 1, boxShadow: "0 1px 3px rgba(15,23,42,0.08)" }}
               >
                 {atualizandoIntegridade ? "Atualizando..." : "Atualizar agora"}
               </button>
@@ -782,6 +803,15 @@ export default function DisparosPage() {
           </div>
 
           <div style={{ padding: 20 }}>
+            {canais.length === 0 && (
+              <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderLeft: "4px solid #f97316", borderRadius: 12, padding: 14, marginBottom: 16 }}>
+                <p style={{ color: "#9a3412", fontSize: 13, fontWeight: 900, margin: "0 0 5px" }}>Nenhum canal WABA encontrado neste workspace.</p>
+                <p style={{ color: "#9a3412", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+                  A tela agora busca por username e ID do tenant. Se ainda aparecer vazio, o canal foi salvo em outro workspace_id ou sem phone_number_id/waba_id.
+                </p>
+              </div>
+            )}
+
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
               <h3 style={{ color: "#0f172a", fontSize: 16, margin: 0, fontWeight: 900 }}>Integridade da API</h3>
               <span style={{ background: `${corScore}18`, color: corScore, border: `1px solid ${corScore}55`, borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 900 }}>
@@ -845,8 +875,8 @@ export default function DisparosPage() {
             <select value={canalSelecionado || ""} onChange={e => setCanalSelecionado(parseInt(e.target.value) || null)} style={IS}>
               <option value="">Selecione um canal</option>
               {canais.map(c => (
-                <option key={c.id} value={c.id} disabled={c.status !== "conectado"}>
-                  {c.status === "conectado" ? "🟢" : "🔴"} {c.nome}
+                <option key={c.id} value={c.id} disabled={!normalizarStatusCanal(c.status)}>
+                  {normalizarStatusCanal(c.status) ? "🟢" : "🔴"} {c.nome}
                 </option>
               ))}
             </select>
