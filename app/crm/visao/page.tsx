@@ -72,6 +72,7 @@ async function resolverTenantAtual(userEmail?: string | null, userId?: string | 
   const wsIds: string[] = [];
   let nome = fallbackWorkspace?.nome || "";
   let ownerEmail = fallbackWorkspace?.owner_email || "";
+  let principalWsId = String(fallbackWsId || fallbackWorkspace?.username || "").trim();
 
   addWsId(wsIds, fallbackWsId);
   addWsId(wsIds, fallbackWorkspace?.username);
@@ -84,6 +85,7 @@ async function resolverTenantAtual(userEmail?: string | null, userId?: string | 
       .eq("owner_id", userId)
       .maybeSingle();
     if (wsDono) {
+      principalWsId = String(wsDono.username || wsDono.id || principalWsId).trim();
       addWsId(wsIds, wsDono.username);
       addWsId(wsIds, wsDono.id);
       nome = wsDono.nome || nome;
@@ -101,6 +103,7 @@ async function resolverTenantAtual(userEmail?: string | null, userId?: string | 
       .maybeSingle();
 
     if (usuarioWs?.workspace_id) {
+      principalWsId = String(usuarioWs.workspace_id || principalWsId).trim();
       addWsId(wsIds, usuarioWs.workspace_id);
       const idRaw = String(usuarioWs.workspace_id);
       const filtro = /^\d+$/.test(idRaw) ? `username.eq.${idRaw},id.eq.${idRaw}` : `username.eq.${idRaw}`;
@@ -118,8 +121,72 @@ async function resolverTenantAtual(userEmail?: string | null, userId?: string | 
     }
   }
 
-  return { wsIds: [...new Set(wsIds)], nome, ownerEmail };
+  if (principalWsId) addWsId(wsIds, principalWsId);
+  return { wsIds: [...new Set(wsIds)], principalWsId, nome, ownerEmail };
 }
+
+async function buscarPropostasTenant(principalWsId: string, wsIds: string[]) {
+  const PAGE_SIZE = 1000;
+  const TOTAL_LIMITE = 20000;
+  const buscar = async (modo: "principal" | "todos") => {
+    const lista: any[] = [];
+    let offset = 0;
+    while (offset < TOTAL_LIMITE) {
+      let query = supabase
+        .from("proposta")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      query = modo === "principal" && principalWsId
+        ? query.eq("workspace_id", principalWsId)
+        : query.in("workspace_id", wsIds);
+
+      const { data, error } = await query;
+      if (error) {
+        console.warn("visao propostas:", modo, error);
+        break;
+      }
+      if (!data || data.length === 0) break;
+      lista.push(...data);
+      if (data.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+    return lista;
+  };
+
+  const principal = await buscar("principal");
+  if (principal.length > 0 || wsIds.length <= 1) return principal;
+  return buscar("todos");
+}
+
+async function buscarPorWorkspaceComFallback(tabela: string, select: string, principalWsId: string, wsIds: string[], opts?: { order?: string; ascending?: boolean; countHead?: boolean; gteCampo?: string; gteValor?: string }) {
+  const montar = (modo: "principal" | "todos") => {
+    let q: any = opts?.countHead
+      ? supabase.from(tabela).select(select, { count: "exact", head: true })
+      : supabase.from(tabela).select(select);
+
+    q = modo === "principal" && principalWsId
+      ? q.eq("workspace_id", principalWsId)
+      : q.in("workspace_id", wsIds);
+
+    if (opts?.gteCampo && opts.gteValor) q = q.gte(opts.gteCampo, opts.gteValor);
+    if (opts?.order) q = q.order(opts.order, { ascending: opts.ascending ?? true });
+    return q;
+  };
+
+  const principal = await montar("principal");
+  const principalData = principal.data || [];
+  if (opts?.countHead) {
+    if ((principal.count || 0) > 0 || wsIds.length <= 1) return principal;
+  } else if (principalData.length > 0 || wsIds.length <= 1) {
+    return principal;
+  }
+
+  return montar("todos");
+}
+
+const statusConectado = (status: any) => /CONECT|CONNECTED|OPEN|ATIV|ACTIVE|READY|ONLINE/.test(norm(status));
 
 function diasAteVenc(iso: string | null): number | null {
   if (!iso) return null;
@@ -227,7 +294,7 @@ export default function VisaoGeralPage() {
       setTenantWsIds(ctx.wsIds);
       setTenantNome(ctx.nome || (workspace as any)?.nome || "");
 
-      if (ctx.wsIds.length === 0) {
+      if (ctx.wsIds.length === 0 && !ctx.principalWsId) {
         setPropostas([]);
         setUsuarios(0);
         setFuncs([]);
@@ -243,47 +310,31 @@ export default function VisaoGeralPage() {
       inicioDia.setHours(0, 0, 0, 0);
 
       const basePromises: Promise<any>[] = [
-        supabase
-          .from("proposta")
-          .select("workspace_id, status_venda, valor_plano, vendedor, created_at, data_proposta, proximo_vencimento, status_pagamento")
-          .in("workspace_id", ctx.wsIds),
-        supabase
-          .from("usuarios_workspace")
-          .select("email, workspace_id")
-          .in("workspace_id", ctx.wsIds),
+        buscarPropostasTenant(ctx.principalWsId, ctx.wsIds),
+        buscarPorWorkspaceComFallback("usuarios_workspace", "email, nome, workspace_id", ctx.principalWsId, ctx.wsIds),
       ];
 
       const extras: Array<{ key: string; promise: Promise<any> }> = [];
       if (temRH || temPonto) {
-        extras.push({ key: "funcs", promise: supabase.from("funcionarios").select("status, salario, workspace_id").in("workspace_id", ctx.wsIds) });
-        extras.push({ key: "folha", promise: supabase.from("folha_itens").select("competencia, base, comissao, workspace_id").in("workspace_id", ctx.wsIds) });
+        extras.push({ key: "funcs", promise: buscarPorWorkspaceComFallback("funcionarios", "status, salario, workspace_id", ctx.principalWsId, ctx.wsIds) });
+        extras.push({ key: "folha", promise: buscarPorWorkspaceComFallback("folha_itens", "competencia, base, comissao, workspace_id", ctx.principalWsId, ctx.wsIds) });
       }
       if (temPonto) {
         extras.push({
           key: "ponto",
-          promise: supabase
-            .from("ponto_registros")
-            .select("id", { count: "exact", head: true })
-            .in("workspace_id", ctx.wsIds)
-            .gte("data_hora", inicioDia.toISOString()),
+          promise: buscarPorWorkspaceComFallback("ponto_registros", "id", ctx.principalWsId, ctx.wsIds, { countHead: true, gteCampo: "data_hora", gteValor: inicioDia.toISOString() }),
         });
       }
       if (temFinanceiro) {
         extras.push({
           key: "fin",
-          promise: supabase
-            .from("fin_lancamentos")
-            .select("tipo, valor, status, vencimento, pago_em, workspace_id")
-            .in("workspace_id", ctx.wsIds),
+          promise: buscarPorWorkspaceComFallback("fin_lancamentos", "tipo, valor, status, vencimento, pago_em, workspace_id", ctx.principalWsId, ctx.wsIds),
         });
       }
       if (temTelefonia || temDisparos || temIntegracoes) {
         extras.push({
           key: "canais",
-          promise: supabase
-            .from("conexoes")
-            .select("id, tipo, status, nome, workspace_id")
-            .in("workspace_id", ctx.wsIds),
+          promise: buscarPorWorkspaceComFallback("conexoes", "id, tipo, status, nome, numero, workspace_id", ctx.principalWsId, ctx.wsIds, { order: "created_at", ascending: false }),
         });
       }
 
@@ -297,7 +348,7 @@ export default function VisaoGeralPage() {
       const emails = new Set(usuariosSubs.map((u) => String(u.email || "").toLowerCase()).filter(Boolean));
       if (ctx.ownerEmail) emails.add(String(ctx.ownerEmail).toLowerCase());
 
-      setPropostas((prop.data || []) as Proposta[]);
+      setPropostas((Array.isArray(prop) ? prop : prop.data || []) as Proposta[]);
       setUsuarios(emails.size);
       setFuncs((byKey.funcs?.data || []) as FuncRow[]);
       setFolha((byKey.folha?.data || []) as FolhaRow[]);
@@ -323,7 +374,7 @@ export default function VisaoGeralPage() {
     const emAndamento = propostas.filter((p) => /AGUARD|PENDENT|GERAD|AUDITOR|ANALIS|PROCESS|ANDAMENTO/.test(norm(p.status_venda))).length;
     const canceladas = propostas.filter((p) => /CANCEL|REPROV|CHURN|FRAUDE|PERDID|NEGAD|RECUSAD/.test(norm(p.status_venda))).length;
     const conversao = propostas.length ? Math.round((instaladas.length / propostas.length) * 100) : 0;
-    return { receitaMes, criadasMes: criadasMes.length, instaladas: instaladas.length, emAndamento, canceladas, conversao };
+    return { receitaMes, total: propostas.length, criadasMes: criadasMes.length, instaladas: instaladas.length, emAndamento, canceladas, conversao };
   }, [propostas]);
 
   const cobranca = useMemo(() => {
@@ -359,9 +410,9 @@ export default function VisaoGeralPage() {
   }, [lancamentos]);
 
   const canaisResumo = useMemo(() => {
-    const conectados = canais.filter((c) => norm(c.status) === "CONECTADO").length;
+    const conectados = canais.filter((c) => statusConectado(c.status)).length;
     const webjs = canais.filter((c) => norm(c.tipo) === "WEBJS").length;
-    const waba = canais.filter((c) => norm(c.tipo) === "WABA").length;
+    const waba = canais.filter((c) => /WABA|API|OFICIAL|META/.test(norm(c.tipo))).length;
     return { total: canais.length, conectados, webjs, waba };
   }, [canais]);
 
@@ -492,7 +543,7 @@ export default function VisaoGeralPage() {
         ]}
         pulse={[
           ["Receita instalada no mes", real(vendas.receitaMes), "#16a34a"],
-          ["Vendas em andamento", num(vendas.emAndamento), "#f59e0b"],
+          ["Propostas totais", num(vendas.total), "#2563eb"],
           ["Conversao acumulada", `${vendas.conversao}%`, "#7c3aed"],
           ...(temTelefonia ? [["Canais conectados", `${canaisResumo.conectados}/${canaisResumo.total}`, "#0891b2"] as [string, string, string]] : []),
         ]}
@@ -507,7 +558,7 @@ export default function VisaoGeralPage() {
           {temVendas && (
             <Section title="Vendas" subtitle="Receita, propostas e velocidade comercial do workspace." accent="#16a34a">
               <Metric label="Receita do mes" value={real(vendas.receitaMes)} color="#16a34a" note="instaladas no periodo" />
-              <Metric label="Propostas no mes" value={num(vendas.criadasMes)} color="#2563eb" note="criadas ou importadas" />
+              <Metric label="Propostas totais" value={num(vendas.total)} color="#2563eb" note={`${num(vendas.criadasMes)} criada(s) no mes`} />
               <Metric label="Instaladas" value={num(vendas.instaladas)} color="#0ea5e9" note="total visivel" />
               <Metric label="Em andamento" value={num(vendas.emAndamento)} color="#f59e0b" note="pendentes, geradas, aguardando" />
               <Metric label="Canceladas" value={num(vendas.canceladas)} color="#dc2626" note="canceladas e reprovadas" />
