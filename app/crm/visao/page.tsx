@@ -1,113 +1,181 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
-
-// ═══════════════════════════════════════════════════════════════════════
-// 📊 Visão Geral — dashboard global do Wolf (landing do login)
-// ───────────────────────────────────────────────────────────────────────
-// Agrega o sistema inteiro numa tela só, sempre isolado por workspace_id:
-//   • Vendas    (proposta)         — receita do mês, vendas, instaladas, pendentes, conversão
-//   • Cobrança  (proposta)         — em dia, vencendo, atrasado, bloqueado
-//   • RH        (funcionarios,     — ativos, custo da folha do mês, batidas de ponto hoje
-//                folha_itens, ponto_registros)
-//   • Equipe    (usuarios_workspace) — usuários, vendedores ativos
-// ═══════════════════════════════════════════════════════════════════════
-
-const card = {
-  background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #e5e7eb",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-};
-
-const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+import { useModulos } from "../../hooks/useModulos";
+import { usePermissao } from "../../hooks/usePermissao";
 
 type Proposta = {
   status_venda: string | null;
   valor_plano: number | null;
   vendedor: string | null;
   created_at: string | null;
+  data_proposta?: string | null;
   proximo_vencimento: string | null;
   status_pagamento: string | null;
 };
+
 type FuncRow = { status: string | null; salario: number | null };
 type FolhaRow = { competencia: string | null; base: number | null; comissao: number | null };
+type Lancamento = { tipo: string | null; valor: number | null; status: string | null; vencimento: string | null; pago_em?: string | null };
+type Canal = { id: number; tipo: string | null; status: string | null; nome: string | null };
+
+const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const num = (v: number) => (v || 0).toLocaleString("pt-BR");
 
 const compAtual = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 
+const hojeISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const norm = (v: any) =>
+  String(v ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toUpperCase();
+
 function diasAteVenc(iso: string | null): number | null {
   if (!iso) return null;
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const alvo = new Date(iso + "T00:00:00");
-  if (isNaN(alvo.getTime())) return null;
+  if (Number.isNaN(alvo.getTime())) return null;
   return Math.round((alvo.getTime() - hoje.getTime()) / 86400000);
 }
 
+const shell: React.CSSProperties = {
+  minHeight: "100%",
+  color: "#0f172a",
+  fontFamily: "Arial, sans-serif",
+};
+
+const panel: React.CSSProperties = {
+  background: "rgba(255,255,255,0.92)",
+  border: "1px solid rgba(226,232,240,0.95)",
+  borderRadius: 12,
+  boxShadow: "0 10px 30px rgba(15,23,42,0.07)",
+};
+
 export default function VisaoGeralPage() {
-  const { wsId, workspace } = useWorkspace();
+  const { wsId, workspace, loading: workspaceLoading } = useWorkspace();
+  const { modulos, carregado: modulosCarregados } = useModulos();
+  const { isDono, isSuperAdmin, perfil, permissoes, loading: permLoading } = usePermissao();
 
   const [carregando, setCarregando] = useState(true);
   const [propostas, setPropostas] = useState<Proposta[]>([]);
   const [funcs, setFuncs] = useState<FuncRow[]>([]);
   const [folha, setFolha] = useState<FolhaRow[]>([]);
   const [pontoHoje, setPontoHoje] = useState(0);
-  const [totalUsuarios, setTotalUsuarios] = useState(0);
+  const [usuarios, setUsuarios] = useState(0);
+  const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
+  const [canais, setCanais] = useState<Canal[]>([]);
+
+  const podeVerTudo = isSuperAdmin || isDono || perfil === "Administrador";
+  const temCRM = isSuperAdmin || isDono || perfil === "Administrador" || !!(permissoes as any).crm_acessar || !!permissoes.dashboard || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe;
+  const temVendas = temCRM && (podeVerTudo || !!permissoes.dashboard || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe);
+  const temEquipe = podeVerTudo || !!permissoes.usuarios_gerenciar || !!permissoes.grupos_permissao;
+  const temCobranca = (isSuperAdmin || !!modulos.cobranca) && (podeVerTudo || !!permissoes.cobranca);
+  const temRH = (isSuperAdmin || !!modulos.rh) && (podeVerTudo || !!permissoes.rh || !!permissoes.rh_dashboard);
+  const temPonto = (isSuperAdmin || !!modulos.bater_ponto) && (podeVerTudo || !!permissoes.bater_ponto);
+  const temFinanceiro = (isSuperAdmin || !!modulos.financeiro) && (podeVerTudo || !!permissoes.financeiro_acessar || !!permissoes.fin_dashboard);
+  const temTelefonia = (isSuperAdmin || !!modulos.voip) && (podeVerTudo || !!(permissoes as any).telefonia_acessar || !!permissoes.voip_usar);
+  const temDisparos = isSuperAdmin || !!modulos.disparos_web || !!modulos.disparos_api;
+  const temIntegracoes = isSuperAdmin || !!modulos.api_integracao || !!modulos.instagram || !!modulos.roleta;
 
   useEffect(() => {
-    if (!wsId) return;
+    if (!wsId || !modulosCarregados || permLoading) return;
+
+    let cancelado = false;
     (async () => {
       setCarregando(true);
       const inicioDia = new Date();
       inicioDia.setHours(0, 0, 0, 0);
 
-      const [prop, fun, fol, pon, usr] = await Promise.all([
+      const basePromises: Promise<any>[] = [
         supabase
           .from("proposta")
-          .select("status_venda, valor_plano, vendedor, created_at, proximo_vencimento, status_pagamento")
+          .select("status_venda, valor_plano, vendedor, created_at, data_proposta, proximo_vencimento, status_pagamento")
           .eq("workspace_id", wsId),
-        supabase.from("funcionarios").select("status, salario").eq("workspace_id", wsId),
-        supabase.from("folha_itens").select("competencia, base, comissao").eq("workspace_id", wsId),
-        supabase
-          .from("ponto_registros")
-          .select("id", { count: "exact", head: true })
-          .eq("workspace_id", wsId)
-          .gte("data_hora", inicioDia.toISOString()),
-        supabase.from("usuarios_workspace").select("email, equipe_id").eq("workspace_id", wsId),
-      ]);
+        supabase.from("usuarios_workspace").select("email", { count: "exact", head: false }).eq("workspace_id", wsId),
+      ];
 
+      const extras: Array<{ key: string; promise: Promise<any> }> = [];
+      if (temRH || temPonto) {
+        extras.push({ key: "funcs", promise: supabase.from("funcionarios").select("status, salario").eq("workspace_id", wsId) });
+        extras.push({ key: "folha", promise: supabase.from("folha_itens").select("competencia, base, comissao").eq("workspace_id", wsId) });
+      }
+      if (temPonto) {
+        extras.push({
+          key: "ponto",
+          promise: supabase
+            .from("ponto_registros")
+            .select("id", { count: "exact", head: true })
+            .eq("workspace_id", wsId)
+            .gte("data_hora", inicioDia.toISOString()),
+        });
+      }
+      if (temFinanceiro) {
+        extras.push({
+          key: "fin",
+          promise: supabase
+            .from("fin_lancamentos")
+            .select("tipo, valor, status, vencimento, pago_em")
+            .eq("workspace_id", wsId),
+        });
+      }
+      if (temTelefonia || temDisparos || temIntegracoes) {
+        extras.push({
+          key: "canais",
+          promise: supabase
+            .from("conexoes")
+            .select("id, tipo, status, nome")
+            .eq("workspace_id", wsId),
+        });
+      }
+
+      const [prop, usr] = await Promise.all(basePromises);
+      const extraResults = await Promise.all(extras.map((e) => e.promise.catch((error) => ({ error }))));
+      const byKey: Record<string, any> = {};
+      extras.forEach((e, i) => { byKey[e.key] = extraResults[i]; });
+
+      if (cancelado) return;
       setPropostas((prop.data || []) as Proposta[]);
-      setFuncs((fun.data || []) as FuncRow[]);
-      setFolha((fol.data || []) as FolhaRow[]);
-      setPontoHoje(pon.count || 0);
-      setTotalUsuarios((usr.data || []).length);
+      setUsuarios((usr.data || []).length);
+      setFuncs((byKey.funcs?.data || []) as FuncRow[]);
+      setFolha((byKey.folha?.data || []) as FolhaRow[]);
+      setPontoHoje(byKey.ponto?.count || 0);
+      setLancamentos((byKey.fin?.data || []) as Lancamento[]);
+      setCanais((byKey.canais?.data || []) as Canal[]);
       setCarregando(false);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wsId]);
 
-  // ── Vendas ──
+    return () => { cancelado = true; };
+  }, [wsId, modulosCarregados, permLoading, temRH, temPonto, temFinanceiro, temTelefonia, temDisparos, temIntegracoes]);
+
   const vendas = useMemo(() => {
     const comp = compAtual();
-    const noMes = (iso: string | null) => (iso || "").slice(0, 7) === comp;
-    const instaladas = propostas.filter((p) => p.status_venda === "INSTALADA");
-    const instaladasMes = instaladas.filter((p) => noMes(p.created_at));
+    const noMes = (iso: string | null | undefined) => (iso || "").slice(0, 7) === comp;
+    const instaladas = propostas.filter((p) => /INSTALAD|ATIVAD|CONCLUID|FINALIZAD/.test(norm(p.status_venda)) && !/CANCEL|REPROV|CHURN/.test(norm(p.status_venda)));
+    const criadasMes = propostas.filter((p) => noMes(p.data_proposta || p.created_at));
+    const instaladasMes = instaladas.filter((p) => noMes(p.data_proposta || p.created_at));
     const receitaMes = instaladasMes.reduce((s, p) => s + (Number(p.valor_plano) || 0), 0);
-    const pendentes = propostas.filter((p) => p.status_venda === "PENDENTE").length;
-    const total = propostas.length;
-    const conversao = total ? Math.round((instaladas.length / total) * 100) : 0;
-    return { receitaMes, vendasMes: instaladasMes.length, instaladas: instaladas.length, pendentes, conversao };
+    const emAndamento = propostas.filter((p) => /AGUARD|PENDENT|GERAD|AUDITOR|ANALIS|PROCESS|ANDAMENTO/.test(norm(p.status_venda))).length;
+    const canceladas = propostas.filter((p) => /CANCEL|REPROV|CHURN|FRAUDE|PERDID|NEGAD|RECUSAD/.test(norm(p.status_venda))).length;
+    const conversao = propostas.length ? Math.round((instaladas.length / propostas.length) * 100) : 0;
+    return { receitaMes, criadasMes: criadasMes.length, instaladas: instaladas.length, emAndamento, canceladas, conversao };
   }, [propostas]);
 
-  // ── Cobrança (derivada de proposta com proximo_vencimento) ──
   const cobranca = useMemo(() => {
     let emDia = 0, vencendo = 0, atrasado = 0, bloqueado = 0;
     propostas.forEach((p) => {
-      if (p.status_pagamento === "suspenso") return;
+      if (norm(p.status_pagamento) === "SUSPENSO") return;
       const d = diasAteVenc(p.proximo_vencimento);
       if (d === null) return;
       if (d <= -2) bloqueado++;
@@ -118,9 +186,8 @@ export default function VisaoGeralPage() {
     return { emDia, vencendo, atrasado, bloqueado };
   }, [propostas]);
 
-  // ── RH ──
   const rh = useMemo(() => {
-    const ativos = funcs.filter((f) => f.status !== "desligado").length;
+    const ativos = funcs.filter((f) => norm(f.status) !== "DESLIGADO").length;
     const comp = compAtual();
     const custoFolha = folha
       .filter((i) => (i.competencia || "") === comp)
@@ -128,117 +195,210 @@ export default function VisaoGeralPage() {
     return { ativos, custoFolha };
   }, [funcs, folha]);
 
-  // ── Equipe ──
+  const financeiro = useMemo(() => {
+    const mes = compAtual();
+    const doMes = lancamentos.filter((l) => (l.vencimento || l.pago_em || "").slice(0, 7) === mes);
+    const receitas = doMes.filter((l) => l.tipo === "receita").reduce((s, l) => s + (Number(l.valor) || 0), 0);
+    const despesas = doMes.filter((l) => l.tipo === "despesa").reduce((s, l) => s + (Number(l.valor) || 0), 0);
+    const pendentes = lancamentos.filter((l) => norm(l.status) !== "PAGO").length;
+    return { receitas, despesas, saldo: receitas - despesas, pendentes };
+  }, [lancamentos]);
+
+  const canaisResumo = useMemo(() => {
+    const conectados = canais.filter((c) => norm(c.status) === "CONECTADO").length;
+    const webjs = canais.filter((c) => norm(c.tipo) === "WEBJS").length;
+    const waba = canais.filter((c) => norm(c.tipo) === "WABA").length;
+    return { total: canais.length, conectados, webjs, waba };
+  }, [canais]);
+
   const vendedoresAtivos = useMemo(() => {
     const set = new Set(propostas.map((p) => (p.vendedor || "").trim()).filter(Boolean));
     return set.size;
   }, [propostas]);
 
+  const modulosAtivos = useMemo(() => {
+    const items = [
+      { key: "crm", nome: "CRM", ativo: temCRM, cor: "#16a34a" },
+      { key: "cobranca", nome: "Cobranca", ativo: temCobranca, cor: "#dc2626" },
+      { key: "rh", nome: "RH", ativo: temRH, cor: "#4f46e5" },
+      { key: "ponto", nome: "Ponto", ativo: temPonto, cor: "#0891b2" },
+      { key: "financeiro", nome: "Financeiro", ativo: temFinanceiro, cor: "#d97706" },
+      { key: "telefonia", nome: "Telefonia", ativo: temTelefonia, cor: "#0f766e" },
+      { key: "disparos", nome: "Disparos", ativo: temDisparos, cor: "#7c3aed" },
+      { key: "integracoes", nome: "Integracoes", ativo: temIntegracoes, cor: "#2563eb" },
+    ];
+    return items.filter((i) => i.ativo);
+  }, [temCRM, temCobranca, temRH, temPonto, temFinanceiro, temTelefonia, temDisparos, temIntegracoes]);
+
+  const loading = workspaceLoading || !modulosCarregados || permLoading || carregando;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24, fontFamily: "Arial, sans-serif" }}>
-      {/* HEADER */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div
-          style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(22,163,74,0.3)",
-          }}
-        >
-          <span style={{ filter: "saturate(0) brightness(2)" }}>📊</span>
-        </div>
-        <div>
-          <h1 style={{ color: "#0f172a", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
-            Visão Geral
-          </h1>
-          <p style={{ color: "#64748b", fontSize: 12, margin: "2px 0 0" }}>
-            {(workspace as any)?.nome ? `${(workspace as any).nome} · ` : ""}
-            Panorama do sistema completo
-          </p>
+    <div style={shell}>
+      <div style={{ position: "relative", overflow: "hidden", borderRadius: 16, marginBottom: 18, border: "1px solid #dbeafe", background: "linear-gradient(135deg, #f8fafc 0%, #eefdf4 42%, #eff6ff 100%)" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 12% 20%, rgba(22,163,74,0.18), transparent 28%), radial-gradient(circle at 85% 25%, rgba(14,165,233,0.18), transparent 28%), linear-gradient(120deg, rgba(255,255,255,0.72), rgba(255,255,255,0.36))" }} />
+        <div style={{ position: "relative", padding: "24px 26px", display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(280px, 0.65fr)", gap: 18, alignItems: "stretch" }}>
+          <div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 999, background: "rgba(15,23,42,0.06)", border: "1px solid rgba(15,23,42,0.08)", marginBottom: 12 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: "#16a34a", boxShadow: "0 0 0 5px rgba(22,163,74,0.12)" }} />
+              <span style={{ color: "#334155", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6 }}>Painel vivo do workspace</span>
+            </div>
+            <h1 style={{ color: "#07111f", fontSize: 34, lineHeight: 1.05, fontWeight: 950, margin: 0, letterSpacing: -1.2 }}>
+              Visao Geral
+            </h1>
+            <p style={{ color: "#475569", fontSize: 13, lineHeight: 1.55, margin: "10px 0 0", maxWidth: 760 }}>
+              {(workspace as any)?.nome || "Workspace"} em modo operacional. A tela mostra apenas os modulos liberados no plano deste tenant e resume o que merece atencao agora.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+              <Pill label={`Plano ${String(modulos.plano || "basico").replace("_", " ")}`} color="#0f172a" />
+              <Pill label={`${modulosAtivos.length} modulo(s) ativo(s)`} color="#16a34a" />
+              <Pill label={`${usuarios} usuario(s)`} color="#2563eb" />
+              <Pill label={`Workspace ${wsId || "-"}`} color="#64748b" />
+            </div>
+          </div>
+
+          <div style={{ ...panel, padding: 16, display: "grid", gap: 10 }}>
+            <p style={{ color: "#64748b", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6, margin: 0 }}>Pulso geral</p>
+            <PulseRow label="Receita instalada no mes" value={real(vendas.receitaMes)} color="#16a34a" />
+            <PulseRow label="Vendas em andamento" value={num(vendas.emAndamento)} color="#f59e0b" />
+            <PulseRow label="Conversao acumulada" value={`${vendas.conversao}%`} color="#7c3aed" />
+            {temTelefonia && <PulseRow label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#0891b2" />}
+          </div>
         </div>
       </div>
 
-      {carregando ? (
-        <div style={{ ...card, padding: 48, textAlign: "center" }}>
-          <p style={{ color: "#64748b", fontSize: 13 }}>Carregando o panorama...</p>
+      {loading ? (
+        <div style={{ ...panel, padding: 44, textAlign: "center" }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, margin: "0 auto 12px", background: "linear-gradient(135deg,#16a34a,#0ea5e9)", boxShadow: "0 12px 24px rgba(14,165,233,0.18)" }} />
+          <p style={{ color: "#64748b", fontSize: 13, margin: 0, fontWeight: 700 }}>Carregando panorama do tenant...</p>
         </div>
       ) : (
-        <>
-          <Secao titulo="Vendas" icone="💰" cor="#16a34a">
-            <Kpi label="Receita do mês" valor={real(vendas.receitaMes)} cor="#16a34a" icone="💵" />
-            <Kpi label="Vendas no mês" valor={String(vendas.vendasMes)} cor="#16a34a" icone="✅" />
-            <Kpi label="Instaladas (total)" valor={String(vendas.instaladas)} cor="#0ea5e9" icone="📦" />
-            <Kpi label="Pendentes" valor={String(vendas.pendentes)} cor="#f59e0b" icone="⏳" />
-            <Kpi label="Conversão" valor={vendas.conversao + "%"} cor="#8b5cf6" icone="📈" />
-          </Secao>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <ModuleStrip items={modulosAtivos} />
 
-          <Secao titulo="Cobrança" icone="🧾" cor="#dc2626">
-            <Kpi label="Em dia" valor={String(cobranca.emDia)} cor="#16a34a" icone="🟢" />
-            <Kpi label="Vencendo" valor={String(cobranca.vencendo)} cor="#f59e0b" icone="🟡" />
-            <Kpi label="Atrasado" valor={String(cobranca.atrasado)} cor="#dc2626" icone="🔴" />
-            <Kpi label="Bloqueado" valor={String(cobranca.bloqueado)} cor="#7f1d1d" icone="🔒" />
-          </Secao>
+          {temVendas && (
+            <Section title="Vendas" subtitle="Receita, propostas e velocidade comercial do workspace." accent="#16a34a">
+              <Metric label="Receita do mes" value={real(vendas.receitaMes)} color="#16a34a" note="instaladas no periodo" />
+              <Metric label="Propostas no mes" value={num(vendas.criadasMes)} color="#2563eb" note="criadas ou importadas" />
+              <Metric label="Instaladas" value={num(vendas.instaladas)} color="#0ea5e9" note="total visivel" />
+              <Metric label="Em andamento" value={num(vendas.emAndamento)} color="#f59e0b" note="pendentes, geradas, aguardando" />
+              <Metric label="Canceladas" value={num(vendas.canceladas)} color="#dc2626" note="canceladas e reprovadas" />
+              <Metric label="Conversao" value={`${vendas.conversao}%`} color="#7c3aed" note="instaladas sobre total" />
+            </Section>
+          )}
 
-          <Secao titulo="RH" icone="🧑‍💼" cor="#4f46e5">
-            <Kpi label="Funcionários ativos" valor={String(rh.ativos)} cor="#4f46e5" icone="👥" />
-            <Kpi label="Custo da folha (mês)" valor={real(rh.custoFolha)} cor="#f59e0b" icone="💰" />
-            <Kpi label="Batidas de ponto hoje" valor={String(pontoHoje)} cor="#0891b2" icone="🕐" />
-          </Secao>
+          {temCobranca && (
+            <Section title="Cobranca" subtitle="Somente aparece para planos com modulo de cobranca ativo." accent="#dc2626">
+              <Metric label="Em dia" value={num(cobranca.emDia)} color="#16a34a" note="sem risco imediato" />
+              <Metric label="Vencendo" value={num(cobranca.vencendo)} color="#f59e0b" note="proximos 2 dias" />
+              <Metric label="Atrasado" value={num(cobranca.atrasado)} color="#dc2626" note="vencimento passou" />
+              <Metric label="Bloqueado" value={num(cobranca.bloqueado)} color="#7f1d1d" note="2+ dias vencido" />
+            </Section>
+          )}
 
-          <Secao titulo="Equipe" icone="👥" cor="#3b82f6">
-            <Kpi label="Usuários no workspace" valor={String(totalUsuarios)} cor="#3b82f6" icone="🧑‍💻" />
-            <Kpi label="Vendedores ativos" valor={String(vendedoresAtivos)} cor="#0ea5e9" icone="🏆" />
-          </Secao>
-        </>
+          {(temRH || temPonto) && (
+            <Section title="Pessoas e ponto" subtitle="RH e ponto respeitam separadamente os modulos do plano." accent="#4f46e5">
+              {temRH && <Metric label="Funcionarios ativos" value={num(rh.ativos)} color="#4f46e5" note="na base de RH" />}
+              {temRH && <Metric label="Custo da folha" value={real(rh.custoFolha)} color="#d97706" note="competencia atual" />}
+              {temPonto && <Metric label="Batidas hoje" value={num(pontoHoje)} color="#0891b2" note={hojeISO()} />}
+            </Section>
+          )}
+
+          {temFinanceiro && (
+            <Section title="Financeiro" subtitle="Resumo do modulo financeiro liberado para este workspace." accent="#d97706">
+              <Metric label="Receitas do mes" value={real(financeiro.receitas)} color="#16a34a" note="lancamentos do periodo" />
+              <Metric label="Despesas do mes" value={real(financeiro.despesas)} color="#dc2626" note="lancamentos do periodo" />
+              <Metric label="Saldo projetado" value={real(financeiro.saldo)} color={financeiro.saldo >= 0 ? "#16a34a" : "#dc2626"} note="receitas - despesas" />
+              <Metric label="Pendencias" value={num(financeiro.pendentes)} color="#f59e0b" note="nao pagos" />
+            </Section>
+          )}
+
+          {(temTelefonia || temDisparos || temIntegracoes) && (
+            <Section title="Canais e automacao" subtitle="Mostra apenas recursos liberados: telefonia, disparos, API, Instagram e roleta." accent="#0891b2">
+              {temTelefonia && <Metric label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#0891b2" note="conexoes ativas" />}
+              {temTelefonia && <Metric label="WebJS" value={num(canaisResumo.webjs)} color="#16a34a" note="canais QR" />}
+              {temDisparos && <Metric label="WABA/API" value={num(canaisResumo.waba)} color="#2563eb" note="API oficial" />}
+              {modulos.roleta && <Metric label="Roleta" value="Ativa no plano" color="#7c3aed" note="distribuicao de leads" />}
+              {modulos.instagram && <Metric label="Instagram" value="Liberado" color="#db2777" note="atendimento social" />}
+              {modulos.api_integracao && <Metric label="API" value="Liberada" color="#0f766e" note="integracoes externas" />}
+            </Section>
+          )}
+
+          {temEquipe && (
+            <Section title="Equipe" subtitle="Base administrativa do workspace." accent="#2563eb">
+              <Metric label="Usuarios no workspace" value={num(usuarios)} color="#2563eb" note="logins vinculados" />
+              <Metric label="Vendedores ativos" value={num(vendedoresAtivos)} color="#0ea5e9" note="com propostas vinculadas" />
+            </Section>
+          )}
+
+          {!temVendas && !temCobranca && !temRH && !temPonto && !temFinanceiro && !temTelefonia && !temDisparos && !temIntegracoes && !temEquipe && (
+            <div style={{ ...panel, padding: 32, textAlign: "center" }}>
+              <p style={{ color: "#0f172a", fontSize: 18, fontWeight: 900, margin: 0 }}>Nenhum modulo visivel para seu usuario.</p>
+              <p style={{ color: "#64748b", fontSize: 13, margin: "8px 0 0" }}>O plano ou as permissoes deste login nao liberam indicadores nesta visao.</p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function Secao({
-  titulo, icone, cor, children,
-}: {
-  titulo: string; icone: string; cor: string; children: React.ReactNode;
-}) {
+function Pill({ label, color }: { label: string; color: string }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            width: 26, height: 26, borderRadius: 8, background: `${cor}15`, fontSize: 14,
-          }}
-        >
-          {icone}
-        </span>
-        <h2 style={{ color: "#0f172a", fontSize: 15, fontWeight: 800, margin: 0 }}>{titulo}</h2>
-        <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14 }}>
-        {children}
-      </div>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 999, background: "#ffffff", border: `1px solid ${color}22`, color, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.35 }}>
+      {label}
+    </span>
+  );
+}
+
+function PulseRow({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "8px 0", borderTop: "1px solid #f1f5f9" }}>
+      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>{label}</span>
+      <span style={{ color, fontSize: 14, fontWeight: 950 }}>{value}</span>
     </div>
   );
 }
 
-function Kpi({ label, valor, cor, icone }: { label: string; valor: string; cor: string; icone: string }) {
+function ModuleStrip({ items }: { items: Array<{ key: string; nome: string; cor: string }> }) {
   return (
-    <div style={{ ...card, padding: 16, borderTop: `3px solid ${cor}` }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-        <div
-          style={{
-            width: 28, height: 28, borderRadius: 8, background: `${cor}15`,
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
-          }}
-        >
-          {icone}
+    <div style={{ ...panel, padding: 14, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+      <span style={{ color: "#64748b", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6, marginRight: 2 }}>Modulos liberados</span>
+      {items.map((item) => (
+        <span key={item.key} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 11px", borderRadius: 999, background: `${item.cor}10`, border: `1px solid ${item.cor}30`, color: item.cor, fontSize: 12, fontWeight: 900 }}>
+          <span style={{ width: 7, height: 7, borderRadius: 99, background: item.cor, boxShadow: `0 0 0 4px ${item.cor}16` }} />
+          {item.nome}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function Section({ title, subtitle, accent, children }: { title: string; subtitle: string; accent: string; children: React.ReactNode }) {
+  return (
+    <section style={{ ...panel, overflow: "hidden" }}>
+      <div style={{ padding: "16px 18px", borderBottom: "1px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: `linear-gradient(90deg, ${accent}10, rgba(255,255,255,0.9))` }}>
+        <div>
+          <h2 style={{ color: "#0f172a", fontSize: 16, fontWeight: 950, margin: 0, letterSpacing: -0.2 }}>{title}</h2>
+          <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>{subtitle}</p>
         </div>
-        <p style={{ color: "#6b7280", fontSize: 11, margin: 0, fontWeight: 700, textTransform: "uppercase" }}>
-          {label}
-        </p>
+        <div style={{ width: 36, height: 8, borderRadius: 99, background: accent, boxShadow: `0 0 18px ${accent}66` }} />
       </div>
-      <p style={{ color: cor, fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{valor}</p>
+      <div style={{ padding: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Metric({ label, value, color, note }: { label: string; value: string; color: string; note: string }) {
+  return (
+    <div style={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, minHeight: 96, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${color}12, transparent 55%)`, pointerEvents: "none" }} />
+      <div style={{ position: "relative" }}>
+        <p style={{ color: "#64748b", fontSize: 10, fontWeight: 950, textTransform: "uppercase", letterSpacing: 0.55, margin: 0 }}>{label}</p>
+        <p style={{ color, fontSize: 24, lineHeight: 1.1, fontWeight: 950, letterSpacing: -0.7, margin: "10px 0 0", wordBreak: "break-word" }}>{value}</p>
+        <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 800, margin: "5px 0 0" }}>{note}</p>
+      </div>
     </div>
   );
 }
