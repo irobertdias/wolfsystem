@@ -47,6 +47,7 @@ type IntegridadeApi = {
   qualidade: QualidadeApi;
   limite24h: number;
   limite1h: number;
+  limiteTier: string;
   enviados24h: number;
   enviados1h: number;
   falhas24h: number;
@@ -67,8 +68,9 @@ const integridadeInicial: IntegridadeApi = {
   nomeMeta: "",
   numero: "",
   qualidade: "Desconhecida",
-  limite24h: 250,
+  limite24h: 0,
   limite1h: 200,
+  limiteTier: "",
   enviados24h: 0,
   enviados1h: 0,
   falhas24h: 0,
@@ -455,22 +457,22 @@ export default function DisparosPage() {
     if (["green", "alta", "high"].some(v => q.includes(v))) return "Alta";
     if (["yellow", "media", "média", "medium"].some(v => q.includes(v))) return "Media";
     if (["red", "baixa", "low"].some(v => q.includes(v))) return "Baixa";
-    const total = enviados24h + falhas24h;
-    if (total > 0) {
-      const taxaFalha = falhas24h / total;
-      if (taxaFalha >= 0.1) return "Baixa";
-      if (taxaFalha >= 0.03) return "Media";
-      return "Alta";
-    }
     return "Desconhecida";
   };
 
-  const limitePorQualidade = (qualidade: QualidadeApi, bruto?: any) => {
-    const n = Number(bruto);
-    if (Number.isFinite(n) && n > 0) return n;
-    if (qualidade === "Alta") return 1000;
-    if (qualidade === "Media") return 500;
-    return 250;
+  const resolverLimiteMeta = (...valores: any[]) => {
+    for (const valor of valores) {
+      if (valor === null || valor === undefined || valor === "") continue;
+      const n = Number(valor);
+      if (Number.isFinite(n) && n > 0) return n;
+      const texto = String(valor).toUpperCase();
+      if (texto.includes("UNLIMITED")) return 0;
+      const mil = texto.match(/(\d+(?:[.,]\d+)?)\s*K/);
+      if (mil) return Math.round(Number(mil[1].replace(",", ".")) * 1000);
+      const numero = texto.match(/(\d+)/);
+      if (numero) return Number(numero[1]);
+    }
+    return 0;
   };
 
   const pct = (valor: number, total: number) => total > 0 ? Math.min(100, Math.round((valor / total) * 100)) : 0;
@@ -485,6 +487,17 @@ export default function DisparosPage() {
     const valor = c?.enviado_em || c?.updated_at || c?.created_at;
     const ms = valor ? new Date(valor).getTime() : 0;
     return Number.isFinite(ms) ? ms : 0;
+  };
+
+  const consultarStatusWabaReal = async (canalId: number, workspaceIdDoCanal: string) => {
+    const qs = `canalId=${canalId}&workspaceId=${encodeURIComponent(workspaceIdDoCanal)}`;
+    try {
+      const resp = await fetch(`https://api.wolfgyn.com.br/waba/verificar-status?${qs}`, { cache: "no-store" });
+      return await resp.json();
+    } catch (e) {
+      const resp = await fetch(`/api/whatsapp?rota=waba/verificar-status&${qs}`, { cache: "no-store" });
+      return await resp.json();
+    }
   };
 
   const fetchIntegridadeApi = async (_manual = false) => {
@@ -502,8 +515,7 @@ export default function DisparosPage() {
       const desde24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const desde1h = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-      const statusPromise = fetch(`/api/whatsapp?rota=waba/verificar-status&canalId=${canalSelecionado}&workspaceId=${encodeURIComponent(workspaceDoCanal)}`)
-        .then(r => r.json())
+      const statusPromise = consultarStatusWabaReal(canalSelecionado, workspaceDoCanal)
         .catch((e: any) => ({ success: false, error: e?.message || "falha ao consultar API" }));
 
       const disparosPromise = supabase.from("disparos")
@@ -554,7 +566,8 @@ export default function DisparosPage() {
       const statusConectadoBanco = normalizarStatusCanal(canalAtual?.status);
       const conectado = statusResp?.success ? statusConectadoApi : statusConectadoBanco;
       const qualidade = normalizarQualidade(statusResp?.quality_rating || statusResp?.qualidade || statusResp?.quality, falhas24h, enviados24h);
-      const limite24h = limitePorQualidade(qualidade, statusResp?.limite24h || statusResp?.messaging_limit || statusResp?.limite_diario);
+      const limiteTier = statusResp?.messaging_limit_tier || statusResp?.tier || statusResp?.limite_tier || "";
+      const limite24h = resolverLimiteMeta(statusResp?.limite24h, statusResp?.messaging_limit, statusResp?.limite_diario, statusResp?.daily_limit, limiteTier);
       const limite1h = Number(statusResp?.limite1h || statusResp?.hourly_limit || 200);
       const uso24h = pct(enviados24h, limite24h);
       const uso1h = pct(enviados1h, limite1h);
@@ -595,6 +608,7 @@ export default function DisparosPage() {
         qualidade,
         limite24h,
         limite1h,
+        limiteTier,
         enviados24h,
         enviados1h,
         falhas24h,
@@ -913,8 +927,13 @@ export default function DisparosPage() {
                   {canalConectado ? "Conectado" : "Desconectado"}
                 </span>
               </div>
-              <p style={{ color: "#64748b", fontSize: 11, margin: 0, lineHeight: 1.5 }}>
-                24h: <b>{integridadeApi.enviados24h}/{integridadeApi.limite24h}</b> · 1h: <b>{integridadeApi.enviados1h}/{integridadeApi.limite1h}</b> · Falhas 24h: <b style={{ color: integridadeApi.falhas24h ? "#dc2626" : "#16a34a" }}>{integridadeApi.falhas24h}</b> · Templates: <b>{integridadeApi.templatesAprovados}</b>
+              <p style={{ color: "#64748b", fontSize: 11, margin: 0, lineHeight: 1.7 }}>
+                Limite Meta 24h: <b>{integridadeApi.limite24h ? integridadeApi.limite24h.toLocaleString("pt-BR") : "nao retornado"}</b>
+                {integridadeApi.limiteTier ? <> ({integridadeApi.limiteTier})</> : null}
+                {" "}· Enviadas 24h: <b>{integridadeApi.enviados24h.toLocaleString("pt-BR")}</b>
+                {" "}· 1h: <b>{integridadeApi.enviados1h}/{integridadeApi.limite1h}</b>
+                {" "}· Falhas 24h: <b style={{ color: integridadeApi.falhas24h ? "#dc2626" : "#16a34a" }}>{integridadeApi.falhas24h}</b>
+                {" "}· Templates aprovados: <b>{integridadeApi.templatesAprovados}</b>
               </p>
               {(integridadeApi.alertas[0] || integridadeApi.erro) && (
                 <p style={{ color: "#92400e", fontSize: 11, margin: "6px 0 0", fontWeight: 700 }}>
