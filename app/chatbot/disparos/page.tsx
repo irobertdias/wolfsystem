@@ -15,12 +15,27 @@ type Canal = {
   phone_number_id?: string | null;
   numero?: string | null;
   workspace_id?: string | null;
+  limite24h?: string | number | null;
+  limite_24h?: string | number | null;
+  limite_meta?: string | number | null;
+  limite_mensagens?: string | number | null;
+  messaging_limit?: string | number | null;
+  messaging_limit_tier?: string | null;
+  limite_tier?: string | null;
   updated_at?: string | null;
   created_at?: string | null;
 };
 type Template = {
   id: number; canal_id: number; meta_template_name: string; nome_amigavel: string;
   categoria: string; idioma: string; status: string; componentes: any[];
+  meta_template_id?: string | null;
+  motivo_rejeicao?: string | null;
+  rejected_reason?: string | null;
+  ultima_sincronizacao?: string | null;
+  aprovado_em?: string | null;
+  enviado_meta_em?: string | null;
+  updated_at?: string | null;
+  created_at?: string | null;
 };
 type Disparo = {
   id: number; workspace_id: string; canal_id: number; criado_por: string; nome: string;
@@ -523,9 +538,8 @@ export default function DisparosPage() {
         .in("workspace_id", workspaceIds)
         .eq("canal_id", canalSelecionado)
         .eq("tipo", "waba")
-        .gte("created_at", desde24h)
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(1000);
 
       const templatesPromise = supabase.from("templates_waba")
         .select("status")
@@ -553,9 +567,12 @@ export default function DisparosPage() {
       const enviadosFallback = disparosCanal.reduce((acc: number, d: any) => acc + Number(d.total_enviados || 0), 0);
       const falhasFallback = disparosCanal.reduce((acc: number, d: any) => acc + Number(d.total_falhas || 0), 0);
 
-      const enviados24h = enviadosPorContato24h || enviadosFallback;
-      const enviados1h = enviadosPorContato1h || 0;
-      const falhas24h = falhasPorContato24h || falhasFallback;
+      const enviados24hBackend = Number(statusResp?.enviados24h);
+      const enviados1hBackend = Number(statusResp?.enviados1h);
+      const falhas24hBackend = Number(statusResp?.falhas24h);
+      const enviados24h = Number.isFinite(enviados24hBackend) ? enviados24hBackend : (enviadosPorContato24h || enviadosFallback);
+      const enviados1h = Number.isFinite(enviados1hBackend) ? enviados1hBackend : enviadosPorContato1h;
+      const falhas24h = Number.isFinite(falhas24hBackend) ? falhas24hBackend : (falhasPorContato24h || falhasFallback);
 
       const templatesTodos = templatesResp.data || [];
       const templatesAprovados = templatesTodos.filter((t: any) => ["aprovado", "approved"].includes(String(t.status || "").toLowerCase())).length;
@@ -566,8 +583,19 @@ export default function DisparosPage() {
       const statusConectadoBanco = normalizarStatusCanal(canalAtual?.status);
       const conectado = statusResp?.success ? statusConectadoApi : statusConectadoBanco;
       const qualidade = normalizarQualidade(statusResp?.quality_rating || statusResp?.qualidade || statusResp?.quality, falhas24h, enviados24h);
-      const limiteTier = statusResp?.messaging_limit_tier || statusResp?.tier || statusResp?.limite_tier || "";
-      const limite24h = resolverLimiteMeta(statusResp?.limite24h, statusResp?.messaging_limit, statusResp?.limite_diario, statusResp?.daily_limit, limiteTier);
+      const limiteTier = statusResp?.messaging_limit_tier || statusResp?.tier || statusResp?.limite_tier || canalAtual?.messaging_limit_tier || canalAtual?.limite_tier || "";
+      const limite24h = resolverLimiteMeta(
+        statusResp?.limite24h,
+        statusResp?.messaging_limit,
+        statusResp?.limite_diario,
+        statusResp?.daily_limit,
+        canalAtual?.limite24h,
+        canalAtual?.limite_24h,
+        canalAtual?.limite_meta,
+        canalAtual?.limite_mensagens,
+        canalAtual?.messaging_limit,
+        limiteTier
+      );
       const limite1h = Number(statusResp?.limite1h || statusResp?.hourly_limit || 200);
       const uso24h = pct(enviados24h, limite24h);
       const uso1h = pct(enviados1h, limite1h);
@@ -971,6 +999,42 @@ export default function DisparosPage() {
                   </option>
                 ))}
               </select>
+            )}
+          </div>
+        )}
+
+        {tipoDisparo === "waba" && templateEscolhido && (
+          <div style={{
+            background: "#f8fafc",
+            border: `1px solid ${String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#86efac" : "#fde68a"}`,
+            borderLeft: `4px solid ${String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#16a34a" : "#f59e0b"}`,
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 16,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 7 }}>
+              <b style={{ color: "#0f172a", fontSize: 13 }}>Integridade do template</b>
+              <span style={{ background: String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#dcfce7" : "#fffbeb", color: String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#15803d" : "#92400e", border: `1px solid ${String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#86efac" : "#fde68a"}`, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
+                {templateEscolhido.status || "sem status"}
+              </span>
+              <span style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
+                {templateEscolhido.categoria || "sem categoria"}
+              </span>
+              <span style={{ background: "#f5f3ff", color: "#6d28d9", border: "1px solid #ddd6fe", borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
+                {templateEscolhido.idioma || "sem idioma"}
+              </span>
+            </div>
+            <p style={{ color: "#64748b", fontSize: 11, margin: 0, lineHeight: 1.7 }}>
+              Nome Meta: <b>{templateEscolhido.meta_template_name}</b>
+              {templateEscolhido.meta_template_id ? <> · ID Meta: <b>{templateEscolhido.meta_template_id}</b></> : null}
+              {" "}· Componentes: <b>{(templateEscolhido.componentes || []).length}</b>
+              {" "}· Variaveis: <b>{varsTemplate.length}</b>
+              {" "}· Sincronizado: <b>{templateEscolhido.ultima_sincronizacao ? new Date(templateEscolhido.ultima_sincronizacao).toLocaleString("pt-BR") : "nao informado"}</b>
+            </p>
+            {(templateEscolhido.motivo_rejeicao || templateEscolhido.rejected_reason) && (
+              <p style={{ color: "#b91c1c", fontSize: 11, margin: "6px 0 0", fontWeight: 800 }}>
+                Motivo Meta: {templateEscolhido.motivo_rejeicao || templateEscolhido.rejected_reason}
+              </p>
             )}
           </div>
         )}
