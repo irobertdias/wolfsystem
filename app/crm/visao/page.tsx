@@ -188,6 +188,45 @@ async function buscarPorWorkspaceComFallback(tabela: string, select: string, pri
 
 const statusConectado = (status: any) => /CONECT|CONNECTED|OPEN|ATIV|ACTIVE|READY|ONLINE/.test(norm(status));
 
+function idsDeWorkspaces(lista: WorkspaceRow[]) {
+  const ids: string[] = [];
+  for (const ws of lista) {
+    addWsId(ids, ws.username);
+    addWsId(ids, ws.id);
+  }
+  return ids;
+}
+
+async function buscarPaginasPorWorkspaces(tabela: string, select: string, wsIds: string[], opts?: { order?: string; ascending?: boolean; limite?: number }) {
+  if (wsIds.length === 0) return [];
+  const PAGE_SIZE = 1000;
+  const TOTAL_LIMITE = opts?.limite || 30000;
+  const lista: any[] = [];
+  let offset = 0;
+
+  while (offset < TOTAL_LIMITE) {
+    let query = supabase
+      .from(tabela)
+      .select(select)
+      .in("workspace_id", wsIds)
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (opts?.order) query = query.order(opts.order, { ascending: opts.ascending ?? true });
+
+    const { data, error } = await query;
+    if (error) {
+      console.warn(`visao admin ${tabela}:`, error);
+      break;
+    }
+    if (!data || data.length === 0) break;
+    lista.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return lista;
+}
+
 function diasAteVenc(iso: string | null): number | null {
   if (!iso) return null;
   const hoje = new Date();
@@ -252,19 +291,25 @@ export default function VisaoGeralPage() {
     let cancelado = false;
     (async () => {
       setAdminCarregando(true);
-      const [cad, ws, prop, con, usr] = await Promise.all([
+      const [cad, ws] = await Promise.all([
         supabase.from("cadastros").select("*").order("created_at", { ascending: false }).limit(5000),
         supabase.from("workspaces").select("id, username, nome, owner_email, ativo").limit(5000),
-        supabase.from("proposta").select("workspace_id, status_venda, valor_plano, vendedor, created_at, data_proposta, proximo_vencimento, status_pagamento").limit(10000),
-        supabase.from("conexoes").select("id, tipo, status, nome, workspace_id").limit(5000),
-        supabase.from("usuarios_workspace").select("email, workspace_id").limit(10000),
       ]);
+
+      const wsLista = (ws.data || []) as WorkspaceRow[];
+      const todosWsIds = idsDeWorkspaces(wsLista);
+      const [prop, con, usr] = await Promise.all([
+        buscarPaginasPorWorkspaces("proposta", "*", todosWsIds, { order: "created_at", ascending: false, limite: 50000 }),
+        buscarPaginasPorWorkspaces("conexoes", "id, tipo, status, nome, numero, workspace_id", todosWsIds, { order: "created_at", ascending: false, limite: 20000 }),
+        buscarPaginasPorWorkspaces("usuarios_workspace", "email, workspace_id", todosWsIds, { limite: 30000 }),
+      ]);
+
       if (cancelado) return;
       setCadastros((cad.data || []) as Cadastro[]);
-      setWorkspaces((ws.data || []) as WorkspaceRow[]);
-      setPropostas((prop.data || []) as Proposta[]);
-      setCanais((con.data || []) as Canal[]);
-      setUsuarios((usr.data || []).length);
+      setWorkspaces(wsLista);
+      setPropostas(prop as Proposta[]);
+      setCanais(con as Canal[]);
+      setUsuarios((usr || []).length);
       setAdminCarregando(false);
       setCarregando(false);
     })().catch((e) => {
