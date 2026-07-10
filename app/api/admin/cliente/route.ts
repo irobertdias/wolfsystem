@@ -31,6 +31,97 @@ async function isAdmin(req: NextRequest): Promise<boolean> {
 // POST — Cria cliente completo (auth + workspace + cadastro)
 // 🆕 Agora aceita TODOS os módulos comerciais + dados de cobrança
 // ═══════════════════════════════════════════════════════
+function addWsId(lista: string[], valor: any) {
+  const v = String(valor ?? "").trim();
+  if (v && !lista.includes(v)) lista.push(v);
+}
+
+function idsDeWorkspaces(lista: any[]) {
+  const ids: string[] = [];
+  for (const ws of lista || []) {
+    addWsId(ids, ws.username);
+    addWsId(ids, ws.id);
+  }
+  return ids;
+}
+
+async function buscarPaginasPorWorkspaces(tabela: string, select: string, wsIds: string[], opts?: { order?: string; ascending?: boolean; limite?: number }) {
+  if (wsIds.length === 0) return [];
+
+  const PAGE_SIZE = 1000;
+  const TOTAL_LIMITE = opts?.limite || 50000;
+  const lista: any[] = [];
+  let offset = 0;
+
+  while (offset < TOTAL_LIMITE) {
+    let query = supabase
+      .from(tabela)
+      .select(select)
+      .in("workspace_id", wsIds)
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (opts?.order) query = query.order(opts.order, { ascending: opts.ascending ?? true });
+
+    const { data, error } = await query;
+    if (error) throw new Error(`${tabela}: ${error.message}`);
+    if (!data || data.length === 0) break;
+
+    lista.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return lista;
+}
+
+export async function GET(req: NextRequest) {
+  if (!(await isAdmin(req))) {
+    return NextResponse.json({ success: false, error: "Sem permissão" }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  if (searchParams.get("acao") !== "visao-global") {
+    return NextResponse.json({ success: false, error: "Ação inválida" }, { status: 400 });
+  }
+
+  try {
+    const [cadResp, wsResp] = await Promise.all([
+      supabase.from("cadastros").select("*").order("created_at", { ascending: false }).limit(10000),
+      supabase.from("workspaces").select("id, username, nome, owner_email, ativo").limit(10000),
+    ]);
+
+    if (cadResp.error) throw new Error("cadastros: " + cadResp.error.message);
+    if (wsResp.error) throw new Error("workspaces: " + wsResp.error.message);
+
+    const workspaces = wsResp.data || [];
+    const wsIds = idsDeWorkspaces(workspaces);
+
+    const [propostas, conexoes, usuarios] = await Promise.all([
+      buscarPaginasPorWorkspaces("proposta", "*", wsIds, { order: "created_at", ascending: false, limite: 80000 }),
+      buscarPaginasPorWorkspaces("conexoes", "id, tipo, status, nome, numero, workspace_id, created_at", wsIds, { order: "created_at", ascending: false, limite: 50000 }),
+      buscarPaginasPorWorkspaces("usuarios_workspace", "email, nome, workspace_id", wsIds, { limite: 50000 }),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      cadastros: cadResp.data || [],
+      workspaces,
+      propostas,
+      conexoes,
+      usuarios,
+      debug: {
+        workspaces: workspaces.length,
+        workspace_ids_consultados: wsIds.length,
+        propostas: propostas.length,
+        conexoes: conexoes.length,
+        usuarios: usuarios.length,
+      },
+    });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message || "Erro ao carregar visão global" }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (!(await isAdmin(req))) {
     return NextResponse.json({ success: false, error: "Sem permissão" }, { status: 403 });

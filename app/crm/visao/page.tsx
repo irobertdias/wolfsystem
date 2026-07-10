@@ -227,6 +227,21 @@ async function buscarPaginasPorWorkspaces(tabela: string, select: string, wsIds:
   return lista;
 }
 
+async function buscarVisaoGlobalAdmin() {
+  const { data: sessionResp } = await supabase.auth.getSession();
+  const token = sessionResp.session?.access_token;
+  if (!token) throw new Error("Sessão do admin não encontrada");
+
+  const resp = await fetch("/api/admin/cliente?acao=visao-global", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await resp.json().catch(() => null);
+  if (!resp.ok || !json?.success) {
+    throw new Error(json?.error || "Falha ao carregar visão global");
+  }
+  return json;
+}
+
 function diasAteVenc(iso: string | null): number | null {
   if (!iso) return null;
   const hoje = new Date();
@@ -291,25 +306,14 @@ export default function VisaoGeralPage() {
     let cancelado = false;
     (async () => {
       setAdminCarregando(true);
-      const [cad, ws] = await Promise.all([
-        supabase.from("cadastros").select("*").order("created_at", { ascending: false }).limit(5000),
-        supabase.from("workspaces").select("id, username, nome, owner_email, ativo").limit(5000),
-      ]);
-
-      const wsLista = (ws.data || []) as WorkspaceRow[];
-      const todosWsIds = idsDeWorkspaces(wsLista);
-      const [prop, con, usr] = await Promise.all([
-        buscarPaginasPorWorkspaces("proposta", "*", todosWsIds, { order: "created_at", ascending: false, limite: 50000 }),
-        buscarPaginasPorWorkspaces("conexoes", "id, tipo, status, nome, numero, workspace_id", todosWsIds, { order: "created_at", ascending: false, limite: 20000 }),
-        buscarPaginasPorWorkspaces("usuarios_workspace", "email, workspace_id", todosWsIds, { limite: 30000 }),
-      ]);
+      const resumo = await buscarVisaoGlobalAdmin();
 
       if (cancelado) return;
-      setCadastros((cad.data || []) as Cadastro[]);
-      setWorkspaces(wsLista);
-      setPropostas(prop as Proposta[]);
-      setCanais(con as Canal[]);
-      setUsuarios((usr || []).length);
+      setCadastros((resumo.cadastros || []) as Cadastro[]);
+      setWorkspaces((resumo.workspaces || []) as WorkspaceRow[]);
+      setPropostas((resumo.propostas || []) as Proposta[]);
+      setCanais((resumo.conexoes || []) as Canal[]);
+      setUsuarios((resumo.usuarios || []).length);
       setAdminCarregando(false);
       setCarregando(false);
     })().catch((e) => {
