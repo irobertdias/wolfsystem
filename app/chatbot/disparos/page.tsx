@@ -6,7 +6,17 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useModulos, ModuloBloqueado } from "../../hooks/useModulos";
 
-type Canal = { id: number; nome: string; tipo: string; status: string; waba_id?: string; };
+type Canal = {
+  id: number;
+  nome: string;
+  tipo: string;
+  status: string;
+  waba_id?: string;
+  phone_number_id?: string | null;
+  numero?: string | null;
+  updated_at?: string | null;
+  created_at?: string | null;
+};
 type Template = {
   id: number; canal_id: number; meta_template_name: string; nome_amigavel: string;
   categoria: string; idioma: string; status: string; componentes: any[];
@@ -23,6 +33,50 @@ type Disparo = {
   agendado_para?: string;
 };
 type ContatoWaba = { numero: string; vars: Record<string, string>; };
+type QualidadeApi = "Alta" | "Media" | "Baixa" | "Desconhecida";
+type IntegridadeApi = {
+  loading: boolean;
+  atualizadoEm: string | null;
+  erro: string | null;
+  score: number;
+  saudeInterna: number;
+  statusMeta: string;
+  nomeMeta: string;
+  numero: string;
+  qualidade: QualidadeApi;
+  limite24h: number;
+  limite1h: number;
+  enviados24h: number;
+  enviados1h: number;
+  falhas24h: number;
+  templatesAprovados: number;
+  templatesPendentes: number;
+  templatesRejeitados: number;
+  alertas: string[];
+  recomendacao: string;
+};
+
+const integridadeInicial: IntegridadeApi = {
+  loading: false,
+  atualizadoEm: null,
+  erro: null,
+  score: 0,
+  saudeInterna: 0,
+  statusMeta: "nao_verificado",
+  nomeMeta: "",
+  numero: "",
+  qualidade: "Desconhecida",
+  limite24h: 250,
+  limite1h: 200,
+  enviados24h: 0,
+  enviados1h: 0,
+  falhas24h: 0,
+  templatesAprovados: 0,
+  templatesPendentes: 0,
+  templatesRejeitados: 0,
+  alertas: [],
+  recomendacao: "Selecione um canal WABA para medir a integridade.",
+};
 
 // 🗓️ Helpers de agendamento
 // Retorna "YYYY-MM-DDTHH:MM" pra <input type="datetime-local"> em hora LOCAL.
@@ -65,6 +119,8 @@ export default function DisparosPage() {
   const [enviando, setEnviando] = useState(false);
   const [disparoDetalhe, setDisparoDetalhe] = useState<Disparo | null>(null);
   const [contatosDetalhe, setContatosDetalhe] = useState<any[]>([]);
+  const [integridadeApi, setIntegridadeApi] = useState<IntegridadeApi>(integridadeInicial);
+  const [atualizandoIntegridade, setAtualizandoIntegridade] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 🗓️ Estado do agendamento
@@ -93,6 +149,7 @@ export default function DisparosPage() {
     setVarsFixas({});
     setContatosWaba([]);
     setNumerosTexto("");
+    setIntegridadeApi(integridadeInicial);
   }, [tipoDisparo]);
 
   // 🗓️ Quando liga o agendamento e ainda não definiu horário, preenche "amanhã 00:00"
@@ -113,7 +170,7 @@ export default function DisparosPage() {
     if (!wsId) return;
     const filtro = tipoDisparo === "webjs" ? "webjs" : "waba";
     const { data } = await supabase.from("conexoes")
-      .select("id, nome, tipo, status, waba_id")
+      .select("id, nome, tipo, status, waba_id, phone_number_id, numero, updated_at, created_at")
       .eq("workspace_id", wsId).eq("tipo", filtro);
     setCanais(data || []);
   };
@@ -144,6 +201,17 @@ export default function DisparosPage() {
   }, [wsId, tipoDisparo]);
 
   useEffect(() => { fetchTemplatesAprovados(); }, [canalSelecionado, wsId]);
+
+  useEffect(() => {
+    if (tipoDisparo !== "waba" || !wsId || !canalSelecionado) {
+      setIntegridadeApi(integridadeInicial);
+      return;
+    }
+
+    fetchIntegridadeApi();
+    const interval = setInterval(() => fetchIntegridadeApi(), 10000);
+    return () => clearInterval(interval);
+  }, [tipoDisparo, wsId, canalSelecionado, canais.length, disparos.length]);
 
   useEffect(() => {
     if (!disparoDetalhe) return;
@@ -337,7 +405,7 @@ export default function DisparosPage() {
     ? processarNumeros(numerosTexto)
     : (contatosWaba.length > 0 ? contatosWaba.map(c => c.numero) : processarNumeros(numerosTexto));
   const canalEscolhido = canais.find(c => c.id === canalSelecionado);
-  const canalConectado = canalEscolhido?.status === "conectado";
+  const canalConectado = ["conectado", "connected", "registered", "ativo", "online", "ready"].some(v => String(canalEscolhido?.status || "").toLowerCase().includes(v));
   const templateEscolhido = templates.find(t => t.id === templateSelecionado);
   const varsTemplate = extrairVariaveisTemplate();
 
@@ -361,6 +429,178 @@ export default function DisparosPage() {
     return d.status;
   };
 
+  const normalizarStatusCanal = (status?: string | null) => {
+    const s = String(status || "").toLowerCase();
+    return ["conectado", "connected", "registered", "ativo", "online", "ready"].some(v => s.includes(v));
+  };
+
+  const normalizarQualidade = (valor: any, falhas24h = 0, enviados24h = 0): QualidadeApi => {
+    const q = String(valor || "").toLowerCase();
+    if (["green", "alta", "high"].some(v => q.includes(v))) return "Alta";
+    if (["yellow", "media", "média", "medium"].some(v => q.includes(v))) return "Media";
+    if (["red", "baixa", "low"].some(v => q.includes(v))) return "Baixa";
+    const total = enviados24h + falhas24h;
+    if (total > 0) {
+      const taxaFalha = falhas24h / total;
+      if (taxaFalha >= 0.1) return "Baixa";
+      if (taxaFalha >= 0.03) return "Media";
+      return "Alta";
+    }
+    return "Desconhecida";
+  };
+
+  const limitePorQualidade = (qualidade: QualidadeApi, bruto?: any) => {
+    const n = Number(bruto);
+    if (Number.isFinite(n) && n > 0) return n;
+    if (qualidade === "Alta") return 1000;
+    if (qualidade === "Media") return 500;
+    return 250;
+  };
+
+  const pct = (valor: number, total: number) => total > 0 ? Math.min(100, Math.round((valor / total) * 100)) : 0;
+
+  const montarRecomendacao = (alertas: string[], podeDispararAgora: boolean) => {
+    if (!podeDispararAgora) return "Recomendacao: bloqueie novos disparos ate reconectar o canal e corrigir os erros acima.";
+    if (alertas.length === 0) return "Recomendacao: canal saudavel. Pode disparar mantendo o ritmo normal.";
+    return "Recomendacao: disparos permitidos, mas mantenha ritmo conservador e corrija os alertas antes de escalar volume.";
+  };
+
+  const dataContatoMs = (c: any) => {
+    const valor = c?.enviado_em || c?.updated_at || c?.created_at;
+    const ms = valor ? new Date(valor).getTime() : 0;
+    return Number.isFinite(ms) ? ms : 0;
+  };
+
+  const fetchIntegridadeApi = async (_manual = false) => {
+    if (tipoDisparo !== "waba" || !wsId || !canalSelecionado) {
+      setIntegridadeApi(integridadeInicial);
+      return;
+    }
+
+    const canalAtual = canais.find(c => c.id === canalSelecionado);
+    setAtualizandoIntegridade(true);
+    setIntegridadeApi(prev => ({ ...prev, loading: true }));
+
+    try {
+      const desde24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const desde1h = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+      const statusPromise = fetch(`/api/whatsapp?rota=waba/verificar-status&canalId=${canalSelecionado}&workspaceId=${encodeURIComponent(wsId)}`)
+        .then(r => r.json())
+        .catch((e: any) => ({ success: false, error: e?.message || "falha ao consultar API" }));
+
+      const disparosPromise = supabase.from("disparos")
+        .select("id,status,total_enviados,total_falhas,erro_msg,created_at,iniciado_em,finalizado_em")
+        .eq("workspace_id", wsId)
+        .eq("canal_id", canalSelecionado)
+        .eq("tipo", "waba")
+        .gte("created_at", desde24h)
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      const templatesPromise = supabase.from("templates_waba")
+        .select("status")
+        .eq("workspace_id", wsId)
+        .eq("canal_id", canalSelecionado);
+
+      const [statusResp, disparosResp, templatesResp] = await Promise.all([statusPromise, disparosPromise, templatesPromise]);
+      const disparosCanal = disparosResp.data || [];
+      const ids = disparosCanal.map((d: any) => d.id).filter(Boolean);
+
+      let contatos: any[] = [];
+      if (ids.length > 0) {
+        const { data } = await supabase.from("disparo_contatos")
+          .select("*")
+          .in("disparo_id", ids);
+        contatos = data || [];
+      }
+
+      const desde24hMs = new Date(desde24h).getTime();
+      const desde1hMs = new Date(desde1h).getTime();
+      const enviadosPorContato24h = contatos.filter(c => c.status === "enviado" && dataContatoMs(c) >= desde24hMs).length;
+      const enviadosPorContato1h = contatos.filter(c => c.status === "enviado" && dataContatoMs(c) >= desde1hMs).length;
+      const falhasPorContato24h = contatos.filter(c => c.status === "falha" && dataContatoMs(c) >= desde24hMs).length;
+
+      const enviadosFallback = disparosCanal.reduce((acc: number, d: any) => acc + Number(d.total_enviados || 0), 0);
+      const falhasFallback = disparosCanal.reduce((acc: number, d: any) => acc + Number(d.total_falhas || 0), 0);
+
+      const enviados24h = enviadosPorContato24h || enviadosFallback;
+      const enviados1h = enviadosPorContato1h || 0;
+      const falhas24h = falhasPorContato24h || falhasFallback;
+
+      const templatesTodos = templatesResp.data || [];
+      const templatesAprovados = templatesTodos.filter((t: any) => ["aprovado", "approved"].includes(String(t.status || "").toLowerCase())).length;
+      const templatesPendentes = templatesTodos.filter((t: any) => ["pendente", "pending", "em_analise", "in_review"].includes(String(t.status || "").toLowerCase())).length;
+      const templatesRejeitados = templatesTodos.filter((t: any) => ["rejeitado", "rejected", "recusado"].includes(String(t.status || "").toLowerCase())).length;
+
+      const statusConectadoApi = normalizarStatusCanal(statusResp?.status || statusResp?.meta_status);
+      const statusConectadoBanco = normalizarStatusCanal(canalAtual?.status);
+      const conectado = statusResp?.success ? statusConectadoApi : statusConectadoBanco;
+      const qualidade = normalizarQualidade(statusResp?.quality_rating || statusResp?.qualidade || statusResp?.quality, falhas24h, enviados24h);
+      const limite24h = limitePorQualidade(qualidade, statusResp?.limite24h || statusResp?.messaging_limit || statusResp?.limite_diario);
+      const limite1h = Number(statusResp?.limite1h || statusResp?.hourly_limit || 200);
+      const uso24h = pct(enviados24h, limite24h);
+      const uso1h = pct(enviados1h, limite1h);
+      const saudeInterna = conectado ? (falhas24h > 0 ? Math.max(70, 100 - Math.min(30, falhas24h * 3)) : 100) : 35;
+
+      const alertas: string[] = [];
+      if (!conectado) alertas.push("Canal WABA nao esta conectado ou a API Meta nao respondeu como conectada.");
+      if (statusResp?.error) alertas.push(`API Meta retornou erro: ${statusResp.error}`);
+      if (uso24h >= 90) alertas.push(`Uso rolling 24h elevado (${uso24h}% do teto estimado).`);
+      else if (uso24h >= 75) alertas.push(`Uso rolling 24h em atencao (${uso24h}% do teto estimado).`);
+      if (uso1h >= 80) alertas.push(`Muitos envios na ultima hora (${enviados1h}/${limite1h}).`);
+      if (falhas24h > 0) alertas.push(`${falhas24h} falha(s) de envio nas ultimas 24h.`);
+      if (templatesAprovados === 0) alertas.push("Nenhum template aprovado para este canal.");
+      if (templatesRejeitados > 0) alertas.push(`${templatesRejeitados} template(s) rejeitado(s) precisam de ajuste.`);
+
+      let score = saudeInterna;
+      if (qualidade === "Media") score -= 8;
+      if (qualidade === "Baixa") score -= 22;
+      if (uso24h >= 90) score -= 12;
+      else if (uso24h >= 75) score -= 6;
+      if (uso1h >= 80) score -= 8;
+      if (templatesAprovados === 0) score -= 15;
+      if (templatesRejeitados > 0) score -= Math.min(12, templatesRejeitados * 3);
+      if (statusResp?.error) score -= 18;
+      score = Math.max(0, Math.min(100, Math.round(score)));
+
+      const podeDispararAgora = conectado && score >= 50 && templatesAprovados > 0;
+
+      setIntegridadeApi({
+        loading: false,
+        atualizadoEm: new Date().toISOString(),
+        erro: null,
+        score,
+        saudeInterna,
+        statusMeta: statusResp?.meta_status || statusResp?.status || canalAtual?.status || "desconhecido",
+        nomeMeta: statusResp?.nome || statusResp?.verified_name || canalAtual?.nome || "",
+        numero: statusResp?.numero || canalAtual?.numero || canalAtual?.phone_number_id || "",
+        qualidade,
+        limite24h,
+        limite1h,
+        enviados24h,
+        enviados1h,
+        falhas24h,
+        templatesAprovados,
+        templatesPendentes,
+        templatesRejeitados,
+        alertas,
+        recomendacao: montarRecomendacao(alertas, podeDispararAgora),
+      });
+    } catch (e: any) {
+      setIntegridadeApi(prev => ({
+        ...prev,
+        loading: false,
+        erro: e?.message || "Erro ao calcular integridade da API.",
+        atualizadoEm: new Date().toISOString(),
+        alertas: [`Falha ao atualizar integridade: ${e?.message || "erro desconhecido"}`],
+        recomendacao: "Recomendacao: confira Supabase, backend WABA e credenciais do canal antes de disparar.",
+      }));
+    } finally {
+      setAtualizandoIntegridade(false);
+    }
+  };
+
   // 🎨 ESTILOS LIGHT TECH
   const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
   const cardStyle = {
@@ -368,6 +608,24 @@ export default function DisparosPage() {
     borderRadius: 14,
     border: "1px solid #e5e7eb",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  };
+
+  const corScore = integridadeApi.score >= 85 ? "#059669" : integridadeApi.score >= 60 ? "#f59e0b" : "#dc2626";
+  const corQualidade = integridadeApi.qualidade === "Alta" ? "#059669" : integridadeApi.qualidade === "Media" ? "#f59e0b" : integridadeApi.qualidade === "Baixa" ? "#dc2626" : "#64748b";
+  const podeDispararApi = tipoDisparo !== "waba" || (canalConectado && integridadeApi.score >= 50 && integridadeApi.templatesAprovados > 0);
+  const barraIntegridade = (label: string, valor: number, total: number, cor: string, detalhe: string) => {
+    const largura = pct(valor, total);
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 7 }}>
+          <span style={{ color: "#475569", fontSize: 12, fontWeight: 700 }}>{label}</span>
+          <span style={{ color: "#0f172a", fontSize: 12, fontWeight: 800 }}>{detalhe}</span>
+        </div>
+        <div style={{ height: 10, background: "#e5e7eb", borderRadius: 999, overflow: "hidden" }}>
+          <div style={{ width: `${largura}%`, height: "100%", background: cor, borderRadius: 999, transition: "width 0.25s ease" }} />
+        </div>
+      </div>
+    );
   };
 
   // 🔒 Bloqueio de módulo (plano) — tem prioridade sobre permissão de usuário
@@ -475,6 +733,105 @@ export default function DisparosPage() {
           <p style={{ color: "#166534", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
             <b>✅ Via API Oficial:</b> Templates aprovados pela Meta não causam banimento. O preço por mensagem varia por categoria (Marketing/Utility/Authentication). Delay padrão 1-3s é suficiente.
           </p>
+        </div>
+      )}
+
+      {tipoDisparo === "waba" && canalSelecionado && (
+        <div style={{
+          ...cardStyle,
+          border: `1px solid ${corScore}55`,
+          borderLeft: `4px solid ${corScore}`,
+          padding: 0,
+          overflow: "hidden",
+          background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 52%, #ecfeff 100%)",
+        }}>
+          <div style={{ padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", borderBottom: "1px solid #e5e7eb" }}>
+            <div style={{ minWidth: 260, flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                <h2 style={{ color: "#0f172a", fontSize: 18, margin: 0, fontWeight: 800 }}>{canalEscolhido?.nome || "Canal WABA"}</h2>
+                <span style={{ background: canalConectado ? "#dcfce7" : "#fee2e2", color: canalConectado ? "#15803d" : "#b91c1c", border: `1px solid ${canalConectado ? "#86efac" : "#fecaca"}`, borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 800 }}>
+                  {canalConectado ? "Ativo" : "Desconectado"}
+                </span>
+                <span style={{ background: `${corQualidade}18`, color: corQualidade, border: `1px solid ${corQualidade}55`, borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 800 }}>
+                  Qualidade {integridadeApi.qualidade}
+                </span>
+                <span style={{ background: "#f5f3ff", color: "#6d28d9", border: "1px solid #c4b5fd", borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 800 }}>
+                  Ate {integridadeApi.limite24h} msgs/24h
+                </span>
+              </div>
+              <p style={{ color: "#64748b", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
+                {integridadeApi.numero || canalEscolhido?.phone_number_id || "Numero nao informado"} · {canalEscolhido?.waba_id || "WABA sem ID visivel"}
+              </p>
+              <p style={{ color: "#64748b", fontSize: 12, margin: "4px 0 0", lineHeight: 1.6 }}>
+                Sincronizado: {integridadeApi.atualizadoEm ? new Date(integridadeApi.atualizadoEm).toLocaleString("pt-BR") : "aguardando leitura"} · Nome: {integridadeApi.nomeMeta || "nao retornado"} · Meta: {integridadeApi.statusMeta}
+              </p>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ background: podeDispararApi ? "#059669" : "#f59e0b", color: "white", borderRadius: 999, padding: "7px 13px", fontSize: 12, fontWeight: 900, boxShadow: `0 8px 20px ${podeDispararApi ? "rgba(5,150,105,0.25)" : "rgba(245,158,11,0.25)"}` }}>
+                {podeDispararApi ? "Pode disparar" : "Requer atencao"}
+              </span>
+              <button
+                onClick={() => fetchIntegridadeApi(true)}
+                disabled={atualizandoIntegridade}
+                style={{ background: "#ffffff", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 800, cursor: atualizandoIntegridade ? "wait" : "pointer", boxShadow: "0 1px 3px rgba(15,23,42,0.08)" }}
+              >
+                {atualizandoIntegridade ? "Atualizando..." : "Atualizar agora"}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ padding: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
+              <h3 style={{ color: "#0f172a", fontSize: 16, margin: 0, fontWeight: 900 }}>Integridade da API</h3>
+              <span style={{ background: `${corScore}18`, color: corScore, border: `1px solid ${corScore}55`, borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 900 }}>
+                {integridadeApi.score >= 85 ? "Saudavel" : integridadeApi.score >= 60 ? "Atencao" : "Critico"} - {integridadeApi.score}/100
+              </span>
+              {integridadeApi.loading && <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>lendo em tempo real...</span>}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 16 }}>
+              {barraIntegridade("Saude interna", integridadeApi.saudeInterna, 100, integridadeApi.saudeInterna >= 80 ? "#10b981" : "#f59e0b", `${integridadeApi.saudeInterna}/100`)}
+              {barraIntegridade("Enviados (24h rolling)", integridadeApi.enviados24h, integridadeApi.limite24h, pct(integridadeApi.enviados24h, integridadeApi.limite24h) >= 90 ? "#f59e0b" : "#10b981", `${integridadeApi.enviados24h} / ${integridadeApi.limite24h} (${pct(integridadeApi.enviados24h, integridadeApi.limite24h)}%)`)}
+              {barraIntegridade("Enviados (1h rolling)", integridadeApi.enviados1h, integridadeApi.limite1h, pct(integridadeApi.enviados1h, integridadeApi.limite1h) >= 80 ? "#f59e0b" : "#38bdf8", `${integridadeApi.enviados1h} / ${integridadeApi.limite1h}`)}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 14 }}>
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12 }}>
+                <p style={{ color: "#166534", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 5px" }}>Templates aprovados</p>
+                <p style={{ color: "#16a34a", fontSize: 22, fontWeight: 900, margin: 0 }}>{integridadeApi.templatesAprovados}</p>
+              </div>
+              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 12 }}>
+                <p style={{ color: "#92400e", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 5px" }}>Em analise</p>
+                <p style={{ color: "#f59e0b", fontSize: 22, fontWeight: 900, margin: 0 }}>{integridadeApi.templatesPendentes}</p>
+              </div>
+              <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: 12 }}>
+                <p style={{ color: "#991b1b", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 5px" }}>Falhas 24h</p>
+                <p style={{ color: "#dc2626", fontSize: 22, fontWeight: 900, margin: 0 }}>{integridadeApi.falhas24h}</p>
+              </div>
+              <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: 12 }}>
+                <p style={{ color: "#9a3412", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 5px" }}>Rejeitados</p>
+                <p style={{ color: "#ea580c", fontSize: 22, fontWeight: 900, margin: 0 }}>{integridadeApi.templatesRejeitados}</p>
+              </div>
+            </div>
+
+            <div style={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 14 }}>
+              {integridadeApi.erro ? (
+                <p style={{ color: "#dc2626", fontSize: 12, margin: 0, fontWeight: 700 }}>Erro ao atualizar: {integridadeApi.erro}</p>
+              ) : integridadeApi.alertas.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  {integridadeApi.alertas.map((alerta, idx) => (
+                    <p key={idx} style={{ color: "#92400e", fontSize: 12, margin: 0, fontWeight: 700 }}>• {alerta}</p>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: "#166534", fontSize: 12, margin: 0, fontWeight: 800 }}>Nenhum erro operacional encontrado neste canal agora.</p>
+              )}
+              <p style={{ color: "#475569", fontSize: 12, margin: "10px 0 0", lineHeight: 1.5 }}>
+                {integridadeApi.recomendacao}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -701,9 +1058,9 @@ export default function DisparosPage() {
             style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
             🗑️ Limpar
           </button>
-          <button onClick={iniciarDisparo} disabled={enviando || !canalConectado}
+          <button onClick={iniciarDisparo} disabled={enviando || !canalConectado || (tipoDisparo === "waba" && !podeDispararApi)}
             style={{
-              background: enviando || !canalConectado
+              background: enviando || !canalConectado || (tipoDisparo === "waba" && !podeDispararApi)
                 ? "#9ca3af"
                 : (agendarAtivo
                   ? "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)"
@@ -712,8 +1069,8 @@ export default function DisparosPage() {
                     : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)")),
               color: "white", border: "none", borderRadius: 10,
               padding: "10px 28px", fontSize: 13,
-              cursor: (enviando || !canalConectado) ? "not-allowed" : "pointer", fontWeight: 700,
-              boxShadow: (enviando || !canalConectado) ? "none" : (agendarAtivo ? "0 4px 12px rgba(168,85,247,0.3)" : (tipoDisparo === "waba" ? "0 4px 12px rgba(22,163,74,0.3)" : "0 4px 12px rgba(59,130,246,0.3)")),
+              cursor: (enviando || !canalConectado || (tipoDisparo === "waba" && !podeDispararApi)) ? "not-allowed" : "pointer", fontWeight: 700,
+              boxShadow: (enviando || !canalConectado || (tipoDisparo === "waba" && !podeDispararApi)) ? "none" : (agendarAtivo ? "0 4px 12px rgba(168,85,247,0.3)" : (tipoDisparo === "waba" ? "0 4px 12px rgba(22,163,74,0.3)" : "0 4px 12px rgba(59,130,246,0.3)")),
             }}>
             {enviando
               ? "⏳ Criando..."
