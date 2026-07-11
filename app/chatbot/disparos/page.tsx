@@ -36,6 +36,8 @@ type Template = {
   enviado_meta_em?: string | null;
   updated_at?: string | null;
   created_at?: string | null;
+  correct_category?: string | null;
+  categoria_meta?: string | null;
 };
 type Disparo = {
   id: number; workspace_id: string; canal_id: number; criado_por: string; nome: string;
@@ -63,6 +65,9 @@ type IntegridadeApi = {
   limite24h: number;
   limite1h: number;
   limiteTier: string;
+  limiteFonte: string;
+  metricasFonte: string;
+  metricasDescricao: string;
   enviados24h: number;
   enviados1h: number;
   falhas24h: number;
@@ -84,8 +89,11 @@ const integridadeInicial: IntegridadeApi = {
   numero: "",
   qualidade: "Desconhecida",
   limite24h: 0,
-  limite1h: 200,
+  limite1h: 0,
   limiteTier: "",
+  limiteFonte: "",
+  metricasFonte: "",
+  metricasDescricao: "",
   enviados24h: 0,
   enviados1h: 0,
   falhas24h: 0,
@@ -139,6 +147,7 @@ export default function DisparosPage() {
   const [contatosDetalhe, setContatosDetalhe] = useState<any[]>([]);
   const [integridadeApi, setIntegridadeApi] = useState<IntegridadeApi>(integridadeInicial);
   const [atualizandoIntegridade, setAtualizandoIntegridade] = useState(false);
+  const [atualizandoTemplateMeta, setAtualizandoTemplateMeta] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 🗓️ Estado do agendamento
@@ -207,12 +216,52 @@ export default function DisparosPage() {
     setCanais(filtrados);
   };
 
+  const sincronizarTemplatesMeta = async (canalId: number, workspaceIdDoCanal: string) => {
+    const body = { canalId, workspaceId: workspaceIdDoCanal };
+    try {
+      const resp = await fetch("https://api.wolfgyn.com.br/templates/sincronizar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        cache: "no-store",
+      });
+      const json = await resp.json();
+      if (!resp.ok || json?.success === false) throw new Error(json?.error || "Falha ao sincronizar templates");
+      return json;
+    } catch (_erroDireto) {
+      return wa("templates/sincronizar", body);
+    }
+  };
+
+  const verificarTemplateMeta = async (templateId: number, workspaceIdDoCanal: string) => {
+    const qs = `templateId=${templateId}&workspaceId=${encodeURIComponent(workspaceIdDoCanal)}`;
+    try {
+      const resp = await fetch(`https://api.wolfgyn.com.br/templates/verificar-status?${qs}`, { cache: "no-store" });
+      const json = await resp.json();
+      if (!resp.ok || json?.success === false) throw new Error(json?.error || "Falha ao consultar template na Meta");
+      return json;
+    } catch (_erroDireto) {
+      const resp = await fetch(`/api/whatsapp?rota=templates/verificar-status&${qs}`, { cache: "no-store" });
+      const json = await resp.json();
+      if (!resp.ok || json?.success === false) throw new Error(json?.error || "Falha ao consultar template na Meta");
+      return json;
+    }
+  };
+
   const fetchTemplatesAprovados = async () => {
     if (workspaceIds.length === 0 || !canalSelecionado) { setTemplates([]); return; }
+    const canalIdConsultado = canalSelecionado;
+    const canalAtual = canais.find(c => c.id === canalIdConsultado);
+    const workspaceDoCanal = canalAtual?.workspace_id || wsId || workspaceIds[0];
+    try {
+      await sincronizarTemplatesMeta(canalIdConsultado, workspaceDoCanal);
+    } catch (e) {
+      console.warn("Nao foi possivel sincronizar templates na Meta:", e);
+    }
     const { data } = await supabase.from("templates_waba")
-      .select("*").in("workspace_id", workspaceIds).eq("canal_id", canalSelecionado).eq("status", "aprovado")
+      .select("*").in("workspace_id", workspaceIds).eq("canal_id", canalIdConsultado).eq("status", "aprovado")
       .order("created_at", { ascending: false });
-    setTemplates(data || []);
+    if (canalSelecionado === canalIdConsultado) setTemplates(data || []);
   };
 
   const fetchDisparos = async () => {
@@ -234,6 +283,29 @@ export default function DisparosPage() {
   }, [workspaceKey, tipoDisparo]);
 
   useEffect(() => { fetchTemplatesAprovados(); }, [canalSelecionado, workspaceKey]);
+
+  useEffect(() => {
+    if (!templateSelecionado || !canalSelecionado) return;
+    const templateIdConsultado = templateSelecionado;
+    const canalAtual = canais.find(c => c.id === canalSelecionado);
+    const workspaceDoCanal = canalAtual?.workspace_id || wsId || workspaceIds[0];
+    let ativo = true;
+
+    setAtualizandoTemplateMeta(true);
+    verificarTemplateMeta(templateIdConsultado, workspaceDoCanal)
+      .then(resp => {
+        if (!ativo || !resp?.template) return;
+        const statusAtual = String(resp.template.status || "").toLowerCase();
+        setTemplates(atuais => statusAtual === "aprovado"
+          ? atuais.map(t => t.id === templateIdConsultado ? { ...t, ...resp.template } : t)
+          : atuais.filter(t => t.id !== templateIdConsultado));
+        if (statusAtual !== "aprovado") setTemplateSelecionado(null);
+      })
+      .catch(e => console.warn("Falha ao atualizar template selecionado na Meta:", e))
+      .finally(() => { if (ativo) setAtualizandoTemplateMeta(false); });
+
+    return () => { ativo = false; };
+  }, [templateSelecionado, canalSelecionado, workspaceKey]);
 
   useEffect(() => {
     if (tipoDisparo !== "waba" || workspaceIds.length === 0 || !canalSelecionado) {
@@ -498,12 +570,6 @@ export default function DisparosPage() {
     return "Recomendacao: disparos permitidos, mas mantenha ritmo conservador e corrija os alertas antes de escalar volume.";
   };
 
-  const dataContatoMs = (c: any) => {
-    const valor = c?.enviado_em || c?.updated_at || c?.created_at;
-    const ms = valor ? new Date(valor).getTime() : 0;
-    return Number.isFinite(ms) ? ms : 0;
-  };
-
   const consultarStatusWabaReal = async (canalId: number, workspaceIdDoCanal: string) => {
     const qs = `canalId=${canalId}&workspaceId=${encodeURIComponent(workspaceIdDoCanal)}`;
     try {
@@ -527,53 +593,21 @@ export default function DisparosPage() {
     setIntegridadeApi(prev => ({ ...prev, loading: true }));
 
     try {
-      const desde24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const desde1h = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-
-      const statusPromise = consultarStatusWabaReal(canalSelecionado, workspaceDoCanal)
-        .catch((e: any) => ({ success: false, error: e?.message || "falha ao consultar API" }));
-
-      const disparosPromise = supabase.from("disparos")
-        .select("id,status,total_enviados,total_falhas,erro_msg,created_at,iniciado_em,finalizado_em")
-        .in("workspace_id", workspaceIds)
-        .eq("canal_id", canalSelecionado)
-        .eq("tipo", "waba")
-        .order("created_at", { ascending: false })
-        .limit(1000);
-
-      const templatesPromise = supabase.from("templates_waba")
-        .select("status")
-        .in("workspace_id", workspaceIds)
-        .eq("canal_id", canalSelecionado);
-
-      const [statusResp, disparosResp, templatesResp] = await Promise.all([statusPromise, disparosPromise, templatesPromise]);
-      const disparosCanal = disparosResp.data || [];
-      const ids = disparosCanal.map((d: any) => d.id).filter(Boolean);
-
-      let contatos: any[] = [];
-      if (ids.length > 0) {
-        const { data } = await supabase.from("disparo_contatos")
-          .select("*")
-          .in("disparo_id", ids);
-        contatos = data || [];
+      if (_manual) {
+        await fetchTemplatesAprovados();
       }
 
-      const desde24hMs = new Date(desde24h).getTime();
-      const desde1hMs = new Date(desde1h).getTime();
-      const enviadosPorContato24h = contatos.filter(c => c.status === "enviado" && dataContatoMs(c) >= desde24hMs).length;
-      const enviadosPorContato1h = contatos.filter(c => c.status === "enviado" && dataContatoMs(c) >= desde1hMs).length;
-      const falhasPorContato24h = contatos.filter(c => c.status === "falha" && dataContatoMs(c) >= desde24hMs).length;
+      const [statusResp, templatesResp] = await Promise.all([
+        consultarStatusWabaReal(canalSelecionado, workspaceDoCanal),
+        supabase.from("templates_waba")
+          .select("status")
+          .eq("workspace_id", workspaceDoCanal)
+          .eq("canal_id", canalSelecionado)
+      ]);
 
-      const enviadosFallback = disparosCanal.reduce((acc: number, d: any) => acc + Number(d.total_enviados || 0), 0);
-      const falhasFallback = disparosCanal.reduce((acc: number, d: any) => acc + Number(d.total_falhas || 0), 0);
-
-      const enviados24hBackend = Number(statusResp?.enviados24h);
-      const enviados1hBackend = Number(statusResp?.enviados1h);
-      const falhas24hBackend = Number(statusResp?.falhas24h);
-      const enviados24h = Number.isFinite(enviados24hBackend) ? enviados24hBackend : (enviadosPorContato24h || enviadosFallback);
-      const enviados1h = Number.isFinite(enviados1hBackend) ? enviados1hBackend : enviadosPorContato1h;
-      const falhas24h = Number.isFinite(falhas24hBackend) ? falhas24hBackend : (falhasPorContato24h || falhasFallback);
-
+      const enviados24h = Math.max(0, Number(statusResp?.enviados24h || 0));
+      const enviados1h = Math.max(0, Number(statusResp?.enviados1h || 0));
+      const falhas24h = Math.max(0, Number(statusResp?.falhas24h || 0));
       const templatesTodos = templatesResp.data || [];
       const templatesAprovados = templatesTodos.filter((t: any) => ["aprovado", "approved"].includes(String(t.status || "").toLowerCase())).length;
       const templatesPendentes = templatesTodos.filter((t: any) => ["pendente", "pending", "em_analise", "in_review"].includes(String(t.status || "").toLowerCase())).length;
@@ -583,46 +617,39 @@ export default function DisparosPage() {
       const statusConectadoBanco = normalizarStatusCanal(canalAtual?.status);
       const conectado = statusResp?.success ? statusConectadoApi : statusConectadoBanco;
       const qualidade = normalizarQualidade(statusResp?.quality_rating || statusResp?.qualidade || statusResp?.quality, falhas24h, enviados24h);
-      const limiteTier = statusResp?.messaging_limit_tier || statusResp?.tier || statusResp?.limite_tier || canalAtual?.messaging_limit_tier || canalAtual?.limite_tier || "";
+      const limiteTier = statusResp?.whatsapp_business_manager_messaging_limit || statusResp?.messaging_limit_tier || statusResp?.tier || statusResp?.limite_tier || "";
       const limite24h = resolverLimiteMeta(
         statusResp?.limite24h,
-        statusResp?.messaging_limit,
-        statusResp?.limite_diario,
-        statusResp?.daily_limit,
-        canalAtual?.limite24h,
-        canalAtual?.limite_24h,
-        canalAtual?.limite_meta,
-        canalAtual?.limite_mensagens,
-        canalAtual?.messaging_limit,
+        statusResp?.whatsapp_business_manager_messaging_limit,
         limiteTier
       );
-      const limite1h = Number(statusResp?.limite1h || statusResp?.hourly_limit || 200);
+      const limite1h = Math.max(0, Number(statusResp?.limite1h || statusResp?.hourly_limit || 0));
       const uso24h = pct(enviados24h, limite24h);
       const uso1h = pct(enviados1h, limite1h);
-      const saudeInterna = conectado ? (falhas24h > 0 ? Math.max(70, 100 - Math.min(30, falhas24h * 3)) : 100) : 35;
+      const totalTentativas = enviados24h + falhas24h;
+      const taxaFalha = totalTentativas > 0 ? falhas24h / totalTentativas : 0;
 
       const alertas: string[] = [];
       if (!conectado) alertas.push("Canal WABA nao esta conectado ou a API Meta nao respondeu como conectada.");
       if (statusResp?.error) alertas.push(`API Meta retornou erro: ${statusResp.error}`);
-      if (uso24h >= 90) alertas.push(`Uso rolling 24h elevado (${uso24h}% do teto estimado).`);
-      else if (uso24h >= 75) alertas.push(`Uso rolling 24h em atencao (${uso24h}% do teto estimado).`);
-      if (uso1h >= 80) alertas.push(`Muitos envios na ultima hora (${enviados1h}/${limite1h}).`);
+      if (!limite24h) alertas.push("A Meta nao devolveu o limite do portfolio para este token/canal.");
+      else if (uso24h >= 90) alertas.push(`Uso das ultimas 24h elevado (${uso24h}% do limite Meta).`);
+      else if (uso24h >= 75) alertas.push(`Uso das ultimas 24h em atencao (${uso24h}% do limite Meta).`);
+      if (limite1h > 0 && uso1h >= 80) alertas.push(`Muitos envios na ultima hora (${enviados1h}/${limite1h}).`);
       if (falhas24h > 0) alertas.push(`${falhas24h} falha(s) de envio nas ultimas 24h.`);
       if (templatesAprovados === 0) alertas.push("Nenhum template aprovado para este canal.");
       if (templatesRejeitados > 0) alertas.push(`${templatesRejeitados} template(s) rejeitado(s) precisam de ajuste.`);
 
-      let score = saudeInterna;
-      if (qualidade === "Media") score -= 8;
-      if (qualidade === "Baixa") score -= 22;
-      if (uso24h >= 90) score -= 12;
-      else if (uso24h >= 75) score -= 6;
-      if (uso1h >= 80) score -= 8;
-      if (templatesAprovados === 0) score -= 15;
-      if (templatesRejeitados > 0) score -= Math.min(12, templatesRejeitados * 3);
-      if (statusResp?.error) score -= 18;
+      let score = conectado ? 100 : 0;
+      if (qualidade === "Media") score -= 15;
+      if (qualidade === "Baixa") score -= 35;
+      if (qualidade === "Desconhecida") score -= 5;
+      score -= Math.min(40, Math.round(taxaFalha * 100));
+      if (statusResp?.error || statusResp?.metricas_fonte === "indisponivel") score = Math.min(score, 40);
       score = Math.max(0, Math.min(100, Math.round(score)));
+      const saudeInterna = score;
 
-      const podeDispararAgora = conectado && score >= 50 && templatesAprovados > 0;
+      const podeDispararAgora = conectado && templatesAprovados > 0;
 
       setIntegridadeApi({
         loading: false,
@@ -637,6 +664,9 @@ export default function DisparosPage() {
         limite24h,
         limite1h,
         limiteTier,
+        limiteFonte: statusResp?.limite_fonte || "",
+        metricasFonte: statusResp?.metricas_fonte || "",
+        metricasDescricao: statusResp?.metricas_descricao || "",
         enviados24h,
         enviados1h,
         falhas24h,
@@ -822,7 +852,7 @@ export default function DisparosPage() {
                 {integridadeApi.numero || canalEscolhido?.phone_number_id || "Numero nao informado"} · {canalEscolhido?.waba_id || "WABA sem ID visivel"}
               </p>
               <p style={{ color: "#64748b", fontSize: 12, margin: "4px 0 0", lineHeight: 1.6 }}>
-                Sincronizado: {integridadeApi.atualizadoEm ? new Date(integridadeApi.atualizadoEm).toLocaleString("pt-BR") : "aguardando leitura"} · Nome: {integridadeApi.nomeMeta || "nao retornado"} · Meta: {integridadeApi.statusMeta}
+                Sincronizado: {integridadeApi.atualizadoEm ? new Date(integridadeApi.atualizadoEm || 0).toLocaleString("pt-BR") : "aguardando leitura"} · Nome: {integridadeApi.nomeMeta || "nao retornado"} · Meta: {integridadeApi.statusMeta}
               </p>
             </div>
 
@@ -956,13 +986,18 @@ export default function DisparosPage() {
                 </span>
               </div>
               <p style={{ color: "#64748b", fontSize: 11, margin: 0, lineHeight: 1.7 }}>
-                Limite Meta 24h: <b>{integridadeApi.limite24h ? integridadeApi.limite24h.toLocaleString("pt-BR") : "nao retornado"}</b>
+                Limite Meta do portfolio: <b>{integridadeApi.limite24h ? integridadeApi.limite24h.toLocaleString("pt-BR") : "nao retornado"}</b>
                 {integridadeApi.limiteTier ? <> ({integridadeApi.limiteTier})</> : null}
                 {" "}· Enviadas 24h: <b>{integridadeApi.enviados24h.toLocaleString("pt-BR")}</b>
-                {" "}· 1h: <b>{integridadeApi.enviados1h}/{integridadeApi.limite1h}</b>
+                {" "}· Enviadas 1h: <b>{integridadeApi.enviados1h.toLocaleString("pt-BR")}{integridadeApi.limite1h > 0 ? `/${integridadeApi.limite1h}` : ""}</b>
                 {" "}· Falhas 24h: <b style={{ color: integridadeApi.falhas24h ? "#dc2626" : "#16a34a" }}>{integridadeApi.falhas24h}</b>
                 {" "}· Templates aprovados: <b>{integridadeApi.templatesAprovados}</b>
               </p>
+              {(integridadeApi.limiteFonte || integridadeApi.metricasFonte) && (
+                <p style={{ color: "#94a3b8", fontSize: 10, margin: "3px 0 0", lineHeight: 1.5 }}>
+                  Limite: {integridadeApi.limiteFonte || "Meta nao retornou"} · Metricas: {integridadeApi.metricasFonte || "indisponiveis"}
+                </p>
+              )}
               {(integridadeApi.alertas[0] || integridadeApi.erro) && (
                 <p style={{ color: "#92400e", fontSize: 11, margin: "6px 0 0", fontWeight: 700 }}>
                   {integridadeApi.erro || integridadeApi.alertas[0]}
@@ -1000,6 +1035,7 @@ export default function DisparosPage() {
                 ))}
               </select>
             )}
+            {atualizandoTemplateMeta && <p style={{ color: "#2563eb", fontSize: 11, fontWeight: 700, margin: "6px 0 0" }}>Consultando categoria e status atuais na Meta...</p>}
           </div>
         )}
 
@@ -1018,7 +1054,7 @@ export default function DisparosPage() {
                 {templateEscolhido.status || "sem status"}
               </span>
               <span style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
-                {templateEscolhido.categoria || "sem categoria"}
+                Categoria Meta: {templateEscolhido.categoria_meta || templateEscolhido.categoria || "sem categoria"}
               </span>
               <span style={{ background: "#f5f3ff", color: "#6d28d9", border: "1px solid #ddd6fe", borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
                 {templateEscolhido.idioma || "sem idioma"}
@@ -1031,7 +1067,12 @@ export default function DisparosPage() {
               {" "}· Variaveis: <b>{varsTemplate.length}</b>
               {" "}· Sincronizado: <b>{templateEscolhido.ultima_sincronizacao ? new Date(templateEscolhido.ultima_sincronizacao).toLocaleString("pt-BR") : "nao informado"}</b>
             </p>
-            {(templateEscolhido.motivo_rejeicao || templateEscolhido.rejected_reason) && (
+            {templateEscolhido.correct_category && templateEscolhido.correct_category !== (templateEscolhido.categoria_meta || templateEscolhido.categoria) && (
+              <p style={{ color: "#92400e", fontSize: 11, margin: "6px 0 0", fontWeight: 800 }}>
+                Proxima categoria indicada pela Meta: {templateEscolhido.correct_category}
+              </p>
+            )}
+            {(templateEscolhido.motivo_rejeicao || templateEscolhido.rejected_reason) && !["NONE", "NULL", "N/A"].includes(String(templateEscolhido.motivo_rejeicao || templateEscolhido.rejected_reason).toUpperCase()) && (
               <p style={{ color: "#b91c1c", fontSize: 11, margin: "6px 0 0", fontWeight: 800 }}>
                 Motivo Meta: {templateEscolhido.motivo_rejeicao || templateEscolhido.rejected_reason}
               </p>
