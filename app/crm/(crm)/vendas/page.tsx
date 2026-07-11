@@ -73,34 +73,61 @@ const fmtLogVal = (v: any): string => {
   return s;
 };
 
-const statusColor: Record<string, string> = {
-  PENDENTE: "#f59e0b",
-  "AGUARDANDO AUDITORIA": "#3b82f6",
-  "AGUARDANDO INSTALACAO": "#0ea5e9",
-  "AGUARDANDO INSTALAÇÃO": "#0ea5e9",
-  "PENDENTE DE INSTALACAO": "#f59e0b",
-  "PENDENTE DE INSTALAÇÃO": "#f59e0b",
-  CANCELADA: "#dc2626",
-  INSTALADA: "#16a34a",
-  GERADA: "#8b5cf6",
-  REPROVADA: "#ef4444",
-};
-
 const normalizarStatusVenda = (s: any): string =>
   String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase();
 
-const statusMeta = (s: any): { cor: string; bg: string; border: string; emoji: string; grupo: "instaladas" | "andamento" | "canceladas" | "outros" } => {
+type GrupoStatusVenda = "instaladas" | "andamento" | "canceladas" | "outros";
+type MetaStatusVenda = { cor: string; bg: string; border: string; emoji: string; grupo: GrupoStatusVenda };
+
+const metaStatusPersonalizado = (statusNormalizado: string, grupo: GrupoStatusVenda = "outros"): MetaStatusVenda => {
+  let hash = 0;
+  for (let i = 0; i < statusNormalizado.length; i++) {
+    hash = ((hash << 5) - hash + statusNormalizado.charCodeAt(i)) | 0;
+  }
+  const valor = Math.abs(hash);
+  const hue = valor % 360;
+  const saturacao = 62 + ((valor >>> 8) % 16);
+  return {
+    cor: `hsl(${hue}, ${saturacao}%, 34%)`,
+    bg: `hsl(${hue}, ${Math.min(85, saturacao + 8)}%, 96%)`,
+    border: `hsl(${hue}, ${saturacao}%, 76%)`,
+    emoji: "●",
+    grupo,
+  };
+};
+
+const statusMeta = (s: any): MetaStatusVenda => {
   const t = normalizarStatusVenda(s);
+  if (!t) return { cor: "#64748b", bg: "#f8fafc", border: "#cbd5e1", emoji: "•", grupo: "outros" };
+
   if (/INSTALAD|ATIVAD|CONCLUID|FINALIZAD/.test(t) && !/NAO|CANCEL|REPROV|CHURN/.test(t)) {
     return { cor: "#16a34a", bg: "#ecfdf5", border: "#86efac", emoji: "✅", grupo: "instaladas" };
   }
-  if (/CANCEL|REPROV|CHURN|FRAUDE|PERDID|NEGAD|RECUSAD|FR PREV/.test(t)) {
+
+  if (/FRAUDE/.test(t)) return { cor: "#a21caf", bg: "#fdf4ff", border: "#f0abfc", emoji: "⚠", grupo: "canceladas" };
+  if (/REPROV/.test(t)) return { cor: "#e11d48", bg: "#fff1f2", border: "#fda4af", emoji: "✕", grupo: "canceladas" };
+  if (/CHURN/.test(t)) return { cor: "#be123c", bg: "#fff1f2", border: "#fb7185", emoji: "↘", grupo: "canceladas" };
+  if (/PERDID/.test(t)) return { cor: "#991b1b", bg: "#fef2f2", border: "#fca5a5", emoji: "−", grupo: "canceladas" };
+  if (/NEGAD|RECUSAD/.test(t)) return { cor: "#b91c1c", bg: "#fef2f2", border: "#fecaca", emoji: "⊘", grupo: "canceladas" };
+  if (/CANCEL|FR PREV/.test(t)) {
     return { cor: "#dc2626", bg: "#fef2f2", border: "#fecaca", emoji: "✕", grupo: "canceladas" };
   }
-  if (/AGUARD|PENDENT|GERAD|AUDITOR|BIOMETR|ANALIS|ANALISE|PROCESS|ANDAMENTO|ABERT|ENVIAD|VALIDA|INSTALACAO|INSTALAÇÃO/.test(t)) {
-    return { cor: "#f59e0b", bg: "#fffbeb", border: "#fde68a", emoji: "⏳", grupo: "andamento" };
-  }
-  return { cor: statusColor[t] || "#64748b", bg: "#f8fafc", border: "#cbd5e1", emoji: "•", grupo: "outros" };
+
+  if (/AGUARDANDO AUDITORIA|AUDITORIA/.test(t)) return { cor: "#2563eb", bg: "#eff6ff", border: "#93c5fd", emoji: "🔎", grupo: "andamento" };
+  if (/PENDENTE DE INSTALACAO/.test(t)) return { cor: "#d97706", bg: "#fffbeb", border: "#fcd34d", emoji: "🛠", grupo: "andamento" };
+  if (/AGUARDANDO INSTALACAO/.test(t)) return { cor: "#0891b2", bg: "#ecfeff", border: "#67e8f9", emoji: "⌛", grupo: "andamento" };
+  if (/GERAD/.test(t)) return { cor: "#7c3aed", bg: "#f5f3ff", border: "#c4b5fd", emoji: "◆", grupo: "andamento" };
+  if (/BIOMETR/.test(t)) return { cor: "#4f46e5", bg: "#eef2ff", border: "#a5b4fc", emoji: "◎", grupo: "andamento" };
+  if (/ANALIS|ANALISE/.test(t)) return { cor: "#9333ea", bg: "#faf5ff", border: "#d8b4fe", emoji: "◈", grupo: "andamento" };
+  if (/VALIDA/.test(t)) return { cor: "#c026d3", bg: "#fdf4ff", border: "#f0abfc", emoji: "✓", grupo: "andamento" };
+  if (/PROCESS/.test(t)) return { cor: "#0f766e", bg: "#f0fdfa", border: "#5eead4", emoji: "↻", grupo: "andamento" };
+  if (/ENVIAD/.test(t)) return { cor: "#0369a1", bg: "#f0f9ff", border: "#7dd3fc", emoji: "➜", grupo: "andamento" };
+  if (/ABERT/.test(t)) return { cor: "#475569", bg: "#f8fafc", border: "#cbd5e1", emoji: "○", grupo: "andamento" };
+  if (/ANDAMENTO/.test(t)) return { cor: "#0284c7", bg: "#f0f9ff", border: "#7dd3fc", emoji: "▶", grupo: "andamento" };
+  if (/PENDENT/.test(t)) return { cor: "#ea580c", bg: "#fff7ed", border: "#fdba74", emoji: "⏳", grupo: "andamento" };
+  if (/AGUARD|INSTALACAO/.test(t)) return metaStatusPersonalizado(t, "andamento");
+
+  return metaStatusPersonalizado(t);
 };
 
 export default function Vendas() {
