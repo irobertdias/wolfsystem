@@ -48,16 +48,22 @@ export function traduzirErro(err: any): string {
   // (vêm no error_subcode da resposta da Graph API)
   const subcode = Number(err?.error_subcode ?? err?.subcodigo);
   if (subcode === 2388001) return "A conta business da Meta não atende aos requisitos de política do WhatsApp. Abra um chamado no Meta Business Suite (Recursos → Falar com suporte) com o fbtrace_id deste erro.";
-  if (subcode === 2388023) return "Display Name do WhatsApp foi rejeitado. Altere no Meta Business Manager pra um nome que represente a empresa.";
-  if (subcode === 2388092) return "Verificação da empresa pendente na Meta. Complete a Business Verification antes de registrar o número.";
+  if (subcode === 2388023) return "O nome de exibição do WhatsApp foi rejeitado. Altere no Gerenciador de Negócios da Meta para um nome que represente a empresa.";
+  if (subcode === 2388092) return "A verificação da empresa está pendente na Meta. Conclua a verificação empresarial antes de registrar o número.";
   if (subcode === 2388013) return "Número já em uso em outra conta Business da Meta. Migre o número ou use outro.";
 
   // Título amigável que a Meta às vezes manda pronto
   const titleMeta = err?.error_user_title;
   const msgMeta = err?.error_user_msg;
   if (titleMeta && typeof titleMeta === "string" && titleMeta.length < 100) {
-    // Se Meta já mandou texto amigável, usa ele (eles geralmente escrevem bem)
-    return titleMeta + (msgMeta && msgMeta.length < 300 ? ` — ${msgMeta}` : "");
+    const textoMeta = `${titleMeta} ${msgMeta || ""}`.toLowerCase();
+    if (textoMeta.includes("unsupported get request") || textoMeta.includes("object with id")) {
+      return "A Meta não encontrou o identificador informado ou o token não possui acesso a ele. Confira se o ID e o token pertencem à mesma conta.";
+    }
+    // Só mostra o texto original quando ele já veio em português.
+    if (/\b(não|erro|falha|conta|número|permissão|acesso|mensagem)\b/i.test(`${titleMeta} ${msgMeta || ""}`)) {
+      return titleMeta + (msgMeta && msgMeta.length < 300 ? ` — ${msgMeta}` : "");
+    }
   }
 
   const m = msg.toLowerCase();
@@ -66,7 +72,8 @@ export function traduzirErro(err: any): string {
   // Lista oficial: https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes/
   if (codigo !== undefined) {
     const cod = Number(codigo);
-    if (cod === 100)    return "Dado inválido enviado ao WhatsApp. Verifique se o número está em formato internacional e o conteúdo da mensagem.";
+    if (cod === 100 && (m.includes("unsupported get request") || m.includes("object with id") || m.includes("does not exist"))) return "A Meta não encontrou o identificador informado ou o token não possui acesso a ele. Confira se o ID e o token pertencem à mesma conta.";
+    if (cod === 100)    return "Dado inválido enviado ao WhatsApp. Verifique o número, os identificadores da conta e o conteúdo da mensagem.";
     if (cod === 190)    return "A conexão com o WhatsApp expirou. Reconecte o canal nas Configurações.";
     if (cod === 10)     return "Permissão negada pelo WhatsApp. Verifique as permissões do app no Meta Business.";
     if (cod === 4)      return "Limite de chamadas do WhatsApp atingido. Aguarde alguns minutos.";
@@ -108,6 +115,10 @@ export function traduzirErro(err: any): string {
   // ─── 3) Padrões textuais conhecidos (sem código específico) ──────────
 
   // Meta API genérico
+  if (m.includes("unsupported get request") || m.includes("object with id") || (m.includes("does not exist") && m.includes("permission")))
+    return "A Meta não encontrou o identificador informado ou o token não possui acesso a ele. Confira se o ID e o token pertencem à mesma conta.";
+  if (m.includes("missing permissions") || m.includes("permission") && m.includes("cannot"))
+    return "O token não possui as permissões necessárias para realizar essa consulta na Meta.";
   if (m.includes("invalid parameter")) return "Algum dado enviado ao WhatsApp está em formato inválido. Verifique e tente de novo.";
   if (m.includes("rate limit") || m.includes("too many"))
     return "Você fez muitas requisições em pouco tempo. Aguarde 1-2 minutos e tente novamente.";
@@ -177,6 +188,11 @@ export function traduzirErro(err: any): string {
   // Facebook SDK
   if (m.includes("fb") && (m.includes("not loaded") || m.includes("undefined")))
     return "O sistema de login do Facebook ainda está carregando. Aguarde 2 segundos e tente novamente.";
+
+  // Nunca deixa uma mensagem técnica em inglês aparecer para o cliente.
+  if (/\b(the|with|does|cannot|please|failed|error|request|permission|invalid|unsupported|unknown|missing|read the)\b/i.test(msg)) {
+    return "A integração retornou um erro técnico. Verifique os dados informados e tente novamente; se persistir, consulte o suporte.";
+  }
 
   // Fallback — mostra a mensagem original (truncada se for muito longa)
   if (msg.length > 200) msg = msg.slice(0, 200) + "...";

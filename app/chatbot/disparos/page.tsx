@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useModulos, ModuloBloqueado } from "../../hooks/useModulos";
+import { traduzirErro } from "../../lib/traduzir_erro";
 
 type Canal = {
   id: number;
@@ -51,7 +52,7 @@ type Disparo = {
   agendado_para?: string;
 };
 type ContatoWaba = { numero: string; vars: Record<string, string>; };
-type QualidadeApi = "Alta" | "Media" | "Baixa" | "Desconhecida";
+type QualidadeApi = "Alta" | "Média" | "Baixa" | "Desconhecida";
 type IntegridadeApi = {
   loading: boolean;
   atualizadoEm: string | null;
@@ -101,7 +102,7 @@ const integridadeInicial: IntegridadeApi = {
   templatesPendentes: 0,
   templatesRejeitados: 0,
   alertas: [],
-  recomendacao: "Selecione um canal WABA para medir a integridade.",
+  recomendacao: "Selecione um canal da API oficial para medir a integridade.",
 };
 
 // 🗓️ Helpers de agendamento
@@ -407,17 +408,17 @@ export default function DisparosPage() {
     if (!mensagem.trim()) return alert("Digite a mensagem!");
     if (numeros.length === 0) return alert("Nenhum número válido!");
     if (numeros.length > 1000) return alert("Máximo 1000 números por disparo!");
-    if (delayMin < 30) return alert("Delay mínimo deve ser pelo menos 30 segundos");
-    if (delayMin > delayMax) return alert("Delay mínimo não pode ser maior que o máximo");
+    if (delayMin < 30) return alert("O intervalo mínimo deve ser de pelo menos 30 segundos");
+    if (delayMin > delayMax) return alert("O intervalo mínimo não pode ser maior que o máximo");
 
     // 🗓️ valida agendamento (se ativo)
     const ag = resolverAgendamento();
     if (!ag.ok) return alert("⚠️ " + ag.erro);
 
-    const avisoDelay = delayMin < 60 ? `\n\n⚠️ ATENÇÃO: Delay abaixo de 60s aumenta MUITO o risco de banimento!` : "";
+    const avisoDelay = delayMin < 60 ? `\n\n⚠️ ATENÇÃO: intervalo abaixo de 60 segundos aumenta MUITO o risco de banimento!` : "";
     const tempoEstimadoMin = Math.ceil((numeros.length * (delayMin + delayMax) / 2) / 60);
     const linhaAgenda = ag.iso ? `\n🗓️ Agendado pra: ${new Date(ag.iso).toLocaleString("pt-BR")}` : "";
-    if (!confirm(`Iniciar disparo WebJS?\n\n📱 Números: ${numeros.length}\n⏱️ Delay: ${delayMin}-${delayMax}s\n⏳ Estimado: ~${tempoEstimadoMin}min${linhaAgenda}${avisoDelay}`)) return;
+    if (!confirm(`Iniciar disparo pelo WhatsApp Web?\n\n📱 Números: ${numeros.length}\n⏱️ Intervalo: ${delayMin}-${delayMax}s\n⏳ Estimado: ~${tempoEstimadoMin}min${linhaAgenda}${avisoDelay}`)) return;
 
     setEnviando(true);
     try {
@@ -443,12 +444,12 @@ export default function DisparosPage() {
   };
 
   const iniciarDisparoWaba = async () => {
-    if (!canalSelecionado) return alert("Selecione um canal WABA!");
-    if (!templateSelecionado) return alert("Selecione um template aprovado!");
+    if (!canalSelecionado) return alert("Selecione um canal da API oficial!");
+    if (!templateSelecionado) return alert("Selecione um modelo aprovado!");
 
     const contatosFinal = contatosWaba.length > 0 ? contatosWaba : montarContatosWabaDoTexto();
     if (contatosFinal.length === 0) return alert("Adicione pelo menos 1 contato!");
-    if (contatosFinal.length > 5000) return alert("Máximo 5000 contatos por disparo WABA");
+    if (contatosFinal.length > 5000) return alert("O máximo é de 5.000 contatos por disparo pela API oficial");
 
     const varsTemplate = extrairVariaveisTemplate();
     const varsSemValor: string[] = [];
@@ -466,7 +467,7 @@ export default function DisparosPage() {
     if (!ag.ok) return alert("⚠️ " + ag.erro);
 
     const linhaAgenda = ag.iso ? `\n🗓️ Agendado pra: ${new Date(ag.iso).toLocaleString("pt-BR")}` : "";
-    if (!confirm(`Iniciar disparo WABA?\n\n📱 Contatos: ${contatosFinal.length}\n📋 Template: ${templates.find(t => t.id === templateSelecionado)?.nome_amigavel}\n⏱️ Delay: ${delayMin}-${delayMax}s${linhaAgenda}`)) return;
+    if (!confirm(`Iniciar disparo pela API oficial?\n\n📱 Contatos: ${contatosFinal.length}\n📋 Modelo: ${templates.find(t => t.id === templateSelecionado)?.nome_amigavel}\n⏱️ Intervalo: ${delayMin}-${delayMax}s${linhaAgenda}`)) return;
 
     setEnviando(true);
     try {
@@ -482,8 +483,8 @@ export default function DisparosPage() {
       });
       if (resp.success) {
         const msgOk = ag.iso
-          ? `✅ Disparo WABA agendado!\n\n${resp.totalContatos} contatos na fila.\n🗓️ Vai começar em: ${new Date(ag.iso).toLocaleString("pt-BR")}`
-          : `✅ Disparo WABA iniciado!\n\n${resp.totalContatos} contatos na fila.`;
+          ? `✅ Disparo pela API oficial agendado!\n\n${resp.totalContatos} contatos na fila.\n🗓️ Vai começar em: ${new Date(ag.iso).toLocaleString("pt-BR")}`
+          : `✅ Disparo pela API oficial iniciado!\n\n${resp.totalContatos} contatos na fila.`;
         alert(msgOk);
         setNome(""); setVarsFixas({}); setContatosWaba([]); setNumerosTexto("");
         setAgendarAtivo(false); setAgendarPara("");
@@ -542,7 +543,7 @@ export default function DisparosPage() {
   const normalizarQualidade = (valor: any, falhas24h = 0, enviados24h = 0): QualidadeApi => {
     const q = String(valor || "").toLowerCase();
     if (["green", "alta", "high"].some(v => q.includes(v))) return "Alta";
-    if (["yellow", "media", "média", "medium"].some(v => q.includes(v))) return "Media";
+    if (["yellow", "media", "média", "medium"].some(v => q.includes(v))) return "Média";
     if (["red", "baixa", "low"].some(v => q.includes(v))) return "Baixa";
     return "Desconhecida";
   };
@@ -560,6 +561,36 @@ export default function DisparosPage() {
       if (numero) return Number(numero[1]);
     }
     return 0;
+  };
+
+  const traduzirCategoriaTemplate = (categoria?: string | null) => {
+    const chave = String(categoria || "").toUpperCase();
+    const nomes: Record<string, string> = {
+      MARKETING: "Marketing",
+      UTILITY: "Utilidade",
+      AUTHENTICATION: "Autenticação",
+    };
+    return nomes[chave] || categoria || "Sem categoria";
+  };
+
+  const formatarTierMeta = (tier?: string | null) => {
+    const limite = resolverLimiteMeta(tier);
+    if (!tier) return "";
+    if (String(tier).toUpperCase().includes("UNLIMITED")) return "sem limite definido";
+    return limite ? `${limite.toLocaleString("pt-BR")} contatos em 24h` : "limite informado pela Meta";
+  };
+
+  const traduzirFonteLimite = (fonte?: string | null) => {
+    if (!fonte) return "Meta não retornou";
+    if (fonte.startsWith("meta.")) return "Meta, em tempo real";
+    if (fonte.startsWith("banco.")) return "última leitura salva";
+    return "Meta";
+  };
+
+  const traduzirFonteMetricas = (fonte?: string | null) => {
+    if (fonte === "supabase.mensagens") return "registros reais do canal";
+    if (fonte === "indisponivel") return "temporariamente indisponíveis";
+    return fonte ? "registros do sistema" : "indisponíveis";
   };
 
   const pct = (valor: number, total: number) => total > 0 ? Math.min(100, Math.round((valor / total) * 100)) : 0;
@@ -630,18 +661,18 @@ export default function DisparosPage() {
       const taxaFalha = totalTentativas > 0 ? falhas24h / totalTentativas : 0;
 
       const alertas: string[] = [];
-      if (!conectado) alertas.push("Canal WABA nao esta conectado ou a API Meta nao respondeu como conectada.");
-      if (statusResp?.error) alertas.push(`API Meta retornou erro: ${statusResp.error}`);
+      if (!conectado) alertas.push("O canal da API oficial não está conectado ou a Meta não confirmou a conexão.");
+      if (statusResp?.error) alertas.push(`A Meta retornou um erro: ${traduzirErro({ ...statusResp, code: statusResp?.error_code })}`);
       if (!limite24h) alertas.push("A Meta nao devolveu o limite do portfolio para este token/canal.");
       else if (uso24h >= 90) alertas.push(`Uso das ultimas 24h elevado (${uso24h}% do limite Meta).`);
       else if (uso24h >= 75) alertas.push(`Uso das ultimas 24h em atencao (${uso24h}% do limite Meta).`);
       if (limite1h > 0 && uso1h >= 80) alertas.push(`Muitos envios na ultima hora (${enviados1h}/${limite1h}).`);
       if (falhas24h > 0) alertas.push(`${falhas24h} falha(s) de envio nas ultimas 24h.`);
-      if (templatesAprovados === 0) alertas.push("Nenhum template aprovado para este canal.");
-      if (templatesRejeitados > 0) alertas.push(`${templatesRejeitados} template(s) rejeitado(s) precisam de ajuste.`);
+      if (templatesAprovados === 0) alertas.push("Nenhum modelo aprovado para este canal.");
+      if (templatesRejeitados > 0) alertas.push(`${templatesRejeitados} modelo(s) rejeitado(s) precisam de ajuste.`);
 
       let score = conectado ? 100 : 0;
-      if (qualidade === "Media") score -= 15;
+      if (qualidade === "Média") score -= 15;
       if (qualidade === "Baixa") score -= 35;
       if (qualidade === "Desconhecida") score -= 5;
       score -= Math.min(40, Math.round(taxaFalha * 100));
@@ -683,7 +714,7 @@ export default function DisparosPage() {
         erro: e?.message || "Erro ao calcular integridade da API.",
         atualizadoEm: new Date().toISOString(),
         alertas: [`Falha ao atualizar integridade: ${e?.message || "erro desconhecido"}`],
-        recomendacao: "Recomendacao: confira Supabase, backend WABA e credenciais do canal antes de disparar.",
+        recomendacao: "Recomendação: confira o banco de dados, o serviço da API oficial e as credenciais do canal antes de disparar.",
       }));
     } finally {
       setAtualizandoIntegridade(false);
@@ -700,7 +731,7 @@ export default function DisparosPage() {
   };
 
   const corScore = integridadeApi.score >= 85 ? "#059669" : integridadeApi.score >= 60 ? "#f59e0b" : "#dc2626";
-  const corQualidade = integridadeApi.qualidade === "Alta" ? "#059669" : integridadeApi.qualidade === "Media" ? "#f59e0b" : integridadeApi.qualidade === "Baixa" ? "#dc2626" : "#64748b";
+  const corQualidade = integridadeApi.qualidade === "Alta" ? "#059669" : integridadeApi.qualidade === "Média" ? "#f59e0b" : integridadeApi.qualidade === "Baixa" ? "#dc2626" : "#64748b";
   const podeDispararApi = tipoDisparo !== "waba" || (canalConectado && integridadeApi.score >= 50 && integridadeApi.templatesAprovados > 0);
   const barraIntegridade = (label: string, valor: number, total: number, cor: string, detalhe: string) => {
     const largura = pct(valor, total);
@@ -765,7 +796,7 @@ export default function DisparosPage() {
           <div>
             <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Disparos em Massa</h1>
             <p style={{ color: "#6b7280", fontSize: 13, margin: "2px 0 0", maxWidth: 720, lineHeight: 1.5 }}>
-              Envie mensagens em lote via WhatsApp Web (risco de ban) ou via API Oficial Meta (template aprovado, sem banimento).
+              Envie mensagens em lote pelo WhatsApp Web ou pela API oficial da Meta com um modelo aprovado.
             </p>
           </div>
         </div>
@@ -777,7 +808,7 @@ export default function DisparosPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <button onClick={() => setTipoDisparo("webjs")}
             disabled={!modulos.disparos_web}
-            title={!modulos.disparos_web ? "Disparos WebJS não estão no seu plano" : ""}
+            title={!modulos.disparos_web ? "Disparos pelo WhatsApp Web não estão no seu plano" : ""}
             style={{
               background: tipoDisparo === "webjs" ? "#eff6ff" : "#f9fafb",
               border: `2px solid ${tipoDisparo === "webjs" ? "#3b82f6" : "#e5e7eb"}`,
@@ -789,11 +820,11 @@ export default function DisparosPage() {
             }}>
             <p style={{ fontSize: 24, margin: "0 0 6px" }}>📱 {!modulos.disparos_web && "🔒"}</p>
             <p style={{ color: tipoDisparo === "webjs" ? "#3b82f6" : "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>WhatsApp Web</p>
-            <p style={{ color: "#6b7280", fontSize: 11, margin: 0, lineHeight: 1.4 }}>Texto livre. Delays longos obrigatórios. Alto risco de banimento.</p>
+            <p style={{ color: "#6b7280", fontSize: 11, margin: 0, lineHeight: 1.4 }}>Texto livre. Intervalos longos obrigatórios. Alto risco de banimento.</p>
           </button>
           <button onClick={() => setTipoDisparo("waba")}
             disabled={!modulos.disparos_api}
-            title={!modulos.disparos_api ? "Disparos WABA só no plano Ultra" : ""}
+            title={!modulos.disparos_api ? "Disparos pela API oficial estão disponíveis somente no plano Ultra" : ""}
             style={{
               background: tipoDisparo === "waba" ? "#f0fdf4" : "#f9fafb",
               border: `2px solid ${tipoDisparo === "waba" ? "#16a34a" : "#e5e7eb"}`,
@@ -804,8 +835,8 @@ export default function DisparosPage() {
               boxShadow: tipoDisparo === "waba" ? "0 4px 12px rgba(22,163,74,0.15)" : "none",
             }}>
             <p style={{ fontSize: 24, margin: "0 0 6px" }}>🔗 {!modulos.disparos_api && "🔒"}</p>
-            <p style={{ color: tipoDisparo === "waba" ? "#16a34a" : "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>API Oficial (WABA)</p>
-            <p style={{ color: "#6b7280", fontSize: 11, margin: 0, lineHeight: 1.4 }}>Usa template aprovado pela Meta. Sem banimento. Até 5000/disparo.</p>
+            <p style={{ color: tipoDisparo === "waba" ? "#16a34a" : "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>API oficial da Meta</p>
+            <p style={{ color: "#6b7280", fontSize: 11, margin: 0, lineHeight: 1.4 }}>Usa modelo aprovado pela Meta. Até 5.000 contatos por disparo.</p>
           </button>
         </div>
       </div>
@@ -814,13 +845,13 @@ export default function DisparosPage() {
       {tipoDisparo === "webjs" ? (
         <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626", borderRadius: 12, padding: "14px 18px" }}>
           <p style={{ color: "#991b1b", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
-            <b>⚠️ Aviso:</b> Disparo por WhatsApp Web é a principal causa de banimento. Use delays ≥60s, não dispare pra quem nunca te mandou mensagem, e limite 100-200/dia por número novo.
+            <b>⚠️ Aviso:</b> Disparo por WhatsApp Web é a principal causa de banimento. Use intervalos de pelo menos 60 segundos, não dispare para quem nunca enviou mensagem e limite a 100 ou 200 contatos por dia em números novos.
           </p>
         </div>
       ) : (
         <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderLeft: "4px solid #16a34a", borderRadius: 12, padding: "14px 18px" }}>
           <p style={{ color: "#166534", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
-            <b>✅ Via API Oficial:</b> Templates aprovados pela Meta não causam banimento. O preço por mensagem varia por categoria (Marketing/Utility/Authentication). Delay padrão 1-3s é suficiente.
+            <b>✅ Pela API oficial:</b> Modelos aprovados pela Meta seguem as regras da plataforma. O preço por mensagem varia por categoria (Marketing/Utilidade/Autenticação). Um intervalo de 1 a 3 segundos é suficiente.
           </p>
         </div>
       )}
@@ -935,7 +966,7 @@ export default function DisparosPage() {
 
       {/* ═══ FORMULÁRIO ═══ */}
       <div style={{ ...cardStyle, padding: 24 }}>
-        <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 18px" }}>🚀 Novo Disparo {tipoDisparo === "webjs" ? "WebJS" : "WABA"}</h2>
+        <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 18px" }}>🚀 Novo disparo {tipoDisparo === "webjs" ? "pelo WhatsApp Web" : "pela API oficial"}</h2>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
           <div>
@@ -954,7 +985,7 @@ export default function DisparosPage() {
           </div>
           <div>
             <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Nome da Campanha (opcional)</label>
-            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Black Friday" style={IS} />
+            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex.: Campanha de julho" style={IS} />
           </div>
         </div>
 
@@ -987,15 +1018,15 @@ export default function DisparosPage() {
               </div>
               <p style={{ color: "#64748b", fontSize: 11, margin: 0, lineHeight: 1.7 }}>
                 Limite Meta do portfolio: <b>{integridadeApi.limite24h ? integridadeApi.limite24h.toLocaleString("pt-BR") : "nao retornado"}</b>
-                {integridadeApi.limiteTier ? <> ({integridadeApi.limiteTier})</> : null}
+                {integridadeApi.limiteTier ? <> ({formatarTierMeta(integridadeApi.limiteTier)})</> : null}
                 {" "}· Enviadas 24h: <b>{integridadeApi.enviados24h.toLocaleString("pt-BR")}</b>
                 {" "}· Enviadas 1h: <b>{integridadeApi.enviados1h.toLocaleString("pt-BR")}{integridadeApi.limite1h > 0 ? `/${integridadeApi.limite1h}` : ""}</b>
                 {" "}· Falhas 24h: <b style={{ color: integridadeApi.falhas24h ? "#dc2626" : "#16a34a" }}>{integridadeApi.falhas24h}</b>
-                {" "}· Templates aprovados: <b>{integridadeApi.templatesAprovados}</b>
+                {" "}· Modelos aprovados: <b>{integridadeApi.templatesAprovados}</b>
               </p>
               {(integridadeApi.limiteFonte || integridadeApi.metricasFonte) && (
                 <p style={{ color: "#94a3b8", fontSize: 10, margin: "3px 0 0", lineHeight: 1.5 }}>
-                  Limite: {integridadeApi.limiteFonte || "Meta nao retornou"} · Metricas: {integridadeApi.metricasFonte || "indisponiveis"}
+                  Limite: {traduzirFonteLimite(integridadeApi.limiteFonte)} · Métricas: {traduzirFonteMetricas(integridadeApi.metricasFonte)}
                 </p>
               )}
               {(integridadeApi.alertas[0] || integridadeApi.erro) && (
@@ -1016,21 +1047,21 @@ export default function DisparosPage() {
 
         {tipoDisparo === "waba" && canalSelecionado && (
           <div style={{ marginBottom: 16 }}>
-            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>📋 Template Aprovado</label>
+            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>📋 Modelo aprovado</label>
             {templates.length === 0 ? (
               <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: 16, textAlign: "center" }}>
-                <p style={{ color: "#991b1b", fontSize: 13, margin: "0 0 10px", fontWeight: 600 }}>⚠️ Nenhum template aprovado pra esse canal.</p>
+                <p style={{ color: "#991b1b", fontSize: 13, margin: "0 0 10px", fontWeight: 600 }}>⚠️ Nenhum modelo aprovado para esse canal.</p>
                 <button onClick={() => router.push("/chatbot/templates")}
                   style={{ background: "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)", color: "white", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(220,38,38,0.25)" }}>
-                  📨 Criar Template Agora
+                  📨 Criar modelo agora
                 </button>
               </div>
             ) : (
               <select value={templateSelecionado || ""} onChange={e => setTemplateSelecionado(parseInt(e.target.value) || null)} style={IS}>
-                <option value="">Selecione um template</option>
+                <option value="">Selecione um modelo</option>
                 {templates.map(t => (
                   <option key={t.id} value={t.id}>
-                    ✅ {t.nome_amigavel || t.meta_template_name} ({t.categoria}, {t.idioma})
+                    ✅ {t.nome_amigavel || t.meta_template_name} ({traduzirCategoriaTemplate(t.categoria)}, {t.idioma})
                   </option>
                 ))}
               </select>
@@ -1049,12 +1080,12 @@ export default function DisparosPage() {
             marginBottom: 16,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 7 }}>
-              <b style={{ color: "#0f172a", fontSize: 13 }}>Integridade do template</b>
+              <b style={{ color: "#0f172a", fontSize: 13 }}>Integridade do modelo</b>
               <span style={{ background: String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#dcfce7" : "#fffbeb", color: String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#15803d" : "#92400e", border: `1px solid ${String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#86efac" : "#fde68a"}`, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
                 {templateEscolhido.status || "sem status"}
               </span>
               <span style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
-                Categoria Meta: {templateEscolhido.categoria_meta || templateEscolhido.categoria || "sem categoria"}
+                Categoria na Meta: {traduzirCategoriaTemplate(templateEscolhido.categoria_meta || templateEscolhido.categoria)}
               </span>
               <span style={{ background: "#f5f3ff", color: "#6d28d9", border: "1px solid #ddd6fe", borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
                 {templateEscolhido.idioma || "sem idioma"}
@@ -1069,7 +1100,7 @@ export default function DisparosPage() {
             </p>
             {templateEscolhido.correct_category && templateEscolhido.correct_category !== (templateEscolhido.categoria_meta || templateEscolhido.categoria) && (
               <p style={{ color: "#92400e", fontSize: 11, margin: "6px 0 0", fontWeight: 800 }}>
-                Proxima categoria indicada pela Meta: {templateEscolhido.correct_category}
+                Próxima categoria indicada pela Meta: {traduzirCategoriaTemplate(templateEscolhido.correct_category)}
               </p>
             )}
             {(templateEscolhido.motivo_rejeicao || templateEscolhido.rejected_reason) && !["NONE", "NULL", "N/A"].includes(String(templateEscolhido.motivo_rejeicao || templateEscolhido.rejected_reason).toUpperCase()) && (
@@ -1082,7 +1113,7 @@ export default function DisparosPage() {
 
         {tipoDisparo === "waba" && templateEscolhido && (
           <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-            <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>📋 Preview do Template</p>
+            <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>📋 Prévia do modelo</p>
             {(templateEscolhido.componentes || []).map((c: any, i: number) => {
               if (c.type === "HEADER" && c.format === "TEXT") return <p key={i} style={{ color: "#16a34a", fontSize: 12, margin: "0 0 6px", fontWeight: 700 }}>📌 {c.text}</p>;
               if (c.type === "HEADER") return <p key={i} style={{ color: "#6b7280", fontSize: 11, margin: "0 0 6px" }}>📎 {c.format} (mídia anexada)</p>;
@@ -1128,14 +1159,14 @@ export default function DisparosPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
           <div>
-            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>⏱️ Delay Mínimo (seg)</label>
+            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>⏱️ Intervalo mínimo (seg)</label>
             <input type="number" min={tipoDisparo === "webjs" ? 30 : 0} max={300} value={delayMin} onChange={e => setDelayMin(parseInt(e.target.value) || 0)} style={IS} />
             <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>
-              {tipoDisparo === "webjs" ? "Mínimo 30s, recomendado 60s+" : "WABA: pode ser 0-5s"}
+              {tipoDisparo === "webjs" ? "Mínimo de 30s; recomendado: 60s ou mais" : "API oficial: pode ser de 0 a 5s"}
             </p>
           </div>
           <div>
-            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>⏱️ Delay Máximo (seg)</label>
+            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>⏱️ Intervalo máximo (seg)</label>
             <input type="number" min={tipoDisparo === "webjs" ? 30 : 0} max={300} value={delayMax} onChange={e => setDelayMax(parseInt(e.target.value) || 0)} style={IS} />
             <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>Máx: 300s</p>
           </div>
@@ -1176,7 +1207,7 @@ export default function DisparosPage() {
               <input ref={fileInputRef} type="file" accept=".csv,.txt" onChange={handleCSV} style={{ display: "none" }} />
               <button onClick={() => fileInputRef.current?.click()}
                 style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 10, padding: "7px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
-                📂 Importar CSV {tipoDisparo === "waba" && varsTemplate.length > 0 && "(com vars)"}
+                📂 Importar CSV {tipoDisparo === "waba" && varsTemplate.length > 0 && "(com variáveis)"}
               </button>
             </div>
           </div>
@@ -1271,8 +1302,8 @@ export default function DisparosPage() {
             {enviando
               ? "⏳ Criando..."
               : agendarAtivo
-                ? `🗓️ AGENDAR ${tipoDisparo === "waba" ? "WABA" : "WEBJS"}`
-                : `🚀 ENVIAR ${tipoDisparo === "waba" ? "WABA" : "WEBJS"}`}
+                ? `🗓️ AGENDAR ${tipoDisparo === "waba" ? "PELA API OFICIAL" : "PELO WHATSAPP WEB"}`
+                : `🚀 ENVIAR ${tipoDisparo === "waba" ? "PELA API OFICIAL" : "PELO WHATSAPP WEB"}`}
           </button>
         </div>
       </div>
@@ -1313,7 +1344,7 @@ export default function DisparosPage() {
                         {ehWaba ? "🔗" : "📱"} {d.nome || `Disparo #${d.id}`}
                       </p>
                       <p style={{ color: "#6b7280", fontSize: 11, margin: "4px 0 0" }}>
-                        {ehWaba ? `Template: ${d.template_name}` : "Texto livre"} · 👤 {d.criado_por} · 🕐 {new Date(d.created_at).toLocaleString("pt-BR")}
+                        {ehWaba ? `Modelo: ${d.template_name}` : "Texto livre"} · 👤 {d.criado_por} · 🕐 {new Date(d.created_at).toLocaleString("pt-BR")}
                       </p>
                       {/* 🗓️ Linha de "agendado pra" quando aplicável */}
                       {estaAgendado && (
@@ -1377,7 +1408,7 @@ export default function DisparosPage() {
                 </p>
               )}
               <p style={{ color: "#1f2937", fontSize: 13, margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-                {disparoDetalhe.tipo === "waba" ? `📋 Template: ${disparoDetalhe.template_name}\n\n` : ""}
+                {disparoDetalhe.tipo === "waba" ? `📋 Modelo: ${disparoDetalhe.template_name}\n\n` : ""}
                 {disparoDetalhe.mensagem}
               </p>
             </div>

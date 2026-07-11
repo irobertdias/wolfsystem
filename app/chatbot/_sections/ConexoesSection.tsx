@@ -45,6 +45,20 @@ type FilaItem = { id: number; nome: string; conexao?: string; equipe_id?: string
 // 👥 Equipe (time/empresa dentro do workspace) — usada pra filtrar quais filas aparecem
 type Equipe = { id: string; nome: string; ativo?: boolean; };
 type LimitesPlano = { conexoes: number; webjs: boolean; waba: boolean; instagram: boolean; };
+type IntegridadeWaba = {
+  carregando: boolean;
+  conectado: boolean;
+  qualidade: "Alta" | "Média" | "Baixa" | "Desconhecida";
+  limite24h: number;
+  tier: string;
+  enviados24h: number | null;
+  falhas24h: number | null;
+  score: number;
+  erro: string | null;
+  atualizadoEm: string | null;
+  nome: string;
+  fonteLimite: string;
+};
 
 export function ConexoesSection() {
   const router = useRouter();
@@ -77,7 +91,8 @@ export function ConexoesSection() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [salvandoCanal, setSalvandoCanal] = useState(false);
   const [testandoWABA, setTestandoWABA] = useState(false);
-  const [wabaTeste, setWabaTeste] = useState<{ success: boolean; nome?: string; error?: string } | null>(null);
+  const [wabaTeste, setWabaTeste] = useState<any | null>(null);
+  const [integridadesWaba, setIntegridadesWaba] = useState<Record<number, IntegridadeWaba>>({});
 
   const [encerrandoMassa, setEncerrandoMassa] = useState(false);
   const [registrandoWaba, setRegistrandoWaba] = useState(false);
@@ -194,10 +209,99 @@ export function ConexoesSection() {
   };
 
   const verificarStatusWaba = async (canalId: number, workspaceIdDoCanal: string) => {
+    const qs = `canalId=${canalId}&workspaceId=${encodeURIComponent(workspaceIdDoCanal)}`;
     try {
-      const resp = await fetch(`https://api.wolfgyn.com.br/waba/verificar-status?canalId=${canalId}&workspaceId=${encodeURIComponent(workspaceIdDoCanal)}`);
-      return await resp.json();
-    } catch (e) { return { success: false, status: "desconectado" }; }
+      const resp = await fetch(`https://api.wolfgyn.com.br/waba/verificar-status?${qs}`, { cache: "no-store" });
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json?.error || "Falha ao consultar o canal");
+      return json;
+    } catch (_erroDireto) {
+      try {
+        const resp = await fetch(`/api/whatsapp?rota=waba/verificar-status&${qs}`, { cache: "no-store" });
+        return await resp.json();
+      } catch (erro) {
+        return { success: false, status: "desconectado", error: traduzirErro(erro) };
+      }
+    }
+  };
+
+  const resolverLimiteMeta = (...valores: any[]) => {
+    for (const valor of valores) {
+      if (valor === null || valor === undefined || valor === "") continue;
+      const numeroDireto = Number(valor);
+      if (Number.isFinite(numeroDireto) && numeroDireto > 0) return numeroDireto;
+      const texto = String(valor).toUpperCase();
+      if (texto.includes("UNLIMITED")) return Number.MAX_SAFE_INTEGER;
+      const mil = texto.match(/(\d+(?:[.,]\d+)?)\s*K/);
+      if (mil) return Math.round(Number(mil[1].replace(",", ".")) * 1000);
+      const numero = texto.match(/(\d+)/);
+      if (numero) return Number(numero[1]);
+    }
+    return 0;
+  };
+
+  const normalizarQualidadeMeta = (valor: any): IntegridadeWaba["qualidade"] => {
+    const qualidade = String(valor || "").toLowerCase();
+    if (["green", "alta", "high"].some(item => qualidade.includes(item))) return "Alta";
+    if (["yellow", "media", "média", "medium"].some(item => qualidade.includes(item))) return "Média";
+    if (["red", "baixa", "low"].some(item => qualidade.includes(item))) return "Baixa";
+    return "Desconhecida";
+  };
+
+  const normalizarIntegridadeWaba = (resposta: any): IntegridadeWaba => {
+    const status = String(resposta?.status || resposta?.meta_status || "").toLowerCase();
+    const conectado = ["conectado", "connected", "registered", "ativo", "online", "ready"].some(item => status.includes(item));
+    const qualidade = normalizarQualidadeMeta(resposta?.quality_rating || resposta?.qualidade);
+    const limite24h = resolverLimiteMeta(
+      resposta?.limite24h,
+      resposta?.whatsapp_business_manager_messaging_limit,
+      resposta?.messaging_limit_tier
+    );
+    const enviados24h = resposta?.enviados24h === undefined ? null : Math.max(0, Number(resposta.enviados24h || 0));
+    const falhas24h = resposta?.falhas24h === undefined ? null : Math.max(0, Number(resposta.falhas24h || 0));
+    const tentativas = (enviados24h || 0) + (falhas24h || 0);
+    const taxaFalha = tentativas > 0 ? (falhas24h || 0) / tentativas : 0;
+    let score = conectado ? 100 : 0;
+    if (qualidade === "Média") score -= 15;
+    if (qualidade === "Baixa") score -= 35;
+    if (qualidade === "Desconhecida") score -= 5;
+    score -= Math.min(40, Math.round(taxaFalha * 100));
+    if (resposta?.error || resposta?.metricas_fonte === "indisponivel") score = Math.min(score, 40);
+
+    return {
+      carregando: false,
+      conectado,
+      qualidade,
+      limite24h,
+      tier: String(resposta?.whatsapp_business_manager_messaging_limit || resposta?.messaging_limit_tier || ""),
+      enviados24h,
+      falhas24h,
+      score: Math.max(0, Math.min(100, Math.round(score))),
+      erro: resposta?.error ? traduzirErro({ ...resposta, code: resposta?.error_code }) : null,
+      atualizadoEm: new Date().toISOString(),
+      nome: resposta?.nome || resposta?.verified_name || resposta?.numero || "",
+      fonteLimite: resposta?.limite_fonte || (limite24h ? "meta" : ""),
+    };
+  };
+
+  const carregarIntegridadeWaba = async (canal: Conexao) => {
+    setIntegridadesWaba(atuais => ({
+      ...atuais,
+      [canal.id]: { ...(atuais[canal.id] || normalizarIntegridadeWaba({})), carregando: true }
+    }));
+    const resposta = await verificarStatusWaba(canal.id, canal.workspace_id);
+    const integridade = normalizarIntegridadeWaba(resposta);
+    setIntegridadesWaba(atuais => ({ ...atuais, [canal.id]: integridade }));
+
+    if (resposta?.success) {
+      const numeroReal = resposta.numero || canal.numero;
+      if (canal.status !== resposta.status || canal.numero !== numeroReal) {
+        await supabase.from("conexoes").update({ status: resposta.status, numero: numeroReal })
+          .eq("id", canal.id)
+          .eq("workspace_id", canal.workspace_id);
+      }
+    }
+    return integridade;
   };
 
   useEffect(() => {
@@ -235,16 +339,6 @@ export function ConexoesSection() {
                 await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal })
                   .eq("id", c.id).eq("workspace_id", c.workspace_id);
               }
-            } else if (c.tipo === "waba") {
-              const wabaStatus = await verificarStatusWaba(c.id, c.workspace_id);
-              if (wabaStatus.success) {
-                const statusReal = wabaStatus.status;
-                const numeroReal = wabaStatus.numero || c.numero;
-                if (c.status !== statusReal || c.numero !== numeroReal) {
-                  await supabase.from("conexoes").update({ status: statusReal, numero: numeroReal })
-                    .eq("id", c.id).eq("workspace_id", c.workspace_id);
-                }
-              }
             }
           }
         }
@@ -254,6 +348,30 @@ export function ConexoesSection() {
 
     return () => { supabase.removeChannel(ch); clearInterval(interval); };
   }, [workspace, user?.email]);
+
+  const chaveCanaisWaba = conexoes
+    .filter(canal => canal.tipo === "waba")
+    .map(canal => `${canal.id}:${canal.workspace_id}`)
+    .join("|");
+
+  // A Meta não precisa ser consultada a cada 5 segundos. Uma leitura inicial e
+  // atualização a cada 30 segundos mantém o painel atual sem pressionar a API.
+  useEffect(() => {
+    const canaisWaba = conexoes.filter(canal => canal.tipo === "waba");
+    if (canaisWaba.length === 0) return;
+    let ativo = true;
+
+    const atualizar = async () => {
+      for (const canal of canaisWaba) {
+        if (!ativo) return;
+        await carregarIntegridadeWaba(canal);
+      }
+    };
+
+    atualizar();
+    const intervalo = setInterval(atualizar, 30000);
+    return () => { ativo = false; clearInterval(intervalo); };
+  }, [chaveCanaisWaba]);
 
   // 🆕 POLLING RÁPIDO + DETECÇÃO VIA ESTADO
   useEffect(() => {
@@ -313,7 +431,7 @@ export function ConexoesSection() {
       });
       const data = await resp.json();
       if (data.success) {
-        notify("Número ativado na Meta!", "sucesso", "Agora está ONLINE e pode receber mensagens");
+        notify("Número ativado na Meta!", "sucesso", "Agora está conectado e pode receber mensagens");
         await fetchConexoes();
       } else {
         const codigo = data.codigo;
@@ -351,12 +469,13 @@ export function ConexoesSection() {
   };
 
   const testarWABA = async () => {
-    if (!form.phoneNumberId || !form.token) { notify("Preencha Phone Number ID e Token", "aviso"); return; }
+    if (!form.phoneNumberId || !form.token) { notify("Preencha o ID do número e o token permanente", "aviso"); return; }
     setTestandoWABA(true); setWabaTeste(null);
     try {
-      const resp = await fetch(`/api/whatsapp?rota=waba/testar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phoneNumberId: form.phoneNumberId, token: form.token }) });
-      setWabaTeste(await resp.json());
-    } catch { setWabaTeste({ success: false, error: "Erro ao conectar!" }); }
+      const resp = await fetch(`/api/whatsapp?rota=waba/testar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phoneNumberId: form.phoneNumberId, wabaId: form.wabaId, token: form.token }) });
+      const data = await resp.json();
+      setWabaTeste(data?.success ? data : { ...data, error: traduzirErro({ ...data, code: data?.error_code }) });
+    } catch (erro) { setWabaTeste({ success: false, error: traduzirErro(erro) }); }
     setTestandoWABA(false);
   };
 
@@ -365,7 +484,7 @@ export function ConexoesSection() {
     // 👥 deriva a equipe a partir da fila atual do canal (a fila carrega o equipe_id)
     const equipeDaFila = filasBanco.find(f => f.nome === c.fila)?.equipe_id || "";
     setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", equipeId: equipeDaFila, fila: c.fila || "", pararSeAtendente: c.parar_se_atendente, typebot_url: c.typebot_url || "", typebot_msg_invalida: c.typebot_msg_invalida || "", typebot_msg_boas_vindas: c.typebot_msg_boas_vindas || "", modulos: Array.isArray(c.modulos) ? c.modulos : ["chatbot"] });
-    setApiKeyTocada(false); setTokenTocado(false); setShowModalNovoCanal(true); setShowMenuEngrenagem(null);
+    setApiKeyTocada(false); setTokenTocado(false); setWabaTeste(null); setShowModalNovoCanal(true); setShowMenuEngrenagem(null);
     fetchFluxos(); fetchFilas(); fetchEquipes();
   };
 
@@ -392,9 +511,9 @@ export function ConexoesSection() {
             const r = await fetch(`${META_BASE}/auth/listar-pages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accessToken }) });
             const data = await r.json();
             if (data.sucesso && Array.isArray(data.pages)) {
-              if (data.pages.length === 0) { setResultadoMeta({ sucesso: false, mensagem: "Nenhuma fan page encontrada nessa conta Facebook." }); }
+              if (data.pages.length === 0) { setResultadoMeta({ sucesso: false, mensagem: "Nenhuma página do Facebook foi encontrada nessa conta." }); }
               else { setPagesDisponiveis(data.pages); setPagesSelecionadas(new Set()); setShowSelecaoPages(true); }
-            } else { setResultadoMeta({ sucesso: false, mensagem: data.erro || "Erro ao listar pages." }); }
+            } else { setResultadoMeta({ sucesso: false, mensagem: data.erro || "Erro ao listar as páginas." }); }
           } catch (err: any) { setResultadoMeta({ sucesso: false, mensagem: "Erro de rede: " + (err.message || "desconhecido") }); }
           finally { setConectandoMeta(false); }
         })();
@@ -408,14 +527,14 @@ export function ConexoesSection() {
   };
 
   const confirmarSelecaoPages = async () => {
-    if (pagesSelecionadas.size === 0) { notify("Selecione ao menos 1 fan page", "aviso"); return; }
+    if (pagesSelecionadas.size === 0) { notify("Selecione pelo menos uma página do Facebook", "aviso"); return; }
     const pagesEscolhidas = pagesDisponiveis.filter(p => pagesSelecionadas.has(p.id));
     setConectandoMeta(true);
     try {
       const r = await fetch(`${META_BASE}/auth/conectar-pages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: wsId, pages: pagesEscolhidas }) });
       const data = await r.json();
-      if (data.sucesso) { setResultadoMeta({ sucesso: true, mensagem: `${data.pages_processadas} fan page(s) conectada(s)!`, pages: data.resultados }); await fetchConexoes(); setShowSelecaoPages(false); }
-      else { setResultadoMeta({ sucesso: false, mensagem: data.erro || "Erro ao conectar pages." }); }
+      if (data.sucesso) { setResultadoMeta({ sucesso: true, mensagem: `${data.pages_processadas} página(s) conectada(s)!`, pages: data.resultados }); await fetchConexoes(); setShowSelecaoPages(false); }
+      else { setResultadoMeta({ sucesso: false, mensagem: data.erro || "Erro ao conectar as páginas." }); }
     } catch (err: any) { setResultadoMeta({ sucesso: false, mensagem: "Erro de rede: " + (err.message || "desconhecido") }); }
     finally { setConectandoMeta(false); }
   };
@@ -425,14 +544,14 @@ export function ConexoesSection() {
     if (!wsId) { notify("Aguarde o workspace carregar", "aviso"); return; }
     if (!form.nome.trim()) { notify("Digite o nome do canal", "aviso"); return; }
     if (!form.fila) { notify("Selecione uma fila", "aviso", "Se não tem fila cadastrada, vá em Configurações → Filas"); return; }
-    if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { notify("Preencha Phone Number ID e Token", "aviso"); return; }
-    if (!editandoId && form.modo === "ia" && !form.apiKey) { notify("Digite a API Key da IA", "aviso"); return; }
+    if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { notify("Preencha o ID do número e o token permanente", "aviso"); return; }
+    if (!editandoId && form.modo === "ia" && !form.apiKey) { notify("Digite a chave da API da inteligência artificial", "aviso"); return; }
     if (form.modo === "typebot" && !form.typebot_url?.trim()) { notify("Cole a URL de publicação do Typebot", "aviso"); return; }
 
     if (!editandoId && !isSuperAdmin) {
-      if (conexoes.length >= limites.conexoes) { notify("Limite do plano atingido", "erro", `Seu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}. Faça upgrade pra criar mais.`); return; }
-      if (form.tipo === "webjs" && !limites.webjs) { notify("Seu plano não inclui WhatsApp Web", "erro", "Faça upgrade pra usar este canal"); return; }
-      if (form.tipo === "waba" && !limites.waba) { notify("Seu plano não inclui API Meta (WABA)", "erro", "Faça upgrade pro plano Intermediário ou Ultra"); return; }
+      if (conexoes.length >= limites.conexoes) { notify("Limite do plano atingido", "erro", `Seu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}. Atualize o plano para criar mais.`); return; }
+      if (form.tipo === "webjs" && !limites.webjs) { notify("Seu plano não inclui WhatsApp Web", "erro", "Atualize o plano para usar este canal"); return; }
+      if (form.tipo === "waba" && !limites.waba) { notify("Seu plano não inclui API Meta (WABA)", "erro", "Atualize para o plano Intermediário ou Ultra"); return; }
     }
 
     setSalvandoCanal(true);
@@ -500,7 +619,7 @@ export function ConexoesSection() {
   };
 
   const reconectarCanal = async (c: Conexao) => {
-    if (!confirm(`🔄 Reconectar ${c.nome}?\n\nVai destruir a conexão atual e recriar SEM perder o login do WhatsApp.\nUse isso quando o canal travou ou está com erro.\n\n(Se quiser trocar o número/conta, use "Resetar" no menu da engrenagem.)`)) return;
+    if (!confirm(`🔄 Reconectar ${c.nome}?\n\nA conexão atual será recriada sem perder a sessão salva do WhatsApp.\nUse isso quando o canal travar ou apresentar erro.\n\nPara trocar o número ou a conta, use "Resetar" no menu de configurações.`)) return;
     setShowMenuEngrenagem(null);
     try {
       const data = await wa("reconectar", { canalId: c.id, workspaceId: c.workspace_id });
@@ -508,12 +627,12 @@ export function ConexoesSection() {
       await supabase.from("conexoes").update({ status: "desconectado" }).eq("id", c.id).eq("workspace_id", c.workspace_id);
       await fetchConexoes();
       if (data.sessao_salva === false) {
-        notify(`${c.nome} não tem sessão salva`, "aviso", "Vou abrir o QR Code pra você escanear");
+        notify(`${c.nome} não tem sessão salva`, "aviso", "O código QR será aberto para leitura");
         setQrCanalId(c.id); setResetando(false); setShowModalQR(true);
         setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0);
         setQrPolling(true);
       } else {
-        notify(`${c.nome} reconectando...`, "sucesso", "O login será restaurado automaticamente. Não precisa escanear QR");
+        notify(`${c.nome} reconectando...`, "sucesso", "A sessão será restaurada automaticamente. Não é necessário ler outro código QR");
       }
     } catch (e: any) { notify("Falha ao reconectar", "erro", traduzirErro(e)); }
   };
@@ -546,6 +665,49 @@ export function ConexoesSection() {
     </button>
   );
 
+  const formatarLimiteMeta = (integridade: IntegridadeWaba) => {
+    if (!integridade.limite24h) return "Não retornado pela Meta";
+    if (integridade.limite24h === Number.MAX_SAFE_INTEGER) return "Sem limite definido";
+    return `${integridade.limite24h.toLocaleString("pt-BR")} contatos em 24h`;
+  };
+
+  const PainelIntegridadeWaba = ({
+    dados,
+    titulo = "Integridade da API",
+    onAtualizar,
+  }: {
+    dados: IntegridadeWaba;
+    titulo?: string;
+    onAtualizar?: () => void;
+  }) => {
+    const cor = dados.score >= 85 ? "#059669" : dados.score >= 60 ? "#d97706" : "#dc2626";
+    const corQualidade = dados.qualidade === "Alta" ? "#059669" : dados.qualidade === "Média" ? "#d97706" : dados.qualidade === "Baixa" ? "#dc2626" : "#64748b";
+    return (
+      <div style={{ background: "#f8fafc", border: `1px solid ${cor}40`, borderLeft: `4px solid ${cor}`, borderRadius: 10, padding: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+            <b style={{ color: "#0f172a", fontSize: 12 }}>{titulo}</b>
+            <span style={{ background: `${cor}14`, color: cor, border: `1px solid ${cor}45`, borderRadius: 999, padding: "2px 7px", fontSize: 10, fontWeight: 800 }}>{dados.carregando ? "Lendo..." : `${dados.score}/100`}</span>
+            <span style={{ background: `${corQualidade}14`, color: corQualidade, border: `1px solid ${corQualidade}45`, borderRadius: 999, padding: "2px 7px", fontSize: 10, fontWeight: 800 }}>Qualidade {dados.qualidade}</span>
+            <span style={{ background: dados.conectado ? "#dcfce7" : "#fee2e2", color: dados.conectado ? "#15803d" : "#b91c1c", border: `1px solid ${dados.conectado ? "#86efac" : "#fecaca"}`, borderRadius: 999, padding: "2px 7px", fontSize: 10, fontWeight: 800 }}>{dados.conectado ? "Conectada" : "Desconectada"}</span>
+          </div>
+          {onAtualizar && (
+            <button onClick={onAtualizar} disabled={dados.carregando} title="Atualizar integridade" style={{ background: "#fff", color: "#334155", border: "1px solid #cbd5e1", borderRadius: 8, width: 30, height: 28, cursor: dados.carregando ? "wait" : "pointer", fontSize: 13 }}>
+              {dados.carregando ? "…" : "↻"}
+            </button>
+          )}
+        </div>
+        <p style={{ color: "#64748b", fontSize: 10.5, margin: "7px 0 0", lineHeight: 1.6 }}>
+          Limite: <b>{formatarLimiteMeta(dados)}</b>
+          {dados.enviados24h !== null && <> · Enviadas em 24h: <b>{dados.enviados24h.toLocaleString("pt-BR")}</b></>}
+          {dados.falhas24h !== null && <> · Falhas em 24h: <b style={{ color: dados.falhas24h ? "#dc2626" : "#15803d" }}>{dados.falhas24h.toLocaleString("pt-BR")}</b></>}
+        </p>
+        {dados.nome && <p style={{ color: "#64748b", fontSize: 10.5, margin: "2px 0 0" }}>Conta consultada: <b>{dados.nome}</b></p>}
+        {dados.erro && <p style={{ color: "#b45309", fontSize: 10.5, fontWeight: 700, margin: "6px 0 0", lineHeight: 1.45 }}>{dados.erro}</p>}
+      </div>
+    );
+  };
+
   const limiteAtingido = !isSuperAdmin && conexoes.length >= limites.conexoes;
   const webjsPermitido = isSuperAdmin || limites.webjs;
   const wabaPermitido = isSuperAdmin || limites.waba;
@@ -568,12 +730,12 @@ export function ConexoesSection() {
               <span style={{ filter: "saturate(0) brightness(2)" }}>📱</span>
             </div>
             <h2 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Conectar WhatsApp</h2>
-            <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Escaneie o QR Code com seu WhatsApp</p>
+            <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 20px" }}>Leia o código QR com seu WhatsApp</p>
             <div style={{ background: "#f9fafb", borderRadius: 14, padding: 16, minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, border: "1px solid #e5e7eb" }}>
               {resetando ? <p style={{ color: "#f59e0b", fontSize: 14, fontWeight: 600 }}>⏳ Iniciando sessão...</p>
                 : qrConectado ? <div><p style={{ fontSize: 48, margin: "0 0 8px" }}>✅</p><p style={{ color: "#16a34a", fontSize: 16, fontWeight: 700, margin: 0 }}>WhatsApp Conectado!</p>{qrNumero && <p style={{ color: "#6b7280", fontSize: 13, margin: "8px 0 0" }}>{qrNumero}</p>}</div>
-                : qrImageUrl ? <img src={qrImageUrl} alt="QR Code" style={{ width: 220, height: 220, borderRadius: 8 }} />
-                : <div><p style={{ color: "#6b7280", fontSize: 14, margin: "0 0 8px" }}>⏳ Gerando QR Code...</p><p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>}
+                : qrImageUrl ? <img src={qrImageUrl} alt="Código QR" style={{ width: 220, height: 220, borderRadius: 8 }} />
+                : <div><p style={{ color: "#6b7280", fontSize: 14, margin: "0 0 8px" }}>⏳ Gerando código QR...</p><p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>}
             </div>
 
             {qrPolling && !qrConectado && qrTentativas > 0 && (
@@ -633,9 +795,9 @@ export function ConexoesSection() {
                   <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>1. Tipo de Canal</p>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                     {[
-                      { key: "webjs", icon: "📱", label: "WhatsApp Web", desc: "Conexão via QR Code", disabled: !webjsPermitido, cor: "#16a34a" },
+                      { key: "webjs", icon: "📱", label: "WhatsApp Web", desc: "Conexão por código QR", disabled: !webjsPermitido, cor: "#16a34a" },
                       { key: "waba", icon: "🔗", label: "API Meta (WABA)", desc: "API oficial do WhatsApp", disabled: !wabaPermitido, cor: "#3b82f6" },
-                      { key: "meta_oauth", icon: "📲", label: "Facebook / Instagram", desc: "Login com Facebook", disabled: !instagramPermitido, cor: "#e1306c" }
+                      { key: "meta_oauth", icon: "📲", label: "Facebook / Instagram", desc: "Entrar com Facebook", disabled: !instagramPermitido, cor: "#e1306c" }
                     ].map(t => (
                       <button key={t.key}
                         onClick={() => !t.disabled && setForm(p => ({ ...p, tipo: t.key }))}
@@ -651,7 +813,7 @@ export function ConexoesSection() {
                         }}>
                         <p style={{ fontSize: 20, margin: "0 0 4px" }}>{t.icon}</p>
                         <p style={{ color: form.tipo === t.key ? t.cor : "#1f2937", fontSize: 13, fontWeight: 700, margin: "0 0 2px" }}>{t.label}</p>
-                        <p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>{t.disabled ? "🔒 Upgrade necessário" : t.desc}</p>
+                        <p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>{t.disabled ? "🔒 Atualização de plano necessária" : t.desc}</p>
                       </button>
                     ))}
                   </div>
@@ -701,10 +863,10 @@ export function ConexoesSection() {
               {editandoId && (form.tipo === "instagram" || form.tipo === "messenger") && (
                 <div style={{ background: "#f0fdf4", borderRadius: 12, padding: 14, border: "1px solid #bbf7d0" }}>
                   <p style={{ color: "#15803d", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
-                    {form.tipo === "instagram" ? "📷 Canal Instagram" : "💬 Canal Messenger"} conectado via Login com Facebook.
+                    {form.tipo === "instagram" ? "📷 Canal Instagram" : "💬 Canal Messenger"} conectado pelo acesso do Facebook.
                   </p>
                   <p style={{ color: "#6b7280", fontSize: 11, margin: "6px 0 0", lineHeight: 1.4 }}>
-                    Pra reconectar (renovar token, mudar fan page), delete este canal e crie um novo via "Facebook / Instagram".
+                    Para reconectar, renovar o token ou mudar a página, exclua este canal e crie outro por "Facebook / Instagram".
                   </p>
                 </div>
               )}
@@ -713,10 +875,10 @@ export function ConexoesSection() {
                   <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>3. Conectar conta Facebook</p>
                   <div style={{ background: "#f9fafb", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 14, border: "1px solid #e5e7eb" }}>
                     <p style={{ color: "#374151", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-                      Vamos conectar todas as suas <b>fan pages do Facebook</b> e respectivas contas do <b>Instagram Business</b> automaticamente.
+                      Vamos conectar automaticamente suas <b>páginas do Facebook</b> e as respectivas contas comerciais do <b>Instagram</b>.
                     </p>
                     <p style={{ color: "#6b7280", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
-                      Você logará no Facebook (popup oficial), autorizará as permissões necessárias e o sistema criará os canais sozinho.
+                      Uma janela oficial do Facebook será aberta para autorizar as permissões; depois disso, o sistema criará os canais automaticamente.
                     </p>
                     <button onClick={conectarMeta} disabled={conectandoMeta}
                       style={{ background: conectandoMeta ? "#1d4ed8" : "#1877f2", color: "white", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 14, fontWeight: 700, cursor: conectandoMeta ? "not-allowed" : "pointer", boxShadow: "0 4px 12px rgba(24,119,242,0.3)" }}>
@@ -747,11 +909,21 @@ export function ConexoesSection() {
                 <div>
                   <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>{editandoId ? "2" : "3"}. Credenciais da API Meta</p>
                   <div style={{ background: "#f9fafb", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 12, border: "1px solid #e5e7eb" }}>
-                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Phone Number ID *</label><input placeholder="123456789012345" value={form.phoneNumberId} onChange={e => setForm(p => ({ ...p, phoneNumberId: e.target.value }))} style={IS} /></div>
-                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>WABA ID</label><input placeholder="123456789012345" value={form.wabaId} onChange={e => setForm(p => ({ ...p, wabaId: e.target.value }))} style={IS} /></div>
+                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>ID do número de telefone *</label><input placeholder="123456789012345" value={form.phoneNumberId} onChange={e => setForm(p => ({ ...p, phoneNumberId: e.target.value }))} style={IS} /></div>
+                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>ID da conta WhatsApp Business</label><input placeholder="123456789012345" value={form.wabaId} onChange={e => setForm(p => ({ ...p, wabaId: e.target.value }))} style={IS} /></div>
                     <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Token Permanente {editandoId ? "" : "*"}</label><input type="password" placeholder={editandoId ? "Deixe em branco pra manter o token atual" : "EAAxxxxx..."} value={form.token} onChange={e => { setForm(p => ({ ...p, token: e.target.value })); setTokenTocado(true); }} style={IS} /></div>
-                    <button onClick={testarWABA} disabled={testandoWABA} style={{ background: testandoWABA ? "#2563eb" : "#3b82f615", color: "#3b82f6", border: "1px solid #3b82f630", borderRadius: 10, padding: 10, fontSize: 13, cursor: "pointer", fontWeight: 700 }}>{testandoWABA ? "⏳ Testando..." : "🔍 Testar Conexão"}</button>
-                    {wabaTeste && <div style={{ background: wabaTeste.success ? "#f0fdf4" : "#fef2f2", border: `1px solid ${wabaTeste.success ? "#bbf7d0" : "#fecaca"}`, borderRadius: 10, padding: 12 }}><p style={{ color: wabaTeste.success ? "#15803d" : "#dc2626", fontSize: 13, margin: 0, fontWeight: 700 }}>{wabaTeste.success ? `✅ ${wabaTeste.nome}` : `❌ ${wabaTeste.error}`}</p></div>}
+                    <button onClick={testarWABA} disabled={testandoWABA} style={{ background: testandoWABA ? "#2563eb" : "#3b82f615", color: "#3b82f6", border: "1px solid #3b82f630", borderRadius: 10, padding: 10, fontSize: 13, cursor: testandoWABA ? "wait" : "pointer", fontWeight: 700 }}>{testandoWABA ? "⏳ Verificando..." : "🔍 Verificar conexão e integridade"}</button>
+                    {wabaTeste && <PainelIntegridadeWaba dados={normalizarIntegridadeWaba(wabaTeste)} titulo="Resultado da verificação" />}
+                    {!wabaTeste && editandoId && integridadesWaba[editandoId] && (
+                      <PainelIntegridadeWaba
+                        dados={integridadesWaba[editandoId]}
+                        titulo="Integridade atual"
+                        onAtualizar={() => {
+                          const canal = conexoes.find(item => item.id === editandoId);
+                          if (canal) carregarIntegridadeWaba(canal);
+                        }}
+                      />
+                    )}
                     <div style={{ background: "#ffffff", borderRadius: 10, padding: 12, border: "1px solid #e5e7eb" }}>
                       <p style={{ color: "#6b7280", fontSize: 11, margin: "0 0 4px", textTransform: "uppercase", fontWeight: 600 }}>URL do Webhook</p>
                       <p style={{ color: "#16a34a", fontSize: 12, fontWeight: 700, margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/webhook/meta</p>
@@ -766,8 +938,8 @@ export function ConexoesSection() {
                     {editandoId && (
                       <div style={{ background: "#fffbeb", borderRadius: 10, padding: 12, border: "1px solid #fde68a" }}>
                         <p style={{ color: "#92400e", fontSize: 11, fontWeight: 700, margin: "0 0 6px", textTransform: "uppercase" }}>⚠️ Não está recebendo mensagens?</p>
-                        <p style={{ color: "#78350f", fontSize: 11, margin: "0 0 6px", lineHeight: 1.5 }}>Pode faltar inscrever o app no WABA. Roda no terminal (substitua o token):</p>
-                        <code style={{ background: "#f3f4f6", padding: "6px 8px", borderRadius: 6, color: "#1f2937", fontSize: 10, display: "block", wordBreak: "break-all", border: "1px solid #e5e7eb" }}>{`curl -X POST "https://graph.facebook.com/v19.0/${form.wabaId || "WABA_ID"}/subscribed_apps" -H "Authorization: Bearer SEU_TOKEN"`}</code>
+                        <p style={{ color: "#78350f", fontSize: 11, margin: "0 0 6px", lineHeight: 1.5 }}>Pode faltar inscrever o aplicativo na conta WhatsApp Business. Execute no terminal e substitua o token:</p>
+                        <code style={{ background: "#f3f4f6", padding: "6px 8px", borderRadius: 6, color: "#1f2937", fontSize: 10, display: "block", wordBreak: "break-all", border: "1px solid #e5e7eb" }}>{`curl -X POST "https://graph.facebook.com/v25.0/${form.wabaId || "ID_DA_CONTA"}/subscribed_apps" -H "Authorization: Bearer SEU_TOKEN"`}</code>
                       </div>
                     )}
                   </div>
@@ -810,11 +982,11 @@ export function ConexoesSection() {
                     </div>
                     <div>
                       <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>
-                        API Key {editandoId && !apiKeyTocada && <span style={{ color: "#10b981", fontSize: 10 }}>(já salva)</span>}
+                        Chave da API {editandoId && !apiKeyTocada && <span style={{ color: "#10b981", fontSize: 10 }}>(já salva)</span>}
                       </label>
-                      <input type="password" placeholder={editandoId ? "Deixe vazio pra manter" : "Cole sua API Key"} value={form.apiKey} onChange={e => { setForm(p => ({ ...p, apiKey: e.target.value })); setApiKeyTocada(true); }} style={IS} />
+                      <input type="password" placeholder={editandoId ? "Deixe vazio para manter" : "Cole sua chave da API"} value={form.apiKey} onChange={e => { setForm(p => ({ ...p, apiKey: e.target.value })); setApiKeyTocada(true); }} style={IS} />
                     </div>
-                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Prompt do sistema</label><textarea placeholder="Ex: Você é um atendente virtual..." value={form.prompt} onChange={e => setForm(p => ({ ...p, prompt: e.target.value }))} style={TA} /></div>
+                    <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Instruções do sistema</label><textarea placeholder="Ex.: Você é um atendente virtual..." value={form.prompt} onChange={e => setForm(p => ({ ...p, prompt: e.target.value }))} style={TA} /></div>
                   </div>
                 )}
                 {form.modo === "fluxo" && (
@@ -947,7 +1119,7 @@ export function ConexoesSection() {
           </div>
           <div>
             <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>
-              Conexões {isSuperAdmin && <span style={{ fontSize: 12, color: "#f59e0b", marginLeft: 8 }}>👑 Super Admin</span>}
+              Conexões {isSuperAdmin && <span style={{ fontSize: 12, color: "#f59e0b", marginLeft: 8 }}>👑 Administrador geral</span>}
             </h1>
             <p style={{ color: "#6b7280", fontSize: 13, margin: "2px 0 0" }}>
               {workspace?.nome || "Carregando..."} · {isSuperAdmin ? `${conexoes.length} canais (ilimitado)` : `${conexoes.length} de ${limites.conexoes} canais`}
@@ -1020,6 +1192,14 @@ export function ConexoesSection() {
                 })()}
                 {c.numero && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Número:</span><span style={{ color: "#1f2937", fontSize: 12, fontWeight: 600 }}>{c.numero}</span></div>}
               </div>
+              {c.tipo === "waba" && (
+                <div style={{ marginBottom: 14 }}>
+                  <PainelIntegridadeWaba
+                    dados={integridadesWaba[c.id] || { ...normalizarIntegridadeWaba({ status: c.status, success: c.status === "conectado" }), carregando: true }}
+                    onAtualizar={() => carregarIntegridadeWaba(c)}
+                  />
+                </div>
+              )}
               <div style={{ display: "flex", gap: 8 }}>
                 {c.tipo === "webjs" && (c.status === "desconectado"
                   ? <>
@@ -1029,7 +1209,7 @@ export function ConexoesSection() {
                   : <><button onClick={() => reconectarCanal(c)} title="Reconectar caso esteja com erro" style={{ flex: 1, background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 10, padding: 9, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>✅ Conectado · 🔄</button><button onClick={() => desconectarCanal(c)} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "9px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>Desconectar</button></>
                 )}
                 {c.tipo === "waba" && (c.status === "conectado"
-                  ? <button disabled style={{ flex: 1, background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 10, padding: 9, fontSize: 12, fontWeight: 700 }}>🔗 API Conectada</button>
+                  ? <button disabled style={{ flex: 1, background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 10, padding: 9, fontSize: 12, fontWeight: 700 }}>🔗 API conectada</button>
                   : <button onClick={() => registrarNumeroWaba(c)} style={{ flex: 1, background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 2px 8px rgba(22,163,74,0.25)" }}>🟢 Ativar Número na Meta</button>
                 )}
                 {c.tipo === "meta" && (
@@ -1077,12 +1257,12 @@ export function ConexoesSection() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ ...cardStyle, width: "100%", maxWidth: 600, display: "flex", flexDirection: "column", maxHeight: "85vh", overflow: "hidden" }}>
             <div style={{ padding: "20px 28px", borderBottom: "1px solid #e5e7eb" }}>
-              <h2 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: 0 }}>📲 Escolha as fan pages</h2>
-              <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>Marque quais Facebook pages você quer conectar. Cada page com Instagram Business vai gerar 2 canais (Messenger + Instagram).</p>
+              <h2 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: 0 }}>📲 Escolha as páginas</h2>
+              <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>Marque as páginas do Facebook que deseja conectar. Cada página com uma conta comercial do Instagram criará dois canais: Messenger e Instagram.</p>
             </div>
             <div style={{ overflowY: "auto", padding: "16px 28px", flex: 1 }}>
               {pagesDisponiveis.length === 0 ? (
-                <p style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhuma page encontrada</p>
+                <p style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhuma página encontrada</p>
               ) : pagesDisponiveis.map((p: any) => {
                 const selecionada = pagesSelecionadas.has(p.id);
                 return (
