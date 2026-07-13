@@ -32,8 +32,11 @@ export function traduzirErro(err: any): string {
   if (typeof err === "string") {
     msg = err;
   } else if (err.error) {
-    msg = String(err.error);
-    codigo = err.codigo ?? err.code;
+    const erroInterno = err.error;
+    msg = typeof erroInterno === "object"
+      ? [erroInterno.error_user_title, erroInterno.error_user_msg, erroInterno.title, erroInterno.message, erroInterno.error_data?.details].filter(Boolean).join(" | ")
+      : String(erroInterno);
+    codigo = err.codigo ?? err.code ?? erroInterno?.code;
   } else if (err.message) {
     msg = String(err.message);
     codigo = err.code;
@@ -44,9 +47,15 @@ export function traduzirErro(err: any): string {
     try { msg = JSON.stringify(err); } catch { msg = String(err); }
   }
 
+  // Algumas rotas antigas salvam o código dentro da própria mensagem.
+  // Recupera esse número para que a tradução continue específica.
+  const codigoNoTexto = msg.match(/(?:code[=\s:]|\(code\s+)(\d{3,})/i)?.[1];
+  if (codigo === undefined && codigoNoTexto) codigo = codigoNoTexto;
+
   // 🆕 Subcodes específicos da Meta — sempre prioritários quando presentes
   // (vêm no error_subcode da resposta da Graph API)
-  const subcode = Number(err?.error_subcode ?? err?.subcodigo);
+  const subcodeNoTexto = msg.match(/subcode[=\s:]+(\d+)/i)?.[1];
+  const subcode = Number(err?.error_subcode ?? err?.subcodigo ?? err?.meta?.error_subcode ?? subcodeNoTexto);
   if (subcode === 2388001) return "A conta business da Meta não atende aos requisitos de política do WhatsApp. Abra um chamado no Meta Business Suite (Recursos → Falar com suporte) com o fbtrace_id deste erro.";
   if (subcode === 2388023) return "O nome de exibição do WhatsApp foi rejeitado. Altere no Gerenciador de Negócios da Meta para um nome que represente a empresa.";
   if (subcode === 2388092) return "A verificação da empresa está pendente na Meta. Conclua a verificação empresarial antes de registrar o número.";
@@ -66,7 +75,7 @@ export function traduzirErro(err: any): string {
     }
   }
 
-  const m = msg.toLowerCase();
+  const m = [msg, titleMeta, msgMeta, err?.meta?.message, err?.meta?.error_data?.details].filter(Boolean).join(" ").toLowerCase();
 
   // ─── 2) Códigos específicos da Meta WhatsApp Business API ────────────
   // Lista oficial: https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes/
@@ -79,6 +88,7 @@ export function traduzirErro(err: any): string {
     if (cod === 4)      return "Limite de chamadas do WhatsApp atingido. Aguarde alguns minutos.";
     if (cod === 17)     return "Limite de uso do WhatsApp atingido por hora. Aguarde.";
     if (cod === 80007)  return "Limite de mensagens do WhatsApp por dia atingido.";
+    if (cod === 130429) return "O limite de envios deste número foi atingido. Aguarde alguns minutos e tente novamente.";
     if (cod === 131000) return "PIN de 2 fatores necessário. Cancele o primeiro popup pra digitar o PIN.";
     if (cod === 131005) return "Acesso negado ao número. Verifique se o número está na sua conta Meta Business.";
     if (cod === 131008) return "Parâmetro obrigatório faltando na requisição.";
@@ -91,10 +101,12 @@ export function traduzirErro(err: any): string {
     if (cod === 131045) return "Número ainda não foi registrado. Ative-o primeiro.";
     if (cod === 131047) return "Janela de 24h expirou. Use um template pré-aprovado pra reabrir a conversa.";
     if (cod === 131048) return "Limite de mensagens por taxa atingido. Aguarde e tente novamente.";
+    if (cod === 131049) return "A Meta limitou temporariamente mensagens de marketing para este contato. Tente novamente mais tarde.";
     if (cod === 131051) return "Tipo de mensagem não suportado pelo WhatsApp Business.";
     if (cod === 131052) return "Falha ao baixar mídia do cliente. Tente novamente em alguns segundos.";
     if (cod === 131053) return "Falha ao enviar mídia. O arquivo pode estar corrompido ou ser muito grande.";
     if (cod === 131056) return "Limite de mensagens de retomada atingido. Espere antes de reengajar este contato.";
+    if (cod === 131057) return "Muitas mensagens foram enviadas para este mesmo contato em pouco tempo. Aguarde e tente novamente mais tarde.";
     if (cod === 132000) return "Template do WhatsApp tem parâmetros incompatíveis. Revise o template aprovado.";
     if (cod === 132001) return "Template não existe ou não foi aprovado pela Meta.";
     if (cod === 132005) return "Hash do template não corresponde. O template pode ter sido atualizado.";
@@ -110,11 +122,36 @@ export function traduzirErro(err: any): string {
     if (cod === 133009) return "PIN incorreto demais. Aguarde antes de tentar de novo.";
     if (cod === 133010) return "Número já está registrado nesta conta.";
     if (cod === 133015) return "Aguardando aprovação. Tente novamente em alguns minutos.";
+    if (cod === 135000) return "A Meta não conseguiu processar esta mensagem. Tente novamente; se continuar, fale com o suporte.";
   }
 
   // ─── 3) Padrões textuais conhecidos (sem código específico) ──────────
 
   // Meta API genérico
+  // Traduções por texto para respostas da Meta que chegam sem código ou com código novo.
+  if (m.includes("payment") || m.includes("billing") || m.includes("credit line") || m.includes("insufficient funds"))
+    return "O envio foi bloqueado por um problema de pagamento na Meta. Regularize a forma de pagamento e tente novamente.";
+  if (m.includes("account locked") || m.includes("account blocked") || m.includes("account disabled") || m.includes("account restricted") || m.includes("banned") || m.includes("suspended"))
+    return "A conta do WhatsApp Business está bloqueada ou restrita pela Meta. Verifique a conta no Meta Business.";
+  if ((m.includes("template") && m.includes("paused")) || (m.includes("template") && m.includes("disabled")))
+    return "Este modelo foi pausado pela Meta e não pode ser usado agora. Escolha outro modelo aprovado.";
+  if ((m.includes("template") && m.includes("rejected")) || (m.includes("template") && m.includes("not approved")))
+    return "Este modelo não foi aprovado pela Meta. Corrija o modelo ou escolha outro aprovado.";
+  if (m.includes("template") && (m.includes("does not exist") || m.includes("not found")))
+    return "O modelo selecionado não foi encontrado na Meta. Sincronize os modelos e escolha um aprovado.";
+  if (m.includes("healthy ecosystem") || m.includes("marketing messages") && m.includes("limit"))
+    return "A Meta limitou temporariamente mensagens de marketing para este contato. Tente novamente mais tarde.";
+  if (m.includes("not a valid whatsapp") || m.includes("not on whatsapp") || m.includes("recipient is not valid"))
+    return "Este número não possui WhatsApp ou está inválido. Confira o número informado.";
+  if (m.includes("undeliverable") || m.includes("could not be delivered") || m.includes("cannot be delivered"))
+    return "A mensagem não pôde ser entregue. O número pode estar sem WhatsApp, desligado ou indisponível.";
+  if (m.includes("outside") && m.includes("24") && m.includes("window"))
+    return "A conversa está fora da janela de 24 horas. Envie usando um modelo aprovado pela Meta.";
+  if (m.includes("phone number") && (m.includes("not registered") || m.includes("not connected")))
+    return "O número da empresa não está conectado corretamente à Meta. Reconecte o canal.";
+  if (m.includes("quality") && (m.includes("low") || m.includes("poor")))
+    return "A qualidade do número ou do modelo está baixa. Reduza os envios e verifique os alertas da Meta.";
+
   if (m.includes("unsupported get request") || m.includes("object with id") || (m.includes("does not exist") && m.includes("permission")))
     return "A Meta não encontrou o identificador informado ou o token não possui acesso a ele. Confira se o ID e o token pertencem à mesma conta.";
   if (m.includes("missing permissions") || m.includes("permission") && m.includes("cannot"))
@@ -191,7 +228,7 @@ export function traduzirErro(err: any): string {
 
   // Nunca deixa uma mensagem técnica em inglês aparecer para o cliente.
   if (/\b(the|with|does|cannot|please|failed|error|request|permission|invalid|unsupported|unknown|missing|read the)\b/i.test(msg)) {
-    return "A integração retornou um erro técnico. Verifique os dados informados e tente novamente; se persistir, consulte o suporte.";
+    return "Não foi possível concluir esta ação. Confira os dados e tente novamente; se continuar, fale com o suporte.";
   }
 
   // Fallback — mostra a mensagem original (truncada se for muito longa)
