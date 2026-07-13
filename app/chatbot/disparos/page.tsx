@@ -121,6 +121,13 @@ const proxAmanhaMidnight = (): string => {
 // "agora" formatado pra o atributo `min` do input (não deixa escolher passado).
 const agoraDatetimeLocal = (): string => formatarDatetimeLocal(new Date());
 
+// Exibe um motivo amigavel sem perder o codigo tecnico usado no diagnostico.
+const mensagemErroCliente = (erro?: string | null, codigo?: string | number | null): string => {
+  if (!erro) return "Falha de envio sem detalhes informados."; 
+  const codigoNoTexto = String(erro).match(/(?:code[=\s]|\(code\s+)(\d+)/i)?.[1];
+  return traduzirErro({ error: erro, code: codigo || codigoNoTexto });
+};
+
 export default function DisparosPage() {
   const router = useRouter();
   const { workspace, wsId, user } = useWorkspace();
@@ -732,7 +739,12 @@ export default function DisparosPage() {
 
   const corScore = integridadeApi.score >= 85 ? "#059669" : integridadeApi.score >= 60 ? "#f59e0b" : "#dc2626";
   const corQualidade = integridadeApi.qualidade === "Alta" ? "#059669" : integridadeApi.qualidade === "Média" ? "#f59e0b" : integridadeApi.qualidade === "Baixa" ? "#dc2626" : "#64748b";
-  const podeDispararApi = tipoDisparo !== "waba" || (canalConectado && integridadeApi.score >= 50 && integridadeApi.templatesAprovados > 0);
+  // A pontuacao de integridade e apenas informativa. Falhas anteriores,
+  // indisponibilidade temporaria das metricas ou pagamento pendente nao devem
+  // esconder/desativar o botao; o backend devolve o motivo real de cada erro.
+  const podeDispararApi = tipoDisparo !== "waba" || !!canalSelecionado;
+  // O botão só bloqueia durante a criação. As validações exibem mensagens simples ao clicar.
+  const envioBloqueado = enviando;
   const barraIntegridade = (label: string, valor: number, total: number, cor: string, detalhe: string) => {
     const largura = pct(valor, total);
     return (
@@ -974,12 +986,12 @@ export default function DisparosPage() {
             <select value={canalSelecionado || ""} onChange={e => setCanalSelecionado(parseInt(e.target.value) || null)} style={IS}>
               <option value="">Selecione um canal</option>
               {canais.map(c => (
-                <option key={c.id} value={c.id} disabled={!normalizarStatusCanal(c.status)}>
+                <option key={c.id} value={c.id} disabled={tipoDisparo === "webjs" && !normalizarStatusCanal(c.status)}>
                   {normalizarStatusCanal(c.status) ? "🟢" : "🔴"} {c.nome}
                 </option>
               ))}
             </select>
-            {canalSelecionado && !canalConectado && (
+            {tipoDisparo === "webjs" && canalSelecionado && !canalConectado && (
               <p style={{ color: "#dc2626", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>⚠️ Canal desconectado.</p>
             )}
           </div>
@@ -1285,9 +1297,9 @@ export default function DisparosPage() {
             style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
             🗑️ Limpar
           </button>
-          <button onClick={iniciarDisparo} disabled={enviando || !canalConectado || (tipoDisparo === "waba" && !podeDispararApi)}
+          <button onClick={iniciarDisparo} disabled={envioBloqueado}
             style={{
-              background: enviando || !canalConectado || (tipoDisparo === "waba" && !podeDispararApi)
+              background: envioBloqueado
                 ? "#9ca3af"
                 : (agendarAtivo
                   ? "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)"
@@ -1296,8 +1308,8 @@ export default function DisparosPage() {
                     : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)")),
               color: "white", border: "none", borderRadius: 10,
               padding: "10px 28px", fontSize: 13,
-              cursor: (enviando || !canalConectado || (tipoDisparo === "waba" && !podeDispararApi)) ? "not-allowed" : "pointer", fontWeight: 700,
-              boxShadow: (enviando || !canalConectado || (tipoDisparo === "waba" && !podeDispararApi)) ? "none" : (agendarAtivo ? "0 4px 12px rgba(168,85,247,0.3)" : (tipoDisparo === "waba" ? "0 4px 12px rgba(22,163,74,0.3)" : "0 4px 12px rgba(59,130,246,0.3)")),
+              cursor: envioBloqueado ? "not-allowed" : "pointer", fontWeight: 700,
+              boxShadow: envioBloqueado ? "none" : (agendarAtivo ? "0 4px 12px rgba(168,85,247,0.3)" : (tipoDisparo === "waba" ? "0 4px 12px rgba(22,163,74,0.3)" : "0 4px 12px rgba(59,130,246,0.3)")),
             }}>
             {enviando
               ? "⏳ Criando..."
@@ -1368,7 +1380,7 @@ export default function DisparosPage() {
                     <b style={{ color: "#1f2937" }}>{d.total_enviados + d.total_falhas}</b> / {d.total_contatos} processados ({progresso}%) · <span style={{ color: "#16a34a", fontWeight: 700 }}>✅ {d.total_enviados}</span> · <span style={{ color: "#dc2626", fontWeight: 700 }}>❌ {d.total_falhas}</span>
                   </p>
                   {d.pausado_motivo && <p style={{ color: "#92400e", fontSize: 11, margin: "0 0 8px", background: "#fffbeb", padding: "6px 10px", borderRadius: 6, border: "1px solid #fde68a" }}>⚠️ {d.pausado_motivo}</p>}
-                  {d.erro_msg && <p style={{ color: "#991b1b", fontSize: 11, margin: "0 0 8px", background: "#fef2f2", padding: "6px 10px", borderRadius: 6, border: "1px solid #fecaca" }}>❌ {d.erro_msg}</p>}
+                  {d.erro_msg && <p style={{ color: "#991b1b", fontSize: 11, margin: "0 0 8px", background: "#fef2f2", padding: "6px 10px", borderRadius: 6, border: "1px solid #fecaca" }}>❌ <b>Motivo:</b> {mensagemErroCliente(d.erro_msg)}</p>}
 
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <button onClick={() => setDisparoDetalhe(d)}
@@ -1429,13 +1441,17 @@ export default function DisparosPage() {
                         display: "flex", justifyContent: "space-between", alignItems: "center",
                         fontSize: 12,
                       }}>
-                      <span style={{ color: "#1f2937", fontFamily: "monospace", fontWeight: 500 }}>
+                      <span style={{ color: "#1f2937", fontFamily: "monospace", fontWeight: 500, flex: 1, minWidth: 0 }}>
                         {statusIcon} {c.numero}
                         {c.variaveis && Object.keys(c.variaveis).length > 0 && <span style={{ color: "#8b5cf6", marginLeft: 6, fontSize: 11 }}>({Object.entries(c.variaveis).map(([k,v]) => `{{${k}}}: ${v}`).join(", ")})</span>}
+                        {c.erro && (
+                          <span title={c.erro} style={{ display: "block", color: "#991b1b", fontFamily: "system-ui, sans-serif", fontSize: 11, fontWeight: 700, lineHeight: 1.4, marginTop: 6, padding: "6px 8px", background: "#ffffffa8", border: "1px solid #fecaca", borderRadius: 6, overflowWrap: "anywhere" }}>
+                            Motivo da falha: {mensagemErroCliente(c.erro, c.erro_code)}
+                          </span>
+                        )}
                       </span>
                       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                         {c.enviado_em && <span style={{ color: "#9ca3af", fontSize: 10 }}>{new Date(c.enviado_em).toLocaleTimeString("pt-BR")}</span>}
-                        {c.erro && <span style={{ color: "#dc2626", fontSize: 10, fontWeight: 600 }} title={c.erro}>erro</span>}
                         <span style={{ color: statusCor, fontWeight: 700, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.3 }}>{c.status}</span>
                       </div>
                     </div>
