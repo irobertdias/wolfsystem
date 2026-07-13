@@ -59,10 +59,15 @@ type IntegridadeWaba = {
   nome: string;
   fonteLimite: string;
 };
-type ResultadoSincronizacao = {
-  horas: number;
-  conversasEncontradas: number;
-  conversasLidas: number;
+type JobRecuperacao = {
+  id: string;
+  canalId: number;
+  status: "aguardando" | "processando" | "concluido" | "erro";
+  etapa: string;
+  inicio: string;
+  fim: string;
+  totalConversas: number;
+  conversasProcessadas: number;
   mensagensAnalisadas: number;
   importadas: number;
   recebidas: number;
@@ -70,8 +75,10 @@ type ResultadoSincronizacao = {
   duplicadas: number;
   ignoradas: number;
   falhas: number;
-  avisos?: string[];
+  percentual: number;
   limitado?: boolean;
+  erro?: string | null;
+  avisos?: string[];
 };
 
 export function ConexoesSection() {
@@ -107,10 +114,13 @@ export function ConexoesSection() {
   const [testandoWABA, setTestandoWABA] = useState(false);
   const [wabaTeste, setWabaTeste] = useState<any | null>(null);
   const [integridadesWaba, setIntegridadesWaba] = useState<Record<number, IntegridadeWaba>>({});
-  const [canalSincronizacao, setCanalSincronizacao] = useState<Conexao | null>(null);
-  const [periodoSincronizacao, setPeriodoSincronizacao] = useState(24);
-  const [sincronizandoConversas, setSincronizandoConversas] = useState(false);
-  const [resultadoSincronizacao, setResultadoSincronizacao] = useState<ResultadoSincronizacao | null>(null);
+  const [canalRecuperacao, setCanalRecuperacao] = useState<Conexao | null>(null);
+  const [periodoRecuperacao, setPeriodoRecuperacao] = useState("24");
+  const [inicioRecuperacao, setInicioRecuperacao] = useState("");
+  const [fimRecuperacao, setFimRecuperacao] = useState("");
+  const [jobRecuperacao, setJobRecuperacao] = useState<JobRecuperacao | null>(null);
+  const [iniciandoRecuperacao, setIniciandoRecuperacao] = useState(false);
+  const jobsRecuperacaoNotificados = useRef<Set<string>>(new Set());
 
   const [encerrandoMassa, setEncerrandoMassa] = useState(false);
   const [registrandoWaba, setRegistrandoWaba] = useState(false);
@@ -655,6 +665,94 @@ export function ConexoesSection() {
     } catch (e: any) { notify("Falha ao reconectar", "erro", traduzirErro(e)); }
   };
 
+  const dataParaInputLocal = (data: Date) => {
+    const local = new Date(data.getTime() - data.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
+  const abrirRecuperacao = (canal: Conexao) => {
+    const agora = new Date();
+    setShowMenuEngrenagem(null);
+    setCanalRecuperacao(canal);
+    setPeriodoRecuperacao("24");
+    setInicioRecuperacao(dataParaInputLocal(new Date(agora.getTime() - 24 * 60 * 60 * 1000)));
+    setFimRecuperacao(dataParaInputLocal(agora));
+    setJobRecuperacao(null);
+  };
+
+  const iniciarRecuperacao = async () => {
+    if (!canalRecuperacao || iniciandoRecuperacao) return;
+    const body: Record<string, any> = {
+      canalId: canalRecuperacao.id,
+      workspaceId: canalRecuperacao.workspace_id,
+    };
+    if (periodoRecuperacao === "personalizado") {
+      const inicio = new Date(inicioRecuperacao);
+      const fim = new Date(fimRecuperacao);
+      if (!inicioRecuperacao || !fimRecuperacao || Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) {
+        notify("Informe o período completo", "aviso", "Preencha a data e o horário inicial e final");
+        return;
+      }
+      body.inicio = inicio.toISOString();
+      body.fim = fim.toISOString();
+    } else {
+      body.horas = Number(periodoRecuperacao);
+    }
+
+    setIniciandoRecuperacao(true);
+    try {
+      const data = await wa("sincronizar-conversas", body);
+      if (!data?.success || !data?.job) {
+        notify("Não foi possível iniciar a recuperação", "erro", traduzirErro(data));
+        return;
+      }
+      setJobRecuperacao(data.job);
+      notify(
+        data.existente ? "Recuperação já estava em andamento" : "Recuperação iniciada",
+        "sucesso",
+        "O trabalho continuará em segundo plano e sempre dará prioridade às mensagens ao vivo"
+      );
+    } catch (e: any) {
+      notify("Falha ao iniciar a recuperação", "erro", traduzirErro(e));
+    } finally {
+      setIniciandoRecuperacao(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!canalRecuperacao || !jobRecuperacao?.id || ["concluido", "erro"].includes(jobRecuperacao.status)) return;
+    let ativo = true;
+    const consultar = async () => {
+      try {
+        const qs = new URLSearchParams({
+          jobId: jobRecuperacao.id,
+          canalId: String(canalRecuperacao.id),
+          workspaceId: canalRecuperacao.workspace_id,
+        });
+        const resp = await fetch(`/api/whatsapp?rota=sincronizar-conversas/status&${qs.toString()}`, { cache: "no-store" });
+        const data = await resp.json();
+        if (!ativo || !data?.success || !data?.job) return;
+        const atualizado = data.job as JobRecuperacao;
+        setJobRecuperacao(atualizado);
+        if (["concluido", "erro"].includes(atualizado.status) && !jobsRecuperacaoNotificados.current.has(atualizado.id)) {
+          jobsRecuperacaoNotificados.current.add(atualizado.id);
+          if (atualizado.status === "concluido") {
+            notify(
+              `${atualizado.importadas} mensagem(ns) recuperada(s)`,
+              "sucesso",
+              `${atualizado.recebidas} recebida(s), ${atualizado.enviadas} enviada(s) e ${atualizado.duplicadas} já existente(s)`
+            );
+          } else {
+            notify("Recuperação interrompida", "erro", atualizado.erro || "Consulte os logs do canal");
+          }
+        }
+      } catch (e) {}
+    };
+    consultar();
+    const timer = window.setInterval(consultar, 2500);
+    return () => { ativo = false; window.clearInterval(timer); };
+  }, [canalRecuperacao?.id, canalRecuperacao?.workspace_id, jobRecuperacao?.id, jobRecuperacao?.status]);
+
   const desconectarCanal = async (c: Conexao) => {
     if (!confirm(`Desconectar ${c.nome}? Isso vai desconectar o WhatsApp.`)) return;
     try {
@@ -687,44 +785,6 @@ export function ConexoesSection() {
     if (!integridade.limite24h) return "Não retornado pela Meta";
     if (integridade.limite24h === Number.MAX_SAFE_INTEGER) return "Sem limite definido";
     return `${integridade.limite24h.toLocaleString("pt-BR")} contatos em 24h`;
-  };
-
-  const abrirSincronizacao = (canal: Conexao) => {
-    setShowMenuEngrenagem(null);
-    setCanalSincronizacao(canal);
-    setPeriodoSincronizacao(24);
-    setResultadoSincronizacao(null);
-  };
-
-  const sincronizarConversas = async () => {
-    if (!canalSincronizacao || sincronizandoConversas) return;
-    setSincronizandoConversas(true);
-    setResultadoSincronizacao(null);
-    try {
-      const data = await wa("sincronizar-conversas", {
-        canalId: canalSincronizacao.id,
-        workspaceId: canalSincronizacao.workspace_id,
-        horas: periodoSincronizacao,
-      });
-      if (!data?.success) {
-        notify("Não foi possível atualizar as conversas", "erro", traduzirErro(data));
-        return;
-      }
-      setResultadoSincronizacao(data);
-      if (data.importadas > 0) {
-        notify(
-          `${data.importadas} mensagem(ns) recuperada(s)`,
-          "sucesso",
-          `${data.recebidas} recebida(s) e ${data.enviadas} enviada(s) foram adicionadas ao chatbot`
-        );
-      } else {
-        notify("Conversas já estavam atualizadas", "sucesso", `${data.duplicadas || 0} mensagem(ns) já existiam no sistema`);
-      }
-    } catch (e: any) {
-      notify("Falha ao atualizar as conversas", "erro", traduzirErro(e));
-    } finally {
-      setSincronizandoConversas(false);
-    }
   };
 
   const PainelIntegridadeWaba = ({
@@ -1258,24 +1318,9 @@ export function ConexoesSection() {
               )}
               {c.tipo === "webjs" && c.status === "conectado" && (
                 <button
-                  onClick={() => abrirSincronizacao(c)}
-                  title="Buscar no WhatsApp mensagens recentes que ainda não aparecem no chatbot"
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 7,
-                    background: "#eff6ff",
-                    color: "#1d4ed8",
-                    border: "1px solid #bfdbfe",
-                    borderRadius: 9,
-                    padding: "8px 10px",
-                    marginBottom: 9,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
+                  onClick={() => abrirRecuperacao(c)}
+                  title="Recuperar somente mensagens ausentes em segundo plano"
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", borderRadius: 9, padding: "8px 10px", marginBottom: 9, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
                 >
                   <span aria-hidden="true">↻</span> Recuperar conversas
                 </button>
@@ -1316,7 +1361,7 @@ export function ConexoesSection() {
                   {showMenuEngrenagem === c.id && (
                     <div style={{ position: "absolute", bottom: 44, right: 0, ...cardStyle, overflow: "hidden", zIndex: 100, minWidth: 240, padding: 4 }}>
                       <button onClick={() => abrirEditar(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#1f2937", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "none"}>✏️ Editar Canal</button>
-                      {c.tipo === "webjs" && c.status === "conectado" && <button onClick={() => abrirSincronizacao(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#2563eb", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#eff6ff"} onMouseLeave={e => e.currentTarget.style.background = "none"}>↻ Recuperar conversas</button>}
+                      {c.tipo === "webjs" && c.status === "conectado" && <button onClick={() => abrirRecuperacao(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#2563eb", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#eff6ff"} onMouseLeave={e => e.currentTarget.style.background = "none"}>↻ Recuperar conversas</button>}
                       {c.tipo === "webjs" && <button onClick={() => reconectarCanal(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f0fdf4"} onMouseLeave={e => e.currentTarget.style.background = "none"}>🔄 Reconectar (preserva login)</button>}
                       {c.tipo === "webjs" && <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#1f2937", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "none"}>📷 Resetar e Escanear QR</button>}
                       {c.tipo === "waba" && <button onClick={() => registrarNumeroWaba(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f0fdf4"} onMouseLeave={e => e.currentTarget.style.background = "none"}>🟢 Ativar Número na Meta</button>}
@@ -1333,97 +1378,108 @@ export function ConexoesSection() {
         </div>
       )}
 
-      {/* ═══ MODAL DE RECUPERAÇÃO DE CONVERSAS WEBJS ═══ */}
-      {canalSincronizacao && (
+      {/* ═══ MODAL DE RECUPERAÇÃO EM SEGUNDO PLANO ═══ */}
+      {canalRecuperacao && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", zIndex: 2200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <style>{`@keyframes conexoes-sync-spin { to { transform: rotate(360deg); } }`}</style>
-          <div style={{ ...cardStyle, width: "100%", maxWidth: 560, overflow: "hidden" }}>
+          <div style={{ ...cardStyle, width: "100%", maxWidth: 610, overflow: "hidden" }}>
             <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                <div style={{ width: 38, height: 38, borderRadius: 9, background: "#dbeafe", color: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21, fontWeight: 800 }}>↻</div>
-                <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 9, background: "#dbeafe", color: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21, fontWeight: 800, flexShrink: 0 }}>↻</div>
+                <div style={{ minWidth: 0 }}>
                   <h2 style={{ color: "#0f172a", fontSize: 17, fontWeight: 800, margin: 0 }}>Recuperar conversas</h2>
-                  <p style={{ color: "#64748b", fontSize: 11.5, margin: "2px 0 0" }}>{canalSincronizacao.nome} · WhatsApp Web</p>
+                  <p style={{ color: "#64748b", fontSize: 11.5, margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{canalRecuperacao.nome} · WhatsApp Web</p>
                 </div>
               </div>
-              <button
-                onClick={() => !sincronizandoConversas && setCanalSincronizacao(null)}
-                disabled={sincronizandoConversas}
-                title="Fechar"
-                style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", cursor: sincronizandoConversas ? "wait" : "pointer", fontSize: 18 }}
-              >×</button>
+              <button onClick={() => setCanalRecuperacao(null)} title="Fechar" style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", cursor: "pointer", fontSize: 18, flexShrink: 0 }}>×</button>
             </div>
 
             <div style={{ padding: 22 }}>
-              <p style={{ color: "#334155", fontSize: 12, fontWeight: 800, margin: "0 0 9px", textTransform: "uppercase", letterSpacing: 0.4 }}>Período a verificar</p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6, padding: 4, background: "#f1f5f9", borderRadius: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 9 }}>
+                <p style={{ color: "#334155", fontSize: 12, fontWeight: 800, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Período a verificar</p>
+                <span style={{ color: "#2563eb", fontSize: 10.5, fontWeight: 700 }}>Padrão: últimas 24 horas</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(68px, 1fr))", gap: 6, padding: 4, background: "#f1f5f9", borderRadius: 10 }}>
                 {[
-                  { horas: 1, label: "1h" },
-                  { horas: 6, label: "6h" },
-                  { horas: 24, label: "24h" },
-                  { horas: 72, label: "3 dias" },
-                  { horas: 168, label: "7 dias" },
-                ].map(periodo => (
-                  <button
-                    key={periodo.horas}
-                    onClick={() => { setPeriodoSincronizacao(periodo.horas); setResultadoSincronizacao(null); }}
-                    disabled={sincronizandoConversas}
-                    style={{
-                      minWidth: 0,
-                      background: periodoSincronizacao === periodo.horas ? "#fff" : "transparent",
-                      color: periodoSincronizacao === periodo.horas ? "#1d4ed8" : "#64748b",
-                      border: periodoSincronizacao === periodo.horas ? "1px solid #bfdbfe" : "1px solid transparent",
-                      borderRadius: 7,
-                      padding: "8px 3px",
-                      fontSize: 11.5,
-                      fontWeight: 800,
-                      cursor: sincronizandoConversas ? "wait" : "pointer",
-                      boxShadow: periodoSincronizacao === periodo.horas ? "0 1px 2px rgba(15,23,42,0.08)" : "none",
-                    }}
-                  >{periodo.label}</button>
-                ))}
+                  { valor: "1", label: "1h" },
+                  { valor: "6", label: "6h" },
+                  { valor: "12", label: "12h" },
+                  { valor: "24", label: "24h" },
+                  { valor: "72", label: "3 dias" },
+                  { valor: "168", label: "7 dias" },
+                  { valor: "personalizado", label: "Escolher" },
+                ].map(periodo => {
+                  const bloqueado = jobRecuperacao && ["aguardando", "processando"].includes(jobRecuperacao.status);
+                  return (
+                    <button
+                      key={periodo.valor}
+                      onClick={() => setPeriodoRecuperacao(periodo.valor)}
+                      disabled={!!bloqueado}
+                      style={{ minWidth: 0, background: periodoRecuperacao === periodo.valor ? "#fff" : "transparent", color: periodoRecuperacao === periodo.valor ? "#1d4ed8" : "#64748b", border: periodoRecuperacao === periodo.valor ? "1px solid #bfdbfe" : "1px solid transparent", borderRadius: 7, padding: "8px 3px", fontSize: 11, fontWeight: 800, cursor: bloqueado ? "not-allowed" : "pointer", boxShadow: periodoRecuperacao === periodo.valor ? "0 1px 2px rgba(15,23,42,0.08)" : "none", opacity: bloqueado ? 0.7 : 1 }}
+                    >{periodo.label}</button>
+                  );
+                })}
               </div>
 
-              <div style={{ marginTop: 16, padding: "12px 14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 9, color: "#1e40af", fontSize: 11.5, lineHeight: 1.55 }}>
-                Mensagens já existentes serão ignoradas. As recuperadas mantêm o horário original e entram no histórico sem acionar a automação do canal.
-              </div>
-
-              {sincronizandoConversas && (
-                <div style={{ marginTop: 16, padding: "14px 0", display: "flex", alignItems: "center", gap: 10, color: "#334155", fontSize: 12.5, fontWeight: 700 }}>
-                  <span style={{ width: 18, height: 18, border: "2px solid #bfdbfe", borderTopColor: "#2563eb", borderRadius: "50%", display: "inline-block", animation: "conexoes-sync-spin 0.8s linear infinite" }} />
-                  Lendo o histórico do WhatsApp e comparando com o chatbot...
+              {periodoRecuperacao === "personalizado" && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10, marginTop: 12 }}>
+                  <label style={{ color: "#475569", fontSize: 10.5, fontWeight: 800, textTransform: "uppercase" }}>
+                    Início
+                    <input type="datetime-local" value={inicioRecuperacao} max={fimRecuperacao || dataParaInputLocal(new Date())} onChange={e => setInicioRecuperacao(e.target.value)} disabled={!!jobRecuperacao && ["aguardando", "processando"].includes(jobRecuperacao.status)} style={{ ...IS, marginTop: 5 }} />
+                  </label>
+                  <label style={{ color: "#475569", fontSize: 10.5, fontWeight: 800, textTransform: "uppercase" }}>
+                    Fim
+                    <input type="datetime-local" value={fimRecuperacao} min={inicioRecuperacao} max={dataParaInputLocal(new Date())} onChange={e => setFimRecuperacao(e.target.value)} disabled={!!jobRecuperacao && ["aguardando", "processando"].includes(jobRecuperacao.status)} style={{ ...IS, marginTop: 5 }} />
+                  </label>
                 </div>
               )}
 
-              {resultadoSincronizacao && (
-                <div style={{ marginTop: 16, border: `1px solid ${resultadoSincronizacao.falhas ? "#fed7aa" : "#bbf7d0"}`, borderLeft: `4px solid ${resultadoSincronizacao.falhas ? "#f59e0b" : "#16a34a"}`, borderRadius: 9, overflow: "hidden" }}>
-                  <div style={{ padding: "11px 13px", background: resultadoSincronizacao.falhas ? "#fff7ed" : "#f0fdf4", color: resultadoSincronizacao.falhas ? "#9a3412" : "#166534", fontSize: 12.5, fontWeight: 800 }}>
-                    {resultadoSincronizacao.importadas > 0 ? "Conversas atualizadas" : "Nenhuma mensagem ausente encontrada"}
+              <div style={{ marginTop: 14, padding: "11px 13px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 9, color: "#1e40af", fontSize: 11.5, lineHeight: 1.55 }}>
+                O sistema compara o WhatsApp com o chatbot e importa somente o que estiver faltando. O trabalho roda uma conversa por vez, pode continuar com esta janela fechada e pausa quando chegam mensagens ao vivo.
+              </div>
+
+              {jobRecuperacao && (
+                <div style={{ marginTop: 15, border: `1px solid ${jobRecuperacao.status === "erro" ? "#fecaca" : jobRecuperacao.status === "concluido" ? "#bbf7d0" : "#bfdbfe"}`, borderLeft: `4px solid ${jobRecuperacao.status === "erro" ? "#dc2626" : jobRecuperacao.status === "concluido" ? "#16a34a" : "#2563eb"}`, borderRadius: 9, overflow: "hidden" }}>
+                  <div style={{ padding: "11px 13px", background: jobRecuperacao.status === "erro" ? "#fef2f2" : jobRecuperacao.status === "concluido" ? "#f0fdf4" : "#eff6ff", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div>
+                      <strong style={{ display: "block", color: "#0f172a", fontSize: 12.5 }}>
+                        {jobRecuperacao.status === "aguardando" ? "Aguardando na fila" : jobRecuperacao.status === "processando" ? "Atualizando em segundo plano" : jobRecuperacao.status === "concluido" ? "Recuperação concluída" : "Recuperação interrompida"}
+                      </strong>
+                      <span style={{ color: "#64748b", fontSize: 10.5 }}>{jobRecuperacao.etapa}</span>
+                    </div>
+                    <strong style={{ color: jobRecuperacao.status === "erro" ? "#dc2626" : jobRecuperacao.status === "concluido" ? "#16a34a" : "#2563eb", fontSize: 14 }}>{jobRecuperacao.percentual}%</strong>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(95px, 1fr))", padding: "12px 8px", background: "#fff" }}>
+                  <div style={{ height: 5, background: "#e2e8f0" }}>
+                    <div style={{ width: `${jobRecuperacao.percentual}%`, height: "100%", background: jobRecuperacao.status === "erro" ? "#dc2626" : jobRecuperacao.status === "concluido" ? "#16a34a" : "#2563eb", transition: "width 0.3s" }} />
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))", padding: "12px 8px", background: "#fff" }}>
                     {[
-                      { label: "Recuperadas", valor: resultadoSincronizacao.importadas, cor: "#16a34a" },
-                      { label: "Recebidas", valor: resultadoSincronizacao.recebidas, cor: "#2563eb" },
-                      { label: "Enviadas", valor: resultadoSincronizacao.enviadas, cor: "#7c3aed" },
-                      { label: "Já existentes", valor: resultadoSincronizacao.duplicadas, cor: "#64748b" },
-                      { label: "Falhas", valor: resultadoSincronizacao.falhas, cor: resultadoSincronizacao.falhas ? "#dc2626" : "#64748b" },
+                      { label: "Recuperadas", valor: jobRecuperacao.importadas, cor: "#16a34a" },
+                      { label: "Recebidas", valor: jobRecuperacao.recebidas, cor: "#2563eb" },
+                      { label: "Enviadas", valor: jobRecuperacao.enviadas, cor: "#7c3aed" },
+                      { label: "Já existentes", valor: jobRecuperacao.duplicadas, cor: "#64748b" },
+                      { label: "Falhas", valor: jobRecuperacao.falhas, cor: jobRecuperacao.falhas ? "#dc2626" : "#64748b" },
                     ].map(item => (
-                      <div key={item.label} style={{ padding: "3px 8px", textAlign: "center", borderRight: "1px solid #f1f5f9" }}>
-                        <strong style={{ display: "block", color: item.cor, fontSize: 18 }}>{item.valor.toLocaleString("pt-BR")}</strong>
+                      <div key={item.label} style={{ padding: "3px 7px", textAlign: "center", borderRight: "1px solid #f1f5f9" }}>
+                        <strong style={{ display: "block", color: item.cor, fontSize: 17 }}>{item.valor.toLocaleString("pt-BR")}</strong>
                         <span style={{ color: "#64748b", fontSize: 9.5, fontWeight: 700 }}>{item.label}</span>
                       </div>
                     ))}
                   </div>
-                  {resultadoSincronizacao.limitado && <p style={{ color: "#b45309", fontSize: 10.5, fontWeight: 700, margin: "0 13px 10px" }}>O volume ultrapassou o limite de segurança. Execute novamente com um período menor.</p>}
-                  {!!resultadoSincronizacao.avisos?.length && <p style={{ color: "#b45309", fontSize: 10.5, margin: "0 13px 10px", lineHeight: 1.45 }}>{resultadoSincronizacao.avisos[0]}</p>}
+                  {jobRecuperacao.limitado && <p style={{ color: "#b45309", fontSize: 10.5, fontWeight: 700, margin: "0 13px 10px" }}>Muitas conversas foram encontradas. Use um período menor para verificar o restante com segurança.</p>}
+                  {jobRecuperacao.erro && <p style={{ color: "#b91c1c", fontSize: 10.5, fontWeight: 700, margin: "0 13px 10px" }}>{jobRecuperacao.erro}</p>}
+                  {!!jobRecuperacao.avisos?.length && !jobRecuperacao.erro && <p style={{ color: "#b45309", fontSize: 10.5, margin: "0 13px 10px" }}>{jobRecuperacao.avisos[0]}</p>}
                 </div>
               )}
             </div>
 
             <div style={{ padding: "14px 22px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button onClick={() => setCanalSincronizacao(null)} disabled={sincronizandoConversas} style={{ background: "#fff", color: "#475569", border: "1px solid #cbd5e1", borderRadius: 9, padding: "9px 15px", fontSize: 12, fontWeight: 700, cursor: sincronizandoConversas ? "wait" : "pointer" }}>Fechar</button>
-              <button onClick={sincronizarConversas} disabled={sincronizandoConversas} style={{ background: sincronizandoConversas ? "#93c5fd" : "#2563eb", color: "#fff", border: "none", borderRadius: 9, padding: "9px 16px", fontSize: 12, fontWeight: 800, cursor: sincronizandoConversas ? "wait" : "pointer", minWidth: 150 }}>
-                {sincronizandoConversas ? "Atualizando..." : resultadoSincronizacao ? "Verificar novamente" : "Atualizar agora"}
+              <button onClick={() => setCanalRecuperacao(null)} style={{ background: "#fff", color: "#475569", border: "1px solid #cbd5e1", borderRadius: 9, padding: "9px 15px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Fechar</button>
+              <button
+                onClick={iniciarRecuperacao}
+                disabled={iniciandoRecuperacao || (!!jobRecuperacao && ["aguardando", "processando"].includes(jobRecuperacao.status))}
+                style={{ background: iniciandoRecuperacao || (!!jobRecuperacao && ["aguardando", "processando"].includes(jobRecuperacao.status)) ? "#93c5fd" : "#2563eb", color: "#fff", border: "none", borderRadius: 9, padding: "9px 16px", fontSize: 12, fontWeight: 800, cursor: iniciandoRecuperacao ? "wait" : "pointer", minWidth: 160 }}
+              >
+                {iniciandoRecuperacao ? "Iniciando..." : jobRecuperacao && ["aguardando", "processando"].includes(jobRecuperacao.status) ? "Em andamento" : jobRecuperacao ? "Verificar novamente" : "Recuperar agora"}
               </button>
             </div>
           </div>
