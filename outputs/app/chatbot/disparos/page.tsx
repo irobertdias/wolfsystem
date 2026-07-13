@@ -739,7 +739,10 @@ export default function DisparosPage() {
 
   const corScore = integridadeApi.score >= 85 ? "#059669" : integridadeApi.score >= 60 ? "#f59e0b" : "#dc2626";
   const corQualidade = integridadeApi.qualidade === "Alta" ? "#059669" : integridadeApi.qualidade === "Média" ? "#f59e0b" : integridadeApi.qualidade === "Baixa" ? "#dc2626" : "#64748b";
-  const podeDispararApi = tipoDisparo !== "waba" || (canalConectado && integridadeApi.score >= 50 && integridadeApi.templatesAprovados > 0);
+  // A pontuacao de integridade e apenas informativa. Falhas anteriores,
+  // indisponibilidade temporaria das metricas ou pagamento pendente nao devem
+  // esconder/desativar o botao; o backend devolve o motivo real de cada erro.
+  const podeDispararApi = tipoDisparo !== "waba" || canalConectado;
   const barraIntegridade = (label: string, valor: number, total: number, cor: string, detalhe: string) => {
     const largura = pct(valor, total);
     return (
