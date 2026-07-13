@@ -743,7 +743,8 @@ export default function DisparosPage() {
   // indisponibilidade temporaria das metricas ou pagamento pendente nao devem
   // esconder/desativar o botao; o backend devolve o motivo real de cada erro.
   const podeDispararApi = tipoDisparo !== "waba" || !!canalSelecionado;
-  const envioBloqueado = enviando || !canalSelecionado || (tipoDisparo === "webjs" && !canalConectado);
+  // O botão só bloqueia durante a criação. As validações exibem mensagens simples ao clicar.
+  const envioBloqueado = enviando;
   const barraIntegridade = (label: string, valor: number, total: number, cor: string, detalhe: string) => {
     const largura = pct(valor, total);
     return (
