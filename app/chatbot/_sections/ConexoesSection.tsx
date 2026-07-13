@@ -59,6 +59,20 @@ type IntegridadeWaba = {
   nome: string;
   fonteLimite: string;
 };
+type ResultadoSincronizacao = {
+  horas: number;
+  conversasEncontradas: number;
+  conversasLidas: number;
+  mensagensAnalisadas: number;
+  importadas: number;
+  recebidas: number;
+  enviadas: number;
+  duplicadas: number;
+  ignoradas: number;
+  falhas: number;
+  avisos?: string[];
+  limitado?: boolean;
+};
 
 export function ConexoesSection() {
   const router = useRouter();
@@ -93,6 +107,10 @@ export function ConexoesSection() {
   const [testandoWABA, setTestandoWABA] = useState(false);
   const [wabaTeste, setWabaTeste] = useState<any | null>(null);
   const [integridadesWaba, setIntegridadesWaba] = useState<Record<number, IntegridadeWaba>>({});
+  const [canalSincronizacao, setCanalSincronizacao] = useState<Conexao | null>(null);
+  const [periodoSincronizacao, setPeriodoSincronizacao] = useState(24);
+  const [sincronizandoConversas, setSincronizandoConversas] = useState(false);
+  const [resultadoSincronizacao, setResultadoSincronizacao] = useState<ResultadoSincronizacao | null>(null);
 
   const [encerrandoMassa, setEncerrandoMassa] = useState(false);
   const [registrandoWaba, setRegistrandoWaba] = useState(false);
@@ -671,6 +689,44 @@ export function ConexoesSection() {
     return `${integridade.limite24h.toLocaleString("pt-BR")} contatos em 24h`;
   };
 
+  const abrirSincronizacao = (canal: Conexao) => {
+    setShowMenuEngrenagem(null);
+    setCanalSincronizacao(canal);
+    setPeriodoSincronizacao(24);
+    setResultadoSincronizacao(null);
+  };
+
+  const sincronizarConversas = async () => {
+    if (!canalSincronizacao || sincronizandoConversas) return;
+    setSincronizandoConversas(true);
+    setResultadoSincronizacao(null);
+    try {
+      const data = await wa("sincronizar-conversas", {
+        canalId: canalSincronizacao.id,
+        workspaceId: canalSincronizacao.workspace_id,
+        horas: periodoSincronizacao,
+      });
+      if (!data?.success) {
+        notify("Não foi possível atualizar as conversas", "erro", traduzirErro(data));
+        return;
+      }
+      setResultadoSincronizacao(data);
+      if (data.importadas > 0) {
+        notify(
+          `${data.importadas} mensagem(ns) recuperada(s)`,
+          "sucesso",
+          `${data.recebidas} recebida(s) e ${data.enviadas} enviada(s) foram adicionadas ao chatbot`
+        );
+      } else {
+        notify("Conversas já estavam atualizadas", "sucesso", `${data.duplicadas || 0} mensagem(ns) já existiam no sistema`);
+      }
+    } catch (e: any) {
+      notify("Falha ao atualizar as conversas", "erro", traduzirErro(e));
+    } finally {
+      setSincronizandoConversas(false);
+    }
+  };
+
   const PainelIntegridadeWaba = ({
     dados,
     titulo = "Integridade da API",
@@ -1200,6 +1256,30 @@ export function ConexoesSection() {
                   />
                 </div>
               )}
+              {c.tipo === "webjs" && c.status === "conectado" && (
+                <button
+                  onClick={() => abrirSincronizacao(c)}
+                  title="Buscar no WhatsApp mensagens recentes que ainda não aparecem no chatbot"
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 7,
+                    background: "#eff6ff",
+                    color: "#1d4ed8",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: 9,
+                    padding: "8px 10px",
+                    marginBottom: 9,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  <span aria-hidden="true">↻</span> Recuperar conversas
+                </button>
+              )}
               <div style={{ display: "flex", gap: 8 }}>
                 {c.tipo === "webjs" && (c.status === "desconectado"
                   ? <>
@@ -1236,6 +1316,7 @@ export function ConexoesSection() {
                   {showMenuEngrenagem === c.id && (
                     <div style={{ position: "absolute", bottom: 44, right: 0, ...cardStyle, overflow: "hidden", zIndex: 100, minWidth: 240, padding: 4 }}>
                       <button onClick={() => abrirEditar(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#1f2937", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "none"}>✏️ Editar Canal</button>
+                      {c.tipo === "webjs" && c.status === "conectado" && <button onClick={() => abrirSincronizacao(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#2563eb", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#eff6ff"} onMouseLeave={e => e.currentTarget.style.background = "none"}>↻ Recuperar conversas</button>}
                       {c.tipo === "webjs" && <button onClick={() => reconectarCanal(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f0fdf4"} onMouseLeave={e => e.currentTarget.style.background = "none"}>🔄 Reconectar (preserva login)</button>}
                       {c.tipo === "webjs" && <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#1f2937", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "none"}>📷 Resetar e Escanear QR</button>}
                       {c.tipo === "waba" && <button onClick={() => registrarNumeroWaba(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f0fdf4"} onMouseLeave={e => e.currentTarget.style.background = "none"}>🟢 Ativar Número na Meta</button>}
@@ -1249,6 +1330,103 @@ export function ConexoesSection() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ═══ MODAL DE RECUPERAÇÃO DE CONVERSAS WEBJS ═══ */}
+      {canalSincronizacao && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", zIndex: 2200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <style>{`@keyframes conexoes-sync-spin { to { transform: rotate(360deg); } }`}</style>
+          <div style={{ ...cardStyle, width: "100%", maxWidth: 560, overflow: "hidden" }}>
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 9, background: "#dbeafe", color: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21, fontWeight: 800 }}>↻</div>
+                <div>
+                  <h2 style={{ color: "#0f172a", fontSize: 17, fontWeight: 800, margin: 0 }}>Recuperar conversas</h2>
+                  <p style={{ color: "#64748b", fontSize: 11.5, margin: "2px 0 0" }}>{canalSincronizacao.nome} · WhatsApp Web</p>
+                </div>
+              </div>
+              <button
+                onClick={() => !sincronizandoConversas && setCanalSincronizacao(null)}
+                disabled={sincronizandoConversas}
+                title="Fechar"
+                style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", cursor: sincronizandoConversas ? "wait" : "pointer", fontSize: 18 }}
+              >×</button>
+            </div>
+
+            <div style={{ padding: 22 }}>
+              <p style={{ color: "#334155", fontSize: 12, fontWeight: 800, margin: "0 0 9px", textTransform: "uppercase", letterSpacing: 0.4 }}>Período a verificar</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6, padding: 4, background: "#f1f5f9", borderRadius: 10 }}>
+                {[
+                  { horas: 1, label: "1h" },
+                  { horas: 6, label: "6h" },
+                  { horas: 24, label: "24h" },
+                  { horas: 72, label: "3 dias" },
+                  { horas: 168, label: "7 dias" },
+                ].map(periodo => (
+                  <button
+                    key={periodo.horas}
+                    onClick={() => { setPeriodoSincronizacao(periodo.horas); setResultadoSincronizacao(null); }}
+                    disabled={sincronizandoConversas}
+                    style={{
+                      minWidth: 0,
+                      background: periodoSincronizacao === periodo.horas ? "#fff" : "transparent",
+                      color: periodoSincronizacao === periodo.horas ? "#1d4ed8" : "#64748b",
+                      border: periodoSincronizacao === periodo.horas ? "1px solid #bfdbfe" : "1px solid transparent",
+                      borderRadius: 7,
+                      padding: "8px 3px",
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      cursor: sincronizandoConversas ? "wait" : "pointer",
+                      boxShadow: periodoSincronizacao === periodo.horas ? "0 1px 2px rgba(15,23,42,0.08)" : "none",
+                    }}
+                  >{periodo.label}</button>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 16, padding: "12px 14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 9, color: "#1e40af", fontSize: 11.5, lineHeight: 1.55 }}>
+                Mensagens já existentes serão ignoradas. As recuperadas mantêm o horário original e entram no histórico sem acionar a automação do canal.
+              </div>
+
+              {sincronizandoConversas && (
+                <div style={{ marginTop: 16, padding: "14px 0", display: "flex", alignItems: "center", gap: 10, color: "#334155", fontSize: 12.5, fontWeight: 700 }}>
+                  <span style={{ width: 18, height: 18, border: "2px solid #bfdbfe", borderTopColor: "#2563eb", borderRadius: "50%", display: "inline-block", animation: "conexoes-sync-spin 0.8s linear infinite" }} />
+                  Lendo o histórico do WhatsApp e comparando com o chatbot...
+                </div>
+              )}
+
+              {resultadoSincronizacao && (
+                <div style={{ marginTop: 16, border: `1px solid ${resultadoSincronizacao.falhas ? "#fed7aa" : "#bbf7d0"}`, borderLeft: `4px solid ${resultadoSincronizacao.falhas ? "#f59e0b" : "#16a34a"}`, borderRadius: 9, overflow: "hidden" }}>
+                  <div style={{ padding: "11px 13px", background: resultadoSincronizacao.falhas ? "#fff7ed" : "#f0fdf4", color: resultadoSincronizacao.falhas ? "#9a3412" : "#166534", fontSize: 12.5, fontWeight: 800 }}>
+                    {resultadoSincronizacao.importadas > 0 ? "Conversas atualizadas" : "Nenhuma mensagem ausente encontrada"}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(95px, 1fr))", padding: "12px 8px", background: "#fff" }}>
+                    {[
+                      { label: "Recuperadas", valor: resultadoSincronizacao.importadas, cor: "#16a34a" },
+                      { label: "Recebidas", valor: resultadoSincronizacao.recebidas, cor: "#2563eb" },
+                      { label: "Enviadas", valor: resultadoSincronizacao.enviadas, cor: "#7c3aed" },
+                      { label: "Já existentes", valor: resultadoSincronizacao.duplicadas, cor: "#64748b" },
+                      { label: "Falhas", valor: resultadoSincronizacao.falhas, cor: resultadoSincronizacao.falhas ? "#dc2626" : "#64748b" },
+                    ].map(item => (
+                      <div key={item.label} style={{ padding: "3px 8px", textAlign: "center", borderRight: "1px solid #f1f5f9" }}>
+                        <strong style={{ display: "block", color: item.cor, fontSize: 18 }}>{item.valor.toLocaleString("pt-BR")}</strong>
+                        <span style={{ color: "#64748b", fontSize: 9.5, fontWeight: 700 }}>{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {resultadoSincronizacao.limitado && <p style={{ color: "#b45309", fontSize: 10.5, fontWeight: 700, margin: "0 13px 10px" }}>O volume ultrapassou o limite de segurança. Execute novamente com um período menor.</p>}
+                  {!!resultadoSincronizacao.avisos?.length && <p style={{ color: "#b45309", fontSize: 10.5, margin: "0 13px 10px", lineHeight: 1.45 }}>{resultadoSincronizacao.avisos[0]}</p>}
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding: "14px 22px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button onClick={() => setCanalSincronizacao(null)} disabled={sincronizandoConversas} style={{ background: "#fff", color: "#475569", border: "1px solid #cbd5e1", borderRadius: 9, padding: "9px 15px", fontSize: 12, fontWeight: 700, cursor: sincronizandoConversas ? "wait" : "pointer" }}>Fechar</button>
+              <button onClick={sincronizarConversas} disabled={sincronizandoConversas} style={{ background: sincronizandoConversas ? "#93c5fd" : "#2563eb", color: "#fff", border: "none", borderRadius: 9, padding: "9px 16px", fontSize: 12, fontWeight: 800, cursor: sincronizandoConversas ? "wait" : "pointer", minWidth: 150 }}>
+                {sincronizandoConversas ? "Atualizando..." : resultadoSincronizacao ? "Verificar novamente" : "Atualizar agora"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
