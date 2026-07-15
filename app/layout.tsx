@@ -22,6 +22,11 @@ export const metadata: Metadata = {
     icon: "/logo1.png",
     apple: "/logo1.png",
   },
+  verification: {
+    other: {
+      "facebook-domain-verification": "xw17cao3411psrbude4yd8qm6sbzse",
+    },
+  },
 };
 
 export default function RootLayout({

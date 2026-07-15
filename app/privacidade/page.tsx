@@ -123,6 +123,7 @@ export default function PrivacidadePage() {
               <Row>instagram_basic | Identificar a conta Instagram Business conectada à sua Fan Page do Facebook</Row>
               <Row>instagram_manage_messages | Enviar e receber mensagens diretas (DMs) do Instagram em nome da sua conta Instagram Business</Row>
               <Row>business_management | Permitir a conexão de múltiplas contas comerciais ao Wolf CRM (modelo multi-tenant — cada Cliente conecta seu próprio Business Manager)</Row>
+              <Row>ads_read | Consultar contas de anúncios, campanhas e métricas de desempenho na Central Meta Ads, sem criar ou alterar anúncios</Row>
             </tbody>
           </Table>
 
@@ -134,11 +135,13 @@ export default function PrivacidadePage() {
             <li>Nome e foto pública dos remetentes das mensagens</li>
             <li>Anexos enviados nas conversas (imagens, vídeos, áudios, documentos)</li>
             <li>Status de leitura e entrega das mensagens</li>
+            <li>Métricas de campanhas de anúncios, como investimento, alcance, impressões, cliques, leads, conversas, compras e retorno atribuído pela Meta</li>
           </ul>
 
           <H3>4.3 Como esses dados são usados</H3>
           <ul style={listaStyle}>
             <li><strong>Exclusivamente para viabilizar o atendimento</strong> ao seu cliente final no painel do Wolf CRM</li>
+            <li>Para exibir relatórios de desempenho de anúncios autorizados pelo Cliente, sem alterar campanhas ou orçamentos nesta versão</li>
             <li><strong>Não vendemos</strong> esses dados a terceiros</li>
             <li><strong>Não usamos</strong> para publicidade direcionada</li>
             <li><strong>Não compartilhamos</strong> com outros Clientes do Wolf (isolamento multi-tenant)</li>
