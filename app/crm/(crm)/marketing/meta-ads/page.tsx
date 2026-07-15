@@ -13,8 +13,7 @@ declare global {
 }
 
 const META_BASE = process.env.NEXT_PUBLIC_META_URL || "https://meta.api.wolfgyn.com.br";
-const FB_APP_ID = process.env.NEXT_PUBLIC_META_FB_APP_ID || "1658330965492693";
-const FB_ADS_CONFIG_ID = process.env.NEXT_PUBLIC_META_ADS_CONFIG_ID || "852551211216508";
+const FB_APP_ID = process.env.NEXT_PUBLIC_META_FB_APP_ID || "1014671678116787";
 const GRAPH_VERSION = process.env.NEXT_PUBLIC_META_GRAPH_VERSION || "v21.0";
 
 type Conta = { id:string; accountId?:string; nome:string; status?:number; moeda?:string; fusoHorario?:string; };
@@ -118,7 +117,7 @@ export default function MetaAdsPage() {
         await carregarStatus();
       } catch (e:unknown) { setErro(mensagemErro(e, "Não foi possível conectar a conta Meta.")); }
       finally { setConectando(false); }
-    }, { config_id:FB_ADS_CONFIG_ID, response_type:"token" });
+    }, { scope:"ads_read,business_management", return_scopes:true });
   };
 
   const selecionarConta = async (accountId:string) => {
