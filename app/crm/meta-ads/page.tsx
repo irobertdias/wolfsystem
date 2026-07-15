@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
+import { ModuloBloqueado, useModulos } from "../../hooks/useModulos";
 import styles from "./MetaAds.module.css";
 
 const META_BASE = process.env.NEXT_PUBLIC_META_URL || "https://meta.api.wolfgyn.com.br";
@@ -42,6 +43,7 @@ export default function MetaAdsPage() {
   const { wsId, wsPronto } = useWorkspace();
   const { isDono, isSuperAdmin, perfil } = usePermissao();
   const podeConfigurar = isDono || isSuperAdmin || perfil === "Administrador";
+  const { modulos, carregado: modulosCarregados } = useModulos();
   const [status, setStatus] = useState<StatusData|null>(null);
   const [dashboard, setDashboard] = useState<Dashboard|null>(null);
   const [periodo, setPeriodo] = useState("last_30d");
@@ -86,7 +88,7 @@ export default function MetaAdsPage() {
     finally { setCarregando(false); }
   }, [api, carregarDashboard, wsId]);
 
-  useEffect(() => { if (wsPronto) carregarStatus(); }, [wsPronto, carregarStatus]);
+  useEffect(() => { if (wsPronto && modulosCarregados && modulos.meta_ads) carregarStatus(); }, [wsPronto, modulosCarregados, modulos.meta_ads, carregarStatus]);
 
   const conectar = () => {
     if (!podeConfigurar) { setErro("Somente o dono ou administrador pode conectar a conta de anúncios."); return; }
@@ -164,6 +166,8 @@ export default function MetaAdsPage() {
   const topCampanhas = (dashboard?.campanhas || []).filter(c => c.gasto > 0).slice(0,5);
   const maiorGasto = Math.max(1, ...topCampanhas.map(c => c.gasto));
 
+  if (!modulosCarregados) return <div className={styles.loading}>Verificando acesso...</div>;
+  if (!modulos.meta_ads) return <ModuloBloqueado modulo="meta_ads" />;
   if (carregando) return <div className={styles.loading}>Carregando Central Meta...</div>;
 
   return <div className={styles.page}>

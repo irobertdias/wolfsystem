@@ -185,7 +185,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const podeVerConfig = isSuperAdmin || isDono || permissoes.configuracoes_workspace;
   const podeVerTelefonia = podeVerComHierarquia(modulos.voip, "telefonia_acessar" as any);
   const podeVerChatbot = isSuperAdmin || isDono || (permissoes as any).chatbot_acessar;
-  const podeVerMetaAds = isSuperAdmin || isDono || perfil === "Administrador";
+  const podeVerMetaAds = isSuperAdmin || (modulos.meta_ads && (isDono || perfil === "Administrador"));
   const podeVerCobranca = podeVerComHierarquia(modulos.cobranca, "cobranca" as any);
   const podeVerRH = podeVerComHierarquia(modulos.rh, "rh" as any);
   const podeVerFinanceiro = podeVerComHierarquia(modulos.financeiro, "financeiro_acessar" as any);

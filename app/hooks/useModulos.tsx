@@ -25,6 +25,7 @@ export type Modulos = {
   api_integracao: boolean;
   instagram: boolean;
   cobranca: boolean;
+  meta_ads: boolean;
   rh: boolean;            // 🆕 Recursos Humanos
   bater_ponto: boolean;   // 🆕 Bater Ponto
   financeiro: boolean;                          // 🆕 Financeiro (master)
@@ -44,7 +45,7 @@ const FIN_TODAS: Record<string, boolean> = Object.fromEntries(FIN_OPCOES.map((k)
 const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
   roleta: false, disparos_web: false, disparos_api: false,
   voip: false, api_integracao: false, instagram: false,
-  cobranca: false, rh: false, bater_ponto: false,
+  cobranca: false, meta_ads: false, rh: false, bater_ponto: false,
   financeiro: false, financeiro_opcoes: {},
   plano: "basico",
 };
@@ -66,7 +67,7 @@ export function useModulos() {
         // Admin Wolf: tudo liberado sempre
         if (user?.email === ADMIN_EMAIL) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
+            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -101,7 +102,7 @@ export function useModulos() {
         // isso os módulos voltariam todos false pro time interno da casa.
         if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
+            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -109,7 +110,7 @@ export function useModulos() {
 
         // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
-          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
+          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_meta_ads, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
           .eq("email", ownerEmail)
           .maybeSingle();
 
@@ -122,6 +123,7 @@ export function useModulos() {
             api_integracao: !!cad?.modulo_api_integracao,
             instagram: !!cad?.modulo_instagram,
             cobranca: !!cad?.modulo_cobranca,
+            meta_ads: !!cad?.modulo_meta_ads,
             rh: !!cad?.modulo_rh,                 // 🆕
             bater_ponto: !!cad?.modulo_bater_ponto, // 🆕
             financeiro: !!cad?.modulo_financeiro,
@@ -150,7 +152,7 @@ export function useModulos() {
 //   if (!modulos.voip) return <ModuloBloqueado modulo="voip" />;
 // ═══════════════════════════════════════════════════════════════════════
 
-type ModuloKey = "roleta" | "disparos_web" | "disparos_api" | "voip" | "api_integracao" | "instagram" | "rh" | "bater_ponto";
+type ModuloKey = "roleta" | "disparos_web" | "disparos_api" | "voip" | "api_integracao" | "instagram" | "meta_ads" | "rh" | "bater_ponto";
 
 const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: string; planoNecessario: string; cor: string }> = {
   roleta: {
@@ -194,6 +196,13 @@ const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: strin
     desc: "Atendimento unificado no Instagram Direct Messages. Responda mensagens do Instagram pela mesma tela do WhatsApp.",
     planoNecessario: "Ultra",
     cor: "#8b5cf6",
+  },
+  meta_ads: {
+    icone: "📊",
+    nome: "Central Meta ADS",
+    desc: "Acompanhe investimento, leads, formulários, CPC, CPA, campanhas e resultados do Gerenciador de Anúncios dentro da Wolf.",
+    planoNecessario: "Liberação comercial",
+    cor: "#7e22ce",
   },
   rh: {
     icone: "🧑‍💼",
