@@ -1,0 +1,94 @@
+export type Conta = { id:string; accountId?:string; nome:string; status?:number; moeda?:string; fusoHorario?:string; };
+export type InstagramConta = { id:string; username:string; nome:string; foto?:string|null; seguidores?:number; publicacoes?:number; };
+export type StatusData = {
+  conectado:boolean;
+  metaUsuario?:{id:string;nome:string};
+  contaSelecionada?:Conta|null;
+  contas?:Conta[];
+  instagram?:({conectado:boolean}&Partial<InstagramConta>);
+  contasInstagram?:InstagramConta[];
+  tokenExpiraEm?:string|null;
+};
+export type Insight = {
+  gasto:number; impressoes:number; alcance:number; cliques:number; cliquesUnicos:number;
+  cliquesLink:number; cliquesSaida:number; ctr:number; ctrUnico:number; ctrLink:number;
+  cpc:number; cpcUnico:number; cpm:number; frequencia:number; leads:number;
+  formularios:number; conversas:number; compras:number; receita:number; video25:number;
+  video50:number; video75:number; video100:number; thruplays:number; cpl:number;
+  custoFormulario:number; custoConversa:number; custoCompra:number; roas:number;
+};
+export type Campanha = Insight & {
+  id:string; nome:string; status:string; objetivo?:string|null; orcamentoDiario:number;
+  orcamentoTotal:number; inicio?:string|null; fim?:string|null;
+};
+export type Serie = Insight & { data:string; dataFim?:string; propostas?:number; vendasCrm?:number; receitaCrm?:number; mes?:string; };
+export type Dashboard = {
+  conta:Conta & {saldo:number;limiteGasto:number};
+  periodo:{atual:{since:string;until:string};anterior:{since:string;until:string}};
+  resumo:Insight;
+  comparacao:{anterior:Insight;variacoes:Record<string,number|null>};
+  serieDiaria:Serie[];
+  serieMensal:Serie[];
+  campanhas:Campanha[];
+  atualizadoEm:string;
+};
+export type RegraAlerta = {
+  id:string; nome:string; metrica:string; operador:"maior"|"menor"|"maior_igual"|"menor_igual";
+  valor:number; nivel:"sucesso"|"atencao"|"critico"; ativo:boolean;
+};
+export type Preferencias = {
+  metricasVisiveis:string[]; graficosVisiveis:string[]; regrasAlerta:RegraAlerta[];
+  popupAtivo:boolean; somAtivo:boolean;
+};
+export type InstagramDashboard = {
+  perfil:InstagramConta;
+  resumo:Record<string,number>;
+  serieDiaria:Array<{data:string;views?:number;reach?:number;accounts_engaged?:number;total_interactions?:number;profile_views?:number}>;
+  publicacoes:Array<{id:string;legenda:string;tipo:string;midia?:string|null;link?:string|null;publicadoEm?:string|null;curtidas:number;comentarios:number}>;
+  crescimentoSeguidores:number;
+  atualizadoEm:string;
+};
+export type Proposta = { created_at?:string|null; data_proposta?:string|null; status_venda?:string|null; valor_plano?:number|null; };
+
+export const CORES = ["#2563eb","#7c3aed","#06b6d4","#16a34a","#f59e0b","#ef4444"];
+export const METRICAS = [
+  {key:"gasto",label:"Investimento",tipo:"moeda",note:"Total investido na Meta"},
+  {key:"leads",label:"Leads",tipo:"numero",note:"Contatos atribuídos pela Meta"},
+  {key:"formularios",label:"Formulários",tipo:"numero",note:"Formulários instantâneos"},
+  {key:"conversas",label:"Conversas iniciadas",tipo:"numero",note:"Conversas atribuídas"},
+  {key:"compras",label:"Compras Meta",tipo:"numero",note:"Compras atribuídas pela Meta"},
+  {key:"receita",label:"Receita atribuída",tipo:"moeda",note:"Valor informado à Meta"},
+  {key:"cpl",label:"Custo por lead",tipo:"moeda",note:"Investimento dividido por leads",inverso:true},
+  {key:"custoFormulario",label:"Custo por formulário",tipo:"moeda",note:"Custo de captação",inverso:true},
+  {key:"custoConversa",label:"Custo por conversa",tipo:"moeda",note:"Investimento por conversa",inverso:true},
+  {key:"custoCompra",label:"CPA",tipo:"moeda",note:"Custo por compra",inverso:true},
+  {key:"roas",label:"ROAS",tipo:"vezes",note:"Receita atribuída ÷ investimento"},
+  {key:"alcance",label:"Alcance",tipo:"numero",note:"Pessoas alcançadas"},
+  {key:"impressoes",label:"Impressões",tipo:"numero",note:"Exibições dos anúncios"},
+  {key:"cliques",label:"Cliques",tipo:"numero",note:"Todos os cliques"},
+  {key:"cpc",label:"CPC",tipo:"moeda",note:"Custo por clique",inverso:true},
+  {key:"ctr",label:"CTR",tipo:"percentual",note:"Taxa de cliques"},
+  {key:"cpm",label:"CPM",tipo:"moeda",note:"Custo por mil impressões",inverso:true},
+  {key:"frequencia",label:"Frequência",tipo:"decimal",note:"Média de exibições por pessoa"},
+  {key:"video100",label:"Vídeos completos",tipo:"numero",note:"Reproduções até 100%"},
+  {key:"thruplays",label:"ThruPlays",tipo:"numero",note:"Visualizações qualificadas"},
+] as const;
+export const GRAFICOS = [
+  {key:"evolucao",label:"Evolução diária"},
+  {key:"comparativoMensal",label:"Comparativo mês a mês"},
+  {key:"distribuicao",label:"Distribuição por campanha"},
+  {key:"funil",label:"Funil de resultados"},
+];
+export const PADRAO:Preferencias = {
+  metricasVisiveis:["gasto","leads","formularios","conversas","compras","receita","cpl","custoConversa","custoCompra","roas","alcance","cliques"],
+  graficosVisiveis:GRAFICOS.map(g=>g.key), regrasAlerta:[], popupAtivo:true, somAtivo:false,
+};
+export const PERIODOS = [
+  ["today","Hoje"],["yesterday","Ontem"],["last_7d","Últimos 7 dias"],
+  ["last_14d","Últimos 14 dias"],["last_30d","Últimos 30 dias"],
+  ["this_month","Este mês"],["last_month","Mês passado"],
+];
+export function n(v:unknown){const valor=Number(v||0);return Number.isFinite(valor)?valor:0;}
+export function noIntervalo(data:string|undefined|null,range:{since:string;until:string}){if(!data)return false;const dia=String(data).slice(0,10);return dia>=range.since&&dia<=range.until;}
+export function ganhou(status?:string|null){const s=String(status||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();return /INSTALAD|ATIVAD|CONCLUID|FINALIZAD|APROVAD|GANH/.test(s)&&!/CANCEL|REPROV|PERDID/.test(s);}
+export function objetivo(v?:string|null){const m:Record<string,string>={OUTCOME_LEADS:"Leads",OUTCOME_SALES:"Vendas",OUTCOME_TRAFFIC:"Tráfego",OUTCOME_ENGAGEMENT:"Engajamento",OUTCOME_AWARENESS:"Reconhecimento",OUTCOME_APP_PROMOTION:"Aplicativo",LEAD_GENERATION:"Leads",MESSAGES:"Mensagens"};return m[String(v)]||String(v||"—").replaceAll("_"," ");}
