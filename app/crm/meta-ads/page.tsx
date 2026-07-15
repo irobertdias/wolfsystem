@@ -6,12 +6,6 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import styles from "./MetaAds.module.css";
 
-declare global {
-  // O SDK oficial é carregado em runtime e não publica tipos para o navegador.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  interface Window { FB?: any; fbAsyncInit?: () => void; }
-}
-
 const META_BASE = process.env.NEXT_PUBLIC_META_URL || "https://meta.api.wolfgyn.com.br";
 const FB_APP_ID = process.env.NEXT_PUBLIC_META_FB_APP_ID || "1014671678116787";
 const GRAPH_VERSION = process.env.NEXT_PUBLIC_META_GRAPH_VERSION || "v21.0";
@@ -20,7 +14,6 @@ type Conta = { id:string; accountId?:string; nome:string; status?:number; moeda?
 type StatusData = { conectado:boolean; metaUsuario?:{id:string;nome:string}; contaSelecionada?:Conta|null; contas?:Conta[]; tokenExpiraEm?:string|null; atualizadoEm?:string; };
 type Campanha = { id:string; nome:string; status:string; objetivo?:string|null; orcamentoDiario:number; orcamentoTotal:number; gasto:number; impressoes:number; alcance:number; cliques:number; ctr:number; cpc:number; cpm:number; frequencia:number; leads:number; formularios:number; conversas:number; compras:number; receita:number; cpl:number; custoFormulario:number; custoConversa:number; custoCompra:number; roas:number; };
 type Dashboard = { conta:Conta & {saldo:number;limiteGasto:number}; resumo:Omit<Campanha,"id"|"nome"|"status"|"objetivo"|"orcamentoDiario"|"orcamentoTotal">; campanhas:Campanha[]; atualizadoEm:string; };
-type FacebookLoginResponse = { authResponse?: { accessToken?: string } };
 
 function mensagemErro(error:unknown, fallback:string) {
   return error instanceof Error && error.message ? error.message : fallback;
@@ -95,29 +88,55 @@ export default function MetaAdsPage() {
 
   useEffect(() => { if (wsPronto) carregarStatus(); }, [wsPronto, carregarStatus]);
 
-  useEffect(() => {
-    const inicializar = () => window.FB?.init({ appId:FB_APP_ID, cookie:true, xfbml:false, version:GRAPH_VERSION });
-    if (window.FB) { inicializar(); return; }
-    window.fbAsyncInit = inicializar;
-    if (!document.getElementById("facebook-jssdk-ads")) {
-      const script = document.createElement("script"); script.id="facebook-jssdk-ads"; script.async=true; script.defer=true;
-      script.src="https://connect.facebook.net/pt_BR/sdk.js"; document.body.appendChild(script);
-    }
-  }, []);
-
   const conectar = () => {
     if (!podeConfigurar) { setErro("Somente o dono ou administrador pode conectar a conta de anúncios."); return; }
-    if (!window.FB) { setErro("O Login da Meta ainda está carregando. Aguarde alguns segundos."); return; }
-    setConectando(true); setErro(""); setMensagem("");
-    window.FB.login(async (response:FacebookLoginResponse) => {
-      if (!response.authResponse?.accessToken) { setConectando(false); setErro("A conexão com a Meta foi cancelada."); return; }
+    setErro(""); setMensagem("");
+
+    const state = crypto.randomUUID();
+    const redirectUri = `${window.location.origin}/crm/marketing/meta-ads`;
+    const oauthUrl = new URL(`https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth`);
+    oauthUrl.search = new URLSearchParams({
+      client_id: FB_APP_ID,
+      redirect_uri: redirectUri,
+      response_type: "token",
+      scope: "ads_read,business_management",
+      state,
+      display: "popup",
+      auth_type: "rerequest",
+    }).toString();
+
+    const popup = window.open(oauthUrl.toString(), "wolf-meta-ads-oauth", "popup=yes,width=620,height=760,resizable=yes,scrollbars=yes");
+    if (!popup) { setErro("O navegador bloqueou a janela da Meta. Libere os pop-ups para app.wolfgyn.com.br e tente novamente."); return; }
+
+    setConectando(true);
+    let finalizado = false;
+    let acompanhar = 0;
+    let limite = 0;
+    const limpar = () => {
+      window.removeEventListener("message", receber);
+      if (acompanhar) window.clearInterval(acompanhar);
+      if (limite) window.clearTimeout(limite);
+    };
+    const receber = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.data?.type !== "wolf-meta-ads-oauth" || event.data?.state !== state) return;
+      finalizado = true; limpar(); popup.close();
+      if (event.data?.error || !event.data?.accessToken) {
+        setConectando(false); setErro(event.data?.error || "A conexão com a Meta foi cancelada."); return;
+      }
       try {
-        const data = await api("/conectar", { method:"POST", body:JSON.stringify({ workspaceId:wsId, accessToken:response.authResponse.accessToken }) });
+        const data = await api("/conectar", { method:"POST", body:JSON.stringify({ workspaceId:wsId, accessToken:event.data.accessToken }) });
         setMensagem(data.mensagem || "Conta Meta conectada.");
         await carregarStatus();
       } catch (e:unknown) { setErro(mensagemErro(e, "Não foi possível conectar a conta Meta.")); }
       finally { setConectando(false); }
-    }, { scope:"ads_read,business_management", return_scopes:true });
+    };
+    window.addEventListener("message", receber);
+    acompanhar = window.setInterval(() => {
+      if (popup.closed && !finalizado) { finalizado = true; limpar(); setConectando(false); setErro("A janela da Meta foi fechada antes da conexão."); }
+    }, 500);
+    limite = window.setTimeout(() => {
+      if (!finalizado) { finalizado = true; limpar(); popup.close(); setConectando(false); setErro("A conexão com a Meta demorou demais. Tente novamente."); }
+    }, 120000);
   };
 
   const selecionarConta = async (accountId:string) => {
