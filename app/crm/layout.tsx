@@ -185,6 +185,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const podeVerConfig = isSuperAdmin || isDono || permissoes.configuracoes_workspace;
   const podeVerTelefonia = podeVerComHierarquia(modulos.voip, "telefonia_acessar" as any);
   const podeVerChatbot = isSuperAdmin || isDono || (permissoes as any).chatbot_acessar;
+  const podeVerMetaAds = isSuperAdmin || isDono || perfil === "Administrador";
   const podeVerCobranca = podeVerComHierarquia(modulos.cobranca, "cobranca" as any);
   const podeVerRH = podeVerComHierarquia(modulos.rh, "rh" as any);
   const podeVerFinanceiro = podeVerComHierarquia(modulos.financeiro, "financeiro_acessar" as any);
@@ -481,6 +482,12 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               {podeVerChatbot && (
                 <button onClick={() => navegarPara("/chatbot")} style={botaoMenu(false, "#eff6ff", "#dbeafe", "#bfdbfe", "#3b82f6", "#3b82f6")}>
                   <span>💬</span> Chatbot
+                </button>
+              )}
+
+              {podeVerMetaAds && (
+                <button onClick={() => navegarPara("/crm/meta-ads")} style={botaoMenu(isActive("/crm/meta-ads"), "#faf5ff", "#f3e8ff", "#e9d5ff", "#9333ea", "#7e22ce")}>
+                  <span>&#128202;</span> Central Meta ADS
                 </button>
               )}
 

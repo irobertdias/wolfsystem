@@ -17,7 +17,7 @@ type Item = {
 export default function CRMModuloLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isDono, isSuperAdmin, perfil, permissoes } = usePermissao();
+  const { isDono, isSuperAdmin, permissoes } = usePermissao();
 
   const [isMobile, setIsMobile] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
@@ -56,9 +56,6 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
       : []),
     ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos)
       ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos" }]
-      : []),
-    ...((isSuperAdmin || isDono || perfil === "Administrador")
-      ? [{ path: "/crm/marketing/meta-ads", icon: "📣", label: "Central Meta Ads" }]
       : []),
   ];
 
