@@ -517,6 +517,22 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       if (dn.variavel) set.add(dn.variavel);
       if (dn.variavel_resposta) set.add(dn.variavel_resposta);
       if (dn.variavel_status) set.add(dn.variavel_status);
+      // Fluxo por IA guarda várias variáveis dentro de dados.variaveis.
+      if (Array.isArray(dn.variaveis)) {
+        dn.variaveis.forEach((campo: any) => {
+          const nome = String(campo?.nome || "").trim();
+          if (nome) set.add(nome);
+        });
+      }
+      // Resultados das consultas automáticas também ficam disponíveis.
+      if (Array.isArray(dn.consultas)) {
+        dn.consultas.forEach((consulta: any) => {
+          const resultado = String(consulta?.variavel_resultado || "").trim();
+          const status = String(consulta?.variavel_status || "").trim();
+          if (resultado) set.add(resultado);
+          if (status) set.add(status);
+        });
+      }
       // Bloco "variavel" (set manual)
       if (n.tipo === "variavel" && dn.nome) set.add(dn.nome);
       // Condições — referenciam mas também incluo pra autocompletar
@@ -2081,7 +2097,7 @@ function saida(obj) {
           </div>
 
           {/* Nome da etiqueta */}
-          {T("Nome da etiqueta","nome","Ex.: Cliente VIP, Aguardando documento, Interessado","")}
+          {T("Nome da etiqueta","nome","Ex.: Cliente VIP, Aguardando documento, Interessado")}
 
           {/* Cor e ícone (só importam se for criar etiqueta nova) */}
           {d.acao !== "remover" && (
