@@ -1,6 +1,7 @@
-export type Conta={id:string;accountId?:string;nome:string;status?:number;moeda?:string;fusoHorario?:string};
+export type Portfolio={id:string;nome:string;quantidadeContas?:number};
+export type Conta={id:string;accountId?:string;nome:string;status?:number;moeda?:string;fusoHorario?:string;negocio?:{id:string;name?:string;nome?:string}|null};
 export type InstagramConta={id:string;username:string;nome:string;foto?:string|null;seguidores?:number;publicacoes?:number};
-export type StatusData={conectado:boolean;metaUsuario?:{id:string;nome:string};contaSelecionada?:Conta|null;contas?:Conta[];instagram?:({conectado:boolean}&Partial<InstagramConta>);contasInstagram?:InstagramConta[];tokenExpiraEm?:string|null};
+export type StatusData={conectado:boolean;metaUsuario?:{id:string;nome:string};portfolioSelecionado?:Portfolio|null;portfolios?:Portfolio[];contaSelecionada?:Conta|null;contas?:Conta[];instagram?:({conectado:boolean}&Partial<InstagramConta>);contasInstagram?:InstagramConta[];tokenExpiraEm?:string|null};
 export type Insight={gasto:number;impressoes:number;alcance:number;cliques:number;cliquesUnicos:number;cliquesLink:number;cliquesSaida:number;ctr:number;ctrUnico:number;ctrLink:number;cpc:number;cpcUnico:number;cpm:number;frequencia:number;leads:number;formularios:number;conversas:number;compras:number;receita:number;video25:number;video50:number;video75:number;video100:number;thruplays:number;cpl:number;custoFormulario:number;custoConversa:number;custoCompra:number;roas:number};
 export type Campanha=Insight&{id:string;nome:string;status:string;objetivo?:string|null;orcamentoDiario:number;orcamentoTotal:number;inicio?:string|null;fim?:string|null};
 export type Serie=Insight&{data:string;dataFim?:string;propostas?:number;vendasCrm?:number;receitaCrm?:number;mes?:string};
