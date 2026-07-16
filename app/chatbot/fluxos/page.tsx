@@ -2647,6 +2647,22 @@ export default function FluxosPage() {
     if(noEditando?.id===id) setNoEditando(null);
   }
 
+  function duplicarNo(id:string) {
+    const origem = nos.find(n => n.id === id);
+    if (!origem || origem.tipo === "inicio") return;
+    const copia: No = {
+      ...origem,
+      id: uid(),
+      x: origem.x + 36,
+      y: origem.y + 36,
+      dados: JSON.parse(JSON.stringify(origem.dados || {})),
+      saidas: [...origem.saidas],
+    };
+    setNos(p => [...p, copia]);
+    setNoSel(copia);
+    setNoEditando(copia);
+  }
+
   function updateNo(id:string, d:Record<string,any>) {
     setNos(p => p.map(n => n.id===id ? {...n,dados:{...n.dados,...d}} : n));
     setNoSel(p => p?.id===id ? {...p,dados:{...p.dados,...d}} : p);
@@ -3273,6 +3289,19 @@ export default function FluxosPage() {
                 gap: 8,
                 flexShrink: 0,
               }}>
+                <button
+                  onClick={() => duplicarNo(noEditando.id)}
+                  style={{
+                    background: "#f5f3ff",
+                    color: "#7c3aed",
+                    border: "1px solid #c4b5fd",
+                    borderRadius: 8,
+                    padding: "10px 16px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >📋 Duplicar bloco</button>
                 <button
                   onClick={() => { excluirNo(noEditando.id); setNoEditando(null); }}
                   style={{

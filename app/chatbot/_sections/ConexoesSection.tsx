@@ -27,7 +27,7 @@ const FB_CONFIG_ID = "852551211216508";
 
 type Conexao = {
   id: number; nome: string; tipo: string; status: string; numero: string;
-  modo: string; ia: string; fluxo_id: string; fluxo_nome: string;
+  modo: string; ia: string; fluxo_id: string | number | null; fluxo_nome: string;
   fila: string; api_key: string; prompt: string; parar_se_atendente: boolean;
   phone_number_id?: string; waba_id?: string; token_waba?: string; webhook_token?: string;
   workspace_id: string;
@@ -537,7 +537,7 @@ export function ConexoesSection() {
     setEditandoId(c.id);
     // 👥 deriva a equipe a partir da fila atual do canal (a fila carrega o equipe_id)
     const equipeDaFila = filasBanco.find(f => f.nome === c.fila)?.equipe_id || "";
-    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", equipeId: equipeDaFila, fila: c.fila || "", pararSeAtendente: c.parar_se_atendente, typebot_url: c.typebot_url || "", typebot_msg_invalida: c.typebot_msg_invalida || "", typebot_msg_boas_vindas: c.typebot_msg_boas_vindas || "", modulos: Array.isArray(c.modulos) ? c.modulos : ["chatbot"], iaCrmAtivo: c.ia_crm_ativo === true, iaCrmMapeamento: c.ia_crm_mapeamento && typeof c.ia_crm_mapeamento === "object" ? c.ia_crm_mapeamento : {}, iaCrmCamposObrigatorios: Array.isArray(c.ia_crm_campos_obrigatorios) ? c.ia_crm_campos_obrigatorios : [], iaAgrupamentoMs: Number(c.ia_agrupamento_ms || 3500) });
+    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id == null ? "" : String(c.fluxo_id), equipeId: equipeDaFila, fila: c.fila || "", pararSeAtendente: c.parar_se_atendente, typebot_url: c.typebot_url || "", typebot_msg_invalida: c.typebot_msg_invalida || "", typebot_msg_boas_vindas: c.typebot_msg_boas_vindas || "", modulos: Array.isArray(c.modulos) ? c.modulos : ["chatbot"], iaCrmAtivo: c.ia_crm_ativo === true, iaCrmMapeamento: c.ia_crm_mapeamento && typeof c.ia_crm_mapeamento === "object" ? c.ia_crm_mapeamento : {}, iaCrmCamposObrigatorios: Array.isArray(c.ia_crm_campos_obrigatorios) ? c.ia_crm_campos_obrigatorios : [], iaAgrupamentoMs: Number(c.ia_agrupamento_ms || 3500) });
     setApiKeyTocada(false); setTokenTocado(false); setWabaTeste(null); setShowModalNovoCanal(true); setShowMenuEngrenagem(null);
     fetchFluxos(); fetchFilas(); fetchEquipes();
   };
@@ -600,6 +600,7 @@ export function ConexoesSection() {
     if (!form.fila) { notify("Selecione uma fila", "aviso", "Se não tem fila cadastrada, vá em Configurações → Filas"); return; }
     if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { notify("Preencha o ID do número e o token permanente", "aviso"); return; }
     if (!editandoId && form.modo === "ia" && !form.apiKey) { notify("Digite a chave da API da inteligência artificial", "aviso"); return; }
+    if (form.modo === "fluxo" && !form.fluxoId) { notify("Selecione o fluxo deste canal", "aviso"); return; }
     if (form.modo === "typebot" && !form.typebot_url?.trim()) { notify("Cole a URL de publicação do Typebot", "aviso"); return; }
     if (form.modo === "ia" && form.iaCrmAtivo) {
       if (form.ia !== "gpt") { notify("Cadastro automático disponível no ChatGPT", "aviso", "Selecione ChatGPT para usar as ferramentas do CRM"); return; }
@@ -616,8 +617,10 @@ export function ConexoesSection() {
     setSalvandoCanal(true);
     try {
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
+      const fluxoIdSelecionado = form.modo === "fluxo" && form.fluxoId ? Number(form.fluxoId) : null;
+      if (form.modo === "fluxo" && !Number.isFinite(fluxoIdSelecionado)) throw new Error("Fluxo selecionado inválido");
       const payload: any = {
-        nome: form.nome, modo: form.modo, ia: form.ia, fluxo_id: form.fluxoId, fluxo_nome: fluxoSel?.nome || "",
+        nome: form.nome, modo: form.modo, ia: form.ia, fluxo_id: fluxoIdSelecionado, fluxo_nome: fluxoSel?.nome || "",
         fila: form.fila, prompt: form.prompt, parar_se_atendente: form.pararSeAtendente,
         typebot_url: form.typebot_url || "",
         typebot_msg_invalida: form.typebot_msg_invalida || "Desculpe, não entendi sua resposta. Pode tentar de novo?",
@@ -631,15 +634,30 @@ export function ConexoesSection() {
       if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
 
       if (editandoId) {
+        const conexaoEditada = conexoes.find(c => c.id === editandoId);
+        if (!conexaoEditada) throw new Error("Conexão não encontrada para edição");
         if (form.tipo === "waba") {
           if (form.phoneNumberId) payload.phone_number_id = form.phoneNumberId;
           if (form.wabaId) payload.waba_id = form.wabaId;
           if (form.webhookToken) payload.webhook_token = form.webhookToken;
           if (tokenTocado && form.token) payload.token_waba = form.token;
         }
-        await supabase.from("conexoes").update(payload).eq("id", editandoId).in("workspace_id", wsIdsRef.current);
+        const { data: canalAtualizado, error: erroAtualizacao } = await supabase.from("conexoes")
+          .update(payload)
+          .eq("id", editandoId)
+          .eq("workspace_id", conexaoEditada.workspace_id)
+          .select("id, fluxo_id, fluxo_nome, modo")
+          .maybeSingle();
+        if (erroAtualizacao) throw erroAtualizacao;
+        if (!canalAtualizado) throw new Error("A conexão não foi atualizada. Confira sua permissão no workspace.");
+        if (String(canalAtualizado.fluxo_id || "") !== String(fluxoIdSelecionado || "")) throw new Error("O fluxo selecionado não foi confirmado pelo banco de dados.");
         setEditandoId(null);
-        try { await wa("configurar-ia", { canalId: editandoId, workspaceId: wsId, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo, iaCrmAtivo: form.iaCrmAtivo, iaCrmMapeamento: form.iaCrmMapeamento, iaCrmCamposObrigatorios: form.iaCrmCamposObrigatorios, iaAgrupamentoMs: form.iaAgrupamentoMs }); } catch (e) {}
+        try {
+          const runtime = await wa("configurar-ia", { canalId: editandoId, workspaceId: conexaoEditada.workspace_id, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo, fluxoId: fluxoIdSelecionado, fluxoNome: fluxoSel?.nome || "", iaCrmAtivo: form.iaCrmAtivo, iaCrmMapeamento: form.iaCrmMapeamento, iaCrmCamposObrigatorios: form.iaCrmCamposObrigatorios, iaAgrupamentoMs: form.iaAgrupamentoMs });
+          if (runtime?.success === false) throw new Error(runtime.error || "Falha ao atualizar o canal no servidor");
+        } catch (e: any) {
+          notify("Fluxo salvo, mas o servidor precisa sincronizar", "aviso", traduzirErro(e));
+        }
         notify("Canal atualizado", "sucesso");
       } else {
         let novoId: number | null = null;
@@ -1197,7 +1215,7 @@ export function ConexoesSection() {
                         <button onClick={() => { router.push("/chatbot/fluxos"); setShowModalNovoCanal(false); }} style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(139,92,246,0.3)" }}>🔀 Criar Fluxo</button>
                       </div>
                     ) : fluxos.map(f => (
-                      <button key={f.id} onClick={() => setForm(p => ({ ...p, fluxoId: f.id.toString() }))} style={{
+                      <button type="button" key={f.id} onClick={() => setForm(p => ({ ...p, fluxoId: f.id.toString() }))} style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                         background: form.fluxoId === f.id.toString() ? "#8b5cf610" : "#ffffff",
                         border: `2px solid ${form.fluxoId === f.id.toString() ? "#8b5cf6" : "#e5e7eb"}`,
