@@ -146,11 +146,10 @@ export default function Register() {
 
   const planos = [
     { value: "", label: "Selecione um plano *" },
-    { value: "Básico - R$ 544,34/mês", label: "🐺 Plano Básico — R$ 544,34/mês (até 7 usuários)" },
-    { value: "Intermediário - R$ 844,34/mês", label: "⭐ Plano Intermediário — R$ 844,34/mês (até 15 usuários)" },
-    { value: "Ultra - R$ 1.099,99/mês", label: "🚀 Plano Ultra — R$ 1.099,99/mês (até 50 usuários)" },
+    { value: "Básico - R$ 497/mês", label: "🐺 Plano Básico — R$ 497/mês (até 5 usuários)" },
+    { value: "Intermediário - R$ 897/mês", label: "⭐ Plano Intermediário — R$ 897/mês (até 15 usuários)" },
+    { value: "Ultra - R$ 1.497/mês", label: "🚀 Plano Ultra — R$ 1.497/mês (até 50 usuários)" },
   ];
-
   // ✅ Borda do input username muda conforme status
   const usernameBorderColor =
     usernameStatus === "taken" || usernameStatus === "invalid" ? "#dc2626" :

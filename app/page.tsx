@@ -143,69 +143,69 @@ export default function Site() {
   const planos = [
     {
       nome: "Básico",
-      preco: "R$ 299,90",
+      preco: "R$ 497",
       periodo: "/mês",
       cor: "#16a34a",
       destaque: false,
-      descricao: "Pra começar a profissionalizar seu atendimento",
+      descricao: "Para organizar atendimento e vendas sem depender de planilhas",
       recursos: [
         { destaque: true, texto: "Até 5 usuários" },
         { destaque: true, texto: "1 conexão WhatsApp" },
-        { destaque: false, texto: "ChatBot com IA" },
+        { destaque: false, texto: "Chat unificado com atendimento humano e IA" },
+        { destaque: false, texto: "CRM de vendas com funil visual" },
+        { destaque: false, texto: "ChatBot visual e respostas automáticas" },
+        { destaque: false, texto: "Filas, departamentos e distribuição manual" },
+        { destaque: false, texto: "Protocolos, histórico e etiquetas" },
+        { destaque: false, texto: "Dashboard operacional em tempo real" },
         { destaque: false, texto: "Atendimentos ilimitados" },
-        { destaque: false, texto: "Filas / Departamentos" },
-        { destaque: false, texto: "Geração de protocolo" },
-        { destaque: false, texto: "Dashboard de atendimentos" },
-        { destaque: false, texto: "CRM de Vendas" },
-        { destaque: false, texto: "Chat Interno" },
-        { destaque: false, texto: "🏷️ Etiquetas e organização" },
+        { destaque: false, texto: "Suporte técnico em horário comercial" },
       ],
     },
     {
       nome: "Intermediário",
-      preco: "R$ 599,90",
+      preco: "R$ 897",
       periodo: "/mês",
       cor: "#3b82f6",
       destaque: true,
-      descricao: "Pra times de vendas e equipes maiores",
+      descricao: "Para equipes comerciais que precisam automatizar e medir resultados",
       recursos: [
         { destaque: true, texto: "Até 15 usuários" },
         { destaque: true, texto: "2 conexões WhatsApp" },
         { destaque: false, texto: "Tudo do Básico, mais:" },
-        { destaque: false, texto: "🤖 Agente de IA Premium (GPT/Claude/Gemini)" },
-        { destaque: false, texto: "🔌 API de Integração" },
-        { destaque: false, texto: "🎯 Roleta de Distribuição" },
-        { destaque: false, texto: "📤 Disparos em Massa (Web)" },
-        { destaque: false, texto: "👥 Equipes e Times separados" },
-        { destaque: false, texto: "📊 Funil Visual com etapas" },
+        { destaque: false, texto: "🤖 IA avançada com GPT, Claude e Gemini" },
+        { destaque: false, texto: "🎯 Roleta automática de distribuição de leads" },
+        { destaque: false, texto: "📤 Campanhas e disparos pelo WhatsApp Web" },
+        { destaque: false, texto: "👥 Equipes, filas e permissões separadas" },
+        { destaque: false, texto: "🔌 API de integração com outros sistemas" },
+        { destaque: false, texto: "📊 Indicadores comerciais por equipe e atendente" },
+        { destaque: false, texto: "⚡ Automações comerciais e follow-up" },
       ],
     },
     {
       nome: "Ultra",
-      preco: "R$ 899,90",
+      preco: "R$ 1.497",
       periodo: "/mês",
       cor: "#a855f7",
       destaque: false,
-      descricao: "Pra operações que vendem e cobram em escala",
+      descricao: "Para operações multicanal que querem gestão e automação completa",
       recursos: [
         { destaque: true, texto: "Até 50 usuários" },
         { destaque: true, texto: "5 conexões WhatsApp" },
         { destaque: false, texto: "Tudo do Intermediário, mais:" },
-        { destaque: false, texto: "📨 Disparos API Oficial (Meta)" },
-        { destaque: false, texto: "💰 Cobrança Automatizada" },
-        { destaque: false, texto: "📞 Ligações VOIP" },
-        { destaque: false, texto: "👥 Equipes Ilimitadas" },
-        { destaque: false, texto: "📊 Funil Premium com etiquetas" },
-        { destaque: false, texto: "📸 Instagram Direct (em breve)" },
-        { destaque: false, texto: "⭐ Suporte prioritário" },
+        { destaque: false, texto: "📨 Campanhas pela API Oficial da Meta" },
+        { destaque: false, texto: "💰 Cobrança recorrente e régua de inadimplência" },
+        { destaque: false, texto: "📞 Ligações VOIP integradas ao CRM" },
+        { destaque: false, texto: "📈 Central Ads com métricas e relatórios" },
+        { destaque: false, texto: "💼 Módulos Financeiro e RH" },
+        { destaque: false, texto: "📸 Instagram e insights, conforme integração Meta" },
+        { destaque: false, texto: "⭐ Atendimento prioritário da equipe Wolf" },
       ],
     },
   ];
-
   const faq = [
     {
       p: "Funciona com WhatsApp comum ou só com o oficial?",
-      r: "Funciona com os dois! Vc pode conectar via QR Code (WhatsApp comum, gratuito) ou via API oficial da Meta (WABA, com templates aprovados). Em qualquer plano, vc escolhe.",
+      r: "Você pode conectar pelo QR Code nos planos Básico e Intermediário. A API Oficial da Meta, com templates aprovados e maior estabilidade para campanhas, está incluída no Ultra.",
     },
     {
       p: "Posso cancelar a qualquer momento?",
@@ -225,7 +225,7 @@ export default function Site() {
     },
     {
       p: "Quantos atendentes podem usar simultaneamente?",
-      r: "Depende do plano: Básico 5, Intermediário 15, Ultra 50. Precisa de mais? Cada usuário extra custa R$ 29,90/mês. Conexão WhatsApp extra: R$ 79,90/mês.",
+      r: "Depende do plano: Básico 5, Intermediário 15 e Ultra 50. Se a operação crescer, você pode adicionar usuários por R$ 49,90/mês e conexões por R$ 149,90/mês.",
     },
     {
       p: "O sistema é multi-tenant? Posso revender pros meus clientes?",
@@ -233,7 +233,7 @@ export default function Site() {
     },
     {
       p: "Posso conectar mais de um número de WhatsApp?",
-      r: "Sim. O plano Básico inclui 1 conexão, Intermediário 2 e Ultra 5. Conexões extras custam R$ 79,90/mês cada.",
+      r: "Sim. O Básico inclui 1 conexão, o Intermediário 2 e o Ultra 5. Cada conexão adicional custa R$ 149,90/mês.",
     },
   ];
 
@@ -502,7 +502,7 @@ export default function Site() {
             <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, letterSpacing: -1 }}>
               Escolha seu <span style={{ color: "#22d36b" }}>plano</span>
             </h2>
-            <p style={{ color: "#9ca3af", fontSize: 16, marginTop: 16 }}>Sem fidelidade. Cancele quando quiser.</p>
+            <p style={{ color: "#9ca3af", fontSize: 16, marginTop: 16 }}>Planos para cada estágio da operação. Sem fidelidade e com evolução simples.</p>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20, marginBottom: 40 }}>
@@ -517,7 +517,7 @@ export default function Site() {
               }}>
                 {plano.destaque && (
                   <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: `linear-gradient(135deg, ${plano.cor} 0%, ${plano.cor}cc 100%)`, color: "white", borderRadius: 20, padding: "5px 18px", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", letterSpacing: 0.5, textTransform: "uppercase", boxShadow: `0 4px 12px ${plano.cor}66` }}>
-                    ⭐ Mais escolhido
+                    ⭐ Melhor custo-benefício
                   </div>
                 )}
 
@@ -562,9 +562,9 @@ export default function Site() {
             </h3>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 14 }}>
               {[
-                { icon: "👤", titulo: "Usuário extra", preco: "R$ 29,90", cor: "#22d36b" },
-                { icon: "🔗", titulo: "Conexão extra", preco: "R$ 79,90", cor: "#3b82f6" },
-                { icon: "💰", titulo: "Módulo Cobrança", preco: "R$ 99,90", cor: "#dc2626" },
+                { icon: "👤", titulo: "Usuário extra", preco: "R$ 49,90", cor: "#22d36b" },
+                { icon: "🔗", titulo: "Conexão extra", preco: "R$ 149,90", cor: "#3b82f6" },
+                { icon: "💰", titulo: "Módulo Cobrança", preco: "R$ 199,90", cor: "#dc2626" },
               ].map((e, i) => (
                 <div key={i} style={{ background: "#0f0f0f", borderRadius: 10, padding: "14px 18px", border: "1px solid #1f2937", display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{ fontSize: 24 }}>{e.icon}</div>
