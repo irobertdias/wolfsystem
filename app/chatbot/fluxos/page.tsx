@@ -15,6 +15,7 @@ type TipoNo =
   | "google_sheets" | "http_request" | "openai" | "fluxo_ia" | "claude_ai" | "gmail"
   | "meta_capi"  // 🆕 v20: dispara evento de conversão pra Meta (Pixel + Conversions API)
   | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar"
+  | "gatilho_crm" | "atualizar_venda"
   | "enviar_venda"  // 🆕 v18: cria proposta no CRM com as variáveis salvas + aplica etiqueta
   | "etiqueta";    // 🆕 v19: aplica/remove etiqueta no atendimento ativo
 
@@ -56,7 +57,7 @@ const B: Record<TipoNo, BC> = {
   google_sheets:        {label:"Google Sheets",   icone:"📊", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   http_request:         {label:"HTTP Request",    icone:"🌐", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   openai:               {label:"OpenAI",          icone:"🤖", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
-  fluxo_ia:             {label:"Fluxo por IA",    icone:"✨", cor:"#7c3aed", saidas:["Dados confirmados","Erro"], grupo:"Integrações"},
+  fluxo_ia:             {label:"Fluxo por IA",    icone:"✨", cor:"#7c3aed", saidas:["Dados confirmados","Erro","Limite atingido"], grupo:"Integrações"},
   claude_ai:            {label:"Claude AI",       icone:"🧠", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
   gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
   // 🆕 v20: Meta Pixel / Conversions API — manda evento de conversão pra Meta (Lead, Purchase, etc)
@@ -68,6 +69,8 @@ const B: Record<TipoNo, BC> = {
   transferir:           {label:"Transferir",      icone:"👤", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
   finalizar:            {label:"Finalizar",       icone:"🏁", cor:"#ef4444", saidas:[],                              grupo:"Eventos"},
   // 🆕 v18: bloco que cria proposta no /crm/vendas usando variáveis salvas + aplica etiqueta
+  gatilho_crm:         {label:"Alteração no CRM", icone:"⚡", cor:"#f97316", saidas:["Disparar"], grupo:"CRM"},
+  atualizar_venda:     {label:"Atualizar Venda",  icone:"📝", cor:"#0ea5e9", saidas:["Sucesso","Erro"], grupo:"CRM"},
   enviar_venda:         {label:"Enviar Venda",    icone:"💰", cor:"#22c55e", saidas:["Sucesso","Erro"],              grupo:"CRM"},
   // 🆕 v19: aplica/remove etiqueta no atendimento ativo (use no meio do fluxo, não só no final)
   etiqueta:             {label:"Aplicar Etiqueta",icone:"🏷️", cor:"#22c55e", saidas:["Próximo"],                     grupo:"CRM"},
@@ -145,7 +148,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
-    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",agrupamento_ms:3500,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
+    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",agrupamento_ms:3500,limite_recusas:3,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     // 🆕 v20: Meta Pixel / Conversions API
@@ -166,6 +169,8 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     transferir:{modo:"equipe", fila:"", atendente_email:"", atendente_nome:"", mensagem:"Transferindo..."},
     finalizar:{mensagem:"Atendimento finalizado. Obrigado!"},
     // 🆕 v18: bloco enviar_venda — defaults
+    gatilho_crm:{ativo:true,campo:"status_venda",operador:"mudou_para",valor:"",modo_primeiro_envio:"texto",template_nome:"",template_idioma:"pt_BR"},
+    atualizar_venda:{atualizacoes:[{campo:"status_venda",origem:"valor",valor:""}],mensagem_sucesso:"",mensagem_erro:""},
     enviar_venda:{
       modo_mapeamento: "automatico",          // "automatico" (por nome) ou "manual" (define cada campo)
       mapeamento: {},                         // so usado se modo_mapeamento === "manual": { campo_proposta: "nome_variavel" }
@@ -250,6 +255,8 @@ function getPreview(no: No): string {
     }
     case "finalizar": return d.mensagem||"Finalizar";
     // 🆕 v18: preview do bloco "Enviar Venda"
+    case "gatilho_crm": return `Quando ${d.campo || "status_venda"} ${d.operador || "mudar"} ${d.valor || ""}`;
+    case "atualizar_venda": return `${Array.isArray(d.atualizacoes) ? d.atualizacoes.length : 0} campo(s) da mesma venda`;
     case "enviar_venda": {
       const modo = d.modo_mapeamento === "manual" ? "manual" : "auto";
       const qtdVend = Array.isArray(d.roleta_vendedores) ? d.roleta_vendedores.length : 0;
@@ -1362,6 +1369,7 @@ function saida(obj) {
         {S("Tempo para juntar mensagens","agrupamento_ms",[
           {value:"2000",label:"2 segundos"},{value:"3500",label:"3,5 segundos"},{value:"5000",label:"5 segundos"},{value:"7000",label:"7 segundos"}
         ])}
+        <div><label style={LS}>Limite de recusas antes de desistir</label><input type="number" min={0} max={20} value={d.limite_recusas ?? 3} onChange={e=>u({limite_recusas:Number(e.target.value)})} style={IS}/><p style={{fontSize:9,color:"#6b7280",margin:"4px 0 0"}}>0 = sem limite. Conecte a saída “Limite atingido” a Atualizar Venda (ex.: CANCELADA/DESISTÊNCIA) e depois a Finalizar.</p></div>
         <div style={{marginTop:10}}>
           <label style={LS}>Variáveis que a IA precisa salvar</label>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -1692,6 +1700,66 @@ function saida(obj) {
     //   6. Enviar `mensagem_sucesso` ao cliente (se preenchida) e seguir saida "Sucesso"
     //   7. Em erro: enviar `mensagem_erro` e seguir saida "Erro"
     // ─────────────────────────────────────────────────────────────────────────
+    case "gatilho_crm": {
+      const campoAtual = d.campo || "status_venda";
+      return <>
+        <div style={{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:9,padding:10}}>
+          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#c2410c"}}>⚡ Entrada automática pelo CRM</p>
+          <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#6b7280"}}>Quando uma venda mudar conforme esta regra, o sistema abre o trecho conectado usando o mesmo cliente, canal e venda. Crie quantos gatilhos precisar.</p>
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#374151"}}>
+          <input type="checkbox" checked={d.ativo !== false} onChange={e=>u({ativo:e.target.checked})}/> Regra ativa
+        </label>
+        <div><label style={LS}>Campo observado</label><select value={campoAtual} onChange={e=>u({campo:e.target.value})} style={IS}>
+          {camposPropostaUnif.filter(c=>c.visivel).map(c=><option key={c.origem+":"+c.slug} value={c.origem === "custom" ? "custom."+c.slug : c.slug}>{c.label}{c.origem === "custom" ? " (personalizado)" : ""}</option>)}
+        </select></div>
+        {S("Condição","operador",[
+          {value:"mudou_para",label:"Mudou para"},{value:"mudou_de",label:"Saiu de"},{value:"alterou",label:"Qualquer alteração"},
+          {value:"igual",label:"Está igual a"},{value:"contem",label:"Contém"},{value:"preenchido",label:"Foi preenchido"},{value:"vazio",label:"Ficou vazio"}
+        ])}
+        {!['alterou','preenchido','vazio'].includes(d.operador || 'mudou_para') && <div>
+          <label style={LS}>Valor da regra</label>
+          <input value={d.valor || ""} onChange={e=>u({valor:e.target.value})} list={campoAtual === "status_venda" ? "status-crm-opcoes" : undefined} style={IS} placeholder="Ex.: INSTALADA, REPROVADA, 14:30..."/>
+          {campoAtual === "status_venda" && <datalist id="status-crm-opcoes">{statusVendaOpcoes.map(o=><option key={o.value} value={o.value}/>)}</datalist>}
+        </div>}
+        <div style={{borderTop:"1px solid #fed7aa",paddingTop:10}}>
+          {S("Primeiro contato na API oficial","modo_primeiro_envio",[{value:"texto",label:"Texto normal (janela aberta)"},{value:"template",label:"Template aprovado pela Meta"}])}
+          {d.modo_primeiro_envio === "template" && <div style={{display:"grid",gridTemplateColumns:"1fr 90px",gap:7,marginTop:7}}>
+            <input value={d.template_nome || ""} onChange={e=>u({template_nome:e.target.value})} style={IS} placeholder="nome_do_template"/>
+            <input value={d.template_idioma || "pt_BR"} onChange={e=>u({template_idioma:e.target.value})} style={IS} placeholder="pt_BR"/>
+          </div>}
+          <p style={{fontSize:9,color:"#9a3412",lineHeight:1.4,margin:"6px 0 0"}}>Na Cloud API, use template quando o cliente estiver fora da janela de 24 horas. Depois o fluxo e a IA continuam normalmente.</p>
+        </div>
+        <div style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:9,fontSize:10,color:"#475569",lineHeight:1.5}}>
+          Variáveis automáticas: <code>{'{{proposta_id}}'}</code>, <code>{'{{crm_campo_alterado}}'}</code>, <code>{'{{crm_valor_anterior}}'}</code>, <code>{'{{crm_valor_novo}}'}</code> e todos os campos da venda.
+        </div>
+      </>;
+    }
+    case "atualizar_venda": {
+      const itens: Array<{campo:string;origem:string;valor:string}> = Array.isArray(d.atualizacoes) ? d.atualizacoes : [];
+      const atualizar = (i:number, patch:Record<string,string>) => u({atualizacoes:itens.map((x,j)=>j===i?{...x,...patch}:x)});
+      return <>
+        <div style={{background:"#f0f9ff",border:"1px solid #7dd3fc",borderRadius:9,padding:10}}>
+          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#0369a1"}}>📝 Atualizar a venda atual</p>
+          <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#6b7280"}}>Edita a mesma ficha que acionou a automação. Pode alterar status, horário, CPF, observação ou qualquer campo personalizado do workspace.</p>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>{itens.map((item,i)=><div key={i} style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:8}}>
+          <select value={item.campo || ""} onChange={e=>atualizar(i,{campo:e.target.value})} style={{...IS,marginBottom:6}}>
+            <option value="">Selecione o campo...</option>
+            {camposPropostaUnif.filter(c=>c.visivel).map(c=><option key={c.origem+":"+c.slug} value={c.origem === "custom" ? "custom."+c.slug : c.slug}>{c.label}{c.origem === "custom" ? " (personalizado)" : ""}</option>)}
+          </select>
+          <div style={{display:"grid",gridTemplateColumns:"110px 1fr auto",gap:6}}>
+            <select value={item.origem || "valor"} onChange={e=>atualizar(i,{origem:e.target.value})} style={IS}><option value="valor">Valor/texto</option><option value="variavel">Variável</option></select>
+            {item.origem === "variavel" ? <select value={item.valor || ""} onChange={e=>atualizar(i,{valor:e.target.value})} style={IS}><option value="">Escolha...</option>{variaveisDoFluxo.map(v=><option key={v} value={v}>{'{{'+v+'}}'}</option>)}</select> : <input value={item.valor || ""} onChange={e=>atualizar(i,{valor:e.target.value})} style={IS} placeholder="Valor ou {{variavel}}"/>}
+            <button type="button" onClick={()=>u({atualizacoes:itens.filter((_,j)=>j!==i)})} style={{border:"1px solid #fecaca",background:"#fee2e2",color:"#dc2626",borderRadius:6,cursor:"pointer"}}>×</button>
+          </div>
+        </div>)}</div>
+        <button type="button" onClick={()=>u({atualizacoes:[...itens,{campo:"",origem:"valor",valor:""}]})} style={{background:"#e0f2fe",border:"1px solid #7dd3fc",color:"#0369a1",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>+ Campo para atualizar</button>
+        {TVar("Mensagem após atualizar (opcional)","mensagem_sucesso","Ex.: Dados atualizados. Vou reenviar para análise.",65)}
+        {TVar("Mensagem se der erro (opcional)","mensagem_erro","Não consegui atualizar agora.",55)}
+      </>;
+    }
+
     case "enviar_venda": {
       const modoMap = d.modo_mapeamento || "automatico";
       // 📋 Campos disponíveis = lista UNIFICADA carregada do workspace:
@@ -2445,7 +2513,7 @@ export default function FluxosPage() {
   }
 
   function abrirEditor(f:Fluxo) {
-    setFluxoAtivo(f); setNos(f.nos||[]); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
+    setFluxoAtivo(f); setNos((f.nos||[]).map(n=>n.tipo==="fluxo_ia"&&n.saidas.length<3?{...n,saidas:[...n.saidas,"Limite atingido"]}:n)); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
     fetchFilas(); // 🆕 recarrega filas ao abrir o editor
     fetchAtendentes(); // 🆕 recarrega atendentes ao abrir o editor
   }
@@ -2466,6 +2534,8 @@ export default function FluxosPage() {
           problemas.push("📤 Transferir → modo Atendente humano sem atendente selecionado");
         }
       }
+      if (n.tipo === "gatilho_crm" && !n.dados?.campo) problemas.push("⚡ Alteração no CRM → selecione o campo observado");
+      if (n.tipo === "atualizar_venda" && (!Array.isArray(n.dados?.atualizacoes) || !n.dados.atualizacoes.some((x:any)=>x.campo))) problemas.push("📝 Atualizar Venda → adicione pelo menos um campo");
       if (n.tipo === "gmail") {
         const faltam: string[] = [];
         if (!n.dados?.smtp_user) faltam.push("usuário SMTP");
