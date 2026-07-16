@@ -10,7 +10,7 @@ import MetaExecutiveDashboard from "./MetaExecutiveDashboard";
 import MetaCampaignReport from "./MetaCampaignReport";
 import { Dashboard,ganhou,InstagramDashboard,n,noIntervalo,PADRAO,PERIODOS,Preferencias,Proposta,RegraAlerta,StatusData } from "./metaTypes";
 import styles from "./MetaAds.module.css";
-const META_BASE=process.env.NEXT_PUBLIC_META_URL||"https://meta.api.wolfgyn.com.br",FB_APP_ID=process.env.NEXT_PUBLIC_META_FB_APP_ID||"1014671678116787",GRAPH_VERSION=process.env.NEXT_PUBLIC_META_GRAPH_VERSION||"v21.0";
+const META_BASE=process.env.NEXT_PUBLIC_META_URL||"https://meta.api.wolfgyn.com.br",FB_APP_ID=process.env.NEXT_PUBLIC_META_FB_APP_ID||"922442717546553",GRAPH_VERSION=process.env.NEXT_PUBLIC_META_GRAPH_VERSION||"v21.0";
 const erroTexto=(e:unknown,f:string)=>e instanceof Error&&e.message?e.message:f;
 export default function MetaAdsPage(){
  const{wsId,wsPronto}=useWorkspace(),{isDono,isSuperAdmin,perfil}=usePermissao(),podeConfigurar=isDono||isSuperAdmin||perfil==="Administrador",{modulos,carregado:modulosCarregados}=useModulos();
