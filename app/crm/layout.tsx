@@ -487,7 +487,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
               {podeVerMetaAds && (
                 <button onClick={() => navegarPara("/crm/meta-ads")} style={botaoMenu(isActive("/crm/meta-ads"), "#faf5ff", "#f3e8ff", "#e9d5ff", "#9333ea", "#7e22ce")}>
-                  <span>&#128202;</span> Central Meta ADS
+                  <span>&#128202;</span> Central Ads
                 </button>
               )}
 

@@ -1077,7 +1077,7 @@ export default function Clientes() {
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
                 <Toggle value={!!formCadastro.modulo_roleta} onChange={() => setFormCadastro({ ...formCadastro, modulo_roleta: !formCadastro.modulo_roleta })} label="🎯 Roleta de Distribuição" desc="Intermediário, Ultra" color="#3b82f6" />
                 <Toggle value={!!formCadastro.modulo_disparos_web} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_web: !formCadastro.modulo_disparos_web })} label="📤 Disparos Web" desc="Intermediário, Ultra" color="#3b82f6" />
-                <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="📊 Central Meta ADS" desc="Dashboard de campanhas, leads, CPC e CPA" color="#7e22ce" />
+                <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="📊 Central Ads" desc="Central de campanhas e resultados de mídia paga" color="#7e22ce" />
                 <Toggle value={!!formCadastro.modulo_disparos_api} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_api: !formCadastro.modulo_disparos_api })} label="📨 Disparos API" desc="Apenas Ultra" color="#8b5cf6" />
                 <Toggle value={!!formCadastro.modulo_voip} onChange={() => setFormCadastro({ ...formCadastro, modulo_voip: !formCadastro.modulo_voip })} label="📞 Ligações VOIP" desc="Apenas Ultra" color="#8b5cf6" />
                 <Toggle value={!!formCadastro.modulo_api_integracao} onChange={() => setFormCadastro({ ...formCadastro, modulo_api_integracao: !formCadastro.modulo_api_integracao })} label="🔌 API de Integração" desc="Intermediário, Ultra" color="#3b82f6" />
@@ -1424,7 +1424,7 @@ export default function Clientes() {
               <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>🎁 Módulos Liberados</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_roleta} icone="🎯" label="Roleta" cor="#3b82f6" />
-                <BadgeModulo ativo={!!cadastroSelecionado.modulo_meta_ads} icone="📊" label="Meta ADS" cor="#7e22ce" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_meta_ads} icone="📊" label="Central Ads" cor="#7e22ce" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_disparos_web} icone="📤" label="Disparos Web" cor="#3b82f6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_disparos_api} icone="📨" label="Disparos API" cor="#8b5cf6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_voip} icone="📞" label="VOIP" cor="#8b5cf6" />
@@ -1642,7 +1642,7 @@ export default function Clientes() {
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                          {c.modulo_meta_ads && <span style={{ fontSize: 14 }} title="Central Meta ADS">📊</span>}
+                          {c.modulo_meta_ads && <span style={{ fontSize: 14 }} title="Central Ads">📊</span>}
                           {c.modulo_roleta && <span style={{ fontSize: 14 }} title="Roleta">🎯</span>}
                           {c.modulo_disparos_web && <span style={{ fontSize: 14 }} title="Disparos Web">📤</span>}
                           {c.modulo_disparos_api && <span style={{ fontSize: 14 }} title="Disparos API">📨</span>}

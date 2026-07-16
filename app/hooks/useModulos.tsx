@@ -199,8 +199,8 @@ const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: strin
   },
   meta_ads: {
     icone: "📊",
-    nome: "Central Meta ADS",
-    desc: "Acompanhe investimento, leads, formulários, CPC, CPA, campanhas e resultados do Gerenciador de Anúncios dentro da Wolf.",
+    nome: "Central Ads",
+    desc: "Acompanhe investimento, leads, formulários, CPC, CPA e resultados dos gerenciadores de anúncios conectados à Wolf.",
     planoNecessario: "Liberação comercial",
     cor: "#7e22ce",
   },
@@ -333,7 +333,7 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
         </div>
 
         <p style={{ color: "#6b7280", fontSize: 11, margin: "24px 0 0", fontStyle: "italic" }}>
-          Ao clicar em "Solicitar Liberação", você será redirecionado para o WhatsApp do suporte.
+          Ao clicar em &quot;Solicitar Liberação&quot;, você será redirecionado para o WhatsApp do suporte.
         </p>
       </div>
     </div>
