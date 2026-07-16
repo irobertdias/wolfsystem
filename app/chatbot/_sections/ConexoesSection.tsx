@@ -652,12 +652,11 @@ export function ConexoesSection() {
         if (!canalAtualizado) throw new Error("A conexão não foi atualizada. Confira sua permissão no workspace.");
         if (String(canalAtualizado.fluxo_id || "") !== String(fluxoIdSelecionado || "")) throw new Error("O fluxo selecionado não foi confirmado pelo banco de dados.");
         setEditandoId(null);
-        try {
-          const runtime = await wa("configurar-ia", { canalId: editandoId, workspaceId: conexaoEditada.workspace_id, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo, fluxoId: fluxoIdSelecionado, fluxoNome: fluxoSel?.nome || "", iaCrmAtivo: form.iaCrmAtivo, iaCrmMapeamento: form.iaCrmMapeamento, iaCrmCamposObrigatorios: form.iaCrmCamposObrigatorios, iaAgrupamentoMs: form.iaAgrupamentoMs });
-          if (runtime?.success === false) throw new Error(runtime.error || "Falha ao atualizar o canal no servidor");
-        } catch (e: any) {
-          notify("Fluxo salvo, mas o servidor precisa sincronizar", "aviso", traduzirErro(e));
-        }
+        void wa("configurar-ia", { canalId: editandoId, workspaceId: conexaoEditada.workspace_id, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo, fluxoId: fluxoIdSelecionado, fluxoNome: fluxoSel?.nome || "", iaCrmAtivo: form.iaCrmAtivo, iaCrmMapeamento: form.iaCrmMapeamento, iaCrmCamposObrigatorios: form.iaCrmCamposObrigatorios, iaAgrupamentoMs: form.iaAgrupamentoMs })
+          .then(runtime => {
+            if (runtime?.success === false) throw new Error(runtime.error || "Falha ao atualizar o canal no servidor");
+          })
+          .catch((e: any) => notify("Fluxo salvo, mas o servidor precisa sincronizar", "aviso", traduzirErro(e)));
         notify("Canal atualizado", "sucesso");
       } else {
         let novoId: number | null = null;
@@ -682,9 +681,9 @@ export function ConexoesSection() {
         if (novoId) { try { await wa("canal/criar", { canalId: novoId, workspaceId: wsId }); } catch (e) { console.error("Erro ao criar sessão no VPS:", e); } }
         notify("Canal criado", "sucesso");
       }
-      await fetchConexoes();
       setShowModalNovoCanal(false); setForm(formInicial); setWabaTeste(null);
       setApiKeyTocada(false); setTokenTocado(false);
+      await fetchConexoes();
     } catch (e: any) { notify("Operação falhou", "erro", traduzirErro(e)); }
     setSalvandoCanal(false);
   };
