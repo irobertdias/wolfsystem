@@ -12,7 +12,7 @@ type TipoNo =
   | "input_arquivo" | "input_cards"
   | "condicao" | "variavel" | "redirecionar" | "script" | "espera"
   | "teste_ab" | "webhook" | "pular" | "retornar"
-  | "google_sheets" | "http_request" | "openai" | "claude_ai" | "gmail"
+  | "google_sheets" | "http_request" | "openai" | "fluxo_ia" | "claude_ai" | "gmail"
   | "meta_capi"  // 🆕 v20: dispara evento de conversão pra Meta (Pixel + Conversions API)
   | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar"
   | "enviar_venda"  // 🆕 v18: cria proposta no CRM com as variáveis salvas + aplica etiqueta
@@ -56,6 +56,7 @@ const B: Record<TipoNo, BC> = {
   google_sheets:        {label:"Google Sheets",   icone:"📊", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   http_request:         {label:"HTTP Request",    icone:"🌐", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   openai:               {label:"OpenAI",          icone:"🤖", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
+  fluxo_ia:             {label:"Fluxo por IA",    icone:"✨", cor:"#7c3aed", saidas:["Dados confirmados","Erro"], grupo:"Integrações"},
   claude_ai:            {label:"Claude AI",       icone:"🧠", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
   gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
   // 🆕 v20: Meta Pixel / Conversions API — manda evento de conversão pra Meta (Lead, Purchase, etc)
@@ -144,6 +145,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
+    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",agrupamento_ms:3500,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     // 🆕 v20: Meta Pixel / Conversions API
@@ -227,6 +229,7 @@ function getPreview(no: No): string {
     case "google_sheets": return d.webhook_url ? `Sheets ${d.acao}` : "⚠️ Webhook não configurado";
     case "http_request": return `${d.metodo} ${d.url||""}`;
     case "openai": return `GPT: ${d.modelo}`;
+    case "fluxo_ia": return "IA coleta " + (Array.isArray(d.variaveis) ? d.variaveis.length : 0) + " variável(is)";
     case "claude_ai": return `Claude: ${d.modelo}`;
     case "gmail": return d.smtp_user ? `📨 ${d.para||"?"}` : "⚠️ SMTP não configurado";
     // 🆕 v20: preview do bloco Meta Pixel/CAPI
@@ -1326,6 +1329,65 @@ function saida(obj) {
           Enviar resposta pro cliente automaticamente
         </label>
       </>;
+    case "fluxo_ia": {
+      const camposIA: Array<{nome:string;label:string;tipo:string;obrigatoria:boolean}> =
+        Array.isArray(d.variaveis) ? d.variaveis : [];
+      const atualizarCampoIA = (indice: number, patch: Record<string, any>) => {
+        const novos = camposIA.map((campo, i) => i === indice ? { ...campo, ...patch } : campo);
+        u({ variaveis: novos });
+      };
+      const removerCampoIA = (indice: number) => u({ variaveis: camposIA.filter((_, i) => i !== indice) });
+      return <>
+        <div style={{background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:8,padding:10,marginBottom:10}}>
+          <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>✨ Fluxo por IA com variáveis validadas</p>
+          <p style={{color:"#6b7280",fontSize:10,margin:0,lineHeight:1.4}}>
+            A IA conversa, salva apenas valores válidos, mostra um resumo e só libera a saída depois da confirmação do cliente.
+            Conecte a saída <b>Dados confirmados</b> ao bloco <b>Enviar Venda</b>.
+          </p>
+        </div>
+        {F("API Key","apiKey","password","sk-...")}
+        {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"}])}
+        {T("Prompt de comportamento","prompt","Explique como a IA deve conduzir o atendimento...",100)}
+        {T("Mensagem para iniciar a coleta","mensagem_inicial","Olá! Vou confirmar alguns dados com você.",70)}
+        {S("Tempo para juntar mensagens","agrupamento_ms",[
+          {value:"2000",label:"2 segundos"},{value:"3500",label:"3,5 segundos"},{value:"5000",label:"5 segundos"},{value:"7000",label:"7 segundos"}
+        ])}
+        <div style={{marginTop:10}}>
+          <label style={LS}>Variáveis que a IA precisa salvar</label>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {camposIA.map((campo, indice) => (
+              <div key={indice} style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:9}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1.2fr",gap:6,marginBottom:6}}>
+                  <input value={campo.nome || ""} placeholder="variavel: nome" onChange={e=>atualizarCampoIA(indice,{nome:e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_")})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
+                  <input value={campo.label || ""} placeholder="Pergunta/campo: Nome completo" onChange={e=>atualizarCampoIA(indice,{label:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:7}}>
+                  <select value={campo.tipo || "texto"} onChange={e=>atualizarCampoIA(indice,{tipo:e.target.value})} style={{...IS,flex:1,fontSize:10,padding:"6px 8px"}}>
+                    <option value="nome">Nome</option>
+                    <option value="texto">Texto</option>
+                    <option value="email">E-mail</option>
+                    <option value="cpf">CPF</option>
+                    <option value="telefone">Telefone</option>
+                    <option value="numero">Número</option>
+                    <option value="data">Data</option>
+                  </select>
+                  <label style={{display:"flex",alignItems:"center",gap:5,color:"#374151",fontSize:10}}>
+                    <input type="checkbox" checked={campo.obrigatoria !== false} onChange={e=>atualizarCampoIA(indice,{obrigatoria:e.target.checked})}/>
+                    Obrigatória
+                  </label>
+                  <button type="button" onClick={()=>removerCampoIA(indice)} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"5px 8px",cursor:"pointer",fontSize:10}}>Remover</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={()=>u({variaveis:[...camposIA,{nome:"",label:"",tipo:"texto",obrigatoria:true}]})}
+            style={{marginTop:8,background:"#ede9fe",border:"1px solid #c4b5fd",color:"#6d28d9",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+            + Adicionar variável
+          </button>
+        </div>
+      </>;
+    }
+
     case "claude_ai":
       return <>
         {F("API Key","apiKey","password","sk-ant-...")}

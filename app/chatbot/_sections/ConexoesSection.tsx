@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useToast } from "../../hooks/useToast";
 import { traduzirErro } from "../../lib/traduzir_erro";
+import { montarCamposUnificados, type CampoUnificado, type ConfigCampoPadrao, type CampoCustom } from "../../lib/campos_proposta_definicao";
 
 // 🆕 Tipagem do Facebook SDK (carregado dinamicamente)
 declare global {
@@ -37,6 +38,10 @@ type Conexao = {
   instagram_ativo?: boolean;
   instagram_business_id?: string;
   instagram_username?: string;
+  ia_crm_ativo?: boolean;
+  ia_crm_mapeamento?: Record<string, string>;
+  ia_crm_campos_obrigatorios?: string[];
+  ia_agrupamento_ms?: number;
   // 📂 Módulos onde este canal aparece (array de strings tipo ["chatbot","cobranca"])
   modulos?: string[];
 };
@@ -126,9 +131,10 @@ export function ConexoesSection() {
   const [registrandoWaba, setRegistrandoWaba] = useState(false);
 
   const [limites, setLimites] = useState<LimitesPlano>({ conexoes: 1, webjs: true, waba: false, instagram: false });
+  const [camposCrm, setCamposCrm] = useState<CampoUnificado[]>(montarCamposUnificados([], []));
 
   // 👥 equipeId no form = filtro de equipe (não é salvo na conexão — a fila escolhida já carrega o equipe_id)
-  const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", equipeId: "", fila: "", pararSeAtendente: true, typebot_url: "", typebot_msg_invalida: "", typebot_msg_boas_vindas: "", modulos: ["chatbot"] as string[] };
+  const formInicial = { nome: "", tipo: "webjs", phoneNumberId: "", wabaId: "", token: "", webhookToken: "", modo: "nenhum", ia: "gpt", apiKey: "", prompt: "", fluxoId: "", equipeId: "", fila: "", pararSeAtendente: true, typebot_url: "", typebot_msg_invalida: "", typebot_msg_boas_vindas: "", modulos: ["chatbot"] as string[], iaCrmAtivo: false, iaCrmMapeamento: {} as Record<string, string>, iaCrmCamposObrigatorios: [] as string[], iaAgrupamentoMs: 3500 };
   const [form, setForm] = useState(formInicial);
 
   const [apiKeyTocada, setApiKeyTocada] = useState(false);
@@ -159,6 +165,26 @@ export function ConexoesSection() {
   }, [workspace]);
 
   // 🎨 ESTILOS LIGHT TECH
+  useEffect(() => {
+    if (!wsId) return;
+    let cancelado = false;
+    (async () => {
+      const [{ data: configs }, { data: customs }] = await Promise.all([
+        supabase.from("proposta_campos_padrao_config")
+          .select("id, campo_slug, label_custom, obrigatorio, visivel, ordem, opcoes, placeholder_custom")
+          .eq("workspace_id", wsId),
+        supabase.from("proposta_campos_customizados")
+          .select("id, slug, label, tipo, obrigatorio, ordem, opcoes, placeholder, ativo")
+          .eq("workspace_id", wsId)
+          .order("ordem", { ascending: true }),
+      ]);
+      if (!cancelado) setCamposCrm(montarCamposUnificados(
+        (configs as ConfigCampoPadrao[]) || [],
+        (customs as CampoCustom[]) || []
+      ));
+    })();
+    return () => { cancelado = true; };
+  }, [wsId]);
   const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
   const TA = { ...IS, height: 90, resize: "vertical" as const };
 
@@ -511,7 +537,7 @@ export function ConexoesSection() {
     setEditandoId(c.id);
     // 👥 deriva a equipe a partir da fila atual do canal (a fila carrega o equipe_id)
     const equipeDaFila = filasBanco.find(f => f.nome === c.fila)?.equipe_id || "";
-    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", equipeId: equipeDaFila, fila: c.fila || "", pararSeAtendente: c.parar_se_atendente, typebot_url: c.typebot_url || "", typebot_msg_invalida: c.typebot_msg_invalida || "", typebot_msg_boas_vindas: c.typebot_msg_boas_vindas || "", modulos: Array.isArray(c.modulos) ? c.modulos : ["chatbot"] });
+    setForm({ nome: c.nome, tipo: c.tipo, phoneNumberId: c.phone_number_id || "", wabaId: c.waba_id || "", token: "", webhookToken: c.webhook_token || "", modo: c.modo, ia: c.ia, apiKey: "", prompt: c.prompt || "", fluxoId: c.fluxo_id || "", equipeId: equipeDaFila, fila: c.fila || "", pararSeAtendente: c.parar_se_atendente, typebot_url: c.typebot_url || "", typebot_msg_invalida: c.typebot_msg_invalida || "", typebot_msg_boas_vindas: c.typebot_msg_boas_vindas || "", modulos: Array.isArray(c.modulos) ? c.modulos : ["chatbot"], iaCrmAtivo: c.ia_crm_ativo === true, iaCrmMapeamento: c.ia_crm_mapeamento && typeof c.ia_crm_mapeamento === "object" ? c.ia_crm_mapeamento : {}, iaCrmCamposObrigatorios: Array.isArray(c.ia_crm_campos_obrigatorios) ? c.ia_crm_campos_obrigatorios : [], iaAgrupamentoMs: Number(c.ia_agrupamento_ms || 3500) });
     setApiKeyTocada(false); setTokenTocado(false); setWabaTeste(null); setShowModalNovoCanal(true); setShowMenuEngrenagem(null);
     fetchFluxos(); fetchFilas(); fetchEquipes();
   };
@@ -575,6 +601,11 @@ export function ConexoesSection() {
     if (!editandoId && form.tipo === "waba" && (!form.phoneNumberId || !form.token)) { notify("Preencha o ID do número e o token permanente", "aviso"); return; }
     if (!editandoId && form.modo === "ia" && !form.apiKey) { notify("Digite a chave da API da inteligência artificial", "aviso"); return; }
     if (form.modo === "typebot" && !form.typebot_url?.trim()) { notify("Cole a URL de publicação do Typebot", "aviso"); return; }
+    if (form.modo === "ia" && form.iaCrmAtivo) {
+      if (form.ia !== "gpt") { notify("Cadastro automático disponível no ChatGPT", "aviso", "Selecione ChatGPT para usar as ferramentas do CRM"); return; }
+      if (Object.keys(form.iaCrmMapeamento).length === 0) { notify("Mapeie pelo menos uma variável para o CRM", "aviso"); return; }
+      if (form.iaCrmCamposObrigatorios.length === 0) { notify("Marque pelo menos um campo obrigatório", "aviso"); return; }
+    }
 
     if (!editandoId && !isSuperAdmin) {
       if (conexoes.length >= limites.conexoes) { notify("Limite do plano atingido", "erro", `Seu plano permite até ${limites.conexoes} canal(is). Você já tem ${conexoes.length}. Atualize o plano para criar mais.`); return; }
@@ -591,6 +622,10 @@ export function ConexoesSection() {
         typebot_url: form.typebot_url || "",
         typebot_msg_invalida: form.typebot_msg_invalida || "Desculpe, não entendi sua resposta. Pode tentar de novo?",
         typebot_msg_boas_vindas: form.typebot_msg_boas_vindas || "",
+        ia_crm_ativo: form.iaCrmAtivo,
+        ia_crm_mapeamento: form.iaCrmMapeamento,
+        ia_crm_campos_obrigatorios: form.iaCrmCamposObrigatorios,
+        ia_agrupamento_ms: form.iaAgrupamentoMs,
         modulos: Array.isArray(form.modulos) ? form.modulos : ["chatbot"],  // 📂 onde o canal aparece no sistema
       };
       if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
@@ -604,7 +639,7 @@ export function ConexoesSection() {
         }
         await supabase.from("conexoes").update(payload).eq("id", editandoId).in("workspace_id", wsIdsRef.current);
         setEditandoId(null);
-        try { await wa("configurar-ia", { canalId: editandoId, workspaceId: wsId, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo }); } catch (e) {}
+        try { await wa("configurar-ia", { canalId: editandoId, workspaceId: wsId, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo, iaCrmAtivo: form.iaCrmAtivo, iaCrmMapeamento: form.iaCrmMapeamento, iaCrmCamposObrigatorios: form.iaCrmCamposObrigatorios, iaAgrupamentoMs: form.iaAgrupamentoMs }); } catch (e) {}
         notify("Canal atualizado", "sucesso");
       } else {
         let novoId: number | null = null;
@@ -1103,6 +1138,54 @@ export function ConexoesSection() {
                       <input type="password" placeholder={editandoId ? "Deixe vazio para manter" : "Cole sua chave da API"} value={form.apiKey} onChange={e => { setForm(p => ({ ...p, apiKey: e.target.value })); setApiKeyTocada(true); }} style={IS} />
                     </div>
                     <div><label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 4, fontWeight: 600 }}>Instruções do sistema</label><textarea placeholder="Ex.: Você é um atendente virtual..." value={form.prompt} onChange={e => setForm(p => ({ ...p, prompt: e.target.value }))} style={TA} /></div>
+                    <div style={{background:form.iaCrmAtivo?"#ecfdf5":"#fff",border:"1px solid #a7f3d0",borderRadius:10,padding:12}}>
+                      <label style={{display:"flex",alignItems:"flex-start",gap:8,cursor:"pointer"}}>
+                        <input type="checkbox" checked={form.iaCrmAtivo} onChange={e=>setForm(p=>({...p,iaCrmAtivo:e.target.checked}))} style={{accentColor:"#10b981",marginTop:2}}/>
+                        <span>
+                          <b style={{display:"block",color:"#047857",fontSize:12}}>Cadastrar vendas da IA no CRM</b>
+                          <span style={{color:"#6b7280",fontSize:10,lineHeight:1.4}}>Desativado: a IA somente conversa. Ativado: salva as variáveis abaixo, mostra o resumo e só cadastra após confirmação.</span>
+                        </span>
+                      </label>
+                      {form.iaCrmAtivo && (
+                        <div style={{marginTop:12}}>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:8}}>
+                            <b style={{color:"#374151",fontSize:11}}>Mapeamento variável → CRM</b>
+                            <label style={{color:"#6b7280",fontSize:10}}>
+                              Juntar mensagens por{" "}
+                              <select value={form.iaAgrupamentoMs} onChange={e=>setForm(p=>({...p,iaAgrupamentoMs:Number(e.target.value)}))} style={{...IS,width:"auto",padding:"4px 6px",fontSize:10}}>
+                                <option value={2000}>2 segundos</option>
+                                <option value={3500}>3,5 segundos</option>
+                                <option value={5000}>5 segundos</option>
+                                <option value={7000}>7 segundos</option>
+                              </select>
+                            </label>
+                          </div>
+                          <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:280,overflowY:"auto",paddingRight:3}}>
+                            {camposCrm.filter(c=>c.visivel!==false && !["vendedor","data_proposta","telefone1"].includes(c.slug)).map(c=>(
+                              <div key={c.slug} style={{display:"grid",gridTemplateColumns:"135px 1fr auto",alignItems:"center",gap:6}}>
+                                <span style={{color:"#4b5563",fontSize:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={c.label}>{c.label}</span>
+                                <input
+                                  value={form.iaCrmMapeamento[c.slug] || ""}
+                                  placeholder={"ex: " + c.slug}
+                                  onChange={e=>setForm(p=>{const mapa={...p.iaCrmMapeamento};const valor=e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_");if(valor)mapa[c.slug]=valor;else delete mapa[c.slug];return {...p,iaCrmMapeamento:mapa};})}
+                                  style={{...IS,padding:"6px 8px",fontSize:10}}
+                                />
+                                <label style={{display:"flex",alignItems:"center",gap:3,color:"#6b7280",fontSize:9}}>
+                                  <input
+                                    type="checkbox"
+                                    disabled={!form.iaCrmMapeamento[c.slug]}
+                                    checked={form.iaCrmCamposObrigatorios.includes(c.slug)}
+                                    onChange={e=>setForm(p=>({...p,iaCrmCamposObrigatorios:e.target.checked?[...new Set([...p.iaCrmCamposObrigatorios,c.slug])]:p.iaCrmCamposObrigatorios.filter(x=>x!==c.slug)}))}
+                                  />
+                                  obrigatório
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                   </div>
                 )}
                 {form.modo === "fluxo" && (
