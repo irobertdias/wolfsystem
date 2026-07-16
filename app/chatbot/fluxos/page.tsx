@@ -145,7 +145,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
-    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",agrupamento_ms:3500,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}]},
+    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",agrupamento_ms:3500,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     // 🆕 v20: Meta Pixel / Conversions API
@@ -1337,6 +1337,16 @@ function saida(obj) {
         u({ variaveis: novos });
       };
       const removerCampoIA = (indice: number) => u({ variaveis: camposIA.filter((_, i) => i !== indice) });
+      type ConsultaIA = {
+        id:string; nome:string; descricao:string; tipo:"http"|"script";
+        variavel_gatilho:string; variavel_resultado:string; obrigatoria:boolean;
+        url?:string; metodo?:string; headers?:string; body?:string; codigo?:string;
+      };
+      const consultasIA: ConsultaIA[] = Array.isArray(d.consultas) ? d.consultas : [];
+      const atualizarConsultaIA = (indice: number, patch: Partial<ConsultaIA>) => {
+        u({ consultas: consultasIA.map((consulta, i) => i === indice ? { ...consulta, ...patch } : consulta) });
+      };
+      const removerConsultaIA = (indice: number) => u({ consultas: consultasIA.filter((_, i) => i !== indice) });
       return <>
         <div style={{background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:8,padding:10,marginBottom:10}}>
           <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>✨ Fluxo por IA com variáveis validadas</p>
@@ -1367,6 +1377,7 @@ function saida(obj) {
                     <option value="texto">Texto</option>
                     <option value="email">E-mail</option>
                     <option value="cpf">CPF</option>
+                    <option value="cep">CEP</option>
                     <option value="telefone">Telefone</option>
                     <option value="numero">Número</option>
                     <option value="data">Data</option>
@@ -1383,6 +1394,62 @@ function saida(obj) {
           <button type="button" onClick={()=>u({variaveis:[...camposIA,{nome:"",label:"",tipo:"texto",obrigatoria:true}]})}
             style={{marginTop:8,background:"#ede9fe",border:"1px solid #c4b5fd",color:"#6d28d9",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
             + Adicionar variável
+          </button>
+        </div>
+
+        <div style={{marginTop:14,borderTop:"1px solid #e5e7eb",paddingTop:12}}>
+          <label style={LS}>Consultas automaticas (link, API ou JavaScript)</label>
+          <p style={{color:"#6b7280",fontSize:10,lineHeight:1.45,margin:"4px 0 9px"}}>
+            A consulta dispara assim que a IA salvar uma variavel valida. O retorno entra no contexto da conversa,
+            mas URL, codigo, cabecalhos e chaves nunca aparecem para o cliente.
+          </p>
+          <div style={{display:"flex",flexDirection:"column",gap:9}}>
+            {consultasIA.map((consulta, indice) => (
+              <div key={consulta.id || indice} style={{background:"#f0fdfa",border:"1px solid #99f6e4",borderRadius:9,padding:10}}>
+                <div style={{display:"grid",gridTemplateColumns:"1.2fr .8fr",gap:6,marginBottom:6}}>
+                  <input value={consulta.nome || ""} placeholder="Ex: Consultar cobertura do CEP" onChange={e=>atualizarConsultaIA(indice,{nome:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
+                  <select value={consulta.tipo || "http"} onChange={e=>atualizarConsultaIA(indice,{tipo:e.target.value as "http"|"script"})} style={{...IS,fontSize:10,padding:"6px 8px"}}>
+                    <option value="http">Link / API HTTP</option>
+                    <option value="script">JavaScript</option>
+                  </select>
+                </div>
+                <textarea value={consulta.descricao || ""} placeholder="Explique para a IA como interpretar o retorno. Ex: Se retornar Temos disponibilidade, continue; caso contrario, peca outro CEP." onChange={e=>atualizarConsultaIA(indice,{descricao:e.target.value})} style={{...IS,minHeight:58,fontSize:10,padding:"7px 8px",resize:"vertical",marginBottom:6}}/>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
+                  <input value={consulta.variavel_gatilho || ""} placeholder="Disparar quando salvar: cep" onChange={e=>atualizarConsultaIA(indice,{variavel_gatilho:e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_")})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
+                  <input value={consulta.variavel_resultado || ""} placeholder="Salvar retorno em: resposta_cep" onChange={e=>atualizarConsultaIA(indice,{variavel_resultado:e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_")})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
+                </div>
+                {consulta.tipo === "script" ? (
+                  <textarea value={consulta.codigo || ""} placeholder={"const resposta = await fetch(\"https://.../{{cep}}\")\nsetVariable(\"resposta_cep\", await resposta.text())"} onChange={e=>atualizarConsultaIA(indice,{codigo:e.target.value})} style={{...IS,minHeight:110,fontFamily:"monospace",fontSize:9,padding:"7px 8px",resize:"vertical"}}/>
+                ) : (
+                  <>
+                    <div style={{display:"grid",gridTemplateColumns:"82px 1fr",gap:6,marginBottom:6}}>
+                      <select value={consulta.metodo || "GET"} onChange={e=>atualizarConsultaIA(indice,{metodo:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}>
+                        <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option>
+                      </select>
+                      <input value={consulta.url || ""} placeholder="https://api.exemplo.com/consulta?cep={{cep}}" onChange={e=>atualizarConsultaIA(indice,{url:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
+                    </div>
+                    <textarea value={consulta.headers || ""} placeholder={'Headers JSON opcional: {"Authorization":"Bearer ..."}'} onChange={e=>atualizarConsultaIA(indice,{headers:e.target.value})} style={{...IS,minHeight:48,fontFamily:"monospace",fontSize:9,padding:"7px 8px",resize:"vertical",marginBottom:6}}/>
+                    {(consulta.metodo || "GET") !== "GET" && (
+                      <textarea value={consulta.body || ""} placeholder={'Body: {"cep":"{{cep}}"}'} onChange={e=>atualizarConsultaIA(indice,{body:e.target.value})} style={{...IS,minHeight:55,fontFamily:"monospace",fontSize:9,padding:"7px 8px",resize:"vertical"}}/>
+                    )}
+                  </>
+                )}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:7}}>
+                  <label style={{display:"flex",alignItems:"center",gap:5,color:"#374151",fontSize:10}}>
+                    <input type="checkbox" checked={consulta.obrigatoria !== false} onChange={e=>atualizarConsultaIA(indice,{obrigatoria:e.target.checked})}/>
+                    A consulta precisa concluir antes de confirmar os dados
+                  </label>
+                  <button type="button" onClick={()=>removerConsultaIA(indice)} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"5px 8px",cursor:"pointer",fontSize:10}}>Remover</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={()=>u({consultas:[...consultasIA,{
+              id:"consulta_"+Date.now(),nome:"",descricao:"",tipo:"http",variavel_gatilho:"cep",
+              variavel_resultado:"resposta_cep",obrigatoria:true,metodo:"GET",url:"",headers:"",body:"",codigo:""
+            }]})}
+            style={{marginTop:8,background:"#ccfbf1",border:"1px solid #5eead4",color:"#0f766e",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+            + Adicionar consulta automatica
           </button>
         </div>
       </>;
