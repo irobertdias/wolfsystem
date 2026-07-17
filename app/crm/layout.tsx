@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase";
 import { usePermissao } from "../hooks/usePermissao";
 import { useModulos } from "../hooks/useModulos";
 import AuthGuard from "../components/AuthGuard";
+import PontoGuard from "../components/PontoGuard";
 
 export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -545,7 +546,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
             minWidth: 0,
           }}
         >
-          {children}
+          <PontoGuard ativo={modulosCarregados ? modulos.bater_ponto : undefined}>{children}</PontoGuard>
         </div>
       </div>
     </AuthGuard>

@@ -39,20 +39,30 @@ const ADMIN_EMAIL = "robert.dias@live.com";
 const ROTAS_LIVRES = [
   "/",
   "/login",
-  "/bater-ponto",
-  "/meu-perfil",   // 🆕 usuário precisa acessar perfil mesmo sem bater ponto
+  "/crm/ponto",
+  "/crm/meu-perfil",   // 🆕 usuário precisa acessar perfil mesmo sem bater ponto
   "/redirect",
 ];
 
 type Status = "verificando" | "liberado" | "bloqueado";
 
-export default function PontoGuard({ children }: { children: ReactNode }) {
+export default function PontoGuard({ children, ativo }: { children: ReactNode; ativo?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const [status, setStatus] = useState<Status>("verificando");
   const [info, setInfo] = useState<{ nome: string; email: string } | null>(null);
 
   useEffect(() => {
+    if (ativo == null) {
+      setStatus("verificando");
+      return;
+    }
+    if (!ativo) {
+      setStatus("liberado");
+      return;
+    }
+    setStatus("verificando");
+
     // Rota livre? Libera direto sem checar.
     if (ROTAS_LIVRES.some(r => pathname === r || pathname.startsWith(r + "/"))) {
       setStatus("liberado");
@@ -103,49 +113,42 @@ export default function PontoGuard({ children }: { children: ReactNode }) {
           return;
         }
 
-        // ═══ CAMADA 1: Cliente comprou o módulo bater_ponto? ═══
-        //    O Wolf admin libera/bloqueia módulos via tabela `cadastros`.
-        //    Se modulo_bater_ponto=false → o workspace INTEIRO fica sem trava,
-        //    independente do que cada usuário tenha em exige_ponto.
-        //    Isso evita travar usuários de clientes que não compraram o módulo.
-        const { data: wsRow } = await supabase.from("workspaces")
-          .select("owner_email")
-          .eq("username", usr.workspace_id)
-          .maybeSingle();
-
-        if (wsRow?.owner_email) {
-          // Wolf admin é workspace "wolf_admin" → owner_email = robert.dias@live.com
-          // Não tem linha em `cadastros`. Nesse caso libera direto (admin já passou na bypass acima).
-          if (wsRow.owner_email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-            const { data: cad } = await supabase.from("cadastros")
-              .select("modulo_bater_ponto")
-              .eq("email", wsRow.owner_email)
-              .maybeSingle();
-
-            // Se o cliente NÃO tem o módulo liberado → libera sem trava
-            if (!cad?.modulo_bater_ponto) {
-              if (!cancelado) setStatus("liberado");
-              return;
-            }
-          }
-        }
-
-        // ═══ CAMADA 2: Esse usuário específico tem trava? ═══
+        // O acesso ao módulo já foi validado pelo layout da Wolf.\r\n\r\n        // ═══ CAMADA 2: Esse usuário específico tem trava? ═══
         if (usr.exige_ponto === false) {
           if (!cancelado) setStatus("liberado");
           return;
         }
 
         // ═══ CAMADA 3: Já bateu ponto hoje? ═══
-        //    Usa a view vw_ponto_hoje que a migration criou
-        const { data: pontoHoje } = await supabase.from("vw_ponto_hoje")
-          .select("qtd_marcacoes_hoje")
-          .eq("workspace_id", usr.workspace_id)
-          .eq("user_id", usr.user_id || user.id)
-          .maybeSingle();
+        //    Confere diretamente as batidas reais do funcionário no workspace
+        const { data: funcionarios, error: erroFuncionarios } = await supabase
+          .from("funcionarios")
+          .select("nome, email, user_email")
+          .eq("workspace_id", usr.workspace_id);
+        if (erroFuncionarios) throw erroFuncionarios;
 
-        if (pontoHoje && (pontoHoje.qtd_marcacoes_hoje || 0) > 0) {
-          // Já bateu → libera
+        const emailNormalizado = email.toLowerCase().trim();
+        const funcionario = (funcionarios || []).find((item: any) =>
+          String(item.user_email || "").toLowerCase().trim() === emailNormalizado ||
+          String(item.email || "").toLowerCase().trim() === emailNormalizado
+        );
+
+        let bateuHoje = false;
+        if (funcionario?.nome) {
+          const inicioHoje = new Date();
+          inicioHoje.setHours(0, 0, 0, 0);
+          const { data: batidas, error: erroBatidas } = await supabase
+            .from("ponto_registros")
+            .select("id")
+            .eq("workspace_id", usr.workspace_id)
+            .eq("funcionario", funcionario.nome)
+            .gte("data_hora", inicioHoje.toISOString())
+            .limit(1);
+          if (erroBatidas) throw erroBatidas;
+          bateuHoje = !!batidas?.length;
+        }
+
+        if (bateuHoje) {
           if (!cancelado) setStatus("liberado");
           return;
         }
@@ -165,7 +168,7 @@ export default function PontoGuard({ children }: { children: ReactNode }) {
     verificar();
     return () => { cancelado = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, ativo]);
 
   if (status === "verificando") {
     return (
@@ -243,7 +246,7 @@ export default function PontoGuard({ children }: { children: ReactNode }) {
 
           {/* Botão principal */}
           <button
-            onClick={() => router.push("/bater-ponto")}
+            onClick={() => router.push("/crm/ponto")}
             style={{
               background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)",
               color: "#fff",

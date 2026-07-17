@@ -101,7 +101,27 @@ export default function BaterPontoPage() {
       // 🤳 Config de selfie do workspace (direto da tabela — não depende do hook)
       const { data: wsCfg } = await supabase.from("workspaces")
         .select("ponto_selfie_obrigatoria").eq("username", wsId).maybeSingle();
-      setExigeSelfie(wsCfg ? ((wsCfg as any).ponto_selfie_obrigatoria !== false) : true);
+      const selfieDoWorkspace = wsCfg
+        ? ((wsCfg as any).ponto_selfie_obrigatoria !== false)
+        : true;
+
+      if (email) {
+        const { data: usuarioCfg } = await supabase
+          .from("usuarios_workspace")
+          .select("exige_selfie")
+          .eq("workspace_id", wsId)
+          .ilike("email", email)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setExigeSelfie(
+          usuarioCfg && usuarioCfg.exige_selfie != null
+            ? usuarioCfg.exige_selfie !== false
+            : selfieDoWorkspace
+        );
+      } else {
+        setExigeSelfie(selfieDoWorkspace);
+      }
       if (!email) {
         setCarregando(false);
         setSemVinculo(true);
