@@ -628,7 +628,6 @@ export function ConexoesSection() {
         ia_crm_ativo: form.iaCrmAtivo,
         ia_crm_mapeamento: form.iaCrmMapeamento,
         ia_crm_campos_obrigatorios: form.iaCrmCamposObrigatorios,
-        ia_agrupamento_ms: form.iaAgrupamentoMs,
         modulos: Array.isArray(form.modulos) ? form.modulos : ["chatbot"],  // 📂 onde o canal aparece no sistema
       };
       if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
