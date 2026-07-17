@@ -148,7 +148,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
-    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",agrupamento_ms:3500,limite_recusas:3,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
+    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     // 🆕 v20: Meta Pixel / Conversions API
@@ -1353,7 +1353,7 @@ function saida(obj) {
         </label>
       </>;
     case "fluxo_ia": {
-      const camposIA: Array<{nome:string;label:string;tipo:string;obrigatoria:boolean}> =
+      const camposIA: Array<{nome:string;label:string;tipo:string;obrigatoria:boolean;diferente_de?:string}> =
         Array.isArray(d.variaveis) ? d.variaveis : [];
       const atualizarCampoIA = (indice: number, patch: Record<string, any>) => {
         const novos = camposIA.map((campo, i) => i === indice ? { ...campo, ...patch } : campo);
@@ -1382,6 +1382,10 @@ function saida(obj) {
         {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"}])}
         {T("Prompt de comportamento","prompt","Explique como a IA deve conduzir o atendimento...",100)}
         {T("Mensagem para iniciar a coleta","mensagem_inicial","Olá! Vou confirmar alguns dados com você.",70)}
+        <label style={{display:"flex",alignItems:"flex-start",gap:7,margin:"6px 0 10px",padding:"9px",background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,color:"#374151",fontSize:10,lineHeight:1.4}}>
+          <input type="checkbox" checked={d.mensagem_inicial_literal === true} onChange={e=>u({mensagem_inicial_literal:e.target.checked})} style={{marginTop:2}}/>
+          <span><b>Enviar exatamente esta mensagem</b><br/>A IA só assume depois que o cliente responder. Desmarque se o texto acima for apenas uma instrução para a IA criar a abertura.</span>
+        </label>
         {S("Tempo para juntar mensagens","agrupamento_ms",[
           {value:"2000",label:"2 segundos"},{value:"3500",label:"3,5 segundos"},{value:"5000",label:"5 segundos"},{value:"7000",label:"7 segundos"}
         ])}
@@ -1411,6 +1415,11 @@ function saida(obj) {
                     Obrigatória
                   </label>
                   <button type="button" onClick={()=>removerCampoIA(indice)} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"5px 8px",cursor:"pointer",fontSize:10}}>Remover</button>
+                </div>
+                <div style={{marginTop:7}}>
+                  <label style={{...LS,fontSize:9}}>Deve ser diferente da variável (opcional)</label>
+                  <input value={campo.diferente_de || ""} placeholder="Ex.: cpf" onChange={e=>atualizarCampoIA(indice,{diferente_de:e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_")})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
+                  <p style={{fontSize:9,color:"#6b7280",margin:"3px 0 0"}}>Comparação exata feita pelo backend. Para um novo CPF, informe a variável que guarda o CPF anterior.</p>
                 </div>
               </div>
             ))}

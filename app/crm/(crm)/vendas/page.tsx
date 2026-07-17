@@ -51,6 +51,20 @@ type AnexoMeta = { url: string; nome: string; tipo: string; tamanho: number; env
 const isoLocal = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+const formatarDataCRM = (valor: any): string => {
+  const texto = String(valor ?? "").trim();
+  if (!texto) return "-";
+  const br = texto.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  if (br) {
+    const ano = br[3].length === 2 ? "20" + br[3] : br[3];
+    return br[1].padStart(2, "0") + "/" + br[2].padStart(2, "0") + "/" + ano;
+  }
+  const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[3] + "/" + iso[2] + "/" + iso[1];
+  const data = new Date(texto);
+  return Number.isNaN(data.getTime()) ? texto : data.toLocaleDateString("pt-BR");
+};
+
 const formatarTamanhoArquivo = (bytes: number): string => {
   if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;
@@ -339,7 +353,7 @@ export default function Vendas() {
     if (c.tipo === "data") {
       try {
         return <span style={{ color: "#6b7280", fontSize: 12, whiteSpace: "nowrap" }}>
-          {new Date(raw + "T00:00:00").toLocaleDateString("pt-BR")}
+          {formatarDataCRM(raw)}
         </span>;
       } catch { return <span style={{ color: "#4b5563", fontSize: 12 }}>{String(raw)}</span>; }
     }
@@ -1453,7 +1467,7 @@ export default function Vendas() {
                     let v = c.origem === "fixo" ? (propostaVisualizando as any)[c.slug] : propostaVisualizando.dados_customizados?.[c.slug];
                     if (c.tipo === "checkbox") v = v === true ? "Sim" : v === false ? "Nao" : "";
                     else if (c.tipo === "moeda" && v) v = `R$ ${Number(v).toFixed(2).replace(".", ",")}`;
-                    else if (c.tipo === "data" && v) v = new Date(v + "T00:00:00").toLocaleDateString("pt-BR");
+                    else if (c.tipo === "data" && v) v = formatarDataCRM(v);
                     else if (c.tipo === "vendedor" && v) v = nomeVendedor(v);
                     return [c.label, v] as [string, any];
                   })}
