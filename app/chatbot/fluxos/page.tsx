@@ -1418,7 +1418,12 @@ function saida(obj) {
                 </div>
                 <div style={{marginTop:7}}>
                   <label style={{...LS,fontSize:9}}>Deve ser diferente da variável (opcional)</label>
-                  <input value={campo.diferente_de || ""} placeholder="Ex.: cpf" onChange={e=>atualizarCampoIA(indice,{diferente_de:e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_")})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
+                  <select value={campo.diferente_de || ""} onChange={e=>atualizarCampoIA(indice,{diferente_de:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}>
+                    <option value="">-- nao comparar com outra variavel --</option>
+                    {variaveisDoFluxo.filter(nome=>nome !== campo.nome).map(nome=>(
+                      <option key={nome} value={nome}>{`{{${nome}}}`}</option>
+                    ))}
+                  </select>
                   <p style={{fontSize:9,color:"#6b7280",margin:"3px 0 0"}}>Comparação exata feita pelo backend. Para um novo CPF, informe a variável que guarda o CPF anterior.</p>
                 </div>
               </div>
