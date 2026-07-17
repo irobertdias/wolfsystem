@@ -1,962 +1,213 @@
 "use client";
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
 
-// ═══════════════════════════════════════════════════════════════════════════
-// 🐺 WOLF SYSTEM — Landing Page
-// ───────────────────────────────────────────────────────────────────────────
-// Estrutura:
-//   1. Navbar (sticky, muda no scroll)
-//   2. Hero (value prop + mockup visual + CTA duplo)
-//   3. Trust bar (números reais)
-//   4. Pain points (problemas que resolvemos)
-//   5. Como funciona (4 passos)
-//   6. Demonstração visual (mockups das telas)
-//   7. Pra quem é (3 personas)
-//   8. Recursos completos (agrupados)
-//   9. Planos + adicionais
-//  10. Depoimentos
-//  11. FAQ
-//  12. CTA final
-//  13. Footer (LGPD/contato)
-// ═══════════════════════════════════════════════════════════════════════════
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+
+const WHATSAPP = "https://wa.me/5562981519991?text=";
 
 export default function Site() {
-  const router = useRouter();
-  const [navScrolled, setNavScrolled] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [faqAberto, setFaqAberto] = useState<number | null>(null);
+  const [mobile, setMobile] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [faq, setFaq] = useState<number | null>(null);
 
   useEffect(() => {
-    const onScroll = () => setNavScrolled(window.scrollY > 20);
-    const onResize = () => setIsMobile(window.innerWidth < 768);
-    onResize();
-    window.addEventListener("scroll", onScroll);
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
-    };
+    const resize = () => setMobile(window.innerWidth < 820);
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
   }, []);
 
-  const irParaCadastro = () => window.location.href = "https://app.wolfgyn.com.br/login/register";
-  const irParaLogin = () => window.location.href = "https://app.wolfgyn.com.br/login";
-  const irParaWhatsApp = () => window.open("https://wa.me/5562981519991?text=" + encodeURIComponent("Olá! Quero saber mais sobre o Wolf System."), "_blank");
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // DADOS
-  // ═══════════════════════════════════════════════════════════════════════
-
-  const painPoints = [
-    {
-      icon: "😩",
-      problema: "Atendentes sobrecarregados respondendo a mesma pergunta 100 vezes por dia",
-      solucao: "ChatBot com IA responde automaticamente 24/7, só passa pro humano quando precisa.",
-    },
-    {
-      icon: "📉",
-      problema: "Leads esquecidos, esfriando no WhatsApp sem follow-up",
-      solucao: "CRM organiza cada conversa no funil de vendas, com etiquetas e lembretes automáticos.",
-    },
-    {
-      icon: "💸",
-      problema: "Inadimplência alta, cobrar cliente é um pesadelo manual",
-      solucao: "Módulo de Cobrança gera faturas mensais e dispara cobranças via WhatsApp personalizadas.",
-    },
-    {
-      icon: "🤯",
-      problema: "Vários atendentes usando o mesmo WhatsApp na bagunça",
-      solucao: "Cada atendente tem login próprio, recebe leads na fila, com histórico unificado.",
-    },
-  ];
-
-  const comoFunciona = [
-    { num: "1", titulo: "Conecte seu WhatsApp", desc: "Escaneie o QR Code ou conecte via API oficial da Meta. Em 2 minutos seu canal tá no ar.", icon: "📱" },
-    { num: "2", titulo: "Configure o ChatBot", desc: "Monte o fluxo no editor visual, escolha o agente de IA (GPT/Claude/Gemini) ou use respostas fixas.", icon: "🤖" },
-    { num: "3", titulo: "Receba e atenda", desc: "Conversas entram no chat, são distribuídas na fila, viram propostas no CRM e seguem no funil.", icon: "💬" },
-    { num: "4", titulo: "Venda e cobre", desc: "Feche venda, gere faturas automáticas, cobre via WhatsApp e acompanhe tudo no dashboard.", icon: "📈" },
-  ];
-
-  const personas = [
-    {
-      cor: "#3b82f6",
-      icon: "📡",
-      titulo: "Provedores de Internet",
-      desc: "ISPs e provedores de banda larga que precisam de SAC, vendas, cobrança e suporte técnico tudo unificado.",
-      pontos: ["Cobrança mensal automatizada", "Suporte técnico via WhatsApp", "CRM de assinantes", "Gestão de protocolos"],
-    },
-    {
-      cor: "#16a34a",
-      icon: "🛒",
-      titulo: "E-commerce & Varejo",
-      desc: "Lojas que vendem pelo WhatsApp e precisam organizar pedidos, follow-up de carrinhos e pós-venda.",
-      pontos: ["Funil de vendas com etiquetas", "Disparos em massa pra promoções", "Catálogo + atendimento", "Recuperação de carrinho"],
-    },
-    {
-      cor: "#a855f7",
-      icon: "🎯",
-      titulo: "Agências & Equipes Comerciais",
-      desc: "Times de vendas que precisam distribuir leads, ranquear atendentes e medir conversão.",
-      pontos: ["Roleta de distribuição", "Múltiplas equipes por canal", "Métricas por atendente", "Integração com APIs"],
-    },
-  ];
-
-  const recursosCategorias = [
-    {
-      cor: "#3b82f6",
-      titulo: "Atendimento",
-      items: [
-        { icon: "🤖", nome: "ChatBot com IA", desc: "Fluxos visuais + GPT/Claude/Gemini" },
-        { icon: "💬", nome: "Chat Humano", desc: "Atendimento em tempo real" },
-        { icon: "🏢", nome: "Filas & Departamentos", desc: "Distribua por área" },
-        { icon: "👥", nome: "Equipes Multi-time", desc: "Vendas, suporte, cobrança separados" },
-        { icon: "📋", nome: "Protocolos", desc: "Rastreamento automático" },
-        { icon: "🏷️", nome: "Etiquetas", desc: "Organize conversas" },
-      ],
-    },
-    {
-      cor: "#16a34a",
-      titulo: "Vendas",
-      items: [
-        { icon: "📊", nome: "CRM Completo", desc: "Funil visual + propostas" },
-        { icon: "🎯", nome: "Roleta", desc: "Distribuição automática de leads" },
-        { icon: "📈", nome: "Dashboard", desc: "Métricas em tempo real" },
-        { icon: "📊", nome: "Funil Avançado", desc: "Etapas customizáveis + etiquetas" },
-        { icon: "🔗", nome: "Integração Chat ↔ CRM", desc: "Abra proposta direto do chat" },
-        { icon: "📝", nome: "Histórico Completo", desc: "Tudo registrado por cliente" },
-      ],
-    },
-    {
-      cor: "#8b5cf6",
-      titulo: "Marketing & Cobrança",
-      items: [
-        { icon: "📤", nome: "Disparos Web", desc: "Envie pra milhares via QR Code" },
-        { icon: "📨", nome: "Disparos API Oficial", desc: "Templates aprovados pela Meta" },
-        { icon: "💰", nome: "Cobrança Automatizada", desc: "Faturas + cobrança WhatsApp" },
-        { icon: "📞", nome: "Ligações VOIP", desc: "Chamadas direto do CRM" },
-        { icon: "🔌", nome: "API REST", desc: "Integre com ERP/Outros sistemas" },
-        { icon: "💼", nome: "Multi-conexão", desc: "Vários números no mesmo painel" },
-      ],
-    },
-  ];
+  const falar = (texto = "Olá! Quero conhecer o Wolf System.") =>
+    window.open(WHATSAPP + encodeURIComponent(texto), "_blank");
 
   const planos = [
     {
       nome: "Básico",
       preco: "R$ 497",
-      periodo: "/mês",
       cor: "#16a34a",
-      destaque: false,
-      descricao: "Para organizar atendimento e vendas sem depender de planilhas",
-      recursos: [
-        { destaque: true, texto: "Até 5 usuários" },
-        { destaque: true, texto: "1 conexão WhatsApp" },
-        { destaque: false, texto: "Chat unificado com atendimento humano e IA" },
-        { destaque: false, texto: "CRM de vendas com funil visual" },
-        { destaque: false, texto: "ChatBot visual e respostas automáticas" },
-        { destaque: false, texto: "Filas, departamentos e distribuição manual" },
-        { destaque: false, texto: "Protocolos, histórico e etiquetas" },
-        { destaque: false, texto: "Dashboard operacional em tempo real" },
-        { destaque: false, texto: "Atendimentos ilimitados" },
-        { destaque: false, texto: "Suporte técnico em horário comercial" },
-      ],
+      descricao: "Para organizar atendimento e vendas com uma operação profissional.",
+      recursos: ["Até 5 usuários", "1 conexão WhatsApp", "Chat unificado", "CRM de vendas", "ChatBot visual", "Filas e departamentos", "Protocolos e etiquetas", "Dashboard operacional"],
     },
     {
       nome: "Intermediário",
       preco: "R$ 897",
-      periodo: "/mês",
-      cor: "#3b82f6",
+      cor: "#2563eb",
       destaque: true,
-      descricao: "Para equipes comerciais que precisam automatizar e medir resultados",
-      recursos: [
-        { destaque: true, texto: "Até 15 usuários" },
-        { destaque: true, texto: "2 conexões WhatsApp" },
-        { destaque: false, texto: "Tudo do Básico, mais:" },
-        { destaque: false, texto: "🤖 IA avançada com GPT, Claude e Gemini" },
-        { destaque: false, texto: "🎯 Roleta automática de distribuição de leads" },
-        { destaque: false, texto: "📤 Campanhas e disparos pelo WhatsApp Web" },
-        { destaque: false, texto: "👥 Equipes, filas e permissões separadas" },
-        { destaque: false, texto: "🔌 API de integração com outros sistemas" },
-        { destaque: false, texto: "📊 Indicadores comerciais por equipe e atendente" },
-        { destaque: false, texto: "⚡ Automações comerciais e follow-up" },
-      ],
+      descricao: "Para equipes comerciais que precisam automatizar, distribuir e medir.",
+      recursos: ["Até 15 usuários", "2 conexões WhatsApp", "Tudo do Básico", "Roleta de distribuição", "Disparos via WhatsApp Web", "Equipes e permissões", "API de integração", "Indicadores comerciais"],
     },
     {
       nome: "Ultra",
       preco: "R$ 1.497",
-      periodo: "/mês",
-      cor: "#a855f7",
-      destaque: false,
-      descricao: "Para operações multicanal que querem gestão e automação completa",
-      recursos: [
-        { destaque: true, texto: "Até 50 usuários" },
-        { destaque: true, texto: "5 conexões WhatsApp" },
-        { destaque: false, texto: "Tudo do Intermediário, mais:" },
-        { destaque: false, texto: "📨 Campanhas pela API Oficial da Meta" },
-        { destaque: false, texto: "💰 Cobrança recorrente e régua de inadimplência" },
-        { destaque: false, texto: "📞 Ligações VOIP integradas ao CRM" },
-        { destaque: false, texto: "📈 Central Ads com métricas e relatórios" },
-        { destaque: false, texto: "💼 Módulos Financeiro e RH" },
-        { destaque: false, texto: "📸 Instagram e insights, conforme integração Meta" },
-        { destaque: false, texto: "⭐ Atendimento prioritário da equipe Wolf" },
-      ],
-    },
-  ];
-  const faq = [
-    {
-      p: "Funciona com WhatsApp comum ou só com o oficial?",
-      r: "Você pode conectar pelo QR Code nos planos Básico e Intermediário. A API Oficial da Meta, com templates aprovados e maior estabilidade para campanhas, está incluída no Ultra.",
-    },
-    {
-      p: "Posso cancelar a qualquer momento?",
-      r: "Sim. Sem fidelidade, sem multa. Você cancela quando quiser direto pelo painel ou falando com nosso comercial.",
-    },
-    {
-      p: "Tenho que instalar alguma coisa?",
-      r: "Não. O sistema é 100% web, roda no navegador. Você acessa de qualquer computador, celular ou tablet. Sem download, sem instalação.",
-    },
-    {
-      p: "Os dados ficam seguros?",
-      r: "Sim. Hospedamos na Supabase (banco PostgreSQL com criptografia em repouso e em trânsito), Vercel para o frontend, e aplicamos isolamento por workspace. Estamos em conformidade com a LGPD.",
-    },
-    {
-      p: "Preciso saber programar pra configurar o ChatBot?",
-      r: "Não. O editor de fluxos é visual, vc arrasta blocos (mensagem, pergunta, condição, transferir pra humano, etc) e conecta. Pra IA é só ligar o switch e colocar a chave da OpenAI/Claude/Gemini.",
-    },
-    {
-      p: "Quantos atendentes podem usar simultaneamente?",
-      r: "Depende do plano: Básico 5, Intermediário 15 e Ultra 50. Se a operação crescer, você pode adicionar usuários por R$ 49,90/mês e conexões por R$ 149,90/mês.",
-    },
-    {
-      p: "O sistema é multi-tenant? Posso revender pros meus clientes?",
-      r: "Sim! Cada workspace é isolado, com usuários e dados separados. Temos planos especiais pra parceiros que querem revender. Fale com nosso comercial.",
-    },
-    {
-      p: "Posso conectar mais de um número de WhatsApp?",
-      r: "Sim. O Básico inclui 1 conexão, o Intermediário 2 e o Ultra 5. Cada conexão adicional custa R$ 149,90/mês.",
+      cor: "#7c3aed",
+      descricao: "Para operações multicanal que querem gestão completa e escala.",
+      recursos: ["Até 50 usuários", "5 conexões WhatsApp", "Tudo do Intermediário", "API Oficial da Meta", "Cobrança automatizada", "Ligações VOIP", "Central Ads", "Financeiro, RH e Instagram"],
     },
   ];
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // RENDER
-  // ═══════════════════════════════════════════════════════════════════════
+  const perguntas = [
+    ["O Vendedor IA está incluído nos planos?", "Não. Ele é um módulo premium avulso de R$ 2.500,00 por workspace. Você pode contratar em qualquer plano compatível."],
+    ["Qual a diferença entre ChatBot e Vendedor IA?", "O ChatBot executa automações e fluxos. O Vendedor IA conversa de forma natural, interpreta objeções, valida cada dado, consulta APIs e conduz a venda até o CRM."],
+    ["Ele entende áudio?", "Sim. Quando configurado com uma chave OpenAI compatível, o sistema transcreve o áudio e a IA continua exatamente da etapa em que parou."],
+    ["Consigo conectar consultas externas?", "Sim. O fluxo pode consultar links, APIs e scripts JavaScript, usar o retorno na conversa e decidir o próximo passo sem expor dados técnicos ao cliente."],
+    ["Preciso saber programar?", "Não. O editor é visual. Você define o comportamento, as variáveis, as consultas e o destino de cada dado no CRM."],
+    ["Funciona com qualquer segmento?", "Sim. Telecom, crédito, clínicas, imobiliárias, varejo, serviços e qualquer operação que precise conversar, coletar dados e atualizar um processo comercial."],
+  ];
 
   return (
-    <div style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif", background: "#0a0a0a", minHeight: "100vh", color: "white", overflow: "hidden" }}>
-
-      {/* ════════════ NAVBAR ════════════ */}
-      <nav style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
-        background: navScrolled ? "rgba(10,10,10,0.92)" : "rgba(10,10,10,0.6)",
-        backdropFilter: "blur(14px)",
-        borderBottom: `1px solid ${navScrolled ? "#1f2937" : "transparent"}`,
-        padding: "0 32px", height: 64,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        transition: "all 0.25s ease",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/logo1.png" alt="Wolf" style={{ width: 36, filter: "brightness(0) invert(1)" }} />
-          <span style={{ color: "white", fontWeight: 800, fontSize: 18, letterSpacing: -0.3 }}>Wolf System</span>
+    <main style={{ minHeight: "100vh", background: "#ffffff", color: "#10213d", fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif", overflow: "hidden" }}>
+      <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,.92)", backdropFilter: "blur(18px)", borderBottom: "1px solid #e8eef7" }}>
+        <div style={{ ...container, minHeight: 72, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
+          <a href="#inicio" style={{ display: "flex", alignItems: "center", gap: 11, textDecoration: "none", color: "#10213d" }}>
+            <Logo />
+            <div><strong style={{ fontSize: 17 }}>Wolf System</strong><small style={{ display: "block", color: "#64748b", fontSize: 9, letterSpacing: 1.4, fontWeight: 800 }}>NEGÓCIOS EM MOVIMENTO</small></div>
+          </a>
+          {!mobile && <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+            <Nav href="#plataforma">Plataforma</Nav><Nav href="#vendedor-ia">Vendedor IA</Nav><Nav href="#planos">Planos</Nav><Nav href="#faq">Dúvidas</Nav>
+          </div>}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {!mobile && <button onClick={() => location.href="https://app.wolfgyn.com.br/login"} style={buttonGhost}>Entrar</button>}
+            <button onClick={() => falar()} style={buttonPrimary}>Falar com especialista</button>
+            {mobile && <button onClick={() => setMenu(!menu)} style={{ ...buttonGhost, width: 42, padding: 0 }}>☰</button>}
+          </div>
         </div>
-        <div style={{ display: "flex", gap: isMobile ? 8 : 24, alignItems: "center" }}>
-          {!isMobile && (
-            <>
-              <a href="#recursos" style={navLink}>Recursos</a>
-              <a href="#como-funciona" style={navLink}>Como funciona</a>
-              <a href="#planos" style={navLink}>Planos</a>
-              <a href="#faq" style={navLink}>FAQ</a>
-            </>
-          )}
-          <button onClick={irParaLogin} style={{ ...btnNav, padding: isMobile ? "7px 14px" : "8px 20px", fontSize: isMobile ? 12 : 14 }}>
-            Acessar →
-          </button>
-        </div>
+        {mobile && menu && <div style={{ padding: "8px 20px 18px", display: "grid", gap: 10, background: "white" }}><Nav href="#plataforma">Plataforma</Nav><Nav href="#vendedor-ia">Vendedor IA</Nav><Nav href="#planos">Planos</Nav><Nav href="#faq">Dúvidas</Nav></div>}
       </nav>
 
-      {/* ════════════ HERO ════════════ */}
-      <section style={{
-        position: "relative",
-        padding: isMobile ? "120px 20px 60px" : "140px 32px 100px",
-        textAlign: "center",
-        overflow: "hidden",
-      }}>
-        {/* Glow effect de fundo */}
-        <div style={{
-          position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)",
-          width: 800, height: 800, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(22,163,74,0.15) 0%, rgba(22,163,74,0) 70%)",
-          pointerEvents: "none", zIndex: 0,
-        }} />
-
-        <div style={{ position: "relative", zIndex: 1, maxWidth: 980, margin: "0 auto" }}>
-          {/* Badge */}
-          <div style={{ display: "inline-block", background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.3)", borderRadius: 20, padding: "6px 16px", marginBottom: 28 }}>
-            <span style={{ color: "#22d36b", fontSize: 13, fontWeight: 700 }}>🐺 Atendimento, vendas e cobrança no mesmo lugar</span>
-          </div>
-
-          {/* Título */}
-          <h1 style={{
-            fontSize: isMobile ? 36 : 62,
-            fontWeight: 800, lineHeight: 1.05, margin: "0 0 24px",
-            letterSpacing: isMobile ? -1 : -2,
-          }}>
-            Pare de perder cliente <br />
-            <span style={{ background: "linear-gradient(135deg, #16a34a 0%, #22d36b 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-              no WhatsApp.
-            </span>
-          </h1>
-
-          {/* Subtítulo */}
-          <p style={{ color: "#9ca3af", fontSize: isMobile ? 16 : 19, maxWidth: 700, margin: "0 auto 40px", lineHeight: 1.6 }}>
-            CRM + ChatBot com IA + Cobrança automatizada. Centralize atendimento, organize vendas e cobre seus clientes — tudo num só painel, integrado com WhatsApp.
-          </p>
-
-          {/* CTAs */}
-          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
-            <button onClick={irParaCadastro} style={btnPrimario}>
-              Começar Teste Grátis <span style={{ marginLeft: 6 }}>→</span>
-            </button>
-            <button onClick={irParaWhatsApp} style={btnSecundario}>
-              💬 Falar com Comercial
-            </button>
-          </div>
-
-          {/* Trust mini */}
-          <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>
-            ✓ Sem cartão de crédito · ✓ Cancele quando quiser · ✓ Suporte em português
-          </p>
-        </div>
-
-        {/* Mockup visual abaixo do hero */}
-        <div style={{ maxWidth: 980, margin: "60px auto 0", padding: isMobile ? "0 8px" : 0, position: "relative", zIndex: 1 }}>
-          <MockupDashboard isMobile={isMobile} />
-        </div>
-      </section>
-
-      {/* ════════════ TRUST BAR ════════════ */}
-      <section style={{ padding: "40px 32px", borderTop: "1px solid #1f2937", borderBottom: "1px solid #1f2937", background: "#0d0d0d" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 24, justifyContent: "space-around", flexWrap: "wrap", alignItems: "center" }}>
-          {[
-            { valor: "100%", label: "Em nuvem" },
-            { valor: "24/7", label: "ChatBot ativo" },
-            { valor: "∞", label: "Mensagens" },
-            { valor: "0", label: "Setup grátis" },
-            { valor: "🇧🇷", label: "Suporte BR" },
-          ].map((s, i) => (
-            <div key={i} style={{ textAlign: "center", padding: "8px 16px" }}>
-              <div style={{ color: "#22d36b", fontSize: 28, fontWeight: 800, marginBottom: 4, lineHeight: 1 }}>{s.valor}</div>
-              <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ════════════ PAIN POINTS ════════════ */}
-      <section style={{ padding: isMobile ? "60px 20px" : "100px 32px", maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <p style={{ color: "#dc2626", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 12px" }}>O problema</p>
-          <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, letterSpacing: -1 }}>
-            Cansado de fazer no <span style={{ color: "#dc2626" }}>manual</span>?
-          </h2>
-          <p style={{ color: "#9ca3af", fontSize: 16, marginTop: 16 }}>Vc reconhece esses problemas?</p>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 20 }}>
-          {painPoints.map((p, i) => (
-            <div key={i} style={{ background: "#0f0f0f", border: "1px solid #1f2937", borderRadius: 14, padding: 28, transition: "all 0.2s" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>{p.icon}</div>
-              <p style={{ color: "#fca5a5", fontSize: 15, fontWeight: 600, margin: "0 0 12px", lineHeight: 1.5 }}>{p.problema}</p>
-              <div style={{ borderTop: "1px solid #1f2937", paddingTop: 12, marginTop: 12 }}>
-                <p style={{ color: "#22d36b", fontSize: 11, fontWeight: 700, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.5 }}>✓ Como o Wolf resolve</p>
-                <p style={{ color: "#d1d5db", fontSize: 13, margin: 0, lineHeight: 1.55 }}>{p.solucao}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ════════════ COMO FUNCIONA ════════════ */}
-      <section id="como-funciona" style={{ padding: isMobile ? "60px 20px" : "100px 32px", background: "#0d0d0d", borderTop: "1px solid #1f2937", borderBottom: "1px solid #1f2937" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 60 }}>
-            <p style={{ color: "#3b82f6", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 12px" }}>Como funciona</p>
-            <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, letterSpacing: -1 }}>
-              Em <span style={{ color: "#3b82f6" }}>4 passos</span> seu atendimento muda
-            </h2>
-            <p style={{ color: "#9ca3af", fontSize: 16, marginTop: 16 }}>De zero a operacional em menos de 1 hora</p>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)", gap: 20, position: "relative" }}>
-            {comoFunciona.map((p, i) => (
-              <div key={i} style={{ position: "relative", padding: "32px 24px 24px", background: "#111", border: "1px solid #1f2937", borderRadius: 14 }}>
-                <div style={{ position: "absolute", top: -16, left: 24, width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: 16, boxShadow: "0 4px 12px rgba(59,130,246,0.4)" }}>
-                  {p.num}
-                </div>
-                <div style={{ fontSize: 32, marginBottom: 12, marginTop: 8 }}>{p.icon}</div>
-                <h3 style={{ color: "white", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>{p.titulo}</h3>
-                <p style={{ color: "#9ca3af", fontSize: 13, margin: 0, lineHeight: 1.6 }}>{p.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════ DEMO VISUAL ════════════ */}
-      <section style={{ padding: isMobile ? "60px 20px" : "100px 32px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 60 }}>
-          <p style={{ color: "#a855f7", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 12px" }}>Plataforma completa</p>
-          <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, letterSpacing: -1 }}>
-            Tudo num <span style={{ background: "linear-gradient(135deg, #a855f7 0%, #ec4899 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>painel só</span>
-          </h2>
-          <p style={{ color: "#9ca3af", fontSize: 16, marginTop: 16, maxWidth: 700, margin: "16px auto 0" }}>
-            Atendimento, vendas, cobrança, equipes, métricas. Você não precisa de 5 ferramentas — só do Wolf.
-          </p>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 24 }}>
-          <MockupChat isMobile={isMobile} />
-          <MockupFunil isMobile={isMobile} />
-          <MockupCobranca isMobile={isMobile} />
-          <MockupDashboardMini isMobile={isMobile} />
-        </div>
-      </section>
-
-      {/* ════════════ PRA QUEM É ════════════ */}
-      <section style={{ padding: isMobile ? "60px 20px" : "100px 32px", background: "#0d0d0d", borderTop: "1px solid #1f2937", borderBottom: "1px solid #1f2937" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 60 }}>
-            <p style={{ color: "#16a34a", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 12px" }}>Pra quem é</p>
-            <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, letterSpacing: -1 }}>
-              Feito sob medida pro <span style={{ color: "#22d36b" }}>seu negócio</span>
-            </h2>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20 }}>
-            {personas.map((p, i) => (
-              <div key={i} style={{
-                background: "#111",
-                border: `1px solid ${p.cor}33`,
-                borderRadius: 16, padding: 32,
-                position: "relative", overflow: "hidden",
-              }}>
-                <div style={{ position: "absolute", top: 0, right: 0, width: 120, height: 120, borderRadius: "50%", background: `radial-gradient(circle, ${p.cor}22 0%, transparent 70%)`, pointerEvents: "none" }} />
-                <div style={{ width: 56, height: 56, borderRadius: 14, background: `${p.cor}22`, border: `1px solid ${p.cor}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, marginBottom: 20 }}>
-                  {p.icon}
-                </div>
-                <h3 style={{ color: "white", fontSize: 19, fontWeight: 700, margin: "0 0 10px" }}>{p.titulo}</h3>
-                <p style={{ color: "#9ca3af", fontSize: 14, lineHeight: 1.6, margin: "0 0 20px" }}>{p.desc}</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {p.pontos.map((pt, j) => (
-                    <div key={j} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ color: p.cor, fontSize: 14 }}>✓</span>
-                      <span style={{ color: "#d1d5db", fontSize: 13 }}>{pt}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════ RECURSOS COMPLETOS ════════════ */}
-      <section id="recursos" style={{ padding: isMobile ? "60px 20px" : "100px 32px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 60 }}>
-          <p style={{ color: "#ec4899", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 12px" }}>Recursos</p>
-          <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, letterSpacing: -1 }}>
-            Tudo que vc precisa em <span style={{ color: "#22d36b" }}>um lugar</span>
-          </h2>
-          <p style={{ color: "#9ca3af", fontSize: 16, marginTop: 16, maxWidth: 700, margin: "16px auto 0" }}>
-            Do primeiro "oi" até a cobrança da fatura. Sem precisar contratar 5 sistemas diferentes.
-          </p>
-        </div>
-
-        {recursosCategorias.map((cat, ci) => (
-          <div key={ci} style={{ marginBottom: 40 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingBottom: 12, borderBottom: `1px solid ${cat.cor}22` }}>
-              <div style={{ width: 4, height: 24, borderRadius: 2, background: cat.cor }} />
-              <h3 style={{ color: "white", fontSize: 18, fontWeight: 700, margin: 0 }}>{cat.titulo}</h3>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 14 }}>
-              {cat.items.map((r, i) => (
-                <div key={i} style={{ background: "#111", border: "1px solid #1f2937", borderRadius: 12, padding: 20, display: "flex", gap: 14, alignItems: "flex-start" }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: `${cat.cor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-                    {r.icon}
-                  </div>
-                  <div>
-                    <h4 style={{ color: "white", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>{r.nome}</h4>
-                    <p style={{ color: "#6b7280", fontSize: 12, margin: 0, lineHeight: 1.5 }}>{r.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {/* ════════════ PLANOS ════════════ */}
-      <section id="planos" style={{ padding: isMobile ? "60px 20px" : "100px 32px", background: "#0d0d0d", borderTop: "1px solid #1f2937", borderBottom: "1px solid #1f2937" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 60 }}>
-            <p style={{ color: "#22d36b", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 12px" }}>Investimento</p>
-            <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, letterSpacing: -1 }}>
-              Escolha seu <span style={{ color: "#22d36b" }}>plano</span>
-            </h2>
-            <p style={{ color: "#9ca3af", fontSize: 16, marginTop: 16 }}>Planos para cada estágio da operação. Sem fidelidade e com evolução simples.</p>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20, marginBottom: 40 }}>
-            {planos.map((plano) => (
-              <div key={plano.nome} style={{
-                background: plano.destaque ? "linear-gradient(135deg, #0f1729 0%, #111 100%)" : "#111",
-                borderRadius: 18, padding: 36,
-                border: `2px solid ${plano.destaque ? plano.cor : "#1f2937"}`,
-                position: "relative",
-                boxShadow: plano.destaque ? `0 8px 40px ${plano.cor}33` : "none",
-                transform: plano.destaque && !isMobile ? "scale(1.04)" : "none",
-              }}>
-                {plano.destaque && (
-                  <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: `linear-gradient(135deg, ${plano.cor} 0%, ${plano.cor}cc 100%)`, color: "white", borderRadius: 20, padding: "5px 18px", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", letterSpacing: 0.5, textTransform: "uppercase", boxShadow: `0 4px 12px ${plano.cor}66` }}>
-                    ⭐ Melhor custo-benefício
-                  </div>
-                )}
-
-                <h3 style={{ color: "white", fontSize: 22, fontWeight: 800, margin: "0 0 6px" }}>{plano.nome}</h3>
-                <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 20px" }}>{plano.descricao}</p>
-
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 24 }}>
-                  <span style={{ color: plano.cor, fontSize: 38, fontWeight: 800, letterSpacing: -1 }}>{plano.preco}</span>
-                  <span style={{ color: "#6b7280", fontSize: 14 }}>{plano.periodo}</span>
-                </div>
-
-                <button onClick={irParaCadastro} style={{
-                  width: "100%",
-                  background: plano.destaque ? `linear-gradient(135deg, ${plano.cor} 0%, ${plano.cor}cc 100%)` : "transparent",
-                  color: plano.destaque ? "white" : plano.cor,
-                  border: `2px solid ${plano.cor}`,
-                  borderRadius: 10, padding: "13px",
-                  fontSize: 14, cursor: "pointer", fontWeight: 700,
-                  marginBottom: 28,
-                  transition: "all 0.2s",
-                  boxShadow: plano.destaque ? `0 4px 14px ${plano.cor}55` : "none",
-                }}>
-                  Começar Agora →
-                </button>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-                  {plano.recursos.map((r, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                      <span style={{ color: plano.cor, fontSize: 14, marginTop: 1, flexShrink: 0 }}>{r.destaque ? "🔹" : "✓"}</span>
-                      <span style={{ color: r.destaque ? "white" : "#d1d5db", fontSize: 13, fontWeight: r.destaque ? 700 : 400 }}>{r.texto}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Extras */}
-          <div style={{ background: "#0a0a0a", border: "1px solid #1f2937", borderRadius: 14, padding: "28px 32px", maxWidth: 800, margin: "0 auto" }}>
-            <h3 style={{ color: "white", fontSize: 15, fontWeight: 700, margin: "0 0 18px", textAlign: "center" }}>
-              ➕ Adicionais — escale a qualquer plano
-            </h3>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 14 }}>
-              {[
-                { icon: "👤", titulo: "Usuário extra", preco: "R$ 49,90", cor: "#22d36b" },
-                { icon: "🔗", titulo: "Conexão extra", preco: "R$ 149,90", cor: "#3b82f6" },
-                { icon: "💰", titulo: "Módulo Cobrança", preco: "R$ 199,90", cor: "#dc2626" },
-              ].map((e, i) => (
-                <div key={i} style={{ background: "#0f0f0f", borderRadius: 10, padding: "14px 18px", border: "1px solid #1f2937", display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ fontSize: 24 }}>{e.icon}</div>
-                  <div>
-                    <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600 }}>{e.titulo}</p>
-                    <p style={{ color: e.cor, fontSize: 16, margin: 0, fontWeight: 800 }}>{e.preco}<span style={{ color: "#6b7280", fontSize: 11, fontWeight: 400 }}> /mês</span></p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p style={{ color: "#6b7280", fontSize: 11, margin: "16px 0 0", textAlign: "center", fontStyle: "italic" }}>
-              Contrate adicionais falando com o comercial
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════ DEPOIMENTOS ════════════ */}
-      <section style={{ padding: isMobile ? "60px 20px" : "100px 32px", maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <p style={{ color: "#f59e0b", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 12px" }}>Quem usa</p>
-          <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, letterSpacing: -1 }}>
-            Empresas <span style={{ color: "#f59e0b" }}>crescendo</span> com a gente
-          </h2>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20 }}>
-          {[
-            { texto: "Reduzimos 70% do tempo de atendimento. O chatbot resolve as dúvidas comuns e nossos atendentes focam só nas vendas.", autor: "Marketing", empresa: "RM Telecom", inicial: "RM", cor: "#3b82f6" },
-            { texto: "A cobrança via WhatsApp transformou nosso financeiro. Inadimplência caiu de 8% pra 2% em 3 meses.", autor: "Financeiro", empresa: "Rocha Financeira", inicial: "RF", cor: "#dc2626" },
-            { texto: "Conseguimos centralizar 5 atendentes em um único WhatsApp sem confusão. O CRM nunca perde uma proposta.", autor: "Operações", empresa: "Azimuth", inicial: "AZ", cor: "#a855f7" },
-          ].map((d, i) => (
-            <div key={i} style={{ background: "#111", border: "1px solid #1f2937", borderRadius: 14, padding: 28 }}>
-              <div style={{ color: "#f59e0b", fontSize: 18, marginBottom: 12 }}>★★★★★</div>
-              <p style={{ color: "#d1d5db", fontSize: 14, lineHeight: 1.65, margin: "0 0 20px", fontStyle: "italic" }}>"{d.texto}"</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingTop: 16, borderTop: "1px solid #1f2937" }}>
-                <div style={{ width: 40, height: 40, borderRadius: "50%", background: `linear-gradient(135deg, ${d.cor} 0%, ${d.cor}aa 100%)`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: 14 }}>
-                  {d.inicial}
-                </div>
-                <div>
-                  <p style={{ color: "white", fontSize: 13, margin: 0, fontWeight: 700 }}>{d.empresa}</p>
-                  <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{d.autor}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ════════════ FAQ ════════════ */}
-      <section id="faq" style={{ padding: isMobile ? "60px 20px" : "100px 32px", background: "#0d0d0d", borderTop: "1px solid #1f2937", borderBottom: "1px solid #1f2937" }}>
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <p style={{ color: "#3b82f6", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 12px" }}>Dúvidas</p>
-            <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, letterSpacing: -1 }}>
-              Perguntas <span style={{ color: "#3b82f6" }}>frequentes</span>
-            </h2>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {faq.map((f, i) => (
-              <div key={i} style={{ background: "#111", border: "1px solid #1f2937", borderRadius: 12, overflow: "hidden" }}>
-                <button
-                  onClick={() => setFaqAberto(faqAberto === i ? null : i)}
-                  style={{
-                    width: "100%", background: "none", border: "none",
-                    padding: "18px 24px", color: "white", fontSize: 15, fontWeight: 600,
-                    textAlign: "left", cursor: "pointer",
-                    display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
-                  }}>
-                  <span>{f.p}</span>
-                  <span style={{ color: "#3b82f6", fontSize: 18, transition: "transform 0.2s", transform: faqAberto === i ? "rotate(45deg)" : "rotate(0)" }}>+</span>
-                </button>
-                {faqAberto === i && (
-                  <div style={{ padding: "0 24px 20px", borderTop: "1px solid #1f2937" }}>
-                    <p style={{ color: "#9ca3af", fontSize: 14, lineHeight: 1.7, margin: "16px 0 0" }}>{f.r}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════ CTA FINAL ════════════ */}
-      <section style={{ padding: isMobile ? "80px 20px" : "120px 32px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{
-          position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)",
-          width: 800, height: 600, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(22,163,74,0.15) 0%, rgba(22,163,74,0) 70%)",
-          pointerEvents: "none", zIndex: 0,
-        }} />
-        <div style={{ position: "relative", zIndex: 1, maxWidth: 700, margin: "0 auto" }}>
-          <h2 style={{ fontSize: isMobile ? 30 : 48, fontWeight: 800, margin: "0 0 20px", letterSpacing: -1.5, lineHeight: 1.1 }}>
-            Pronto pra <span style={{ background: "linear-gradient(135deg, #16a34a 0%, #22d36b 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>parar de perder</span> dinheiro no WhatsApp?
-          </h2>
-          <p style={{ color: "#9ca3af", fontSize: 17, marginBottom: 40, lineHeight: 1.6 }}>
-            Crie sua conta agora. Sem burocracia, sem cartão de crédito.<br />
-            Em 5 minutos seu primeiro WhatsApp tá conectado.
-          </p>
-          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={irParaCadastro} style={{ ...btnPrimario, padding: "16px 36px", fontSize: 16 }}>
-              Criar Conta Grátis 🐺
-            </button>
-            <button onClick={irParaWhatsApp} style={{ ...btnSecundario, padding: "16px 36px", fontSize: 16 }}>
-              💬 Falar com vendas
-            </button>
-          </div>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: "24px 0 0" }}>
-            +50 empresas já estão usando · Suporte em horário comercial · Cancele quando quiser
-          </p>
-        </div>
-      </section>
-
-      {/* ════════════ FOOTER ════════════ */}
-      <footer style={{ padding: "48px 32px 24px", borderTop: "1px solid #1f2937", background: "#0a0a0a" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 40, marginBottom: 32 }}>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <img src="/logo1.png" alt="Wolf" style={{ width: 32, filter: "brightness(0) invert(1)" }} />
-                <span style={{ color: "white", fontWeight: 800, fontSize: 16 }}>Wolf System</span>
-              </div>
-              <p style={{ color: "#6b7280", fontSize: 12, lineHeight: 1.6, margin: 0 }}>
-                CRM + ChatBot com WhatsApp &amp; IA. Atendimento, vendas e cobrança no mesmo lugar.
-              </p>
-            </div>
-
-            <div>
-              <h4 style={footerHeader}>Navegação</h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <a href="#recursos" style={footerLink}>Recursos</a>
-                <a href="#planos" style={footerLink}>Planos</a>
-                <a href="#faq" style={footerLink}>FAQ</a>
-                <a href="https://app.wolfgyn.com.br/login" style={footerLink}>Acessar sistema</a>
-                <a href="https://app.wolfgyn.com.br/login/register" style={footerLink}>Criar conta grátis</a>
-              </div>
-            </div>
-
-            <div>
-              <h4 style={footerHeader}>Legal</h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <a href="/privacidade" style={footerLink}>🔒 Política de Privacidade</a>
-                <a href="/termos" style={footerLink}>📄 Termos de Uso</a>
-                <a href="/excluir-dados" style={footerLink}>🗑️ Excluir Meus Dados</a>
-                <a href="/privacidade#seus-direitos" style={footerLink}>⚖️ LGPD — Seus Direitos</a>
-              </div>
-            </div>
-
-            <div>
-              <h4 style={footerHeader}>Contato</h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <a href="mailto:suporte@wolfgyn.com.br" style={footerLink}>suporte@wolfgyn.com.br</a>
-                <a href="mailto:comercial@wolfgyn.com.br" style={footerLink}>comercial@wolfgyn.com.br</a>
-                <a href="mailto:privacidade@wolfgyn.com.br" style={footerLink}>privacidade@wolfgyn.com.br</a>
-                <a href="https://wa.me/5562981519991" target="_blank" rel="noopener noreferrer" style={footerLink}>💬 WhatsApp comercial</a>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ borderTop: "1px solid #1f2937", paddingTop: 20, display: "flex", flexDirection: "column", gap: 8, textAlign: "center" }}>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>
-              © {new Date().getFullYear()} Wolf System (ABC CALL E SERVICOS DIGITAIS LTDA — CNPJ 62.007.374/0001-96). Todos os direitos reservados.
-            </p>
-            <p style={{ color: "#4b5563", fontSize: 11, margin: 0 }}>
-              Em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018).
-            </p>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MOCKUPS (componentes visuais que simulam telas do sistema)
-// ═══════════════════════════════════════════════════════════════════════════
-
-function MockupDashboard({ isMobile }: { isMobile: boolean }) {
-  return (
-    <div style={{
-      background: "linear-gradient(135deg, #0f1729 0%, #111 100%)",
-      border: "1px solid #1f2937",
-      borderRadius: 14,
-      padding: 6,
-      boxShadow: "0 30px 60px rgba(0,0,0,0.5), 0 0 80px rgba(22,163,74,0.15)",
-    }}>
-      <div style={{ display: "flex", gap: 6, padding: "6px 10px 8px" }}>
-        <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ef4444" }} />
-        <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#f59e0b" }} />
-        <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#22d36b" }} />
-      </div>
-      <div style={{ background: "#f8fafc", borderRadius: 10, padding: isMobile ? 12 : 20, color: "#1f2937" }}>
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #e5e7eb" }}>
+      <section id="inicio" style={{ position: "relative", padding: mobile ? "64px 20px 56px" : "100px 28px 84px", background: "linear-gradient(145deg,#ffffff 0%,#f4f8ff 48%,#f5f0ff 100%)" }}>
+        <Glow color="#60a5fa" top="-120px" left="-100px" /><Glow color="#c084fc" top="40px" right="-120px" />
+        <div style={{ ...container, position: "relative", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1.04fr .96fr", gap: mobile ? 48 : 70, alignItems: "center" }}>
           <div>
-            <h4 style={{ fontSize: 14, fontWeight: 800, margin: 0 }}>📊 Dashboard</h4>
-            <p style={{ fontSize: 10, color: "#6b7280", margin: 0 }}>Hoje · Atualizado agora</p>
+            <Badge>⚡ CRM, atendimento e automação em uma só operação</Badge>
+            <h1 style={{ fontSize: mobile ? 43 : 70, lineHeight: .98, letterSpacing: -3.3, margin: "24px 0", fontWeight: 900, color: "#10213d" }}>Sua empresa vende mais quando tudo <span style={gradientText}>conversa.</span></h1>
+            <p style={{ fontSize: mobile ? 17 : 20, lineHeight: 1.65, color: "#52627a", maxWidth: 690, margin: "0 0 30px" }}>WhatsApp, ChatBot, CRM, campanhas, cobrança e inteligência artificial trabalhando juntos para transformar conversas em receita.</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <button onClick={() => falar("Olá! Quero uma demonstração do Wolf System.")} style={{ ...buttonPrimary, padding: "16px 24px", fontSize: 15 }}>Quero uma demonstração →</button>
+              <a href="#vendedor-ia" style={{ ...buttonGhost, padding: "15px 22px", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Conhecer o Vendedor IA</a>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 22, marginTop: 30, color: "#52627a", fontSize: 12, fontWeight: 700 }}><span>✓ Sem fidelidade</span><span>✓ Dados isolados por workspace</span><span>✓ Suporte brasileiro</span></div>
           </div>
-          <div style={{ background: "#dcfce7", color: "#16a34a", borderRadius: 8, padding: "3px 8px", fontSize: 10, fontWeight: 700 }}>Online</div>
+          <HeroDashboard mobile={mobile} />
         </div>
-        {/* Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
-          {[
-            { l: "Atendimentos", v: "127", c: "#3b82f6", i: "💬" },
-            { l: "Conversões", v: "23", c: "#16a34a", i: "✅" },
-            { l: "Receita", v: "R$ 8.4k", c: "#a855f7", i: "💰" },
-            { l: "Pendentes", v: "12", c: "#f59e0b", i: "⏳" },
-          ].map((k, i) => (
-            <div key={i} style={{ background: "#ffffff", borderRadius: 8, padding: 10, border: "1px solid #e5e7eb" }}>
-              <div style={{ fontSize: 16, marginBottom: 2 }}>{k.i}</div>
-              <p style={{ fontSize: 9, color: "#6b7280", margin: 0, textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600 }}>{k.l}</p>
-              <p style={{ fontSize: 16, fontWeight: 800, margin: "2px 0 0", color: k.c }}>{k.v}</p>
-            </div>
-          ))}
-        </div>
-        {/* Lista mock */}
-        <div style={{ background: "#ffffff", borderRadius: 8, padding: 10, border: "1px solid #e5e7eb" }}>
-          {[
-            { n: "Ester Silva", m: "Sim, quero contratar!", t: "agora", c: "#22d36b" },
-            { n: "João Pereira", m: "Vou pagar amanhã 💰", t: "5min", c: "#f59e0b" },
-            { n: "Maria Santos", m: "Recebi o boleto", t: "12min", c: "#3b82f6" },
-          ].map((c, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderTop: i > 0 ? "1px solid #f3f4f6" : "none" }}>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: c.c, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 10, fontWeight: 700 }}>
-                {c.n.charAt(0)}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, margin: 0, color: "#1f2937" }}>{c.n}</p>
-                <p style={{ fontSize: 10, color: "#6b7280", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.m}</p>
-              </div>
-              <span style={{ fontSize: 9, color: "#9ca3af" }}>{c.t}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+      </section>
 
-function MockupChat({ isMobile }: { isMobile: boolean }) {
-  return (
-    <div style={{ background: "#111", border: "1px solid #1f2937", borderRadius: 14, padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(22,163,74,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
-      <h3 style={{ color: "white", fontSize: 17, fontWeight: 700, margin: "0 0 6px", position: "relative" }}>💬 Chat unificado</h3>
-      <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 16px", lineHeight: 1.5, position: "relative" }}>Várias conversas, vários atendentes, um só painel. Histórico completo, etiquetas e respostas rápidas.</p>
-      <div style={{ background: "#0a0a0a", borderRadius: 10, padding: 12, border: "1px solid #1f2937" }}>
-        {/* Cabeçalho chat */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 8, borderBottom: "1px solid #1f2937", marginBottom: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#22d36b", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 12, fontWeight: 700 }}>E</div>
-          <div style={{ flex: 1 }}>
-            <p style={{ color: "white", fontSize: 12, fontWeight: 700, margin: 0 }}>Ester Silva</p>
-            <p style={{ color: "#22d36b", fontSize: 10, margin: 0 }}>● online</p>
-          </div>
-          <div style={{ background: "#3b82f622", color: "#3b82f6", borderRadius: 6, padding: "2px 6px", fontSize: 9, fontWeight: 700 }}>🏷️ Lead Quente</div>
+      <section style={{ background: "white", borderTop: "1px solid #edf2f8", borderBottom: "1px solid #edf2f8" }}>
+        <div style={{ ...container, display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 1, background: "#edf2f8" }}>
+          {[["24/7","Automação disponível"],["100%","Operação no navegador"],["1 painel","Atendimento + CRM"],["∞","Conversas organizadas"]].map(([n,l]) => <div key={l} style={{ background: "white", padding: mobile ? "24px 12px" : "32px 24px", textAlign: "center" }}><strong style={{ color: "#2563eb", fontSize: 27 }}>{n}</strong><span style={{ display: "block", color: "#64748b", fontSize: 11, marginTop: 5 }}>{l}</span></div>)}
         </div>
-        {/* Mensagens */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ alignSelf: "flex-start", background: "#1f2937", borderRadius: "8px 8px 8px 2px", padding: "6px 10px", maxWidth: "75%" }}>
-            <p style={{ color: "#d1d5db", fontSize: 11, margin: 0 }}>Olá! Tenho interesse no plano de 500MB</p>
-          </div>
-          <div style={{ alignSelf: "flex-end", background: "#16a34a", borderRadius: "8px 8px 2px 8px", padding: "6px 10px", maxWidth: "75%" }}>
-            <p style={{ color: "white", fontSize: 11, margin: 0 }}>Oi Ester! Custa R$ 99/mês. Quer agendar a instalação?</p>
-          </div>
-          <div style={{ alignSelf: "flex-start", background: "#1f2937", borderRadius: "8px 8px 8px 2px", padding: "6px 10px", maxWidth: "75%" }}>
-            <p style={{ color: "#22d36b", fontSize: 11, margin: 0, fontWeight: 700 }}>Sim, quero contratar! 🎉</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+      </section>
 
-function MockupFunil({ isMobile }: { isMobile: boolean }) {
-  return (
-    <div style={{ background: "#111", border: "1px solid #1f2937", borderRadius: 14, padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
-      <h3 style={{ color: "white", fontSize: 17, fontWeight: 700, margin: "0 0 6px", position: "relative" }}>🎯 Funil visual</h3>
-      <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 16px", lineHeight: 1.5, position: "relative" }}>Kanban com etapas customizáveis. Arraste leads, acompanhe conversão, nunca perca uma venda.</p>
-      <div style={{ background: "#0a0a0a", borderRadius: 10, padding: 10, border: "1px solid #1f2937", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-        {[
-          { t: "Novos", c: "#3b82f6", n: 8 },
-          { t: "Negociando", c: "#f59e0b", n: 5 },
-          { t: "Fechados", c: "#22d36b", n: 12 },
-        ].map((col) => (
-          <div key={col.t}>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4px 6px", borderBottom: `2px solid ${col.c}66` }}>
-              <span style={{ color: "#d1d5db", fontSize: 10, fontWeight: 700 }}>{col.t}</span>
-              <span style={{ color: col.c, fontSize: 10, fontWeight: 800 }}>{col.n}</span>
+      <section id="plataforma" style={sectionStyle}>
+        <div style={container}>
+          <SectionTitle kicker="PLATAFORMA COMPLETA" title="Uma central para cada parte da sua operação" text="Módulos integrados, dados no mesmo lugar e uma experiência simples para quem atende, vende e gerencia." />
+          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3,1fr)", gap: 18 }}>
+            <Feature icon="💬" color="#2563eb" title="Atendimento unificado" text="WhatsApp, equipes, filas, etiquetas, protocolos e histórico completo em uma tela." />
+            <Feature icon="🎯" color="#16a34a" title="CRM que acompanha a conversa" text="Propostas, funil, vendedores, status personalizados e automações ligadas ao atendimento." />
+            <Feature icon="📣" color="#7c3aed" title="Campanhas e Central Ads" text="Disparos, API Oficial, investimento, leads, CPL, CPA e relatórios para decisões claras." />
+            <Feature icon="💰" color="#ea580c" title="Cobrança automatizada" text="Faturas, réguas de cobrança, negociações e mensagens personalizadas pelo WhatsApp." />
+            <Feature icon="📞" color="#0891b2" title="Telefonia e multicanal" text="Chamadas VOIP, múltiplas conexões e uma visão central de toda a comunicação." />
+            <Feature icon="📊" color="#db2777" title="Gestão em tempo real" text="Dashboards comerciais, financeiro, RH, ponto e indicadores por equipe e atendente." />
+          </div>
+        </div>
+      </section>
+
+      <section id="vendedor-ia" style={{ padding: mobile ? "72px 20px" : "118px 28px", background: "linear-gradient(145deg,#f7f4ff 0%,#ffffff 45%,#eef7ff 100%)", borderTop: "1px solid #e9e4ff", borderBottom: "1px solid #e9e4ff", position: "relative" }}>
+        <Glow color="#a78bfa" top="-100px" left="50%" />
+        <div style={{ ...container, position: "relative" }}>
+          <div style={{ textAlign: "center", maxWidth: 900, margin: "0 auto 60px" }}>
+            <Badge>🤖 MÓDULO PREMIUM AVULSO</Badge>
+            <h2 style={{ fontSize: mobile ? 42 : 72, lineHeight: 1.02, letterSpacing: -3, margin: "22px 0", color: "#241246", fontWeight: 950 }}>Conheça o vendedor que não esquece, não pula etapas e <span style={{ ...gradientText, backgroundImage: "linear-gradient(135deg,#7c3aed,#2563eb)" }}>não para de vender.</span></h2>
+            <p style={{ color: "#615575", fontSize: mobile ? 17 : 21, lineHeight: 1.65, margin: 0 }}>O Vendedor IA conduz a conversa como gente, coleta dados com validação real, contorna objeções, consulta sistemas e entrega a venda pronta no CRM.</p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1.05fr .95fr", gap: 24, alignItems: "stretch" }}>
+            <div style={{ background: "white", border: "1px solid #ded7ff", borderRadius: 28, padding: mobile ? 22 : 34, boxShadow: "0 24px 80px rgba(76,29,149,.10)" }}>
+              <ConversationDemo />
             </div>
-            <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
-              {[1,2].map(i => (
-                <div key={i} style={{ background: "#1f2937", borderRadius: 4, padding: "5px 6px", borderLeft: `2px solid ${col.c}` }}>
-                  <p style={{ color: "white", fontSize: 9, margin: 0, fontWeight: 600 }}>Cliente {i}</p>
-                  <p style={{ color: "#6b7280", fontSize: 8, margin: 0 }}>R$ 99,90</p>
-                </div>
-              ))}
+            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 14 }}>
+              <MiniFeature icon="🧠" title="Conversa natural" text="Responde dúvidas e depois retorna exatamente à validação que estava pendente." />
+              <MiniFeature icon="✅" title="Dados validados" text="Nome, CPF, data, CEP, e-mail e campos personalizados com regras reais." />
+              <MiniFeature icon="🔗" title="Consulta APIs" text="Executa link, API ou JavaScript e usa o retorno para continuar a conversa." />
+              <MiniFeature icon="🎙️" title="Entende áudio" text="Transcreve a mensagem de voz e mantém o contexto do atendimento." />
+              <MiniFeature icon="🛡️" title="Contorna objeções" text="Tenta recuperar o cliente sem encerrar a conversa na primeira recusa." />
+              <MiniFeature icon="📥" title="Atualiza o CRM" text="Cria ou altera a venda, muda status e registra observações automaticamente." />
             </div>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-function MockupCobranca({ isMobile }: { isMobile: boolean }) {
-  return (
-    <div style={{ background: "#111", border: "1px solid #1f2937", borderRadius: 14, padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(220,38,38,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
-      <h3 style={{ color: "white", fontSize: 17, fontWeight: 700, margin: "0 0 6px", position: "relative" }}>💰 Cobrança automatizada</h3>
-      <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 16px", lineHeight: 1.5, position: "relative" }}>Faturas mensais geradas automaticamente. Cobrança via WhatsApp personalizada. Reduza inadimplência em 70%.</p>
-      <div style={{ background: "#0a0a0a", borderRadius: 10, padding: 10, border: "1px solid #1f2937" }}>
-        {[
-          { n: "Cliente A", v: "R$ 99,90", s: "Paga", c: "#22d36b", icon: "✓" },
-          { n: "Cliente B", v: "R$ 149,90", s: "A pagar", c: "#f59e0b", icon: "⏳" },
-          { n: "Cliente C", v: "R$ 99,90", s: "Atrasada", c: "#dc2626", icon: "🔴" },
-          { n: "Cliente D", v: "R$ 199,90", s: "Promessa", c: "#3b82f6", icon: "🤝" },
-        ].map((f, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", padding: "6px 4px", borderTop: i > 0 ? "1px solid #1f2937" : "none" }}>
-            <span style={{ color: "white", fontSize: 11, flex: 1, fontWeight: 600 }}>{f.n}</span>
-            <span style={{ color: "#22d36b", fontSize: 11, fontWeight: 700, marginRight: 8 }}>{f.v}</span>
-            <span style={{ background: `${f.c}22`, color: f.c, fontSize: 9, padding: "2px 6px", borderRadius: 4, border: `1px solid ${f.c}44`, fontWeight: 700 }}>{f.icon} {f.s}</span>
+          <div style={{ marginTop: 26, background: "white", border: "1px solid #dfe7f5", borderRadius: 28, padding: mobile ? 24 : 38, boxShadow: "0 18px 60px rgba(37,99,235,.08)" }}>
+            <p style={{ color: "#7c3aed", fontSize: 11, fontWeight: 900, letterSpacing: 1.6, textAlign: "center", margin: "0 0 24px" }}>DA PRIMEIRA MENSAGEM ATÉ A VENDA</p>
+            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(5,1fr)", gap: 12 }}>
+              {[["01","Conversa","Entende a intenção e inicia o atendimento"],["02","Coleta","Pede um dado por vez e valida"],["03","Consulta","Confere cobertura, cadastro ou disponibilidade"],["04","Confirma","Apresenta um resumo e corrige o necessário"],["05","Fecha","Envia a venda e continua o pós-venda"]].map(([n,t,d]) => <div key={n} style={{ padding: 18, borderRadius: 18, background: "#f7f9fe", border: "1px solid #e8edf7" }}><span style={{ color: "#7c3aed", fontWeight: 900, fontSize: 12 }}>{n}</span><strong style={{ display: "block", color: "#17233b", fontSize: 15, margin: "8px 0 5px" }}>{t}</strong><small style={{ color: "#64748b", lineHeight: 1.5 }}>{d}</small></div>)}
+            </div>
           </div>
-        ))}
-      </div>
-    </div>
+
+          <div style={{ marginTop: 28, borderRadius: 30, padding: mobile ? "30px 24px" : "42px 48px", background: "linear-gradient(135deg,#6d28d9,#2563eb)", color: "white", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr auto", gap: 30, alignItems: "center", boxShadow: "0 24px 70px rgba(79,70,229,.25)" }}>
+            <div><span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.5, opacity: .78 }}>CONTRATAÇÃO POR WORKSPACE</span><h3 style={{ fontSize: mobile ? 30 : 40, margin: "10px 0 8px", letterSpacing: -1.2 }}>Vendedor IA completo</h3><p style={{ margin: 0, opacity: .86, lineHeight: 1.6 }}>Módulo separado dos planos. Implantação orientada para transformar seu processo em um vendedor autônomo.</p></div>
+            <div style={{ textAlign: mobile ? "left" : "right" }}><span style={{ fontSize: 13, opacity: .8 }}>investimento avulso</span><strong style={{ display: "block", fontSize: mobile ? 42 : 56, letterSpacing: -2 }}>R$ 2.500,00</strong><button onClick={() => falar("Olá! Quero contratar o módulo Vendedor IA por R$ 2.500,00.")} style={{ marginTop: 12, border: 0, borderRadius: 12, background: "white", color: "#5b21b6", padding: "14px 20px", fontWeight: 900, cursor: "pointer" }}>Quero meu Vendedor IA →</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="planos" style={sectionStyle}>
+        <div style={container}>
+          <SectionTitle kicker="PLANOS WOLF" title="Comece com a estrutura certa para crescer" text="Planos claros, sem fidelidade e com módulos que acompanham o tamanho da sua operação." />
+          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3,1fr)", gap: 20, alignItems: "stretch" }}>
+            {planos.map(p => <div key={p.nome} style={{ background: "white", border: "2px solid " + (p.destaque ? p.cor : "#e5ebf5"), borderRadius: 24, padding: 28, position: "relative", boxShadow: p.destaque ? "0 24px 70px rgba(37,99,235,.15)" : "0 12px 40px rgba(15,23,42,.05)" }}>
+              {p.destaque && <span style={{ position: "absolute", top: -13, left: 26, background: p.cor, color: "white", borderRadius: 999, padding: "6px 13px", fontSize: 10, fontWeight: 900 }}>MAIS ESCOLHIDO</span>}
+              <h3 style={{ margin: "6px 0", fontSize: 23 }}>{p.nome}</h3><p style={{ color: "#64748b", minHeight: 55, lineHeight: 1.5, fontSize: 13 }}>{p.descricao}</p>
+              <div style={{ margin: "22px 0" }}><strong style={{ color: p.cor, fontSize: 40, letterSpacing: -1.5 }}>{p.preco}</strong><span style={{ color: "#94a3b8" }}>/mês</span></div>
+              <button onClick={() => falar("Olá! Quero contratar o plano " + p.nome + " da Wolf.")} style={{ width: "100%", border: "2px solid " + p.cor, borderRadius: 12, padding: 13, background: p.destaque ? p.cor : "white", color: p.destaque ? "white" : p.cor, fontWeight: 900, cursor: "pointer" }}>Escolher {p.nome}</button>
+              <div style={{ marginTop: 23, display: "grid", gap: 11 }}>{p.recursos.map(r => <div key={r} style={{ display: "flex", gap: 9, color: "#475569", fontSize: 13 }}><span style={{ color: p.cor, fontWeight: 900 }}>✓</span>{r}</div>)}</div>
+            </div>)}
+          </div>
+          <div style={{ marginTop: 22, padding: 22, borderRadius: 18, background: "#f7f9fd", border: "1px solid #e5ebf5", textAlign: "center", color: "#52627a", fontSize: 13 }}><strong style={{ color: "#17233b" }}>Adicionais disponíveis:</strong> usuários, conexões, Central Ads, Instagram, Financeiro, RH e o módulo premium Vendedor IA.</div>
+        </div>
+      </section>
+
+      <section id="faq" style={{ ...sectionStyle, background: "#f7f9fd", borderTop: "1px solid #edf1f7" }}>
+        <div style={{ ...container, maxWidth: 900 }}>
+          <SectionTitle kicker="PERGUNTAS FREQUENTES" title="Tudo claro antes de começar" text="As principais dúvidas sobre a plataforma e o Vendedor IA." />
+          <div style={{ display: "grid", gap: 10 }}>{perguntas.map(([p,r],i) => <div key={p} style={{ background: "white", border: "1px solid #e3e9f3", borderRadius: 16, overflow: "hidden" }}><button onClick={() => setFaq(faq===i?null:i)} style={{ width: "100%", background: "white", border: 0, padding: "19px 20px", display: "flex", justifyContent: "space-between", gap: 16, textAlign: "left", color: "#17233b", fontWeight: 800, cursor: "pointer" }}><span>{p}</span><span style={{ color: "#7c3aed" }}>{faq===i?"−":"+"}</span></button>{faq===i && <p style={{ margin: 0, padding: "0 20px 20px", color: "#64748b", lineHeight: 1.65, fontSize: 14 }}>{r}</p>}</div>)}</div>
+        </div>
+      </section>
+
+      <section style={{ padding: mobile ? "65px 20px" : "90px 28px", background: "linear-gradient(135deg,#eff6ff,#faf5ff)", textAlign: "center" }}>
+        <div style={{ ...container, maxWidth: 850 }}><Badge>🐺 A PRÓXIMA FASE DA SUA OPERAÇÃO</Badge><h2 style={{ fontSize: mobile ? 37 : 54, lineHeight: 1.08, letterSpacing: -2, margin: "20px 0", color: "#17233b" }}>Sua equipe merece um sistema que trabalha junto.</h2><p style={{ color: "#64748b", fontSize: 17, lineHeight: 1.6 }}>Veja a Wolf funcionando na prática e descubra onde sua operação pode ganhar velocidade, controle e vendas.</p><button onClick={() => falar("Olá! Quero agendar uma demonstração da Wolf System.")} style={{ ...buttonPrimary, marginTop: 18, padding: "16px 26px" }}>Agendar demonstração →</button></div>
+      </section>
+
+      <footer style={{ background: "white", borderTop: "1px solid #e5ebf5", padding: "46px 24px 24px" }}>
+        <div style={{ ...container, display: "grid", gridTemplateColumns: mobile ? "1fr" : "1.4fr 1fr 1fr", gap: 32 }}>
+          <div><div style={{ display: "flex", alignItems: "center", gap: 10 }}><Logo /><strong>Wolf System</strong></div><p style={{ color: "#64748b", fontSize: 13, maxWidth: 390, lineHeight: 1.6 }}>CRM, atendimento, automação e inteligência artificial para empresas que querem vender com processo.</p></div>
+          <div><strong style={footerTitle}>Navegação</strong><FooterLink href="#plataforma">Plataforma</FooterLink><FooterLink href="#vendedor-ia">Vendedor IA</FooterLink><FooterLink href="#planos">Planos</FooterLink><FooterLink href="https://app.wolfgyn.com.br/login">Acessar sistema</FooterLink></div>
+          <div><strong style={footerTitle}>Legal e contato</strong><FooterLink href="/privacidade">Privacidade</FooterLink><FooterLink href="/termos">Termos de uso</FooterLink><FooterLink href="/excluir-dados">Excluir meus dados</FooterLink><span style={{ color: "#64748b", fontSize: 12 }}>comercial@wolfgyn.com.br</span></div>
+        </div>
+        <div style={{ ...container, borderTop: "1px solid #edf1f7", marginTop: 34, paddingTop: 20, color: "#94a3b8", fontSize: 10, lineHeight: 1.6 }}>© 2026 Wolf System — ABC CALL E SERVIÇOS DIGITAIS LTDA — CNPJ 62.007.374/0001-96. Todos os direitos reservados. Em conformidade com a LGPD.</div>
+      </footer>
+    </main>
   );
 }
 
-function MockupDashboardMini({ isMobile }: { isMobile: boolean }) {
-  return (
-    <div style={{ background: "#111", border: "1px solid #1f2937", borderRadius: 14, padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
-      <h3 style={{ color: "white", fontSize: 17, fontWeight: 700, margin: "0 0 6px", position: "relative" }}>📊 Dashboard em tempo real</h3>
-      <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 16px", lineHeight: 1.5, position: "relative" }}>Métricas atualizadas instantaneamente. Por atendente, por equipe, por período. Sem planilha, sem retrabalho.</p>
-      <div style={{ background: "#0a0a0a", borderRadius: 10, padding: 12, border: "1px solid #1f2937" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ color: "#9ca3af", fontSize: 10 }}>Atendimentos esta semana</span>
-          <span style={{ color: "#22d36b", fontSize: 10, fontWeight: 700 }}>↗ +24%</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 80 }}>
-          {[40, 65, 50, 75, 90, 55, 85].map((h, i) => (
-            <div key={i} style={{ flex: 1, background: "linear-gradient(180deg, #a855f7 0%, #7c3aed 100%)", borderRadius: "3px 3px 0 0", height: `${h}%`, opacity: i === 6 ? 1 : 0.7 }} />
-          ))}
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-          {["S","T","Q","Q","S","S","D"].map((d, i) => (
-            <span key={i} style={{ color: "#6b7280", fontSize: 9, flex: 1, textAlign: "center" }}>{d}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+function Logo(){return <div style={{ width: 40, height: 40, borderRadius: 13, background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 950, boxShadow: "0 8px 22px rgba(79,70,229,.22)" }}>W</div>}
+function Nav({href,children}:{href:string;children:ReactNode}){return <a href={href} style={{ color: "#52627a", textDecoration: "none", fontSize: 13, fontWeight: 750 }}>{children}</a>}
+function FooterLink({href,children}:{href:string;children:ReactNode}){return <a href={href} style={{ display: "block", color: "#64748b", textDecoration: "none", fontSize: 12, margin: "10px 0" }}>{children}</a>}
+function Badge({children}:{children:ReactNode}){return <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 13px", borderRadius: 999, background: "white", border: "1px solid #dbe4f2", boxShadow: "0 6px 24px rgba(15,23,42,.05)", color: "#4f46e5", fontSize: 10, letterSpacing: 1, fontWeight: 900 }}>{children}</span>}
+function Glow({color,top,left,right}:{color:string;top:string;left?:string;right?:string}){return <div style={{ position: "absolute", top, left, right, width: 420, height: 420, borderRadius: "50%", background: color, opacity: .13, filter: "blur(90px)", pointerEvents: "none" }} />}
+function SectionTitle({kicker,title,text}:{kicker:string;title:string;text:string}){return <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 48px" }}><span style={{ color: "#4f46e5", fontSize: 10, letterSpacing: 1.7, fontWeight: 900 }}>{kicker}</span><h2 style={{ color: "#17233b", fontSize: "clamp(34px,5vw,52px)", lineHeight: 1.08, letterSpacing: -2, margin: "13px 0" }}>{title}</h2><p style={{ color: "#64748b", lineHeight: 1.65, fontSize: 16, margin: 0 }}>{text}</p></div>}
+function Feature({icon,color,title,text}:{icon:string;color:string;title:string;text:string}){return <div style={{ background: "white", border: "1px solid #e5ebf5", borderRadius: 20, padding: 24, boxShadow: "0 10px 35px rgba(15,23,42,.045)" }}><div style={{ width: 48, height: 48, borderRadius: 14, background: color+"12", color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 23 }}>{icon}</div><h3 style={{ color: "#17233b", fontSize: 17, margin: "17px 0 8px" }}>{title}</h3><p style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6, margin: 0 }}>{text}</p></div>}
+function MiniFeature({icon,title,text}:{icon:string;title:string;text:string}){return <div style={{ background: "rgba(255,255,255,.88)", border: "1px solid #e3def8", borderRadius: 19, padding: 20 }}><span style={{ fontSize: 25 }}>{icon}</span><strong style={{ display: "block", color: "#28184a", margin: "12px 0 6px", fontSize: 14 }}>{title}</strong><p style={{ color: "#706581", fontSize: 11, lineHeight: 1.55, margin: 0 }}>{text}</p></div>}
+
+function HeroDashboard({mobile}:{mobile:boolean}){
+  const cards=[["Conversas hoje","248","+18%","#2563eb"],["Vendas no mês","37","+24%","#16a34a"],["Em atendimento","19","agora","#7c3aed"]];
+  return <div style={{ position: "relative", background: "rgba(255,255,255,.82)", border: "1px solid rgba(255,255,255,.95)", borderRadius: 27, padding: mobile?15:21, boxShadow: "0 35px 100px rgba(48,75,130,.18)", backdropFilter: "blur(16px)" }}><div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 4px 16px" }}><div><strong style={{fontSize:13}}>Painel da operação</strong><small style={{display:"block",color:"#94a3b8",fontSize:9,marginTop:3}}>Atualizado agora</small></div><span style={{background:"#dcfce7",color:"#15803d",padding:"5px 9px",borderRadius:999,fontSize:9,fontWeight:900}}>● ONLINE</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{cards.map(([l,n,v,c])=><div key={l} style={{background:"#f8fafc",border:"1px solid #e8edf5",borderRadius:13,padding:12}}><small style={{color:"#94a3b8",fontSize:8}}>{l}</small><strong style={{display:"block",fontSize:mobile?18:23,margin:"5px 0",color:"#17233b"}}>{n}</strong><span style={{color:c,fontSize:8,fontWeight:900}}>{v}</span></div>)}</div><div style={{display:"grid",gridTemplateColumns:"1.25fr .75fr",gap:9,marginTop:9}}><div style={{background:"#f8fafc",border:"1px solid #e8edf5",borderRadius:14,padding:14}}><small style={{color:"#64748b",fontSize:9,fontWeight:800}}>CONVERSÕES DA SEMANA</small><div style={{display:"flex",alignItems:"end",gap:7,height:105,marginTop:8}}>{[38,55,45,72,62,88,79].map((h,i)=><div key={i} style={{flex:1,height:h+"%",borderRadius:"5px 5px 2px 2px",background:i===5?"linear-gradient(#7c3aed,#2563eb)":"#dbeafe"}} />)}</div></div><div style={{background:"linear-gradient(145deg,#eef2ff,#faf5ff)",border:"1px solid #ddd6fe",borderRadius:14,padding:14}}><span style={{fontSize:22}}>🤖</span><strong style={{display:"block",fontSize:12,margin:"9px 0 4px",color:"#39256b"}}>Vendedor IA</strong><small style={{color:"#776a91",fontSize:9,lineHeight:1.5}}>Coletando dados e atualizando o CRM.</small><div style={{marginTop:12,height:6,borderRadius:9,background:"#ddd6fe",overflow:"hidden"}}><div style={{width:"74%",height:"100%",background:"#7c3aed"}} /></div></div></div><div style={{position:"absolute",right:-15,bottom:-17,background:"white",border:"1px solid #dcfce7",borderRadius:14,padding:"10px 13px",boxShadow:"0 14px 35px rgba(22,163,74,.15)",fontSize:10,color:"#166534",fontWeight:900}}>✓ Venda enviada ao CRM</div></div>
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ESTILOS REUTILIZÁVEIS
-// ═══════════════════════════════════════════════════════════════════════════
+function ConversationDemo(){
+  return <div><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid #edf1f7",paddingBottom:17}}><div style={{display:"flex",gap:10,alignItems:"center"}}><div style={{width:40,height:40,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#2563eb)",color:"white",display:"flex",alignItems:"center",justifyContent:"center"}}>IA</div><div><strong style={{fontSize:13}}>Mel · Vendedor IA</strong><small style={{display:"block",color:"#16a34a",fontSize:9}}>● atendendo agora</small></div></div><span style={{color:"#94a3b8",fontSize:9}}>Fluxo de vendas</span></div><div style={{display:"grid",gap:12,padding:"22px 0 4px"}}><Bubble>Oi! Para verificar a disponibilidade, me envia seu CEP e o número da casa 😊</Bubble><Bubble user>08452-431, número 118</Bubble><Bubble><span style={{display:"block",fontSize:9,color:"#7c3aed",fontWeight:900,marginBottom:5}}>✓ CONSULTA REALIZADA</span>Temos disponibilidade no seu endereço! Agora me conta: você prefere mais velocidade ou economia?</Bubble><Bubble user>Mas a instalação demora?</Bubble><Bubble>Normalmente conseguimos instalar bem rápido. A confirmação certinha acontece após o pedido 😊 Para continuar, qual plano você prefere?</Bubble></div></div>
+}
+function Bubble({children,user=false}:{children:ReactNode;user?:boolean}){return <div style={{justifySelf:user?"end":"start",maxWidth:"84%",background:user?"linear-gradient(135deg,#2563eb,#4f46e5)":"#f4f6fb",color:user?"white":"#45536a",borderRadius:user?"15px 15px 3px 15px":"15px 15px 15px 3px",padding:"11px 13px",fontSize:11,lineHeight:1.5}}>{children}</div>}
 
-const navLink: React.CSSProperties = {
-  color: "#9ca3af", fontSize: 14, textDecoration: "none", fontWeight: 500,
-};
-
-const btnNav: React.CSSProperties = {
-  background: "linear-gradient(135deg, #16a34a 0%, #22d36b 100%)",
-  color: "white", border: "none", borderRadius: 8,
-  cursor: "pointer", fontWeight: 700,
-  boxShadow: "0 2px 8px rgba(22,163,74,0.3)",
-};
-
-const btnPrimario: React.CSSProperties = {
-  background: "linear-gradient(135deg, #16a34a 0%, #22d36b 100%)",
-  color: "white", border: "none", borderRadius: 10,
-  padding: "14px 28px", fontSize: 15, cursor: "pointer", fontWeight: 700,
-  display: "inline-flex", alignItems: "center",
-  boxShadow: "0 4px 16px rgba(22,163,74,0.4)",
-  transition: "all 0.2s",
-};
-
-const btnSecundario: React.CSSProperties = {
-  background: "rgba(255,255,255,0.05)",
-  color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 10,
-  padding: "14px 28px", fontSize: 15, cursor: "pointer", fontWeight: 600,
-  transition: "all 0.2s",
-};
-
-const footerHeader: React.CSSProperties = {
-  color: "white", fontSize: 13, fontWeight: 800, margin: "0 0 12px 0",
-  textTransform: "uppercase", letterSpacing: 0.5,
-};
-
-const footerLink: React.CSSProperties = {
-  color: "#9ca3af", fontSize: 13, textDecoration: "none",
-};
+const container:CSSProperties={maxWidth:1180,margin:"0 auto",width:"100%",boxSizing:"border-box"};
+const sectionStyle:CSSProperties={padding:"clamp(72px,9vw,112px) 24px",background:"#ffffff"};
+const gradientText:CSSProperties={backgroundImage:"linear-gradient(135deg,#2563eb,#7c3aed)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"};
+const buttonPrimary:CSSProperties={border:0,borderRadius:12,background:"linear-gradient(135deg,#2563eb,#7c3aed)",color:"white",padding:"13px 18px",fontSize:12,fontWeight:900,cursor:"pointer",boxShadow:"0 10px 25px rgba(79,70,229,.23)"};
+const buttonGhost:CSSProperties={height:42,borderRadius:11,border:"1px solid #dbe3ef",background:"white",color:"#334155",padding:"0 16px",fontSize:12,fontWeight:800,cursor:"pointer"};
+const footerTitle:CSSProperties={display:"block",color:"#334155",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:12};

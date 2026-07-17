@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { useModulos } from "../../hooks/useModulos";
 import { STATUS_OPCOES, CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
 
 type TipoNo =
@@ -492,7 +493,7 @@ function TVarComponent({
   );
 }
 
-function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, nos, statusVendaOpcoes, camposPropostaUnif }: {
+function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, nos, statusVendaOpcoes, camposPropostaUnif, vendedorIALiberado }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
@@ -502,10 +503,23 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   nos: No[]; // 🆕 lista completa de nós pra detectar variáveis criadas
   statusVendaOpcoes: {value:string;label:string}[]; // 📋 status disponíveis no workspace
   camposPropostaUnif: CampoUnificado[]; // 📋 campos da proposta (fixos + customs) do workspace
+  vendedorIALiberado: boolean;
 }) {
   const d = noSel.dados;
   const id = noSel.id;
   const u = (o: Record<string,any>) => updateNo(id, o);
+
+  if (noSel.tipo === "fluxo_ia" && !vendedorIALiberado) {
+    return (
+      <div style={{border:"1px solid #ddd6fe",background:"linear-gradient(145deg,#faf5ff,#fff)",borderRadius:14,padding:22,textAlign:"center"}}>
+        <div style={{fontSize:42,marginBottom:10}}>🤖</div>
+        <h3 style={{margin:"0 0 8px",color:"#5b21b6"}}>Vendedor IA bloqueado</h3>
+        <p style={{fontSize:12,lineHeight:1.6,color:"#6b7280",margin:"0 0 14px"}}>Este é um módulo premium avulso e não faz parte dos planos padrão da Wolf.</p>
+        <div style={{display:"inline-block",padding:"8px 14px",borderRadius:999,background:"#7c3aed",color:"#fff",fontWeight:800,fontSize:12}}>Contratação: R$ 2.500,00</div>
+        <p style={{fontSize:11,color:"#9ca3af",margin:"14px 0 0"}}>Solicite a liberação ao administrador da Wolf System.</p>
+      </div>
+    );
+  }
 
   // 🆕 Coleta TODAS as variáveis criadas no fluxo (em qualquer bloco que seta variável).
   // Usado pro autocomplete/dropdown nos blocos que usam variáveis.
@@ -2305,6 +2319,8 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
 
 export default function FluxosPage() {
   const router = useRouter();
+  const { modulos, carregado: modulosCarregados } = useModulos();
+  const vendedorIALiberado = modulosCarregados && modulos.vendedor_ia;
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // ✅ Agora é username (string como "wolf_admin"), nunca id numérico
@@ -2550,6 +2566,10 @@ export default function FluxosPage() {
 
   async function salvar() {
     if(!fluxoAtivo?.id) return;
+    if (nos.some(n => n.tipo === "fluxo_ia") && !vendedorIALiberado) {
+      alert("🔒 Este workspace não possui o módulo Vendedor IA. Contratação avulsa: R$ 2.500,00.");
+      return;
+    }
     if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
 
     // 🆕 Validações por bloco — avisa antes de salvar bloco mal configurado
@@ -2601,6 +2621,10 @@ export default function FluxosPage() {
 
   async function toggleAtivo() {
     if(!fluxoAtivo?.id) return;
+    if (!fluxoAtivo.ativo && nos.some(n => n.tipo === "fluxo_ia") && !vendedorIALiberado) {
+      alert("🔒 Não é possível ativar este fluxo sem o módulo Vendedor IA.");
+      return;
+    }
     if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
     const v = !fluxoAtivo.ativo;
     // 🔒 MULTI-TENANT: defesa em profundidade — só togglea se fluxo for deste workspace
@@ -2643,6 +2667,10 @@ export default function FluxosPage() {
   }
 
   function adicionarNo(tipo:TipoNo) {
+    if (tipo === "fluxo_ia" && !vendedorIALiberado) {
+      alert("🔒 Vendedor IA é um módulo avulso de R$ 2.500,00. Solicite a liberação ao administrador da Wolf System.");
+      return;
+    }
     const cfg = B[tipo];
     const rect = canvasRef.current?.getBoundingClientRect();
     const cw = rect?.width||800, ch = rect?.height||600;
@@ -2663,6 +2691,10 @@ export default function FluxosPage() {
 
   function duplicarNo(id:string) {
     const origem = nos.find(n => n.id === id);
+    if (origem?.tipo === "fluxo_ia" && !vendedorIALiberado) {
+      alert("🔒 Este workspace não possui o módulo Vendedor IA.");
+      return;
+    }
     if (!origem || origem.tipo === "inicio") return;
     const copia: No = {
       ...origem,
@@ -3033,42 +3065,24 @@ export default function FluxosPage() {
                 </button>
                 {ab && (
                   <div style={{padding:"4px 10px 6px",display:"flex",flexDirection:"column",gap:4}}>
-                    {tipos.map(([tipo,cfg]) => (
+                    {tipos.map(([tipo,cfg]) => {
+                      const bloqueado = tipo === "fluxo_ia" && !vendedorIALiberado;
+                      return (
                       <button key={tipo} onClick={()=>adicionarNo(tipo)}
                         style={{
                           display:"flex",alignItems:"center",gap:10,width:"100%",
-                          background:"#ffffff",
-                          border:"1px solid #e5e7eb",
-                          borderRadius:8,
-                          padding:"7px 10px",
-                          color:"#1f2937",
-                          fontSize:12,
-                          fontWeight:"500",
-                          cursor:"pointer",
-                          textAlign:"left",
-                          boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
+                          background:"#ffffff", border:"1px solid #e5e7eb", borderRadius:8,
+                          padding:"7px 10px", color:"#1f2937", fontSize:12, fontWeight:"500",
+                          cursor:bloqueado?"not-allowed":"pointer", opacity:bloqueado?0.72:1,
+                          textAlign:"left", boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
                           transition:"transform .12s ease, box-shadow .12s ease, border-color .12s ease",
                         }}
-                        onMouseEnter={e=>{
-                          e.currentTarget.style.transform="translateY(-1px)";
-                          e.currentTarget.style.boxShadow=`0 4px 12px ${cfg.cor}22, 0 1px 3px rgba(0,0,0,0.06)`;
-                          e.currentTarget.style.borderColor=`${cfg.cor}55`;
-                        }}
-                        onMouseLeave={e=>{
-                          e.currentTarget.style.transform="translateY(0)";
-                          e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)";
-                          e.currentTarget.style.borderColor="#e5e7eb";
-                        }}>
-                        <span style={{
-                          display:"inline-flex",alignItems:"center",justifyContent:"center",
-                          width:26,height:26,
-                          background:`${cfg.cor}15`,
-                          borderRadius:7,
-                          fontSize:14,flexShrink:0
-                        }}>{cfg.icone}</span>
-                        <span style={{flex:1}}>{cfg.label}</span>
+                        onMouseEnter={e=>{ if(!bloqueado){ e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.boxShadow=`0 4px 12px ${cfg.cor}22, 0 1px 3px rgba(0,0,0,0.06)`; e.currentTarget.style.borderColor=`${cfg.cor}55`; } }}
+                        onMouseLeave={e=>{ e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor="#e5e7eb"; }}>
+                        <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:26,height:26,background:`${cfg.cor}15`,borderRadius:7,fontSize:14,flexShrink:0}}>{cfg.icone}</span>
+                        <span style={{flex:1}}>{cfg.label}{bloqueado && <small style={{display:"block",color:"#7c3aed",fontSize:9,fontWeight:800}}>🔒 AVULSO · R$ 2.500</small>}</span>
                       </button>
-                    ))}
+                    );})}
                   </div>
                 )}
               </div>
@@ -3291,6 +3305,7 @@ export default function FluxosPage() {
                 nos={nos}
                 statusVendaOpcoes={statusVendaOpcoes}
                 camposPropostaUnif={camposPropostaUnif}
+                vendedorIALiberado={vendedorIALiberado}
               />
             </div>
 
