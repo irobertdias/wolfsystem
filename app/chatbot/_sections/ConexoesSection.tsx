@@ -642,22 +642,21 @@ export function ConexoesSection() {
           if (form.webhookToken) payload.webhook_token = form.webhookToken;
           if (tokenTocado && form.token) payload.token_waba = form.token;
         }
-        const { data: canalAtualizado, error: erroAtualizacao } = await supabase.from("conexoes")
-          .update(payload)
+        const runtime = await wa("configurar-ia", { canalId: editandoId, workspaceId: conexaoEditada.workspace_id, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo, fluxoId: fluxoIdSelecionado, iaCrmAtivo: form.iaCrmAtivo, iaCrmMapeamento: form.iaCrmMapeamento, iaCrmCamposObrigatorios: form.iaCrmCamposObrigatorios, iaAgrupamentoMs: form.iaAgrupamentoMs });
+        if (!runtime?.success) throw new Error(runtime?.error || "O servidor não confirmou a troca de fluxo");
+        if (String(runtime?.canal?.fluxo_id || "") !== String(fluxoIdSelecionado || "")) throw new Error("O servidor não gravou o fluxo selecionado");
+
+        const payloadComplementar = { ...payload };
+        delete payloadComplementar.fluxo_id;
+        delete payloadComplementar.fluxo_nome;
+        void supabase.from("conexoes").update(payloadComplementar)
           .eq("id", editandoId)
           .eq("workspace_id", conexaoEditada.workspace_id)
-          .select("id, fluxo_id, fluxo_nome, modo")
-          .maybeSingle();
-        if (erroAtualizacao) throw erroAtualizacao;
-        if (!canalAtualizado) throw new Error("A conexão não foi atualizada. Confira sua permissão no workspace.");
-        if (String(canalAtualizado.fluxo_id || "") !== String(fluxoIdSelecionado || "")) throw new Error("O fluxo selecionado não foi confirmado pelo banco de dados.");
+          .then(({ error }) => {
+            if (error) notify("Fluxo salvo; outros campos não foram atualizados", "aviso", traduzirErro(error));
+          });
         setEditandoId(null);
-        void wa("configurar-ia", { canalId: editandoId, workspaceId: conexaoEditada.workspace_id, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo, fluxoId: fluxoIdSelecionado, fluxoNome: fluxoSel?.nome || "", iaCrmAtivo: form.iaCrmAtivo, iaCrmMapeamento: form.iaCrmMapeamento, iaCrmCamposObrigatorios: form.iaCrmCamposObrigatorios, iaAgrupamentoMs: form.iaAgrupamentoMs })
-          .then(runtime => {
-            if (runtime?.success === false) throw new Error(runtime.error || "Falha ao atualizar o canal no servidor");
-          })
-          .catch((e: any) => notify("Fluxo salvo, mas o servidor precisa sincronizar", "aviso", traduzirErro(e)));
-        notify("Canal atualizado", "sucesso");
+        notify("Canal atualizado", "sucesso", "Fluxo: " + (runtime.canal.fluxo_nome || "nenhum"));
       } else {
         let novoId: number | null = null;
         if (form.tipo === "waba") {
