@@ -625,9 +625,6 @@ export function ConexoesSection() {
         typebot_url: form.typebot_url || "",
         typebot_msg_invalida: form.typebot_msg_invalida || "Desculpe, não entendi sua resposta. Pode tentar de novo?",
         typebot_msg_boas_vindas: form.typebot_msg_boas_vindas || "",
-        ia_crm_ativo: form.iaCrmAtivo,
-        ia_crm_mapeamento: form.iaCrmMapeamento,
-        ia_crm_campos_obrigatorios: form.iaCrmCamposObrigatorios,
         modulos: Array.isArray(form.modulos) ? form.modulos : ["chatbot"],  // 📂 onde o canal aparece no sistema
       };
       if (apiKeyTocada || !editandoId) payload.api_key = form.apiKey;
