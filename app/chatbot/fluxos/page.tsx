@@ -58,7 +58,7 @@ const B: Record<TipoNo, BC> = {
   google_sheets:        {label:"Google Sheets",   icone:"📊", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   http_request:         {label:"HTTP Request",    icone:"🌐", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   openai:               {label:"OpenAI",          icone:"🤖", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
-  fluxo_ia:             {label:"Fluxo por IA",    icone:"✨", cor:"#7c3aed", saidas:["Dados confirmados","Erro","Limite atingido"], grupo:"Integrações"},
+  fluxo_ia:             {label:"Fluxo por IA",    icone:"✨", cor:"#7c3aed", saidas:["Dados confirmados","Erro","Limite de recusas atingido","Limite de lembretes atingido"], grupo:"Integrações"},
   claude_ai:            {label:"Claude AI",       icone:"🧠", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
   gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
   // 🆕 v20: Meta Pixel / Conversions API — manda evento de conversão pra Meta (Lead, Purchase, etc)
@@ -149,7 +149,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
-    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
+    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     // 🆕 v20: Meta Pixel / Conversions API
@@ -1434,6 +1434,13 @@ function saida(obj) {
               ))}
             </div>
             {lembretesReengajamento.length<20 && <button type="button" onClick={()=>u({reengajamento_lembretes:[...lembretesReengajamento,{minutos:10,mensagem:"Oi, {{nome}}! Se ainda quiser continuar, é só me responder por aqui. 😊"}]})} style={{display:"block",width:"100%",marginTop:8,background:"#ffedd5",border:"1px dashed #fb923c",color:"#9a3412",borderRadius:7,padding:"9px 10px",fontSize:10,fontWeight:800,cursor:"pointer"}}>+ Adicionar lembrete</button>}
+            <div style={{marginTop:10,padding:9,background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8}}>
+              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#991b1b",fontSize:10,lineHeight:1.4,cursor:"pointer"}}>
+                <input type="checkbox" checked={d.reengajamento_finalizar_automatico === true} onChange={e=>u({reengajamento_finalizar_automatico:e.target.checked})} style={{marginTop:2}}/>
+                <span><b>Finalizar automaticamente se continuar sem resposta</b><br/>Encerra o atendimento e move de Abertos para Finalizados, sem precisar conectar outro bloco.</span>
+              </label>
+              {d.reengajamento_finalizar_automatico === true && <div style={{marginTop:7}}><label style={LS}>Finalizar quantos minutos após o último lembrete</label><input type="number" min={1} max={10080} value={d.reengajamento_finalizar_apos_minutos ?? 120} onChange={e=>u({reengajamento_finalizar_apos_minutos:Math.max(1,Number(e.target.value)||120)})} style={IS}/><p style={{fontSize:9,color:"#991b1b",margin:"4px 0 0"}}>Exemplo: 120 minutos depois da última mensagem da IA.</p></div>}
+            </div>
             <p style={{fontSize:9,color:"#9a3412",margin:"6px 0 0"}}>Cada mensagem é enviada apenas uma vez. Aceita variáveis como {"{{nome}}"}.</p>
           </div>}
         </div>
@@ -2592,7 +2599,7 @@ export default function FluxosPage() {
   }
 
   function abrirEditor(f:Fluxo) {
-    setFluxoAtivo(f); setNos((f.nos||[]).map(n=>n.tipo==="fluxo_ia"&&n.saidas.length<3?{...n,saidas:[...n.saidas,"Limite atingido"]}:n)); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
+    setFluxoAtivo(f); setNos((f.nos||[]).map(n=>n.tipo==="fluxo_ia"?{...n,saidas:[...BLOCOS.fluxo_ia.saidas]}:n)); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
     fetchFilas(); // 🆕 recarrega filas ao abrir o editor
     fetchAtendentes(); // 🆕 recarrega atendentes ao abrir o editor
   }
