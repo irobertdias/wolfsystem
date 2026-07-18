@@ -1384,6 +1384,18 @@ function saida(obj) {
         u({ consultas: consultasIA.map((consulta, i) => i === indice ? { ...consulta, ...patch } : consulta) });
       };
       const removerConsultaIA = (indice: number) => u({ consultas: consultasIA.filter((_, i) => i !== indice) });
+      type LembreteReengajamento = { minutos:number; mensagem:string };
+      const lembretesReengajamento: LembreteReengajamento[] =
+        Array.isArray(d.reengajamento_lembretes) && d.reengajamento_lembretes.length
+          ? d.reengajamento_lembretes
+          : Array.from({length:Math.max(1,Math.min(5,Number(d.reengajamento_maximo || 1)))},()=>({
+              minutos:Math.max(1,Number(d.reengajamento_minutos || 10)),
+              mensagem:d.reengajamento_mensagem || "Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"
+            }));
+      const atualizarLembrete = (indice:number, patch:Partial<LembreteReengajamento>) =>
+        u({reengajamento_lembretes:lembretesReengajamento.map((item,i)=>i===indice?{...item,...patch}:item)});
+      const removerLembrete = (indice:number) =>
+        u({reengajamento_lembretes:lembretesReengajamento.filter((_,i)=>i!==indice)});
       return <>
         <div style={{background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:8,padding:10,marginBottom:10}}>
           <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>✨ Fluxo por IA com variáveis validadas</p>
@@ -1410,12 +1422,19 @@ function saida(obj) {
             <span><b>Lembrar cliente que parou de responder</b><br/>O sistema retoma esta mesma conversa automaticamente, sem reiniciar o fluxo.</span>
           </label>
           {d.reengajamento_ativo === true && <div style={{marginTop:9}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
-              <div><label style={LS}>Aguardar em minutos</label><input type="number" min={1} max={1440} value={d.reengajamento_minutos ?? 10} onChange={e=>u({reengajamento_minutos:Math.max(1,Number(e.target.value)||10)})} style={IS}/></div>
-              <div><label style={LS}>Maximo de lembretes</label><input type="number" min={1} max={5} value={d.reengajamento_maximo ?? 1} onChange={e=>u({reengajamento_maximo:Math.max(1,Number(e.target.value)||1)})} style={IS}/></div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {lembretesReengajamento.map((lembrete,indice)=>(
+                <div key={indice} style={{background:"#fff",border:"1px solid #fed7aa",borderRadius:8,padding:9}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:6}}><b style={{fontSize:10,color:"#9a3412"}}>Lembrete {indice+1}</b>{lembretesReengajamento.length>1 && <button type="button" onClick={()=>removerLembrete(indice)} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"4px 7px",fontSize:9,cursor:"pointer"}}>Remover</button>}</div>
+                  <label style={LS}>{indice===0?"Enviar após quantos minutos sem resposta":"Aguardar quantos minutos após o lembrete anterior"}</label>
+                  <input type="number" min={1} max={1440} value={lembrete.minutos ?? 10} onChange={e=>atualizarLembrete(indice,{minutos:Math.max(1,Number(e.target.value)||10)})} style={IS}/>
+                  <label style={{...LS,marginTop:7}}>Mensagem deste lembrete</label>
+                  <textarea value={lembrete.mensagem || ""} onChange={e=>atualizarLembrete(indice,{mensagem:e.target.value})} placeholder="Mensagem que será enviada ao cliente" style={{...IS,minHeight:70,resize:"vertical"}}/>
+                </div>
+              ))}
             </div>
-            {T("Mensagem automatica de retomada","reengajamento_mensagem","Oi, {{nome}}! Ainda esta por ai? Posso continuar seu atendimento?",70)}
-            <p style={{fontSize:9,color:"#9a3412",margin:"4px 0 0"}}>Aceita variaveis como {"{{nome}}"}. Se houver mais de um lembrete, o mesmo intervalo sera contado novamente.</p>
+            {lembretesReengajamento.length<5 && <button type="button" onClick={()=>u({reengajamento_lembretes:[...lembretesReengajamento,{minutos:10,mensagem:"Oi, {{nome}}! Se ainda quiser continuar, é só me responder por aqui. 😊"}]})} style={{marginTop:8,background:"#ffedd5",border:"1px solid #fdba74",color:"#9a3412",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>+ Adicionar outro lembrete</button>}
+            <p style={{fontSize:9,color:"#9a3412",margin:"6px 0 0"}}>Cada mensagem é enviada apenas uma vez. Aceita variáveis como {"{{nome}}"}.</p>
           </div>}
         </div>
         <div style={{marginTop:10}}>
