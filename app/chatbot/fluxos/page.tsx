@@ -1388,10 +1388,10 @@ function saida(obj) {
       const lembretesReengajamento: LembreteReengajamento[] =
         Array.isArray(d.reengajamento_lembretes) && d.reengajamento_lembretes.length
           ? d.reengajamento_lembretes
-          : Array.from({length:Math.max(1,Math.min(5,Number(d.reengajamento_maximo || 1)))},()=>({
+          : [{
               minutos:Math.max(1,Number(d.reengajamento_minutos || 10)),
               mensagem:d.reengajamento_mensagem || "Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"
-            }));
+            }];
       const atualizarLembrete = (indice:number, patch:Partial<LembreteReengajamento>) =>
         u({reengajamento_lembretes:lembretesReengajamento.map((item,i)=>i===indice?{...item,...patch}:item)});
       const removerLembrete = (indice:number) =>
@@ -1433,7 +1433,7 @@ function saida(obj) {
                 </div>
               ))}
             </div>
-            {lembretesReengajamento.length<5 && <button type="button" onClick={()=>u({reengajamento_lembretes:[...lembretesReengajamento,{minutos:10,mensagem:"Oi, {{nome}}! Se ainda quiser continuar, é só me responder por aqui. 😊"}]})} style={{marginTop:8,background:"#ffedd5",border:"1px solid #fdba74",color:"#9a3412",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>+ Adicionar outro lembrete</button>}
+            {lembretesReengajamento.length<20 && <button type="button" onClick={()=>u({reengajamento_lembretes:[...lembretesReengajamento,{minutos:10,mensagem:"Oi, {{nome}}! Se ainda quiser continuar, é só me responder por aqui. 😊"}]})} style={{display:"block",width:"100%",marginTop:8,background:"#ffedd5",border:"1px dashed #fb923c",color:"#9a3412",borderRadius:7,padding:"9px 10px",fontSize:10,fontWeight:800,cursor:"pointer"}}>+ Adicionar lembrete</button>}
             <p style={{fontSize:9,color:"#9a3412",margin:"6px 0 0"}}>Cada mensagem é enviada apenas uma vez. Aceita variáveis como {"{{nome}}"}.</p>
           </div>}
         </div>
