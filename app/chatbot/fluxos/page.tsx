@@ -1404,6 +1404,20 @@ function saida(obj) {
           {value:"2000",label:"2 segundos"},{value:"3500",label:"3,5 segundos"},{value:"5000",label:"5 segundos"},{value:"7000",label:"7 segundos"}
         ])}
         <div><label style={LS}>Limite de recusas antes de desistir</label><input type="number" min={0} max={20} value={d.limite_recusas ?? 3} onChange={e=>u({limite_recusas:Number(e.target.value)})} style={IS}/><p style={{fontSize:9,color:"#6b7280",margin:"4px 0 0"}}>0 = sem limite. Conecte a saída “Limite atingido” a Atualizar Venda (ex.: CANCELADA/DESISTÊNCIA) e depois a Finalizar.</p></div>
+        <div style={{marginTop:12,background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:9,padding:10}}>
+          <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#9a3412",fontSize:11,lineHeight:1.4,cursor:"pointer"}}>
+            <input type="checkbox" checked={d.reengajamento_ativo === true} onChange={e=>u({reengajamento_ativo:e.target.checked})} style={{marginTop:2}}/>
+            <span><b>Lembrar cliente que parou de responder</b><br/>O sistema retoma esta mesma conversa automaticamente, sem reiniciar o fluxo.</span>
+          </label>
+          {d.reengajamento_ativo === true && <div style={{marginTop:9}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
+              <div><label style={LS}>Aguardar em minutos</label><input type="number" min={1} max={1440} value={d.reengajamento_minutos ?? 10} onChange={e=>u({reengajamento_minutos:Math.max(1,Number(e.target.value)||10)})} style={IS}/></div>
+              <div><label style={LS}>Maximo de lembretes</label><input type="number" min={1} max={5} value={d.reengajamento_maximo ?? 1} onChange={e=>u({reengajamento_maximo:Math.max(1,Number(e.target.value)||1)})} style={IS}/></div>
+            </div>
+            {T("Mensagem automatica de retomada","reengajamento_mensagem","Oi, {{nome}}! Ainda esta por ai? Posso continuar seu atendimento?",70)}
+            <p style={{fontSize:9,color:"#9a3412",margin:"4px 0 0"}}>Aceita variaveis como {"{{nome}}"}. Se houver mais de um lembrete, o mesmo intervalo sera contado novamente.</p>
+          </div>}
+        </div>
         <div style={{marginTop:10}}>
           <label style={LS}>Variáveis que a IA precisa salvar</label>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
