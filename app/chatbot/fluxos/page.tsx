@@ -149,7 +149,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
-    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
+    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     // 🆕 v20: Meta Pixel / Conversions API
@@ -1443,6 +1443,17 @@ function saida(obj) {
             </div>
             <p style={{fontSize:9,color:"#9a3412",margin:"6px 0 0"}}>Cada mensagem é enviada apenas uma vez. Aceita variáveis como {"{{nome}}"}.</p>
           </div>}
+        </div>
+        <div style={{marginTop:10,background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:9,padding:10}}>
+          <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#1d4ed8",fontSize:11,lineHeight:1.4,cursor:"pointer"}}>
+            <input type="checkbox" checked={d.reengajamento_inteligente_ativo !== false} onChange={e=>u({reengajamento_inteligente_ativo:e.target.checked})} style={{marginTop:2}}/>
+            <span><b>Lembretes inteligentes por data e horario</b><br/>Funcionam junto dos lembretes insistentes. Se o cliente pedir 'fala comigo amanha', a IA pergunta o horario, pausa os lembretes comuns e agenda o retorno automaticamente.</span>
+          </label>
+          {d.reengajamento_inteligente_ativo !== false && <div style={{marginTop:9,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <div><label style={LS}>Enviar quantos minutos antes</label><input type="number" min={0} max={1440} value={d.reengajamento_inteligente_antecedencia_minutos ?? 10} onChange={e=>u({reengajamento_inteligente_antecedencia_minutos:Math.max(0,Number(e.target.value)||0)})} style={IS}/><p style={{fontSize:9,color:"#1e40af",margin:"4px 0 0"}}>Ex.: compromisso as 8h e antecedencia 10 = envio as 7h50.</p></div>
+            <div><label style={LS}>Agendar no maximo por quantos dias</label><input type="number" min={1} max={365} value={d.reengajamento_inteligente_maximo_dias ?? 30} onChange={e=>u({reengajamento_inteligente_maximo_dias:Math.max(1,Number(e.target.value)||30)})} style={IS}/><p style={{fontSize:9,color:"#1e40af",margin:"4px 0 0"}}>Evita datas muito distantes informadas por engano.</p></div>
+          </div>}
+          <p style={{fontSize:9,color:"#1e3a8a",margin:"8px 0 0"}}>Se o cliente responder antes do horario combinado, o retorno agendado e cancelado e a conversa continua normalmente.</p>
         </div>
         <div style={{marginTop:10}}>
           <label style={LS}>Variáveis que a IA precisa salvar</label>
