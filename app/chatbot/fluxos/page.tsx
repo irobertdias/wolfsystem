@@ -2610,7 +2610,7 @@ export default function FluxosPage() {
   }
 
   function abrirEditor(f:Fluxo) {
-    setFluxoAtivo(f); setNos((f.nos||[]).map(n=>n.tipo==="fluxo_ia"?{...n,saidas:[...BLOCOS.fluxo_ia.saidas]}:n)); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
+    setFluxoAtivo(f); setNos((f.nos||[]).map(n=>n.tipo==="fluxo_ia"?{...n,saidas:[...B.fluxo_ia.saidas]}:n)); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
     fetchFilas(); // 🆕 recarrega filas ao abrir o editor
     fetchAtendentes(); // 🆕 recarrega atendentes ao abrir o editor
   }
