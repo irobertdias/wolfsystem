@@ -26,7 +26,7 @@ type Atendimento = {
   // Usado pra contar mensagens "não lidas" (mensagens do cliente com created_at > visualizado_em).
   visualizado_em?: string | null;
 };
-type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; canal_id?: number; origem?: string; };
+type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; canal_id?: number; origem?: string; provider_message_id?: string | null; status_entrega?: string | null; };
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
 type UsuarioWs = { email: string; nome: string; fila?: string | null; };
 type CanalInfo = { id: number; nome: string; tipo: string; };
@@ -445,6 +445,7 @@ export function ChatSection() {
   const [editandoMsg, setEditandoMsg] = useState<any | null>(null);
   const [hoverMsgIdx, setHoverMsgIdx] = useState<number | null>(null);
   const [menuMsgIdx, setMenuMsgIdx] = useState<number | null>(null);
+  const [apagandoMsgId, setApagandoMsgId] = useState<number | null>(null);
 
   const marcarParaResponder = (msg: any) => {
     setRespondendoMsg(msg);
@@ -998,6 +999,38 @@ export function ChatSection() {
     }
     const resp = await fetch(`/api/whatsapp?rota=${rota}`);
     return resp.json();
+  };
+
+  const apagarMensagemParaTodos = async (msg: Mensagem) => {
+    setMenuMsgIdx(null);
+    if (!msg.id) {
+      notify("N\u00e3o foi poss\u00edvel identificar esta mensagem.", "aviso");
+      return;
+    }
+
+    const canalId = Number(msg.canal_id || atendimentoAtivo?.canal_id || 0);
+    const tipoCanal = canais.find(c => Number(c.id) === canalId)?.tipo;
+    if (tipoCanal !== "webjs") {
+      notify("A API oficial da Meta n\u00e3o permite apagar uma mensagem j\u00e1 enviada para todos.", "aviso", "A op\u00e7\u00e3o funciona em canais conectados pelo WhatsApp Web.");
+      return;
+    }
+    if (!msg.provider_message_id) {
+      notify("Esta mensagem antiga n\u00e3o possui o identificador necess\u00e1rio para apagar para todos.", "aviso");
+      return;
+    }
+    if (!window.confirm("Apagar esta mensagem para todos no WhatsApp?")) return;
+
+    setApagandoMsgId(msg.id);
+    try {
+      const resposta = await wa("apagar-mensagem", { mensagemId: msg.id, canalId, workspaceId: wsId });
+      if (!resposta?.success) throw new Error(resposta?.error || "N\u00e3o foi poss\u00edvel apagar a mensagem.");
+      setHistorico(atual => atual.map(item => item.id === msg.id ? { ...item, mensagem: "[Mensagem apagada]" } : item));
+      notify("Mensagem apagada para todos.", "sucesso");
+    } catch (error: any) {
+      notify(error?.message || "N\u00e3o foi poss\u00edvel apagar a mensagem.", "erro");
+    } finally {
+      setApagandoMsgId(null);
+    }
   };
 
   const nomeDoAtendente = (emailOrBot: string): string => {
@@ -2662,7 +2695,7 @@ export function ChatSection() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{atendimentoAtivo.nome}</h3>
-                  <p style={{ color: "#6b7280", fontSize: 11, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <p style={{ color: "#475569", fontSize: 11.5, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {atendimentoAtivo.fila || "—"} • {atendimentoAtivo.numero}
                     {atendimentoAtivo.canal_id && canais.length > 1 && <> • {iconeCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)} {nomeDoCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)}</>}
                     {atendimentoAtivo.atendente && atendimentoAtivo.atendente !== "BOT" && <> • 👨‍💼 {nomeDoAtendente(atendimentoAtivo.atendente)}</>}
@@ -2823,16 +2856,16 @@ export function ChatSection() {
               </div>
             </div>
 
-            <div ref={scrollContainerRef} onScroll={onScrollChat} style={{ flex: 1, overflowY: "auto", padding: "16px 8%", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div ref={scrollContainerRef} onScroll={onScrollChat} style={{ flex: 1, overflowY: "auto", padding: "18px clamp(14px, 7vw, 96px)", display: "flex", flexDirection: "column", gap: 8 }}>
               {historico.length === 0
                 ? <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma mensagem ainda</p></div>
                 : historico.map((msg, i) => {
                     if (msg.de === "sistema") {
                       return (
                         <div key={i} style={{ display: "flex", justifyContent: "center", margin: "4px 0" }}>
-                          <div style={{ background: "#f9fafb", color: "#6b7280", fontSize: 11, padding: "6px 14px", borderRadius: 10, maxWidth: "80%", textAlign: "center", fontStyle: "italic" }}>
+                          <div style={{ background: "#fff4c7", color: "#3b4a54", border: "1px solid #eadca4", boxShadow: "0 1px 2px rgba(11,20,26,0.08)", fontSize: 11.5, fontWeight: 600, padding: "6px 14px", borderRadius: 8, maxWidth: "80%", textAlign: "center" }}>
                             {msg.mensagem}
-                            {msg.created_at && <div style={{ fontSize: 9, color: "#667781", marginTop: 2 }}>{dataHoraMsg(msg.created_at)}</div>}
+                            {msg.created_at && <div style={{ fontSize: 10, color: "#54656f", fontWeight: 600, marginTop: 3 }}>{dataHoraMsg(msg.created_at)}</div>}
                           </div>
                         </div>
                       );
@@ -2851,20 +2884,21 @@ export function ChatSection() {
                     }
                     const foiEditada = typeof msgTextoLimpo === "string" && /\*\(editado\)\*\s*$/.test(msgTextoLimpo);
                     if (foiEditada) msgTextoLimpo = msgTextoLimpo.replace(/\s*\*\(editado\)\*\s*$/, "");
+                    const mensagemApagada = msgTextoLimpo === "[Mensagem apagada]";
                     return (
                       <div key={i} onMouseEnter={() => setHoverMsgIdx(i)} onMouseLeave={() => { setHoverMsgIdx(prev => prev === i ? null : prev); }}
                         style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end", position: "relative" }}>
-                        <div style={{ maxWidth, padding: ehMidia ? "4px 4px 6px" : "6px 10px 8px", borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px", background: isCliente ? "#dcfce7" : "#dbeafe", boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)", position: "relative" }}>
-                          {!isCliente && !ehAudio && !ehMidia && <p style={{ color: "#8edfc3", fontSize: 10, margin: "0 0 2px", fontWeight: "bold" }}>{isBot ? "🤖 BOT" : "👤 Você"}</p>}
+                        <div style={{ maxWidth, padding: ehMidia ? "4px 4px 7px" : "7px 11px 8px", borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px", background: isCliente ? "#ffffff" : "#d9fdd3", border: `1px solid ${isCliente ? "#e1e7ea" : "#c5e9bf"}`, boxShadow: "0 1px 1px rgba(11,20,26,0.14)", position: "relative" }}>
+                          {!isCliente && !ehAudio && !ehMidia && <p style={{ color: isBot ? "#027eb5" : "#1f7a5a", fontSize: 10.5, margin: "0 0 3px", fontWeight: 800, letterSpacing: 0.15 }}>{isBot ? "BOT" : "Voc\u00ea"}</p>}
                           {quoteAutor && quoteTexto && (
-                            <div style={{ background: isCliente ? "#1e2a30" : "#01493b", borderLeft: "3px solid #00a884", padding: "6px 8px", borderRadius: 4, marginBottom: 6 }}>
-                              <p style={{ fontSize: 11, fontWeight: "bold", color: "#00d9a3", margin: 0 }}>{quoteAutor}</p>
-                              <p style={{ fontSize: 12, color: "#a3b8c2", margin: "2px 0 0", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 60, overflow: "hidden" }}>{quoteTexto}</p>
+                            <div style={{ background: "rgba(255,255,255,0.68)", borderLeft: "3px solid #00a884", padding: "6px 8px", borderRadius: 5, marginBottom: 6 }}>
+                              <p style={{ fontSize: 11, fontWeight: "bold", color: "#008069", margin: 0 }}>{quoteAutor}</p>
+                              <p style={{ fontSize: 12, color: "#54656f", margin: "2px 0 0", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 60, overflow: "hidden" }}>{quoteTexto}</p>
                             </div>
                           )}
-                          {hoverMsgIdx === i && !ehAudio && (
+                          {hoverMsgIdx === i && (
                             <button onClick={(e) => { e.stopPropagation(); setMenuMsgIdx(menuMsgIdx === i ? null : i); }} title="Opções da mensagem"
-                              style={{ position: "absolute", top: 4, right: 4, background: isCliente ? "rgba(220, 252, 231, 0.95)" : "rgba(219, 234, 254, 0.95)", color: "#374151", border: "none", borderRadius: "50%", width: 24, height: 24, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, fontWeight: "bold", boxShadow: "0 2px 6px rgba(0,0,0,0.12)", transition: "all 0.15s", paddingTop: 2 } as any}
+                              style={{ position: "absolute", top: 4, right: 4, background: "rgba(255,255,255,0.92)", color: "#54656f", border: "1px solid rgba(84,101,111,0.16)", borderRadius: "50%", width: 24, height: 24, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, fontWeight: "bold", boxShadow: "0 2px 6px rgba(0,0,0,0.12)", transition: "all 0.15s", paddingTop: 2 } as any}
                               onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 4px 10px rgba(0,0,0,0.18)"; }}
                               onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(0,0,0,0.12)"; }}>⌄</button>
                           )}
@@ -2888,6 +2922,14 @@ export function ChatSection() {
                                 onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"} onMouseLeave={(e) => e.currentTarget.style.background = "none"}>
                                 <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>📋</span> Copiar
                               </button>
+                              {!isCliente && !mensagemApagada && (
+                                <button onClick={() => apagarMensagemParaTodos(msg)} disabled={apagandoMsgId === msg.id}
+                                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "none", border: "none", color: "#dc2626", padding: "9px 12px", fontSize: 13, cursor: apagandoMsgId === msg.id ? "wait" : "pointer", textAlign: "left", borderRadius: 6, fontWeight: 600, opacity: apagandoMsgId === msg.id ? 0.65 : 1 }}
+                                  onMouseEnter={(e) => e.currentTarget.style.background = "#fef2f2"} onMouseLeave={(e) => e.currentTarget.style.background = "none"}>
+                                  <span style={{ width: 22, display: "inline-flex", justifyContent: "center" }}>{"\uD83D\uDDD1\uFE0F"}</span>
+                                  {apagandoMsgId === msg.id ? "Apagando..." : "Apagar para todos"}
+                                </button>
+                              )}
                             </div>
                           )}
                           {ehAudio && (
@@ -2926,23 +2968,23 @@ export function ChatSection() {
                           {midia.tipo === "file" && (
                             <div>
                               <a href={audioUrl(midia.filename, msg.canal_id)} target="_blank" rel="noreferrer" download
-                                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: isCliente ? "#1f2a31" : "#00604f", borderRadius: 6, textDecoration: "none" }}>
+                                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(255,255,255,0.72)", border: "1px solid rgba(84,101,111,0.16)", borderRadius: 7, textDecoration: "none" }}>
                                 <span style={{ fontSize: 32 }}>{iconePorExtensao(midia.filename)}</span>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <p style={{ color: "#1f2937", fontSize: 13, fontWeight: "bold", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{midia.filename.replace(/^midia_\d+_[a-z0-9]+_/, "")}</p>
-                                  <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 11, margin: "2px 0 0" }}>{(midia.filename.split(".").pop() || "arquivo").toUpperCase()} · clique p/ baixar</p>
+                                  <p style={{ color: "#54656f", fontSize: 11, fontWeight: 600, margin: "2px 0 0" }}>{(midia.filename.split(".").pop() || "arquivo").toUpperCase()} · clique p/ baixar</p>
                                 </div>
                               </a>
                               {midia.legenda && <p style={{ color: "#1f2937", fontSize: 13.5, margin: "6px 6px 0", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{midia.legenda}</p>}
                             </div>
                           )}
                           {!ehAudio && !ehMidia && (
-                            <p style={{ color: "#1f2937", fontSize: 13.5, margin: 0, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msgTextoLimpo}</p>
+                            <p style={{ color: mensagemApagada ? "#667781" : "#111b21", fontSize: 14.2, margin: 0, lineHeight: 1.42, fontStyle: mensagemApagada ? "italic" : "normal", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{mensagemApagada ? "Esta mensagem foi apagada" : msgTextoLimpo}</p>
                           )}
                           {msg.created_at && (
-                            <p style={{ color: isCliente ? "#8696a0" : "#a3e4d0", fontSize: 10, margin: "2px 6px 0 0", textAlign: "right" }}>
+                            <p style={{ color: "#54656f", fontSize: 10.5, fontWeight: 600, margin: "3px 2px 0 0", textAlign: "right", lineHeight: 1 }}>
                               {foiEditada && <span style={{ fontStyle: "italic", marginRight: 6, opacity: 0.85 }}>editada</span>}
-                              {horaMsg(msg.created_at)}{!isCliente && " ✓✓"}
+                              {horaMsg(msg.created_at)}{!isCliente && <span style={{ color: "#53bdeb", fontWeight: 900, marginLeft: 3 }}>{"\u2713\u2713"}</span>}
                             </p>
                           )}
                         </div>
