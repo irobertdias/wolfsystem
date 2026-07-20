@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useModulos } from "../../hooks/useModulos";
-import { STATUS_OPCOES, CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
+import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
 
 type TipoNo =
   | "texto" | "imagem" | "video" | "audio" | "embed"
@@ -2195,8 +2195,7 @@ function saida(obj) {
         <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
           {S("Status inicial da proposta","status_inicial", statusVendaOpcoes)}
           <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
-            💡 As opções mostradas são os status que <b>já existem nas suas propostas</b> + os padrões do sistema.
-            Pra ter um status novo aqui, crie uma venda com ele primeiro no CRM (ou ajuste no Editor de Vendas).
+            💡 As opções mostradas são os status ativos configurados no <b>Editor de Vendas</b> deste workspace.
           </p>
         </div>
 
@@ -2449,13 +2448,9 @@ export default function FluxosPage() {
 
   // ✅ Agora é username (string como "wolf_admin"), nunca id numérico
   const [wsId,setWsId]             = useState<string|null>(null);
-  // 📋 Status disponíveis pro bloco "Enviar Venda" — carregados dinamicamente do workspace:
-  //    1. STATUS_OPCOES default (PENDENTE, AGUARDANDO AUDITORIA, etc)
-  //    2. + status customizados que JÁ APARECEM em propostas do workspace
-  //    Sem precisar de Editor de Vendas: o que o cliente usa, o fluxo enxerga.
-  const [statusVendaOpcoes, setStatusVendaOpcoes] = useState<{value:string;label:string}[]>(
-    STATUS_OPCOES.map(s => ({ value: s, label: s }))
-  );
+  // 📋 Status disponíveis pro bloco "Enviar Venda".
+  //    A lista vem exclusivamente do campo Status da Venda configurado no workspace.
+  const [statusVendaOpcoes, setStatusVendaOpcoes] = useState<{value:string;label:string}[]>([]);
   // 📋 Campos da proposta — fixos + customizados do workspace.
   //    Carrega de `proposta_campos_padrao_config` (configs de campos fixos: oculto/label custom)
   //    e `proposta_campos_customizados` (campos extras criados pelo cliente no Editor de Vendas).
@@ -2522,45 +2517,17 @@ export default function FluxosPage() {
           (customs as CampoCustom[]) || []
         );
         setCamposPropostaUnif(unif);
+
+        const campoStatus = unif.find(campo => campo.slug === "status_venda" && campo.visivel !== false);
+        const statusAtivos = Array.from(new Set(
+          (campoStatus?.opcoes || [])
+            .map(status => String(status || "").trim())
+            .filter(Boolean)
+        ));
+        setStatusVendaOpcoes(statusAtivos.map(status => ({ value: status, label: status })));
       } catch (e) {
         // Se as tabelas não existem ou deu erro, mantém os defaults já carregados no state inicial
         console.warn("[fluxos] não consegui carregar campos customizados, usando padrão:", e);
-      }
-    })();
-    return () => { cancelado = true; };
-  }, [wsId]);
-
-  // 📋 Carrega status disponíveis pro bloco "Enviar Venda" — multi-tenant:
-  //    Defaults do sistema (STATUS_OPCOES) + status que JÁ EXISTEM nas propostas
-  //    do workspace. Assim cada cliente vê seus próprios status sem precisar
-  //    configurar nada extra.
-  useEffect(() => {
-    if (!wsId) return;
-    let cancelado = false;
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from("proposta")
-          .select("status_venda")
-          .eq("workspace_id", wsId)
-          .not("status_venda", "is", null)
-          .limit(2000);  // amostra grande o suficiente pra pegar tudo
-
-        if (cancelado) return;
-
-        // União: defaults + status únicos que aparecem em propostas
-        const setStatus = new Set<string>(STATUS_OPCOES);
-        for (const row of (data || [])) {
-          const s = String(row.status_venda || "").trim();
-          if (s) setStatus.add(s);
-        }
-
-        setStatusVendaOpcoes(
-          Array.from(setStatus).map(s => ({ value: s, label: s }))
-        );
-      } catch (e) {
-        // Em erro, mantém os defaults já carregados no state inicial
-        console.warn("[fluxos] não consegui carregar status_venda do workspace:", e);
       }
     })();
     return () => { cancelado = true; };
