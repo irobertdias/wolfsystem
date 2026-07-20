@@ -149,7 +149,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
-    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
+    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     // 🆕 v20: Meta Pixel / Conversions API
@@ -235,7 +235,7 @@ function getPreview(no: No): string {
     case "google_sheets": return d.webhook_url ? `Sheets ${d.acao}` : "⚠️ Webhook não configurado";
     case "http_request": return `${d.metodo} ${d.url||""}`;
     case "openai": return `GPT: ${d.modelo}`;
-    case "fluxo_ia": return "IA coleta " + (Array.isArray(d.variaveis) ? d.variaveis.length : 0) + " variável(is)";
+    case "fluxo_ia": return "IA coleta " + (Array.isArray(d.variaveis) ? d.variaveis.length : 0) + " variável(is)" + (d.followups_extensao_ativa === true ? " • Agenda e lembretes ativos" : "");
     case "claude_ai": return `Claude: ${d.modelo}`;
     case "gmail": return d.smtp_user ? `📨 ${d.para||"?"}` : "⚠️ SMTP não configurado";
     // 🆕 v20: preview do bloco Meta Pixel/CAPI
@@ -1377,6 +1377,8 @@ function saida(obj) {
       type ConsultaIA = {
         id:string; nome:string; descricao:string; tipo:"http"|"script";
         variavel_gatilho:string; variavel_resultado:string; obrigatoria:boolean;
+        resultado_disponivel?:string; resultado_indisponivel?:string;
+        acao_indisponibilidade?:"aguardar"|"finalizar"; mensagem_indisponibilidade?:string;
         url?:string; metodo?:string; headers?:string; body?:string; codigo?:string;
       };
       const consultasIA: ConsultaIA[] = Array.isArray(d.consultas) ? d.consultas : [];
@@ -1416,6 +1418,22 @@ function saida(obj) {
           {value:"2000",label:"2 segundos"},{value:"3500",label:"3,5 segundos"},{value:"5000",label:"5 segundos"},{value:"7000",label:"7 segundos"}
         ])}
         <div><label style={LS}>Limite de recusas antes de desistir</label><input type="number" min={0} max={20} value={d.limite_recusas ?? 3} onChange={e=>u({limite_recusas:Number(e.target.value)})} style={IS}/><p style={{fontSize:9,color:"#6b7280",margin:"4px 0 0"}}>0 = sem limite. Conecte a saída “Limite atingido” a Atualizar Venda (ex.: CANCELADA/DESISTÊNCIA) e depois a Finalizar.</p></div>
+        <div style={{marginTop:12,background:d.followups_extensao_ativa === true?"linear-gradient(135deg,#ecfeff,#eff6ff)":"#f8fafc",border:d.followups_extensao_ativa === true?"1px solid #67e8f9":"1px solid #cbd5e1",borderRadius:11,padding:11,boxShadow:d.followups_extensao_ativa === true?"0 8px 24px rgba(8,145,178,.10)":"none"}}>
+          <label style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,cursor:"pointer"}}>
+            <span style={{display:"flex",alignItems:"flex-start",gap:9}}>
+              <span style={{display:"grid",placeItems:"center",width:32,height:32,borderRadius:9,background:d.followups_extensao_ativa === true?"#0891b2":"#e2e8f0",color:d.followups_extensao_ativa === true?"#fff":"#475569",fontSize:16,flexShrink:0}}>⏰</span>
+              <span>
+                <b style={{display:"block",color:"#0f172a",fontSize:12}}>Agenda inteligente e lembretes</b>
+                <span style={{display:"block",color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:2}}>Extensão isolada do vendedor IA. Desligada, não intercepta nenhuma mensagem nem altera o fluxo principal.</span>
+              </span>
+            </span>
+            <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
+              <span style={{fontSize:9,fontWeight:900,color:d.followups_extensao_ativa === true?"#0e7490":"#64748b",background:d.followups_extensao_ativa === true?"#cffafe":"#e2e8f0",borderRadius:999,padding:"4px 7px"}}>{d.followups_extensao_ativa === true?"ATIVA":"DESLIGADA"}</span>
+              <input type="checkbox" checked={d.followups_extensao_ativa === true} onChange={e=>u({followups_extensao_ativa:e.target.checked})}/>
+            </span>
+          </label>
+        </div>
+        {d.followups_extensao_ativa === true && <>
         <div style={{marginTop:12,background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:9,padding:10}}>
           <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#9a3412",fontSize:11,lineHeight:1.4,cursor:"pointer"}}>
             <input type="checkbox" checked={d.reengajamento_ativo === true} onChange={e=>u({reengajamento_ativo:e.target.checked})} style={{marginTop:2}}/>
@@ -1453,8 +1471,14 @@ function saida(obj) {
             <div><label style={LS}>Enviar quantos minutos antes</label><input type="number" min={0} max={1440} value={d.reengajamento_inteligente_antecedencia_minutos ?? 10} onChange={e=>u({reengajamento_inteligente_antecedencia_minutos:Math.max(0,Number(e.target.value)||0)})} style={IS}/><p style={{fontSize:9,color:"#1e40af",margin:"4px 0 0"}}>Ex.: compromisso as 8h e antecedencia 10 = envio as 7h50.</p></div>
             <div><label style={LS}>Agendar no maximo por quantos dias</label><input type="number" min={1} max={365} value={d.reengajamento_inteligente_maximo_dias ?? 30} onChange={e=>u({reengajamento_inteligente_maximo_dias:Math.max(1,Number(e.target.value)||30)})} style={IS}/><p style={{fontSize:9,color:"#1e40af",margin:"4px 0 0"}}>Evita datas muito distantes informadas por engano.</p></div>
           </div>}
+          {d.reengajamento_inteligente_ativo !== false && <div style={{marginTop:8}}>
+            <label style={LS}>Mensagem do retorno programado</label>
+            <textarea value={d.reengajamento_inteligente_mensagem || "Oi, {{nome}}! 😊 Estou passando conforme combinamos. Podemos continuar exatamente de onde paramos?"} onChange={e=>u({reengajamento_inteligente_mensagem:e.target.value})} style={{...IS,minHeight:64,resize:"vertical"}}/>
+            <p style={{fontSize:9,color:"#1e40af",margin:"4px 0 0"}}>Aceita variáveis do fluxo, como {"{{nome}}"}. A mensagem é enviada uma única vez.</p>
+          </div>}
           <p style={{fontSize:9,color:"#1e3a8a",margin:"8px 0 0"}}>Se o cliente responder antes do horario combinado, o retorno agendado e cancelado e a conversa continua normalmente.</p>
         </div>
+        </>}
         <div style={{marginTop:10}}>
           <label style={LS}>Variáveis que a IA precisa salvar</label>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -1537,6 +1561,23 @@ function saida(obj) {
                     )}
                   </>
                 )}
+                <div style={{marginTop:8,padding:9,background:"#fff",border:"1px solid #a7f3d0",borderRadius:8}}>
+                  <label style={{...LS,fontSize:9,color:"#047857"}}>Decisão após a consulta</label>
+                  <p style={{fontSize:9,color:"#6b7280",margin:"3px 0 7px",lineHeight:1.4}}>
+                    O backend compara o retorno da consulta. Separe respostas alternativas com ponto e vírgula.
+                  </p>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
+                    <input value={consulta.resultado_disponivel || ""} placeholder="Disponível: Temos disponibilidade" onChange={e=>atualizarConsultaIA(indice,{resultado_disponivel:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px",borderColor:"#86efac"}}/>
+                    <input value={consulta.resultado_indisponivel || ""} placeholder="Indisponível: Não temos disponibilidade" onChange={e=>atualizarConsultaIA(indice,{resultado_indisponivel:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px",borderColor:"#fca5a5"}}/>
+                  </div>
+                  <select value={consulta.acao_indisponibilidade || "aguardar"} onChange={e=>atualizarConsultaIA(indice,{acao_indisponibilidade:e.target.value as "aguardar"|"finalizar"})} style={{...IS,fontSize:10,padding:"6px 8px",marginBottom:consulta.acao_indisponibilidade === "finalizar" ? 6 : 0}}>
+                    <option value="aguardar">Se indisponível: pedir outro dado e continuar</option>
+                    <option value="finalizar">Se indisponível: enviar mensagem e finalizar atendimento</option>
+                  </select>
+                  {consulta.acao_indisponibilidade === "finalizar" && (
+                    <textarea value={consulta.mensagem_indisponibilidade || ""} placeholder="Mensagem enviada antes de mover o atendimento para Finalizados" onChange={e=>atualizarConsultaIA(indice,{mensagem_indisponibilidade:e.target.value})} style={{...IS,minHeight:64,fontSize:10,padding:"7px 8px",resize:"vertical"}}/>
+                  )}
+                </div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:7}}>
                   <label style={{display:"flex",alignItems:"center",gap:5,color:"#374151",fontSize:10}}>
                     <input type="checkbox" checked={consulta.obrigatoria !== false} onChange={e=>atualizarConsultaIA(indice,{obrigatoria:e.target.checked})}/>
@@ -1549,7 +1590,8 @@ function saida(obj) {
           </div>
           <button type="button" onClick={()=>u({consultas:[...consultasIA,{
               id:"consulta_"+Date.now(),nome:"",descricao:"",tipo:"http",variavel_gatilho:"cep",
-              variavel_resultado:"resposta_cep",obrigatoria:true,metodo:"GET",url:"",headers:"",body:"",codigo:""
+              variavel_resultado:"resposta_cep",obrigatoria:true,resultado_disponivel:"",resultado_indisponivel:"",
+              acao_indisponibilidade:"aguardar",mensagem_indisponibilidade:"",metodo:"GET",url:"",headers:"",body:"",codigo:""
             }]})}
             style={{marginTop:8,background:"#ccfbf1",border:"1px solid #5eead4",color:"#0f766e",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
             + Adicionar consulta automatica
