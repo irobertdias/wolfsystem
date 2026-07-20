@@ -1379,6 +1379,8 @@ function saida(obj) {
         variavel_gatilho:string; variavel_resultado:string; obrigatoria:boolean;
         resultado_disponivel?:string; resultado_indisponivel?:string;
         acao_indisponibilidade?:"aguardar"|"finalizar"; mensagem_indisponibilidade?:string;
+        retorno_negativo_aplicar_etiqueta?:boolean; retorno_negativo_nome_etiqueta?:string;
+        retorno_negativo_finalizar_atendimento?:boolean; retorno_negativo_mensagem?:string;
         url?:string; metodo?:string; headers?:string; body?:string; codigo?:string;
       };
       const consultasIA: ConsultaIA[] = Array.isArray(d.consultas) ? d.consultas : [];
@@ -1570,14 +1572,42 @@ function saida(obj) {
                     <input value={consulta.resultado_disponivel || ""} placeholder="Disponível: Temos disponibilidade" onChange={e=>atualizarConsultaIA(indice,{resultado_disponivel:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px",borderColor:"#86efac"}}/>
                     <input value={consulta.resultado_indisponivel || ""} placeholder="Indisponível: Não temos disponibilidade" onChange={e=>atualizarConsultaIA(indice,{resultado_indisponivel:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px",borderColor:"#fca5a5"}}/>
                   </div>
-                  <select value={consulta.acao_indisponibilidade || "aguardar"} onChange={e=>atualizarConsultaIA(indice,{acao_indisponibilidade:e.target.value as "aguardar"|"finalizar"})} style={{...IS,fontSize:10,padding:"6px 8px",marginBottom:consulta.acao_indisponibilidade === "finalizar" ? 6 : 0}}>
-                    <option value="aguardar">Se indisponível: pedir outro dado e continuar</option>
-                    <option value="finalizar">Se indisponível: enviar mensagem e finalizar atendimento</option>
-                  </select>
-                  {consulta.acao_indisponibilidade === "finalizar" && (
-                    <textarea value={consulta.mensagem_indisponibilidade || ""} placeholder="Mensagem enviada antes de mover o atendimento para Finalizados" onChange={e=>atualizarConsultaIA(indice,{mensagem_indisponibilidade:e.target.value})} style={{...IS,minHeight:64,fontSize:10,padding:"7px 8px",resize:"vertical"}}/>
-                  )}
-                </div>
+                  <div style={{marginTop:8,padding:9,background:"#f8fafc",border:"1px solid #cbd5e1",borderRadius:8}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:7}}>
+                      <div>
+                        <div style={{fontSize:10,fontWeight:800,color:"#0f172a"}}>Ações isoladas para retorno negativo</div>
+                        <div style={{fontSize:9,color:"#64748b",marginTop:2}}>Com as duas opções desligadas, nada muda no atendimento atual.</div>
+                      </div>
+                      <span style={{fontSize:8,fontWeight:800,color:"#475569",background:"#e2e8f0",borderRadius:999,padding:"3px 6px"}}>ISOLADO</span>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
+                      <div style={{border:"1px solid #fecaca",background:"#fff",borderRadius:8,padding:8}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:7}}>
+                          <div style={{fontSize:9,fontWeight:700,color:"#7f1d1d"}}>Marcar conversa como inviável</div>
+                          <button type="button" onClick={()=>atualizarConsultaIA(indice,{retorno_negativo_aplicar_etiqueta:consulta.retorno_negativo_aplicar_etiqueta !== true})}
+                            style={{border:0,borderRadius:999,padding:"4px 9px",cursor:"pointer",fontSize:8,fontWeight:900,color:"#fff",background:consulta.retorno_negativo_aplicar_etiqueta === true ? "#16a34a" : "#94a3b8"}}>
+                            {consulta.retorno_negativo_aplicar_etiqueta === true ? "ON" : "OFF"}
+                          </button>
+                        </div>
+                        {consulta.retorno_negativo_aplicar_etiqueta === true && (
+                          <input value={consulta.retorno_negativo_nome_etiqueta || "SEM VIABILIDADE"} placeholder="Nome da etiqueta" onChange={e=>atualizarConsultaIA(indice,{retorno_negativo_nome_etiqueta:e.target.value})} style={{...IS,fontSize:9,padding:"6px 7px",marginTop:7}}/>
+                        )}
+                      </div>
+                      <div style={{border:"1px solid #fecaca",background:"#fff",borderRadius:8,padding:8}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:7}}>
+                          <div style={{fontSize:9,fontWeight:700,color:"#7f1d1d"}}>Finalizar atendimento</div>
+                          <button type="button" onClick={()=>atualizarConsultaIA(indice,{retorno_negativo_finalizar_atendimento:consulta.retorno_negativo_finalizar_atendimento !== true})}
+                            style={{border:0,borderRadius:999,padding:"4px 9px",cursor:"pointer",fontSize:8,fontWeight:900,color:"#fff",background:consulta.retorno_negativo_finalizar_atendimento === true ? "#16a34a" : "#94a3b8"}}>
+                            {consulta.retorno_negativo_finalizar_atendimento === true ? "ON" : "OFF"}
+                          </button>
+                        </div>
+                        <div style={{fontSize:8,color:"#64748b",marginTop:6}}>Move a conversa para Finalizados depois de enviar a mensagem.</div>
+                      </div>
+                    </div>
+                    {(consulta.retorno_negativo_aplicar_etiqueta === true || consulta.retorno_negativo_finalizar_atendimento === true) && (
+                      <textarea value={consulta.retorno_negativo_mensagem || ""} placeholder="Mensagem opcional para o cliente. Vazio usa a mensagem atual de indisponibilidade." onChange={e=>atualizarConsultaIA(indice,{retorno_negativo_mensagem:e.target.value})} style={{...IS,minHeight:62,fontSize:10,padding:"7px 8px",resize:"vertical",marginTop:7}}/>
+                    )}
+                  </div>                </div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:7}}>
                   <label style={{display:"flex",alignItems:"center",gap:5,color:"#374151",fontSize:10}}>
                     <input type="checkbox" checked={consulta.obrigatoria !== false} onChange={e=>atualizarConsultaIA(indice,{obrigatoria:e.target.checked})}/>
@@ -1591,7 +1621,8 @@ function saida(obj) {
           <button type="button" onClick={()=>u({consultas:[...consultasIA,{
               id:"consulta_"+Date.now(),nome:"",descricao:"",tipo:"http",variavel_gatilho:"cep",
               variavel_resultado:"resposta_cep",obrigatoria:true,resultado_disponivel:"",resultado_indisponivel:"",
-              acao_indisponibilidade:"aguardar",mensagem_indisponibilidade:"",metodo:"GET",url:"",headers:"",body:"",codigo:""
+              acao_indisponibilidade:"aguardar",mensagem_indisponibilidade:"",retorno_negativo_aplicar_etiqueta:false,
+              retorno_negativo_nome_etiqueta:"SEM VIABILIDADE",retorno_negativo_finalizar_atendimento:false,retorno_negativo_mensagem:"",metodo:"GET",url:"",headers:"",body:"",codigo:""
             }]})}
             style={{marginTop:8,background:"#ccfbf1",border:"1px solid #5eead4",color:"#0f766e",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
             + Adicionar consulta automatica
