@@ -162,9 +162,9 @@ export default function Vendas() {
   const [busca, setBusca] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
-  const [filtroDataInicio, setFiltroDataInicio] = useState("");
-  const [filtroDataFim, setFiltroDataFim] = useState("");
-  const [rangeRapido, setRangeRapido] = useState<"todos" | "hoje" | "7d" | "30d" | "mes" | "custom">("todos");
+  const [filtroDataInicio, setFiltroDataInicio] = useState(() => isoLocal(new Date()));
+  const [filtroDataFim, setFiltroDataFim] = useState(() => isoLocal(new Date()));
+  const [rangeRapido, setRangeRapido] = useState<"todos" | "hoje" | "7d" | "30d" | "mes" | "custom">("hoje");
   const [filtroModif, setFiltroModif] = useState<"qualquer" | "hoje" | "7d" | "30d">("qualquer");
   const [propostaVisualizando, setPropostaVisualizando] = useState<Proposta | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
@@ -1106,20 +1106,21 @@ export default function Vendas() {
       )}
 
       {/* ═══ HEADER ═══ */}
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 14 }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 18, padding: isMobile ? 16 : "18px 20px", borderRadius: 20, border: "1px solid #dbeafe", background: "radial-gradient(circle at 10% 0%, rgba(34,197,94,0.10), transparent 34%), linear-gradient(135deg, #ffffff 0%, #f8fbff 58%, #eff6ff 100%)", boxShadow: "0 16px 40px rgba(15,23,42,0.07)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
-            width: 48, height: 48, borderRadius: 14,
+            width: 54, height: 54, borderRadius: 17,
             background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(22,163,74,0.25)",
+            fontSize: 26, boxShadow: "0 12px 26px rgba(22,163,74,0.28)",
             flexShrink: 0,
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>💰</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Vendas</h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#16a34a", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 3px" }}>Central comercial</p>
+            <h1 style={{ color: "#0f172a", fontSize: isMobile ? 22 : 28, fontWeight: 900, margin: 0, letterSpacing: -0.8 }}>Vendas</h1>
+            <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>
               {podeVerTudo
                 ? <><b style={{ color: "#16a34a" }}>{totalGeral}</b> proposta(s) cadastrada(s){totalVisivel !== totalGeral && <> · <b>{totalVisivel}</b> filtradas</>}</>
                 : travadoEquipe
@@ -1179,7 +1180,7 @@ export default function Vendas() {
 
 
       {/* Resumo operacional */}
-      <section style={{ ...cardStyle, padding: isMobile ? 14 : 16, border: "1px solid #e2e8f0", background: "#ffffff" }}>
+      <section style={{ ...cardStyle, padding: isMobile ? 14 : 18, borderRadius: 20, border: "1px solid #e2e8f0", background: "linear-gradient(180deg, #ffffff 0%, #fbfdff 100%)", boxShadow: "0 18px 42px rgba(15,23,42,0.06)" }}>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, minmax(0, 1fr))", gap: 10 }}>
           {[
             { label: "Visiveis", valor: totalVisivel, detalhe: `${totalGeral} no workspace`, cor: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
@@ -1192,10 +1193,11 @@ export default function Vendas() {
               textAlign: "left",
               background: card.bg,
               border: `1px solid ${card.border}`,
-              borderRadius: 10,
-              padding: "12px 13px",
+              borderRadius: 15,
+              padding: "14px 15px",
               cursor: "default",
-              minHeight: 84,
+              minHeight: 94,
+              boxShadow: "inset 3px 0 0 " + card.cor + ", 0 8px 22px rgba(15,23,42,0.04)",
             }}>
               <p style={{ color: "#64748b", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>{card.label}</p>
               <p style={{ color: card.cor, fontSize: 24, fontWeight: 900, margin: "6px 0 0", letterSpacing: -0.5 }}>{typeof card.valor === "number" ? card.valor.toLocaleString("pt-BR") : card.valor}</p>
@@ -1204,55 +1206,92 @@ export default function Vendas() {
           ))}
         </div>
 
-        <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e5e7eb" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <p style={{ color: "#334155", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6, margin: 0 }}>Status do workspace</p>
-            <span style={{ color: "#94a3b8", fontSize: 10, fontWeight: 800 }}>{statusOpcoesFiltro.length} disponiveis</span>
-          </div>
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "thin" }}>
+        <details style={{
+          marginTop: 14,
+          borderRadius: 15,
+          border: filtroStatus === "todos" ? "1px solid #e2e8f0" : "1px solid #93c5fd",
+          background: filtroStatus === "todos" ? "#f8fafc" : "#eff6ff",
+          overflow: "hidden",
+        }}>
+          <summary style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            padding: "13px 15px",
+            cursor: "pointer",
+            userSelect: "none",
+            listStyle: "none",
+          }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <span style={{
+                width: 32, height: 32, borderRadius: 10,
+                display: "grid", placeItems: "center",
+                background: "#ffffff", border: "1px solid #dbeafe",
+                color: "#2563eb", fontSize: 15, flexShrink: 0,
+              }}>◫</span>
+              <span style={{ minWidth: 0 }}>
+                <strong style={{ display: "block", color: "#0f172a", fontSize: 12 }}>Distribuição por status</strong>
+                <span style={{ display: "block", color: "#64748b", fontSize: 10, marginTop: 2 }}>
+                  {filtroStatus === "todos"
+                    ? statusOpcoesFiltro.length + " status disponíveis · clique para visualizar"
+                    : "Filtro ativo: " + filtroStatus}
+                </span>
+              </span>
+            </span>
+            <span style={{ color: "#2563eb", fontSize: 11, fontWeight: 900, whiteSpace: "nowrap" }}>Ver status ▾</span>
+          </summary>
+
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))",
+            gap: 8,
+            padding: "0 13px 13px",
+          }}>
             <button onClick={() => setFiltroStatus("todos")} style={{
-              flex: "0 0 auto",
+              textAlign: "left",
               background: filtroStatus === "todos" ? "#0f172a" : "#ffffff",
               color: filtroStatus === "todos" ? "#ffffff" : "#334155",
               border: "1px solid #cbd5e1",
-              borderRadius: 999,
-              padding: "8px 12px",
+              borderRadius: 12,
+              padding: "10px 12px",
               fontSize: 11,
               fontWeight: 900,
               cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}>Todos · {totalVisivel.toLocaleString("pt-BR")}</button>
+            }}>Todos os status · {totalVisivel.toLocaleString("pt-BR")}</button>
             {kpis.statusResumo.map(item => {
               const ativo = filtroStatus === item.status;
               return (
                 <button key={item.status} onClick={() => setFiltroStatus(item.status)} title={item.status}
                   style={{
-                    flex: "0 0 auto",
-                    background: ativo ? item.cor : item.bg,
+                    textAlign: "left",
+                    background: ativo ? item.cor : "#ffffff",
                     color: ativo ? "#ffffff" : item.cor,
-                    border: `1px solid ${ativo ? item.cor : item.border}`,
-                    borderRadius: 999,
-                    padding: "8px 12px",
+                    border: "1px solid " + (ativo ? item.cor : item.border),
+                    borderRadius: 12,
+                    padding: "10px 12px",
                     fontSize: 11,
                     fontWeight: 900,
                     cursor: "pointer",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
                   }}>{item.emoji} {item.status} · {item.total.toLocaleString("pt-BR")}</button>
               );
             })}
           </div>
-        </div>
+        </details>
       </section>
 
       {/* Filtros */}
-      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", borderRadius: 18, border: "1px solid #dbeafe", background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)", boxShadow: "0 12px 30px rgba(15,23,42,0.05)" }}>
         <input placeholder="Buscar por nome, CPF, vendedor..." value={busca} onChange={e => setBusca(e.target.value)}
           style={{ ...inputStyle, maxWidth: 360, flex: "1 1 220px", borderRadius: 20 }} />
         <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={{ ...inputStyle, maxWidth: 220 }}>
           <option value="todos">Status: Todos</option>
           {statusOpcoesFiltro.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", padding: 4, borderRadius: 12, background: "#f1f5f9", border: "1px solid #e2e8f0" }}>
           {[
             ["todos", "Todo periodo"],
             ["hoje", "Hoje"],
@@ -1262,9 +1301,10 @@ export default function Vendas() {
             ["custom", "Personalizado"],
           ].map(([k, label]) => (
             <button key={k} onClick={() => aplicarRange(k as any)} style={{
-              background: rangeRapido === k ? "#eff6ff" : "#ffffff",
-              color: rangeRapido === k ? "#2563eb" : "#475569",
-              border: `1px solid ${rangeRapido === k ? "#bfdbfe" : "#e5e7eb"}`,
+              background: rangeRapido === k ? "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)" : "transparent",
+              color: rangeRapido === k ? "#ffffff" : "#475569",
+              border: rangeRapido === k ? "1px solid #2563eb" : "1px solid transparent",
+              boxShadow: rangeRapido === k ? "0 5px 12px rgba(37,99,235,0.22)" : "none",
               borderRadius: 9,
               padding: "8px 10px",
               fontSize: 12,
@@ -1289,8 +1329,8 @@ export default function Vendas() {
           <option value="7d">Modificada em 7 dias</option>
           <option value="30d">Modificada em 30 dias</option>
         </select>
-        {(busca || filtroStatus !== "todos" || rangeRapido !== "todos" || filtroModif !== "qualquer" || Object.keys(filtrosColuna).length > 0) && (
-          <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltrosColuna({}); setFiltroModif("qualquer"); aplicarRange("todos"); }}
+        {(busca || filtroStatus !== "todos" || rangeRapido !== "hoje" || filtroModif !== "qualquer" || Object.keys(filtrosColuna).length > 0) && (
+          <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltrosColuna({}); setFiltroModif("qualquer"); aplicarRange("hoje"); }}
             style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 800 }}>
             Limpar filtros
           </button>
