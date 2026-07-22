@@ -26,6 +26,28 @@ type Fluxo = { id?: number; nome: string; descricao: string; ativo: boolean; tri
 type BC = { label: string; icone: string; cor: string; saidas: string[]; grupo: string; };
 type FilaItem = { id: number; nome: string; conexao?: string; }; // 🆕 filas do CRM
 type AtendenteItem = { email: string; nome: string; }; // 🆕 atendentes do workspace
+function booleanoConfiguracao(valor: any, padrao = false): boolean {
+  if (valor === undefined || valor === null || valor === "") return padrao;
+  if (typeof valor === "boolean") return valor;
+  if (typeof valor === "number") return valor === 1;
+  const texto = String(valor).trim().toLowerCase();
+  if (["true", "1", "on", "sim", "yes"].includes(texto)) return true;
+  if (["false", "0", "off", "nao", "não", "no"].includes(texto)) return false;
+  return padrao;
+}
+
+function normalizarConfiguracaoFluxoIA(no: No): No {
+  if (no.tipo !== "fluxo_ia") return no;
+  return {
+    ...no,
+    dados: {
+      ...(no.dados || {}),
+      midia_ia_extensao_ativa: booleanoConfiguracao(no.dados?.midia_ia_extensao_ativa, false),
+      midia_ia_imagens_ativa: booleanoConfiguracao(no.dados?.midia_ia_imagens_ativa, true),
+      midia_ia_arquivos_ativa: booleanoConfiguracao(no.dados?.midia_ia_arquivos_ativa, true),
+    },
+  };
+}
 
 const B: Record<TipoNo, BC> = {
   texto:                {label:"Texto",           icone:"💬", cor:"#3b82f6", saidas:["Próximo"],                     grupo:"Bubbles"},
@@ -2601,7 +2623,7 @@ export default function FluxosPage() {
     const u = username || wsId;
     if (!u) return;
     const {data} = await supabase.from("fluxos").select("*").eq("workspace_id", u).order("created_at",{ascending:false});
-    setFluxos((data||[]).map(f=>({...f,nos:f.nos||[],conexoes:f.conexoes||[]})));
+    setFluxos((data||[]).map(f=>({...f,nos:(f.nos||[]).map(normalizarConfiguracaoFluxoIA),conexoes:f.conexoes||[]})));
   }
 
   // 🆕 Busca filas cadastradas em Configurações → Filas do CRM
@@ -2668,18 +2690,19 @@ export default function FluxosPage() {
   }
 
   function abrirEditor(f:Fluxo) {
-    setFluxoAtivo(f); setNos((f.nos||[]).map(n=>n.tipo==="fluxo_ia"?{...n,saidas:[...B.fluxo_ia.saidas]}:n)); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
+    const nosNormalizados = (f.nos||[]).map(normalizarConfiguracaoFluxoIA).map(n=>n.tipo==="fluxo_ia"?{...n,saidas:[...B.fluxo_ia.saidas]}:n);
+    setFluxoAtivo({...f, nos:nosNormalizados}); setNos(nosNormalizados); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
     fetchFilas(); // 🆕 recarrega filas ao abrir o editor
     fetchAtendentes(); // 🆕 recarrega atendentes ao abrir o editor
   }
 
-  async function salvar() {
-    if(!fluxoAtivo?.id) return;
+  async function salvar(opcoes?: { fecharEditor?: boolean; avisarSucesso?: boolean }): Promise<boolean> {
+    if(!fluxoAtivo?.id) return false;
     if (nos.some(n => n.tipo === "fluxo_ia") && !vendedorIALiberado) {
       alert("🔒 Este workspace não possui o módulo Vendedor IA. Contratação avulsa: R$ 2.500,00.");
-      return;
+      return false;
     }
-    if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
+    if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return false; }
 
     // 🆕 Validações por bloco — avisa antes de salvar bloco mal configurado
     const problemas: string[] = [];
@@ -2715,17 +2738,46 @@ export default function FluxosPage() {
       }
     }
     if (problemas.length > 0) {
-      if (!confirm(`⚠️ Encontrei ${problemas.length} bloco(s) com configuração incompleta:\n\n${problemas.join("\n")}\n\nEles vão FALHAR quando o fluxo rodar. Salvar mesmo assim?`)) return;
+      if (!confirm(`⚠️ Encontrei ${problemas.length} bloco(s) com configuração incompleta:\n\n${problemas.join("\n")}\n\nEles vão FALHAR quando o fluxo rodar. Salvar mesmo assim?`)) return false;
     }
 
     setSalvando(true);
-    // 🔒 MULTI-TENANT: defesa em profundidade — só salva se fluxo for deste workspace
-    await supabase.from("fluxos").update({nos,conexoes:arestas,nome:fluxoAtivo.nome,
-      descricao:fluxoAtivo.descricao,ativo:fluxoAtivo.ativo,
-      trigger_tipo:fluxoAtivo.trigger_tipo,trigger_valor:fluxoAtivo.trigger_valor})
-      .eq("id",fluxoAtivo.id)
-      .eq("workspace_id", wsId);
-    await load(); setSalvando(false); alert("✅ Fluxo salvo!");
+    try {
+      const nosParaSalvar = nos.map(normalizarConfiguracaoFluxoIA);
+      const { data, error } = await supabase.from("fluxos").update({nos:nosParaSalvar,conexoes:arestas,nome:fluxoAtivo.nome,
+        descricao:fluxoAtivo.descricao,ativo:fluxoAtivo.ativo,
+        trigger_tipo:fluxoAtivo.trigger_tipo,trigger_valor:fluxoAtivo.trigger_valor})
+        .eq("id",fluxoAtivo.id)
+        .eq("workspace_id", wsId)
+        .select("id,nos")
+        .single();
+      if (error) throw error;
+
+      const nosPersistidos: No[] = Array.isArray(data?.nos)
+        ? data.nos.map(normalizarConfiguracaoFluxoIA)
+        : [];
+      for (const noLocal of nosParaSalvar.filter(n => n.tipo === "fluxo_ia")) {
+        const noBanco = nosPersistidos.find(n => n.id === noLocal.id);
+        if (!noBanco || noBanco.dados?.midia_ia_extensao_ativa !== noLocal.dados?.midia_ia_extensao_ativa) {
+          throw new Error("O banco não confirmou a configuração de multimídia do bloco " + noLocal.id + ".");
+        }
+      }
+
+      setNos(nosPersistidos);
+      setFluxoAtivo(atual => atual ? {...atual, nos:nosPersistidos} : atual);
+      setNoSel(atual => atual ? nosPersistidos.find(n => n.id === atual.id) || atual : atual);
+      setNoEditando(atual => atual ? nosPersistidos.find(n => n.id === atual.id) || atual : atual);
+      await load();
+      if (opcoes?.fecharEditor) setNoEditando(null);
+      if (opcoes?.avisarSucesso !== false) alert("✅ Fluxo salvo e configuração confirmada!");
+      return true;
+    } catch (erro: any) {
+      console.error("Erro ao salvar fluxo:", erro);
+      alert("❌ Não foi possível salvar o fluxo. Nada foi confirmado no servidor.\n\n" + (erro?.message || erro));
+      return false;
+    } finally {
+      setSalvando(false);
+    }
   }
 
   async function toggleAtivo() {
@@ -3208,7 +3260,7 @@ export default function FluxosPage() {
               <div style={{width:16,height:16,background:"white",borderRadius:"50%",position:"absolute",top:3,left:fluxoAtivo?.ativo?19:3,transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
             </button>
           </div>
-          <button onClick={salvar} disabled={salvando} style={{
+          <button onClick={()=>void salvar()} disabled={salvando} style={{
             width:"100%",
             background: salvando
               ? "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"
@@ -3455,7 +3507,8 @@ export default function FluxosPage() {
                 >🗑️ Excluir bloco</button>
                 <div style={{ flex: 1 }} />
                 <button
-                  onClick={() => setNoEditando(null)}
+                  onClick={() => void salvar({fecharEditor:true, avisarSucesso:true})}
+                  disabled={salvando}
                   style={{
                     background: "#3b82f6",
                     color: "#ffffff",
@@ -3466,7 +3519,7 @@ export default function FluxosPage() {
                     cursor: "pointer",
                     fontWeight: "bold",
                   }}
-                >✓ Concluir</button>
+                >{salvando?"Salvando...":"✓ Salvar bloco"}</button>
               </div>
             )}
             {/* Pro nó "inicio" só botão de concluir */}
@@ -3479,7 +3532,8 @@ export default function FluxosPage() {
                 flexShrink: 0,
               }}>
                 <button
-                  onClick={() => setNoEditando(null)}
+                  onClick={() => void salvar({fecharEditor:true, avisarSucesso:true})}
+                  disabled={salvando}
                   style={{
                     background: "#3b82f6",
                     color: "#1f2937",
@@ -3490,7 +3544,7 @@ export default function FluxosPage() {
                     cursor: "pointer",
                     fontWeight: "bold",
                   }}
-                >✓ Concluir</button>
+                >{salvando?"Salvando...":"✓ Salvar bloco"}</button>
               </div>
             )}
           </div>
