@@ -515,7 +515,7 @@ function TVarComponent({
   );
 }
 
-function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, nos, statusVendaOpcoes, camposPropostaUnif, vendedorIALiberado }: {
+function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, nos, statusVendaOpcoes, camposPropostaUnif, vendedorIALiberado, salvarConfiguracaoMidia, salvandoMidiaId }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
@@ -526,6 +526,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   statusVendaOpcoes: {value:string;label:string}[]; // 📋 status disponíveis no workspace
   camposPropostaUnif: CampoUnificado[]; // 📋 campos da proposta (fixos + customs) do workspace
   vendedorIALiberado: boolean;
+  salvarConfiguracaoMidia: (id: string, dados: Record<string, boolean>) => Promise<void>;
+  salvandoMidiaId: string | null;
 }) {
   const d = noSel.dados;
   const id = noSel.id;
@@ -1447,12 +1449,17 @@ function saida(obj) {
               <span style={{display:"grid",placeItems:"center",width:32,height:32,borderRadius:9,background:d.midia_ia_extensao_ativa === true?"#0f766e":"#e2e8f0",color:d.midia_ia_extensao_ativa === true?"#fff":"#475569",fontSize:16,flexShrink:0}}>📎</span>
               <span><b style={{display:"block",color:"#0f172a",fontSize:12}}>Leitura de fotos e arquivos</b><span style={{display:"block",color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:2}}>Extensão totalmente isolada. Desligada, não lê mídia e não interfere no vendedor IA atual.</span></span>
             </span>
-            <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}><span style={{fontSize:8,fontWeight:900,color:"#0f766e",background:"#ccfbf1",borderRadius:999,padding:"4px 7px"}}>ISOLADO</span><input type="checkbox" checked={d.midia_ia_extensao_ativa === true} onChange={e=>u({midia_ia_extensao_ativa:e.target.checked})}/></span>
+            <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
+              <span style={{fontSize:8,fontWeight:900,color:salvandoMidiaId===id?"#92400e":"#0f766e",background:salvandoMidiaId===id?"#fef3c7":"#ccfbf1",borderRadius:999,padding:"4px 7px"}}>
+                {salvandoMidiaId===id ? "SALVANDO..." : d.midia_ia_extensao_ativa === true ? "ATIVA E SALVA" : "DESLIGADA"}
+              </span>
+              <input type="checkbox" disabled={salvandoMidiaId===id} checked={d.midia_ia_extensao_ativa === true} onChange={e=>void salvarConfiguracaoMidia(id,{midia_ia_extensao_ativa:e.target.checked})}/>
+            </span>
           </label>
           {d.midia_ia_extensao_ativa === true && <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #99f6e4"}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#134e4a",fontSize:10,lineHeight:1.4,cursor:"pointer",background:"#fff",border:"1px solid #ccfbf1",borderRadius:8,padding:8}}><input type="checkbox" checked={d.midia_ia_imagens_ativa !== false} onChange={e=>u({midia_ia_imagens_ativa:e.target.checked})}/><span><b>Interpretar fotos</b><br/>Lê JPG, PNG, WEBP e GIF.</span></label>
-              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#134e4a",fontSize:10,lineHeight:1.4,cursor:"pointer",background:"#fff",border:"1px solid #ccfbf1",borderRadius:8,padding:8}}><input type="checkbox" checked={d.midia_ia_arquivos_ativa !== false} onChange={e=>u({midia_ia_arquivos_ativa:e.target.checked})}/><span><b>Interpretar arquivos</b><br/>Lê PDF, texto e documentos compatíveis.</span></label>
+              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#134e4a",fontSize:10,lineHeight:1.4,cursor:"pointer",background:"#fff",border:"1px solid #ccfbf1",borderRadius:8,padding:8}}><input type="checkbox" disabled={salvandoMidiaId===id} checked={d.midia_ia_imagens_ativa !== false} onChange={e=>void salvarConfiguracaoMidia(id,{midia_ia_imagens_ativa:e.target.checked})}/><span><b>Interpretar fotos</b><br/>Lê JPG, PNG, WEBP e GIF.</span></label>
+              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#134e4a",fontSize:10,lineHeight:1.4,cursor:"pointer",background:"#fff",border:"1px solid #ccfbf1",borderRadius:8,padding:8}}><input type="checkbox" disabled={salvandoMidiaId===id} checked={d.midia_ia_arquivos_ativa !== false} onChange={e=>void salvarConfiguracaoMidia(id,{midia_ia_arquivos_ativa:e.target.checked})}/><span><b>Interpretar arquivos</b><br/>Lê PDF, texto e documentos compatíveis.</span></label>
             </div>
             <div style={{marginTop:8}}><label style={LS}>Tamanho máximo por mídia (MB)</label><input type="number" min={1} max={25} value={d.midia_ia_tamanho_max_mb ?? 15} onChange={e=>u({midia_ia_tamanho_max_mb:Math.max(1,Math.min(25,Number(e.target.value)||15))})} style={IS}/></div>
             <div style={{marginTop:8}}><label style={LS}>Mensagem se não conseguir ler</label><textarea value={d.midia_ia_mensagem_falha || "Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?"} onChange={e=>u({midia_ia_mensagem_falha:e.target.value})} style={{...IS,minHeight:64,resize:"vertical"}}/></div>
@@ -2510,6 +2517,7 @@ export default function FluxosPage() {
   //    drag/seleção sem abrir modal automaticamente. Modal só abre em DOUBLE click.
   const [noEditando, setNoEditando] = useState<No|null>(null);
   const [salvando,setSalvando]     = useState(false);
+  const [salvandoMidiaId,setSalvandoMidiaId] = useState<string|null>(null);
   const [grupoAberto,setGrupoAberto] = useState("Bubbles");
   const [conectando,setConectando]   = useState<{noId:string;saidaIndex:number}|null>(null);
   const [mousePos,setMousePos]       = useState({x:0,y:0});
@@ -2874,6 +2882,75 @@ export default function FluxosPage() {
     setNos(p => p.map(n => n.id===id ? {...n,dados:{...n.dados,...d}} : n));
     setNoSel(p => p?.id===id ? {...p,dados:{...p.dados,...d}} : p);
     setNoEditando(p => p?.id===id ? {...p,dados:{...p.dados,...d}} : p);
+  }
+
+  async function salvarConfiguracaoMidia(id:string, patch:Record<string,boolean>): Promise<void> {
+    if (!fluxoAtivo?.id || !wsId || salvandoMidiaId) return;
+
+    const noLocalAnterior = nos.find(n => n.id === id);
+    const valoresAnteriores = Object.fromEntries(
+      Object.keys(patch).map(chave => [chave, noLocalAnterior?.dados?.[chave]])
+    );
+
+    updateNo(id, patch);
+    setSalvandoMidiaId(id);
+
+    try {
+      const { data: fluxoBanco, error: erroLeitura } = await supabase
+        .from("fluxos")
+        .select("id,nos")
+        .eq("id", fluxoAtivo.id)
+        .eq("workspace_id", wsId)
+        .single();
+      if (erroLeitura) throw erroLeitura;
+
+      const nosBanco: No[] = Array.isArray(fluxoBanco?.nos)
+        ? fluxoBanco.nos.map(normalizarConfiguracaoFluxoIA)
+        : [];
+      if (!nosBanco.some(n => n.id === id)) {
+        throw new Error("O bloco de IA aberto não existe mais no fluxo salvo.");
+      }
+
+      const nosAtualizados = nosBanco.map(n => n.id === id
+        ? normalizarConfiguracaoFluxoIA({...n, dados:{...(n.dados || {}), ...patch}})
+        : n
+      );
+
+      const { data: confirmado, error: erroGravacao } = await supabase
+        .from("fluxos")
+        .update({nos:nosAtualizados})
+        .eq("id", fluxoAtivo.id)
+        .eq("workspace_id", wsId)
+        .select("id,nos")
+        .single();
+      if (erroGravacao) throw erroGravacao;
+
+      const noConfirmado = (Array.isArray(confirmado?.nos) ? confirmado.nos : [])
+        .map(normalizarConfiguracaoFluxoIA)
+        .find((n:No) => n.id === id);
+      if (!noConfirmado) throw new Error("O banco não devolveu o bloco atualizado.");
+
+      for (const [chave, valor] of Object.entries(patch)) {
+        if (booleanoConfiguracao(noConfirmado.dados?.[chave], false) !== valor) {
+          throw new Error(`O banco não confirmou a opção ${chave}.`);
+        }
+      }
+
+      const confirmacao = Object.fromEntries(
+        Object.keys(patch).map(chave => [chave, noConfirmado.dados?.[chave]])
+      );
+      updateNo(id, confirmacao);
+      setFluxoAtivo(atual => atual ? {
+        ...atual,
+        nos: (atual.nos || []).map(n => n.id === id ? {...n,dados:{...(n.dados || {}),...confirmacao}} : n),
+      } : atual);
+    } catch (erro:any) {
+      updateNo(id, valoresAnteriores);
+      console.error("Erro ao salvar configuração de mídia:", erro);
+      alert("Não foi possível salvar a leitura de fotos e arquivos. O botão voltou ao estado anterior.\n\n" + (erro?.message || erro));
+    } finally {
+      setSalvandoMidiaId(null);
+    }
   }
 
   function onCanvasPointerDown(e:React.PointerEvent) {
@@ -3467,6 +3544,8 @@ export default function FluxosPage() {
                 statusVendaOpcoes={statusVendaOpcoes}
                 camposPropostaUnif={camposPropostaUnif}
                 vendedorIALiberado={vendedorIALiberado}
+                salvarConfiguracaoMidia={salvarConfiguracaoMidia}
+                salvandoMidiaId={salvandoMidiaId}
               />
             </div>
 
