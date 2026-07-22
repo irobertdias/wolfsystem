@@ -1447,7 +1447,7 @@ function saida(obj) {
           <label style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,cursor:"pointer"}}>
             <span style={{display:"flex",alignItems:"flex-start",gap:9}}>
               <span style={{display:"grid",placeItems:"center",width:32,height:32,borderRadius:9,background:d.midia_ia_extensao_ativa === true?"#0f766e":"#e2e8f0",color:d.midia_ia_extensao_ativa === true?"#fff":"#475569",fontSize:16,flexShrink:0}}>📎</span>
-              <span><b style={{display:"block",color:"#0f172a",fontSize:12}}>Leitura de fotos e arquivos</b><span style={{display:"block",color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:2}}>Extensão totalmente isolada. Desligada, não lê mídia e não interfere no vendedor IA atual.</span></span>
+              <span><b style={{display:"block",color:"#0f172a",fontSize:12}}>Leitura de fotos e arquivos</b><span style={{display:"block",color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:2}}>Extensão isolada do vendedor IA. Ao ligar, a leitura vale em todos os blocos Fluxo por IA deste fluxo.</span></span>
             </span>
             <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
               <span style={{fontSize:8,fontWeight:900,color:salvandoMidiaId===id?"#92400e":"#0f766e",background:salvandoMidiaId===id?"#fef3c7":"#ccfbf1",borderRadius:999,padding:"4px 7px"}}>
@@ -2886,13 +2886,6 @@ export default function FluxosPage() {
 
   async function salvarConfiguracaoMidia(id:string, patch:Record<string,boolean>): Promise<void> {
     if (!fluxoAtivo?.id || !wsId || salvandoMidiaId) return;
-
-    const noLocalAnterior = nos.find(n => n.id === id);
-    const valoresAnteriores = Object.fromEntries(
-      Object.keys(patch).map(chave => [chave, noLocalAnterior?.dados?.[chave]])
-    );
-
-    updateNo(id, patch);
     setSalvandoMidiaId(id);
 
     try {
@@ -2907,11 +2900,15 @@ export default function FluxosPage() {
       const nosBanco: No[] = Array.isArray(fluxoBanco?.nos)
         ? fluxoBanco.nos.map(normalizarConfiguracaoFluxoIA)
         : [];
-      if (!nosBanco.some(n => n.id === id)) {
+      const idsBlocosIa = nosBanco.filter(n => n.tipo === "fluxo_ia").map(n => n.id);
+      if (!idsBlocosIa.includes(id)) {
         throw new Error("O bloco de IA aberto não existe mais no fluxo salvo.");
       }
 
-      const nosAtualizados = nosBanco.map(n => n.id === id
+      // A leitura de mídia é uma extensão do fluxo, não de uma única etapa.
+      // Assim, uma conversa que avançar para outro bloco fluxo_ia mantém a
+      // mesma configuração sem alterar qualquer outra lógica do vendedor.
+      const nosAtualizados = nosBanco.map(n => n.tipo === "fluxo_ia"
         ? normalizarConfiguracaoFluxoIA({...n, dados:{...(n.dados || {}), ...patch}})
         : n
       );
@@ -2925,29 +2922,35 @@ export default function FluxosPage() {
         .single();
       if (erroGravacao) throw erroGravacao;
 
-      const noConfirmado = (Array.isArray(confirmado?.nos) ? confirmado.nos : [])
-        .map(normalizarConfiguracaoFluxoIA)
-        .find((n:No) => n.id === id);
-      if (!noConfirmado) throw new Error("O banco não devolveu o bloco atualizado.");
-
-      for (const [chave, valor] of Object.entries(patch)) {
-        if (booleanoConfiguracao(noConfirmado.dados?.[chave], false) !== valor) {
-          throw new Error(`O banco não confirmou a opção ${chave}.`);
+      const nosConfirmados: No[] = Array.isArray(confirmado?.nos)
+        ? confirmado.nos.map(normalizarConfiguracaoFluxoIA)
+        : [];
+      for (const idBloco of idsBlocosIa) {
+        const bloco = nosConfirmados.find(n => n.id === idBloco);
+        if (!bloco) throw new Error("O banco não devolveu todos os blocos de IA atualizados.");
+        for (const [chave, valor] of Object.entries(patch)) {
+          if (booleanoConfiguracao(bloco.dados?.[chave], false) !== valor) {
+            throw new Error(`O banco não confirmou a opção ${chave} no bloco ${idBloco}.`);
+          }
         }
       }
 
-      const confirmacao = Object.fromEntries(
-        Object.keys(patch).map(chave => [chave, noConfirmado.dados?.[chave]])
-      );
-      updateNo(id, confirmacao);
-      setFluxoAtivo(atual => atual ? {
-        ...atual,
-        nos: (atual.nos || []).map(n => n.id === id ? {...n,dados:{...(n.dados || {}),...confirmacao}} : n),
-      } : atual);
+      const aplicarConfirmacao = (lista:No[]) => lista.map(n => {
+        if (n.tipo !== "fluxo_ia" || !idsBlocosIa.includes(n.id)) return n;
+        const confirmadoDoBloco = nosConfirmados.find(item => item.id === n.id);
+        const valores = Object.fromEntries(
+          Object.keys(patch).map(chave => [chave, confirmadoDoBloco?.dados?.[chave]])
+        );
+        return normalizarConfiguracaoFluxoIA({...n, dados:{...(n.dados || {}), ...valores}});
+      });
+
+      setNos(atual => aplicarConfirmacao(atual));
+      setFluxoAtivo(atual => atual ? {...atual, nos:aplicarConfirmacao(atual.nos || [])} : atual);
+      setNoSel(atual => atual ? aplicarConfirmacao([atual])[0] : atual);
+      setNoEditando(atual => atual ? aplicarConfirmacao([atual])[0] : atual);
     } catch (erro:any) {
-      updateNo(id, valoresAnteriores);
       console.error("Erro ao salvar configuração de mídia:", erro);
-      alert("Não foi possível salvar a leitura de fotos e arquivos. O botão voltou ao estado anterior.\n\n" + (erro?.message || erro));
+      alert("Não foi possível salvar a leitura de fotos e arquivos. Nada foi alterado.\n\n" + (erro?.message || erro));
     } finally {
       setSalvandoMidiaId(null);
     }
