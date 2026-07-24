@@ -1405,9 +1405,14 @@ function saida(obj) {
         acao_indisponibilidade?:"aguardar"|"finalizar"; mensagem_indisponibilidade?:string;
         retorno_negativo_aplicar_etiqueta?:boolean; retorno_negativo_nome_etiqueta?:string;
         retorno_negativo_finalizar_atendimento?:boolean; retorno_negativo_mensagem?:string;
-        url?:string; metodo?:string; headers?:string; body?:string; codigo?:string;
+        url?:string; metodo?:string; headers?:string|Record<string,string>; body?:string; codigo?:string;
       };
       const consultasIA: ConsultaIA[] = Array.isArray(d.consultas) ? d.consultas : [];
+      const serializarHeadersConsulta = (headers: ConsultaIA["headers"]) => {
+        if (!headers) return "";
+        if (typeof headers === "string") return headers;
+        try { return JSON.stringify(headers, null, 2); } catch { return ""; }
+      };
       const atualizarConsultaIA = (indice: number, patch: Partial<ConsultaIA>) => {
         u({ consultas: consultasIA.map((consulta, i) => i === indice ? { ...consulta, ...patch } : consulta) });
       };
@@ -1604,7 +1609,7 @@ function saida(obj) {
                       </select>
                       <input value={consulta.url || ""} placeholder="https://api.exemplo.com/consulta?cep={{cep}}" onChange={e=>atualizarConsultaIA(indice,{url:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
                     </div>
-                    <textarea value={consulta.headers || ""} placeholder={'Headers JSON opcional: {"Authorization":"Bearer ..."}'} onChange={e=>atualizarConsultaIA(indice,{headers:e.target.value})} style={{...IS,minHeight:48,fontFamily:"monospace",fontSize:9,padding:"7px 8px",resize:"vertical",marginBottom:6}}/>
+                    <textarea value={serializarHeadersConsulta(consulta.headers)} placeholder={'Headers JSON opcional: {"Authorization":"Bearer ..."}'} onChange={e=>atualizarConsultaIA(indice,{headers:e.target.value})} style={{...IS,minHeight:48,fontFamily:"monospace",fontSize:9,padding:"7px 8px",resize:"vertical",marginBottom:6}}/>
                     {(consulta.metodo || "GET") !== "GET" && (
                       <textarea value={consulta.body || ""} placeholder={'Body: {"cep":"{{cep}}"}'} onChange={e=>atualizarConsultaIA(indice,{body:e.target.value})} style={{...IS,minHeight:55,fontFamily:"monospace",fontSize:9,padding:"7px 8px",resize:"vertical"}}/>
                     )}
