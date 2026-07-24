@@ -3295,7 +3295,7 @@ export default function FluxosPage() {
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"12px 0"}}>
           {GRUPOS.map(grupo => {
-            const tipos = (Object.entries(B) as [TipoNo,BC][]).filter(([,c])=>c.grupo===grupo);
+            const tipos = (Object.entries(B) as [TipoNo,BC][]).filter(([tipo,c])=>c.grupo===grupo && (tipo!=="fluxo_ia" || vendedorIALiberado));
             const ab = grupoAberto===grupo;
             return (
               <div key={grupo} style={{marginBottom:6}}>
@@ -3307,21 +3307,20 @@ export default function FluxosPage() {
                 {ab && (
                   <div style={{padding:"4px 10px 6px",display:"flex",flexDirection:"column",gap:4}}>
                     {tipos.map(([tipo,cfg]) => {
-                      const bloqueado = tipo === "fluxo_ia" && !vendedorIALiberado;
                       return (
                       <button key={tipo} onClick={()=>adicionarNo(tipo)}
                         style={{
                           display:"flex",alignItems:"center",gap:10,width:"100%",
                           background:"#ffffff", border:"1px solid #e5e7eb", borderRadius:8,
                           padding:"7px 10px", color:"#1f2937", fontSize:12, fontWeight:"500",
-                          cursor:bloqueado?"not-allowed":"pointer", opacity:bloqueado?0.72:1,
+                          cursor:"pointer",
                           textAlign:"left", boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
                           transition:"transform .12s ease, box-shadow .12s ease, border-color .12s ease",
                         }}
-                        onMouseEnter={e=>{ if(!bloqueado){ e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.boxShadow=`0 4px 12px ${cfg.cor}22, 0 1px 3px rgba(0,0,0,0.06)`; e.currentTarget.style.borderColor=`${cfg.cor}55`; } }}
+                        onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.boxShadow=`0 4px 12px ${cfg.cor}22, 0 1px 3px rgba(0,0,0,0.06)`; e.currentTarget.style.borderColor=`${cfg.cor}55`; }}
                         onMouseLeave={e=>{ e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor="#e5e7eb"; }}>
                         <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:26,height:26,background:`${cfg.cor}15`,borderRadius:7,fontSize:14,flexShrink:0}}>{cfg.icone}</span>
-                        <span style={{flex:1}}>{cfg.label}{bloqueado && <small style={{display:"block",color:"#7c3aed",fontSize:9,fontWeight:800}}>🔒 AVULSO · R$ 2.500</small>}</span>
+                        <span style={{flex:1}}>{cfg.label}</span>
                       </button>
                     );})}
                   </div>

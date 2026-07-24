@@ -51,11 +51,13 @@ const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
   plano: "basico",
 };
 
-// Se o email do user logado bate com ADMIN_EMAIL, libera tudo (admin Wolf não tem plano)
+// O workspace interno do admin Wolf tem tudo liberado (admin Wolf não tem plano).
+// A permissão sempre segue o DONO do workspace aberto, inclusive quando o admin
+// está acessando um workspace de cliente.
 const ADMIN_EMAIL = "robert.dias@live.com";
 
 export function useModulos() {
-  const { wsId, user } = useWorkspace();
+  const { wsId } = useWorkspace();
   const [modulos, setModulos] = useState<Modulos>(MODULOS_BLOQUEADOS_DEFAULT);
   const [carregado, setCarregado] = useState(false);
 
@@ -65,15 +67,6 @@ export function useModulos() {
 
     const fetch = async () => {
       try {
-        // Admin Wolf: tudo liberado sempre
-        if (user?.email === ADMIN_EMAIL) {
-          if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true, vendedor_ia: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
-            setCarregado(true);
-          }
-          return;
-        }
-
         // 🆕 v18: Busca workspace pegando owner_id E owner_email no mesmo SELECT.
         // ─────────────────────────────────────────────────────────────────
         // BUG ANTERIOR: a versão antiga só pegava owner_id, e pro sub-usuário
@@ -142,7 +135,7 @@ export function useModulos() {
 
     fetch();
     return () => { cancelado = true; };
-  }, [wsId, user?.email, user?.id]);
+  }, [wsId]);
 
   return { modulos, carregado };
 }
