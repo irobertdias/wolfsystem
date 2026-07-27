@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useModulos } from "../../hooks/useModulos";
 import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
+import ExtensoesFluxoIA from "./ExtensoesFluxoIA";
 
 type TipoNo =
   | "texto" | "imagem" | "video" | "audio" | "embed"
@@ -42,6 +43,14 @@ function normalizarConfiguracaoFluxoIA(no: No): No {
     ...no,
     dados: {
       ...(no.dados || {}),
+      extensoes_ia_ativas: booleanoConfiguracao(no.dados?.extensoes_ia_ativas, false),
+      ext_normalizadores_ativa: booleanoConfiguracao(no.dados?.ext_normalizadores_ativa, false),
+      ext_crm_ativa: booleanoConfiguracao(no.dados?.ext_crm_ativa, false),
+      ext_retomada_ativa: booleanoConfiguracao(no.dados?.ext_retomada_ativa, false),
+      ext_followups_ativa: booleanoConfiguracao(no.dados?.ext_followups_ativa, false),
+      ext_consulta_negativa_ativa: booleanoConfiguracao(no.dados?.ext_consulta_negativa_ativa, false),
+      ext_fila_ativa: booleanoConfiguracao(no.dados?.ext_fila_ativa, false),
+      ext_multimidia_ativa: booleanoConfiguracao(no.dados?.ext_multimidia_ativa, false),
       midia_ia_extensao_ativa: booleanoConfiguracao(no.dados?.midia_ia_extensao_ativa, false),
       midia_ia_imagens_ativa: booleanoConfiguracao(no.dados?.midia_ia_imagens_ativa, true),
       midia_ia_arquivos_ativa: booleanoConfiguracao(no.dados?.midia_ia_arquivos_ativa, true),
@@ -171,7 +180,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
-    fluxo_ia:{apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
+    fluxo_ia:{extensoes_ia_ativas:false,ext_normalizadores_ativa:false,ext_crm_ativa:false,ext_retomada_ativa:false,ext_followups_ativa:false,ext_consulta_negativa_ativa:false,ext_fila_ativa:false,ext_multimidia_ativa:false,apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     // 🆕 v20: Meta Pixel / Conversions API
@@ -1437,6 +1446,7 @@ function saida(obj) {
             Conecte a saída <b>Dados confirmados</b> ao bloco <b>Enviar Venda</b>.
           </p>
         </div>
+        <ExtensoesFluxoIA dados={d} onChange={u}/>
         {F("API Key","apiKey","password","sk-...")}
         {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"}])}
         {T("Prompt de comportamento","prompt","Explique como a IA deve conduzir o atendimento...",100)}
