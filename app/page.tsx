@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import SimuladorOrcamento from "./components/SimuladorOrcamento";
 
 const WHATSAPP = "https://wa.me/5562981519991?text=";
 
@@ -62,7 +63,7 @@ export default function Site() {
             <div><strong style={{ fontSize: 17 }}>Wolf System</strong><small style={{ display: "block", color: "#64748b", fontSize: 9, letterSpacing: 1.4, fontWeight: 800 }}>NEGÓCIOS EM MOVIMENTO</small></div>
           </a>
           {!mobile && <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-            <Nav href="#plataforma">Plataforma</Nav><Nav href="#vendedor-ia">Vendedor IA</Nav><Nav href="#planos">Planos</Nav><Nav href="#faq">Dúvidas</Nav>
+            <Nav href="#plataforma">Plataforma</Nav><Nav href="#vendedor-ia">Vendedor IA</Nav><Nav href="#planos">Planos</Nav><Nav href="#orcamento">Monte seu plano</Nav><Nav href="#faq">Dúvidas</Nav>
           </div>}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {!mobile && <button onClick={() => location.href="https://app.wolfgyn.com.br/login"} style={buttonGhost}>Entrar</button>}
@@ -70,7 +71,7 @@ export default function Site() {
             {mobile && <button onClick={() => setMenu(!menu)} style={{ ...buttonGhost, width: 42, padding: 0 }}>☰</button>}
           </div>
         </div>
-        {mobile && menu && <div style={{ padding: "8px 20px 18px", display: "grid", gap: 10, background: "white" }}><Nav href="#plataforma">Plataforma</Nav><Nav href="#vendedor-ia">Vendedor IA</Nav><Nav href="#planos">Planos</Nav><Nav href="#faq">Dúvidas</Nav></div>}
+        {mobile && menu && <div style={{ padding: "8px 20px 18px", display: "grid", gap: 10, background: "white" }}><Nav href="#plataforma">Plataforma</Nav><Nav href="#vendedor-ia">Vendedor IA</Nav><Nav href="#planos">Planos</Nav><Nav href="#orcamento">Monte seu plano</Nav><Nav href="#faq">Dúvidas</Nav></div>}
       </nav>
 
       <section id="inicio" style={{ position: "relative", padding: mobile ? "64px 20px 56px" : "100px 28px 84px", background: "linear-gradient(145deg,#ffffff 0%,#f4f8ff 48%,#f5f0ff 100%)" }}>
@@ -163,6 +164,8 @@ export default function Site() {
         </div>
       </section>
 
+      <SimuladorOrcamento />
+
       <section id="faq" style={{ ...sectionStyle, background: "#f7f9fd", borderTop: "1px solid #edf1f7" }}>
         <div style={{ ...container, maxWidth: 900 }}>
           <SectionTitle kicker="PERGUNTAS FREQUENTES" title="Tudo claro antes de começar" text="As principais dúvidas sobre a plataforma e o Vendedor IA." />
@@ -177,7 +180,7 @@ export default function Site() {
       <footer style={{ background: "white", borderTop: "1px solid #e5ebf5", padding: "46px 24px 24px" }}>
         <div style={{ ...container, display: "grid", gridTemplateColumns: mobile ? "1fr" : "1.4fr 1fr 1fr", gap: 32 }}>
           <div><div style={{ display: "flex", alignItems: "center", gap: 10 }}><Logo /><strong>Wolf System</strong></div><p style={{ color: "#64748b", fontSize: 13, maxWidth: 390, lineHeight: 1.6 }}>CRM, atendimento, automação e inteligência artificial para empresas que querem vender com processo.</p></div>
-          <div><strong style={footerTitle}>Navegação</strong><FooterLink href="#plataforma">Plataforma</FooterLink><FooterLink href="#vendedor-ia">Vendedor IA</FooterLink><FooterLink href="#planos">Planos</FooterLink><FooterLink href="https://app.wolfgyn.com.br/login">Acessar sistema</FooterLink></div>
+          <div><strong style={footerTitle}>Navegação</strong><FooterLink href="#plataforma">Plataforma</FooterLink><FooterLink href="#vendedor-ia">Vendedor IA</FooterLink><FooterLink href="#planos">Planos</FooterLink><FooterLink href="#orcamento">Monte seu plano</FooterLink><FooterLink href="https://app.wolfgyn.com.br/login">Acessar sistema</FooterLink></div>
           <div><strong style={footerTitle}>Legal e contato</strong><FooterLink href="/privacidade">Privacidade</FooterLink><FooterLink href="/termos">Termos de uso</FooterLink><FooterLink href="/excluir-dados">Excluir meus dados</FooterLink><span style={{ color: "#64748b", fontSize: 12 }}>comercial@wolfgyn.com.br</span></div>
         </div>
         <div style={{ ...container, borderTop: "1px solid #edf1f7", marginTop: 34, paddingTop: 20, color: "#94a3b8", fontSize: 10, lineHeight: 1.6 }}>© 2026 Wolf System — ABC CALL E SERVIÇOS DIGITAIS LTDA — CNPJ 62.007.374/0001-96. Todos os direitos reservados. Em conformidade com a LGPD.</div>
