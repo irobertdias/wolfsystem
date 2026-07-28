@@ -724,6 +724,7 @@ export function ChatSection() {
     return () => { cancel = true; };
   }, [wsId]);
 
+  const WA_BASE = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
   // 🆕 Backend wolf-meta — usado pra Instagram/Messenger (rotas /send/*)
   const META_BASE = process.env.NEXT_PUBLIC_META_URL || "https://meta.api.wolfgyn.com.br";
 
