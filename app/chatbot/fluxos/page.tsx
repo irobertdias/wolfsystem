@@ -15,25 +15,25 @@ type TipoNo =
   | "condicao" | "variavel" | "redirecionar" | "script" | "espera"
   | "teste_ab" | "webhook" | "pular" | "retornar"
   | "google_sheets" | "http_request" | "openai" | "fluxo_ia" | "claude_ai" | "gmail"
-  | "meta_capi"  // ðŸ†• v20: dispara evento de conversÃ£o pra Meta (Pixel + Conversions API)
+  | "meta_capi"  // 🆕 v20: dispara evento de conversão pra Meta (Pixel + Conversions API)
   | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar"
   | "gatilho_crm" | "atualizar_venda"
-  | "enviar_venda"  // ðŸ†• v18: cria proposta no CRM com as variÃ¡veis salvas + aplica etiqueta
-  | "etiqueta";    // ðŸ†• v19: aplica/remove etiqueta no atendimento ativo
+  | "enviar_venda"  // 🆕 v18: cria proposta no CRM com as variáveis salvas + aplica etiqueta
+  | "etiqueta";    // 🆕 v19: aplica/remove etiqueta no atendimento ativo
 
 type No = { id: string; tipo: TipoNo; x: number; y: number; dados: Record<string,any>; saidas: string[]; };
 type Aresta = { id: string; de: string; saidaIndex: number; para: string; };
 type Fluxo = { id?: number; nome: string; descricao: string; ativo: boolean; trigger_tipo: string; trigger_valor: string; nos: No[]; conexoes: Aresta[]; workspace_id: string; };
 type BC = { label: string; icone: string; cor: string; saidas: string[]; grupo: string; };
-type FilaItem = { id: number; nome: string; conexao?: string; }; // ðŸ†• filas do CRM
-type AtendenteItem = { email: string; nome: string; }; // ðŸ†• atendentes do workspace
+type FilaItem = { id: number; nome: string; conexao?: string; }; // 🆕 filas do CRM
+type AtendenteItem = { email: string; nome: string; }; // 🆕 atendentes do workspace
 function booleanoConfiguracao(valor: any, padrao = false): boolean {
   if (valor === undefined || valor === null || valor === "") return padrao;
   if (typeof valor === "boolean") return valor;
   if (typeof valor === "number") return valor === 1;
   const texto = String(valor).trim().toLowerCase();
   if (["true", "1", "on", "sim", "yes"].includes(texto)) return true;
-  if (["false", "0", "off", "nao", "nÃ£o", "no"].includes(texto)) return false;
+  if (["false", "0", "off", "nao", "não", "no"].includes(texto)) return false;
   return padrao;
 }
 
@@ -72,75 +72,75 @@ function normalizarConfiguracaoFluxoIA(no: No): No {
 }
 
 const B: Record<TipoNo, BC> = {
-  texto:                {label:"Texto",           icone:"ðŸ’¬", cor:"#3b82f6", saidas:["PrÃ³ximo"],                     grupo:"Bubbles"},
-  imagem:               {label:"Imagem",          icone:"ðŸ–¼ï¸", cor:"#06b6d4", saidas:["PrÃ³ximo"],                     grupo:"Bubbles"},
-  video:                {label:"VÃ­deo",           icone:"ðŸŽ¥", cor:"#8b5cf6", saidas:["PrÃ³ximo"],                     grupo:"Bubbles"},
-  audio:                {label:"Ãudio",           icone:"ðŸŽµ", cor:"#ec4899", saidas:["PrÃ³ximo"],                     grupo:"Bubbles"},
-  embed:                {label:"Incorporar",      icone:"ðŸ”—", cor:"#f97316", saidas:["PrÃ³ximo"],                     grupo:"Bubbles"},
-  input_texto:          {label:"Texto",           icone:"âœï¸", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_numero:         {label:"NÃºmero",          icone:"ðŸ”¢", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_email:          {label:"Email",           icone:"ðŸ“§", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_website:        {label:"Website",         icone:"ðŸŒ", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_data:           {label:"Data",            icone:"ðŸ“…", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_hora:           {label:"Hora",            icone:"ðŸ•", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_telefone:       {label:"Telefone",        icone:"ðŸ“±", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_botao:          {label:"BotÃ£o",           icone:"ðŸ”˜", cor:"#22c55e", saidas:["BotÃ£o 1","BotÃ£o 2","BotÃ£o 3"], grupo:"Inputs"},
-  input_selecao_imagem: {label:"SeleÃ§Ã£o Imagem", icone:"ðŸ–¼ï¸", cor:"#22c55e", saidas:["Selecionado"],                 grupo:"Inputs"},
-  input_pagamento:      {label:"Pagamento",       icone:"ðŸ’³", cor:"#22c55e", saidas:["Aprovado","Recusado"],         grupo:"Inputs"},
-  input_avaliacao:      {label:"AvaliaÃ§Ã£o",       icone:"â­", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_arquivo:        {label:"Arquivo",         icone:"ðŸ“Ž", cor:"#22c55e", saidas:["Arquivo recebido"],            grupo:"Inputs"},
-  input_cards:          {label:"Cards",           icone:"ðŸƒ", cor:"#22c55e", saidas:["Selecionado"],                 grupo:"Inputs"},
-  condicao:             {label:"CondiÃ§Ã£o",        icone:"ðŸ”€", cor:"#f59e0b", saidas:["Verdadeiro","Falso"],          grupo:"LÃ³gica"},
-  variavel:             {label:"VariÃ¡vel",        icone:"ðŸ“¦", cor:"#f59e0b", saidas:["PrÃ³ximo"],                     grupo:"LÃ³gica"},
-  redirecionar:         {label:"Redirecionar",    icone:"â†©ï¸", cor:"#f59e0b", saidas:[],                              grupo:"LÃ³gica"},
-  script:               {label:"Script",          icone:"âŒ¨ï¸", cor:"#f59e0b", saidas:["PrÃ³ximo"],                     grupo:"LÃ³gica"},
-  espera:               {label:"Espera",          icone:"â³", cor:"#f59e0b", saidas:["Continuar"],                   grupo:"LÃ³gica"},
-  teste_ab:             {label:"Teste A/B",       icone:"ðŸ§ª", cor:"#f59e0b", saidas:["A","B"],                       grupo:"LÃ³gica"},
-  webhook:              {label:"Webhook",         icone:"ðŸ””", cor:"#f59e0b", saidas:["PrÃ³ximo"],                     grupo:"LÃ³gica"},
-  pular:                {label:"Pular",           icone:"â­ï¸", cor:"#f59e0b", saidas:[],                              grupo:"LÃ³gica"},
-  retornar:             {label:"Retornar",        icone:"ðŸ”", cor:"#f59e0b", saidas:[],                              grupo:"LÃ³gica"},
-  google_sheets:        {label:"Google Sheets",   icone:"ðŸ“Š", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"IntegraÃ§Ãµes"},
-  http_request:         {label:"HTTP Request",    icone:"ðŸŒ", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"IntegraÃ§Ãµes"},
-  openai:               {label:"OpenAI",          icone:"ðŸ¤–", cor:"#10b981", saidas:["PrÃ³ximo"],                     grupo:"IntegraÃ§Ãµes"},
-  fluxo_ia:             {label:"Fluxo por IA",    icone:"âœ¨", cor:"#7c3aed", saidas:["Dados confirmados","Erro","Limite de recusas atingido","Limite de lembretes atingido"], grupo:"IntegraÃ§Ãµes"},
-  claude_ai:            {label:"Claude AI",       icone:"ðŸ§ ", cor:"#10b981", saidas:["PrÃ³ximo"],                     grupo:"IntegraÃ§Ãµes"},
-  gmail:                {label:"Gmail",           icone:"ðŸ“¨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"IntegraÃ§Ãµes"},
-  // ðŸ†• v20: Meta Pixel / Conversions API â€” manda evento de conversÃ£o pra Meta (Lead, Purchase, etc)
-  meta_capi:            {label:"Meta Pixel/CAPI", icone:"ðŸ“ˆ", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"IntegraÃ§Ãµes"},
-  inicio:               {label:"InÃ­cio",          icone:"ðŸš€", cor:"#22c55e", saidas:["PrÃ³ximo"],                     grupo:"Eventos"},
-  comando:              {label:"Comando",         icone:"âš¡", cor:"#ef4444", saidas:["PrÃ³ximo"],                     grupo:"Eventos"},
-  reply:                {label:"Reply",           icone:"â†©ï¸", cor:"#ef4444", saidas:["PrÃ³ximo"],                     grupo:"Eventos"},
-  invalido:             {label:"InvÃ¡lido",        icone:"âŒ", cor:"#ef4444", saidas:["PrÃ³ximo"],                     grupo:"Eventos"},
-  transferir:           {label:"Transferir",      icone:"ðŸ‘¤", cor:"#ef4444", saidas:["PrÃ³ximo"],                     grupo:"Eventos"},
-  finalizar:            {label:"Finalizar",       icone:"ðŸ", cor:"#ef4444", saidas:[],                              grupo:"Eventos"},
-  // ðŸ†• v18: bloco que cria proposta no /crm/vendas usando variÃ¡veis salvas + aplica etiqueta
-  gatilho_crm:         {label:"AlteraÃ§Ã£o no CRM", icone:"âš¡", cor:"#f97316", saidas:["Disparar"], grupo:"CRM"},
-  atualizar_venda:     {label:"Atualizar Venda",  icone:"ðŸ“", cor:"#0ea5e9", saidas:["Sucesso","Erro"], grupo:"CRM"},
-  enviar_venda:         {label:"Enviar Venda",    icone:"ðŸ’°", cor:"#22c55e", saidas:["Sucesso","Erro"],              grupo:"CRM"},
-  // ðŸ†• v19: aplica/remove etiqueta no atendimento ativo (use no meio do fluxo, nÃ£o sÃ³ no final)
-  etiqueta:             {label:"Aplicar Etiqueta",icone:"ðŸ·ï¸", cor:"#22c55e", saidas:["PrÃ³ximo"],                     grupo:"CRM"},
+  texto:                {label:"Texto",           icone:"💬", cor:"#3b82f6", saidas:["Próximo"],                     grupo:"Bubbles"},
+  imagem:               {label:"Imagem",          icone:"🖼️", cor:"#06b6d4", saidas:["Próximo"],                     grupo:"Bubbles"},
+  video:                {label:"Vídeo",           icone:"🎥", cor:"#8b5cf6", saidas:["Próximo"],                     grupo:"Bubbles"},
+  audio:                {label:"Áudio",           icone:"🎵", cor:"#ec4899", saidas:["Próximo"],                     grupo:"Bubbles"},
+  embed:                {label:"Incorporar",      icone:"🔗", cor:"#f97316", saidas:["Próximo"],                     grupo:"Bubbles"},
+  input_texto:          {label:"Texto",           icone:"✏️", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_numero:         {label:"Número",          icone:"🔢", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_email:          {label:"Email",           icone:"📧", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_website:        {label:"Website",         icone:"🌐", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_data:           {label:"Data",            icone:"📅", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_hora:           {label:"Hora",            icone:"🕐", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_telefone:       {label:"Telefone",        icone:"📱", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_botao:          {label:"Botão",           icone:"🔘", cor:"#22c55e", saidas:["Botão 1","Botão 2","Botão 3"], grupo:"Inputs"},
+  input_selecao_imagem: {label:"Seleção Imagem", icone:"🖼️", cor:"#22c55e", saidas:["Selecionado"],                 grupo:"Inputs"},
+  input_pagamento:      {label:"Pagamento",       icone:"💳", cor:"#22c55e", saidas:["Aprovado","Recusado"],         grupo:"Inputs"},
+  input_avaliacao:      {label:"Avaliação",       icone:"⭐", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_arquivo:        {label:"Arquivo",         icone:"📎", cor:"#22c55e", saidas:["Arquivo recebido"],            grupo:"Inputs"},
+  input_cards:          {label:"Cards",           icone:"🃏", cor:"#22c55e", saidas:["Selecionado"],                 grupo:"Inputs"},
+  condicao:             {label:"Condição",        icone:"🔀", cor:"#f59e0b", saidas:["Verdadeiro","Falso"],          grupo:"Lógica"},
+  variavel:             {label:"Variável",        icone:"📦", cor:"#f59e0b", saidas:["Próximo"],                     grupo:"Lógica"},
+  redirecionar:         {label:"Redirecionar",    icone:"↩️", cor:"#f59e0b", saidas:[],                              grupo:"Lógica"},
+  script:               {label:"Script",          icone:"⌨️", cor:"#f59e0b", saidas:["Próximo"],                     grupo:"Lógica"},
+  espera:               {label:"Espera",          icone:"⏳", cor:"#f59e0b", saidas:["Continuar"],                   grupo:"Lógica"},
+  teste_ab:             {label:"Teste A/B",       icone:"🧪", cor:"#f59e0b", saidas:["A","B"],                       grupo:"Lógica"},
+  webhook:              {label:"Webhook",         icone:"🔔", cor:"#f59e0b", saidas:["Próximo"],                     grupo:"Lógica"},
+  pular:                {label:"Pular",           icone:"⏭️", cor:"#f59e0b", saidas:[],                              grupo:"Lógica"},
+  retornar:             {label:"Retornar",        icone:"🔁", cor:"#f59e0b", saidas:[],                              grupo:"Lógica"},
+  google_sheets:        {label:"Google Sheets",   icone:"📊", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
+  http_request:         {label:"HTTP Request",    icone:"🌐", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
+  openai:               {label:"OpenAI",          icone:"🤖", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
+  fluxo_ia:             {label:"Fluxo por IA",    icone:"✨", cor:"#7c3aed", saidas:["Dados confirmados","Erro","Limite de recusas atingido","Limite de lembretes atingido"], grupo:"Integrações"},
+  claude_ai:            {label:"Claude AI",       icone:"🧠", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
+  gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
+  // 🆕 v20: Meta Pixel / Conversions API — manda evento de conversão pra Meta (Lead, Purchase, etc)
+  meta_capi:            {label:"Meta Pixel/CAPI", icone:"📈", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
+  inicio:               {label:"Início",          icone:"🚀", cor:"#22c55e", saidas:["Próximo"],                     grupo:"Eventos"},
+  comando:              {label:"Comando",         icone:"⚡", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
+  reply:                {label:"Reply",           icone:"↩️", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
+  invalido:             {label:"Inválido",        icone:"❌", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
+  transferir:           {label:"Transferir",      icone:"👤", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
+  finalizar:            {label:"Finalizar",       icone:"🏁", cor:"#ef4444", saidas:[],                              grupo:"Eventos"},
+  // 🆕 v18: bloco que cria proposta no /crm/vendas usando variáveis salvas + aplica etiqueta
+  gatilho_crm:         {label:"Alteração no CRM", icone:"⚡", cor:"#f97316", saidas:["Disparar"], grupo:"CRM"},
+  atualizar_venda:     {label:"Atualizar Venda",  icone:"📝", cor:"#0ea5e9", saidas:["Sucesso","Erro"], grupo:"CRM"},
+  enviar_venda:         {label:"Enviar Venda",    icone:"💰", cor:"#22c55e", saidas:["Sucesso","Erro"],              grupo:"CRM"},
+  // 🆕 v19: aplica/remove etiqueta no atendimento ativo (use no meio do fluxo, não só no final)
+  etiqueta:             {label:"Aplicar Etiqueta",icone:"🏷️", cor:"#22c55e", saidas:["Próximo"],                     grupo:"CRM"},
 };
 
-// ðŸ†• v18: novo grupo "CRM" no sidebar pro bloco "Enviar Venda"
-const GRUPOS = ["Bubbles","Inputs","LÃ³gica","IntegraÃ§Ãµes","Eventos","CRM"];
+// 🆕 v18: novo grupo "CRM" no sidebar pro bloco "Enviar Venda"
+const GRUPOS = ["Bubbles","Inputs","Lógica","Integrações","Eventos","CRM"];
 const uid = () => Math.random().toString(36).slice(2,10);
 
 const IS: React.CSSProperties = {width:"100%",background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:6,padding:"8px 10px",color:"#1f2937",fontSize:12,boxSizing:"border-box"};
 const LS: React.CSSProperties = {color:"#9ca3af",fontSize:10,textTransform:"uppercase",display:"block",marginBottom:4,letterSpacing:1};
 
-// âœ… ATUALIZADO â€” pega username do workspace (nunca o id numÃ©rico)
-// ðŸ†• v18: padronizado com o useWorkspace.ts pra funcionar igual pra sub-usuÃ¡rio.
-// Antes, dois bugs faziam Admin sub-usuÃ¡rio receber null:
+// ✅ ATUALIZADO — pega username do workspace (nunca o id numérico)
+// 🆕 v18: padronizado com o useWorkspace.ts pra funcionar igual pra sub-usuário.
+// Antes, dois bugs faziam Admin sub-usuário receber null:
 //   1) .maybeSingle() sem .order().limit(1) quebra com erro 406 se houver duplicata
 //   2) .or(username.eq.X, id.eq.X) com X=texto faz Postgres rejeitar com erro 400
-//      porque a coluna `id` Ã© INT â€” qualquer comparaÃ§Ã£o `id.eq.abccompany` falha.
+//      porque a coluna `id` é INT — qualquer comparação `id.eq.abccompany` falha.
 async function getWsUsername(): Promise<string|null> {
   const {data:{user}} = await supabase.auth.getUser();
   if (!user) return null;
   // 1. Dono do workspace
   const {data: wsDono} = await supabase.from("workspaces").select("username").eq("owner_id", user.id).maybeSingle();
   if (wsDono?.username) return wsDono.username;
-  // 2. Sub-usuÃ¡rio â€” busca a linha mais recente (limit 1) pra evitar erro 406 em duplicatas
+  // 2. Sub-usuário — busca a linha mais recente (limit 1) pra evitar erro 406 em duplicatas
   const {data: uw} = await supabase.from("usuarios_workspace")
     .select("workspace_id")
     .eq("email", user.email)
@@ -148,14 +148,14 @@ async function getWsUsername(): Promise<string|null> {
     .limit(1)
     .maybeSingle();
   if (uw?.workspace_id) {
-    // 2a. Tenta como username (caso novo â€” workspace_id Ã© string tipo "abccompany")
+    // 2a. Tenta como username (caso novo — workspace_id é string tipo "abccompany")
     const {data: wsSub} = await supabase.from("workspaces")
       .select("username")
       .eq("username", uw.workspace_id)
       .maybeSingle();
     if (wsSub?.username) return wsSub.username;
-    // 2b. Fallback legacy â€” sÃ³ tenta como id numÃ©rico SE workspace_id for sÃ³ dÃ­gitos
-    //     (proteÃ§Ã£o contra erro 400 "invalid input syntax for integer")
+    // 2b. Fallback legacy — só tenta como id numérico SE workspace_id for só dígitos
+    //     (proteção contra erro 400 "invalid input syntax for integer")
     if (/^\d+$/.test(uw.workspace_id)) {
       const {data: wsLegado} = await supabase.from("workspaces")
         .select("username")
@@ -171,14 +171,14 @@ function defaultD(tipo: TipoNo): Record<string,any> {
   const m: Partial<Record<TipoNo,Record<string,any>>> = {
     texto:{texto:"Digite sua mensagem aqui..."},
     imagem:{url:"",legenda:""},video:{url:"",legenda:""},audio:{url:""},embed:{url:""},
-    input_texto:{pergunta:"Qual Ã© o seu nome?",variavel:"nome"},
-    input_numero:{pergunta:"Qual nÃºmero?",variavel:"numero"},
+    input_texto:{pergunta:"Qual é o seu nome?",variavel:"nome"},
+    input_numero:{pergunta:"Qual número?",variavel:"numero"},
     input_email:{pergunta:"Qual seu email?",variavel:"email"},
     input_website:{pergunta:"Qual website?",variavel:"website"},
     input_data:{pergunta:"Qual a data?",variavel:"data"},
     input_hora:{pergunta:"Qual a hora?",variavel:"hora"},
     input_telefone:{pergunta:"Qual telefone?",variavel:"telefone"},
-    input_botao:{texto:"Escolha:",botoes:["OpÃ§Ã£o 1","OpÃ§Ã£o 2"],modo_envio:"interativo"},
+    input_botao:{texto:"Escolha:",botoes:["Opção 1","Opção 2"],modo_envio:"interativo"},
     input_selecao_imagem:{texto:"Selecione:",itens:[]},
     input_pagamento:{valor:0,descricao:"Pagamento"},
     input_avaliacao:{pergunta:"Como avalia?",max:5,variavel:"avaliacao"},
@@ -186,34 +186,34 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     input_cards:{cards:[{titulo:"Card 1",descricao:""}]},
     condicao:{variavel:"resposta",operador:"igual",valor:""},
     variavel:{nome:"minhaVar",valor:"",tipo:"texto"},
-    redirecionar:{url:""},script:{codigo:"// cÃ³digo\nreturn true;"},
+    redirecionar:{url:""},script:{codigo:"// código\nreturn true;"},
     espera:{segundos:3},teste_ab:{percentual_a:50},
     webhook:{url:"",metodo:"POST",headers:"",body:""},
     pular:{alvo:""},retornar:{alvo:""},
     google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
-    fluxo_ia:{extensoes_ia_ativas:false,ext_normalizadores_ativa:false,ext_crm_ativa:false,ext_retomada_ativa:false,ext_followups_ativa:false,ext_consulta_negativa_ativa:false,ext_fila_ativa:false,ext_multimidia_ativa:false,apiKey:"",modelo:"gpt-4o-mini",prompt:"VocÃª Ã© um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"OlÃ¡! Vou confirmar alguns dados com vocÃª.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda estÃ¡ por aÃ­? Posso continuar seu atendimento? ðŸ˜Š"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas nÃ£o consegui ler com seguranÃ§a. Pode enviar novamente ou digitar as informaÃ§Ãµes, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
+    fluxo_ia:{extensoes_ia_ativas:false,ext_normalizadores_ativa:false,ext_crm_ativa:false,ext_retomada_ativa:false,ext_followups_ativa:false,ext_consulta_negativa_ativa:false,ext_fila_ativa:false,ext_multimidia_ativa:false,apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
-    // ðŸ†• v20: Meta Pixel / Conversions API
+    // 🆕 v20: Meta Pixel / Conversions API
     meta_capi:{
       pixel_id:"",            // ID do Pixel / Dataset (Events Manager da Meta)
       access_token:"",        // token da Conversions API (gerado no Events Manager)
-      evento:"Lead",          // evento padrÃ£o da Meta (Lead, Contact, Purchase...) ou "custom"
+      evento:"Lead",          // evento padrão da Meta (Lead, Contact, Purchase...) ou "custom"
       evento_custom:"",       // nome do evento custom (usado se evento === "custom")
-      valor:"",               // valor da conversÃ£o (opcional, pra Purchase) â€” aceita {{variavel}}
+      valor:"",               // valor da conversão (opcional, pra Purchase) — aceita {{variavel}}
       moeda:"BRL",            // moeda do valor
-      test_event_code:"",     // opcional: cÃ³digo de teste do Events Manager â†’ Testar Eventos
-      api_version:"v21.0",    // versÃ£o da Graph API
+      test_event_code:"",     // opcional: código de teste do Events Manager → Testar Eventos
+      api_version:"v21.0",    // versão da Graph API
     },
-    inicio:{mensagem:"OlÃ¡! Como posso te ajudar?"},
+    inicio:{mensagem:"Olá! Como posso te ajudar?"},
     comando:{comando:"/start"},reply:{palavras:""},
-    invalido:{mensagem:"NÃ£o entendi."},
-    // ðŸ†• Transferir agora tem 2 modos: equipe (fila) ou humano (atendente especÃ­fico)
+    invalido:{mensagem:"Não entendi."},
+    // 🆕 Transferir agora tem 2 modos: equipe (fila) ou humano (atendente específico)
     transferir:{modo:"equipe", fila:"", atendente_email:"", atendente_nome:"", mensagem:"Transferindo..."},
     finalizar:{mensagem:"Atendimento finalizado. Obrigado!"},
-    // ðŸ†• v18: bloco enviar_venda â€” defaults
+    // 🆕 v18: bloco enviar_venda — defaults
     gatilho_crm:{ativo:true,campo:"status_venda",operador:"mudou_para",valor:"",modo_primeiro_envio:"texto",template_nome:"",template_idioma:"pt_BR"},
     atualizar_venda:{atualizacoes:[{campo:"status_venda",origem:"valor",valor:""}],mensagem_sucesso:"",mensagem_erro:""},
     enviar_venda:{
@@ -226,15 +226,15 @@ function defaultD(tipo: TipoNo): Record<string,any> {
       etiqueta: "proposta_finalizada",        // tag aplicada ao atendimento ao criar a proposta
       aplicar_etiqueta: true,                 // se false, so cria proposta sem aplicar tag
       status_inicial: "aguardando",           // status da proposta criada
-      mensagem_sucesso: "âœ… Sua proposta foi registrada! Em breve nossa equipe entra em contato.",
-      mensagem_erro: "âš ï¸ NÃ£o consegui registrar agora, mas seu atendente vai te ajudar.",
+      mensagem_sucesso: "✅ Sua proposta foi registrada! Em breve nossa equipe entra em contato.",
+      mensagem_erro: "⚠️ Não consegui registrar agora, mas seu atendente vai te ajudar.",
     },
-    // ðŸ†• v19: bloco etiqueta â€” aplica/remove etiqueta no atendimento ativo
+    // 🆕 v19: bloco etiqueta — aplica/remove etiqueta no atendimento ativo
     etiqueta:{
       acao: "aplicar",        // "aplicar" ou "remover"
-      nome: "",               // nome da etiqueta (cria se nÃ£o existir)
+      nome: "",               // nome da etiqueta (cria se não existir)
       cor: "#3b82f6",         // cor da etiqueta (se for criada nova)
-      icone: "ðŸ·ï¸",            // Ã­cone da etiqueta (se for criada nova)
+      icone: "🏷️",            // ícone da etiqueta (se for criada nova)
     },
   };
   return m[tipo]||{};
@@ -247,16 +247,16 @@ function getPreview(no: No): string {
     case "imagem":case"video":case"audio":case"embed": return d.url||d.legenda||"Sem URL";
     case "input_texto":case"input_numero":case"input_email":case"input_website":
     case"input_data":case"input_hora":case"input_telefone":case"input_arquivo":case"input_avaliacao":
-      return `${d.pergunta||"?"} â†’ {{${d.variavel||"var"}}}`;
+      return `${d.pergunta||"?"} → {{${d.variavel||"var"}}}`;
     case "input_botao": {
       const modo = d.modo_envio === "numerado" ? "numerado" : "interativo";
-      return `${modo === "numerado" ? "1ï¸âƒ£" : "ðŸ”˜"} ${d.botoes?.length||0} botÃµes`;
+      return `${modo === "numerado" ? "1️⃣" : "🔘"} ${d.botoes?.length||0} botões`;
     }
     case "input_selecao_imagem": return `${d.itens?.length||0} imgs`;
     case "input_pagamento": return `R$ ${d.valor||0}`;
     case "input_cards": return `${d.cards?.length||0} cards`;
     case "condicao": {
-      // ðŸ†• Suporta mÃºltiplas condiÃ§Ãµes com OR/AND
+      // 🆕 Suporta múltiplas condições com OR/AND
       if (Array.isArray(d.condicoes) && d.condicoes.length > 0) {
         const juncao = d.juncao === "OR" ? " OU " : " E ";
         return d.condicoes.slice(0, 2).map((c: any) => `{{${c.variavel||"?"}}} ${c.operador||"="} "${c.valor||""}"`).join(juncao) + (d.condicoes.length > 2 ? ` ${juncao} +${d.condicoes.length - 2}` : "");
@@ -264,66 +264,66 @@ function getPreview(no: No): string {
       return `SE {{${d.variavel}}} ${d.operador} "${d.valor}"`;
     }
     case "variavel": {
-      // ðŸ†• Mostra modo no canvas
+      // 🆕 Mostra modo no canvas
       const modo = d.modo_valor || "texto";
-      const icone = modo === "codigo" ? "ðŸ’»" : modo === "expressao" ? "ðŸ”—" : "ðŸ“";
+      const icone = modo === "codigo" ? "💻" : modo === "expressao" ? "🔗" : "📝";
       const valor = String(d.valor || "").slice(0, 30);
       return `${icone} {{${d.nome||"?"}}} = ${valor}${String(d.valor||"").length > 30 ? "..." : ""}`;
     }
     case "redirecionar": return d.url||"Sem URL";
     case "script": return "Script JS";
-    case "espera": return `â³ ${d.segundos}s`;
+    case "espera": return `⏳ ${d.segundos}s`;
     case "teste_ab": return `A:${d.percentual_a}% B:${100-(d.percentual_a||50)}%`;
     case "webhook": return `${d.metodo} ${d.url||""}`;
-    case "pular":case"retornar": return `â†’ ${d.alvo||"?"}`;
-    case "google_sheets": return d.webhook_url ? `Sheets ${d.acao}` : "âš ï¸ Webhook nÃ£o configurado";
+    case "pular":case"retornar": return `→ ${d.alvo||"?"}`;
+    case "google_sheets": return d.webhook_url ? `Sheets ${d.acao}` : "⚠️ Webhook não configurado";
     case "http_request": return `${d.metodo} ${d.url||""}`;
     case "openai": return `GPT: ${d.modelo}`;
-    case "fluxo_ia": return "IA coleta " + (Array.isArray(d.variaveis) ? d.variaveis.length : 0) + " variÃ¡vel(is)" + (d.followups_extensao_ativa === true ? " â€¢ Agenda e lembretes ativos" : "");
+    case "fluxo_ia": return "IA coleta " + (Array.isArray(d.variaveis) ? d.variaveis.length : 0) + " variável(is)" + (d.followups_extensao_ativa === true ? " • Agenda e lembretes ativos" : "");
     case "claude_ai": return `Claude: ${d.modelo}`;
-    case "gmail": return d.smtp_user ? `ðŸ“¨ ${d.para||"?"}` : "âš ï¸ SMTP nÃ£o configurado";
-    // ðŸ†• v20: preview do bloco Meta Pixel/CAPI
+    case "gmail": return d.smtp_user ? `📨 ${d.para||"?"}` : "⚠️ SMTP não configurado";
+    // 🆕 v20: preview do bloco Meta Pixel/CAPI
     case "meta_capi": {
       const ev = d.evento === "custom" ? (d.evento_custom || "custom") : (d.evento || "Lead");
-      return d.pixel_id ? `ðŸ“ˆ ${ev} â†’ Pixel ${String(d.pixel_id).slice(0,8)}â€¦` : "âš ï¸ Pixel nÃ£o configurado";
+      return d.pixel_id ? `📈 ${ev} → Pixel ${String(d.pixel_id).slice(0,8)}…` : "⚠️ Pixel não configurado";
     }
-    case "inicio": return d.mensagem||"InÃ­cio";
+    case "inicio": return d.mensagem||"Início";
     case "comando": return d.comando||"/start";
     case "reply": return d.palavras||"Palavras-chave";
-    case "invalido": return d.mensagem||"InvÃ¡lido";
-    // ðŸ†• Transferir: mostra equipe/fila OU atendente humano conforme modo
+    case "invalido": return d.mensagem||"Inválido";
+    // 🆕 Transferir: mostra equipe/fila OU atendente humano conforme modo
     case "transferir": {
       if (d.modo === "humano") {
-        return d.atendente_email ? `ðŸ‘¤ ${d.atendente_nome || d.atendente_email}` : "âš ï¸ Atendente nÃ£o selecionado";
+        return d.atendente_email ? `👤 ${d.atendente_nome || d.atendente_email}` : "⚠️ Atendente não selecionado";
       }
-      return d.fila ? `ðŸ“‹ ${d.fila}` : "âš ï¸ Fila nÃ£o selecionada";
+      return d.fila ? `📋 ${d.fila}` : "⚠️ Fila não selecionada";
     }
     case "finalizar": return d.mensagem||"Finalizar";
-    // ðŸ†• v18: preview do bloco "Enviar Venda"
+    // 🆕 v18: preview do bloco "Enviar Venda"
     case "gatilho_crm": return `Quando ${d.campo || "status_venda"} ${d.operador || "mudar"} ${d.valor || ""}`;
     case "atualizar_venda": return `${Array.isArray(d.atualizacoes) ? d.atualizacoes.length : 0} campo(s) da mesma venda`;
     case "enviar_venda": {
       const modo = d.modo_mapeamento === "manual" ? "manual" : "auto";
       const qtdVend = Array.isArray(d.roleta_vendedores) ? d.roleta_vendedores.length : 0;
-      const roleta = d.roleta_vendas_ativa !== false ? ` ðŸŽ¯ ${qtdVend} vendedor(es)` : "";
-      const tag = d.aplicar_etiqueta !== false ? ` ðŸ·ï¸ ${d.etiqueta||"proposta_finalizada"}` : "";
-      return `ðŸ’° Cria proposta (${modo})${roleta}${tag}`;
+      const roleta = d.roleta_vendas_ativa !== false ? ` 🎯 ${qtdVend} vendedor(es)` : "";
+      const tag = d.aplicar_etiqueta !== false ? ` 🏷️ ${d.etiqueta||"proposta_finalizada"}` : "";
+      return `💰 Cria proposta (${modo})${roleta}${tag}`;
     }
-    // ðŸ†• v19: preview do bloco "Aplicar Etiqueta"
+    // 🆕 v19: preview do bloco "Aplicar Etiqueta"
     case "etiqueta": {
       const acao = d.acao === "remover" ? "Remove" : "Aplica";
-      const ico = d.icone || "ðŸ·ï¸";
+      const ico = d.icone || "🏷️";
       return `${ico} ${acao}: ${d.nome || "(sem nome)"}`;
     }
     default: return "";
   }
 }
 
-// ðŸ†• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// TVarComponent â€” Textarea com botÃ£o "+ VariÃ¡vel" igual Typebot.
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// CRITICAL FIX: dropdown usa position:fixed (nÃ£o absolute) com posiÃ§Ã£o calculada
-// via useRef + useState, pra escapar do clip do modal scrollÃ¡vel (overflow:auto).
+// 🆕 ═══════════════════════════════════════════════════════════════════════
+// TVarComponent — Textarea com botão "+ Variável" igual Typebot.
+// ═══════════════════════════════════════════════════════════════════════
+// CRITICAL FIX: dropdown usa position:fixed (não absolute) com posição calculada
+// via useRef + useState, pra escapar do clip do modal scrollável (overflow:auto).
 // Antes ficava clipado quando o popup tentava ir pra cima do textarea.
 function TVarComponent({
   label, valor, onChange, placeholder, altura, variaveis, idSuffix
@@ -343,19 +343,19 @@ function TVarComponent({
   const taRef = useRef<HTMLTextAreaElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
-  // Calcula posiÃ§Ã£o do dropdown baseado no botÃ£o (em coords da viewport)
+  // Calcula posição do dropdown baseado no botão (em coords da viewport)
   function abrir() {
     const btn = btnRef.current;
     if (!btn) return;
     const r = btn.getBoundingClientRect();
     const dropdownWidth = 260;
     const dropdownHeight = 240;
-    // Tenta abrir ACIMA do botÃ£o (preferÃªncia); se nÃ£o couber, abre abaixo
+    // Tenta abrir ACIMA do botão (preferência); se não couber, abre abaixo
     let top = r.top - dropdownHeight - 8;
-    if (top < 10) top = r.bottom + 8; // sem espaÃ§o acima â†’ abre abaixo
-    // Alinha pela direita do botÃ£o (cresce pra esquerda)
+    if (top < 10) top = r.bottom + 8; // sem espaço acima → abre abaixo
+    // Alinha pela direita do botão (cresce pra esquerda)
     let left = r.right - dropdownWidth;
-    if (left < 10) left = 10; // nÃ£o deixa ir pra fora da tela
+    if (left < 10) left = 10; // não deixa ir pra fora da tela
     setPos({ left, top });
     setAberto(true);
     setFiltro("");
@@ -399,7 +399,7 @@ function TVarComponent({
     }, 50);
   }
 
-  // Filtra variÃ¡veis pelo texto digitado
+  // Filtra variáveis pelo texto digitado
   const variaveisFiltradas = filtro.trim()
     ? variaveis.filter(v => v.toLowerCase().includes(filtro.toLowerCase()))
     : variaveis;
@@ -437,16 +437,16 @@ function TVarComponent({
             outline: "none",
           }}
         >
-          <span style={{ fontSize: 14, lineHeight: 1 }}>ï¼‹</span> VariÃ¡vel
+          <span style={{ fontSize: 14, lineHeight: 1 }}>＋</span> Variável
         </button>
       </div>
       {variaveis.length > 0 && (
         <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
-          ðŸ’¡ Clique em <b style={{ color: "#a78bfa" }}>ï¼‹ VariÃ¡vel</b> pra inserir uma variÃ¡vel do fluxo na posiÃ§Ã£o do cursor.
+          💡 Clique em <b style={{ color: "#a78bfa" }}>＋ Variável</b> pra inserir uma variável do fluxo na posição do cursor.
         </p>
       )}
 
-      {/* Dropdown com position:fixed â€” escapa do clip do modal */}
+      {/* Dropdown com position:fixed — escapa do clip do modal */}
       {aberto && pos && (
         <div
           ref={dropRef}
@@ -468,7 +468,7 @@ function TVarComponent({
         >
           <input
             type="text"
-            placeholder={variaveis.length > 0 ? "Buscar ou criar variÃ¡vel..." : "Digite o nome da nova variÃ¡vel..."}
+            placeholder={variaveis.length > 0 ? "Buscar ou criar variável..." : "Digite o nome da nova variável..."}
             value={filtro}
             onChange={e => setFiltro(e.target.value)}
             onKeyDown={e => {
@@ -493,13 +493,13 @@ function TVarComponent({
               flexShrink: 0,
             }}
           />
-          {/* Lista scrollÃ¡vel */}
+          {/* Lista scrollável */}
           <div style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
             {variaveisFiltradas.length === 0 ? (
               <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
                 {filtro
-                  ? <>Nenhuma variÃ¡vel corresponde.<br/>Pressione <b>Enter</b> pra criar <span style={{color:"#a78bfa"}}>{`{{${filtro}}}`}</span></>
-                  : <>Nenhuma variÃ¡vel no fluxo ainda.<br/>Digite acima pra criar a primeira.</>
+                  ? <>Nenhuma variável corresponde.<br/>Pressione <b>Enter</b> pra criar <span style={{color:"#a78bfa"}}>{`{{${filtro}}}`}</span></>
+                  : <>Nenhuma variável no fluxo ainda.<br/>Digite acima pra criar a primeira.</>
                 }
               </p>
             ) : (
@@ -542,11 +542,11 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
   setNos: React.Dispatch<React.SetStateAction<No[]>>;
-  filasBanco: FilaItem[]; // ðŸ†•
-  atendentesBanco: AtendenteItem[]; // ðŸ†• lista de atendentes do workspace
-  nos: No[]; // ðŸ†• lista completa de nÃ³s pra detectar variÃ¡veis criadas
-  statusVendaOpcoes: {value:string;label:string}[]; // ðŸ“‹ status disponÃ­veis no workspace
-  camposPropostaUnif: CampoUnificado[]; // ðŸ“‹ campos da proposta (fixos + customs) do workspace
+  filasBanco: FilaItem[]; // 🆕
+  atendentesBanco: AtendenteItem[]; // 🆕 lista de atendentes do workspace
+  nos: No[]; // 🆕 lista completa de nós pra detectar variáveis criadas
+  statusVendaOpcoes: {value:string;label:string}[]; // 📋 status disponíveis no workspace
+  camposPropostaUnif: CampoUnificado[]; // 📋 campos da proposta (fixos + customs) do workspace
   vendedorIALiberado: boolean;
   salvarConfiguracaoMidia: (id: string, dados: Record<string, boolean>) => Promise<void>;
   salvandoMidiaId: string | null;
@@ -558,33 +558,33 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   if (noSel.tipo === "fluxo_ia" && !vendedorIALiberado) {
     return (
       <div style={{border:"1px solid #ddd6fe",background:"linear-gradient(145deg,#faf5ff,#fff)",borderRadius:14,padding:22,textAlign:"center"}}>
-        <div style={{fontSize:42,marginBottom:10}}>ðŸ¤–</div>
+        <div style={{fontSize:42,marginBottom:10}}>🤖</div>
         <h3 style={{margin:"0 0 8px",color:"#5b21b6"}}>Vendedor IA bloqueado</h3>
-        <p style={{fontSize:12,lineHeight:1.6,color:"#6b7280",margin:"0 0 14px"}}>Este Ã© um mÃ³dulo premium avulso e nÃ£o faz parte dos planos padrÃ£o da Wolf.</p>
-        <div style={{display:"inline-block",padding:"8px 14px",borderRadius:999,background:"#7c3aed",color:"#fff",fontWeight:800,fontSize:12}}>ContrataÃ§Ã£o: R$ 2.500,00</div>
-        <p style={{fontSize:11,color:"#9ca3af",margin:"14px 0 0"}}>Solicite a liberaÃ§Ã£o ao administrador da Wolf System.</p>
+        <p style={{fontSize:12,lineHeight:1.6,color:"#6b7280",margin:"0 0 14px"}}>Este é um módulo premium avulso e não faz parte dos planos padrão da Wolf.</p>
+        <div style={{display:"inline-block",padding:"8px 14px",borderRadius:999,background:"#7c3aed",color:"#fff",fontWeight:800,fontSize:12}}>Contratação: R$ 2.500,00</div>
+        <p style={{fontSize:11,color:"#9ca3af",margin:"14px 0 0"}}>Solicite a liberação ao administrador da Wolf System.</p>
       </div>
     );
   }
 
-  // ðŸ†• Coleta TODAS as variÃ¡veis criadas no fluxo (em qualquer bloco que seta variÃ¡vel).
-  // Usado pro autocomplete/dropdown nos blocos que usam variÃ¡veis.
+  // 🆕 Coleta TODAS as variáveis criadas no fluxo (em qualquer bloco que seta variável).
+  // Usado pro autocomplete/dropdown nos blocos que usam variáveis.
   const variaveisDoFluxo = (() => {
     const set = new Set<string>();
     nos.forEach(n => {
       const dn = n.dados || {};
-      // Blocos que CAPTURAM variÃ¡veis
+      // Blocos que CAPTURAM variáveis
       if (dn.variavel) set.add(dn.variavel);
       if (dn.variavel_resposta) set.add(dn.variavel_resposta);
       if (dn.variavel_status) set.add(dn.variavel_status);
-      // Fluxo por IA guarda vÃ¡rias variÃ¡veis dentro de dados.variaveis.
+      // Fluxo por IA guarda várias variáveis dentro de dados.variaveis.
       if (Array.isArray(dn.variaveis)) {
         dn.variaveis.forEach((campo: any) => {
           const nome = String(campo?.nome || "").trim();
           if (nome) set.add(nome);
         });
       }
-      // Resultados das consultas automÃ¡ticas tambÃ©m ficam disponÃ­veis.
+      // Resultados das consultas automáticas também ficam disponíveis.
       if (Array.isArray(dn.consultas)) {
         dn.consultas.forEach((consulta: any) => {
           const resultado = String(consulta?.variavel_resultado || "").trim();
@@ -595,7 +595,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       }
       // Bloco "variavel" (set manual)
       if (n.tipo === "variavel" && dn.nome) set.add(dn.nome);
-      // CondiÃ§Ãµes â€” referenciam mas tambÃ©m incluo pra autocompletar
+      // Condições — referenciam mas também incluo pra autocompletar
       if (Array.isArray(dn.condicoes)) {
         dn.condicoes.forEach((c: any) => { if (c.variavel) set.add(c.variavel); });
       }
@@ -617,12 +617,12 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     </div>
   );
 
-  // ðŸ†• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // TVar â€” Textarea COM botÃ£o "+ VariÃ¡vel" estilo Typebot.
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // Permite inserir {{nome_variavel}} na posiÃ§Ã£o do cursor com 1 clique.
-  // Mostra lista de variÃ¡veis existentes no fluxo + opÃ§Ã£o de criar nova.
-  // Use em blocos onde a mensagem contÃ©m texto + variÃ¡veis (texto, legenda, etc).
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // TVar — Textarea COM botão "+ Variável" estilo Typebot.
+  // ═══════════════════════════════════════════════════════════════════════
+  // Permite inserir {{nome_variavel}} na posição do cursor com 1 clique.
+  // Mostra lista de variáveis existentes no fluxo + opção de criar nova.
+  // Use em blocos onde a mensagem contém texto + variáveis (texto, legenda, etc).
   const TVar = (lbl: string, key: string, ph = "", h = 100) => {
     return (
       <TVarComponent
@@ -646,12 +646,12 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     </div>
   );
 
-  // ðŸ†• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // VarPill â€” Componente visual estilo Typebot pra escolher variÃ¡vel.
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // Exibe a variÃ¡vel atual como uma "pÃ­lula" roxa (igual Typebot). Click abre
-  // dropdown com lista das variÃ¡veis existentes + opÃ§Ã£o de criar nova.
-  const VarPill = (label: string | null, key: string, placeholder = "Selecionar variÃ¡vel") => {
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // VarPill — Componente visual estilo Typebot pra escolher variável.
+  // ═══════════════════════════════════════════════════════════════════════
+  // Exibe a variável atual como uma "pílula" roxa (igual Typebot). Click abre
+  // dropdown com lista das variáveis existentes + opção de criar nova.
+  const VarPill = (label: string | null, key: string, placeholder = "Selecionar variável") => {
     const valor = d[key] || "";
     return (
       <div key={`${id}-${key}-varpill`}>
@@ -681,7 +681,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             ) : (
               <span style={{ color: "#6b7280", fontSize: 12 }}>{placeholder}</span>
             )}
-            <span style={{ marginLeft: "auto", color: "#6b7280", fontSize: 10 }}>â–¼</span>
+            <span style={{ marginLeft: "auto", color: "#6b7280", fontSize: 10 }}>▼</span>
           </summary>
           <div style={{
             position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
@@ -689,10 +689,10 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             zIndex: 100, maxHeight: 280, overflowY: "auto", padding: 8,
             boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
           }}>
-            {/* Input pra digitar nova variÃ¡vel */}
+            {/* Input pra digitar nova variável */}
             <input
               type="text"
-              placeholder="Digite ou crie uma variÃ¡vel..."
+              placeholder="Digite ou crie uma variável..."
               defaultValue={valor}
               onKeyDown={e => {
                 if (e.key === "Enter") {
@@ -711,10 +711,10 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                 marginBottom: 8, outline: "none",
               }}
             />
-            {/* Lista de variÃ¡veis existentes */}
+            {/* Lista de variáveis existentes */}
             {variaveisDoFluxo.length === 0 ? (
               <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
-                Nenhuma variÃ¡vel no fluxo ainda.<br/>Digite acima pra criar a primeira.
+                Nenhuma variável no fluxo ainda.<br/>Digite acima pra criar a primeira.
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -723,7 +723,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                     key={v}
                     onClick={(e) => {
                       u({ [key]: v });
-                      // ðŸ†• Fix: usa closest do elemento clicado (antes buscava por ID que nÃ£o existia)
+                      // 🆕 Fix: usa closest do elemento clicado (antes buscava por ID que não existia)
                       (e.currentTarget as HTMLElement).closest("details")?.removeAttribute("open");
                     }}
                     style={{
@@ -752,7 +752,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                 ))}
               </div>
             )}
-            {/* BotÃ£o limpar */}
+            {/* Botão limpar */}
             {valor && (
               <button
                 onClick={(e) => {
@@ -764,7 +764,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                   border: "1px dashed #e5e7eb", borderRadius: 6, color: "#6b7280",
                   fontSize: 11, cursor: "pointer",
                 }}
-              >âœ• Limpar</button>
+              >✕ Limpar</button>
             )}
           </div>
         </details>
@@ -772,25 +772,25 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     );
   };
 
-  // ðŸ†• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // OpSelect â€” Select de operador estilo Typebot (visual customizado, nÃ£o nativo).
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // OpSelect — Select de operador estilo Typebot (visual customizado, não nativo).
+  // ═══════════════════════════════════════════════════════════════════════
   const OpSelect = (key: string, valor: string, onChange: (v: string) => void) => {
     const opcoes = [
       { value: "igual", label: "Igual a", icone: "=" },
-      { value: "diferente", label: "Diferente de", icone: "â‰ " },
-      { value: "contem", label: "ContÃ©m", icone: "âŠ‡" },
-      { value: "nao_contem", label: "NÃ£o contÃ©m", icone: "âŠ‰" },
-      { value: "comeca_com", label: "ComeÃ§a com", icone: "â–¶" },
-      { value: "termina_com", label: "Termina com", icone: "â—€" },
+      { value: "diferente", label: "Diferente de", icone: "≠" },
+      { value: "contem", label: "Contém", icone: "⊇" },
+      { value: "nao_contem", label: "Não contém", icone: "⊉" },
+      { value: "comeca_com", label: "Começa com", icone: "▶" },
+      { value: "termina_com", label: "Termina com", icone: "◀" },
       { value: ">", label: "Maior que", icone: ">" },
       { value: "<", label: "Menor que", icone: "<" },
-      { value: ">=", label: "Maior ou igual", icone: "â‰¥" },
-      { value: "<=", label: "Menor ou igual", icone: "â‰¤" },
+      { value: ">=", label: "Maior ou igual", icone: "≥" },
+      { value: "<=", label: "Menor ou igual", icone: "≤" },
       { value: "match_regex", label: "Match Regex", icone: ".*" },
-      { value: "nao_match_regex", label: "NÃ£o match Regex", icone: "!.*" },
-      { value: "preenchido", label: "Preenchido", icone: "âœ“" },
-      { value: "vazio", label: "Vazio", icone: "âˆ…" },
+      { value: "nao_match_regex", label: "Não match Regex", icone: "!.*" },
+      { value: "preenchido", label: "Preenchido", icone: "✓" },
+      { value: "vazio", label: "Vazio", icone: "∅" },
     ];
     const atual = opcoes.find(o => o.value === valor) || opcoes[0];
     return (
@@ -817,10 +817,10 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     );
   };
 
-  // ðŸ†• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // VarSelect â€” versÃ£o LEGACY (autocomplete simples). Mantenho pra blocos pequenos
-  // tipo http_request "Salvar status em" que nÃ£o precisam de UI tÃ£o rica.
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // 🆕 ═══════════════════════════════════════════════════════════════════════
+  // VarSelect — versão LEGACY (autocomplete simples). Mantenho pra blocos pequenos
+  // tipo http_request "Salvar status em" que não precisam de UI tão rica.
+  // ═══════════════════════════════════════════════════════════════════════
   const VarSelect = (label: string, key: string, placeholder = "nome_da_variavel") => (
     <div key={`${id}-${key}-varsel`}>
       <label style={LS}>{label}</label>
@@ -839,7 +839,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       </datalist>
       {variaveisDoFluxo.length > 0 && (
         <p style={{color:"#6b7280", fontSize:10, margin:"3px 0 0", lineHeight:1.3}}>
-          ðŸ’¡ VariÃ¡veis no fluxo: {variaveisDoFluxo.slice(0, 5).join(", ")}{variaveisDoFluxo.length > 5 ? "..." : ""}
+          💡 Variáveis no fluxo: {variaveisDoFluxo.slice(0, 5).join(", ")}{variaveisDoFluxo.length > 5 ? "..." : ""}
         </p>
       )}
     </div>
@@ -849,7 +849,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     case "texto": return <>{TVar("Mensagem","texto","Digite sua mensagem aqui...",120)}</>;
     case "imagem": return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
     case "video":  return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
-    case "audio":  return <>{F("URL do Ãudio","url","url","https://...")}</>;
+    case "audio":  return <>{F("URL do Áudio","url","url","https://...")}</>;
     case "embed":  return <>{F("URL","url","url","https://...")}</>;
     case "input_texto": case "input_email": case "input_website": case "input_numero":
     case "input_telefone": case "input_arquivo": case "input_data": case "input_hora":
@@ -860,24 +860,24 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     case "input_avaliacao":
       return <>
         {TVar("Pergunta","pergunta","Como avalia?",80)}
-        {F("MÃ¡ximo","max","number","5")}
+        {F("Máximo","max","number","5")}
         {VarPill("Salvar resposta em", "variavel", "ex: avaliacao")}
       </>;
     case "input_pagamento":
-      // ðŸ†• v18: aviso de feature parcial â€” backend ainda nÃ£o tem integraÃ§Ã£o com gateway
+      // 🆕 v18: aviso de feature parcial — backend ainda não tem integração com gateway
       return <>
         <p style={{color:"#f59e0b",fontSize:11,margin:"0 0 6px",lineHeight:1.4}}>
-          âš ï¸ <b>Em desenvolvimento</b> â€” sem integraÃ§Ã£o com gateway de pagamento (Pix/Stripe/Mercado Pago).
-          As saÃ­das "Aprovado/Recusado" nÃ£o disparam ainda. Use com cautela.
+          ⚠️ <b>Em desenvolvimento</b> — sem integração com gateway de pagamento (Pix/Stripe/Mercado Pago).
+          As saídas "Aprovado/Recusado" não disparam ainda. Use com cautela.
         </p>
         {F("Valor (R$)","valor","number","0")}
-        {F("DescriÃ§Ã£o","descricao")}
+        {F("Descrição","descricao")}
       </>;
     case "input_selecao_imagem":
-      // ðŸ†• v18: case implementado â€” antes caÃ­a no default ("Sem propriedades.") e o bloco ficava inÃºtil.
+      // 🆕 v18: case implementado — antes caía no default ("Sem propriedades.") e o bloco ficava inútil.
       return <div>
-        {TVar("Pergunta","texto","Selecione uma opÃ§Ã£o:",60)}
-        <label style={LS}>Imagens (URL|TÃ­tulo, uma por linha)</label>
+        {TVar("Pergunta","texto","Selecione uma opção:",60)}
+        <label style={LS}>Imagens (URL|Título, uma por linha)</label>
         <textarea
           value={(d.itens||[]).map((it:any) => `${it.url||""}|${it.titulo||""}`).join("\n")}
           onChange={e => {
@@ -891,36 +891,36 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           placeholder={"https://exemplo.com/produto1.jpg|Produto 1\nhttps://exemplo.com/produto2.jpg|Produto 2"}
         />
         <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0", lineHeight:1.3}}>
-          ðŸ’¡ Cliente recebe as imagens e escolhe uma. O tÃ­tulo da opÃ§Ã£o escolhida Ã© salvo na variÃ¡vel abaixo.
+          💡 Cliente recebe as imagens e escolhe uma. O título da opção escolhida é salvo na variável abaixo.
         </p>
-        {VarPill("Salvar opÃ§Ã£o escolhida em", "variavel", "ex: produto_escolhido")}
+        {VarPill("Salvar opção escolhida em", "variavel", "ex: produto_escolhido")}
       </div>;
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // ðŸ†• v20 â€” BOTÃƒO reformulado
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // FIX do bug "apaguei um botÃ£o e nÃ£o consigo adicionar outro": a versÃ£o antiga usava
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🆕 v20 — BOTÃO reformulado
+    // ═══════════════════════════════════════════════════════════════════════
+    // FIX do bug "apaguei um botão e não consigo adicionar outro": a versão antiga usava
     // um <textarea> com .split("\n").filter(Boolean). O filter(Boolean) apagava a linha em
-    // branco no exato momento que vocÃª dava Enter pra criar o prÃ³ximo botÃ£o â€” a nova linha
-    // sumia e o cursor voltava. Agora cada botÃ£o Ã© um <input> prÃ³prio, com âœ• pra remover e
-    // "+ Adicionar botÃ£o". Sem parsing de linha = sem bug.
+    // branco no exato momento que você dava Enter pra criar o próximo botão — a nova linha
+    // sumia e o cursor voltava. Agora cada botão é um <input> próprio, com ✕ pra remover e
+    // "+ Adicionar botão". Sem parsing de linha = sem bug.
     //
     // NOVO: toggle modo_envio:
-    //   - "interativo" â†’ backend manda botÃµes clicÃ¡veis nativos do WhatsApp (interactive/button)
-    //   - "numerado"   â†’ backend manda texto numerado (1, 2, 3) e casa a resposta pelo nÃºmero
-    // âš ï¸ BACKEND (executor do fluxo na VPS) precisa ler dados.modo_envio:
-    //   â€¢ interativo + canal WABA/Cloud â†’ POST interactive type:"button" (atÃ© 3 reply buttons)
-    //   â€¢ interativo + WhatsApp Web (webjs) â†’ nÃ£o tem botÃ£o nativo â†’ cai pra numerado
-    //   â€¢ numerado â†’ monta "texto\n\n1. botao1\n2. botao2..." e mapeia a resposta pelo nÃºmero
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    //   - "interativo" → backend manda botões clicáveis nativos do WhatsApp (interactive/button)
+    //   - "numerado"   → backend manda texto numerado (1, 2, 3) e casa a resposta pelo número
+    // ⚠️ BACKEND (executor do fluxo na VPS) precisa ler dados.modo_envio:
+    //   • interativo + canal WABA/Cloud → POST interactive type:"button" (até 3 reply buttons)
+    //   • interativo + WhatsApp Web (webjs) → não tem botão nativo → cai pra numerado
+    //   • numerado → monta "texto\n\n1. botao1\n2. botao2..." e mapeia a resposta pelo número
+    // ═══════════════════════════════════════════════════════════════════════
     case "input_botao": {
       const botoes: string[] = Array.isArray(d.botoes) ? d.botoes : [];
       const modoEnvio = d.modo_envio === "numerado" ? "numerado" : "interativo";
-      // Atualiza botÃµes E mantÃ©m as saÃ­das do nÃ³ em sincronia (pras conexÃµes do canvas baterem)
+      // Atualiza botões E mantém as saídas do nó em sincronia (pras conexões do canvas baterem)
       const setBotoes = (novos: string[]) => {
         const limpos = novos.slice(0, 3);
         u({ botoes: limpos });
         setNos(p => p.map(n => n.id === id
-          ? { ...n, saidas: limpos.length ? limpos.map((b, i) => (b.trim() || `BotÃ£o ${i + 1}`)) : ["BotÃ£o 1"] }
+          ? { ...n, saidas: limpos.length ? limpos.map((b, i) => (b.trim() || `Botão ${i + 1}`)) : ["Botão 1"] }
           : n));
       };
       const updateBotao = (i: number, val: string) => {
@@ -933,13 +933,13 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       return <>
         {TVar("Texto","texto","Escolha:",60)}
 
-        {/* Toggle: botÃµes interativos da API vs lista numerada */}
+        {/* Toggle: botões interativos da API vs lista numerada */}
         <div>
           <label style={LS}>Como enviar</label>
           <div style={{display:"flex",gap:6}}>
             {[
-              {key:"interativo", label:"ðŸ”˜ BotÃµes interativos", hint:"BotÃµes clicÃ¡veis nativos do WhatsApp (Cloud/WABA). O cliente toca no botÃ£o."},
-              {key:"numerado",   label:"1ï¸âƒ£ Lista numerada",     hint:"Manda como texto numerado. O cliente responde com o nÃºmero. Funciona em qualquer canal."},
+              {key:"interativo", label:"🔘 Botões interativos", hint:"Botões clicáveis nativos do WhatsApp (Cloud/WABA). O cliente toca no botão."},
+              {key:"numerado",   label:"1️⃣ Lista numerada",     hint:"Manda como texto numerado. O cliente responde com o número. Funciona em qualquer canal."},
             ].map(opt => (
               <button key={opt.key} type="button" onClick={() => u({modo_envio: opt.key})}
                 style={{
@@ -954,18 +954,18 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           </div>
           <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
             {modoEnvio==="interativo"
-              ? "ðŸ’¡ BotÃµes nativos do WhatsApp (mÃ¡x 3, atÃ© 20 caracteres cada). Precisa de canal WABA/Cloud API. No WhatsApp Web (webjs) o sistema cai pra lista numerada automaticamente."
-              : "ðŸ’¡ Envia como texto numerado (1, 2, 3...). Funciona em qualquer canal (Web/WABA/Meta)."}
+              ? "💡 Botões nativos do WhatsApp (máx 3, até 20 caracteres cada). Precisa de canal WABA/Cloud API. No WhatsApp Web (webjs) o sistema cai pra lista numerada automaticamente."
+              : "💡 Envia como texto numerado (1, 2, 3...). Funciona em qualquer canal (Web/WABA/Meta)."}
           </p>
         </div>
 
-        {/* Lista de botÃµes â€” cada um Ã© um input prÃ³prio (resolve o bug de re-adicionar) */}
+        {/* Lista de botões — cada um é um input próprio (resolve o bug de re-adicionar) */}
         <div>
-          <label style={LS}>BotÃµes (mÃ¡x 3)</label>
+          <label style={LS}>Botões (máx 3)</label>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {botoes.length === 0 && (
               <p style={{color:"#9ca3af",fontSize:11,margin:"2px 0",fontStyle:"italic"}}>
-                Nenhum botÃ£o. Clique em "+ Adicionar botÃ£o".
+                Nenhum botão. Clique em "+ Adicionar botão".
               </p>
             )}
             {botoes.map((b, i) => (
@@ -975,23 +975,23 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                   value={b}
                   onChange={e => updateBotao(i, e.target.value)}
                   maxLength={modoEnvio==="interativo" ? 20 : undefined}
-                  placeholder={`BotÃ£o ${i+1}`}
+                  placeholder={`Botão ${i+1}`}
                   style={{...IS, flex:1}}
                 />
-                <button type="button" onClick={() => removeBotao(i)} title="Remover botÃ£o"
-                  style={{background:"#fef2f2",color:"#ef4444",border:"1px solid #fecaca",borderRadius:6,padding:"7px 11px",fontSize:12,cursor:"pointer",flexShrink:0,fontWeight:"bold"}}>âœ•</button>
+                <button type="button" onClick={() => removeBotao(i)} title="Remover botão"
+                  style={{background:"#fef2f2",color:"#ef4444",border:"1px solid #fecaca",borderRadius:6,padding:"7px 11px",fontSize:12,cursor:"pointer",flexShrink:0,fontWeight:"bold"}}>✕</button>
               </div>
             ))}
           </div>
           {botoes.length < 3 && (
             <button type="button" onClick={addBotao}
               style={{width:"100%",marginTop:6,background:"#22c55e11",color:"#16a34a",border:"1px dashed #22c55e",borderRadius:8,padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>
-              + Adicionar botÃ£o
+              + Adicionar botão
             </button>
           )}
           {modoEnvio==="interativo" && botoes.some(b => (b||"").length > 20) && (
             <p style={{color:"#f59e0b",fontSize:10,margin:"4px 0 0"}}>
-              âš ï¸ BotÃµes interativos do WhatsApp aceitam no mÃ¡ximo 20 caracteres por botÃ£o.
+              ⚠️ Botões interativos do WhatsApp aceitam no máximo 20 caracteres por botão.
             </p>
           )}
         </div>
@@ -1001,7 +1001,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     }
     case "input_cards":
       return <div>
-        <label style={LS}>Cards (TÃ­tulo|DescriÃ§Ã£o, um por linha)</label>
+        <label style={LS}>Cards (Título|Descrição, um por linha)</label>
         <textarea
           value={(d.cards||[]).map((c:any) => `${c.titulo}|${c.descricao}`).join("\n")}
           onChange={e => {
@@ -1012,16 +1012,16 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             u({cards});
           }}
           style={{...IS, height:100, resize:"vertical"}}
-          placeholder={"Produto 1|DescriÃ§Ã£o\nProduto 2|Outra"}
+          placeholder={"Produto 1|Descrição\nProduto 2|Outra"}
         />
       </div>;
     case "condicao":
       return <>
         <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 10px",lineHeight:1.4}}>
-          ðŸ”€ SE (todas/alguma) das condiÃ§Ãµes forem verdadeiras â†’ saÃ­da <b style={{color:"#22c55e"}}>Verdadeiro</b>, senÃ£o â†’ <b style={{color:"#ef4444"}}>Falso</b>
+          🔀 SE (todas/alguma) das condições forem verdadeiras → saída <b style={{color:"#22c55e"}}>Verdadeiro</b>, senão → <b style={{color:"#ef4444"}}>Falso</b>
         </p>
-        {/* LÃ³gica AND/OR â€” botÃµes grandes */}
-        <label style={LS}>LÃ³gica entre condiÃ§Ãµes</label>
+        {/* Lógica AND/OR — botões grandes */}
+        <label style={LS}>Lógica entre condições</label>
         <div style={{display:"flex",gap:6,marginBottom:14}}>
           {[
             {key:"AND", label:"E (todas)", desc:"Todas precisam ser verdadeiras"},
@@ -1046,8 +1046,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           })}
         </div>
 
-        {/* Lista de condiÃ§Ãµes â€” cada uma com VarPill + OpSelect + valor */}
-        <label style={LS}>CondiÃ§Ãµes</label>
+        {/* Lista de condições — cada uma com VarPill + OpSelect + valor */}
+        <label style={LS}>Condições</label>
         {(() => {
           const lista = (d.condicoes && Array.isArray(d.condicoes) && d.condicoes.length > 0)
             ? d.condicoes
@@ -1092,10 +1092,10 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                           border: "none", borderRadius: 6, padding: "3px 8px",
                           fontSize: 11, cursor: "pointer", fontWeight: "bold",
                         }}
-                      >âœ•</button>
+                      >✕</button>
                     )}
                   </div>
-                  {/* VariÃ¡vel (pill) */}
+                  {/* Variável (pill) */}
                   <details style={{ position: "relative" }} id={dropdownVarId}>
                     <summary style={{
                       listStyle: "none",
@@ -1112,9 +1112,9 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                           padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: "bold",
                         }}>{`{{${cond.variavel}}}`}</span>
                       ) : (
-                        <span style={{ color: "#6b7280", fontSize: 12 }}>Selecionar variÃ¡vel...</span>
+                        <span style={{ color: "#6b7280", fontSize: 12 }}>Selecionar variável...</span>
                       )}
-                      <span style={{ marginLeft: "auto", color: "#6b7280", fontSize: 10 }}>â–¼</span>
+                      <span style={{ marginLeft: "auto", color: "#6b7280", fontSize: 10 }}>▼</span>
                     </summary>
                     <div style={{
                       position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
@@ -1124,7 +1124,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                     }}>
                       <input
                         type="text"
-                        placeholder="Digite ou crie variÃ¡vel..."
+                        placeholder="Digite ou crie variável..."
                         defaultValue={cond.variavel || ""}
                         onKeyDown={e => {
                           if (e.key === "Enter") {
@@ -1144,7 +1144,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                       />
                       {variaveisDoFluxo.length === 0 ? (
                         <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
-                          Sem variÃ¡veis ainda
+                          Sem variáveis ainda
                         </p>
                       ) : variaveisDoFluxo.map(v => (
                         <button
@@ -1196,27 +1196,27 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                 padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold",
               }}
             >
-              + Adicionar condiÃ§Ã£o
+              + Adicionar condição
             </button>
           </>;
         })()}
       </>;
     case "variavel": {
-      // ðŸ†• Modo do valor: "texto" (literal), "codigo" (JS), "expressao" (substituiÃ§Ã£o {{var}})
+      // 🆕 Modo do valor: "texto" (literal), "codigo" (JS), "expressao" (substituição {{var}})
       const modo = d.modo_valor || "texto";
       return <>
         <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 10px",lineHeight:1.4}}>
-          ðŸ“ Cria ou atualiza uma variÃ¡vel. O valor Ã© salvo no banco e fica disponÃ­vel em todos os blocos seguintes.
+          📝 Cria ou atualiza uma variável. O valor é salvo no banco e fica disponível em todos os blocos seguintes.
         </p>
-        {VarPill("Nome da variÃ¡vel", "nome", "Selecionar ou criar variÃ¡vel...")}
-        {/* Toggle Text / Code / ExpressÃ£o */}
+        {VarPill("Nome da variável", "nome", "Selecionar ou criar variável...")}
+        {/* Toggle Text / Code / Expressão */}
         <div>
           <label style={LS}>Tipo do valor</label>
           <div style={{display:"flex",gap:6,marginBottom:8}}>
             {[
-              {key:"texto",label:"ðŸ“ Texto",hint:"Valor literal"},
-              {key:"expressao",label:"ðŸ”— ExpressÃ£o",hint:"Usa {{var}}"},
-              {key:"codigo",label:"ðŸ’» CÃ³digo",hint:"JavaScript"},
+              {key:"texto",label:"📝 Texto",hint:"Valor literal"},
+              {key:"expressao",label:"🔗 Expressão",hint:"Usa {{var}}"},
+              {key:"codigo",label:"💻 Código",hint:"JavaScript"},
             ].map(opt => (
               <button
                 key={opt.key}
@@ -1242,28 +1242,28 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
         )}
         {modo === "expressao" && (
           <div>
-            <label style={LS}>ExpressÃ£o</label>
+            <label style={LS}>Expressão</label>
             <input value={d.valor||""} onChange={e => u({valor: e.target.value})} style={IS} placeholder="{{nome}} - {{cpf_limpo}}" />
             <p style={{color:"#6b7280", fontSize:10, margin:"3px 0 0"}}>
-              ðŸ’¡ Use <code style={{color:"#3b82f6"}}>{"{{nome_variavel}}"}</code> pra inserir valores de outras variÃ¡veis. Ex: <code>{"OlÃ¡ {{nome}}"}</code>
+              💡 Use <code style={{color:"#3b82f6"}}>{"{{nome_variavel}}"}</code> pra inserir valores de outras variáveis. Ex: <code>{"Olá {{nome}}"}</code>
             </p>
           </div>
         )}
         {modo === "codigo" && (
           <>
             <div>
-              <label style={LS}>CÃ³digo JavaScript</label>
+              <label style={LS}>Código JavaScript</label>
               <textarea
                 value={d.valor||""}
                 onChange={e => u({valor: e.target.value})}
                 style={{...IS, height:140, resize:"vertical", fontFamily:"monospace", fontSize:11}}
-                placeholder={`// Use 'return' pro valor da variÃ¡vel\n// API: getVariable(nome), setVariable(nome,valor), fetch, sleep, log\nconst cep = getVariable("cep").replace(/\\D/g, "");\nreturn cep;`}
+                placeholder={`// Use 'return' pro valor da variável\n// API: getVariable(nome), setVariable(nome,valor), fetch, sleep, log\nconst cep = getVariable("cep").replace(/\\D/g, "");\nreturn cep;`}
               />
             </div>
             {/* Save error in variable (igual Typebot) */}
-            {VarPill("Salvar erro em (opcional)", "salvar_erro_em", "VariÃ¡vel pra erro...")}
+            {VarPill("Salvar erro em (opcional)", "salvar_erro_em", "Variável pra erro...")}
             <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 0", lineHeight:1.3}}>
-              Se o cÃ³digo der erro, a mensagem fica salva nessa variÃ¡vel. Ãštil pra blocos de condiÃ§Ã£o depois.
+              Se o código der erro, a mensagem fica salva nessa variável. Útil pra blocos de condição depois.
             </p>
           </>
         )}
@@ -1272,10 +1272,10 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     case "redirecionar": return <>{F("URL","url","url","https://...")}</>;
     case "script":
       return <>
-        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>ðŸ†• API disponÃ­vel: <code style={{color:"#3b82f6"}}>setVariable(nome, valor)</code>, <code style={{color:"#3b82f6"}}>getVariable(nome)</code>, <code style={{color:"#3b82f6"}}>fetch</code>, <code style={{color:"#3b82f6"}}>sleep(ms)</code>, <code style={{color:"#3b82f6"}}>log(...)</code></p>
-        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>{`{{variaveis}} sÃ£o substituÃ­das no cÃ³digo antes de executar.`}</p>
-        {T("CÃ³digo JavaScript","codigo",`// Exemplo:\n// const resp = await fetch("https://api.exemplo.com/cep/" + getVariable("cep"))\n// const data = await resp.json()\n// setVariable("rua", data.logradouro)`,200)}
-        <p style={{color:"#9ca3af",fontSize:10,margin:"4px 0 0"}}>SaÃ­das: <span style={{color:"#22c55e"}}>0=sucesso</span> / <span style={{color:"#ef4444"}}>1=erro</span></p>
+        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>🆕 API disponível: <code style={{color:"#3b82f6"}}>setVariable(nome, valor)</code>, <code style={{color:"#3b82f6"}}>getVariable(nome)</code>, <code style={{color:"#3b82f6"}}>fetch</code>, <code style={{color:"#3b82f6"}}>sleep(ms)</code>, <code style={{color:"#3b82f6"}}>log(...)</code></p>
+        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>{`{{variaveis}} são substituídas no código antes de executar.`}</p>
+        {T("Código JavaScript","codigo",`// Exemplo:\n// const resp = await fetch("https://api.exemplo.com/cep/" + getVariable("cep"))\n// const data = await resp.json()\n// setVariable("rua", data.logradouro)`,200)}
+        <p style={{color:"#9ca3af",fontSize:10,margin:"4px 0 0"}}>Saídas: <span style={{color:"#22c55e"}}>0=sucesso</span> / <span style={{color:"#ef4444"}}>1=erro</span></p>
       </>;
     case "espera":        return <>{F("Aguardar (segundos)","segundos","number","3")}</>;
     case "teste_ab":
@@ -1287,19 +1287,19 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     case "webhook":
       return <>
         {F("URL","url","url","https://...")}
-        {S("MÃ©todo","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}
+        {S("Método","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}
         {T("Headers JSON","headers",'{"Authorization":"Bearer token"}',60)}
         {T("Body JSON","body",'{"chave":"valor"}',60)}
         {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_api")}
         {VarPill("Salvar status em", "variavel_status", "ex: status_api")}
       </>;
     case "pular": case "retornar":
-      // ðŸ†• v18: dropdown selecionando nÃ³ (antes era input texto livre exigindo conhecer UID aleatÃ³rio).
-      // O usuÃ¡rio escolhe pelo label/preview do bloco; o que vai pro banco continua sendo o id (UID).
+      // 🆕 v18: dropdown selecionando nó (antes era input texto livre exigindo conhecer UID aleatório).
+      // O usuário escolhe pelo label/preview do bloco; o que vai pro banco continua sendo o id (UID).
       return <div>
         <label style={LS}>{noSel.tipo === "pular" ? "Pular PARA o bloco:" : "Retornar PARA o bloco:"}</label>
         <select value={d.alvo||""} onChange={e => u({alvo: e.target.value})} style={IS}>
-          <option value="">â€” Selecione um bloco â€”</option>
+          <option value="">— Selecione um bloco —</option>
           {nos
             .filter(n => n.id !== noSel.id)
             .map(n => {
@@ -1307,33 +1307,33 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
               const preview = getPreview(n).slice(0, 35);
               return (
                 <option key={n.id} value={n.id}>
-                  {cfg?.icone} {cfg?.label} â€” {preview}
+                  {cfg?.icone} {cfg?.label} — {preview}
                 </option>
               );
             })}
         </select>
         {d.alvo && !nos.find(n => n.id === d.alvo) && (
           <p style={{color:"#ef4444", fontSize:10, margin:"4px 0 0"}}>
-            âš ï¸ Bloco alvo nÃ£o existe mais (pode ter sido excluÃ­do). Selecione outro.
+            ⚠️ Bloco alvo não existe mais (pode ter sido excluído). Selecione outro.
           </p>
         )}
         <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0", lineHeight:1.3}}>
           {noSel.tipo === "pular"
-            ? "ðŸ’¡ Pula a execuÃ§Ã£o direto pro bloco escolhido (atalho/jump)."
-            : "ðŸ’¡ Volta a execuÃ§Ã£o pro bloco escolhido (loop/retry)."}
+            ? "💡 Pula a execução direto pro bloco escolhido (atalho/jump)."
+            : "💡 Volta a execução pro bloco escolhido (loop/retry)."}
         </p>
       </div>;
     case "google_sheets":
       return <>
         <div style={{background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8, padding:10, marginBottom:10}}>
-          <p style={{color:"#14532d", fontSize:11, margin:0, fontWeight:700}}>ðŸ“Š Google Sheets via Apps Script</p>
+          <p style={{color:"#14532d", fontSize:11, margin:0, fontWeight:700}}>📊 Google Sheets via Apps Script</p>
           <p style={{color:"#16a34a", fontSize:10, margin:"4px 0 6px", lineHeight:1.5}}>
             <b>Como configurar (5 minutos, sem OAuth):</b><br/>
-            1. Abra seu Sheets â†’ <b>ExtensÃµes â†’ Apps Script</b><br/>
-            2. Cole o cÃ³digo de webhook (veja botÃ£o abaixo)<br/>
-            3. <b>Implantar â†’ Nova implantaÃ§Ã£o â†’ Aplicativo da Web</b><br/>
-            4. Quem tem acesso: <b>Qualquer pessoa</b> â†’ Implantar<br/>
-            5. Copie a URL e cole aqui embaixo ðŸ‘‡
+            1. Abra seu Sheets → <b>Extensões → Apps Script</b><br/>
+            2. Cole o código de webhook (veja botão abaixo)<br/>
+            3. <b>Implantar → Nova implantação → Aplicativo da Web</b><br/>
+            4. Quem tem acesso: <b>Qualquer pessoa</b> → Implantar<br/>
+            5. Copie a URL e cole aqui embaixo 👇
           </p>
           <button
             type="button"
@@ -1345,7 +1345,7 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const aba = body.aba ? ss.getSheetByName(body.aba) : ss.getSheets()[0];
-    if (!aba) return saida({ok:false, erro:"Aba nÃ£o encontrada: " + body.aba});
+    if (!aba) return saida({ok:false, erro:"Aba não encontrada: " + body.aba});
     const dados = (body.dados || "").toString().split(",").map(s => s.trim());
 
     if (body.acao === "append") {
@@ -1353,7 +1353,7 @@ function doPost(e) {
       return saida({ok:true, linha: aba.getLastRow()});
     }
     if (body.acao === "update") {
-      // Atualiza a Ãºltima linha (ou faz lookup pela primeira coluna)
+      // Atualiza a última linha (ou faz lookup pela primeira coluna)
       const ultima = aba.getLastRow();
       if (ultima < 1) return saida({ok:false, erro:"Sheet vazia"});
       aba.getRange(ultima, 1, 1, dados.length).setValues([dados]);
@@ -1363,7 +1363,7 @@ function doPost(e) {
       const vals = aba.getDataRange().getValues();
       return saida({ok:true, dados: vals});
     }
-    return saida({ok:false, erro: "AÃ§Ã£o invÃ¡lida: " + body.acao});
+    return saida({ok:false, erro: "Ação inválida: " + body.acao});
   } catch (err) {
     return saida({ok:false, erro: err.toString()});
   }
@@ -1372,30 +1372,30 @@ function saida(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }`;
               navigator.clipboard.writeText(codigo);
-              alert("âœ… CÃ³digo copiado!\n\nAgora cole no Apps Script do seu Google Sheets.");
+              alert("✅ Código copiado!\n\nAgora cole no Apps Script do seu Google Sheets.");
             }}
             style={{background:"#16a34a", color:"#fff", border:"none", borderRadius:6, padding:"6px 12px", fontSize:11, cursor:"pointer", fontWeight:700, marginTop:4}}
           >
-            ðŸ“‹ Copiar cÃ³digo do Apps Script
+            📋 Copiar código do Apps Script
           </button>
         </div>
         {F("URL do Webhook (Apps Script Web App)","webhook_url","url","https://script.google.com/macros/s/AKfy.../exec")}
         {F("Aba (opcional)","aba","text","Sheet1")}
-        {S("AÃ§Ã£o","acao",[
+        {S("Ação","acao",[
           {value:"append", label:"Adicionar nova linha"},
-          {value:"update", label:"Atualizar Ãºltima linha"},
+          {value:"update", label:"Atualizar última linha"},
           {value:"get",    label:"Buscar dados"}
         ])}
-        {T("Dados (separados por vÃ­rgula)","dados","{{nome}}, {{email}}, {{telefone}}",80)}
+        {T("Dados (separados por vírgula)","dados","{{nome}}, {{email}}, {{telefone}}",80)}
         {VarPill("Salvar resposta em (opcional)","variavel_resposta","ex: resposta_sheets")}
         <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
-          ðŸ’¡ Use {`{{variavel}}`} nos campos. SaÃ­das: <b>Sucesso</b> / <b>Erro</b>.
+          💡 Use {`{{variavel}}`} nos campos. Saídas: <b>Sucesso</b> / <b>Erro</b>.
         </p>
       </>;
     case "http_request":
       return <>
         {F("URL","url","url","https://api.exemplo.com")}
-        {S("MÃ©todo","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}
+        {S("Método","metodo",[{value:"GET",label:"GET"},{value:"POST",label:"POST"},{value:"PUT",label:"PUT"},{value:"DELETE",label:"DELETE"}])}
         {T("Headers JSON","headers",'{"Content-Type":"application/json"}',60)}
         {T("Body JSON","body",'{"chave":"{{variavel}}"}',60)}
         {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_api")}
@@ -1405,7 +1405,7 @@ function saida(obj) {
       return <>
         {F("API Key","apiKey","password","sk-...")}
         {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"},{value:"gpt-3.5-turbo",label:"GPT-3.5"}])}
-        {T("Prompt do sistema","prompt","VocÃª Ã© um assistente...",100)}
+        {T("Prompt do sistema","prompt","Você é um assistente...",100)}
         {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_ia")}
         <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"#1f2937",fontSize:12}}>
           <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
@@ -1445,7 +1445,7 @@ function saida(obj) {
           ? d.reengajamento_lembretes
           : [{
               minutos:Math.max(1,Number(d.reengajamento_minutos || 10)),
-              mensagem:d.reengajamento_mensagem || "Oi, {{nome}}! Ainda estÃ¡ por aÃ­? Posso continuar seu atendimento? ðŸ˜Š"
+              mensagem:d.reengajamento_mensagem || "Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"
             }];
       const atualizarLembrete = (indice:number, patch:Partial<LembreteReengajamento>) =>
         u({reengajamento_lembretes:lembretesReengajamento.map((item,i)=>i===indice?{...item,...patch}:item)});
@@ -1453,20 +1453,20 @@ function saida(obj) {
         u({reengajamento_lembretes:lembretesReengajamento.filter((_,i)=>i!==indice)});
       return <>
         <div style={{background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:8,padding:10,marginBottom:10}}>
-          <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>âœ¨ Fluxo por IA com variÃ¡veis validadas</p>
+          <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>✨ Fluxo por IA com variáveis validadas</p>
           <p style={{color:"#6b7280",fontSize:10,margin:0,lineHeight:1.4}}>
-            A IA conversa, salva apenas valores vÃ¡lidos, mostra um resumo e sÃ³ libera a saÃ­da depois da confirmaÃ§Ã£o do cliente.
-            Conecte a saÃ­da <b>Dados confirmados</b> ao bloco <b>Enviar Venda</b>.
+            A IA conversa, salva apenas valores válidos, mostra um resumo e só libera a saída depois da confirmação do cliente.
+            Conecte a saída <b>Dados confirmados</b> ao bloco <b>Enviar Venda</b>.
           </p>
         </div>
         <ExtensoesFluxoIA dados={d} onChange={u}/>
         {F("API Key","apiKey","password","sk-...")}
         {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"}])}
         {T("Prompt de comportamento","prompt","Explique como a IA deve conduzir o atendimento...",100)}
-        {T("Mensagem para iniciar a coleta","mensagem_inicial","OlÃ¡! Vou confirmar alguns dados com vocÃª.",70)}
+        {T("Mensagem para iniciar a coleta","mensagem_inicial","Olá! Vou confirmar alguns dados com você.",70)}
         <label style={{display:"flex",alignItems:"flex-start",gap:7,margin:"6px 0 10px",padding:"9px",background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,color:"#374151",fontSize:10,lineHeight:1.4}}>
           <input type="checkbox" checked={d.mensagem_inicial_literal === true} onChange={e=>u({mensagem_inicial_literal:e.target.checked})} style={{marginTop:2}}/>
-          <span><b>Enviar exatamente esta mensagem</b><br/>A IA sÃ³ assume depois que o cliente responder. Desmarque se o texto acima for apenas uma instruÃ§Ã£o para a IA criar a abertura.</span>
+          <span><b>Enviar exatamente esta mensagem</b><br/>A IA só assume depois que o cliente responder. Desmarque se o texto acima for apenas uma instrução para a IA criar a abertura.</span>
         </label>
         {S("Tempo para juntar mensagens","agrupamento_ms",[
           {value:"2000",label:"2 segundos"},{value:"3500",label:"3,5 segundos"},{value:"5000",label:"5 segundos"},{value:"7000",label:"7 segundos"}
@@ -1474,8 +1474,8 @@ function saida(obj) {
         <div style={{marginTop:12,background:d.midia_ia_extensao_ativa === true?"linear-gradient(135deg,#f0fdfa,#eff6ff)":"#f8fafc",border:d.midia_ia_extensao_ativa === true?"1px solid #5eead4":"1px solid #cbd5e1",borderRadius:11,padding:11,boxShadow:d.midia_ia_extensao_ativa === true?"0 8px 24px rgba(13,148,136,.10)":"none"}}>
           <label style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,cursor:"pointer"}}>
             <span style={{display:"flex",alignItems:"flex-start",gap:9}}>
-              <span style={{display:"grid",placeItems:"center",width:32,height:32,borderRadius:9,background:d.midia_ia_extensao_ativa === true?"#0f766e":"#e2e8f0",color:d.midia_ia_extensao_ativa === true?"#fff":"#475569",fontSize:16,flexShrink:0}}>ðŸ“Ž</span>
-              <span><b style={{display:"block",color:"#0f172a",fontSize:12}}>Leitura de fotos e arquivos</b><span style={{display:"block",color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:2}}>ExtensÃ£o isolada do vendedor IA. Ao ligar, a leitura vale em todos os blocos Fluxo por IA deste fluxo.</span></span>
+              <span style={{display:"grid",placeItems:"center",width:32,height:32,borderRadius:9,background:d.midia_ia_extensao_ativa === true?"#0f766e":"#e2e8f0",color:d.midia_ia_extensao_ativa === true?"#fff":"#475569",fontSize:16,flexShrink:0}}>📎</span>
+              <span><b style={{display:"block",color:"#0f172a",fontSize:12}}>Leitura de fotos e arquivos</b><span style={{display:"block",color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:2}}>Extensão isolada do vendedor IA. Ao ligar, a leitura vale em todos os blocos Fluxo por IA deste fluxo.</span></span>
             </span>
             <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
               <span style={{fontSize:8,fontWeight:900,color:salvandoMidiaId===id?"#92400e":"#0f766e",background:salvandoMidiaId===id?"#fef3c7":"#ccfbf1",borderRadius:999,padding:"4px 7px"}}>
@@ -1497,22 +1497,22 @@ function saida(obj) {
           </label>
           {d.midia_ia_extensao_ativa === true && <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #99f6e4"}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#134e4a",fontSize:10,lineHeight:1.4,cursor:"pointer",background:"#fff",border:"1px solid #ccfbf1",borderRadius:8,padding:8}}><input type="checkbox" disabled={salvandoMidiaId===id} checked={d.midia_ia_imagens_ativa !== false} onChange={e=>void salvarConfiguracaoMidia(id,{midia_ia_imagens_ativa:e.target.checked})}/><span><b>Interpretar fotos</b><br/>LÃª JPG, PNG, WEBP e GIF.</span></label>
-              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#134e4a",fontSize:10,lineHeight:1.4,cursor:"pointer",background:"#fff",border:"1px solid #ccfbf1",borderRadius:8,padding:8}}><input type="checkbox" disabled={salvandoMidiaId===id} checked={d.midia_ia_arquivos_ativa !== false} onChange={e=>void salvarConfiguracaoMidia(id,{midia_ia_arquivos_ativa:e.target.checked})}/><span><b>Interpretar arquivos</b><br/>LÃª PDF, texto e documentos compatÃ­veis.</span></label>
+              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#134e4a",fontSize:10,lineHeight:1.4,cursor:"pointer",background:"#fff",border:"1px solid #ccfbf1",borderRadius:8,padding:8}}><input type="checkbox" disabled={salvandoMidiaId===id} checked={d.midia_ia_imagens_ativa !== false} onChange={e=>void salvarConfiguracaoMidia(id,{midia_ia_imagens_ativa:e.target.checked})}/><span><b>Interpretar fotos</b><br/>Lê JPG, PNG, WEBP e GIF.</span></label>
+              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#134e4a",fontSize:10,lineHeight:1.4,cursor:"pointer",background:"#fff",border:"1px solid #ccfbf1",borderRadius:8,padding:8}}><input type="checkbox" disabled={salvandoMidiaId===id} checked={d.midia_ia_arquivos_ativa !== false} onChange={e=>void salvarConfiguracaoMidia(id,{midia_ia_arquivos_ativa:e.target.checked})}/><span><b>Interpretar arquivos</b><br/>Lê PDF, texto e documentos compatíveis.</span></label>
             </div>
-            <div style={{marginTop:8}}><label style={LS}>Tamanho mÃ¡ximo por mÃ­dia (MB)</label><input type="number" min={1} max={25} value={d.midia_ia_tamanho_max_mb ?? 15} onChange={e=>u({midia_ia_tamanho_max_mb:Math.max(1,Math.min(25,Number(e.target.value)||15))})} style={IS}/></div>
-            <div style={{marginTop:8}}><label style={LS}>Mensagem se nÃ£o conseguir ler</label><textarea value={d.midia_ia_mensagem_falha || "Recebi a foto ou o arquivo, mas nÃ£o consegui ler com seguranÃ§a. Pode enviar novamente ou digitar as informaÃ§Ãµes, por favor?"} onChange={e=>u({midia_ia_mensagem_falha:e.target.value})} style={{...IS,minHeight:64,resize:"vertical"}}/></div>
-            <p style={{fontSize:9,color:"#115e59",margin:"7px 0 0"}}>Usa a mesma API Key e o mesmo modelo deste bloco. O conteÃºdo extraÃ­do vira apenas contexto interno da conversa.</p>
+            <div style={{marginTop:8}}><label style={LS}>Tamanho máximo por mídia (MB)</label><input type="number" min={1} max={25} value={d.midia_ia_tamanho_max_mb ?? 15} onChange={e=>u({midia_ia_tamanho_max_mb:Math.max(1,Math.min(25,Number(e.target.value)||15))})} style={IS}/></div>
+            <div style={{marginTop:8}}><label style={LS}>Mensagem se não conseguir ler</label><textarea value={d.midia_ia_mensagem_falha || "Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?"} onChange={e=>u({midia_ia_mensagem_falha:e.target.value})} style={{...IS,minHeight:64,resize:"vertical"}}/></div>
+            <p style={{fontSize:9,color:"#115e59",margin:"7px 0 0"}}>Usa a mesma API Key e o mesmo modelo deste bloco. O conteúdo extraído vira apenas contexto interno da conversa.</p>
           </div>}
         </div>
-        <div><label style={LS}>Limite de recusas antes de desistir</label><input type="number" min={0} max={20} value={d.limite_recusas ?? 3} onChange={e=>u({limite_recusas:Number(e.target.value)})} style={IS}/><p style={{fontSize:9,color:"#6b7280",margin:"4px 0 0"}}>0 = sem limite. Conecte a saÃ­da â€œLimite atingidoâ€ a Atualizar Venda (ex.: CANCELADA/DESISTÃŠNCIA) e depois a Finalizar.</p></div>
+        <div><label style={LS}>Limite de recusas antes de desistir</label><input type="number" min={0} max={20} value={d.limite_recusas ?? 3} onChange={e=>u({limite_recusas:Number(e.target.value)})} style={IS}/><p style={{fontSize:9,color:"#6b7280",margin:"4px 0 0"}}>0 = sem limite. Conecte a saída “Limite atingido” a Atualizar Venda (ex.: CANCELADA/DESISTÊNCIA) e depois a Finalizar.</p></div>
         <div style={{marginTop:12,background:d.followups_extensao_ativa === true?"linear-gradient(135deg,#ecfeff,#eff6ff)":"#f8fafc",border:d.followups_extensao_ativa === true?"1px solid #67e8f9":"1px solid #cbd5e1",borderRadius:11,padding:11,boxShadow:d.followups_extensao_ativa === true?"0 8px 24px rgba(8,145,178,.10)":"none"}}>
           <label style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,cursor:"pointer"}}>
             <span style={{display:"flex",alignItems:"flex-start",gap:9}}>
-              <span style={{display:"grid",placeItems:"center",width:32,height:32,borderRadius:9,background:d.followups_extensao_ativa === true?"#0891b2":"#e2e8f0",color:d.followups_extensao_ativa === true?"#fff":"#475569",fontSize:16,flexShrink:0}}>â°</span>
+              <span style={{display:"grid",placeItems:"center",width:32,height:32,borderRadius:9,background:d.followups_extensao_ativa === true?"#0891b2":"#e2e8f0",color:d.followups_extensao_ativa === true?"#fff":"#475569",fontSize:16,flexShrink:0}}>⏰</span>
               <span>
                 <b style={{display:"block",color:"#0f172a",fontSize:12}}>Agenda inteligente e lembretes</b>
-                <span style={{display:"block",color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:2}}>ExtensÃ£o isolada do vendedor IA. Desligada, nÃ£o intercepta nenhuma mensagem nem altera o fluxo principal.</span>
+                <span style={{display:"block",color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:2}}>Extensão isolada do vendedor IA. Desligada, não intercepta nenhuma mensagem nem altera o fluxo principal.</span>
               </span>
             </span>
             <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
@@ -1542,22 +1542,22 @@ function saida(obj) {
               {lembretesReengajamento.map((lembrete,indice)=>(
                 <div key={indice} style={{background:"#fff",border:"1px solid #fed7aa",borderRadius:8,padding:9}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:6}}><b style={{fontSize:10,color:"#9a3412"}}>Lembrete {indice+1}</b>{lembretesReengajamento.length>1 && <button type="button" onClick={()=>removerLembrete(indice)} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"4px 7px",fontSize:9,cursor:"pointer"}}>Remover</button>}</div>
-                  <label style={LS}>{indice===0?"Enviar apÃ³s quantos minutos sem resposta":"Aguardar quantos minutos apÃ³s o lembrete anterior"}</label>
+                  <label style={LS}>{indice===0?"Enviar após quantos minutos sem resposta":"Aguardar quantos minutos após o lembrete anterior"}</label>
                   <input type="number" min={1} max={1440} value={lembrete.minutos ?? 10} onChange={e=>atualizarLembrete(indice,{minutos:Math.max(1,Number(e.target.value)||10)})} style={IS}/>
                   <label style={{...LS,marginTop:7}}>Mensagem deste lembrete</label>
-                  <textarea value={lembrete.mensagem || ""} onChange={e=>atualizarLembrete(indice,{mensagem:e.target.value})} placeholder="Mensagem que serÃ¡ enviada ao cliente" style={{...IS,minHeight:70,resize:"vertical"}}/>
+                  <textarea value={lembrete.mensagem || ""} onChange={e=>atualizarLembrete(indice,{mensagem:e.target.value})} placeholder="Mensagem que será enviada ao cliente" style={{...IS,minHeight:70,resize:"vertical"}}/>
                 </div>
               ))}
             </div>
-            {lembretesReengajamento.length<20 && <button type="button" onClick={()=>u({reengajamento_lembretes:[...lembretesReengajamento,{minutos:10,mensagem:"Oi, {{nome}}! Se ainda quiser continuar, Ã© sÃ³ me responder por aqui. ðŸ˜Š"}]})} style={{display:"block",width:"100%",marginTop:8,background:"#ffedd5",border:"1px dashed #fb923c",color:"#9a3412",borderRadius:7,padding:"9px 10px",fontSize:10,fontWeight:800,cursor:"pointer"}}>+ Adicionar lembrete</button>}
+            {lembretesReengajamento.length<20 && <button type="button" onClick={()=>u({reengajamento_lembretes:[...lembretesReengajamento,{minutos:10,mensagem:"Oi, {{nome}}! Se ainda quiser continuar, é só me responder por aqui. 😊"}]})} style={{display:"block",width:"100%",marginTop:8,background:"#ffedd5",border:"1px dashed #fb923c",color:"#9a3412",borderRadius:7,padding:"9px 10px",fontSize:10,fontWeight:800,cursor:"pointer"}}>+ Adicionar lembrete</button>}
             <div style={{marginTop:10,padding:9,background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8}}>
               <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#991b1b",fontSize:10,lineHeight:1.4,cursor:"pointer"}}>
                 <input type="checkbox" checked={d.reengajamento_finalizar_automatico === true} onChange={e=>u({reengajamento_finalizar_automatico:e.target.checked})} style={{marginTop:2}}/>
                 <span><b>Finalizar automaticamente se continuar sem resposta</b><br/>Encerra o atendimento e move de Abertos para Finalizados, sem precisar conectar outro bloco.</span>
               </label>
-              {d.reengajamento_finalizar_automatico === true && <div style={{marginTop:7}}><label style={LS}>Finalizar quantos minutos apÃ³s o Ãºltimo lembrete</label><input type="number" min={1} max={10080} value={d.reengajamento_finalizar_apos_minutos ?? 120} onChange={e=>u({reengajamento_finalizar_apos_minutos:Math.max(1,Number(e.target.value)||120)})} style={IS}/><p style={{fontSize:9,color:"#991b1b",margin:"4px 0 0"}}>Exemplo: 120 minutos depois da Ãºltima mensagem da IA.</p></div>}
+              {d.reengajamento_finalizar_automatico === true && <div style={{marginTop:7}}><label style={LS}>Finalizar quantos minutos após o último lembrete</label><input type="number" min={1} max={10080} value={d.reengajamento_finalizar_apos_minutos ?? 120} onChange={e=>u({reengajamento_finalizar_apos_minutos:Math.max(1,Number(e.target.value)||120)})} style={IS}/><p style={{fontSize:9,color:"#991b1b",margin:"4px 0 0"}}>Exemplo: 120 minutos depois da última mensagem da IA.</p></div>}
             </div>
-            <p style={{fontSize:9,color:"#9a3412",margin:"6px 0 0"}}>Cada mensagem Ã© enviada apenas uma vez. Aceita variÃ¡veis como {"{{nome}}"}.</p>
+            <p style={{fontSize:9,color:"#9a3412",margin:"6px 0 0"}}>Cada mensagem é enviada apenas uma vez. Aceita variáveis como {"{{nome}}"}.</p>
           </div>}
         </div>
         <div style={{marginTop:10,background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:9,padding:10}}>
@@ -1571,14 +1571,14 @@ function saida(obj) {
           </div>}
           {d.reengajamento_inteligente_ativo !== false && <div style={{marginTop:8}}>
             <label style={LS}>Mensagem do retorno programado</label>
-            <textarea value={d.reengajamento_inteligente_mensagem || "Oi, {{nome}}! ðŸ˜Š Estou passando conforme combinamos. Podemos continuar exatamente de onde paramos?"} onChange={e=>u({reengajamento_inteligente_mensagem:e.target.value})} style={{...IS,minHeight:64,resize:"vertical"}}/>
-            <p style={{fontSize:9,color:"#1e40af",margin:"4px 0 0"}}>Aceita variÃ¡veis do fluxo, como {"{{nome}}"}. A mensagem Ã© enviada uma Ãºnica vez.</p>
+            <textarea value={d.reengajamento_inteligente_mensagem || "Oi, {{nome}}! 😊 Estou passando conforme combinamos. Podemos continuar exatamente de onde paramos?"} onChange={e=>u({reengajamento_inteligente_mensagem:e.target.value})} style={{...IS,minHeight:64,resize:"vertical"}}/>
+            <p style={{fontSize:9,color:"#1e40af",margin:"4px 0 0"}}>Aceita variáveis do fluxo, como {"{{nome}}"}. A mensagem é enviada uma única vez.</p>
           </div>}
           <p style={{fontSize:9,color:"#1e3a8a",margin:"8px 0 0"}}>Se o cliente responder antes do horario combinado, o retorno agendado e cancelado e a conversa continua normalmente.</p>
         </div>
         </>}
         <div style={{marginTop:10}}>
-          <label style={LS}>VariÃ¡veis que a IA precisa salvar</label>
+          <label style={LS}>Variáveis que a IA precisa salvar</label>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {camposIA.map((campo, indice) => (
               <div key={indice} style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:9}}>
@@ -1594,31 +1594,31 @@ function saida(obj) {
                     <option value="cpf">CPF</option>
                     <option value="cep">CEP</option>
                     <option value="telefone">Telefone</option>
-                    <option value="numero">NÃºmero</option>
+                    <option value="numero">Número</option>
                     <option value="data">Data</option>
                   </select>
                   <label style={{display:"flex",alignItems:"center",gap:5,color:"#374151",fontSize:10}}>
                     <input type="checkbox" checked={campo.obrigatoria !== false} onChange={e=>atualizarCampoIA(indice,{obrigatoria:e.target.checked})}/>
-                    ObrigatÃ³ria
+                    Obrigatória
                   </label>
                   <button type="button" onClick={()=>removerCampoIA(indice)} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"5px 8px",cursor:"pointer",fontSize:10}}>Remover</button>
                 </div>
                 <div style={{marginTop:7}}>
-                  <label style={{...LS,fontSize:9}}>Deve ser diferente da variÃ¡vel (opcional)</label>
+                  <label style={{...LS,fontSize:9}}>Deve ser diferente da variável (opcional)</label>
                   <select value={campo.diferente_de || ""} onChange={e=>atualizarCampoIA(indice,{diferente_de:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}>
                     <option value="">-- nao comparar com outra variavel --</option>
                     {variaveisDoFluxo.filter(nome=>nome !== campo.nome).map(nome=>(
                       <option key={nome} value={nome}>{`{{${nome}}}`}</option>
                     ))}
                   </select>
-                  <p style={{fontSize:9,color:"#6b7280",margin:"3px 0 0"}}>ComparaÃ§Ã£o exata feita pelo backend. Para um novo CPF, informe a variÃ¡vel que guarda o CPF anterior.</p>
+                  <p style={{fontSize:9,color:"#6b7280",margin:"3px 0 0"}}>Comparação exata feita pelo backend. Para um novo CPF, informe a variável que guarda o CPF anterior.</p>
                 </div>
               </div>
             ))}
           </div>
           <button type="button" onClick={()=>u({variaveis:[...camposIA,{nome:"",label:"",tipo:"texto",obrigatoria:true}]})}
             style={{marginTop:8,background:"#ede9fe",border:"1px solid #c4b5fd",color:"#6d28d9",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
-            + Adicionar variÃ¡vel
+            + Adicionar variável
           </button>
         </div>
 
@@ -1660,26 +1660,26 @@ function saida(obj) {
                   </>
                 )}
                 <div style={{marginTop:8,padding:9,background:"#fff",border:"1px solid #a7f3d0",borderRadius:8}}>
-                  <label style={{...LS,fontSize:9,color:"#047857"}}>DecisÃ£o apÃ³s a consulta</label>
+                  <label style={{...LS,fontSize:9,color:"#047857"}}>Decisão após a consulta</label>
                   <p style={{fontSize:9,color:"#6b7280",margin:"3px 0 7px",lineHeight:1.4}}>
-                    O backend compara o retorno da consulta. Separe respostas alternativas com ponto e vÃ­rgula.
+                    O backend compara o retorno da consulta. Separe respostas alternativas com ponto e vírgula.
                   </p>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
-                    <input value={consulta.resultado_disponivel || ""} placeholder="DisponÃ­vel: Temos disponibilidade" onChange={e=>atualizarConsultaIA(indice,{resultado_disponivel:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px",borderColor:"#86efac"}}/>
-                    <input value={consulta.resultado_indisponivel || ""} placeholder="IndisponÃ­vel: NÃ£o temos disponibilidade" onChange={e=>atualizarConsultaIA(indice,{resultado_indisponivel:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px",borderColor:"#fca5a5"}}/>
+                    <input value={consulta.resultado_disponivel || ""} placeholder="Disponível: Temos disponibilidade" onChange={e=>atualizarConsultaIA(indice,{resultado_disponivel:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px",borderColor:"#86efac"}}/>
+                    <input value={consulta.resultado_indisponivel || ""} placeholder="Indisponível: Não temos disponibilidade" onChange={e=>atualizarConsultaIA(indice,{resultado_indisponivel:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px",borderColor:"#fca5a5"}}/>
                   </div>
                   <div style={{marginTop:8,padding:9,background:"#f8fafc",border:"1px solid #cbd5e1",borderRadius:8}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:7}}>
                       <div>
-                        <div style={{fontSize:10,fontWeight:800,color:"#0f172a"}}>AÃ§Ãµes isoladas para retorno negativo</div>
-                        <div style={{fontSize:9,color:"#64748b",marginTop:2}}>Com as duas opÃ§Ãµes desligadas, nada muda no atendimento atual.</div>
+                        <div style={{fontSize:10,fontWeight:800,color:"#0f172a"}}>Ações isoladas para retorno negativo</div>
+                        <div style={{fontSize:9,color:"#64748b",marginTop:2}}>Com as duas opções desligadas, nada muda no atendimento atual.</div>
                       </div>
                       <span style={{fontSize:8,fontWeight:800,color:"#475569",background:"#e2e8f0",borderRadius:999,padding:"3px 6px"}}>ISOLADO</span>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
                       <div style={{border:"1px solid #fecaca",background:"#fff",borderRadius:8,padding:8}}>
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:7}}>
-                          <div style={{fontSize:9,fontWeight:700,color:"#7f1d1d"}}>Marcar conversa como inviÃ¡vel</div>
+                          <div style={{fontSize:9,fontWeight:700,color:"#7f1d1d"}}>Marcar conversa como inviável</div>
                           <button type="button" onClick={()=>atualizarConsultaIA(indice,{retorno_negativo_aplicar_etiqueta:consulta.retorno_negativo_aplicar_etiqueta !== true})}
                             style={{border:0,borderRadius:999,padding:"4px 9px",cursor:"pointer",fontSize:8,fontWeight:900,color:"#fff",background:consulta.retorno_negativo_aplicar_etiqueta === true ? "#16a34a" : "#94a3b8"}}>
                             {consulta.retorno_negativo_aplicar_etiqueta === true ? "ON" : "OFF"}
@@ -1731,7 +1731,7 @@ function saida(obj) {
       return <>
         {F("API Key","apiKey","password","sk-ant-...")}
         {S("Modelo","modelo",[{value:"claude-opus-4-5",label:"Claude Opus 4.5"},{value:"claude-sonnet-4-20250514",label:"Claude Sonnet 4"},{value:"claude-haiku-4-5",label:"Claude Haiku"}])}
-        {T("Prompt do sistema","prompt","VocÃª Ã© um assistente...",100)}
+        {T("Prompt do sistema","prompt","Você é um assistente...",100)}
         {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_ia")}
         <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"#1f2937",fontSize:12}}>
           <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
@@ -1741,7 +1741,7 @@ function saida(obj) {
     case "gmail":
       return <>
         <div style={{background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:8, padding:10, marginBottom:10}}>
-          <p style={{color:"#1e40af", fontSize:11, margin:0, fontWeight:700}}>ðŸ“¨ Envio de email via SMTP</p>
+          <p style={{color:"#1e40af", fontSize:11, margin:0, fontWeight:700}}>📨 Envio de email via SMTP</p>
           <p style={{color:"#3b82f6", fontSize:10, margin:"4px 0 0", lineHeight:1.4}}>
             Use Gmail (com <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{color:"#2563eb",fontWeight:700}}>App Password</a>), SendGrid, Mailgun ou qualquer SMTP.
           </p>
@@ -1753,81 +1753,81 @@ function saida(obj) {
         </div>
         <label style={{display:"flex",alignItems:"center",gap:6,marginTop:6,color:"#1f2937",fontSize:12}}>
           <input type="checkbox" checked={!!d.smtp_secure} onChange={e => u({ smtp_secure: e.target.checked })} />
-          ConexÃ£o SSL/TLS (porta 465). Desmarcado = STARTTLS (porta 587).
+          Conexão SSL/TLS (porta 465). Desmarcado = STARTTLS (porta 587).
         </label>
-        {F("UsuÃ¡rio SMTP","smtp_user","text","seu@gmail.com")}
-        {F("Senha SMTP / App Password","smtp_pass","password","â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢")}
+        {F("Usuário SMTP","smtp_user","text","seu@gmail.com")}
+        {F("Senha SMTP / App Password","smtp_pass","password","••••••••")}
         <p style={{color:"#6b7280", fontSize:10, margin:"6px 0 6px", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4}}>Mensagem</p>
         {F("Nome do remetente (opcional)","from_name","text","Minha Empresa")}
-        {F("Para","para","text","cliente@email.com  â€¢  aceita {{variavel}}")}
+        {F("Para","para","text","cliente@email.com  •  aceita {{variavel}}")}
         {F("Assunto","assunto","text","Bem-vindo, {{nome}}!")}
-        {T("Corpo do email (texto ou HTML)","corpo","OlÃ¡ {{nome}},\n\nObrigado pelo contato!\n\nAtenciosamente.",140)}
+        {T("Corpo do email (texto ou HTML)","corpo","Olá {{nome}},\n\nObrigado pelo contato!\n\nAtenciosamente.",140)}
         <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
-          ðŸ’¡ Use {`{{variavel}}`} no Para/Assunto/Corpo. SaÃ­das: <b>Enviado</b> (ok) / <b>Erro</b> (falha SMTP).
+          💡 Use {`{{variavel}}`} no Para/Assunto/Corpo. Saídas: <b>Enviado</b> (ok) / <b>Erro</b> (falha SMTP).
         </p>
       </>;
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // ðŸ†• v20 â€” META PIXEL / CONVERSIONS API
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    // Manda um evento de conversÃ£o pra Meta (Lead, Purchase, etc), pro pixel/anÃºncio
-    // do cliente "aprender" e otimizar campanhas com base nas conversÃµes do chatbot.
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🆕 v20 — META PIXEL / CONVERSIONS API
+    // ═══════════════════════════════════════════════════════════════════════
+    // Manda um evento de conversão pra Meta (Lead, Purchase, etc), pro pixel/anúncio
+    // do cliente "aprender" e otimizar campanhas com base nas conversões do chatbot.
     //
-    // âš ï¸ BACKEND (executor do fluxo na VPS) â€” ao processar este bloco:
+    // ⚠️ BACKEND (executor do fluxo na VPS) — ao processar este bloco:
     //   1. Resolver {{variaveis}} em valor/evento_custom
     //   2. POST https://graph.facebook.com/{api_version}/{pixel_id}/events?access_token={access_token}
     //        body: { data: [{
     //          event_name, event_time: <unix>, action_source: "business_messaging",
     //          user_data: { ph: sha256(telefone_e164_sem_mais) },  // hashear PII com SHA-256
-    //          custom_data: { value, currency }   // sÃ³ se houver valor
+    //          custom_data: { value, currency }   // só se houver valor
     //        }], test_event_code? }
-    //   3. Sucesso (HTTP 200, sem "error") â†’ saÃ­da 0; falha â†’ saÃ­da 1
+    //   3. Sucesso (HTTP 200, sem "error") → saída 0; falha → saída 1
     // Doc: https://developers.facebook.com/docs/marketing-api/conversions-api
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // ═══════════════════════════════════════════════════════════════════════
     case "meta_capi": {
       const evento = d.evento || "Lead";
       return <>
         <div style={{background:"#10b98111", border:"1px solid #10b98133", borderRadius:8, padding:12, marginBottom:8}}>
-          <p style={{color:"#059669", fontSize:12, fontWeight:"bold", margin:"0 0 4px"}}>ðŸ“ˆ Meta Pixel / Conversions API</p>
+          <p style={{color:"#059669", fontSize:12, fontWeight:"bold", margin:"0 0 4px"}}>📈 Meta Pixel / Conversions API</p>
           <p style={{color:"#6b7280", fontSize:11, margin:0, lineHeight:1.5}}>
-            Dispara um evento de conversÃ£o pro Pixel da Meta. Serve pra seus anÃºncios "aprenderem"
+            Dispara um evento de conversão pro Pixel da Meta. Serve pra seus anúncios "aprenderem"
             com quem converteu no chatbot (Lead, compra, etc) e otimizarem a entrega. O telefone do
-            contato Ã© enviado com hash (SHA-256) pra fazer o match com a Meta.
+            contato é enviado com hash (SHA-256) pra fazer o match com a Meta.
           </p>
         </div>
 
         {F("Pixel ID / Dataset ID","pixel_id","text","Ex: 1473534314246940")}
         <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 8px", lineHeight:1.3}}>
-          ðŸ’¡ Pega no <b>Gerenciador de Eventos da Meta â†’ ConfiguraÃ§Ãµes do conjunto de dados</b>.
+          💡 Pega no <b>Gerenciador de Eventos da Meta → Configurações do conjunto de dados</b>.
         </p>
 
         {F("Access Token (Conversions API)","access_token","password","EAAB...")}
         <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 8px", lineHeight:1.3}}>
-          ðŸ’¡ Gerado em <b>Gerenciador de Eventos â†’ ConfiguraÃ§Ãµes â†’ Gerar token de acesso</b>.
+          💡 Gerado em <b>Gerenciador de Eventos → Configurações → Gerar token de acesso</b>.
         </p>
 
-        {S("Evento de conversÃ£o","evento",[
-          {value:"Lead",                 label:"ðŸŽ¯ Lead (contato/interesse)"},
-          {value:"Contact",              label:"ðŸ“ž Contact"},
-          {value:"CompleteRegistration", label:"ðŸ“ CompleteRegistration (cadastro)"},
-          {value:"Schedule",             label:"ðŸ“… Schedule (agendamento)"},
-          {value:"Purchase",             label:"ðŸ’° Purchase (compra)"},
-          {value:"SubmitApplication",    label:"ðŸ“„ SubmitApplication (proposta)"},
-          {value:"custom",               label:"âš™ï¸ Evento personalizado..."},
+        {S("Evento de conversão","evento",[
+          {value:"Lead",                 label:"🎯 Lead (contato/interesse)"},
+          {value:"Contact",              label:"📞 Contact"},
+          {value:"CompleteRegistration", label:"📝 CompleteRegistration (cadastro)"},
+          {value:"Schedule",             label:"📅 Schedule (agendamento)"},
+          {value:"Purchase",             label:"💰 Purchase (compra)"},
+          {value:"SubmitApplication",    label:"📄 SubmitApplication (proposta)"},
+          {value:"custom",               label:"⚙️ Evento personalizado..."},
         ])}
 
         {evento === "custom" && (
           <>
             {F("Nome do evento personalizado","evento_custom","text","Ex: PropostaInternet")}
             <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 8px"}}>
-              ðŸ’¡ Crie eventos personalizados no Gerenciador de Eventos antes de usar aqui.
+              💡 Crie eventos personalizados no Gerenciador de Eventos antes de usar aqui.
             </p>
           </>
         )}
 
-        {/* Valor + moeda â€” fazem sentido pra Purchase, mas ficam disponÃ­veis sempre (opcional) */}
+        {/* Valor + moeda — fazem sentido pra Purchase, mas ficam disponíveis sempre (opcional) */}
         <div style={{display:"grid", gridTemplateColumns:"1fr 90px", gap:8}}>
-          {F("Valor da conversÃ£o (opcional)","valor","text","Ex: 99.90 ou {{valor_plano}}")}
+          {F("Valor da conversão (opcional)","valor","text","Ex: 99.90 ou {{valor_plano}}")}
           {S("Moeda","moeda",[
             {value:"BRL",label:"BRL"},
             {value:"USD",label:"USD"},
@@ -1835,32 +1835,32 @@ function saida(obj) {
           ])}
         </div>
         <p style={{color:"#6b7280", fontSize:10, margin:"-2px 0 8px", lineHeight:1.3}}>
-          ðŸ’¡ Aceita {`{{variavel}}`}. Use ponto como separador decimal (99.90). Deixe vazio pra eventos sem valor.
+          💡 Aceita {`{{variavel}}`}. Use ponto como separador decimal (99.90). Deixe vazio pra eventos sem valor.
         </p>
 
         {F("Test Event Code (opcional)","test_event_code","text","Ex: TEST12345")}
         <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 0", lineHeight:1.3}}>
-          ðŸ’¡ Use enquanto testa: pega em <b>Gerenciador de Eventos â†’ Testar eventos</b>. Os eventos
-          aparecem lÃ¡ em tempo real. <b>Remova quando for pra produÃ§Ã£o.</b>
+          💡 Use enquanto testa: pega em <b>Gerenciador de Eventos → Testar eventos</b>. Os eventos
+          aparecem lá em tempo real. <b>Remova quando for pra produção.</b>
         </p>
 
         <p style={{color:"#6b7280", fontSize:10, margin:"10px 0 0", lineHeight:1.4, fontStyle:"italic"}}>
-          âš ï¸ SaÃ­das: <span style={{color:"#22c55e"}}>0=Sucesso</span> (Meta recebeu) /{" "}
-          <span style={{color:"#ef4444"}}>1=Erro</span> (token invÃ¡lido, pixel errado, etc).
+          ⚠️ Saídas: <span style={{color:"#22c55e"}}>0=Sucesso</span> (Meta recebeu) /{" "}
+          <span style={{color:"#ef4444"}}>1=Erro</span> (token inválido, pixel errado, etc).
         </p>
       </>;
     }
 
-    case "inicio":    return <>{TVar("Mensagem de boas-vindas","mensagem","OlÃ¡! Como posso ajudar?",100)}</>;
+    case "inicio":    return <>{TVar("Mensagem de boas-vindas","mensagem","Olá! Como posso ajudar?",100)}</>;
     case "comando":   return <>{F("Comando","comando","text","/start")}</>;
     case "reply":
       return <div>
-        <label style={LS}>Palavras-chave (separadas por vÃ­rgula)</label>
-        <input value={d.palavras||""} onChange={e => u({palavras: e.target.value})} style={IS} placeholder="oi, olÃ¡, bom dia" />
+        <label style={LS}>Palavras-chave (separadas por vírgula)</label>
+        <input value={d.palavras||""} onChange={e => u({palavras: e.target.value})} style={IS} placeholder="oi, olá, bom dia" />
       </div>;
-    case "invalido":  return <>{T("Mensagem para invÃ¡lido","mensagem","NÃ£o entendi...",80)}</>;
+    case "invalido":  return <>{T("Mensagem para inválido","mensagem","Não entendi...",80)}</>;
 
-    // ðŸ†• Transferir â€” 2 modos: equipe/fila OU atendente humano especÃ­fico
+    // 🆕 Transferir — 2 modos: equipe/fila OU atendente humano específico
     case "transferir": {
       const modo = d.modo || "equipe";
       const radioStyle = (ativo: boolean): React.CSSProperties => ({
@@ -1871,19 +1871,19 @@ function saida(obj) {
       });
       return <>
         <div>
-          <label style={LS}>Tipo de transferÃªncia</label>
+          <label style={LS}>Tipo de transferência</label>
           <div style={{display:"flex", gap:6}}>
             <button type="button" onClick={() => u({modo: "equipe"})} style={radioStyle(modo === "equipe")}>
-              ðŸ‘¥ Equipe / Fila
+              👥 Equipe / Fila
             </button>
             <button type="button" onClick={() => u({modo: "humano"})} style={radioStyle(modo === "humano")}>
-              ðŸ‘¤ Atendente humano
+              👤 Atendente humano
             </button>
           </div>
           <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0", lineHeight:1.4}}>
             {modo === "humano"
               ? "Atribui o atendimento direto pro atendente escolhido."
-              : "Joga o atendimento na fila â€” qualquer atendente da equipe pode pegar."}
+              : "Joga o atendimento na fila — qualquer atendente da equipe pode pegar."}
           </p>
         </div>
 
@@ -1892,9 +1892,9 @@ function saida(obj) {
             <label style={LS}>Fila de destino</label>
             {filasBanco.length === 0 ? (
               <div style={{background:"#fef3c7", border:"1px solid #f59e0b44", borderRadius:6, padding:10}}>
-                <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>âš ï¸ Nenhuma fila cadastrada</p>
+                <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>⚠️ Nenhuma fila cadastrada</p>
                 <p style={{color:"#9ca3af", fontSize:10, margin:0, lineHeight:1.4}}>
-                  VÃ¡ em <b>CRM â†’ ConfiguraÃ§Ãµes â†’ Filas</b> e crie suas filas.<br/>
+                  Vá em <b>CRM → Configurações → Filas</b> e crie suas filas.<br/>
                   Depois volte aqui e selecione a fila de destino.
                 </p>
               </div>
@@ -1902,12 +1902,12 @@ function saida(obj) {
               <select value={d.fila||""} onChange={e => u({fila: e.target.value})} style={IS}>
                 <option value="">Selecione uma fila...</option>
                 {filasBanco.map(f => (
-                  <option key={f.id} value={f.nome}>ðŸ“‹ {f.nome}{f.conexao ? ` (${f.conexao})` : ""}</option>
+                  <option key={f.id} value={f.nome}>📋 {f.nome}{f.conexao ? ` (${f.conexao})` : ""}</option>
                 ))}
               </select>
             )}
             <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
-              ðŸ’¡ Filas sÃ£o criadas em <b>ConfiguraÃ§Ãµes â†’ Filas</b> do CRM
+              💡 Filas são criadas em <b>Configurações → Filas</b> do CRM
             </p>
           </div>
         ) : (
@@ -1915,9 +1915,9 @@ function saida(obj) {
             <label style={LS}>Atendente humano</label>
             {atendentesBanco.length === 0 ? (
               <div style={{background:"#fef3c7", border:"1px solid #f59e0b44", borderRadius:6, padding:10}}>
-                <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>âš ï¸ Nenhum atendente cadastrado</p>
+                <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>⚠️ Nenhum atendente cadastrado</p>
                 <p style={{color:"#9ca3af", fontSize:10, margin:0, lineHeight:1.4}}>
-                  Cadastre atendentes em <b>CRM â†’ ConfiguraÃ§Ãµes â†’ UsuÃ¡rios</b>.
+                  Cadastre atendentes em <b>CRM → Configurações → Usuários</b>.
                 </p>
               </div>
             ) : (
@@ -1931,12 +1931,12 @@ function saida(obj) {
               >
                 <option value="">Selecione um atendente...</option>
                 {atendentesBanco.map(a => (
-                  <option key={a.email} value={a.email}>ðŸ‘¤ {a.nome} ({a.email})</option>
+                  <option key={a.email} value={a.email}>👤 {a.nome} ({a.email})</option>
                 ))}
               </select>
             )}
             <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
-              ðŸ’¡ Atendentes sÃ£o cadastrados em <b>ConfiguraÃ§Ãµes â†’ UsuÃ¡rios</b>
+              💡 Atendentes são cadastrados em <b>Configurações → Usuários</b>
             </p>
           </div>
         )}
@@ -1949,9 +1949,9 @@ function saida(obj) {
 
     case "finalizar": return <>{T("Mensagem de encerramento","mensagem","Obrigado pelo contato!",80)}</>;
 
-    // ðŸ†• v18: bloco "Enviar Venda" â€” cria proposta no /crm/vendas automaticamente
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    // FRONTEND: configuraÃ§Ã£o do bloco (este case)
+    // 🆕 v18: bloco "Enviar Venda" — cria proposta no /crm/vendas automaticamente
+    // ─────────────────────────────────────────────────────────────────────────
+    // FRONTEND: configuração do bloco (este case)
     // BACKEND: o executor de fluxo na VPS precisa, ao processar este tipo de bloco:
     //   1. Carregar `variaveis` da fluxo_sessoes do contato atual
     //   2. Resolver o mapeamento (automatico por nome OU manual)
@@ -1963,12 +1963,12 @@ function saida(obj) {
     //   5. Se aplicar_etiqueta=true: INSERT em `atendimento_etiquetas` com nome da tag
     //   6. Enviar `mensagem_sucesso` ao cliente (se preenchida) e seguir saida "Sucesso"
     //   7. Em erro: enviar `mensagem_erro` e seguir saida "Erro"
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─────────────────────────────────────────────────────────────────────────
     case "gatilho_crm": {
       const campoAtual = d.campo || "status_venda";
       return <>
         <div style={{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:9,padding:10}}>
-          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#c2410c"}}>âš¡ Entrada automÃ¡tica pelo CRM</p>
+          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#c2410c"}}>⚡ Entrada automática pelo CRM</p>
           <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#6b7280"}}>Quando uma venda mudar conforme esta regra, o sistema abre o trecho conectado usando o mesmo cliente, canal e venda. Crie quantos gatilhos precisar.</p>
         </div>
         <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#374151"}}>
@@ -1977,9 +1977,9 @@ function saida(obj) {
         <div><label style={LS}>Campo observado</label><select value={campoAtual} onChange={e=>u({campo:e.target.value})} style={IS}>
           {camposPropostaUnif.filter(c=>c.visivel).map(c=><option key={c.origem+":"+c.slug} value={c.origem === "custom" ? "custom."+c.slug : c.slug}>{c.label}{c.origem === "custom" ? " (personalizado)" : ""}</option>)}
         </select></div>
-        {S("CondiÃ§Ã£o","operador",[
-          {value:"mudou_para",label:"Mudou para"},{value:"mudou_de",label:"Saiu de"},{value:"alterou",label:"Qualquer alteraÃ§Ã£o"},
-          {value:"igual",label:"EstÃ¡ igual a"},{value:"contem",label:"ContÃ©m"},{value:"preenchido",label:"Foi preenchido"},{value:"vazio",label:"Ficou vazio"}
+        {S("Condição","operador",[
+          {value:"mudou_para",label:"Mudou para"},{value:"mudou_de",label:"Saiu de"},{value:"alterou",label:"Qualquer alteração"},
+          {value:"igual",label:"Está igual a"},{value:"contem",label:"Contém"},{value:"preenchido",label:"Foi preenchido"},{value:"vazio",label:"Ficou vazio"}
         ])}
         {!['alterou','preenchido','vazio'].includes(d.operador || 'mudou_para') && <div>
           <label style={LS}>Valor da regra</label>
@@ -1995,7 +1995,7 @@ function saida(obj) {
           <p style={{fontSize:9,color:"#9a3412",lineHeight:1.4,margin:"6px 0 0"}}>Na Cloud API, use template quando o cliente estiver fora da janela de 24 horas. Depois o fluxo e a IA continuam normalmente.</p>
         </div>
         <div style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:9,fontSize:10,color:"#475569",lineHeight:1.5}}>
-          VariÃ¡veis automÃ¡ticas: <code>{'{{proposta_id}}'}</code>, <code>{'{{crm_campo_alterado}}'}</code>, <code>{'{{crm_valor_anterior}}'}</code>, <code>{'{{crm_valor_novo}}'}</code> e todos os campos da venda.
+          Variáveis automáticas: <code>{'{{proposta_id}}'}</code>, <code>{'{{crm_campo_alterado}}'}</code>, <code>{'{{crm_valor_anterior}}'}</code>, <code>{'{{crm_valor_novo}}'}</code> e todos os campos da venda.
         </div>
       </>;
     }
@@ -2004,8 +2004,8 @@ function saida(obj) {
       const atualizar = (i:number, patch:Record<string,string>) => u({atualizacoes:itens.map((x,j)=>j===i?{...x,...patch}:x)});
       return <>
         <div style={{background:"#f0f9ff",border:"1px solid #7dd3fc",borderRadius:9,padding:10}}>
-          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#0369a1"}}>ðŸ“ Atualizar a venda atual</p>
-          <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#6b7280"}}>Edita a mesma ficha que acionou a automaÃ§Ã£o. Pode alterar status, horÃ¡rio, CPF, observaÃ§Ã£o ou qualquer campo personalizado do workspace.</p>
+          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#0369a1"}}>📝 Atualizar a venda atual</p>
+          <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#6b7280"}}>Edita a mesma ficha que acionou a automação. Pode alterar status, horário, CPF, observação ou qualquer campo personalizado do workspace.</p>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>{itens.map((item,i)=><div key={i} style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:8}}>
           <select value={item.campo || ""} onChange={e=>atualizar(i,{campo:e.target.value})} style={{...IS,marginBottom:6}}>
@@ -2013,29 +2013,29 @@ function saida(obj) {
             {camposPropostaUnif.filter(c=>c.visivel).map(c=><option key={c.origem+":"+c.slug} value={c.origem === "custom" ? "custom."+c.slug : c.slug}>{c.label}{c.origem === "custom" ? " (personalizado)" : ""}</option>)}
           </select>
           <div style={{display:"grid",gridTemplateColumns:"110px 1fr auto",gap:6}}>
-            <select value={item.origem || "valor"} onChange={e=>atualizar(i,{origem:e.target.value})} style={IS}><option value="valor">Valor/texto</option><option value="variavel">VariÃ¡vel</option></select>
+            <select value={item.origem || "valor"} onChange={e=>atualizar(i,{origem:e.target.value})} style={IS}><option value="valor">Valor/texto</option><option value="variavel">Variável</option></select>
             {item.origem === "variavel" ? <select value={item.valor || ""} onChange={e=>atualizar(i,{valor:e.target.value})} style={IS}><option value="">Escolha...</option>{variaveisDoFluxo.map(v=><option key={v} value={v}>{'{{'+v+'}}'}</option>)}</select> : <input value={item.valor || ""} onChange={e=>atualizar(i,{valor:e.target.value})} style={IS} placeholder="Valor ou {{variavel}}"/>}
-            <button type="button" onClick={()=>u({atualizacoes:itens.filter((_,j)=>j!==i)})} style={{border:"1px solid #fecaca",background:"#fee2e2",color:"#dc2626",borderRadius:6,cursor:"pointer"}}>Ã—</button>
+            <button type="button" onClick={()=>u({atualizacoes:itens.filter((_,j)=>j!==i)})} style={{border:"1px solid #fecaca",background:"#fee2e2",color:"#dc2626",borderRadius:6,cursor:"pointer"}}>×</button>
           </div>
         </div>)}</div>
         <button type="button" onClick={()=>u({atualizacoes:[...itens,{campo:"",origem:"valor",valor:""}]})} style={{background:"#e0f2fe",border:"1px solid #7dd3fc",color:"#0369a1",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>+ Campo para atualizar</button>
-        {TVar("Mensagem apÃ³s atualizar (opcional)","mensagem_sucesso","Ex.: Dados atualizados. Vou reenviar para anÃ¡lise.",65)}
-        {TVar("Mensagem se der erro (opcional)","mensagem_erro","NÃ£o consegui atualizar agora.",55)}
+        {TVar("Mensagem após atualizar (opcional)","mensagem_sucesso","Ex.: Dados atualizados. Vou reenviar para análise.",65)}
+        {TVar("Mensagem se der erro (opcional)","mensagem_erro","Não consegui atualizar agora.",55)}
       </>;
     }
 
     case "enviar_venda": {
       const modoMap = d.modo_mapeamento || "automatico";
-      // ðŸ“‹ Campos disponÃ­veis = lista UNIFICADA carregada do workspace:
+      // 📋 Campos disponíveis = lista UNIFICADA carregada do workspace:
       //   - Campos FIXOS (nome, cpf, telefone, etc) respeitando configs do Editor de Vendas
-      //     (oculta os marcados como invisÃ­vel, usa label customizado)
+      //     (oculta os marcados como invisível, usa label customizado)
       //   - Campos CUSTOMIZADOS criados pelo cliente no Editor de Vendas
       // Vem via prop `camposPropostaUnif` (carregada uma vez no componente raiz).
-      // Mostra sÃ³ os visÃ­veis e ativos. Filtra o "vendedor" porque Ã© setado automÃ¡tico pelo backend.
+      // Mostra só os visíveis e ativos. Filtra o "vendedor" porque é setado automático pelo backend.
       const camposVisiveis = camposPropostaUnif.filter(c =>
         c.visivel !== false && c.slug !== "vendedor"
       );
-      // Separa em fixos / customs pra mostrar em seÃ§Ãµes diferentes
+      // Separa em fixos / customs pra mostrar em seções diferentes
       const camposFixos = camposVisiveis.filter(c => c.origem === "fixo");
       const camposCustoms = camposVisiveis.filter(c => c.origem === "custom");
       const mapeamento: Record<string,string> = d.mapeamento || {};
@@ -2059,11 +2059,11 @@ function saida(obj) {
       const limparVendedores = () => u({ roleta_vendedores: [] });
       return <>
         <div style={{background:"#22c55e11",border:"1px solid #22c55e33",borderRadius:8,padding:12,marginBottom:8}}>
-          <p style={{color:"#22c55e",fontSize:12,fontWeight:"bold",margin:"0 0 4px"}}>ðŸ’° Enviar Venda pro CRM</p>
+          <p style={{color:"#22c55e",fontSize:12,fontWeight:"bold",margin:"0 0 4px"}}>💰 Enviar Venda pro CRM</p>
           <p style={{color:"#9ca3af",fontSize:11,margin:0,lineHeight:1.4}}>
             Quando o fluxo chegar nesse bloco, o sistema cria <b>automaticamente uma proposta</b> no
-            <b> /crm/vendas</b> com as variÃ¡veis que vocÃª capturou no fluxo + aplica uma etiqueta
-            no atendimento. O vendedor jÃ¡ abre o chat com a venda pronta.
+            <b> /crm/vendas</b> com as variáveis que você capturou no fluxo + aplica uma etiqueta
+            no atendimento. O vendedor já abre o chat com a venda pronta.
           </p>
         </div>
 
@@ -2071,7 +2071,7 @@ function saida(obj) {
         <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:8,padding:12,marginBottom:10}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:8}}>
             <div>
-              <p style={{color:"#c2410c",fontSize:12,fontWeight:"bold",margin:"0 0 3px"}}>ðŸŽ¯ Roleta de vendas</p>
+              <p style={{color:"#c2410c",fontSize:12,fontWeight:"bold",margin:"0 0 3px"}}>🎯 Roleta de vendas</p>
               <p style={{color:"#9a3412",fontSize:10,margin:0,lineHeight:1.35}}>
                 Marque quais vendedores podem receber vendas criadas pelo BOT neste fluxo.
               </p>
@@ -2091,7 +2091,7 @@ function saida(obj) {
             <span style={{color:"#1f2937",fontSize:11,lineHeight:1.35}}>
               <b>Ativar roleta de vendas deste bloco</b>
               <br/>
-              Se o atendimento jÃ¡ tiver vendedor real, usa ele. Se nÃ£o tiver, sorteia um vendedor marcado abaixo e transfere o atendimento para ele.
+              Se o atendimento já tiver vendedor real, usa ele. Se não tiver, sorteia um vendedor marcado abaixo e transfere o atendimento para ele.
             </span>
           </label>
 
@@ -2110,7 +2110,7 @@ function saida(obj) {
 
               {atendentesBanco.length === 0 ? (
                 <p style={{color:"#9a3412",fontSize:10,margin:0,lineHeight:1.35}}>
-                  Nenhum usuÃ¡rio encontrado neste workspace ainda. Cadastre usuÃ¡rios para aparecerem aqui.
+                  Nenhum usuário encontrado neste workspace ainda. Cadastre usuários para aparecerem aqui.
                 </p>
               ) : (
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,maxHeight:130,overflowY:"auto",paddingRight:2}}>
@@ -2146,7 +2146,7 @@ function saida(obj) {
 
               {vendedoresRoleta.length === 0 && (
                 <p style={{color:"#dc2626",fontSize:10,margin:"8px 0 0",lineHeight:1.35,fontWeight:600}}>
-                  âš ï¸ Marque pelo menos um vendedor para a roleta funcionar quando o lead ainda nÃ£o tiver atendente.
+                  ⚠️ Marque pelo menos um vendedor para a roleta funcionar quando o lead ainda não tiver atendente.
                 </p>
               )}
             </>
@@ -2154,13 +2154,13 @@ function saida(obj) {
         </div>
 
 
-        {/* Toggle modo automÃ¡tico / manual */}
+        {/* Toggle modo automático / manual */}
         <div>
-          <label style={LS}>Mapeamento das variÃ¡veis</label>
+          <label style={LS}>Mapeamento das variáveis</label>
           <div style={{display:"flex",gap:6,marginBottom:8}}>
             {[
-              {key:"automatico",label:"ðŸ”® AutomÃ¡tico",hint:"VariÃ¡vel com mesmo nome do campo jÃ¡ mapeia. Ex: variÃ¡vel 'nome' â†’ campo 'nome' da proposta."},
-              {key:"manual",label:"ðŸŽ¯ Manual",hint:"VocÃª define qual variÃ¡vel vai pra cada campo."},
+              {key:"automatico",label:"🔮 Automático",hint:"Variável com mesmo nome do campo já mapeia. Ex: variável 'nome' → campo 'nome' da proposta."},
+              {key:"manual",label:"🎯 Manual",hint:"Você define qual variável vai pra cada campo."},
             ].map(opt => (
               <button key={opt.key} onClick={() => u({modo_mapeamento: opt.key})}
                 style={{
@@ -2176,29 +2176,29 @@ function saida(obj) {
           </div>
           {modoMap === "automatico" && (
             <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
-              ðŸ’¡ O sistema vai pegar todas as variÃ¡veis salvas no fluxo e tentar mapear pelo nome.
-              <br/>Ex: variÃ¡vel <code style={{color:"#22c55e"}}>nome</code> â†’ campo "Nome do cliente";
-              variÃ¡vel <code style={{color:"#22c55e"}}>cpf_limpo</code> â†’ campo "CPF" (usa nome similar).
+              💡 O sistema vai pegar todas as variáveis salvas no fluxo e tentar mapear pelo nome.
+              <br/>Ex: variável <code style={{color:"#22c55e"}}>nome</code> → campo "Nome do cliente";
+              variável <code style={{color:"#22c55e"}}>cpf_limpo</code> → campo "CPF" (usa nome similar).
             </p>
           )}
         </div>
 
-        {/* Mapeamento manual â€” sÃ³ aparece quando o modo Ã© manual */}
+        {/* Mapeamento manual — só aparece quando o modo é manual */}
         {modoMap === "manual" && (
           <div>
-            <label style={LS}>Defina qual variÃ¡vel preenche cada campo</label>
+            <label style={LS}>Defina qual variável preenche cada campo</label>
             <p style={{color:"#6b7280",fontSize:10,margin:"-2px 0 8px",lineHeight:1.3}}>
-              Deixe em branco os campos que nÃ£o quer preencher. O sistema sÃ³ cria os que vocÃª mapear.
-              <br/>ðŸ“… Datas devem vir no formato <code style={{color:"#22c55e"}}>YYYY-MM-DD</code> ou <code style={{color:"#22c55e"}}>DD/MM/YYYY</code>.
-              ðŸ’° Valores monetÃ¡rios: ponto como separador decimal (ex: <code style={{color:"#22c55e"}}>99.90</code>).
+              Deixe em branco os campos que não quer preencher. O sistema só cria os que você mapear.
+              <br/>📅 Datas devem vir no formato <code style={{color:"#22c55e"}}>YYYY-MM-DD</code> ou <code style={{color:"#22c55e"}}>DD/MM/YYYY</code>.
+              💰 Valores monetários: ponto como separador decimal (ex: <code style={{color:"#22c55e"}}>99.90</code>).
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:10,maxHeight:380,overflowY:"auto"}}>
 
-              {/* â”€â”€â”€â”€ SeÃ§Ã£o 1: Campos fixos da proposta â”€â”€â”€â”€ */}
+              {/* ──── Seção 1: Campos fixos da proposta ──── */}
               {camposFixos.length > 0 && (
                 <>
                   <p style={{color:"#6b7280",fontSize:10,margin:"0 0 2px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>
-                    ðŸ“‹ Campos da Proposta
+                    📋 Campos da Proposta
                   </p>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
                     {camposFixos.map(c => (
@@ -2207,13 +2207,13 @@ function saida(obj) {
                           title={`${c.label} (${c.tipo})`}>
                           {c.label}
                           {c.obrigatorio && <span style={{color:"#ef4444"}}> *</span>}
-                          {(c.tipo === "data") && " ðŸ“…"}
-                          {(c.tipo === "moeda") && " ðŸ’°"}
+                          {(c.tipo === "data") && " 📅"}
+                          {(c.tipo === "moeda") && " 💰"}
                         </span>
-                        <span style={{color:"#e5e7eb",fontSize:11}}>â†</span>
+                        <span style={{color:"#e5e7eb",fontSize:11}}>←</span>
                         <select value={mapeamento[c.slug] || ""} onChange={e => updateMap(c.slug, e.target.value)}
                           style={{...IS,flex:1,fontSize:11,padding:"5px 8px"}}>
-                          <option value="">â€” sem mapeamento â€”</option>
+                          <option value="">— sem mapeamento —</option>
                           {variaveisDoFluxo.map(v => (
                             <option key={v} value={v}>{`{{${v}}}`}</option>
                           ))}
@@ -2224,11 +2224,11 @@ function saida(obj) {
                 </>
               )}
 
-              {/* â”€â”€â”€â”€ SeÃ§Ã£o 2: Campos customizados do workspace â”€â”€â”€â”€ */}
+              {/* ──── Seção 2: Campos customizados do workspace ──── */}
               {camposCustoms.length > 0 && (
                 <>
                   <p style={{color:"#8b5cf6",fontSize:10,margin:"8px 0 2px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,borderTop:"1px dashed #d1d5db",paddingTop:8}}>
-                    âœ¨ Campos Customizados ({camposCustoms.length})
+                    ✨ Campos Customizados ({camposCustoms.length})
                   </p>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
                     {camposCustoms.map(c => (
@@ -2237,13 +2237,13 @@ function saida(obj) {
                           title={`${c.label} (${c.tipo})`}>
                           {c.label}
                           {c.obrigatorio && <span style={{color:"#ef4444"}}> *</span>}
-                          {(c.tipo === "data") && " ðŸ“…"}
-                          {(c.tipo === "moeda") && " ðŸ’°"}
+                          {(c.tipo === "data") && " 📅"}
+                          {(c.tipo === "moeda") && " 💰"}
                         </span>
-                        <span style={{color:"#e5e7eb",fontSize:11}}>â†</span>
+                        <span style={{color:"#e5e7eb",fontSize:11}}>←</span>
                         <select value={mapeamento[c.slug] || ""} onChange={e => updateMap(c.slug, e.target.value)}
                           style={{...IS,flex:1,fontSize:11,padding:"5px 8px"}}>
-                          <option value="">â€” sem mapeamento â€”</option>
+                          <option value="">— sem mapeamento —</option>
                           {variaveisDoFluxo.map(v => (
                             <option key={v} value={v}>{`{{${v}}}`}</option>
                           ))}
@@ -2262,7 +2262,7 @@ function saida(obj) {
             </div>
             {Object.keys(mapeamento).length > 0 && (
               <p style={{color:"#22c55e",fontSize:10,margin:"6px 0 0"}}>
-                âœ… {Object.keys(mapeamento).length} campo(s) mapeado(s)
+                ✅ {Object.keys(mapeamento).length} campo(s) mapeado(s)
               </p>
             )}
           </div>
@@ -2274,43 +2274,43 @@ function saida(obj) {
             <input type="checkbox" checked={d.aplicar_etiqueta !== false}
               onChange={e => u({aplicar_etiqueta: e.target.checked})}
               style={{accentColor:"#22c55e"}}/>
-            <span style={{color:"#1f2937",fontSize:12,fontWeight:"bold"}}>ðŸ·ï¸ Aplicar etiqueta ao atendimento</span>
+            <span style={{color:"#1f2937",fontSize:12,fontWeight:"bold"}}>🏷️ Aplicar etiqueta ao atendimento</span>
           </label>
           {d.aplicar_etiqueta !== false && (
             <>
               {F("Nome da etiqueta","etiqueta","text","proposta_finalizada")}
               <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
-                ðŸ’¡ A etiqueta Ã© criada automaticamente se ainda nÃ£o existir.
-                Ãštil pra filtrar atendimentos com proposta criada no chatbot.
+                💡 A etiqueta é criada automaticamente se ainda não existir.
+                Útil pra filtrar atendimentos com proposta criada no chatbot.
               </p>
             </>
           )}
         </div>
 
-        {/* Status inicial da proposta â€” dinÃ¢mico por workspace */}
+        {/* Status inicial da proposta — dinâmico por workspace */}
         <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
           {S("Status inicial da proposta","status_inicial", statusVendaOpcoes)}
           <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
-            ðŸ’¡ As opÃ§Ãµes mostradas sÃ£o os status ativos configurados no <b>Editor de Vendas</b> deste workspace.
+            💡 As opções mostradas são os status ativos configurados no <b>Editor de Vendas</b> deste workspace.
           </p>
         </div>
 
         {/* Mensagens enviadas ao cliente */}
         <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
-          {TVar("Mensagem ao cliente (sucesso)","mensagem_sucesso","âœ… Sua proposta foi registrada!",70)}
-          {TVar("Mensagem ao cliente (erro)","mensagem_erro","âš ï¸ NÃ£o consegui registrar, atendente vai te ajudar.",70)}
+          {TVar("Mensagem ao cliente (sucesso)","mensagem_sucesso","✅ Sua proposta foi registrada!",70)}
+          {TVar("Mensagem ao cliente (erro)","mensagem_erro","⚠️ Não consegui registrar, atendente vai te ajudar.",70)}
         </div>
 
         <p style={{color:"#6b7280",fontSize:10,margin:"8px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
-          âš ï¸ SaÃ­das: <span style={{color:"#22c55e"}}>0=Sucesso</span> (proposta criada) /{" "}
-          <span style={{color:"#ef4444"}}>1=Erro</span> (falha ao salvar â€” conecte aqui um bloco "Transferir" como fallback).
+          ⚠️ Saídas: <span style={{color:"#22c55e"}}>0=Sucesso</span> (proposta criada) /{" "}
+          <span style={{color:"#ef4444"}}>1=Erro</span> (falha ao salvar — conecte aqui um bloco "Transferir" como fallback).
         </p>
       </>;
     }
 
-    // ðŸ†• v19: editor do bloco "Aplicar Etiqueta"
+    // 🆕 v19: editor do bloco "Aplicar Etiqueta"
     case "etiqueta": {
-      const iconesComuns = ["ðŸ·ï¸","â­","ðŸ”¥","ðŸ’Ž","âœ…","âŒ","âš ï¸","ðŸ’°","ðŸ“Œ","ðŸŽ¯","ðŸš€","ðŸ’¼","ðŸ“‹","ðŸ””"];
+      const iconesComuns = ["🏷️","⭐","🔥","💎","✅","❌","⚠️","💰","📌","🎯","🚀","💼","📋","🔔"];
       const coresComuns = [
         { hex: "#3b82f6", nome: "Azul" },
         { hex: "#22c55e", nome: "Verde" },
@@ -2323,15 +2323,15 @@ function saida(obj) {
       ];
       return <>
         <div style={{display:"flex",flexDirection:"column",gap:14}}>
-          {/* AÃ§Ã£o: aplicar ou remover */}
+          {/* Ação: aplicar ou remover */}
           <div>
             <label style={{display:"block",color:"#9ca3af",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
-              AÃ§Ã£o
+              Ação
             </label>
             <div style={{display:"flex",gap:6}}>
               {[
-                { v: "aplicar", label: "âœ… Aplicar etiqueta" },
-                { v: "remover", label: "ðŸ—‘ï¸ Remover etiqueta" },
+                { v: "aplicar", label: "✅ Aplicar etiqueta" },
+                { v: "remover", label: "🗑️ Remover etiqueta" },
               ].map(o => (
                 <button key={o.v} type="button" onClick={()=>u({acao:o.v})}
                   style={{flex:1,padding:"8px 10px",background:d.acao===o.v?"#3b82f6":"#ffffff",
@@ -2346,7 +2346,7 @@ function saida(obj) {
           {/* Nome da etiqueta */}
           {T("Nome da etiqueta","nome","Ex.: Cliente VIP, Aguardando documento, Interessado")}
 
-          {/* Cor e Ã­cone (sÃ³ importam se for criar etiqueta nova) */}
+          {/* Cor e ícone (só importam se for criar etiqueta nova) */}
           {d.acao !== "remover" && (
             <>
               <div>
@@ -2364,7 +2364,7 @@ function saida(obj) {
               </div>
               <div>
                 <label style={{display:"block",color:"#9ca3af",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
-                  Ãcone
+                  Ícone
                 </label>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                   {iconesComuns.map(ic => (
@@ -2390,15 +2390,15 @@ function saida(obj) {
                 background:`${d.cor||"#3b82f6"}22`,color:d.cor||"#3b82f6",border:`1px solid ${d.cor||"#3b82f6"}55`,
                 borderRadius:20,fontSize:12,fontWeight:"bold"
               }}>
-                {d.icone||"ðŸ·ï¸"} {d.nome}
+                {d.icone||"🏷️"} {d.nome}
               </span>
             </div>
           )}
         </div>
 
         <p style={{color:"#6b7280",fontSize:10,margin:"12px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
-          ðŸ’¡ Use este bloco em qualquer ponto do fluxo pra marcar atendimentos.
-          Se a etiqueta nÃ£o existir no workspace, serÃ¡ criada automaticamente.
+          💡 Use este bloco em qualquer ponto do fluxo pra marcar atendimentos.
+          Se a etiqueta não existir no workspace, será criada automaticamente.
         </p>
       </>;
     }
@@ -2410,7 +2410,7 @@ function saida(obj) {
 function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, onConectarEntrada }: {
   no: No; sel: boolean; scale: number;
   onSelect: (id:string) => void;
-  onOpen: (id:string) => void; // ðŸ†• abre modal (separado de selecionar)
+  onOpen: (id:string) => void; // 🆕 abre modal (separado de selecionar)
   onDelete: (id:string) => void;
   onConectarSaida: (noId:string, idx:number) => void;
   onConectarEntrada: (noId:string) => void;
@@ -2419,7 +2419,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
   const cfg = B[no.tipo];
   const divRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
-  const moveu = useRef(false); // ðŸ†• detecta se houve movimento real (drag) ou sÃ³ click
+  const moveu = useRef(false); // 🆕 detecta se houve movimento real (drag) ou só click
   const startPtr = useRef({px:0, py:0, nx:0, ny:0, t:0});
 
   function onPointerDown(e: React.PointerEvent) {
@@ -2427,7 +2427,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
     if (t.tagName==="BUTTON"||t.tagName==="INPUT"||t.tagName==="SELECT"||t.tagName==="TEXTAREA") return;
     if (t.closest("button")||t.closest("input")||t.closest("select")||t.closest("textarea")) return;
     e.stopPropagation();
-    // ðŸ†• NÃƒO seleciona aqui â€” sÃ³ prepara o drag. SeleÃ§Ã£o/abertura acontece no PointerUp.
+    // 🆕 NÃO seleciona aqui — só prepara o drag. Seleção/abertura acontece no PointerUp.
     dragging.current = true;
     moveu.current = false;
     startPtr.current = {px:e.clientX, py:e.clientY, nx:no.x, ny:no.y, t:Date.now()};
@@ -2438,7 +2438,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
     if (!dragging.current) return;
     const dx = (e.clientX - startPtr.current.px) / scale;
     const dy = (e.clientY - startPtr.current.py) / scale;
-    // ðŸ†• Considera "movimento real" se passou de 5px em qualquer direÃ§Ã£o (tolerÃ¢ncia anti-click trÃªmulo)
+    // 🆕 Considera "movimento real" se passou de 5px em qualquer direção (tolerância anti-click trêmulo)
     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
       moveu.current = true;
     }
@@ -2456,15 +2456,15 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
     const dx = (e.clientX - startPtr.current.px) / scale;
     const dy = (e.clientY - startPtr.current.py) / scale;
     if (moveu.current) {
-      // ðŸ†• Foi DRAG â€” sÃ³ atualiza posiÃ§Ã£o, NÃƒO seleciona/abre modal
+      // 🆕 Foi DRAG — só atualiza posição, NÃO seleciona/abre modal
       (window as any).__wolfMoveNo?.(no.id, startPtr.current.nx+dx, startPtr.current.ny+dy);
     } else {
-      // ðŸ†• Foi CLICK â€” sÃ³ seleciona (destaca, mas NÃƒO abre modal)
+      // 🆕 Foi CLICK — só seleciona (destaca, mas NÃO abre modal)
       onSelect(no.id);
     }
   }
 
-  // ðŸ†• Double click pra abrir o modal de ediÃ§Ã£o
+  // 🆕 Double click pra abrir o modal de edição
   function onDoubleClickHandler(e: React.MouseEvent) {
     e.stopPropagation();
     onOpen(no.id);
@@ -2507,7 +2507,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
           <button
             onPointerDown={e => e.stopPropagation()}
             onClick={e => {e.stopPropagation(); onDelete(no.id);}}
-            style={{background:"none", border:"none", color:"rgba(255,255,255,.7)", cursor:"pointer", fontSize:13, padding:0, lineHeight:1}}>âœ•</button>
+            style={{background:"none", border:"none", color:"rgba(255,255,255,.7)", cursor:"pointer", fontSize:13, padding:0, lineHeight:1}}>✕</button>
         )}
       </div>
       <div style={{padding:"7px 10px", borderBottom:cfg.saidas.length?"1px solid #ffffff":"none", pointerEvents:"none"}}>
@@ -2542,28 +2542,28 @@ export default function FluxosPage() {
   const vendedorIALiberado = modulosCarregados && modulos.vendedor_ia;
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // âœ… Agora Ã© username (string como "wolf_admin"), nunca id numÃ©rico
+  // ✅ Agora é username (string como "wolf_admin"), nunca id numérico
   const [wsId,setWsId]             = useState<string|null>(null);
-  // ðŸ“‹ Status disponÃ­veis pro bloco "Enviar Venda".
+  // 📋 Status disponíveis pro bloco "Enviar Venda".
   //    A lista vem exclusivamente do campo Status da Venda configurado no workspace.
   const [statusVendaOpcoes, setStatusVendaOpcoes] = useState<{value:string;label:string}[]>([]);
-  // ðŸ“‹ Campos da proposta â€” fixos + customizados do workspace.
+  // 📋 Campos da proposta — fixos + customizados do workspace.
   //    Carrega de `proposta_campos_padrao_config` (configs de campos fixos: oculto/label custom)
   //    e `proposta_campos_customizados` (campos extras criados pelo cliente no Editor de Vendas).
-  //    Fallback: se as tabelas nÃ£o existirem ou estiverem vazias, usa sÃ³ os CAMPOS_FIXOS default.
+  //    Fallback: se as tabelas não existirem ou estiverem vazias, usa só os CAMPOS_FIXOS default.
   const [camposPropostaUnif, setCamposPropostaUnif] = useState<CampoUnificado[]>(
-    montarCamposUnificados([], [])  // sÃ³ os fixos default
+    montarCamposUnificados([], [])  // só os fixos default
   );
   const [fluxos,setFluxos]         = useState<Fluxo[]>([]);
-  const [filasBanco,setFilasBanco] = useState<FilaItem[]>([]); // ðŸ†•
-  const [atendentesBanco,setAtendentesBanco] = useState<AtendenteItem[]>([]); // ðŸ†• atendentes do workspace
+  const [filasBanco,setFilasBanco] = useState<FilaItem[]>([]); // 🆕
+  const [atendentesBanco,setAtendentesBanco] = useState<AtendenteItem[]>([]); // 🆕 atendentes do workspace
   const [view,setView]             = useState<"lista"|"editor">("lista");
   const [fluxoAtivo,setFluxoAtivo] = useState<Fluxo|null>(null);
   const [nos,setNos]               = useState<No[]>([]);
   const [arestas,setArestas]       = useState<Aresta[]>([]);
   const [noSel,setNoSel]           = useState<No|null>(null);
-  // ðŸ†• noEditando = qual nÃ³ tÃ¡ com modal aberto. Separado de noSel pra permitir
-  //    drag/seleÃ§Ã£o sem abrir modal automaticamente. Modal sÃ³ abre em DOUBLE click.
+  // 🆕 noEditando = qual nó tá com modal aberto. Separado de noSel pra permitir
+  //    drag/seleção sem abrir modal automaticamente. Modal só abre em DOUBLE click.
   const [noEditando, setNoEditando] = useState<No|null>(null);
   const [salvando,setSalvando]     = useState(false);
   const [salvandoMidiaId,setSalvandoMidiaId] = useState<string|null>(null);
@@ -2587,9 +2587,9 @@ export default function FluxosPage() {
     return () => { delete (window as any).__wolfMoveNo; };
   }, []);
 
-  // ðŸ“‹ Carrega campos da proposta do workspace â€” multi-tenant:
+  // 📋 Carrega campos da proposta do workspace — multi-tenant:
   //    Fixos (CAMPOS_FIXOS default) + configs (visibilidade/labels) + customizados.
-  //    Igual ao que o CRM usa, garantindo paridade: o que tÃ¡ no Editor de Vendas
+  //    Igual ao que o CRM usa, garantindo paridade: o que tá no Editor de Vendas
   //    aparece aqui no bloco de fluxo automaticamente.
   useEffect(() => {
     if (!wsId) return;
@@ -2623,25 +2623,25 @@ export default function FluxosPage() {
         ));
         setStatusVendaOpcoes(statusAtivos.map(status => ({ value: status, label: status })));
       } catch (e) {
-        // Se as tabelas nÃ£o existem ou deu erro, mantÃ©m os defaults jÃ¡ carregados no state inicial
-        console.warn("[fluxos] nÃ£o consegui carregar campos customizados, usando padrÃ£o:", e);
+        // Se as tabelas não existem ou deu erro, mantém os defaults já carregados no state inicial
+        console.warn("[fluxos] não consegui carregar campos customizados, usando padrão:", e);
       }
     })();
     return () => { cancelado = true; };
   }, [wsId]);
 
-  // âœ… Carrega username + fluxos iniciais + Realtime + polling 5s
+  // ✅ Carrega username + fluxos iniciais + Realtime + polling 5s
   useEffect(() => {
     let cancelled = false;
     getWsUsername().then(username => {
       if (cancelled || !username) return;
       setWsId(username);
       load(username);
-      fetchFilas(username); // ðŸ†•
-      fetchAtendentes(username); // ðŸ†• atendentes pro bloco Transferir modo humano
+      fetchFilas(username); // 🆕
+      fetchAtendentes(username); // 🆕 atendentes pro bloco Transferir modo humano
 
-      // ðŸ”’ MULTI-TENANT: Realtime AGORA filtra por workspace_id no servidor.
-      // Antes recebia eventos de fluxos/filas de TODOS workspaces â€” vazamento de
+      // 🔒 MULTI-TENANT: Realtime AGORA filtra por workspace_id no servidor.
+      // Antes recebia eventos de fluxos/filas de TODOS workspaces — vazamento de
       // metadados (nomes de fluxos, IDs, status ativo/inativo) entre contas.
       // O filter precisa ser registrado depois que sabemos o username, por isso
       // movido pra dentro do .then() do getWsUsername.
@@ -2649,15 +2649,15 @@ export default function FluxosPage() {
         .on("postgres_changes", { event: "*", schema: "public", table: "fluxos", filter: `workspace_id=eq.${username}` }, () => {
           if (!cancelled) load(username);
         })
-        .on("postgres_changes", { event: "*", schema: "public", table: "filas", filter: `workspace_id=eq.${username}` }, () => { // ðŸ†•
+        .on("postgres_changes", { event: "*", schema: "public", table: "filas", filter: `workspace_id=eq.${username}` }, () => { // 🆕
           if (!cancelled) fetchFilas(username);
         })
-        .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${username}` }, () => { // ðŸ†•
+        .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${username}` }, () => { // 🆕
           if (!cancelled) fetchAtendentes(username);
         })
         .subscribe();
 
-      // Guarda a referÃªncia do channel pra cleanup
+      // Guarda a referência do channel pra cleanup
       (window as any).__wolfFluxosCh = ch;
     });
 
@@ -2675,7 +2675,7 @@ export default function FluxosPage() {
     };
   }, []);
 
-  // âœ… Busca fluxos filtrando por username
+  // ✅ Busca fluxos filtrando por username
   async function load(username?: string) {
     const u = username || wsId;
     if (!u) return;
@@ -2683,7 +2683,7 @@ export default function FluxosPage() {
     setFluxos((data||[]).map(f=>({...f,nos:(f.nos||[]).map(normalizarConfiguracaoFluxoIA),conexoes:f.conexoes||[]})));
   }
 
-  // ðŸ†• Busca filas cadastradas em ConfiguraÃ§Ãµes â†’ Filas do CRM
+  // 🆕 Busca filas cadastradas em Configurações → Filas do CRM
   async function fetchFilas(username?: string) {
     const u = username || wsId;
     if (!u) return;
@@ -2696,13 +2696,13 @@ export default function FluxosPage() {
     }
   }
 
-  // ðŸ†• Busca atendentes do workspace (usuarios_workspace + dono) â€” usado no bloco Transferir modo "humano"
+  // 🆕 Busca atendentes do workspace (usuarios_workspace + dono) — usado no bloco Transferir modo "humano"
   async function fetchAtendentes(username?: string) {
     const u = username || wsId;
     if (!u) return;
     try {
       const lista: AtendenteItem[] = [];
-      // Sub-usuÃ¡rios do workspace
+      // Sub-usuários do workspace
       const { data: subs } = await supabase.from("usuarios_workspace")
         .select("email, nome")
         .eq("workspace_id", u);
@@ -2732,7 +2732,7 @@ export default function FluxosPage() {
     setCriando(true);
     try {
       const username = wsId || await getWsUsername();
-      if(!username){alert("Workspace nÃ£o encontrado! FaÃ§a login novamente.");return;}
+      if(!username){alert("Workspace não encontrado! Faça login novamente.");return;}
       const ini:No = {id:uid(),tipo:"inicio",x:200,y:200,dados:defaultD("inicio"),saidas:[...B.inicio.saidas]};
       const payload = {nome:form.nome.trim(),descricao:form.descricao,ativo:false,
         trigger_tipo:form.trigger_tipo,trigger_valor:form.trigger_valor,
@@ -2749,53 +2749,53 @@ export default function FluxosPage() {
   function abrirEditor(f:Fluxo) {
     const nosNormalizados = (f.nos||[]).map(normalizarConfiguracaoFluxoIA).map(n=>n.tipo==="fluxo_ia"?{...n,saidas:[...B.fluxo_ia.saidas]}:n);
     setFluxoAtivo({...f, nos:nosNormalizados}); setNos(nosNormalizados); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
-    fetchFilas(); // ðŸ†• recarrega filas ao abrir o editor
-    fetchAtendentes(); // ðŸ†• recarrega atendentes ao abrir o editor
+    fetchFilas(); // 🆕 recarrega filas ao abrir o editor
+    fetchAtendentes(); // 🆕 recarrega atendentes ao abrir o editor
   }
 
   async function salvar(opcoes?: { fecharEditor?: boolean; avisarSucesso?: boolean }): Promise<boolean> {
     if(!fluxoAtivo?.id) return false;
     if (nos.some(n => n.tipo === "fluxo_ia") && !vendedorIALiberado) {
-      alert("ðŸ”’ Este workspace nÃ£o possui o mÃ³dulo Vendedor IA. ContrataÃ§Ã£o avulsa: R$ 2.500,00.");
+      alert("🔒 Este workspace não possui o módulo Vendedor IA. Contratação avulsa: R$ 2.500,00.");
       return false;
     }
-    if(!wsId) { alert("Workspace nÃ£o carregado. Recarregue a pÃ¡gina."); return false; }
+    if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return false; }
 
-    // ðŸ†• ValidaÃ§Ãµes por bloco â€” avisa antes de salvar bloco mal configurado
+    // 🆕 Validações por bloco — avisa antes de salvar bloco mal configurado
     const problemas: string[] = [];
     for (const n of nos) {
       if (n.tipo === "transferir") {
         const modo = n.dados?.modo || "equipe";
         if (modo === "equipe" && !n.dados?.fila) {
-          problemas.push("ðŸ“¤ Transferir â†’ modo Equipe sem fila selecionada");
+          problemas.push("📤 Transferir → modo Equipe sem fila selecionada");
         }
         if (modo === "humano" && !n.dados?.atendente_email) {
-          problemas.push("ðŸ“¤ Transferir â†’ modo Atendente humano sem atendente selecionado");
+          problemas.push("📤 Transferir → modo Atendente humano sem atendente selecionado");
         }
       }
-      if (n.tipo === "gatilho_crm" && !n.dados?.campo) problemas.push("âš¡ AlteraÃ§Ã£o no CRM â†’ selecione o campo observado");
-      if (n.tipo === "atualizar_venda" && (!Array.isArray(n.dados?.atualizacoes) || !n.dados.atualizacoes.some((x:any)=>x.campo))) problemas.push("ðŸ“ Atualizar Venda â†’ adicione pelo menos um campo");
+      if (n.tipo === "gatilho_crm" && !n.dados?.campo) problemas.push("⚡ Alteração no CRM → selecione o campo observado");
+      if (n.tipo === "atualizar_venda" && (!Array.isArray(n.dados?.atualizacoes) || !n.dados.atualizacoes.some((x:any)=>x.campo))) problemas.push("📝 Atualizar Venda → adicione pelo menos um campo");
       if (n.tipo === "gmail") {
         const faltam: string[] = [];
-        if (!n.dados?.smtp_user) faltam.push("usuÃ¡rio SMTP");
+        if (!n.dados?.smtp_user) faltam.push("usuário SMTP");
         if (!n.dados?.smtp_pass) faltam.push("senha SMTP");
-        if (!n.dados?.para) faltam.push("destinatÃ¡rio (Para)");
-        if (faltam.length > 0) problemas.push(`ðŸ“¨ Gmail â†’ falta: ${faltam.join(", ")}`);
+        if (!n.dados?.para) faltam.push("destinatário (Para)");
+        if (faltam.length > 0) problemas.push(`📨 Gmail → falta: ${faltam.join(", ")}`);
       }
       if (n.tipo === "google_sheets") {
-        if (!n.dados?.webhook_url) problemas.push("ðŸ“Š Google Sheets â†’ URL do webhook nÃ£o preenchida");
+        if (!n.dados?.webhook_url) problemas.push("📊 Google Sheets → URL do webhook não preenchida");
       }
-      // ðŸ†• v20: validaÃ§Ã£o do bloco Meta CAPI
+      // 🆕 v20: validação do bloco Meta CAPI
       if (n.tipo === "meta_capi") {
         const faltam: string[] = [];
         if (!n.dados?.pixel_id) faltam.push("Pixel ID");
         if (!n.dados?.access_token) faltam.push("Access Token");
         if (n.dados?.evento === "custom" && !n.dados?.evento_custom) faltam.push("nome do evento personalizado");
-        if (faltam.length > 0) problemas.push(`ðŸ“ˆ Meta Pixel/CAPI â†’ falta: ${faltam.join(", ")}`);
+        if (faltam.length > 0) problemas.push(`📈 Meta Pixel/CAPI → falta: ${faltam.join(", ")}`);
       }
     }
     if (problemas.length > 0) {
-      if (!confirm(`âš ï¸ Encontrei ${problemas.length} bloco(s) com configuraÃ§Ã£o incompleta:\n\n${problemas.join("\n")}\n\nEles vÃ£o FALHAR quando o fluxo rodar. Salvar mesmo assim?`)) return false;
+      if (!confirm(`⚠️ Encontrei ${problemas.length} bloco(s) com configuração incompleta:\n\n${problemas.join("\n")}\n\nEles vão FALHAR quando o fluxo rodar. Salvar mesmo assim?`)) return false;
     }
 
     setSalvando(true);
@@ -2816,7 +2816,7 @@ export default function FluxosPage() {
       for (const noLocal of nosParaSalvar.filter(n => n.tipo === "fluxo_ia")) {
         const noBanco = nosPersistidos.find(n => n.id === noLocal.id);
         if (!noBanco || noBanco.dados?.midia_ia_extensao_ativa !== noLocal.dados?.midia_ia_extensao_ativa) {
-          throw new Error("O banco nÃ£o confirmou a configuraÃ§Ã£o de multimÃ­dia do bloco " + noLocal.id + ".");
+          throw new Error("O banco não confirmou a configuração de multimídia do bloco " + noLocal.id + ".");
         }
       }
 
@@ -2826,11 +2826,11 @@ export default function FluxosPage() {
       setNoEditando(atual => atual ? nosPersistidos.find(n => n.id === atual.id) || atual : atual);
       await load();
       if (opcoes?.fecharEditor) setNoEditando(null);
-      if (opcoes?.avisarSucesso !== false) alert("âœ… Fluxo salvo e configuraÃ§Ã£o confirmada!");
+      if (opcoes?.avisarSucesso !== false) alert("✅ Fluxo salvo e configuração confirmada!");
       return true;
     } catch (erro: any) {
       console.error("Erro ao salvar fluxo:", erro);
-      alert("âŒ NÃ£o foi possÃ­vel salvar o fluxo. Nada foi confirmado no servidor.\n\n" + (erro?.message || erro));
+      alert("❌ Não foi possível salvar o fluxo. Nada foi confirmado no servidor.\n\n" + (erro?.message || erro));
       return false;
     } finally {
       setSalvando(false);
@@ -2840,38 +2840,38 @@ export default function FluxosPage() {
   async function toggleAtivo() {
     if(!fluxoAtivo?.id) return;
     if (!fluxoAtivo.ativo && nos.some(n => n.tipo === "fluxo_ia") && !vendedorIALiberado) {
-      alert("ðŸ”’ NÃ£o Ã© possÃ­vel ativar este fluxo sem o mÃ³dulo Vendedor IA.");
+      alert("🔒 Não é possível ativar este fluxo sem o módulo Vendedor IA.");
       return;
     }
-    if(!wsId) { alert("Workspace nÃ£o carregado. Recarregue a pÃ¡gina."); return; }
+    if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
     const v = !fluxoAtivo.ativo;
-    // ðŸ”’ MULTI-TENANT: defesa em profundidade â€” sÃ³ togglea se fluxo for deste workspace
+    // 🔒 MULTI-TENANT: defesa em profundidade — só togglea se fluxo for deste workspace
     await supabase.from("fluxos").update({ativo:v})
       .eq("id",fluxoAtivo.id)
       .eq("workspace_id", wsId);
     setFluxoAtivo(p => p?{...p,ativo:v}:null); await load();
   }
 
-  // âœ… ExclusÃ£o real â€” verifica se deu certo e limpa sessÃ£o se estava aberta
+  // ✅ Exclusão real — verifica se deu certo e limpa sessão se estava aberta
   async function excluirFluxo(id:number, nome:string) {
-    if(!confirm(`Excluir o fluxo "${nome}" permanentemente?\nIsso nÃ£o pode ser desfeito.`)) return;
-    if(!wsId) { alert("Workspace nÃ£o carregado. Recarregue a pÃ¡gina."); return; }
+    if(!confirm(`Excluir o fluxo "${nome}" permanentemente?\nIsso não pode ser desfeito.`)) return;
+    if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
 
-    // ðŸ”’ MULTI-TENANT: confere que o fluxo realmente pertence a este workspace ANTES de mexer.
+    // 🔒 MULTI-TENANT: confere que o fluxo realmente pertence a este workspace ANTES de mexer.
     // Antes, qualquer user com o id do fluxo (descoberto via DevTools, console, etc) podia
     // deletar fluxos de outros workspaces.
     const fluxo = fluxos.find(f => f.id === id);
     if (!fluxo || fluxo.workspace_id !== wsId) {
-      alert("Erro: fluxo nÃ£o pertence a este workspace.");
+      alert("Erro: fluxo não pertence a este workspace.");
       return;
     }
 
-    // TambÃ©m apaga as sessÃµes em execuÃ§Ã£o desse fluxo (pra nÃ£o ficar lixo).
-    // NÃ£o precisa filtrar por workspace_id aqui: como jÃ¡ confirmamos acima que `fluxo` pertence
-    // a este workspace, `id` Ã© uma chave globalmente Ãºnica e podemos confiar nele.
+    // Também apaga as sessões em execução desse fluxo (pra não ficar lixo).
+    // Não precisa filtrar por workspace_id aqui: como já confirmamos acima que `fluxo` pertence
+    // a este workspace, `id` é uma chave globalmente única e podemos confiar nele.
     await supabase.from("fluxo_sessoes").delete().eq("fluxo_id", id);
 
-    // ðŸ”’ MULTI-TENANT CRÃTICO: delete do fluxo agora exige id E workspace_id baterem
+    // 🔒 MULTI-TENANT CRÍTICO: delete do fluxo agora exige id E workspace_id baterem
     const { error } = await supabase.from("fluxos").delete()
       .eq("id",id)
       .eq("workspace_id", wsId);
@@ -2886,7 +2886,7 @@ export default function FluxosPage() {
 
   function adicionarNo(tipo:TipoNo) {
     if (tipo === "fluxo_ia" && !vendedorIALiberado) {
-      alert("ðŸ”’ Vendedor IA Ã© um mÃ³dulo avulso de R$ 2.500,00. Solicite a liberaÃ§Ã£o ao administrador da Wolf System.");
+      alert("🔒 Vendedor IA é um módulo avulso de R$ 2.500,00. Solicite a liberação ao administrador da Wolf System.");
       return;
     }
     const cfg = B[tipo];
@@ -2900,7 +2900,7 @@ export default function FluxosPage() {
   }
 
   function excluirNo(id:string) {
-    if(nos.find(n=>n.id===id)?.tipo==="inicio"){alert("NÃ£o pode excluir o inÃ­cio!");return;}
+    if(nos.find(n=>n.id===id)?.tipo==="inicio"){alert("Não pode excluir o início!");return;}
     setNos(p => p.filter(n=>n.id!==id));
     setArestas(p => p.filter(a=>a.de!==id&&a.para!==id));
     if(noSel?.id===id) setNoSel(null);
@@ -2910,7 +2910,7 @@ export default function FluxosPage() {
   function duplicarNo(id:string) {
     const origem = nos.find(n => n.id === id);
     if (origem?.tipo === "fluxo_ia" && !vendedorIALiberado) {
-      alert("ðŸ”’ Este workspace nÃ£o possui o mÃ³dulo Vendedor IA.");
+      alert("🔒 Este workspace não possui o módulo Vendedor IA.");
       return;
     }
     if (!origem || origem.tipo === "inicio") return;
@@ -2951,12 +2951,12 @@ export default function FluxosPage() {
         : [];
       const idsBlocosIa = nosBanco.filter(n => n.tipo === "fluxo_ia").map(n => n.id);
       if (!idsBlocosIa.includes(id)) {
-        throw new Error("O bloco de IA aberto nÃ£o existe mais no fluxo salvo.");
+        throw new Error("O bloco de IA aberto não existe mais no fluxo salvo.");
       }
 
-      // A leitura de mÃ­dia Ã© uma extensÃ£o do fluxo, nÃ£o de uma Ãºnica etapa.
-      // Assim, uma conversa que avanÃ§ar para outro bloco fluxo_ia mantÃ©m a
-      // mesma configuraÃ§Ã£o sem alterar qualquer outra lÃ³gica do vendedor.
+      // A leitura de mídia é uma extensão do fluxo, não de uma única etapa.
+      // Assim, uma conversa que avançar para outro bloco fluxo_ia mantém a
+      // mesma configuração sem alterar qualquer outra lógica do vendedor.
       const nosAtualizados = nosBanco.map(n => n.tipo === "fluxo_ia"
         ? normalizarConfiguracaoFluxoIA({...n, dados:{...(n.dados || {}), ...patch}})
         : n
@@ -2976,10 +2976,10 @@ export default function FluxosPage() {
         : [];
       for (const idBloco of idsBlocosIa) {
         const bloco = nosConfirmados.find(n => n.id === idBloco);
-        if (!bloco) throw new Error("O banco nÃ£o devolveu todos os blocos de IA atualizados.");
+        if (!bloco) throw new Error("O banco não devolveu todos os blocos de IA atualizados.");
         for (const [chave, valor] of Object.entries(patch)) {
           if (booleanoConfiguracao(bloco.dados?.[chave], false) !== valor) {
-            throw new Error(`O banco nÃ£o confirmou a opÃ§Ã£o ${chave} no bloco ${idBloco}.`);
+            throw new Error(`O banco não confirmou a opção ${chave} no bloco ${idBloco}.`);
           }
         }
       }
@@ -2998,8 +2998,8 @@ export default function FluxosPage() {
       setNoSel(atual => atual ? aplicarConfirmacao([atual])[0] : atual);
       setNoEditando(atual => atual ? aplicarConfirmacao([atual])[0] : atual);
     } catch (erro:any) {
-      console.error("Erro ao salvar configuraÃ§Ã£o de mÃ­dia:", erro);
-      alert("NÃ£o foi possÃ­vel salvar a leitura de fotos e arquivos. Nada foi alterado.\n\n" + (erro?.message || erro));
+      console.error("Erro ao salvar configuração de mídia:", erro);
+      alert("Não foi possível salvar a leitura de fotos e arquivos. Nada foi alterado.\n\n" + (erro?.message || erro));
     } finally {
       setSalvandoMidiaId(null);
     }
@@ -3078,7 +3078,7 @@ export default function FluxosPage() {
             e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)";
             e.currentTarget.style.borderColor="#e5e7eb";
           }}>
-          <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"#3b82f615",borderRadius:8,fontSize:14}}>ðŸ’¬</span>
+          <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"#3b82f615",borderRadius:8,fontSize:14}}>💬</span>
           Conversas
         </button>
         <button
@@ -3089,7 +3089,7 @@ export default function FluxosPage() {
             textAlign:"left",
             boxShadow:"0 2px 6px rgba(139,92,246,0.15)",
           }}>
-          <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"#8b5cf6",borderRadius:8,fontSize:14,filter:"saturate(0) brightness(2)",boxShadow:"0 2px 6px rgba(139,92,246,0.4)"}}>ðŸ¤–</span>
+          <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"#8b5cf6",borderRadius:8,fontSize:14,filter:"saturate(0) brightness(2)",boxShadow:"0 2px 6px rgba(139,92,246,0.4)"}}>🤖</span>
           Fluxos
         </button>
         <div style={{flex:1}}/>
@@ -3111,7 +3111,7 @@ export default function FluxosPage() {
             e.currentTarget.style.transform="translateY(0)";
             e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)";
             e.currentTarget.style.borderColor="#e5e7eb";
-          }}>â† Voltar ao CRM</button>
+          }}>← Voltar ao CRM</button>
       </div>
       <div style={{flex:1,padding:32,overflowY:"auto"}}>
         {showNovo && (
@@ -3124,10 +3124,10 @@ export default function FluxosPage() {
                     background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
                     display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,
                     boxShadow:"0 4px 12px rgba(139,92,246,0.3)"
-                  }}>âž•</div>
+                  }}>➕</div>
                   <h2 style={{color:"#1f2937",fontSize:18,fontWeight:"700",margin:0}}>Novo Fluxo</h2>
                 </div>
-                <button onClick={()=>setShowNovo(false)} style={{background:"#f3f4f6",border:"none",color:"#6b7280",fontSize:18,cursor:"pointer",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}}>âœ•</button>
+                <button onClick={()=>setShowNovo(false)} style={{background:"#f3f4f6",border:"none",color:"#6b7280",fontSize:18,cursor:"pointer",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
               </div>
               <div><label style={{...LS,fontSize:11}}>Nome *</label>
                 <input autoFocus placeholder="Ex: Fluxo de Vendas" value={form.nome}
@@ -3135,7 +3135,7 @@ export default function FluxosPage() {
                   onKeyDown={e=>e.key==="Enter"&&criarFluxo()}
                   style={{...IS,fontSize:14,padding:"10px 14px"}}/>
               </div>
-              <div><label style={{...LS,fontSize:11}}>DescriÃ§Ã£o</label>
+              <div><label style={{...LS,fontSize:11}}>Descrição</label>
                 <input placeholder="Objetivo" value={form.descricao} onChange={e=>setForm({...form,descricao:e.target.value})} style={IS}/>
               </div>
               <div><label style={{...LS,fontSize:11}}>Quando Ativar</label>
@@ -3143,12 +3143,12 @@ export default function FluxosPage() {
                   <option value="qualquer_mensagem">Qualquer mensagem</option>
                   <option value="palavra_chave">Palavra-chave</option>
                   <option value="primeiro_contato">Primeiro contato</option>
-                  <option value="fora_horario">Fora do horÃ¡rio</option>
+                  <option value="fora_horario">Fora do horário</option>
                 </select>
               </div>
               {form.trigger_tipo==="palavra_chave" && (
                 <div><label style={{...LS,fontSize:11}}>Palavra-chave</label>
-                  <input placeholder="oi, olÃ¡" value={form.trigger_valor} onChange={e=>setForm({...form,trigger_valor:e.target.value})} style={IS}/>
+                  <input placeholder="oi, olá" value={form.trigger_valor} onChange={e=>setForm({...form,trigger_valor:e.target.value})} style={IS}/>
                 </div>
               )}
               {form.trigger_tipo==="fora_horario" && (() => {
@@ -3160,18 +3160,18 @@ export default function FluxosPage() {
                 };
                 return (
                   <div>
-                    <label style={{...LS,fontSize:11}}>HorÃ¡rio de funcionamento (dispara FORA dessa faixa)</label>
+                    <label style={{...LS,fontSize:11}}>Horário de funcionamento (dispara FORA dessa faixa)</label>
                     <div style={{display:"flex",gap:10,alignItems:"center"}}>
                       <input type="time" value={cfg.hora_inicio}
                         onChange={e=>setCfg({hora_inicio:e.target.value})}
                         style={{...IS,flex:1}}/>
-                      <span style={{color:"#6b7280",fontSize:12}}>atÃ©</span>
+                      <span style={{color:"#6b7280",fontSize:12}}>até</span>
                       <input type="time" value={cfg.hora_fim}
                         onChange={e=>setCfg({hora_fim:e.target.value})}
                         style={{...IS,flex:1}}/>
                     </div>
                     <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
-                      ðŸ’¡ O fluxo dispara quando o cliente manda mensagem FORA do horÃ¡rio {cfg.hora_inicio}â€“{cfg.hora_fim}.
+                      💡 O fluxo dispara quando o cliente manda mensagem FORA do horário {cfg.hora_inicio}–{cfg.hora_fim}.
                     </p>
                   </div>
                 );
@@ -3184,7 +3184,7 @@ export default function FluxosPage() {
                   cursor:criando?"wait":"pointer",fontWeight:"700",
                   boxShadow:criando?"none":"0 4px 12px rgba(139,92,246,0.35)"
                 }}>
-                  {criando?"â³ Criando...":"ðŸ¤– Criar Fluxo"}
+                  {criando?"⏳ Criando...":"🤖 Criar Fluxo"}
                 </button>
               </div>
             </div>
@@ -3197,7 +3197,7 @@ export default function FluxosPage() {
               background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
               display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,
               boxShadow:"0 8px 16px rgba(139,92,246,0.25)"
-            }}>ðŸ¤–</div>
+            }}>🤖</div>
             <div>
               <h1 style={{color:"#1f2937",fontSize:22,fontWeight:"700",margin:0}}>Meus Fluxos</h1>
               <p style={{color:"#6b7280",fontSize:13,margin:"2px 0 0"}}>{fluxos.length} fluxo(s) cadastrado(s)</p>
@@ -3227,9 +3227,9 @@ export default function FluxosPage() {
               background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
               fontSize:48,margin:"0 auto 20px",
               boxShadow:"0 12px 24px rgba(139,92,246,0.25)"
-            }}>ðŸ¤–</div>
+            }}>🤖</div>
             <h3 style={{color:"#1f2937",fontSize:18,fontWeight:"700",margin:"0 0 8px"}}>Nenhum fluxo criado</h3>
-            <p style={{color:"#6b7280",fontSize:14,margin:"0 0 24px"}}>Crie fluxos de atendimento automÃ¡tico pra seu chatbot</p>
+            <p style={{color:"#6b7280",fontSize:14,margin:"0 0 24px"}}>Crie fluxos de atendimento automático pra seu chatbot</p>
             <button onClick={()=>setShowNovo(true)} style={{
               background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
               color:"#ffffff",border:"none",borderRadius:12,
@@ -3263,7 +3263,7 @@ export default function FluxosPage() {
                       display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,
                       boxShadow:f.ativo?"0 4px 8px rgba(34,197,94,0.25)":"none",
                       flexShrink:0
-                    }}>{f.ativo?"ðŸš€":"â¸ï¸"}</div>
+                    }}>{f.ativo?"🚀":"⏸️"}</div>
                     <div style={{minWidth:0,flex:1}}>
                       <h3 style={{color:"#1f2937",fontSize:15,fontWeight:"700",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.nome}</h3>
                       {f.descricao && <p style={{color:"#6b7280",fontSize:11,margin:"3px 0 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.descricao}</p>}
@@ -3283,10 +3283,10 @@ export default function FluxosPage() {
                 </div>
                 <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
                   <span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f3f4f6",color:"#4b5563",fontSize:11,padding:"4px 10px",borderRadius:6,fontWeight:"500"}}>
-                    ðŸ§© {f.nos?.length||0} blocos
+                    🧩 {f.nos?.length||0} blocos
                   </span>
                   <span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f3f4f6",color:"#4b5563",fontSize:11,padding:"4px 10px",borderRadius:6,fontWeight:"500"}}>
-                    {f.trigger_tipo==="qualquer_mensagem"?"ðŸ“¨ Qualquer":f.trigger_tipo==="palavra_chave"?`ðŸ”‘ "${f.trigger_valor}"`:f.trigger_tipo==="primeiro_contato"?"ðŸ‘‹ 1Âº contato":"ðŸ• Fora horÃ¡rio"}
+                    {f.trigger_tipo==="qualquer_mensagem"?"📨 Qualquer":f.trigger_tipo==="palavra_chave"?`🔑 "${f.trigger_valor}"`:f.trigger_tipo==="primeiro_contato"?"👋 1º contato":"🕐 Fora horário"}
                   </span>
                 </div>
                 <div style={{display:"flex",gap:8}}>
@@ -3305,7 +3305,7 @@ export default function FluxosPage() {
                   onMouseLeave={e=>{
                     e.currentTarget.style.transform="translateY(0)";
                     e.currentTarget.style.boxShadow="0 2px 6px rgba(139,92,246,0.25)";
-                  }}>âœï¸ Editar</button>
+                  }}>✏️ Editar</button>
                   <button onClick={()=>excluirFluxo(f.id!, f.nome)} style={{
                     background:"#fef2f2",color:"#ef4444",border:"1px solid #fecaca",
                     borderRadius:10,padding:"9px 14px",fontSize:13,cursor:"pointer",
@@ -3318,7 +3318,7 @@ export default function FluxosPage() {
                   onMouseLeave={e=>{
                     e.currentTarget.style.background="#fef2f2";
                     e.currentTarget.style.borderColor="#fecaca";
-                  }}>ðŸ—‘ï¸</button>
+                  }}>🗑️</button>
                 </div>
               </div>
             ))}
@@ -3339,7 +3339,7 @@ export default function FluxosPage() {
             transition:"background .15s"
           }}
           onMouseEnter={e=>(e.currentTarget.style.background="#e5e7eb")}
-          onMouseLeave={e=>(e.currentTarget.style.background="#f3f4f6")}>â†</button>
+          onMouseLeave={e=>(e.currentTarget.style.background="#f3f4f6")}>←</button>
           <h3 style={{color:"#1f2937",fontSize:13,fontWeight:"bold",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{fluxoAtivo?.nome}</h3>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"12px 0"}}>
@@ -3351,7 +3351,7 @@ export default function FluxosPage() {
                 <button onClick={()=>setGrupoAberto(ab?"":grupo)}
                   style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"8px 16px",background:"none",border:"none",cursor:"pointer",color:ab?"#1f2937":"#6b7280",fontSize:10,fontWeight:"800",textTransform:"uppercase",letterSpacing:1.2}}>
                   <span>{grupo}</span>
-                  <span style={{fontSize:8,color:ab?"#8b5cf6":"#9ca3af",transition:"transform .2s",transform:ab?"rotate(0deg)":"rotate(-90deg)"}}>â–¼</span>
+                  <span style={{fontSize:8,color:ab?"#8b5cf6":"#9ca3af",transition:"transform .2s",transform:ab?"rotate(0deg)":"rotate(-90deg)"}}>▼</span>
                 </button>
                 {ab && (
                   <div style={{padding:"4px 10px 6px",display:"flex",flexDirection:"column",gap:4}}>
@@ -3413,7 +3413,7 @@ export default function FluxosPage() {
             e.currentTarget.style.transform="translateY(0)";
             if (!salvando) e.currentTarget.style.boxShadow="0 4px 12px rgba(139, 92, 246, 0.35), 0 1px 3px rgba(139, 92, 246, 0.2)";
           }}>
-            {salvando?"Salvando...":"ðŸ’¾ Salvar Fluxo"}
+            {salvando?"Salvando...":"💾 Salvar Fluxo"}
           </button>
         </div>
       </div>
@@ -3483,23 +3483,23 @@ export default function FluxosPage() {
 
         <div style={{position:"absolute",bottom:16,left:16,display:"flex",gap:8}}>
           <div style={{background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:"6px 12px"}}>
-            <p style={{color:"#6b7280",fontSize:10,margin:0}}>ðŸ–±ï¸ Arraste blocos â€¢ Scroll zoom â€¢ â— conectar â€¢ Clique na linha para excluir</p>
+            <p style={{color:"#6b7280",fontSize:10,margin:0}}>🖱️ Arraste blocos • Scroll zoom • ● conectar • Clique na linha para excluir</p>
           </div>
           <div style={{background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:"6px 10px",display:"flex",gap:6,alignItems:"center"}}>
             <button onClick={()=>{const s=Math.min(scaleRef.current*1.2,2.5);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:16}}>+</button>
             <span style={{color:"#6b7280",fontSize:10}}>{Math.round(scale*100)}%</span>
-            <button onClick={()=>{const s=Math.max(scaleRef.current*0.8,0.2);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:16}}>âˆ’</button>
+            <button onClick={()=>{const s=Math.max(scaleRef.current*0.8,0.2);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:16}}>−</button>
             <button onClick={()=>{scaleRef.current=1;offsetRef.current={x:80,y:80};setScale(1);setOffset({x:80,y:80});}} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:10}}>Reset</button>
           </div>
         </div>
         <div style={{position:"absolute",top:16,right:noSel?285:16,background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:"6px 12px"}}>
-          <p style={{color:"#6b7280",fontSize:10,margin:0}}>{nos.length} blocos â€¢ {arestas.length} conexÃµes</p>
+          <p style={{color:"#6b7280",fontSize:10,margin:0}}>{nos.length} blocos • {arestas.length} conexões</p>
         </div>
       </div>
 
-      {/* ðŸ†• MODAL CENTRALIZADO de ediÃ§Ã£o (em vez de sidebar lateral).
-          Vantagens: muito mais espaÃ§o pros campos, nÃ£o some informaÃ§Ã£o, foco total no bloco.
-          Desvantagem: canvas fica escurecido atrÃ¡s (mas dÃ¡ pra fechar e voltar rÃ¡pido). */}
+      {/* 🆕 MODAL CENTRALIZADO de edição (em vez de sidebar lateral).
+          Vantagens: muito mais espaço pros campos, não some informação, foco total no bloco.
+          Desvantagem: canvas fica escurecido atrás (mas dá pra fechar e voltar rápido). */}
       {noEditando && (
         <div
           onClick={() => setNoEditando(null)}
@@ -3570,10 +3570,10 @@ export default function FluxosPage() {
                   alignItems: "center",
                   justifyContent: "center",
                 }}
-              >âœ•</button>
+              >✕</button>
             </div>
 
-            {/* ConteÃºdo (scrollÃ¡vel). overflowX visible permite que o dropdown ï¼‹VariÃ¡vel
+            {/* Conteúdo (scrollável). overflowX visible permite que o dropdown ＋Variável
                 possa expandir lateralmente sem ser cortado. */}
             <div style={{
               padding: 18,
@@ -3600,7 +3600,7 @@ export default function FluxosPage() {
               />
             </div>
 
-            {/* Footer com aÃ§Ãµes */}
+            {/* Footer com ações */}
             {noEditando.tipo !== "inicio" && (
               <div style={{
                 padding: "12px 18px",
@@ -3621,7 +3621,7 @@ export default function FluxosPage() {
                     cursor: "pointer",
                     fontWeight: "bold",
                   }}
-                >ðŸ“‹ Duplicar bloco</button>
+                >📋 Duplicar bloco</button>
                 <button
                   onClick={() => { excluirNo(noEditando.id); setNoEditando(null); }}
                   style={{
@@ -3634,7 +3634,7 @@ export default function FluxosPage() {
                     cursor: "pointer",
                     fontWeight: "bold",
                   }}
-                >ðŸ—‘ï¸ Excluir bloco</button>
+                >🗑️ Excluir bloco</button>
                 <div style={{ flex: 1 }} />
                 <button
                   onClick={() => void salvar({fecharEditor:true, avisarSucesso:true})}
@@ -3649,10 +3649,10 @@ export default function FluxosPage() {
                     cursor: "pointer",
                     fontWeight: "bold",
                   }}
-                >{salvando?"Salvando...":"âœ“ Salvar bloco"}</button>
+                >{salvando?"Salvando...":"✓ Salvar bloco"}</button>
               </div>
             )}
-            {/* Pro nÃ³ "inicio" sÃ³ botÃ£o de concluir */}
+            {/* Pro nó "inicio" só botão de concluir */}
             {noEditando.tipo === "inicio" && (
               <div style={{
                 padding: "12px 18px",
@@ -3674,7 +3674,7 @@ export default function FluxosPage() {
                     cursor: "pointer",
                     fontWeight: "bold",
                   }}
-                >{salvando?"Salvando...":"âœ“ Salvar bloco"}</button>
+                >{salvando?"Salvando...":"✓ Salvar bloco"}</button>
               </div>
             )}
           </div>
