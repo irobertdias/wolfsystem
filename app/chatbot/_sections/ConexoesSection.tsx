@@ -79,6 +79,8 @@ type JobRecuperacao = {
   enviadas: number;
   duplicadas: number;
   ignoradas: number;
+  ignoradasSemContato?: number;
+  ignoradasSemConteudo?: number;
   falhas: number;
   percentual: number;
   limitado?: boolean;
@@ -1548,10 +1550,12 @@ export function ConexoesSection() {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))", padding: "12px 8px", background: "#fff" }}>
                     {[
+                      { label: "Analisadas", valor: jobRecuperacao.mensagensAnalisadas, cor: "#0f766e" },
                       { label: "Recuperadas", valor: jobRecuperacao.importadas, cor: "#16a34a" },
                       { label: "Recebidas", valor: jobRecuperacao.recebidas, cor: "#2563eb" },
                       { label: "Enviadas", valor: jobRecuperacao.enviadas, cor: "#7c3aed" },
                       { label: "Já existentes", valor: jobRecuperacao.duplicadas, cor: "#64748b" },
+                      { label: "Ignoradas", valor: jobRecuperacao.ignoradas, cor: jobRecuperacao.ignoradas ? "#d97706" : "#64748b" },
                       { label: "Falhas", valor: jobRecuperacao.falhas, cor: jobRecuperacao.falhas ? "#dc2626" : "#64748b" },
                     ].map(item => (
                       <div key={item.label} style={{ padding: "3px 7px", textAlign: "center", borderRight: "1px solid #f1f5f9" }}>
@@ -1560,6 +1564,7 @@ export function ConexoesSection() {
                       </div>
                     ))}
                   </div>
+                  {!!jobRecuperacao.ignoradas && <p style={{ color: "#92400e", fontSize: 10.5, margin: "0 13px 10px" }}>Ignoradas: {jobRecuperacao.ignoradasSemContato || 0} sem contato identificado · {jobRecuperacao.ignoradasSemConteudo || 0} sem conteúdo recuperável.</p>}
                   {jobRecuperacao.limitado && <p style={{ color: "#b45309", fontSize: 10.5, fontWeight: 700, margin: "0 13px 10px" }}>Muitas conversas foram encontradas. Use um período menor para verificar o restante com segurança.</p>}
                   {jobRecuperacao.erro && <p style={{ color: "#b91c1c", fontSize: 10.5, fontWeight: 700, margin: "0 13px 10px" }}>{jobRecuperacao.erro}</p>}
                   {!!jobRecuperacao.avisos?.length && !jobRecuperacao.erro && <p style={{ color: "#b45309", fontSize: 10.5, margin: "0 13px 10px" }}>{jobRecuperacao.avisos[0]}</p>}
