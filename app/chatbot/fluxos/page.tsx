@@ -15,6 +15,7 @@ type TipoNo =
   | "condicao" | "variavel" | "redirecionar" | "script" | "espera"
   | "teste_ab" | "webhook" | "pular" | "retornar"
   | "google_sheets" | "http_request" | "openai" | "fluxo_ia" | "claude_ai" | "gmail"
+  | "gerar_documento" | "validar_assinatura"
   | "meta_capi"  // 🆕 v20: dispara evento de conversão pra Meta (Pixel + Conversions API)
   | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar"
   | "gatilho_crm" | "atualizar_venda"
@@ -105,6 +106,8 @@ const B: Record<TipoNo, BC> = {
   fluxo_ia:             {label:"Fluxo por IA",    icone:"✨", cor:"#7c3aed", saidas:["Dados confirmados","Erro","Limite de recusas atingido","Limite de lembretes atingido"], grupo:"Integrações"},
   claude_ai:            {label:"Claude AI",       icone:"🧠", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
   gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
+  gerar_documento:      {label:"Gerar Documento", icone:"📄", cor:"#0f766e", saidas:["Enviado","Erro"],              grupo:"Documentos"},
+  validar_assinatura:   {label:"Validar Assinatura",icone:"✍️",cor:"#7c3aed", saidas:["Assinado","Não assinado","Erro"],grupo:"Documentos"},
   // 🆕 v20: Meta Pixel / Conversions API — manda evento de conversão pra Meta (Lead, Purchase, etc)
   meta_capi:            {label:"Meta Pixel/CAPI", icone:"📈", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   inicio:               {label:"Início",          icone:"🚀", cor:"#22c55e", saidas:["Próximo"],                     grupo:"Eventos"},
@@ -122,7 +125,7 @@ const B: Record<TipoNo, BC> = {
 };
 
 // 🆕 v18: novo grupo "CRM" no sidebar pro bloco "Enviar Venda"
-const GRUPOS = ["Bubbles","Inputs","Lógica","Integrações","Eventos","CRM"];
+const GRUPOS = ["Bubbles","Inputs","Lógica","Integrações","Documentos","Eventos","CRM"];
 const uid = () => Math.random().toString(36).slice(2,10);
 
 const IS: React.CSSProperties = {width:"100%",background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:6,padding:"8px 10px",color:"#1f2937",fontSize:12,boxSizing:"border-box"};
@@ -193,6 +196,8 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     google_sheets:{webhook_url:"",acao:"append",dados:"",variavel_resposta:""},
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
+    gerar_documento:{titulo:"CONTRATO",nome_arquivo:"contrato_{{numero}}.pdf",modelo:"CONTRATANTE: {{nome}}\nCPF: {{cpf}}\n\nEscreva aqui as cláusulas do contrato.",rodape:"",legenda:"Segue o contrato para leitura e assinatura. Depois, envie o arquivo assinado por aqui.",incluir_area_assinatura:true,rotulo_assinatura:"Assinatura do cliente",nome_signatario:"{{nome}}",permitir_variaveis_vazias:false,variavel_arquivo:"contrato_arquivo",variavel_enviado:"contrato_enviado",mensagem_erro:"Não consegui gerar o contrato agora. Vou encaminhar para nossa equipe."},
+    validar_assinatura:{pergunta:"Agora envie por aqui o contrato assinado em PDF ou foto legível.",nome_signatario:"{{nome}}",criterios:"",confianca_minima:0.8,modelo_ia:"gpt-4o-mini",variavel_resultado:"assinatura_confirmada",mensagem_aguardando:"Preciso que você anexe o contrato assinado em PDF ou foto legível para continuar.",mensagem_assinado:"Recebi o contrato e confirmei a assinatura. Vou dar continuidade ao seu atendimento.",mensagem_nao_assinado:"Não consegui confirmar a assinatura nesse arquivo. Confira a área de assinatura e envie novamente, por favor.",mensagem_erro:"Não consegui analisar a assinatura agora. Vou encaminhar para nossa equipe."},
     fluxo_ia:{extensoes_ia_ativas:false,ext_normalizadores_ativa:false,ext_crm_ativa:false,ext_retomada_ativa:false,ext_followups_ativa:false,ext_consulta_negativa_ativa:false,ext_fila_ativa:false,ext_multimidia_ativa:false,apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
@@ -1411,6 +1416,45 @@ function saida(obj) {
           <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
           Enviar resposta pro cliente automaticamente
         </label>
+      </>;
+    case "gerar_documento":
+      return <>
+        <div style={{background:"#ecfdf5",border:"1px solid #99f6e4",borderRadius:8,padding:10,marginBottom:10}}>
+          <p style={{color:"#0f766e",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>📄 Gerar e enviar documento</p>
+          <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Gera um PDF com as variáveis confirmadas e envia pelo mesmo canal. Nenhuma regra de negócio fica presa ao motor.</p>
+        </div>
+        {TVar("Título do documento","titulo","CONTRATO",55)}
+        {F("Nome do arquivo","nome_arquivo","text","contrato_{{numero}}.pdf")}
+        {TVar("Modelo do contrato","modelo","Use {{nome}}, {{cpf}} e outras variáveis do fluxo...",260)}
+        {TVar("Legenda enviada com o PDF","legenda","Segue o contrato para assinatura...",75)}
+        {TVar("Rodapé opcional","rodape","",55)}
+        {TVar("Nome do signatário","nome_signatario","{{nome}}",45)}
+        {F("Rótulo da assinatura","rotulo_assinatura","text","Assinatura do cliente")}
+        <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,color:"#1f2937",fontSize:11}}><input type="checkbox" checked={d.incluir_area_assinatura !== false} onChange={e=>u({incluir_area_assinatura:e.target.checked})}/>Incluir área de assinatura no final do PDF</label>
+        <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,color:"#1f2937",fontSize:11}}><input type="checkbox" checked={d.permitir_variaveis_vazias === true} onChange={e=>u({permitir_variaveis_vazias:e.target.checked})}/>Permitir gerar mesmo com variável vazia</label>
+        {VarPill("Salvar nome do PDF em","variavel_arquivo","ex: contrato_arquivo")}
+        {VarPill("Salvar confirmação de envio em","variavel_enviado","ex: contrato_enviado")}
+        {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui gerar o contrato agora...",65)}
+        <p style={{color:"#0f766e",fontSize:10,lineHeight:1.4}}>Conecte <b>Enviado</b> ao bloco <b>Validar Assinatura</b>. Variáveis vazias bloqueiam a geração por padrão.</p>
+      </>;
+    case "validar_assinatura":
+      return <>
+        <div style={{background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:8,padding:10,marginBottom:10}}>
+          <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>✍️ Validar assinatura devolvida</p>
+          <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Espera PDF ou foto, procura evidência concreta de assinatura e só libera a saída Assinado acima da confiança mínima.</p>
+        </div>
+        {TVar("Pedido do contrato assinado","pergunta","Agora envie o contrato assinado...",75)}
+        {TVar("Signatário esperado","nome_signatario","{{nome}}",45)}
+        {TVar("Critérios adicionais","criterios","Ex.: deve haver assinatura na última página...",90)}
+        <div><label style={LS}>Confiança mínima</label><input type="number" min={0.5} max={0.99} step={0.01} value={d.confianca_minima ?? 0.8} onChange={e=>u({confianca_minima:Math.max(.5,Math.min(.99,Number(e.target.value)||.8))})} style={IS}/></div>
+        {S("Modelo de análise","modelo_ia",[{value:"gpt-4o-mini",label:"GPT-4o Mini"},{value:"gpt-4o",label:"GPT-4o"}])}
+        {F("API Key opcional","apiKey","password","Usa a chave do bloco Fluxo por IA se ficar vazio")}
+        {VarPill("Salvar resultado em","variavel_resultado","ex: assinatura_confirmada")}
+        {TVar("Mensagem se ainda não enviou arquivo","mensagem_aguardando","Anexe o contrato assinado...",60)}
+        {TVar("Mensagem quando assinado","mensagem_assinado","Assinatura confirmada...",60)}
+        {TVar("Mensagem quando não assinado","mensagem_nao_assinado","Não consegui confirmar a assinatura...",70)}
+        {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui analisar agora...",60)}
+        <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize:10,lineHeight:1.45}}>Conecte somente <b>Assinado</b> ao bloco <b>Enviar Venda</b>. A análise é uma triagem operacional e não substitui validação jurídica ou pericial.</div>
       </>;
     case "fluxo_ia": {
       const camposIA: Array<{nome:string;label:string;tipo:string;obrigatoria:boolean;diferente_de?:string}> =
