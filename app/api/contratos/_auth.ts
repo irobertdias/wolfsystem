@@ -15,6 +15,18 @@ export type AcessoContratos = {
   superAdmin: boolean;
 };
 
+async function exigirModuloContratos(workspaceId: string, superAdmin: boolean) {
+  if (superAdmin) return;
+  const { data: workspace } = await supabaseContratos
+    .from("workspaces").select("owner_email").eq("username", workspaceId).maybeSingle();
+  const ownerEmail = String(workspace?.owner_email || "").toLowerCase();
+  if (ownerEmail === SUPER_ADMIN) return;
+  const { data: cadastro } = await supabaseContratos
+    .from("cadastros").select("modulo_contratos_assinaturas").ilike("email", ownerEmail).maybeSingle();
+  if (cadastro?.modulo_contratos_assinaturas !== true) {
+    throw Object.assign(new Error("Módulo Contratos e Assinaturas não contratado para este workspace"), { statusCode: 403 });
+  }
+}
 export async function autenticarContratos(
   request: NextRequest,
   workspaceSolicitado = ""
@@ -44,7 +56,9 @@ export async function autenticarContratos(
     if (solicitado && solicitado !== workspaceDono.username && !superAdmin) {
       throw Object.assign(new Error("Workspace não autorizado"), { statusCode: 403 });
     }
-    return { workspaceId: solicitado && superAdmin ? solicitado : workspaceDono.username, email, superAdmin };
+    const workspaceId = solicitado && superAdmin ? solicitado : workspaceDono.username;
+    await exigirModuloContratos(workspaceId, superAdmin);
+    return { workspaceId, email, superAdmin };
   }
 
   let vinculoQuery = supabaseContratos
@@ -60,6 +74,7 @@ export async function autenticarContratos(
     const { data: workspace } = await supabaseContratos
       .from("workspaces").select("username").eq("username", solicitado).maybeSingle();
     if (!workspace) throw Object.assign(new Error("Workspace não encontrado"), { statusCode: 404 });
+    await exigirModuloContratos(solicitado, true);
     return { workspaceId: solicitado, email, superAdmin: true };
   }
 
@@ -67,6 +82,7 @@ export async function autenticarContratos(
     throw Object.assign(new Error("Usuário sem workspace"), { statusCode: 403 });
   }
   if (vinculo.perfil === "Administrador") {
+    await exigirModuloContratos(vinculo.workspace_id, superAdmin);
     return { workspaceId: vinculo.workspace_id, email, superAdmin };
   }
 
@@ -79,6 +95,7 @@ export async function autenticarContratos(
   if (!permitido) {
     throw Object.assign(new Error("Sem permissão para acessar Contratos"), { statusCode: 403 });
   }
+  await exigirModuloContratos(vinculo.workspace_id, superAdmin);
   return { workspaceId: vinculo.workspace_id, email, superAdmin };
 }
 

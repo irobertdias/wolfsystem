@@ -183,7 +183,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const podeVerCRM = isSuperAdmin || isDono || (permissoes as any).crm_acessar;
-  const podeVerContratos = isSuperAdmin || isDono || perfil === "Administrador" || (permissoes as any).contratos_acessar;
+  const podeVerContratos = isSuperAdmin || (modulos.contratos_assinaturas && (isDono || perfil === "Administrador" || (permissoes as any).contratos_acessar));
   const podeVerConfig = isSuperAdmin || isDono || permissoes.configuracoes_workspace;
   const podeVerTelefonia = podeVerComHierarquia(modulos.voip, "telefonia_acessar" as any);
   const podeVerChatbot = isSuperAdmin || isDono || (permissoes as any).chatbot_acessar;

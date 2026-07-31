@@ -27,6 +27,7 @@ export type Modulos = {
   cobranca: boolean;
   meta_ads: boolean;
   vendedor_ia: boolean;
+  contratos_assinaturas: boolean;
   rh: boolean;            // 🆕 Recursos Humanos
   bater_ponto: boolean;   // 🆕 Bater Ponto
   financeiro: boolean;                          // 🆕 Financeiro (master)
@@ -46,7 +47,7 @@ const FIN_TODAS: Record<string, boolean> = Object.fromEntries(FIN_OPCOES.map((k)
 const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
   roleta: false, disparos_web: false, disparos_api: false,
   voip: false, api_integracao: false, instagram: false,
-  cobranca: false, meta_ads: false, vendedor_ia: false, rh: false, bater_ponto: false,
+  cobranca: false, meta_ads: false, vendedor_ia: false, contratos_assinaturas: false, rh: false, bater_ponto: false,
   financeiro: false, financeiro_opcoes: {},
   plano: "basico",
 };
@@ -96,7 +97,7 @@ export function useModulos() {
         // isso os módulos voltariam todos false pro time interno da casa.
         if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true, vendedor_ia: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
+            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true, vendedor_ia: true, contratos_assinaturas: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -104,7 +105,7 @@ export function useModulos() {
 
         // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
-          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_meta_ads, modulo_vendedor_ia, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
+          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_meta_ads, modulo_vendedor_ia, modulo_contratos_assinaturas, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
           .eq("email", ownerEmail)
           .maybeSingle();
 
@@ -119,6 +120,7 @@ export function useModulos() {
             cobranca: !!cad?.modulo_cobranca,
             meta_ads: !!cad?.modulo_meta_ads,
             vendedor_ia: !!cad?.modulo_vendedor_ia,
+            contratos_assinaturas: !!cad?.modulo_contratos_assinaturas,
             rh: !!cad?.modulo_rh,                 // 🆕
             bater_ponto: !!cad?.modulo_bater_ponto, // 🆕
             financeiro: !!cad?.modulo_financeiro,

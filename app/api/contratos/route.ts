@@ -4,7 +4,7 @@ import { autenticarContratos, respostaErroContratos, supabaseContratos } from ".
 export const dynamic = "force-dynamic";
 
 const CAMPOS = [
-  "id", "canal_id", "numero", "fluxo_id", "status", "nome_signatario", "cpf_ultimos4",
+  "id", "canal_id", "numero", "fluxo_id", "origem", "proposta_id", "criado_por", "status", "nome_signatario", "cpf_ultimos4",
   "email_signatario", "contrato_nome", "contrato_hash_original", "contrato_hash_assinado",
   "biometria_status", "otp_confirmado_em", "consentimento_versao", "assinatura_em",
   "ip_assinatura", "latitude", "longitude", "auditoria_hmac", "expira_em", "concluida_em", "created_at"

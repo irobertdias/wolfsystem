@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -2606,6 +2606,7 @@ export default function FluxosPage() {
   const router = useRouter();
   const { modulos, carregado: modulosCarregados } = useModulos();
   const vendedorIALiberado = modulosCarregados && modulos.vendedor_ia;
+  const contratosLiberados = modulosCarregados && modulos.contratos_assinaturas;
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // ✅ Agora é username (string como "wolf_admin"), nunca id numérico
@@ -2821,6 +2822,10 @@ export default function FluxosPage() {
 
   async function salvar(opcoes?: { fecharEditor?: boolean; avisarSucesso?: boolean }): Promise<boolean> {
     if(!fluxoAtivo?.id) return false;
+    if (nos.some(n => ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(n.tipo)) && !contratosLiberados) {
+      alert("🔒 Este workspace não possui o módulo Contratos e Assinaturas — R$ 297,00/mês.");
+      return false;
+    }
     if (nos.some(n => n.tipo === "fluxo_ia") && !vendedorIALiberado) {
       alert("🔒 Este workspace não possui o módulo Vendedor IA. Contratação avulsa: R$ 2.500,00.");
       return false;
@@ -2905,6 +2910,10 @@ export default function FluxosPage() {
 
   async function toggleAtivo() {
     if(!fluxoAtivo?.id) return;
+    if (!fluxoAtivo.ativo && nos.some(n => ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(n.tipo)) && !contratosLiberados) {
+      alert("🔒 Não é possível ativar este fluxo sem o módulo Contratos e Assinaturas.");
+      return;
+    }
     if (!fluxoAtivo.ativo && nos.some(n => n.tipo === "fluxo_ia") && !vendedorIALiberado) {
       alert("🔒 Não é possível ativar este fluxo sem o módulo Vendedor IA.");
       return;
@@ -2951,6 +2960,10 @@ export default function FluxosPage() {
   }
 
   function adicionarNo(tipo:TipoNo) {
+    if (["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(tipo) && !contratosLiberados) {
+      alert("🔒 Contratos e Assinaturas é um módulo avulso de R$ 297,00/mês. Solicite a liberação ao administrador da Wolf System.");
+      return;
+    }
     if (tipo === "fluxo_ia" && !vendedorIALiberado) {
       alert("🔒 Vendedor IA é um módulo avulso de R$ 2.500,00. Solicite a liberação ao administrador da Wolf System.");
       return;
@@ -2975,6 +2988,10 @@ export default function FluxosPage() {
 
   function duplicarNo(id:string) {
     const origem = nos.find(n => n.id === id);
+    if (origem && ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(origem.tipo) && !contratosLiberados) {
+      alert("🔒 Este workspace não possui o módulo Contratos e Assinaturas.");
+      return;
+    }
     if (origem?.tipo === "fluxo_ia" && !vendedorIALiberado) {
       alert("🔒 Este workspace não possui o módulo Vendedor IA.");
       return;
@@ -3410,7 +3427,7 @@ export default function FluxosPage() {
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"12px 0"}}>
           {GRUPOS.map(grupo => {
-            const tipos = (Object.entries(B) as [TipoNo,BC][]).filter(([tipo,c])=>c.grupo===grupo && (tipo!=="fluxo_ia" || vendedorIALiberado));
+            const tipos = (Object.entries(B) as [TipoNo,BC][]).filter(([tipo,c])=>c.grupo===grupo && (tipo!=="fluxo_ia" || vendedorIALiberado) && (c.grupo!=="Documentos" || contratosLiberados));
             const ab = grupoAberto===grupo;
             return (
               <div key={grupo} style={{marginBottom:6}}>

@@ -53,6 +53,7 @@ const PLANOS: Plano[] = [
 const MODULOS: Modulo[] = [
   { id: "vendedor-ia", nome: "Vendedor IA", descricao: "Atende, qualifica, coleta dados e envia vendas ao CRM.", mensalidade: 0, implantacao: 2500 },
   { id: "central-ads", nome: "Central Ads", descricao: "Indicadores e relatórios das campanhas em um só lugar.", mensalidade: 297, implantacao: 0 },
+  { id: "contratos-assinaturas", nome: "Contratos e Assinaturas", descricao: "Criação vinculada ao CRM, assinatura com OTP, selfie e trilha de auditoria.", mensalidade: 297, implantacao: 0 },
   { id: "automacao-crm", nome: "Automação de CRM", descricao: "Ações automáticas quando o status de uma venda muda.", mensalidade: 197, implantacao: 0 },
   { id: "voip", nome: "Telefonia VoIP", descricao: "Chamadas e histórico integrados à operação comercial.", mensalidade: 197, implantacao: 0 },
   { id: "onboarding", nome: "Onboarding premium", descricao: "Implantação acompanhada e configuração inicial orientada.", mensalidade: 0, implantacao: 890 },

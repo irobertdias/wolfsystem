@@ -17,6 +17,7 @@ type Cadastro = {
   modulo_cobranca?: boolean;
   modulo_meta_ads?: boolean;
   modulo_vendedor_ia?: boolean;
+  modulo_contratos_assinaturas?: boolean;
   modulo_equipes?: boolean;
   modulo_funil_avancado?: boolean;
   modulo_rh?: boolean;
@@ -281,7 +282,7 @@ export default function Clientes() {
     nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
     username: "",
     usuarios_liberados: 5, conexoes_liberadas: 1,
-    modulo_meta_ads: false, modulo_vendedor_ia: false,
+    modulo_meta_ads: false, modulo_vendedor_ia: false, modulo_contratos_assinaturas: false,
     permite_webjs: true, permite_waba: false, permite_instagram: false,
     modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
@@ -550,7 +551,7 @@ export default function Clientes() {
     setFormCadastro({
       nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
       username: "",
-      modulo_meta_ads: false, modulo_vendedor_ia: false,
+      modulo_meta_ads: false, modulo_vendedor_ia: false, modulo_contratos_assinaturas: false,
       usuarios_liberados: 5, conexoes_liberadas: 1,
       permite_webjs: true, permite_waba: false, permite_instagram: false,
       modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
@@ -598,6 +599,7 @@ export default function Clientes() {
         modulo_voip: preset.modulo_voip,
         modulo_meta_ads: preset.modulo_meta_ads,
         modulo_vendedor_ia: false, // módulo avulso: nunca é liberado automaticamente pelo plano
+        modulo_contratos_assinaturas: false, // liberação exclusiva do superadmin
         modulo_api_integracao: preset.modulo_api_integracao,
         modulo_instagram: preset.modulo_instagram,
         modulo_cobranca: preset.modulo_cobranca,
@@ -693,6 +695,15 @@ export default function Clientes() {
           bloqueio_postergado_ate: formCadastro.bloqueio_postergado_ate || null,
         }).eq("id", cadastroSelecionado.id);
         if (error) { alert("Erro ao salvar: " + error.message); setSalvandoCliente(false); return; }
+        const tokenModulo = await getToken();
+        if (!tokenModulo) { alert("Sessão expirada ao salvar o módulo de contratos."); setSalvandoCliente(false); return; }
+        const respModulo = await fetch("/api/admin/cliente", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tokenModulo },
+          body: JSON.stringify({ email: formCadastro.email, modulo_contratos_assinaturas: !!formCadastro.modulo_contratos_assinaturas }),
+        });
+        const resultModulo = await respModulo.json();
+        if (!resultModulo.success) { alert("Erro ao salvar Contratos e Assinaturas: " + resultModulo.error); setSalvandoCliente(false); return; }
         alert("✅ Cliente atualizado!");
       } else {
         if (!formCadastro.senha || formCadastro.senha.length < 6) { alert("Senha obrigatória (mínimo 6 caracteres)"); setSalvandoCliente(false); return; }
@@ -1081,6 +1092,7 @@ export default function Clientes() {
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
                 <Toggle value={!!formCadastro.modulo_roleta} onChange={() => setFormCadastro({ ...formCadastro, modulo_roleta: !formCadastro.modulo_roleta })} label="🎯 Roleta de Distribuição" desc="Intermediário, Ultra" color="#3b82f6" />
                 <Toggle value={!!formCadastro.modulo_disparos_web} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_web: !formCadastro.modulo_disparos_web })} label="📤 Disparos Web" desc="Intermediário, Ultra" color="#3b82f6" />
+                <Toggle value={!!formCadastro.modulo_contratos_assinaturas} onChange={() => setFormCadastro({ ...formCadastro, modulo_contratos_assinaturas: !formCadastro.modulo_contratos_assinaturas })} label="📄 Contratos e Assinaturas" desc="Módulo avulso — R$ 297,00/mês por workspace" color="#155eef" />
                 <Toggle value={!!formCadastro.modulo_vendedor_ia} onChange={() => setFormCadastro({ ...formCadastro, modulo_vendedor_ia: !formCadastro.modulo_vendedor_ia })} label="🤖 Vendedor IA" desc="Módulo avulso — R$ 2.500,00 (fora dos planos)" color="#7c3aed" />
                 <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="📊 Central Ads" desc="Central de campanhas e resultados de mídia paga" color="#7e22ce" />
                 <Toggle value={!!formCadastro.modulo_disparos_api} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_api: !formCadastro.modulo_disparos_api })} label="📨 Disparos API" desc="Apenas Ultra" color="#8b5cf6" />
@@ -1429,6 +1441,7 @@ export default function Clientes() {
               <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>🎁 Módulos Liberados</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_roleta} icone="🎯" label="Roleta" cor="#3b82f6" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_contratos_assinaturas} icone="📄" label="Contratos e Assinaturas" cor="#155eef" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_vendedor_ia} icone="🤖" label="Vendedor IA" cor="#7c3aed" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_meta_ads} icone="📊" label="Central Ads" cor="#7e22ce" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_disparos_web} icone="📤" label="Disparos Web" cor="#3b82f6" />
@@ -1648,6 +1661,7 @@ export default function Clientes() {
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                          {c.modulo_contratos_assinaturas && <span style={{ fontSize: 14 }} title="Contratos e Assinaturas — R$ 297/mês">📄</span>}
                           {c.modulo_vendedor_ia && <span style={{ fontSize: 14 }} title="Vendedor IA — módulo avulso">🤖</span>}
                           {c.modulo_meta_ads && <span style={{ fontSize: 14 }} title="Central Ads">📊</span>}
                           {c.modulo_roleta && <span style={{ fontSize: 14 }} title="Roleta">🎯</span>}
@@ -1662,7 +1676,7 @@ export default function Clientes() {
                           {c.modulo_rh && <span style={{ fontSize: 14 }} title="RH">🧑‍💼</span>}
                           {c.modulo_bater_ponto && <span style={{ fontSize: 14 }} title="Bater Ponto">🕐</span>}
                           {c.modulo_financeiro && <span style={{ fontSize: 14 }} title="Financeiro">💰</span>}
-                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && !c.modulo_financeiro && !c.modulo_meta_ads && !c.modulo_vendedor_ia && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
+                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && !c.modulo_financeiro && !c.modulo_meta_ads && !c.modulo_vendedor_ia && !c.modulo_contratos_assinaturas && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
                         </div>
                       </td>
 
