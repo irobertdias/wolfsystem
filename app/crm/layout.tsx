@@ -183,6 +183,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const podeVerCRM = isSuperAdmin || isDono || (permissoes as any).crm_acessar;
+  const podeVerContratos = isSuperAdmin || isDono || perfil === "Administrador" || (permissoes as any).contratos_acessar;
   const podeVerConfig = isSuperAdmin || isDono || permissoes.configuracoes_workspace;
   const podeVerTelefonia = podeVerComHierarquia(modulos.voip, "telefonia_acessar" as any);
   const podeVerChatbot = isSuperAdmin || isDono || (permissoes as any).chatbot_acessar;
@@ -480,6 +481,11 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
                 </button>
               )}
 
+              {podeVerContratos && (
+                <button onClick={() => navegarPara("/crm/contratos")} style={botaoMenu(isActive("/crm/contratos"), "#eff6ff", "#dbeafe", "#bfdbfe", "#2563eb", "#1d4ed8")}>
+                  <span>📄</span> Contratos
+                </button>
+              )}
               {podeVerChatbot && (
                 <button onClick={() => navegarPara("/chatbot")} style={botaoMenu(false, "#eff6ff", "#dbeafe", "#bfdbfe", "#3b82f6", "#3b82f6")}>
                   <span>💬</span> Chatbot

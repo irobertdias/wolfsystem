@@ -39,6 +39,9 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
     { key: "contatos_editar",    label: "Editar cadastro de contatos" },
     { key: "etiquetas",          label: "Gerenciar etiquetas" },
   ]},
+  { nome: "📄 Contratos", cor: "#155eef", permissoes: [
+    { key: "contratos_acessar", label: "Acessar contratos e assinaturas" },
+  ]},
   { nome: "💬 Chatbot", cor: "#3b82f6", permissoes: [
     { key: "chatbot_acessar",    label: "Acessar o Chatbot" },
     { key: "chat_proprio",       label: "Ver próprios atendimentos" },

@@ -15,7 +15,7 @@ type TipoNo =
   | "condicao" | "variavel" | "redirecionar" | "script" | "espera"
   | "teste_ab" | "webhook" | "pular" | "retornar"
   | "google_sheets" | "http_request" | "openai" | "fluxo_ia" | "claude_ai" | "gmail"
-  | "gerar_documento" | "validar_assinatura"
+  | "gerar_documento" | "validar_assinatura" | "assinatura_wolf"
   | "meta_capi"  // 🆕 v20: dispara evento de conversão pra Meta (Pixel + Conversions API)
   | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar"
   | "gatilho_crm" | "atualizar_venda"
@@ -108,6 +108,7 @@ const B: Record<TipoNo, BC> = {
   gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
   gerar_documento:      {label:"Gerar Documento", icone:"📄", cor:"#0f766e", saidas:["Enviado","Erro"],              grupo:"Documentos"},
   validar_assinatura:   {label:"Validar Assinatura",icone:"✍️",cor:"#7c3aed", saidas:["Assinado","Não assinado","Erro"],grupo:"Documentos"},
+  assinatura_wolf:      {label:"Assinatura Wolf",icone:"🖋️",cor:"#155eef", saidas:["Assinado","Expirado/Recusado","Erro"],grupo:"Documentos"},
   // 🆕 v20: Meta Pixel / Conversions API — manda evento de conversão pra Meta (Lead, Purchase, etc)
   meta_capi:            {label:"Meta Pixel/CAPI", icone:"📈", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   inicio:               {label:"Início",          icone:"🚀", cor:"#22c55e", saidas:["Próximo"],                     grupo:"Eventos"},
@@ -198,6 +199,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
     gerar_documento:{titulo:"CONTRATO",nome_arquivo:"contrato_{{numero}}.pdf",modelo:"CONTRATANTE: {{nome}}\nCPF: {{cpf}}\n\nEscreva aqui as cláusulas do contrato.",rodape:"",legenda:"Segue o contrato para leitura e assinatura. Depois, envie o arquivo assinado por aqui.",incluir_area_assinatura:true,rotulo_assinatura:"Assinatura do cliente",nome_signatario:"{{nome}}",permitir_variaveis_vazias:false,variavel_arquivo:"contrato_arquivo",variavel_enviado:"contrato_enviado",mensagem_erro:"Não consegui gerar o contrato agora. Vou encaminhar para nossa equipe."},
     validar_assinatura:{pergunta:"Agora envie por aqui o contrato assinado em PDF ou foto legível.",nome_signatario:"{{nome}}",criterios:"",confianca_minima:0.8,modelo_ia:"gpt-4o-mini",variavel_resultado:"assinatura_confirmada",mensagem_aguardando:"Preciso que você anexe o contrato assinado em PDF ou foto legível para continuar.",mensagem_assinado:"Recebi o contrato e confirmei a assinatura. Vou dar continuidade ao seu atendimento.",mensagem_nao_assinado:"Não consegui confirmar a assinatura nesse arquivo. Confira a área de assinatura e envie novamente, por favor.",mensagem_erro:"Não consegui analisar a assinatura agora. Vou encaminhar para nossa equipe."},
+    assinatura_wolf:{nome_signatario:"{{nome}}",variavel_cpf:"cpf",variavel_arquivo:"contrato_arquivo",nome_documento:"contrato_{{cpf}}.pdf",url_publica:"https://wolfgyn.com.br",expira_horas:48,exigir_otp:true,exigir_selfie:true,exigir_localizacao:false,variavel_sessao:"assinatura_wolf_id",variavel_resultado:"assinatura_confirmada",mensagem_link:"Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",mensagem_assinado:"Assinatura confirmada com sucesso. Vou continuar seu atendimento.",mensagem_erro:"Não consegui iniciar a assinatura agora. Vou encaminhar para nossa equipe."},
     fluxo_ia:{extensoes_ia_ativas:false,ext_normalizadores_ativa:false,ext_crm_ativa:false,ext_retomada_ativa:false,ext_followups_ativa:false,ext_consulta_negativa_ativa:false,ext_fila_ativa:false,ext_multimidia_ativa:false,apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
@@ -1436,6 +1438,26 @@ function saida(obj) {
         {VarPill("Salvar confirmação de envio em","variavel_enviado","ex: contrato_enviado")}
         {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui gerar o contrato agora...",65)}
         <p style={{color:"#0f766e",fontSize:10,lineHeight:1.4}}>Conecte <b>Enviado</b> ao bloco <b>Validar Assinatura</b>. Variáveis vazias bloqueiam a geração por padrão.</p>
+      </>;
+    case "assinatura_wolf":
+      return <>
+        <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:10,marginBottom:10}}>
+          <p style={{color:"#1d4ed8",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>🖋️ Assinatura eletrônica Wolf</p>
+          <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Envia um link protegido, confirma o telefone por código, coleta consentimento, selfie como evidência e assinatura legível. O PDF final recebe hashes e certificado de auditoria.</p>
+        </div>
+        {F("URL pública do frontend","url_publica","url","https://wolfgyn.com.br")}
+        {TVar("Nome do signatário","nome_signatario","{{nome}}",45)}
+        {VarPill("Variável do CPF","variavel_cpf","ex: cpf")}
+        {VarPill("PDF gerado anteriormente","variavel_arquivo","ex: contrato_arquivo")}
+        {TVar("Nome do documento final","nome_documento","contrato_{{cpf}}.pdf",45)}
+        <div><label style={LS}>Validade do link (horas)</label><input type="number" min={1} max={168} value={d.expira_horas ?? 48} onChange={e=>u({expira_horas:Math.max(1,Math.min(168,Number(e.target.value)||48))})} style={IS}/></div>
+        <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,color:"#1f2937",fontSize:11}}><input type="checkbox" checked={d.exigir_localizacao === true} onChange={e=>u({exigir_localizacao:e.target.checked})}/>Solicitar geolocalização como evidência adicional</label>
+        {VarPill("Salvar ID da sessão em","variavel_sessao","ex: assinatura_wolf_id")}
+        {VarPill("Salvar resultado em","variavel_resultado","ex: assinatura_confirmada")}
+        {TVar("Mensagem com o link","mensagem_link","Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",75)}
+        {TVar("Mensagem após assinatura","mensagem_assinado","Assinatura confirmada com sucesso...",60)}
+        {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui iniciar a assinatura agora...",60)}
+        <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize:10,lineHeight:1.45}}>OTP, consentimento, selfie e assinatura são obrigatórios. A selfie é evidência de identidade; ela só será chamada de biometria verificada quando houver provedor de prova de vida e comparação facial. Conecte somente <b>Assinado</b> ao bloco <b>Enviar Venda</b>.</div>
       </>;
     case "validar_assinatura":
       return <>

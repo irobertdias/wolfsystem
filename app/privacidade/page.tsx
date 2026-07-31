@@ -80,6 +80,17 @@ export default function PrivacidadePage() {
           </ul>
         </Section>
 
+        <H3>2.4 Assinaturas eletrônicas</H3>
+        <Section>
+          <p>Quando um Cliente habilita a Assinatura Wolf, podemos tratar dados do signatário necessários para demonstrar autoria, integridade e manifestação de vontade:</p>
+          <ul style={listaStyle}>
+            <li>Nome, telefone, CPF parcialmente mascarado e dados do contrato</li>
+            <li>Assinatura desenhada, confirmação por código OTP e consentimentos aceitos</li>
+            <li>Selfie preservada como evidência de identidade, sem classificá-la como biometria facial verificada quando não houver prova de vida e comparação facial</li>
+            <li>Data e hora, endereço IP, navegador, hashes criptográficos e localização somente quando solicitada e autorizada</li>
+          </ul>
+          <p style={avisoImportante}><strong>Responsabilidade:</strong> o Cliente da Wolf é o Controlador dos dados de seus signatários e deve possuir base legal, informar a finalidade e configurar prazo de conservação compatível. A Wolf atua como Operador e mantém as evidências isoladas por workspace.</p>
+        </Section>
         <H2>3. Base legal e finalidades</H2>
         <Section>
           <p>Tratamos seus dados com base nas seguintes hipóteses previstas na LGPD:</p>
@@ -97,6 +108,7 @@ export default function PrivacidadePage() {
               <Row>Marketing e novidades | Consentimento (art. 7º, I) — você pode recusar</Row>
               <Row>Suporte técnico | Execução de contrato</Row>
               <Row>Prevenção a fraudes | Legítimo interesse</Row>
+              <Row>Assinatura eletrônica, auditoria e execução do contrato | Execução de contrato, consentimento e exercício regular de direitos</Row>
               <Row>Cumprimento de ordem judicial | Obrigação legal</Row>
             </tbody>
           </Table>
@@ -197,6 +209,7 @@ export default function PrivacidadePage() {
               <Row>Mensagens de Messenger/Instagram/WhatsApp | Enquanto a conta estiver ativa, ou até solicitação de exclusão</Row>
               <Row>Logs de acesso | 6 meses (art. 15 do Marco Civil da Internet)</Row>
               <Row>Dados financeiros | 5 anos (legislação fiscal)</Row>
+              <Row>Contratos assinados e evidências | Pelo prazo necessário à execução do contrato e ao exercício regular de direitos, conforme obrigação aplicável do Controlador</Row>
             </tbody>
           </Table>
           <p>Após esses prazos, os dados são anonimizados ou eliminados.</p>
