@@ -34,7 +34,36 @@ type UsuarioWs = { email: string; nome: string; };
 type EquipeOpt = { id: string | number; nome: string; cor?: string; icone?: string; };
 type FilaOpt = { id: string | number; nome: string; cor?: string; icone?: string; equipe_id?: string | null; };
 type EtiquetaOpt = { id: string | number; nome: string; cor?: string; icone?: string; };
-type AnexoMeta = { url: string; nome: string; tipo: string; tamanho: number; enviado_em: string; };
+type AnexoMeta = { url: string; nome: string; tipo: string; tamanho: number; enviado_em: string; privado?: boolean };
+
+function normalizarAnexos(valor: unknown): AnexoMeta[] {
+  if (Array.isArray(valor)) return valor.filter(item => item && typeof item === "object") as AnexoMeta[];
+  if (valor && typeof valor === "object" && "url" in valor) return [valor as AnexoMeta];
+  if (typeof valor === "string") {
+    try { return normalizarAnexos(JSON.parse(valor)); } catch { return []; }
+  }
+  return [];
+}
+
+async function abrirAnexoSeguro(anexo: AnexoMeta) {
+  if (!anexo.privado) {
+    window.open(anexo.url, "_blank", "noopener,noreferrer");
+    return;
+  }
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Sessão expirada. Entre novamente para abrir o documento.");
+  const response = await fetch(anexo.url, {
+    cache: "no-store",
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ error: "Documento indisponível" }));
+    throw new Error(data.error || "Documento indisponível");
+  }
+  const url = URL.createObjectURL(await response.blob());
+  window.open(url, "_blank", "noopener,noreferrer");
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
 
 // ═══ HELPERS DE MÁSCARA ═══
 const mascaraCPF = (v: string) =>
@@ -529,7 +558,7 @@ function PropostaForm() {
       const valor = c.origem === "fixo" ? form[c.slug] : dadosCustomizados[c.slug];
       let vazio = false;
       if (c.tipo === "checkbox") vazio = valor !== true;
-      else if ((c.tipo as string) === "arquivo") vazio = !Array.isArray(valor) || valor.length === 0;
+      else if ((c.tipo as string) === "arquivo") vazio = normalizarAnexos(valor).length === 0;
       else vazio = (valor === undefined || valor === null || String(valor).trim() === "");
       if (vazio) {
         alert(`O campo "${c.label}" é obrigatório.`);
@@ -617,7 +646,7 @@ function PropostaForm() {
   const isCampoPreenchido = (c: CampoUnificado): boolean => {
     const v = c.origem === "fixo" ? form[c.slug] : dadosCustomizados[c.slug];
     if (c.tipo === "checkbox") return v === true;
-    if ((c.tipo as string) === "arquivo") return Array.isArray(v) && v.length > 0;
+    if ((c.tipo as string) === "arquivo") return normalizarAnexos(v).length > 0;
     return v !== undefined && v !== null && String(v).trim() !== "";
   };
   const camposObrigPreenchidos = useMemo(() => camposObrig.filter(isCampoPreenchido).length, [camposObrig, form, dadosCustomizados]);
@@ -758,7 +787,7 @@ function PropostaForm() {
   };
 
   const renderCampoArquivo = (c: CampoUnificado) => {
-    const arquivos: AnexoMeta[] = Array.isArray(dadosCustomizados[c.slug]) ? dadosCustomizados[c.slug] : [];
+    const arquivos = normalizarAnexos(dadosCustomizados[c.slug]);
     const loading = uploadando[c.slug];
     return (
       <div>
@@ -799,7 +828,8 @@ function PropostaForm() {
                   <p style={{ color: "#1f2937", fontSize: 12, margin: 0, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nome}</p>
                   <p style={{ color: "#9ca3af", fontSize: 10, margin: "1px 0 0" }}>{formatarTamanhoArquivo(a.tamanho)}</p>
                 </div>
-                <a href={a.url} target="_blank" rel="noopener noreferrer"
+                <a href={a.privado ? "#" : a.url} target="_blank" rel="noopener noreferrer"
+                  onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}}
                   style={{ color: "#3b82f6", fontSize: 11, fontWeight: 600, textDecoration: "none", padding: "4px 10px", border: "1px solid #bfdbfe", borderRadius: 6 }}>
                   👁️
                 </a>

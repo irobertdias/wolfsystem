@@ -109,7 +109,7 @@ export type CampoCustom = {
   id?: number;
   slug: string;
   label: string;
-  tipo: "texto" | "textarea" | "numero" | "moeda" | "data" | "dropdown" | "checkbox";
+  tipo: "texto" | "textarea" | "numero" | "moeda" | "data" | "dropdown" | "checkbox" | "arquivo";
   obrigatorio: boolean;
   ordem: number;
   opcoes?: string[] | null;
@@ -124,7 +124,7 @@ export type CampoUnificado = {
   slug: string;
   label: string;
   labelPadrao?: string;    // só pra fixos — pra mostrar "Original: X" no editor
-  tipo: TipoCampoFixo | "textarea" | "checkbox";
+  tipo: TipoCampoFixo | "textarea" | "checkbox" | "arquivo";
   obrigatorio: boolean;
   visivel: boolean;
   ordem: number;

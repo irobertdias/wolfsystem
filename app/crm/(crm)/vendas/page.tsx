@@ -46,7 +46,36 @@ type Proposta = {
   atualizado_por?: string | null;
 };
 type UsuarioWs = { email: string; nome: string; equipe_id?: string | null; };
-type AnexoMeta = { url: string; nome: string; tipo: string; tamanho: number; enviado_em: string };
+type AnexoMeta = { url: string; nome: string; tipo: string; tamanho: number; enviado_em: string; privado?: boolean };
+
+function normalizarAnexos(valor: unknown): AnexoMeta[] {
+  if (Array.isArray(valor)) return valor.filter(item => item && typeof item === "object") as AnexoMeta[];
+  if (valor && typeof valor === "object" && "url" in valor) return [valor as AnexoMeta];
+  if (typeof valor === "string") {
+    try { return normalizarAnexos(JSON.parse(valor)); } catch { return []; }
+  }
+  return [];
+}
+
+async function abrirAnexoSeguro(anexo: AnexoMeta) {
+  if (!anexo.privado) {
+    window.open(anexo.url, "_blank", "noopener,noreferrer");
+    return;
+  }
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Sessão expirada. Entre novamente para abrir o documento.");
+  const response = await fetch(anexo.url, {
+    cache: "no-store",
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ error: "Documento indisponível" }));
+    throw new Error(data.error || "Documento indisponível");
+  }
+  const url = URL.createObjectURL(await response.blob());
+  window.open(url, "_blank", "noopener,noreferrer");
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
 
 const isoLocal = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -641,12 +670,7 @@ export default function Vendas() {
     }
   };
 
-  const anexosDoCampo = (slug: string): AnexoMeta[] => {
-    const raw = dadosCustomizadosEdit[slug];
-    if (Array.isArray(raw)) return raw as AnexoMeta[];
-    if (raw && typeof raw === "object" && raw.url) return [raw as AnexoMeta];
-    return [];
-  };
+  const anexosDoCampo = (slug: string): AnexoMeta[] => normalizarAnexos(dadosCustomizadosEdit[slug]);
 
   const uploadArquivoCampo = async (c: CampoUnificado, files: FileList | null) => {
     if (!files || !files.length || !workspaceId) return;
@@ -835,7 +859,7 @@ export default function Vendas() {
               <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
                 {anexos.map((a, idx) => (
                   <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 10px", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8 }}>
-                    <a href={a.url} target="_blank" rel="noreferrer" style={{ color: "#2563eb", fontSize: 12, fontWeight: 700, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <a href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ color: "#2563eb", fontSize: 12, fontWeight: 700, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {iconeArquivo(a.tipo)} · {a.nome} · {formatarTamanhoArquivo(a.tamanho)}
                     </a>
                     <button type="button" onClick={() => removerArquivoCampo(c.slug, idx)} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Remover</button>
@@ -1520,14 +1544,14 @@ export default function Vendas() {
                     .filter(c => c.tipo === "arquivo")
                     .flatMap(c => {
                       const raw = c.origem === "fixo" ? (propostaVisualizando as any)[c.slug] : propostaVisualizando.dados_customizados?.[c.slug];
-                      const lista = Array.isArray(raw) ? raw : raw?.url ? [raw] : [];
+                      const lista = normalizarAnexos(raw);
                       return lista.map((a: AnexoMeta) => ({ ...a, campo: c.label }));
                     });
                   if (!anexos.length) return <p style={{ color: "#94a3b8", fontSize: 12, margin: 0, fontStyle: "italic" }}>Nenhum arquivo anexado nesta venda.</p>;
                   return (
                     <div style={{ display: "grid", gap: 8 }}>
                       {anexos.map((a, idx) => (
-                        <a key={idx} href={a.url} target="_blank" rel="noreferrer" style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, color: "#2563eb", textDecoration: "none", fontSize: 12, fontWeight: 800 }}>
+                        <a key={idx} href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, color: "#2563eb", textDecoration: "none", fontSize: 12, fontWeight: 800 }}>
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{iconeArquivo(a.tipo)} · {a.nome}</span>
                           <span style={{ color: "#64748b", flexShrink: 0 }}>{a.campo} · {formatarTamanhoArquivo(a.tamanho)}</span>
                         </a>

@@ -24,7 +24,7 @@ import {
 // Reflete EXATAMENTE na Nova Proposta (mesma ordem, mesma seção)
 // ═══════════════════════════════════════════════════════════════════════
 
-type TipoCustom = "texto" | "textarea" | "numero" | "moeda" | "data" | "dropdown" | "checkbox";
+type TipoCustom = "texto" | "textarea" | "numero" | "moeda" | "data" | "dropdown" | "checkbox" | "arquivo";
 
 const TIPOS_CUSTOM: { valor: TipoCustom; label: string; icone: string }[] = [
   { valor: "texto",    label: "Texto curto",  icone: "📝" },
@@ -34,6 +34,7 @@ const TIPOS_CUSTOM: { valor: TipoCustom; label: string; icone: string }[] = [
   { valor: "data",     label: "Data",         icone: "📅" },
   { valor: "dropdown", label: "Seleção",      icone: "📋" },
   { valor: "checkbox", label: "Sim / Não",    icone: "☑️" },
+  { valor: "arquivo",  label: "Arquivo privado", icone: "📎" },
 ];
 
 const labelToSlug = (label: string): string =>
