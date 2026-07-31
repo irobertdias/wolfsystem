@@ -16,6 +16,8 @@ type Contrato = {
   origem?: "fluxo" | "crm" | "avulso";
   proposta_id?: number | null;
   criado_por?: string | null;
+  modo_assinatura?: string;
+  signatarios?: Array<{ papel: "empresa" | "cliente"; ordem: number; nome: string; status: string; assinatura_em?: string | null }>;
   status: string;
   nome_signatario: string;
   cpf_ultimos4?: string | null;
@@ -37,8 +39,9 @@ type Contrato = {
 };
 type ClienteCRM = { id: number; nome: string; cpf?: string; email?: string; telefone1?: string; telefone2?: string; endereco?: string; cep?: string; cidade?: string; estado?: string };
 type Conexao = { id: number; nome: string; tipo: string; status: string; numero?: string };
-type FormContrato = { origem: "crm" | "avulso"; proposta_id: string; nome: string; cpf: string; email: string; telefone: string; canal_id: string; titulo: string; conteudo: string; pdf_base64: string; pdf_nome: string; mensagem: string; expira_horas: number; exigir_localizacao: boolean };
-const FORM_INICIAL: FormContrato = { origem: "crm", proposta_id: "", nome: "", cpf: "", email: "", telefone: "", canal_id: "", titulo: "Contrato de prestação de serviços", conteudo: "", pdf_base64: "", pdf_nome: "", mensagem: "Olá, {{nome}}. Seu contrato está pronto para revisão e assinatura: {{link}}", expira_horas: 48, exigir_localizacao: false };
+type Representante = { id: string; nome: string; cargo: string; email: string; numero: string; padrao: boolean };
+type FormContrato = { representante_id: string; origem: "crm" | "avulso"; proposta_id: string; nome: string; cpf: string; email: string; telefone: string; canal_id: string; titulo: string; conteudo: string; pdf_base64: string; pdf_nome: string; mensagem: string; expira_horas: number; exigir_localizacao: boolean };
+const FORM_INICIAL: FormContrato = { representante_id: "", origem: "crm", proposta_id: "", nome: "", cpf: "", email: "", telefone: "", canal_id: "", titulo: "Contrato de prestação de serviços", conteudo: "", pdf_base64: "", pdf_nome: "", mensagem: "Olá, {{nome}}. Seu contrato está pronto para revisão e assinatura: {{link}}", expira_horas: 48, exigir_localizacao: false };
 type Resumo = { total: number; assinados: number; pendentes: number; expirados: number; problemas: number };
 type Paginacao = { pagina: number; limite: number; total: number; paginas: number };
 
@@ -82,8 +85,10 @@ export default function ContratosPage() {
   const [salvando, setSalvando] = useState(false);
   const [editando, setEditando] = useState<Contrato | null>(null);
   const [reenviando, setReenviando] = useState("");
+  const [excluindo, setExcluindo] = useState("");
   const [clientes, setClientes] = useState<ClienteCRM[]>([]);
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
+  const [representantes, setRepresentantes] = useState<Representante[]>([]);
   const [formContrato, setFormContrato] = useState<FormContrato>({ ...FORM_INICIAL });
 
   useEffect(() => {
@@ -148,22 +153,32 @@ export default function ContratosPage() {
       const data = await response.json();
       setClientes(data.clientes || []);
       setConexoes(data.conexoes || []);
-      setFormContrato({ ...FORM_INICIAL, canal_id: String(data.conexoes?.find((c: Conexao) => c.status === "conectado")?.id || data.conexoes?.[0]?.id || "") });
+      const empresaResponse = await requisicao(`/api/contratos/empresa?workspaceId=${encodeURIComponent(workspaceId)}`);
+      const empresaData = await empresaResponse.json();
+      const reps: Representante[] = empresaData.representantes || [];
+      if (!reps.length) throw new Error("Cadastre a empresa e ao menos um representante antes de criar contratos");
+      setRepresentantes(reps);
+      setFormContrato({ ...FORM_INICIAL, representante_id: String(reps.find(r => r.padrao)?.id || reps[0]?.id || ""), canal_id: String(data.conexoes?.find((c: Conexao) => c.status === "conectado")?.id || data.conexoes?.[0]?.id || "") });
       setCriando(true);
     } catch (e: any) { setErro(e.message || "Não foi possível preparar o novo contrato"); }
   }
 
   async function abrirEditarContrato(contrato: Contrato) {
-    if (contrato.status === "concluida") { setErro("Contrato assinado é imutável e não pode ser editado"); return; }
     setErro("");
     try {
       const response = await requisicao(`/api/contratos/clientes?workspaceId=${encodeURIComponent(workspaceId)}`);
       const data = await response.json();
       setClientes(data.clientes || []);
       setConexoes(data.conexoes || []);
+      const empresaResponse = await requisicao(`/api/contratos/empresa?workspaceId=${encodeURIComponent(workspaceId)}`);
+      const empresaData = await empresaResponse.json();
+      const reps: Representante[] = empresaData.representantes || [];
+      if (!reps.length) throw new Error("Cadastre a empresa e ao menos um representante antes de criar contratos");
+      setRepresentantes(reps);
       setEditando(contrato);
       setFormContrato({
         ...FORM_INICIAL,
+        representante_id: String(reps.find(r => r.padrao)?.id || reps[0]?.id || ""),
         origem: contrato.origem === "crm" ? "crm" : "avulso",
         proposta_id: contrato.proposta_id ? String(contrato.proposta_id) : "",
         nome: contrato.nome_signatario || "", cpf: "", email: contrato.email_signatario || "",
@@ -180,17 +195,39 @@ export default function ContratosPage() {
     try {
       const response = await requisicao(`/api/contratos/${contrato.id}/reenviar`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId, expira_horas: 48 }),
+        body: JSON.stringify({ workspaceId, expira_horas: 48, modo_assinatura: contrato.modo_assinatura }),
       });
       const data = await response.json();
       await carregar(paginacao.pagina, true);
       const avisos: string[] = [];
-      if (!data.enviado) avisos.push(`WhatsApp: ${data.erro_envio || "não enviado"}`);
-      if (!data.email_enviado) avisos.push(`E-mail: ${data.erro_email || "não enviado"}`);
+      const entregaAtual = data.entrega || data.entregas?.[0];
+      if (entregaAtual) {
+        if (!entregaAtual.whatsapp_enviado) avisos.push(`WhatsApp: ${entregaAtual.erro_whatsapp || "não enviado"}`);
+        if (!entregaAtual.email_enviado) avisos.push(`E-mail: ${entregaAtual.erro_email || "não enviado"}`);
+      } else {
+        if (!data.enviado) avisos.push(`WhatsApp: ${data.erro_envio || "não enviado"}`);
+        if (!data.email_enviado) avisos.push(`E-mail: ${data.erro_email || "não enviado"}`);
+      }
       if (avisos.length) alert(`Reenvio processado, mas houve falha em um canal:\n\n${avisos.join("\n")}`);
       else alert(contrato.status === "concluida" ? "Contrato assinado reenviado por WhatsApp e e-mail!" : "Contrato e novo link reenviados por WhatsApp e e-mail!");
     } catch (e: any) { setErro(e.message || "Não foi possível reenviar o contrato"); }
     finally { setReenviando(""); }
+  }
+  async function excluirContrato(contrato: Contrato) {
+    const aviso = contrato.status === "concluida"
+      ? "Este contrato assinado sairá do painel. A evidência será preservada internamente para segurança jurídica. Deseja excluir?"
+      : "Este contrato sairá do painel e o link de assinatura será invalidado. Deseja excluir?";
+    if (!window.confirm(aviso)) return;
+    setExcluindo(contrato.id); setErro("");
+    try {
+      await requisicao(`/api/contratos/${contrato.id}`, {
+        method: "DELETE", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId }),
+      });
+      setSelecionado(null);
+      await carregar(1, true);
+    } catch (e: any) { setErro(e.message || "Não foi possível excluir o contrato"); }
+    finally { setExcluindo(""); }
   }
   function escolherCliente(propostaId: string) {
     const cliente = clientes.find(item => String(item.id) === propostaId);
@@ -211,8 +248,8 @@ export default function ContratosPage() {
   }
 
   async function criarContrato() {
-    if (!formContrato.nome.trim() || !formContrato.telefone.replace(/\D/g, "") || !formContrato.canal_id) {
-      setErro("Informe nome, telefone e canal de envio"); return;
+    if (!formContrato.nome.trim() || !formContrato.telefone.replace(/\D/g, "") || !formContrato.canal_id || !formContrato.representante_id) {
+      setErro("Informe nome, telefone, canal e representante da empresa"); return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formContrato.email.trim())) {
       setErro("Informe um e-mail válido para o envio do contrato"); return;
@@ -228,18 +265,25 @@ export default function ContratosPage() {
           canal_id: Number(formContrato.canal_id), numero: formContrato.telefone, nome_signatario: formContrato.nome,
           cpf: formContrato.cpf, email_signatario: formContrato.email, titulo: formContrato.titulo,
           conteudo: formContrato.conteudo, pdf_base64: formContrato.pdf_base64, mensagem: formContrato.mensagem,
-          expira_horas: formContrato.expira_horas, exigir_localizacao: formContrato.exigir_localizacao }),
+          expira_horas: formContrato.expira_horas, exigir_localizacao: formContrato.exigir_localizacao,
+          representante_id: formContrato.representante_id, modo_assinatura: editando?.modo_assinatura || "envelope_v1" }),
       });
       const data = await response.json();
       const eraEdicao = Boolean(editando);
       setCriando(false); setEditando(null); await carregar(1, true);
       const avisos: string[] = [];
-      if (!data.enviado) avisos.push(`WhatsApp: ${data.erro_envio || "não enviado"}`);
-      if (!data.email_enviado) avisos.push(`E-mail: ${data.erro_email || "não enviado"}`);
-      if (avisos.length && data.link) {
-        await navigator.clipboard?.writeText(data.link).catch(() => {});
-        alert(`Contrato criado, mas houve falha em um canal:\n\n${avisos.join("\n")}\n\nO link foi copiado:\n${data.link}`);
-      } else alert(eraEdicao ? "Nova versão criada e enviada; o link anterior foi revogado!" : "Contrato criado e enviado por WhatsApp e e-mail!");
+      const entregaAtual = data.entrega || data.entregas?.[0];
+      if (entregaAtual) {
+        if (!entregaAtual.whatsapp_enviado) avisos.push(`WhatsApp: ${entregaAtual.erro_whatsapp || "não enviado"}`);
+        if (!entregaAtual.email_enviado) avisos.push(`E-mail: ${entregaAtual.erro_email || "não enviado"}`);
+      } else {
+        if (!data.enviado) avisos.push(`WhatsApp: ${data.erro_envio || "não enviado"}`);
+        if (!data.email_enviado) avisos.push(`E-mail: ${data.erro_email || "não enviado"}`);
+      }
+      if (avisos.length) {
+        if (data.link) await navigator.clipboard?.writeText(data.link).catch(() => {});
+        alert(`Contrato criado, mas houve falha em um canal:\n\n${avisos.join("\n")}${data.link ? `\n\nO link foi copiado:\n${data.link}` : ""}`);
+      } else alert(eraEdicao ? "Nova versão criada e enviada; o link anterior foi revogado!" : "Contrato enviado primeiro ao representante da empresa. O cliente receberá automaticamente após essa assinatura!");
     } catch (e: any) { setErro(e.message || "Não foi possível criar o contrato"); }
     finally { setSalvando(false); }
   }
@@ -278,6 +322,7 @@ export default function ContratosPage() {
           <p>Acompanhe cada documento, assinatura eletrônica e evidência do seu workspace.</p>
         </div>
         <div className={styles.headerActions}>
+          <button className={styles.refreshButton} onClick={() => router.push("/crm/contratos/configuracoes")}>⚙ Empresa e representantes</button>
           <button className={styles.newButton} onClick={abrirNovoContrato}>＋ Novo contrato</button>
           <button className={styles.refreshButton} onClick={() => carregar(paginacao.pagina, true)} disabled={atualizando}>
             <span className={atualizando ? styles.spin : ""}>↻</span> {atualizando ? "Atualizando" : "Atualizar"}
@@ -319,11 +364,11 @@ export default function ContratosPage() {
                 const estado = STATUS[contrato.status] || { label: contrato.status, className: styles.statusExpired };
                 return <tr key={contrato.id}>
                   <td><div className={styles.person}><span>{contrato.nome_signatario?.slice(0,1).toUpperCase() || "?"}</span><div><b>{contrato.nome_signatario}</b><small>{contrato.contrato_nome} · {contrato.origem === "crm" ? `CRM #${contrato.proposta_id}` : contrato.origem === "avulso" ? "Avulso" : "Fluxo da IA"}</small><em>{contrato.numero}{contrato.cpf_ultimos4 ? ` · CPF final ${contrato.cpf_ultimos4}` : ""}</em></div></div></td>
-                  <td><span className={`${styles.status} ${estado.className}`}>{estado.label}</span></td>
+                  <td><span className={`${styles.status} ${estado.className}`}>{estado.label}</span>{contrato.signatarios?.length ? <div className={styles.signerFlow}>{contrato.signatarios.map(s => <small key={s.papel} className={s.status === "concluida" ? styles.signerDone : styles.signerWaiting}>{s.papel === "empresa" ? "Empresa" : "Cliente"}: {s.status === "concluida" ? "assinado" : s.status === "pendente" ? "pendente" : "aguardando"}</small>)}</div> : null}</td>
                   <td><b className={styles.date}>{dataHora(contrato.created_at)}</b><small className={styles.subdate}>Canal {contrato.canal_id}</small></td>
                   <td><b className={styles.date}>{dataHora(contrato.assinatura_em)}</b><small className={styles.subdate}>{contrato.status === "concluida" ? "OTP confirmado" : `Expira ${dataHora(contrato.expira_em)}`}</small></td>
                   <td><span className={styles.evidence}>{contrato.biometria_status === "selfie_evidencia" ? "Selfie evidência" : "Aguardando"}</span></td>
-                  <td><div className={styles.actions}><button onClick={() => setSelecionado(contrato)}>Detalhes</button>{contrato.status !== "concluida" && <button onClick={() => abrirEditarContrato(contrato)}>Editar</button>}<button onClick={() => reenviarContrato(contrato)} disabled={reenviando === contrato.id}>{reenviando === contrato.id ? "Reenviando…" : "Reenviar"}</button>{contrato.status === "concluida" && <button className={styles.download} onClick={() => baixar(contrato)} disabled={baixando === contrato.id}>{baixando === contrato.id ? "Baixando…" : "Baixar PDF"}</button>}</div></td>
+                  <td><div className={styles.actions}><button onClick={() => setSelecionado(contrato)}>Detalhes</button><button onClick={() => abrirEditarContrato(contrato)}>Editar</button><button onClick={() => reenviarContrato(contrato)} disabled={reenviando === contrato.id}>{reenviando === contrato.id ? "Reenviando…" : "Reenviar"}</button><button className={styles.deleteButton} onClick={() => excluirContrato(contrato)} disabled={excluindo === contrato.id}>{excluindo === contrato.id ? "Excluindo…" : "Excluir"}</button>{contrato.status === "concluida" && <button className={styles.download} onClick={() => baixar(contrato)} disabled={baixando === contrato.id}>{baixando === contrato.id ? "Baixando…" : "Baixar PDF"}</button>}</div></td>
                 </tr>;
               })}</tbody>
             </table>
@@ -343,6 +388,7 @@ export default function ContratosPage() {
             <button className={formContrato.origem === "avulso" ? styles.sourceActive : ""} onClick={() => setFormContrato({ ...FORM_INICIAL, origem: "avulso", canal_id: formContrato.canal_id })}>Contrato avulso</button>
           </div>
           {erro && <div className={styles.alert}><span>!</span>{erro}<button onClick={() => setErro("")}>×</button></div>}<div className={styles.formGrid}>
+            <label className={styles.full}>Quem assina pela empresa<select value={formContrato.representante_id} onChange={e => setFormContrato({ ...formContrato, representante_id: e.target.value })}><option value="">Selecione o representante…</option>{representantes.map(r => <option key={r.id} value={r.id}>{r.nome} · {r.cargo}{r.padrao ? " · padrão" : ""}</option>)}</select><small>Este representante assina primeiro. Depois o cliente recebe o contrato já assinado pela empresa.</small></label>
             {formContrato.origem === "crm" && <label className={styles.full}>Cliente do CRM<select value={formContrato.proposta_id} onChange={e => escolherCliente(e.target.value)}><option value="">Selecione uma venda/cliente…</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nome} · {c.cpf || c.telefone1 || c.email || `#${c.id}`}</option>)}</select></label>}
             <label>Nome completo<input value={formContrato.nome} onChange={e => setFormContrato({ ...formContrato, nome: e.target.value })}/></label>
             <label>CPF<input value={formContrato.cpf} onChange={e => setFormContrato({ ...formContrato, cpf: e.target.value })}/></label>
@@ -359,7 +405,7 @@ export default function ContratosPage() {
           <footer><button disabled={salvando} onClick={() => { setCriando(false); setEditando(null); }}>Cancelar</button><button className={styles.newButton} disabled={salvando} onClick={criarContrato}>{salvando ? (editando ? "Criando versão…" : "Criando…") : (editando ? "Salvar nova versão e reenviar" : "Criar e enviar para assinatura")}</button></footer>
         </section>
       </div>}
-      {selecionado && <div className={styles.modalBackdrop} onMouseDown={e => { if (e.target === e.currentTarget) setSelecionado(null); }}><section className={styles.modal} role="dialog" aria-modal="true"><header><div><span>TRILHA DE AUDITORIA</span><h2>{selecionado.nome_signatario}</h2><p>{selecionado.contrato_nome}</p></div><button onClick={() => setSelecionado(null)}>×</button></header><div className={styles.auditGrid}><Audit label="Situação" value={(STATUS[selecionado.status] || { label: selecionado.status }).label}/><Audit label="Identificador" value={selecionado.id}/><Audit label="Origem" value={selecionado.origem === "crm" ? `Cliente do CRM #${selecionado.proposta_id}` : selecionado.origem === "avulso" ? "Contrato avulso" : "Fluxo da IA"}/><Audit label="Telefone" value={selecionado.numero}/><Audit label="CPF" value={selecionado.cpf_ultimos4 ? `Final ${selecionado.cpf_ultimos4}` : "Não informado"}/><Audit label="Criado em" value={dataHora(selecionado.created_at)}/><Audit label="Assinado em" value={dataHora(selecionado.assinatura_em)}/><Audit label="OTP" value={selecionado.otp_confirmado_em ? `Confirmado em ${dataHora(selecionado.otp_confirmado_em)}` : "Ainda não confirmado"}/><Audit label="Identidade" value={selecionado.biometria_status === "selfie_evidencia" ? "Selfie preservada como evidência" : "Não verificada"}/><Audit label="IP da assinatura" value={selecionado.ip_assinatura || "Não disponível"}/><Audit label="Consentimento" value={selecionado.consentimento_versao || "—"}/><Audit label="Hash do original" value={curto(selecionado.contrato_hash_original, 28)} mono/><Audit label="Hash do assinado" value={curto(selecionado.contrato_hash_assinado, 28)} mono/><Audit label="HMAC da auditoria" value={curto(selecionado.auditoria_hmac, 28)} mono/></div><div className={styles.modalNote}>A selfie é evidência de identidade e não é apresentada como biometria facial verificada. O PDF assinado contém a assinatura legível e o certificado completo.</div><footer><button onClick={() => setSelecionado(null)}>Fechar</button>{selecionado.status === "concluida" && <button className={styles.download} onClick={() => baixar(selecionado)} disabled={baixando === selecionado.id}>{baixando === selecionado.id ? "Baixando…" : "Baixar contrato assinado"}</button>}</footer></section></div>}
+      {selecionado && <div className={styles.modalBackdrop} onMouseDown={e => { if (e.target === e.currentTarget) setSelecionado(null); }}><section className={styles.modal} role="dialog" aria-modal="true"><header><div><span>TRILHA DE AUDITORIA</span><h2>{selecionado.nome_signatario}</h2><p>{selecionado.contrato_nome}</p></div><button onClick={() => setSelecionado(null)}>×</button></header>{selecionado.signatarios?.length ? <div className={styles.modalSigners}>{selecionado.signatarios.map(s => <div key={s.papel}><span>{s.ordem}</span><b>{s.papel === "empresa" ? "Representante da empresa" : "Cliente"}<small>{s.nome}</small></b><em className={s.status === "concluida" ? styles.signerDone : styles.signerWaiting}>{s.status === "concluida" ? `Assinado em ${dataHora(s.assinatura_em)}` : s.status === "pendente" ? "Aguardando assinatura" : "Aguardando participante anterior"}</em></div>)}</div> : null}<div className={styles.auditGrid}><Audit label="Situação" value={(STATUS[selecionado.status] || { label: selecionado.status }).label}/><Audit label="Identificador" value={selecionado.id}/><Audit label="Origem" value={selecionado.origem === "crm" ? `Cliente do CRM #${selecionado.proposta_id}` : selecionado.origem === "avulso" ? "Contrato avulso" : "Fluxo da IA"}/><Audit label="Telefone" value={selecionado.numero}/><Audit label="CPF" value={selecionado.cpf_ultimos4 ? `Final ${selecionado.cpf_ultimos4}` : "Não informado"}/><Audit label="Criado em" value={dataHora(selecionado.created_at)}/><Audit label="Assinado em" value={dataHora(selecionado.assinatura_em)}/><Audit label="OTP" value={selecionado.otp_confirmado_em ? `Confirmado em ${dataHora(selecionado.otp_confirmado_em)}` : "Ainda não confirmado"}/><Audit label="Identidade" value={selecionado.biometria_status === "selfie_evidencia" ? "Selfie preservada como evidência" : "Não verificada"}/><Audit label="IP da assinatura" value={selecionado.ip_assinatura || "Não disponível"}/><Audit label="Consentimento" value={selecionado.consentimento_versao || "—"}/><Audit label="Hash do original" value={curto(selecionado.contrato_hash_original, 28)} mono/><Audit label="Hash do assinado" value={curto(selecionado.contrato_hash_assinado, 28)} mono/><Audit label="HMAC da auditoria" value={curto(selecionado.auditoria_hmac, 28)} mono/></div><div className={styles.modalNote}>A selfie é evidência de identidade e não é apresentada como biometria facial verificada. O PDF assinado contém a assinatura legível e o certificado completo.</div><footer><button onClick={() => setSelecionado(null)}>Fechar</button>{selecionado.status === "concluida" && <button className={styles.download} onClick={() => baixar(selecionado)} disabled={baixando === selecionado.id}>{baixando === selecionado.id ? "Baixando…" : "Baixar contrato assinado"}</button>}</footer></section></div>}
     </main>
   );
 }

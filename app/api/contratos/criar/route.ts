@@ -23,9 +23,13 @@ export async function POST(request: NextRequest) {
       conteudo: String(body.conteudo || ""), pdf_base64: pdfBase64,
       mensagem: String(body.mensagem || ""), expira_horas: Number(body.expira_horas || 48),
       exigir_localizacao: body.exigir_localizacao === true, proposta_id: propostaId,
+      representante_id: String(body.representante_id || ""),
       criado_por: acesso.email,
     };
-    const response = await fetch(`${BACKEND}/assinaturas-wolf/admin/criar`, {
+    if (!payload.representante_id) {
+      return NextResponse.json({ success: false, error: "Escolha o representante que assinará pela empresa" }, { status: 400 });
+    }
+    const response = await fetch(`${BACKEND}/assinaturas-wolf/envelopes/admin/criar`, {
       method: "POST", cache: "no-store",
       headers: { "Content-Type": "application/json", "X-Wolf-Signature-Proxy": process.env.WOLF_SIGNATURE_PROXY_SECRET || "" },
       body: JSON.stringify(payload),

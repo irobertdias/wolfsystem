@@ -15,10 +15,15 @@ export async function GET(
     return NextResponse.json({ success: false, error: "Link inválido" }, { status: 400 });
   }
   try {
-    const response = await fetch(
-      `${BACKEND}/assinaturas-wolf/${encodeURIComponent(token)}/arquivo`,
+    let response = await fetch(
+      `${BACKEND}/assinaturas-wolf/envelopes/${encodeURIComponent(token)}/arquivo`,
       { cache: "no-store", headers: headersProxyAssinatura(request) }
     );
+    if (response.status === 404) {
+      response = await fetch(`${BACKEND}/assinaturas-wolf/${encodeURIComponent(token)}/arquivo`, {
+        cache: "no-store", headers: headersProxyAssinatura(request),
+      });
+    }
     if (!response.ok) {
       const data = await response.json().catch(() => ({ error: "Arquivo indisponível" }));
       return NextResponse.json(data, { status: response.status });

@@ -22,9 +22,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       email_signatario: String(body.email_signatario || ""), titulo: String(body.titulo || "Contrato"),
       conteudo: String(body.conteudo || ""), pdf_base64: pdfBase64, mensagem: String(body.mensagem || ""),
       expira_horas: Number(body.expira_horas || 48), exigir_localizacao: body.exigir_localizacao === true,
-      proposta_id: propostaId, criado_por: acesso.email,
+      proposta_id: propostaId, representante_id: String(body.representante_id || ""), criado_por: acesso.email,
     };
-    const response = await fetch(`${BACKEND}/assinaturas-wolf/admin/${encodeURIComponent(id)}/editar`, {
+    const rota = body.modo_assinatura === "envelope_v1"
+      ? `/assinaturas-wolf/envelopes/admin/${encodeURIComponent(id)}/editar`
+      : `/assinaturas-wolf/admin/${encodeURIComponent(id)}/editar`;
+    const response = await fetch(`${BACKEND}${rota}`, {
       method: "POST", cache: "no-store",
       headers: { "Content-Type": "application/json", "X-Wolf-Signature-Proxy": process.env.WOLF_SIGNATURE_PROXY_SECRET || "" },
       body: JSON.stringify(payload),

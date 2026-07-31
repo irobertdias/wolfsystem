@@ -20,8 +20,8 @@ export async function POST(
   }
   try {
     const body = await request.text();
-    const response = await fetch(
-      `${BACKEND}/assinaturas-wolf/${encodeURIComponent(token)}/concluir`,
+    let response = await fetch(
+      `${BACKEND}/assinaturas-wolf/envelopes/${encodeURIComponent(token)}/concluir`,
       {
         method: "POST",
         cache: "no-store",
@@ -29,6 +29,11 @@ export async function POST(
         body,
       }
     );
+    if (response.status === 404) {
+      response = await fetch(`${BACKEND}/assinaturas-wolf/${encodeURIComponent(token)}/concluir`, {
+        method: "POST", cache: "no-store", headers: headersProxyAssinatura(request, true), body,
+      });
+    }
     const data = await response.json().catch(() => ({ success: false, error: "Resposta inválida" }));
     return NextResponse.json(data, {
       status: response.status,

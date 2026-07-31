@@ -16,6 +16,8 @@ type AssinaturaInfo = {
   biometria_status: string;
   consentimento_versao: string;
   consentimento_texto: string;
+  papel?: "empresa" | "cliente";
+  signatarios?: Array<{ papel: "empresa" | "cliente"; ordem: number; nome: string; status: string; assinatura_em?: string | null }>;
 };
 
 const CONSENTIMENTO =
@@ -334,14 +336,21 @@ export default function AssinarWolfPage() {
         <div style={styles.successIcon}>✓</div>
         <h1 style={styles.title}>Contrato assinado com sucesso</h1>
         <p style={styles.muted}>
-          O PDF assinado e o certificado de evidências foram enviados para o seu WhatsApp.
-          O atendimento continuará automaticamente.
+          {info?.papel === "empresa" ? "Sua assinatura foi registrada. Agora o cliente receberá automaticamente o contrato já assinado pela empresa." : "As duas assinaturas foram concluídas. O PDF final e as evidências serão enviados por WhatsApp e e-mail aos participantes."}
         </p>
         <div style={styles.notice}>
           Guarde o PDF recebido. Ele contém sua assinatura legível e a trilha técnica da assinatura.
         </div>
       </main>
     );
+  }
+
+  if (info?.status === "concluida") {
+    return <main style={styles.center}>
+      <div style={styles.successIcon}>✓</div>
+      <h1 style={styles.title}>Esta etapa já foi assinada</h1>
+      <p style={styles.muted}>{info.papel === "empresa" ? "A assinatura da empresa foi concluída. O contrato já seguiu para o cliente." : "Sua assinatura foi concluída e o contrato final está sendo entregue aos participantes."}</p>
+    </main>;
   }
 
   return (
@@ -367,6 +376,14 @@ export default function AssinarWolfPage() {
         </div>
       </section>
 
+      {info?.signatarios?.length ? <section style={styles.progressCard}>
+        <div style={styles.progressTitle}>Andamento das assinaturas</div>
+        {info.signatarios.map(participante => <div key={participante.papel} style={styles.progressRow}>
+          <span style={participante.status === "concluida" ? styles.progressDone : styles.progressPending}>{participante.status === "concluida" ? "✓" : participante.ordem}</span>
+          <div><strong>{participante.papel === "empresa" ? "Representante da empresa" : "Cliente"}</strong><small style={styles.progressName}>{participante.nome}</small></div>
+          <b style={participante.status === "concluida" ? styles.progressStatusDone : styles.progressStatusPending}>{participante.status === "concluida" ? "Assinado" : participante.status === "pendente" ? "Sua vez de assinar" : "Aguardando"}</b>
+        </div>)}
+      </section> : null}
       <section style={styles.card}>
         <div style={styles.cardHeader}>
           <div><span style={styles.number}>1</span><strong>Leia o documento completo</strong></div>
@@ -511,7 +528,14 @@ const styles: Record<string, CSSProperties> = {
   title: { maxWidth: "100%", overflowWrap: "anywhere", wordBreak: "break-word", fontSize: 25, lineHeight: 1.15, margin: "7px 0 8px", color: "#101828" },
   muted: { fontSize: 13, lineHeight: 1.55, color: "#475467", margin: "8px 0" },
   expiry: { maxWidth: "100%", overflowWrap: "anywhere", fontSize: 11, lineHeight: 1.5, color: "#475467", textAlign: "left", flex: "0 1 auto" },
-  card: { width: "100%", maxWidth: 980, minWidth: 0, boxSizing: "border-box", overflow: "hidden", margin: "0 auto 16px", background: "#fff", border: "1px solid #d0d5dd", borderRadius: 16, padding: 18, boxShadow: "0 5px 18px rgba(16,24,40,.04)" },
+  progressCard: { width: "100%", maxWidth: 980, boxSizing: "border-box", margin: "0 auto 16px", background: "#fff", border: "1px solid #d0d5dd", borderRadius: 16, padding: 18 },
+  progressTitle: { fontSize: 12, fontWeight: 900, color: "#344054", marginBottom: 12, textTransform: "uppercase", letterSpacing: .7 },
+  progressRow: { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #eef2f6" },
+  progressDone: { display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: 99, background: "#12b76a", color: "white", fontWeight: 900 },
+  progressPending: { display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: 99, background: "#eaf0fb", color: "#155eef", fontWeight: 900 },
+  progressName: { display: "block", color: "#667085", marginTop: 2 },
+  progressStatusDone: { marginLeft: "auto", color: "#027a48", fontSize: 12 },
+  progressStatusPending: { marginLeft: "auto", color: "#b54708", fontSize: 12 },  card: { width: "100%", maxWidth: 980, minWidth: 0, boxSizing: "border-box", overflow: "hidden", margin: "0 auto 16px", background: "#fff", border: "1px solid #d0d5dd", borderRadius: 16, padding: 18, boxShadow: "0 5px 18px rgba(16,24,40,.04)" },
   cardHeader: { display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10 },
   number: { display: "inline-grid", placeItems: "center", width: 27, height: 27, borderRadius: 9, background: "#155eef", color: "#fff", fontSize: 12, marginRight: 9 },
   link: { color: "#155eef", fontSize: 12, fontWeight: 700, textDecoration: "none" },
