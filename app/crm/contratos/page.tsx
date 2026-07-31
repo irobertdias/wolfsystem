@@ -173,6 +173,9 @@ export default function ContratosPage() {
     if (!formContrato.nome.trim() || !formContrato.telefone.replace(/\D/g, "") || !formContrato.canal_id) {
       setErro("Informe nome, telefone e canal de envio"); return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formContrato.email.trim())) {
+      setErro("Informe um e-mail válido para o envio do contrato"); return;
+    }
     if (formContrato.origem === "crm" && !formContrato.proposta_id) { setErro("Escolha um cliente do CRM"); return; }
     if (!formContrato.pdf_base64 && formContrato.conteudo.trim().length < 30) { setErro("Escreva o contrato ou anexe um PDF pronto"); return; }
     setSalvando(true); setErro("");
@@ -187,10 +190,13 @@ export default function ContratosPage() {
       });
       const data = await response.json();
       setCriando(false); await carregar(1, true);
-      if (!data.enviado && data.link) {
+      const avisos: string[] = [];
+      if (!data.enviado) avisos.push(`WhatsApp: ${data.erro_envio || "não enviado"}`);
+      if (!data.email_enviado) avisos.push(`E-mail: ${data.erro_email || "não enviado"}`);
+      if (avisos.length && data.link) {
         await navigator.clipboard?.writeText(data.link).catch(() => {});
-        alert(`Contrato criado. O canal não conseguiu enviar automaticamente; o link foi copiado:\n${data.link}`);
-      } else alert("Contrato criado e enviado para assinatura!");
+        alert(`Contrato criado, mas houve falha em um canal:\n\n${avisos.join("\n")}\n\nO link foi copiado:\n${data.link}`);
+      } else alert("Contrato criado e enviado por WhatsApp e e-mail!");
     } catch (e: any) { setErro(e.message || "Não foi possível criar o contrato"); }
     finally { setSalvando(false); }
   }

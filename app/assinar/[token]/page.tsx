@@ -35,6 +35,7 @@ export default function AssinarWolfPage() {
   const [aceiteSelfie, setAceiteSelfie] = useState(false);
   const [selfie, setSelfie] = useState("");
   const [cameraAberta, setCameraAberta] = useState(false);
+  const [cameraPronta, setCameraPronta] = useState(false);
   const [assinou, setAssinou] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [concluida, setConcluida] = useState(false);
@@ -141,9 +142,50 @@ export default function AssinarWolfPage() {
     }
   }
 
+  useEffect(() => {
+    if (!cameraAberta) return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+    let ativo = true;
+    setCameraPronta(false);
+    video.srcObject = stream;
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("webkit-playsinline", "true");
+    const marcarPronta = () => {
+      if (ativo && video.videoWidth > 0 && video.videoHeight > 0) setCameraPronta(true);
+    };
+    video.addEventListener("loadedmetadata", marcarPronta);
+    video.addEventListener("canplay", marcarPronta);
+    video.addEventListener("playing", marcarPronta);
+    void video.play().then(marcarPronta).catch(() => {
+      if (ativo) setErro("O navegador não iniciou a câmera. Use Tirar foto com o celular abaixo.");
+    });
+    const timeout = window.setTimeout(() => {
+      if (ativo && video.videoWidth <= 0) setErro("A câmera demorou para carregar. Use Tirar foto com o celular ou tente novamente.");
+    }, 6000);
+    return () => {
+      ativo = false;
+      window.clearTimeout(timeout);
+      video.removeEventListener("loadedmetadata", marcarPronta);
+      video.removeEventListener("canplay", marcarPronta);
+      video.removeEventListener("playing", marcarPronta);
+      video.srcObject = null;
+    };
+  }, [cameraAberta]);
+
+  function fecharCamera() {
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    setCameraPronta(false);
+    setCameraAberta(false);
+  }
+
   async function abrirCamera() {
     setErro("");
+    setCameraPronta(false);
     try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("camera_indisponivel");
       streamRef.current?.getTracks().forEach(track => track.stop());
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 720 } },
@@ -151,15 +193,37 @@ export default function AssinarWolfPage() {
       });
       streamRef.current = stream;
       setCameraAberta(true);
-      requestAnimationFrame(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          void videoRef.current.play();
-        }
-      });
     } catch {
-      setErro("Não foi possível acessar a câmera. Libere a permissão e tente novamente.");
+      setErro("Não foi possível abrir a câmera ao vivo. Use Tirar foto com o celular abaixo.");
     }
+  }
+
+  function carregarSelfieArquivo(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setErro("Selecione uma foto válida."); return; }
+    const reader = new FileReader();
+    reader.onerror = () => setErro("Não foi possível ler a foto.");
+    reader.onload = () => {
+      const imagem = new Image();
+      imagem.onerror = () => setErro("A foto selecionada é inválida.");
+      imagem.onload = () => {
+        const canvas = canvasSelfieRef.current;
+        if (!canvas) return;
+        const lado = Math.min(imagem.naturalWidth, imagem.naturalHeight);
+        const sx = (imagem.naturalWidth - lado) / 2;
+        const sy = (imagem.naturalHeight - lado) / 2;
+        canvas.width = 720;
+        canvas.height = 720;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(imagem, sx, sy, lado, lado, 0, 0, 720, 720);
+        setSelfie(canvas.toDataURL("image/jpeg", 0.82));
+        fecharCamera();
+        setErro("");
+      };
+      imagem.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
   }
 
   function capturarSelfie() {
@@ -178,9 +242,7 @@ export default function AssinarWolfPage() {
     if (!ctx) return;
     ctx.drawImage(video, sx, sy, lado, lado, 0, 0, 720, 720);
     setSelfie(canvas.toDataURL("image/jpeg", 0.82));
-    streamRef.current?.getTracks().forEach(track => track.stop());
-    streamRef.current = null;
-    setCameraAberta(false);
+    fecharCamera();
   }
 
   async function obterLocalizacao() {
@@ -285,7 +347,7 @@ export default function AssinarWolfPage() {
       </header>
 
       <section style={styles.hero}>
-        <div>
+        <div style={styles.heroContent}>
           <span style={styles.step}>DOCUMENTO PARA ASSINATURA</span>
           <h1 style={styles.title}>{info?.documento || "Contrato"}</h1>
           <p style={styles.muted}>
@@ -309,8 +371,9 @@ export default function AssinarWolfPage() {
             Abrir em outra aba
           </a>
         </div>
+        <p style={styles.pdfHint}>No celular, se o documento aparecer cortado, toque em <strong>Abrir em outra aba</strong> para ler todas as páginas.</p>
         <iframe
-          src={`/api/assinatura-wolf/${encodeURIComponent(token)}/arquivo`}
+          src={`/api/assinatura-wolf/${encodeURIComponent(token)}/arquivo#view=FitH`}
           title="Contrato para assinatura"
           style={styles.pdf}
         />
@@ -350,9 +413,21 @@ export default function AssinarWolfPage() {
         )}
         {cameraAberta && (
           <div style={styles.cameraBox}>
-            <video ref={videoRef} playsInline muted style={styles.video}/>
-            <button type="button" onClick={capturarSelfie} style={styles.primaryButton}>Capturar selfie</button>
+            <div style={styles.videoWrap}>
+              <video ref={videoRef} autoPlay playsInline muted style={styles.video}/>
+              <span style={styles.cameraStatus}>{cameraPronta ? "Câmera pronta" : "Carregando câmera…"}</span>
+            </div>
+            <div style={styles.row}>
+              <button type="button" onClick={capturarSelfie} disabled={!cameraPronta} style={{ ...styles.primaryButton, opacity: cameraPronta ? 1 : 0.55 }}>Capturar selfie</button>
+              <button type="button" onClick={fecharCamera} style={styles.textButton}>Cancelar</button>
+            </div>
           </div>
+        )}
+        {!selfie && (
+          <label style={styles.captureLabel}>
+            Tirar foto com o celular
+            <input type="file" accept="image/*" capture="user" onChange={e => carregarSelfieArquivo(e.target.files?.[0])} style={styles.hiddenInput}/>
+          </label>
         )}
         {selfie && (
           <div style={styles.selfieBox}>
@@ -416,32 +491,38 @@ export default function AssinarWolfPage() {
 }
 
 const styles: Record<string, CSSProperties> = {
-  page: { minHeight: "100vh", background: "#f3f6fb", color: "#101828", padding: "24px 16px 50px", fontFamily: "Arial, sans-serif" },
+  page: { minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", boxSizing: "border-box", background: "#f3f6fb", color: "#101828", padding: "24px 16px 50px", fontFamily: "Arial, sans-serif" },
   center: { minHeight: "100vh", background: "#f3f6fb", color: "#101828", padding: 24, display: "grid", placeContent: "center", justifyItems: "center", textAlign: "center", fontFamily: "Arial, sans-serif" },
-  header: { maxWidth: 980, margin: "0 auto 22px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 },
+  header: { width: "100%", maxWidth: 980, boxSizing: "border-box", margin: "0 auto 22px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 },
   brand: { fontSize: 21, fontWeight: 900, letterSpacing: 1.5, color: "#155eef" },
   brandSub: { fontSize: 12, color: "#667085", marginTop: 2 },
   secure: { fontSize: 12, color: "#027a48", background: "#ecfdf3", border: "1px solid #abefc6", borderRadius: 999, padding: "7px 11px" },
-  hero: { maxWidth: 980, margin: "0 auto 18px", background: "linear-gradient(135deg,#ffffff,#eff4ff)", border: "1px solid #d0d5dd", borderRadius: 18, padding: 22, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, boxShadow: "0 10px 30px rgba(16,24,40,.06)" },
+  hero: { width: "100%", maxWidth: 980, boxSizing: "border-box", overflow: "hidden", margin: "0 auto 18px", background: "linear-gradient(135deg,#ffffff,#eff4ff)", border: "1px solid #d0d5dd", borderRadius: 18, padding: 22, display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 20, boxShadow: "0 10px 30px rgba(16,24,40,.06)" },
+  heroContent: { minWidth: 0, maxWidth: "100%", flex: "1 1 260px" },
   step: { fontSize: 10, fontWeight: 900, letterSpacing: 1, color: "#155eef" },
-  title: { fontSize: 25, lineHeight: 1.15, margin: "7px 0 8px", color: "#101828" },
+  title: { maxWidth: "100%", overflowWrap: "anywhere", wordBreak: "break-word", fontSize: 25, lineHeight: 1.15, margin: "7px 0 8px", color: "#101828" },
   muted: { fontSize: 13, lineHeight: 1.55, color: "#475467", margin: "8px 0" },
-  expiry: { fontSize: 11, lineHeight: 1.5, color: "#475467", textAlign: "right", flexShrink: 0 },
-  card: { maxWidth: 980, margin: "0 auto 16px", background: "#fff", border: "1px solid #d0d5dd", borderRadius: 16, padding: 18, boxShadow: "0 5px 18px rgba(16,24,40,.04)" },
-  cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10 },
+  expiry: { maxWidth: "100%", overflowWrap: "anywhere", fontSize: 11, lineHeight: 1.5, color: "#475467", textAlign: "left", flex: "0 1 auto" },
+  card: { width: "100%", maxWidth: 980, minWidth: 0, boxSizing: "border-box", overflow: "hidden", margin: "0 auto 16px", background: "#fff", border: "1px solid #d0d5dd", borderRadius: 16, padding: 18, boxShadow: "0 5px 18px rgba(16,24,40,.04)" },
+  cardHeader: { display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10 },
   number: { display: "inline-grid", placeItems: "center", width: 27, height: 27, borderRadius: 9, background: "#155eef", color: "#fff", fontSize: 12, marginRight: 9 },
   link: { color: "#155eef", fontSize: 12, fontWeight: 700, textDecoration: "none" },
-  pdf: { width: "100%", height: "min(70vh,680px)", border: "1px solid #d0d5dd", borderRadius: 10, background: "#f2f4f7" },
+  pdfHint: { margin: "0 0 10px", fontSize: 11, lineHeight: 1.45, color: "#475467", background: "#f8fafc", borderRadius: 8, padding: "8px 10px" },
+  pdf: { display: "block", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", height: "min(70vh,680px)", border: "1px solid #d0d5dd", borderRadius: 10, background: "#f2f4f7" },
   row: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 12 },
-  otp: { width: 170, padding: "13px 15px", border: "1px solid #98a2b3", borderRadius: 10, fontSize: 22, letterSpacing: 7, textAlign: "center", color: "#101828", background: "#fff" },
+  otp: { width: 170, maxWidth: "100%", boxSizing: "border-box", padding: "13px 15px", border: "1px solid #98a2b3", borderRadius: 10, fontSize: 22, letterSpacing: 7, textAlign: "center", color: "#101828", background: "#fff" },
   secondaryButton: { border: "1px solid #84adff", background: "#eff4ff", color: "#004eeb", borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer" },
   primaryButton: { border: 0, background: "#155eef", color: "#fff", borderRadius: 10, padding: "12px 18px", fontWeight: 800, cursor: "pointer" },
   cameraBox: { display: "grid", gap: 12, justifyItems: "center", marginTop: 12 },
-  video: { width: "min(100%,420px)", aspectRatio: "1", objectFit: "cover", borderRadius: 16, background: "#101828", transform: "scaleX(-1)" },
+  videoWrap: { position: "relative", width: "min(100%,420px)", maxWidth: "100%" },
+  video: { display: "block", width: "100%", maxWidth: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 16, background: "#101828", transform: "scaleX(-1)" },
+  cameraStatus: { position: "absolute", left: 10, bottom: 10, padding: "6px 9px", borderRadius: 999, background: "rgba(16,24,40,.78)", color: "#fff", fontSize: 11, fontWeight: 800 },
+  captureLabel: { display: "inline-flex", marginTop: 12, border: "1px solid #84adff", background: "#fff", color: "#004eeb", borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer" },
+  hiddenInput: { position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" },
   selfieBox: { display: "flex", gap: 16, alignItems: "center", marginTop: 12, flexWrap: "wrap" },
   selfie: { width: 150, height: 150, objectFit: "cover", borderRadius: 16, border: "2px solid #84adff", transform: "scaleX(-1)" },
   textButton: { border: 0, background: "transparent", color: "#155eef", fontWeight: 800, cursor: "pointer", padding: 6 },
-  signature: { width: "100%", height: 180, border: "1px dashed #667085", borderRadius: 12, background: "#fff", touchAction: "none", cursor: "crosshair" },
+  signature: { display: "block", width: "100%", maxWidth: "100%", boxSizing: "border-box", height: 180, border: "1px dashed #667085", borderRadius: 12, background: "#fff", touchAction: "none", cursor: "crosshair" },
   signatureLine: { maxWidth: 420, borderTop: "1px solid #344054", marginTop: 10, paddingTop: 6, textAlign: "center", fontSize: 12, color: "#475467" },
   check: { display: "flex", alignItems: "flex-start", gap: 10, padding: "11px 0", fontSize: 13, lineHeight: 1.45, color: "#344054", cursor: "pointer" },
   legal: { fontSize: 10, lineHeight: 1.5, color: "#667085", background: "#f9fafb", border: "1px solid #eaecf0", borderRadius: 9, padding: 10 },
