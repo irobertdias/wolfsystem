@@ -201,7 +201,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     gerar_documento:{titulo:"CONTRATO",nome_arquivo:"contrato_{{numero}}.pdf",modelo:"CONTRATANTE: {{nome}}\nCPF: {{cpf}}\n\nEscreva aqui as cláusulas do contrato.",rodape:"",legenda:"Segue o contrato para leitura e assinatura. Depois, envie o arquivo assinado por aqui.",incluir_area_assinatura:true,rotulo_assinatura:"Assinatura do cliente",nome_signatario:"{{nome}}",permitir_variaveis_vazias:false,variavel_arquivo:"contrato_arquivo",variavel_enviado:"contrato_enviado",mensagem_erro:"Não consegui gerar o contrato agora. Vou encaminhar para nossa equipe."},
     validar_assinatura:{pergunta:"Agora envie por aqui o contrato assinado em PDF ou foto legível.",nome_signatario:"{{nome}}",criterios:"",confianca_minima:0.8,modelo_ia:"gpt-4o-mini",variavel_resultado:"assinatura_confirmada",mensagem_aguardando:"Preciso que você anexe o contrato assinado em PDF ou foto legível para continuar.",mensagem_assinado:"Recebi o contrato e confirmei a assinatura. Vou dar continuidade ao seu atendimento.",mensagem_nao_assinado:"Não consegui confirmar a assinatura nesse arquivo. Confira a área de assinatura e envie novamente, por favor.",mensagem_erro:"Não consegui analisar a assinatura agora. Vou encaminhar para nossa equipe."},
     assinatura_wolf:{assinatura_bilateral:true,representante_id:"",nome_signatario:"{{nome}}",variavel_cpf:"cpf",variavel_email:"email",variavel_arquivo:"contrato_arquivo",titulo_documento:"Contrato de prestação de serviços",nome_documento:"contrato_{{cpf}}.pdf",url_publica:"https://wolfgyn.com.br",expira_horas:48,exigir_otp:true,exigir_selfie:true,exigir_localizacao:false,variavel_sessao:"assinatura_wolf_id",variavel_resultado:"assinatura_confirmada",mensagem_aguardando_empresa:"Seu contrato foi gerado e enviado primeiro ao representante da empresa. Assim que ele assinar, você receberá automaticamente o seu link por WhatsApp e e-mail.",mensagem_aguardando_cliente:"O contrato já foi assinado pela empresa e agora aguarda a sua assinatura no link enviado por WhatsApp e e-mail.",mensagem_link:"Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",mensagem_assinado:"As duas assinaturas foram confirmadas e o contrato final foi enviado por WhatsApp e e-mail. Vou continuar seu atendimento.",mensagem_erro:"Não consegui iniciar a assinatura agora. Vou encaminhar para nossa equipe."},
-    fluxo_ia:{extensoes_ia_ativas:false,ext_normalizadores_ativa:false,ext_crm_ativa:false,ext_retomada_ativa:false,ext_followups_ativa:false,ext_consulta_negativa_ativa:false,ext_fila_ativa:false,ext_multimidia_ativa:false,apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,captura_rg_ativa:false,midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
+    fluxo_ia:{extensoes_ia_ativas:false,ext_normalizadores_ativa:false,ext_crm_ativa:false,ext_retomada_ativa:false,ext_followups_ativa:false,ext_consulta_negativa_ativa:false,ext_fila_ativa:false,ext_multimidia_ativa:false,apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,arquivos_salvar_regras:[],midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     // 🆕 v20: Meta Pixel / Conversions API
@@ -1531,6 +1531,18 @@ function saida(obj) {
         u({reengajamento_lembretes:lembretesReengajamento.map((item,i)=>i===indice?{...item,...patch}:item)});
       const removerLembrete = (indice:number) =>
         u({reengajamento_lembretes:lembretesReengajamento.filter((_,i)=>i!==indice)});
+      type RegraArquivoPrivado = { id:string; nome:string; descricao:string; variavel:string; obrigatoria:boolean; multiplos:boolean };
+      const regrasArquivos: RegraArquivoPrivado[] = Array.isArray(d.arquivos_salvar_regras) ? d.arquivos_salvar_regras : [];
+      const salvarRegrasArquivos = (regras:RegraArquivoPrivado[]) => {
+        let variaveisAtualizadas=[...camposIA];
+        for(const regra of regras.filter(item=>item.obrigatoria && item.variavel)){
+          const validacao=`${regra.variavel}_validado`;
+          if(!variaveisAtualizadas.some(c=>c.nome===validacao)) variaveisAtualizadas.push({nome:validacao,label:`Arquivo obrigatório: ${regra.nome} (validação automática; não perguntar)`,tipo:"texto",obrigatoria:true});
+        }
+        u({arquivos_salvar_regras:regras,variaveis:variaveisAtualizadas});
+      };
+      const atualizarRegraArquivo=(indice:number,patch:Partial<RegraArquivoPrivado>)=>salvarRegrasArquivos(regrasArquivos.map((regra,i)=>i===indice?{...regra,...patch}:regra));
+      const slugArquivo=(valor:string)=>valor.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,60);
       return <>
         <div style={{background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:8,padding:10,marginBottom:10}}>
           <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>✨ Fluxo por IA com variáveis validadas</p>
@@ -1585,24 +1597,24 @@ function saida(obj) {
             <p style={{fontSize:9,color:"#115e59",margin:"7px 0 0"}}>Usa a mesma API Key e o mesmo modelo deste bloco. O conteúdo extraído vira apenas contexto interno da conversa.</p>
           </div>}
         </div>
-        <div style={{marginTop:10,background:d.captura_rg_ativa === true?"#eefbf5":"#f8fafc",border:d.captura_rg_ativa === true?"1px solid #86efac":"1px solid #cbd5e1",borderRadius:10,padding:10}}>
-          <label style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,cursor:d.midia_ia_extensao_ativa === true?"pointer":"not-allowed",opacity:d.midia_ia_extensao_ativa === true?1:.6}}>
-            <span>
-              <b style={{display:"block",color:"#14532d",fontSize:11}}>🪪 Guardar RG frente e verso no CRM</b>
-              <span style={{display:"block",color:"#64748b",fontSize:9,lineHeight:1.45,marginTop:3}}>Classifica cada lado, salva em armazenamento privado e somente confirma o RG depois que frente e verso estiverem preservados.</span>
-            </span>
-            <input type="checkbox" disabled={d.midia_ia_extensao_ativa !== true} checked={d.captura_rg_ativa === true} onChange={e=>{
-              const ativa=e.target.checked;
-              let variaveisAtualizadas=camposIA;
-              if(ativa && !camposIA.some(c=>c.nome==="rg_validado")){
-                variaveisAtualizadas=[...camposIA,{nome:"rg_validado",label:"Validação automática do RG frente e verso (não perguntar; aguardar os arquivos)",tipo:"texto",obrigatoria:true}];
-              }
-              u({captura_rg_ativa:ativa,variaveis:variaveisAtualizadas});
-            }}/>
-          </label>
-          {d.captura_rg_ativa === true && <p style={{fontSize:9,color:"#166534",margin:"7px 0 0"}}>Variáveis automáticas: rg_frente_arquivo, rg_verso_arquivo, rg_frente_validado, rg_verso_validado e rg_validado.</p>}
-        </div>
-        <div><label style={LS}>Limite de recusas antes de desistir</label><input type="number" min={0} max={20} value={d.limite_recusas ?? 3} onChange={e=>u({limite_recusas:Number(e.target.value)})} style={IS}/><p style={{fontSize:9,color:"#6b7280",margin:"4px 0 0"}}>0 = sem limite. Conecte a saída “Limite atingido” a Atualizar Venda (ex.: CANCELADA/DESISTÊNCIA) e depois a Finalizar.</p></div>
+        <div style={{marginTop:10,background:regrasArquivos.length?"#eefbf5":"#f8fafc",border:regrasArquivos.length?"1px solid #86efac":"1px solid #cbd5e1",borderRadius:10,padding:10,opacity:d.midia_ia_extensao_ativa === true?1:.6}}>
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10}}>
+            <span><b style={{display:"block",color:"#14532d",fontSize:11}}>🔐 Arquivos privados para salvar no CRM</b><span style={{display:"block",color:"#64748b",fontSize:9,lineHeight:1.45,marginTop:3}}>Cadastre qualquer documento que a IA deve reconhecer e preservar: contracheque, RG, contrato bancário, comprovante ou outro.</span></span>
+            <span style={{fontSize:8,fontWeight:900,color:"#166534",background:"#dcfce7",borderRadius:999,padding:"4px 7px",whiteSpace:"nowrap"}}>{regrasArquivos.length} REGRA(S)</span>
+          </div>
+          {regrasArquivos.map((regra,indice)=><div key={regra.id} style={{marginTop:9,background:"#fff",border:"1px solid #bbf7d0",borderRadius:9,padding:9}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:7}}><b style={{fontSize:10,color:"#166534"}}>Arquivo {indice+1}</b><button type="button" onClick={()=>salvarRegrasArquivos(regrasArquivos.filter((_,i)=>i!==indice))} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"4px 7px",fontSize:9,cursor:"pointer"}}>Remover</button></div>
+            <label style={LS}>Nome do documento</label><input value={regra.nome} onChange={e=>{const nome=e.target.value;atualizarRegraArquivo(indice,{nome,variavel:regra.variavel||`${slugArquivo(nome)}_arquivo`})}} placeholder="Ex.: Contracheque" style={IS}/>
+            <label style={{...LS,marginTop:7}}>Como a IA deve reconhecer</label><textarea value={regra.descricao} onChange={e=>atualizarRegraArquivo(indice,{descricao:e.target.value})} placeholder="Ex.: holerite ou demonstrativo mensal com vencimentos e descontos do servidor" style={{...IS,minHeight:58,resize:"vertical"}}/>
+            <label style={{...LS,marginTop:7}}>Variável do arquivo no CRM</label><input value={regra.variavel} onChange={e=>atualizarRegraArquivo(indice,{variavel:slugArquivo(e.target.value)})} placeholder="contracheque_arquivo" style={IS}/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginTop:8}}>
+              <label style={{display:"flex",gap:6,alignItems:"flex-start",fontSize:9,color:"#374151"}}><input type="checkbox" checked={regra.obrigatoria} onChange={e=>atualizarRegraArquivo(indice,{obrigatoria:e.target.checked})}/><span><b>Obrigatório</b><br/>A etapa aguarda o arquivo.</span></label>
+              <label style={{display:"flex",gap:6,alignItems:"flex-start",fontSize:9,color:"#374151"}}><input type="checkbox" checked={regra.multiplos} onChange={e=>atualizarRegraArquivo(indice,{multiplos:e.target.checked})}/><span><b>Vários arquivos</b><br/>Acumula até 10 anexos.</span></label>
+            </div>
+            {regra.variavel && <p style={{fontSize:8,color:"#166534",margin:"7px 0 0"}}>Arquivo: <code>{regra.variavel}</code> · Validação automática: <code>{regra.variavel}_validado</code></p>}
+          </div>)}
+          <button type="button" disabled={d.midia_ia_extensao_ativa !== true} onClick={()=>salvarRegrasArquivos([...regrasArquivos,{id:`arquivo_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,nome:"",descricao:"",variavel:"",obrigatoria:true,multiplos:false}])} style={{display:"block",width:"100%",marginTop:9,background:"#dcfce7",border:"1px dashed #22c55e",color:"#166534",borderRadius:7,padding:"9px 10px",fontSize:10,fontWeight:800,cursor:d.midia_ia_extensao_ativa === true?"pointer":"not-allowed"}}>+ Adicionar arquivo para salvar</button>
+        </div>        <div><label style={LS}>Limite de recusas antes de desistir</label><input type="number" min={0} max={20} value={d.limite_recusas ?? 3} onChange={e=>u({limite_recusas:Number(e.target.value)})} style={IS}/><p style={{fontSize:9,color:"#6b7280",margin:"4px 0 0"}}>0 = sem limite. Conecte a saída “Limite atingido” a Atualizar Venda (ex.: CANCELADA/DESISTÊNCIA) e depois a Finalizar.</p></div>
         <div style={{marginTop:12,background:d.followups_extensao_ativa === true?"linear-gradient(135deg,#ecfeff,#eff6ff)":"#f8fafc",border:d.followups_extensao_ativa === true?"1px solid #67e8f9":"1px solid #cbd5e1",borderRadius:11,padding:11,boxShadow:d.followups_extensao_ativa === true?"0 8px 24px rgba(8,145,178,.10)":"none"}}>
           <label style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,cursor:"pointer"}}>
             <span style={{display:"flex",alignItems:"flex-start",gap:9}}>
@@ -2902,7 +2914,18 @@ export default function FluxosPage() {
           problemas.push("📤 Transferir → modo Atendente humano sem atendente selecionado");
         }
       }
-      if (n.tipo === "gatilho_crm" && !n.dados?.campo) problemas.push("⚡ Alteração no CRM → selecione o campo observado");
+      if (n.tipo === "fluxo_ia" && Array.isArray(n.dados?.arquivos_salvar_regras)) {
+        const vistosArquivos = new Set<string>();
+        for (const regra of n.dados.arquivos_salvar_regras) {
+          const nome = String(regra?.nome || "").trim();
+          const descricao = String(regra?.descricao || "").trim();
+          const variavel = String(regra?.variavel || "").trim();
+          if (!nome || !descricao || !variavel) problemas.push("🔐 Arquivo privado → preencha nome, reconhecimento e variável no CRM");
+          if (variavel && !/^[a-zA-Z0-9_-]+$/.test(variavel)) problemas.push(`🔐 Arquivo privado ${nome || variavel} → variável inválida`);
+          if (vistosArquivos.has(variavel)) problemas.push(`🔐 Arquivo privado → variável duplicada: ${variavel}`);
+          if (variavel) vistosArquivos.add(variavel);
+        }
+      }      if (n.tipo === "gatilho_crm" && !n.dados?.campo) problemas.push("⚡ Alteração no CRM → selecione o campo observado");
       if (n.tipo === "atualizar_venda" && (!Array.isArray(n.dados?.atualizacoes) || !n.dados.atualizacoes.some((x:any)=>x.campo))) problemas.push("📝 Atualizar Venda → adicione pelo menos um campo");
       if (n.tipo === "assinatura_wolf" && n.dados?.assinatura_bilateral === true) {
         const faltam: string[] = [];
@@ -2936,7 +2959,27 @@ export default function FluxosPage() {
 
     setSalvando(true);
     try {
-      const nosParaSalvar = nos.map(normalizarConfiguracaoFluxoIA);
+      const regrasArquivosCRM = new Map<string,{nome:string;variavel:string;obrigatoria:boolean}>();
+      for (const bloco of nos.filter(n=>n.tipo==="fluxo_ia")) {
+        for (const regra of (Array.isArray(bloco.dados?.arquivos_salvar_regras) ? bloco.dados.arquivos_salvar_regras : [])) {
+          const variavel=String(regra?.variavel||"").trim();
+          if (variavel && /^[a-zA-Z0-9_-]+$/.test(variavel)) regrasArquivosCRM.set(variavel,{nome:String(regra?.nome||variavel).trim(),variavel,obrigatoria:regra?.obrigatoria===true});
+        }
+      }
+      if (regrasArquivosCRM.size) {
+        const {data:camposExistentes,error:erroCampos}=await supabase.from("proposta_campos_customizados").select("id,slug").eq("workspace_id",wsId);
+        if(erroCampos) throw erroCampos;
+        const mapaCampos=new Map<string,number>((camposExistentes||[]).map((item:any)=>[String(item.slug),Number(item.id)]));
+        let ordemArquivo=900;
+        for(const regra of regrasArquivosCRM.values()){
+          const payload={label:regra.nome,tipo:"arquivo",obrigatorio:regra.obrigatoria,ativo:true,ordem:ordemArquivo++,placeholder:"Arquivo privado capturado pelo fluxo de IA"};
+          const idCampo=mapaCampos.get(regra.variavel);
+          const resposta=idCampo
+            ? await supabase.from("proposta_campos_customizados").update(payload).eq("id",idCampo).eq("workspace_id",wsId)
+            : await supabase.from("proposta_campos_customizados").insert([{workspace_id:wsId,slug:regra.variavel,...payload}]);
+          if(resposta.error) throw new Error(`Não foi possível criar o campo privado ${regra.nome} no CRM: ${resposta.error.message}`);
+        }
+      }      const nosParaSalvar = nos.map(normalizarConfiguracaoFluxoIA);
       const { data, error } = await supabase.from("fluxos").update({nos:nosParaSalvar,conexoes:arestas,nome:fluxoAtivo.nome,
         descricao:fluxoAtivo.descricao,ativo:fluxoAtivo.ativo,
         trigger_tipo:fluxoAtivo.trigger_tipo,trigger_valor:fluxoAtivo.trigger_valor})
