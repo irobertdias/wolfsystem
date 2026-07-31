@@ -44,6 +44,7 @@ type FormContrato = { representante_id: string; origem: "crm" | "avulso"; propos
 const FORM_INICIAL: FormContrato = { representante_id: "", origem: "crm", proposta_id: "", nome: "", cpf: "", email: "", telefone: "", canal_id: "", titulo: "Contrato de prestação de serviços", conteudo: "", pdf_base64: "", pdf_nome: "", mensagem: "Olá, {{nome}}. Seu contrato está pronto para revisão e assinatura: {{link}}", expira_horas: 48, exigir_localizacao: false };
 type Resumo = { total: number; assinados: number; pendentes: number; expirados: number; problemas: number };
 type Paginacao = { pagina: number; limite: number; total: number; paginas: number };
+type PlanoUso = { nome: "essencial" | "profissional" | "empresarial"; limite_mensal: number | null; usados_mes: number };
 
 const STATUS: Record<string, { label: string; className: string }> = {
   concluida: { label: "Assinado", className: styles.statusSigned },
@@ -70,9 +71,17 @@ export default function ContratosPage() {
   const { modulos, carregado: modulosCarregados } = useModulos();
   const permitidoPorPerfil = isDono || perfil === "Administrador" || permissoes.contratos_acessar;
   const permitido = isSuperAdmin || (modulosCarregados && modulos.contratos_assinaturas && permitidoPorPerfil);
+  const acessoTotalContratos = isSuperAdmin || isDono || perfil === "Administrador";
+  const podeCriar = acessoTotalContratos || permissoes.contratos_criar;
+  const podeEditar = acessoTotalContratos || permissoes.contratos_editar;
+  const podeReenviar = acessoTotalContratos || permissoes.contratos_reenviar;
+  const podeExcluir = acessoTotalContratos || permissoes.contratos_excluir;
+  const podeBaixar = acessoTotalContratos || permissoes.contratos_baixar;
+  const podeConfigurar = acessoTotalContratos || permissoes.contratos_configurar;
   const [resumo, setResumo] = useState<Resumo>({ total: 0, assinados: 0, pendentes: 0, expirados: 0, problemas: 0 });
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [paginacao, setPaginacao] = useState<Paginacao>({ pagina: 1, limite: 25, total: 0, paginas: 1 });
+  const [planoUso, setPlanoUso] = useState<PlanoUso>({ nome: "essencial", limite_mensal: 20, usados_mes: 0 });
   const [filtro, setFiltro] = useState<StatusFiltro>("todos");
   const [busca, setBusca] = useState("");
   const [buscaAplicada, setBuscaAplicada] = useState("");
@@ -125,6 +134,7 @@ export default function ContratosPage() {
       const response = await requisicao(`/api/contratos?${query.toString()}`);
       const data = await response.json();
       setResumo(data.resumo || { total: 0, assinados: 0, pendentes: 0, expirados: 0, problemas: 0 });
+      setPlanoUso(data.plano || { nome: "essencial", limite_mensal: 20, usados_mes: 0 });
       setContratos(data.contratos || []);
       setPaginacao(data.paginacao || { pagina: 1, limite: 25, total: 0, paginas: 1 });
     } catch (e: any) {
@@ -320,10 +330,11 @@ export default function ContratosPage() {
           <span className={styles.eyebrow}>WOLF CONTRATOS</span>
           <h1>Contratos e assinaturas</h1>
           <p>Acompanhe cada documento, assinatura eletrônica e evidência do seu workspace.</p>
+          <div style={{ marginTop: 9, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}><span style={{ background: "#e0e7ff", color: "#3730a3", borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 850, textTransform: "capitalize" }}>Plano {planoUso.nome}</span><span style={{ color: "#64748b", fontSize: 11 }}>{planoUso.limite_mensal === null ? `${planoUso.usados_mes} contratos usados neste mês · ilimitado` : `${planoUso.usados_mes} de ${planoUso.limite_mensal} contratos usados neste mês`}</span></div>
         </div>
         <div className={styles.headerActions}>
-          <button className={styles.refreshButton} onClick={() => router.push("/crm/contratos/configuracoes")}>⚙ Empresa e representantes</button>
-          <button className={styles.newButton} onClick={abrirNovoContrato}>＋ Novo contrato</button>
+          {podeConfigurar && <button className={styles.refreshButton} onClick={() => router.push("/crm/contratos/configuracoes")}>⚙ Empresa e representantes</button>}
+          {podeCriar && <button className={styles.newButton} onClick={abrirNovoContrato}>＋ Novo contrato</button>}
           <button className={styles.refreshButton} onClick={() => carregar(paginacao.pagina, true)} disabled={atualizando}>
             <span className={atualizando ? styles.spin : ""}>↻</span> {atualizando ? "Atualizando" : "Atualizar"}
           </button>
@@ -368,7 +379,7 @@ export default function ContratosPage() {
                   <td><b className={styles.date}>{dataHora(contrato.created_at)}</b><small className={styles.subdate}>Canal {contrato.canal_id}</small></td>
                   <td><b className={styles.date}>{dataHora(contrato.assinatura_em)}</b><small className={styles.subdate}>{contrato.status === "concluida" ? "OTP confirmado" : `Expira ${dataHora(contrato.expira_em)}`}</small></td>
                   <td><span className={styles.evidence}>{contrato.biometria_status === "selfie_evidencia" ? "Selfie evidência" : "Aguardando"}</span></td>
-                  <td><div className={styles.actions}><button onClick={() => setSelecionado(contrato)}>Detalhes</button><button onClick={() => abrirEditarContrato(contrato)}>Editar</button><button onClick={() => reenviarContrato(contrato)} disabled={reenviando === contrato.id}>{reenviando === contrato.id ? "Reenviando…" : "Reenviar"}</button><button className={styles.deleteButton} onClick={() => excluirContrato(contrato)} disabled={excluindo === contrato.id}>{excluindo === contrato.id ? "Excluindo…" : "Excluir"}</button>{contrato.status === "concluida" && <button className={styles.download} onClick={() => baixar(contrato)} disabled={baixando === contrato.id}>{baixando === contrato.id ? "Baixando…" : "Baixar PDF"}</button>}</div></td>
+                  <td><div className={styles.actions}><button onClick={() => setSelecionado(contrato)}>Detalhes</button>{podeEditar && <button onClick={() => abrirEditarContrato(contrato)}>Editar</button>}{podeReenviar && <button onClick={() => reenviarContrato(contrato)} disabled={reenviando === contrato.id}>{reenviando === contrato.id ? "Reenviando…" : "Reenviar"}</button>}{podeExcluir && <button className={styles.deleteButton} onClick={() => excluirContrato(contrato)} disabled={excluindo === contrato.id}>{excluindo === contrato.id ? "Excluindo…" : "Excluir"}</button>}{podeBaixar && contrato.status === "concluida" && <button className={styles.download} onClick={() => baixar(contrato)} disabled={baixando === contrato.id}>{baixando === contrato.id ? "Baixando…" : "Baixar PDF"}</button>}</div></td>
                 </tr>;
               })}</tbody>
             </table>
@@ -405,7 +416,7 @@ export default function ContratosPage() {
           <footer><button disabled={salvando} onClick={() => { setCriando(false); setEditando(null); }}>Cancelar</button><button className={styles.newButton} disabled={salvando} onClick={criarContrato}>{salvando ? (editando ? "Criando versão…" : "Criando…") : (editando ? "Salvar nova versão e reenviar" : "Criar e enviar para assinatura")}</button></footer>
         </section>
       </div>}
-      {selecionado && <div className={styles.modalBackdrop} onMouseDown={e => { if (e.target === e.currentTarget) setSelecionado(null); }}><section className={styles.modal} role="dialog" aria-modal="true"><header><div><span>TRILHA DE AUDITORIA</span><h2>{selecionado.nome_signatario}</h2><p>{selecionado.contrato_nome}</p></div><button onClick={() => setSelecionado(null)}>×</button></header>{selecionado.signatarios?.length ? <div className={styles.modalSigners}>{selecionado.signatarios.map(s => <div key={s.papel}><span>{s.ordem}</span><b>{s.papel === "empresa" ? "Representante da empresa" : "Cliente"}<small>{s.nome}</small></b><em className={s.status === "concluida" ? styles.signerDone : styles.signerWaiting}>{s.status === "concluida" ? `Assinado em ${dataHora(s.assinatura_em)}` : s.status === "pendente" ? "Aguardando assinatura" : "Aguardando participante anterior"}</em></div>)}</div> : null}<div className={styles.auditGrid}><Audit label="Situação" value={(STATUS[selecionado.status] || { label: selecionado.status }).label}/><Audit label="Identificador" value={selecionado.id}/><Audit label="Origem" value={selecionado.origem === "crm" ? `Cliente do CRM #${selecionado.proposta_id}` : selecionado.origem === "avulso" ? "Contrato avulso" : "Fluxo da IA"}/><Audit label="Telefone" value={selecionado.numero}/><Audit label="CPF" value={selecionado.cpf_ultimos4 ? `Final ${selecionado.cpf_ultimos4}` : "Não informado"}/><Audit label="Criado em" value={dataHora(selecionado.created_at)}/><Audit label="Assinado em" value={dataHora(selecionado.assinatura_em)}/><Audit label="OTP" value={selecionado.otp_confirmado_em ? `Confirmado em ${dataHora(selecionado.otp_confirmado_em)}` : "Ainda não confirmado"}/><Audit label="Identidade" value={selecionado.biometria_status === "selfie_evidencia" ? "Selfie preservada como evidência" : "Não verificada"}/><Audit label="IP da assinatura" value={selecionado.ip_assinatura || "Não disponível"}/><Audit label="Consentimento" value={selecionado.consentimento_versao || "—"}/><Audit label="Hash do original" value={curto(selecionado.contrato_hash_original, 28)} mono/><Audit label="Hash do assinado" value={curto(selecionado.contrato_hash_assinado, 28)} mono/><Audit label="HMAC da auditoria" value={curto(selecionado.auditoria_hmac, 28)} mono/></div><div className={styles.modalNote}>A selfie é evidência de identidade e não é apresentada como biometria facial verificada. O PDF assinado contém a assinatura legível e o certificado completo.</div><footer><button onClick={() => setSelecionado(null)}>Fechar</button>{selecionado.status === "concluida" && <button className={styles.download} onClick={() => baixar(selecionado)} disabled={baixando === selecionado.id}>{baixando === selecionado.id ? "Baixando…" : "Baixar contrato assinado"}</button>}</footer></section></div>}
+      {selecionado && <div className={styles.modalBackdrop} onMouseDown={e => { if (e.target === e.currentTarget) setSelecionado(null); }}><section className={styles.modal} role="dialog" aria-modal="true"><header><div><span>TRILHA DE AUDITORIA</span><h2>{selecionado.nome_signatario}</h2><p>{selecionado.contrato_nome}</p></div><button onClick={() => setSelecionado(null)}>×</button></header>{selecionado.signatarios?.length ? <div className={styles.modalSigners}>{selecionado.signatarios.map(s => <div key={s.papel}><span>{s.ordem}</span><b>{s.papel === "empresa" ? "Representante da empresa" : "Cliente"}<small>{s.nome}</small></b><em className={s.status === "concluida" ? styles.signerDone : styles.signerWaiting}>{s.status === "concluida" ? `Assinado em ${dataHora(s.assinatura_em)}` : s.status === "pendente" ? "Aguardando assinatura" : "Aguardando participante anterior"}</em></div>)}</div> : null}<div className={styles.auditGrid}><Audit label="Situação" value={(STATUS[selecionado.status] || { label: selecionado.status }).label}/><Audit label="Identificador" value={selecionado.id}/><Audit label="Origem" value={selecionado.origem === "crm" ? `Cliente do CRM #${selecionado.proposta_id}` : selecionado.origem === "avulso" ? "Contrato avulso" : "Fluxo da IA"}/><Audit label="Telefone" value={selecionado.numero}/><Audit label="CPF" value={selecionado.cpf_ultimos4 ? `Final ${selecionado.cpf_ultimos4}` : "Não informado"}/><Audit label="Criado em" value={dataHora(selecionado.created_at)}/><Audit label="Assinado em" value={dataHora(selecionado.assinatura_em)}/><Audit label="OTP" value={selecionado.otp_confirmado_em ? `Confirmado em ${dataHora(selecionado.otp_confirmado_em)}` : "Ainda não confirmado"}/><Audit label="Identidade" value={selecionado.biometria_status === "selfie_evidencia" ? "Selfie preservada como evidência" : "Não verificada"}/><Audit label="IP da assinatura" value={selecionado.ip_assinatura || "Não disponível"}/><Audit label="Consentimento" value={selecionado.consentimento_versao || "—"}/><Audit label="Hash do original" value={curto(selecionado.contrato_hash_original, 28)} mono/><Audit label="Hash do assinado" value={curto(selecionado.contrato_hash_assinado, 28)} mono/><Audit label="HMAC da auditoria" value={curto(selecionado.auditoria_hmac, 28)} mono/></div><div className={styles.modalNote}>A selfie é evidência de identidade e não é apresentada como biometria facial verificada. O PDF assinado contém a assinatura legível e o certificado completo.</div><footer><button onClick={() => setSelecionado(null)}>Fechar</button>{podeBaixar && selecionado.status === "concluida" && <button className={styles.download} onClick={() => baixar(selecionado)} disabled={baixando === selecionado.id}>{baixando === selecionado.id ? "Baixando…" : "Baixar contrato assinado"}</button>}</footer></section></div>}
     </main>
   );
 }

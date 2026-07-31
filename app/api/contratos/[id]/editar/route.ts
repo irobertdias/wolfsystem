@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { autenticarContratos, respostaErroContratos, supabaseContratos } from "../../_auth";
+import { autenticarContratos, exigirFranquiaContratos, exigirPermissaoContratos, respostaErroContratos, supabaseContratos } from "../../_auth";
 
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_WHATSAPP_URL || "https://api.wolfgyn.com.br";
 
@@ -7,6 +7,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   try {
     const body = await request.json();
     const acesso = await autenticarContratos(request, String(body.workspaceId || ""));
+    exigirPermissaoContratos(acesso, "contratos_editar");
+    await exigirFranquiaContratos(acesso);
     const { id } = await context.params;
     const propostaId = body.proposta_id ? Number(body.proposta_id) : null;
     if (propostaId) {

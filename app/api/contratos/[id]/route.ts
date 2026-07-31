@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { autenticarContratos, respostaErroContratos } from "../_auth";
+import { autenticarContratos, exigirPermissaoContratos, respostaErroContratos } from "../_auth";
 
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_WHATSAPP_URL || "https://api.wolfgyn.com.br";
 
@@ -7,6 +7,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   try {
     const body = await request.json();
     const acesso = await autenticarContratos(request, String(body.workspaceId || ""));
+    exigirPermissaoContratos(acesso, "contratos_excluir");
     const { id } = await context.params;
     const response = await fetch(`${BACKEND}/assinaturas-wolf/admin/${encodeURIComponent(id)}`, {
       method: "DELETE", cache: "no-store",

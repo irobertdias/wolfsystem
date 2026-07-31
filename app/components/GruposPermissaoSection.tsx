@@ -41,6 +41,12 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
   ]},
   { nome: "📄 Contratos", cor: "#155eef", permissoes: [
     { key: "contratos_acessar", label: "Acessar contratos e assinaturas" },
+    { key: "contratos_criar", label: "Criar e enviar contratos para assinatura" },
+    { key: "contratos_editar", label: "Editar contratos e criar novas versões" },
+    { key: "contratos_reenviar", label: "Reenviar contratos e links" },
+    { key: "contratos_excluir", label: "Excluir ou revogar contratos" },
+    { key: "contratos_baixar", label: "Baixar contratos assinados" },
+    { key: "contratos_configurar", label: "Configurar empresa e representantes" },
   ]},
   { nome: "💬 Chatbot", cor: "#3b82f6", permissoes: [
     { key: "chatbot_acessar",    label: "Acessar o Chatbot" },

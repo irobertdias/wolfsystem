@@ -21,6 +21,17 @@ async function contar(workspaceId: string, configurar?: (query: any) => any) {
   return count || 0;
 }
 
+async function contarUsoMes(workspaceId: string) {
+  const inicio = new Date();
+  inicio.setUTCDate(1);
+  inicio.setUTCHours(0, 0, 0, 0);
+  const { count, error } = await supabaseContratos.from("assinatura_wolf_sessoes")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .gte("created_at", inicio.toISOString());
+  if (error) throw error;
+  return Number(count || 0);
+}
 export async function GET(request: NextRequest) {
   try {
     const params = request.nextUrl.searchParams;
@@ -47,7 +58,7 @@ export async function GET(request: NextRequest) {
       query = query.or(`nome_signatario.ilike.%${busca}%,contrato_nome.ilike.%${busca}%,numero.ilike.%${busca}%`);
     }
 
-    const [lista, total, assinados, pendentes, expiradosMarcados, expiradosPorData, problemas] = await Promise.all([
+    const [lista, total, assinados, pendentes, expiradosMarcados, expiradosPorData, problemas, usadosMes] = await Promise.all([
       query,
       contar(acesso.workspaceId),
       contar(acesso.workspaceId, q => q.eq("status", "concluida")),
@@ -55,6 +66,7 @@ export async function GET(request: NextRequest) {
       contar(acesso.workspaceId, q => q.eq("status", "expirada")),
       contar(acesso.workspaceId, q => q.eq("status", "pendente").lte("expira_em", agora)),
       contar(acesso.workspaceId, q => q.in("status", ["recusada", "revogada", "erro"])),
+      contarUsoMes(acesso.workspaceId),
     ]);
 
     if (lista.error) throw lista.error;
@@ -83,6 +95,7 @@ const idsEnvelope = (lista.data || [])
     return NextResponse.json({
       success: true,
       workspaceId: acesso.workspaceId,
+      plano: { nome: acesso.planoContratos, limite_mensal: acesso.limiteMensalContratos, usados_mes: usadosMes },
       resumo: {
         total,
         assinados,

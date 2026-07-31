@@ -45,9 +45,14 @@ export default function Site() {
     },
   ];
 
+  const planosContratos = [
+    { nome: "Essencial", limite: "Até 20 contratos por mês", comCrm: "R$ 49,90", semCrm: "R$ 69,90", cor: "#2563eb" },
+    { nome: "Profissional", limite: "Até 100 contratos por mês", comCrm: "R$ 69,90", semCrm: "R$ 99,90", cor: "#7c3aed", destaque: true },
+    { nome: "Empresarial", limite: "Contratos ilimitados", comCrm: "R$ 99,90", semCrm: "R$ 149,90", cor: "#0f766e" },
+  ];
   const perguntas = [
     ["O Vendedor IA está incluído nos planos?", "Não. Ele é um módulo premium avulso de R$ 2.500,00 por workspace. Você pode contratar em qualquer plano compatível."],
-    ["Quanto custa Contratos e Assinaturas?", "O módulo custa R$ 297,00 por mês, por workspace. Ele inclui criação ligada ao CRM ou avulsa, OTP, selfie de evidência, assinatura legível, hashes e trilha de auditoria."],
+    ["Quanto custa Contratos e Assinaturas?", "O Essencial custa R$ 49,90 com CRM Wolf ou R$ 69,90 sem CRM (20 contratos/mês); o Profissional custa R$ 69,90 com CRM ou R$ 99,90 sem CRM (100 contratos/mês); e o Empresarial ilimitado custa R$ 99,90 com CRM ou R$ 149,90 sem CRM."],
     ["Qual a diferença entre ChatBot e Vendedor IA?", "O ChatBot executa automações e fluxos. O Vendedor IA conversa de forma natural, interpreta objeções, valida cada dado, consulta APIs e conduz a venda até o CRM."],
     ["Ele entende áudio?", "Sim. Quando configurado com uma chave OpenAI compatível, o sistema transcreve o áudio e a IA continua exatamente da etapa em que parou."],
     ["Consigo conectar consultas externas?", "Sim. O fluxo pode consultar links, APIs e scripts JavaScript, usar o retorno na conversa e decidir o próximo passo sem expor dados técnicos ao cliente."],
@@ -146,10 +151,20 @@ export default function Site() {
             <div><span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.5, opacity: .78 }}>CONTRATAÇÃO POR WORKSPACE</span><h3 style={{ fontSize: mobile ? 30 : 40, margin: "10px 0 8px", letterSpacing: -1.2 }}>Vendedor IA completo</h3><p style={{ margin: 0, opacity: .86, lineHeight: 1.6 }}>Módulo separado dos planos. Implantação orientada para transformar seu processo em um vendedor autônomo.</p></div>
             <div style={{ textAlign: mobile ? "left" : "right" }}><span style={{ fontSize: 13, opacity: .8 }}>investimento avulso</span><strong style={{ display: "block", fontSize: mobile ? 42 : 56, letterSpacing: -2 }}>R$ 2.500,00</strong><button onClick={() => falar("Olá! Quero contratar o módulo Vendedor IA por R$ 2.500,00.")} style={{ marginTop: 12, border: 0, borderRadius: 12, background: "white", color: "#5b21b6", padding: "14px 20px", fontWeight: 900, cursor: "pointer" }}>Quero meu Vendedor IA →</button></div>
           </div>
-          <div id="contratos-assinaturas" style={{ marginTop: 20, borderRadius: 26, padding: mobile ? "26px 22px" : "32px 38px", background: "linear-gradient(135deg,#eff6ff,#eef2ff)", border: "1px solid #bfdbfe", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr auto", gap: 24, alignItems: "center" }}>
-            <div><span style={{ color: "#155eef", fontSize: 11, fontWeight: 900, letterSpacing: 1.4 }}>MÓDULO POR WORKSPACE</span><h3 style={{ color: "#17233b", fontSize: mobile ? 27 : 34, margin: "9px 0 8px" }}>Contratos e Assinaturas</h3><p style={{ color: "#52627a", margin: 0, lineHeight: 1.65 }}>Crie contratos ligados aos clientes do CRM ou avulsos. Envie para assinatura com OTP, selfie de evidência, assinatura legível, hashes e trilha de auditoria.</p></div>
-            <div style={{ textAlign: mobile ? "left" : "right" }}><span style={{ color: "#64748b", fontSize: 12 }}>por workspace</span><strong style={{ display: "block", color: "#155eef", fontSize: mobile ? 38 : 48, letterSpacing: -1.5 }}>R$ 297,00<span style={{ fontSize: 15, letterSpacing: 0 }}>/mês</span></strong><button onClick={() => falar("Olá! Quero contratar o módulo Contratos e Assinaturas por R$ 297,00/mês.")} style={{ marginTop: 10, border: 0, borderRadius: 12, background: "#155eef", color: "white", padding: "13px 18px", fontWeight: 900, cursor: "pointer" }}>Quero contratar →</button></div>
-          </div>        </div>
+          <div id="contratos-assinaturas" style={{ marginTop: 20, borderRadius: 28, padding: mobile ? "26px 20px" : "34px 38px", background: "linear-gradient(135deg,#eff6ff,#f5f3ff)", border: "1px solid #bfdbfe" }}>
+            <div style={{ maxWidth: 780, marginBottom: 24 }}><span style={{ color: "#155eef", fontSize: 11, fontWeight: 900, letterSpacing: 1.4 }}>WOLF CONTRATOS</span><h3 style={{ color: "#17233b", fontSize: mobile ? 27 : 34, margin: "9px 0 8px" }}>Contratos e Assinaturas</h3><p style={{ color: "#52627a", margin: 0, lineHeight: 1.65 }}>Planos por workspace com criação ligada ao CRM ou avulsa, envio por WhatsApp e e-mail, OTP, selfie de evidência, assinatura legível, hashes e trilha de auditoria.</p></div>
+            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3,1fr)", gap: 14 }}>
+              {planosContratos.map(planoContrato => <div key={planoContrato.nome} style={{ position: "relative", background: "white", border: `2px solid ${planoContrato.destaque ? planoContrato.cor : "#dbe6f4"}`, borderRadius: 20, padding: 20, boxShadow: planoContrato.destaque ? "0 18px 45px rgba(124,58,237,.14)" : "none" }}>
+                {planoContrato.destaque && <span style={{ position: "absolute", top: -11, right: 16, background: planoContrato.cor, color: "white", borderRadius: 999, padding: "5px 10px", fontSize: 9, fontWeight: 900 }}>MELHOR CUSTO-BENEFÍCIO</span>}
+                <h4 style={{ color: "#17233b", fontSize: 20, margin: "3px 0 4px" }}>{planoContrato.nome}</h4>
+                <p style={{ color: "#64748b", fontSize: 12, margin: "0 0 16px" }}>{planoContrato.limite}</p>
+                <small style={{ color: "#64748b" }}>para quem já possui CRM Wolf</small><strong style={{ color: planoContrato.cor, display: "block", fontSize: 29, margin: "3px 0 12px" }}>{planoContrato.comCrm}<span style={{ fontSize: 12 }}>/mês</span></strong>
+                <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 11 }}><small style={{ color: "#64748b" }}>sem CRM contratado</small><strong style={{ color: "#334155", display: "block", fontSize: 20, marginTop: 3 }}>{planoContrato.semCrm}<span style={{ fontSize: 11 }}>/mês</span></strong></div>
+                <button onClick={() => falar(`Olá! Quero contratar o plano ${planoContrato.nome} do Wolf Contratos.`)} style={{ width: "100%", marginTop: 16, border: 0, borderRadius: 11, background: planoContrato.cor, color: "white", padding: "12px 14px", fontWeight: 900, cursor: "pointer" }}>Contratar {planoContrato.nome} →</button>
+              </div>)}
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="planos" style={sectionStyle}>
@@ -164,7 +179,7 @@ export default function Site() {
               <div style={{ marginTop: 23, display: "grid", gap: 11 }}>{p.recursos.map(r => <div key={r} style={{ display: "flex", gap: 9, color: "#475569", fontSize: 13 }}><span style={{ color: p.cor, fontWeight: 900 }}>✓</span>{r}</div>)}</div>
             </div>)}
           </div>
-          <div style={{ marginTop: 22, padding: 22, borderRadius: 18, background: "#f7f9fd", border: "1px solid #e5ebf5", textAlign: "center", color: "#52627a", fontSize: 13 }}><strong style={{ color: "#17233b" }}>Adicionais disponíveis:</strong> usuários, conexões, Central Ads, Instagram, Financeiro, RH, Vendedor IA e Contratos e Assinaturas por R$ 297/mês.</div>
+          <div style={{ marginTop: 22, padding: 22, borderRadius: 18, background: "#f7f9fd", border: "1px solid #e5ebf5", textAlign: "center", color: "#52627a", fontSize: 13 }}><strong style={{ color: "#17233b" }}>Adicionais disponíveis:</strong> usuários, conexões, Central Ads, Instagram, Financeiro, RH, Vendedor IA e Wolf Contratos a partir de R$ 49,90/mês para clientes com CRM ou R$ 69,90/mês sem CRM.</div>
         </div>
       </section>
 

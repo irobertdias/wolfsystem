@@ -34,7 +34,8 @@ const NOVO_REPRESENTANTE: Representante = {
 
 export default function ConfiguracoesContratosPage() {
   const router = useRouter();
-  const { workspaceId, loading } = usePermissao();
+  const { workspaceId, loading, permissoes, isDono, isSuperAdmin, perfil } = usePermissao();
+  const podeConfigurar = isSuperAdmin || isDono || perfil === "Administrador" || permissoes.contratos_configurar;
   const [empresa, setEmpresa] = useState<Empresa>(EMPRESA_INICIAL);
   const [representantes, setRepresentantes] = useState<Representante[]>([{ ...NOVO_REPRESENTANTE }]);
   const [carregando, setCarregando] = useState(true);
@@ -42,6 +43,9 @@ export default function ConfiguracoesContratosPage() {
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
 
+  useEffect(() => {
+    if (!loading && !podeConfigurar) router.replace("/crm/contratos");
+  }, [loading, podeConfigurar, router]);
   async function requisicao(url: string, init?: RequestInit) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error("Sua sessão expirou");
@@ -56,7 +60,7 @@ export default function ConfiguracoesContratosPage() {
   }
 
   useEffect(() => {
-    if (loading || !workspaceId) return;
+    if (loading || !workspaceId || !podeConfigurar) return;
     void (async () => {
       setCarregando(true);
       try {
@@ -75,7 +79,7 @@ export default function ConfiguracoesContratosPage() {
       } catch (e: any) { setErro(e.message); }
       finally { setCarregando(false); }
     })();
-  }, [loading, workspaceId]);
+  }, [loading, podeConfigurar, workspaceId]);
 
   function alterarRepresentante(index: number, campo: keyof Representante, valor: string | boolean) {
     setRepresentantes(lista => lista.map((item, posicao) => {

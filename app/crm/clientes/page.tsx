@@ -5,6 +5,12 @@ import { supabase } from "../../lib/supabase";
 
 // ⚠️ Só este email tem acesso à tela de clientes
 const ADMIN_EMAIL = "robert.dias@live.com";
+const CONTRATOS_PLANOS = {
+  essencial: { nome: "Essencial", limite: "20 contratos/mês", comCrm: 49.90, semCrm: 69.90 },
+  profissional: { nome: "Profissional", limite: "100 contratos/mês", comCrm: 69.90, semCrm: 99.90 },
+  empresarial: { nome: "Empresarial", limite: "Contratos ilimitados", comCrm: 99.90, semCrm: 149.90 },
+} as const;
+type PlanoContratos = keyof typeof CONTRATOS_PLANOS;
 
 type Cadastro = {
   id: number; created_at: string; nome: string; empresa: string;
@@ -18,6 +24,8 @@ type Cadastro = {
   modulo_meta_ads?: boolean;
   modulo_vendedor_ia?: boolean;
   modulo_contratos_assinaturas?: boolean;
+  modulo_contratos_plano?: PlanoContratos;
+  modulo_contratos_com_crm?: boolean;
   modulo_equipes?: boolean;
   modulo_funil_avancado?: boolean;
   modulo_rh?: boolean;
@@ -282,7 +290,7 @@ export default function Clientes() {
     nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
     username: "",
     usuarios_liberados: 5, conexoes_liberadas: 1,
-    modulo_meta_ads: false, modulo_vendedor_ia: false, modulo_contratos_assinaturas: false,
+    modulo_meta_ads: false, modulo_vendedor_ia: false, modulo_contratos_assinaturas: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
     permite_webjs: true, permite_waba: false, permite_instagram: false,
     modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
@@ -551,7 +559,7 @@ export default function Clientes() {
     setFormCadastro({
       nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
       username: "",
-      modulo_meta_ads: false, modulo_vendedor_ia: false, modulo_contratos_assinaturas: false,
+      modulo_meta_ads: false, modulo_vendedor_ia: false, modulo_contratos_assinaturas: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
       usuarios_liberados: 5, conexoes_liberadas: 1,
       permite_webjs: true, permite_waba: false, permite_instagram: false,
       modulo_roleta: false, modulo_disparos_web: false, modulo_disparos_api: false,
@@ -569,7 +577,7 @@ export default function Clientes() {
   };
 
   const abrirEditar = (c: Cadastro) => {
-    setFormCadastro({ ...c });
+    setFormCadastro({ ...c, modulo_contratos_plano: c.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: c.modulo_contratos_com_crm !== false });
     setCadastroSelecionado(c);
     setShowModalCliente(true);
     setShowModalDetalhe(false);
@@ -600,6 +608,8 @@ export default function Clientes() {
         modulo_meta_ads: preset.modulo_meta_ads,
         modulo_vendedor_ia: false, // módulo avulso: nunca é liberado automaticamente pelo plano
         modulo_contratos_assinaturas: false, // liberação exclusiva do superadmin
+        modulo_contratos_plano: 'essencial',
+        modulo_contratos_com_crm: true,
         modulo_api_integracao: preset.modulo_api_integracao,
         modulo_instagram: preset.modulo_instagram,
         modulo_cobranca: preset.modulo_cobranca,
@@ -700,7 +710,7 @@ export default function Clientes() {
         const respModulo = await fetch("/api/admin/cliente", {
           method: "PATCH",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tokenModulo },
-          body: JSON.stringify({ email: formCadastro.email, modulo_contratos_assinaturas: !!formCadastro.modulo_contratos_assinaturas }),
+          body: JSON.stringify({ email: formCadastro.email, modulo_contratos_assinaturas: !!formCadastro.modulo_contratos_assinaturas, modulo_contratos_plano: formCadastro.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: formCadastro.modulo_contratos_com_crm !== false }),
         });
         const resultModulo = await respModulo.json();
         if (!resultModulo.success) { alert("Erro ao salvar Contratos e Assinaturas: " + resultModulo.error); setSalvandoCliente(false); return; }
@@ -1092,7 +1102,25 @@ export default function Clientes() {
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
                 <Toggle value={!!formCadastro.modulo_roleta} onChange={() => setFormCadastro({ ...formCadastro, modulo_roleta: !formCadastro.modulo_roleta })} label="🎯 Roleta de Distribuição" desc="Intermediário, Ultra" color="#3b82f6" />
                 <Toggle value={!!formCadastro.modulo_disparos_web} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_web: !formCadastro.modulo_disparos_web })} label="📤 Disparos Web" desc="Intermediário, Ultra" color="#3b82f6" />
-                <Toggle value={!!formCadastro.modulo_contratos_assinaturas} onChange={() => setFormCadastro({ ...formCadastro, modulo_contratos_assinaturas: !formCadastro.modulo_contratos_assinaturas })} label="📄 Contratos e Assinaturas" desc="Módulo avulso — R$ 297,00/mês por workspace" color="#155eef" />
+                <Toggle value={!!formCadastro.modulo_contratos_assinaturas} onChange={() => setFormCadastro({ ...formCadastro, modulo_contratos_assinaturas: !formCadastro.modulo_contratos_assinaturas })} label="📄 Contratos e Assinaturas" desc="Planos Essencial, Profissional e Empresarial" color="#155eef" />
+                {formCadastro.modulo_contratos_assinaturas && (() => {
+                  const chave = (formCadastro.modulo_contratos_plano || "essencial") as PlanoContratos;
+                  const planoContrato = CONTRATOS_PLANOS[chave];
+                  const comCrm = formCadastro.modulo_contratos_com_crm !== false;
+                  const preco = comCrm ? planoContrato.comCrm : planoContrato.semCrm;
+                  return <div style={{ gridColumn: "1 / -1", border: "1px solid #bfdbfe", background: "#eff6ff", borderRadius: 12, padding: 14, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr auto", gap: 12, alignItems: "end" }}>
+                    <label style={{ display: "grid", gap: 6, color: "#1e3a8a", fontSize: 11, fontWeight: 800 }}>PLANO DE CONTRATOS
+                      <select value={chave} onChange={e => setFormCadastro({ ...formCadastro, modulo_contratos_plano: e.target.value as PlanoContratos })} style={inputStyle}>
+                        {Object.entries(CONTRATOS_PLANOS).map(([id, item]) => <option key={id} value={id}>{item.nome} — {item.limite}</option>)}
+                      </select>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 9, minHeight: 42, color: "#1e3a8a", fontSize: 12, fontWeight: 750 }}>
+                      <input type="checkbox" checked={comCrm} onChange={e => setFormCadastro({ ...formCadastro, modulo_contratos_com_crm: e.target.checked })}/>
+                      Cliente possui CRM Wolf contratado
+                    </label>
+                    <div style={{ borderRadius: 10, background: "#155eef", color: "white", padding: "10px 14px", minWidth: 150 }}><small style={{ opacity: .8 }}>mensalidade</small><strong style={{ display: "block", fontSize: 20 }}>R$ {preco.toFixed(2).replace(".", ",")}</strong></div>
+                  </div>;
+                })()}
                 <Toggle value={!!formCadastro.modulo_vendedor_ia} onChange={() => setFormCadastro({ ...formCadastro, modulo_vendedor_ia: !formCadastro.modulo_vendedor_ia })} label="🤖 Vendedor IA" desc="Módulo avulso — R$ 2.500,00 (fora dos planos)" color="#7c3aed" />
                 <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="📊 Central Ads" desc="Central de campanhas e resultados de mídia paga" color="#7e22ce" />
                 <Toggle value={!!formCadastro.modulo_disparos_api} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_api: !formCadastro.modulo_disparos_api })} label="📨 Disparos API" desc="Apenas Ultra" color="#8b5cf6" />
@@ -1441,7 +1469,7 @@ export default function Clientes() {
               <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>🎁 Módulos Liberados</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_roleta} icone="🎯" label="Roleta" cor="#3b82f6" />
-                <BadgeModulo ativo={!!cadastroSelecionado.modulo_contratos_assinaturas} icone="📄" label="Contratos e Assinaturas" cor="#155eef" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_contratos_assinaturas} icone="📄" label={`Contratos — ${CONTRATOS_PLANOS[cadastroSelecionado.modulo_contratos_plano || "essencial"].nome}`} cor="#155eef" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_vendedor_ia} icone="🤖" label="Vendedor IA" cor="#7c3aed" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_meta_ads} icone="📊" label="Central Ads" cor="#7e22ce" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_disparos_web} icone="📤" label="Disparos Web" cor="#3b82f6" />
@@ -1661,7 +1689,7 @@ export default function Clientes() {
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                          {c.modulo_contratos_assinaturas && <span style={{ fontSize: 14 }} title="Contratos e Assinaturas — R$ 297/mês">📄</span>}
+                          {c.modulo_contratos_assinaturas && <span style={{ fontSize: 14 }} title={`Contratos — ${CONTRATOS_PLANOS[c.modulo_contratos_plano || "essencial"].nome} (${CONTRATOS_PLANOS[c.modulo_contratos_plano || "essencial"].limite})`}>📄</span>}
                           {c.modulo_vendedor_ia && <span style={{ fontSize: 14 }} title="Vendedor IA — módulo avulso">🤖</span>}
                           {c.modulo_meta_ads && <span style={{ fontSize: 14 }} title="Central Ads">📊</span>}
                           {c.modulo_roleta && <span style={{ fontSize: 14 }} title="Roleta">🎯</span>}

@@ -2823,7 +2823,7 @@ export default function FluxosPage() {
   async function salvar(opcoes?: { fecharEditor?: boolean; avisarSucesso?: boolean }): Promise<boolean> {
     if(!fluxoAtivo?.id) return false;
     if (nos.some(n => ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(n.tipo)) && !contratosLiberados) {
-      alert("🔒 Este workspace não possui o módulo Contratos e Assinaturas — R$ 297,00/mês.");
+      alert("🔒 Este workspace não possui o módulo Contratos e Assinaturas. Planos a partir de R$ 49,90/mês com CRM Wolf.");
       return false;
     }
     if (nos.some(n => n.tipo === "fluxo_ia") && !vendedorIALiberado) {
@@ -2961,7 +2961,7 @@ export default function FluxosPage() {
 
   function adicionarNo(tipo:TipoNo) {
     if (["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(tipo) && !contratosLiberados) {
-      alert("🔒 Contratos e Assinaturas é um módulo avulso de R$ 297,00/mês. Solicite a liberação ao administrador da Wolf System.");
+      alert("🔒 Contratos e Assinaturas possui planos Essencial, Profissional e Empresarial a partir de R$ 49,90/mês com CRM Wolf. Solicite a liberação ao administrador.");
       return;
     }
     if (tipo === "fluxo_ia" && !vendedorIALiberado) {

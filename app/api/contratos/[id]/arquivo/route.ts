@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { autenticarContratos, respostaErroContratos } from "../../_auth";
+import { autenticarContratos, exigirPermissaoContratos, respostaErroContratos } from "../../_auth";
 
 const BACKEND =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -19,6 +19,7 @@ export async function GET(
       request,
       request.nextUrl.searchParams.get("workspaceId") || ""
     );
+    exigirPermissaoContratos(acesso, "contratos_baixar");
     const segredo = process.env.WOLF_SIGNATURE_PROXY_SECRET || "";
     if (segredo.length < 32) throw new Error("Proxy seguro da assinatura não configurado");
 

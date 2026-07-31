@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { autenticarContratos, respostaErroContratos, supabaseContratos } from "../_auth";
+import { autenticarContratos, exigirPermissaoContratos, respostaErroContratos, supabaseContratos } from "../_auth";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +43,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const acesso = await autenticarContratos(request, String(body.workspaceId || ""));
+    exigirPermissaoContratos(acesso, "contratos_configurar");
     const empresaBody = body.empresa || {};
     const razaoSocial = String(empresaBody.razao_social || "").trim();
     const cnpj = somenteDigitos(empresaBody.cnpj);

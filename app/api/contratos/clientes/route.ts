@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { autenticarContratos, respostaErroContratos, supabaseContratos } from "../_auth";
+import { autenticarContratos, exigirPermissaoContratos, respostaErroContratos, supabaseContratos } from "../_auth";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const workspaceSolicitado = request.nextUrl.searchParams.get("workspaceId") || "";
     const acesso = await autenticarContratos(request, workspaceSolicitado);
+    exigirPermissaoContratos(acesso, "contratos_criar");
     const busca = String(request.nextUrl.searchParams.get("busca") || "").replace(/[,%()]/g, " ").trim().slice(0, 80);
     let query: any = supabaseContratos.from("proposta")
       .select("id,nome,cpf,email,telefone1,telefone2,telefone3,endereco,cep,cidade,estado,created_at")
