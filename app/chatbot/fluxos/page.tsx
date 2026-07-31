@@ -28,6 +28,7 @@ type Fluxo = { id?: number; nome: string; descricao: string; ativo: boolean; tri
 type BC = { label: string; icone: string; cor: string; saidas: string[]; grupo: string; };
 type FilaItem = { id: number; nome: string; conexao?: string; }; // 🆕 filas do CRM
 type AtendenteItem = { email: string; nome: string; }; // 🆕 atendentes do workspace
+type RepresentanteAssinatura = { id: string; nome: string; cargo?: string; email?: string; padrao?: boolean; };
 function booleanoConfiguracao(valor: any, padrao = false): boolean {
   if (valor === undefined || valor === null || valor === "") return padrao;
   if (typeof valor === "boolean") return valor;
@@ -199,7 +200,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
     gerar_documento:{titulo:"CONTRATO",nome_arquivo:"contrato_{{numero}}.pdf",modelo:"CONTRATANTE: {{nome}}\nCPF: {{cpf}}\n\nEscreva aqui as cláusulas do contrato.",rodape:"",legenda:"Segue o contrato para leitura e assinatura. Depois, envie o arquivo assinado por aqui.",incluir_area_assinatura:true,rotulo_assinatura:"Assinatura do cliente",nome_signatario:"{{nome}}",permitir_variaveis_vazias:false,variavel_arquivo:"contrato_arquivo",variavel_enviado:"contrato_enviado",mensagem_erro:"Não consegui gerar o contrato agora. Vou encaminhar para nossa equipe."},
     validar_assinatura:{pergunta:"Agora envie por aqui o contrato assinado em PDF ou foto legível.",nome_signatario:"{{nome}}",criterios:"",confianca_minima:0.8,modelo_ia:"gpt-4o-mini",variavel_resultado:"assinatura_confirmada",mensagem_aguardando:"Preciso que você anexe o contrato assinado em PDF ou foto legível para continuar.",mensagem_assinado:"Recebi o contrato e confirmei a assinatura. Vou dar continuidade ao seu atendimento.",mensagem_nao_assinado:"Não consegui confirmar a assinatura nesse arquivo. Confira a área de assinatura e envie novamente, por favor.",mensagem_erro:"Não consegui analisar a assinatura agora. Vou encaminhar para nossa equipe."},
-    assinatura_wolf:{nome_signatario:"{{nome}}",variavel_cpf:"cpf",variavel_arquivo:"contrato_arquivo",nome_documento:"contrato_{{cpf}}.pdf",url_publica:"https://wolfgyn.com.br",expira_horas:48,exigir_otp:true,exigir_selfie:true,exigir_localizacao:false,variavel_sessao:"assinatura_wolf_id",variavel_resultado:"assinatura_confirmada",mensagem_link:"Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",mensagem_assinado:"Assinatura confirmada com sucesso. Vou continuar seu atendimento.",mensagem_erro:"Não consegui iniciar a assinatura agora. Vou encaminhar para nossa equipe."},
+    assinatura_wolf:{assinatura_bilateral:true,representante_id:"",nome_signatario:"{{nome}}",variavel_cpf:"cpf",variavel_email:"email",variavel_arquivo:"contrato_arquivo",titulo_documento:"Contrato de prestação de serviços",nome_documento:"contrato_{{cpf}}.pdf",url_publica:"https://wolfgyn.com.br",expira_horas:48,exigir_otp:true,exigir_selfie:true,exigir_localizacao:false,variavel_sessao:"assinatura_wolf_id",variavel_resultado:"assinatura_confirmada",mensagem_aguardando_empresa:"Seu contrato foi gerado e enviado primeiro ao representante da empresa. Assim que ele assinar, você receberá automaticamente o seu link por WhatsApp e e-mail.",mensagem_aguardando_cliente:"O contrato já foi assinado pela empresa e agora aguarda a sua assinatura no link enviado por WhatsApp e e-mail.",mensagem_link:"Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",mensagem_assinado:"As duas assinaturas foram confirmadas e o contrato final foi enviado por WhatsApp e e-mail. Vou continuar seu atendimento.",mensagem_erro:"Não consegui iniciar a assinatura agora. Vou encaminhar para nossa equipe."},
     fluxo_ia:{extensoes_ia_ativas:false,ext_normalizadores_ativa:false,ext_crm_ativa:false,ext_retomada_ativa:false,ext_followups_ativa:false,ext_consulta_negativa_ativa:false,ext_fila_ativa:false,ext_multimidia_ativa:false,apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
@@ -544,13 +545,14 @@ function TVarComponent({
   );
 }
 
-function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, nos, statusVendaOpcoes, camposPropostaUnif, vendedorIALiberado, salvarConfiguracaoMidia, salvandoMidiaId }: {
+function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, representantesAssinatura, nos, statusVendaOpcoes, camposPropostaUnif, vendedorIALiberado, salvarConfiguracaoMidia, salvandoMidiaId }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
   setNos: React.Dispatch<React.SetStateAction<No[]>>;
   filasBanco: FilaItem[]; // 🆕
   atendentesBanco: AtendenteItem[]; // 🆕 lista de atendentes do workspace
+  representantesAssinatura: RepresentanteAssinatura[];
   nos: No[]; // 🆕 lista completa de nós pra detectar variáveis criadas
   statusVendaOpcoes: {value:string;label:string}[]; // 📋 status disponíveis no workspace
   camposPropostaUnif: CampoUnificado[]; // 📋 campos da proposta (fixos + customs) do workspace
@@ -1443,10 +1445,22 @@ function saida(obj) {
       return <>
         <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:10,marginBottom:10}}>
           <p style={{color:"#1d4ed8",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>🖋️ Assinatura eletrônica Wolf</p>
-          <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Envia um link protegido, confirma o telefone por código, coleta consentimento, selfie como evidência e assinatura legível. O PDF final recebe hashes e certificado de auditoria.</p>
+          <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Cria um envelope sequencial: primeiro assina o representante da empresa; depois o cliente recebe o link automaticamente. O fluxo só continua quando as duas assinaturas e o PDF final estiverem concluídos.</p>
         </div>
+        <label style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,color:"#1f2937",fontSize:11,fontWeight:700}}><input type="checkbox" checked={d.assinatura_bilateral === true} onChange={e=>u({assinatura_bilateral:e.target.checked})}/>Assinatura bilateral: empresa → cliente</label>
+        {d.assinatura_bilateral === true && <>
+          <div><label style={LS}>Quem assina pela empresa</label><select value={d.representante_id || ""} onChange={e=>u({representante_id:e.target.value})} style={IS}>
+            <option value="">— selecione o representante —</option>
+            {representantesAssinatura.map(rep=><option key={rep.id} value={rep.id}>{rep.nome}{rep.cargo ? ` · ${rep.cargo}` : ""}{rep.padrao ? " · padrão" : ""}</option>)}
+          </select></div>
+          {representantesAssinatura.length === 0 && <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize:10,lineHeight:1.45}}>Cadastre a empresa e pelo menos um representante em <b>CRM → Contratos → Configurações</b> antes de usar a assinatura bilateral.</div>}
+          {TVar("Título do contrato","titulo_documento","Contrato de prestação de serviços",45)}
+          {VarPill("Variável do e-mail do cliente","variavel_email","ex: email")}
+          {TVar("Mensagem enquanto a empresa assina","mensagem_aguardando_empresa","Seu contrato foi enviado primeiro ao representante da empresa...",70)}
+          {TVar("Mensagem enquanto o cliente assina","mensagem_aguardando_cliente","O contrato já foi assinado pela empresa e agora aguarda a sua assinatura...",70)}
+        </>}
         {F("URL pública do frontend","url_publica","url","https://wolfgyn.com.br")}
-        {TVar("Nome do signatário","nome_signatario","{{nome}}",45)}
+        {TVar("Nome do cliente signatário","nome_signatario","{{nome}}",45)}
         {VarPill("Variável do CPF","variavel_cpf","ex: cpf")}
         {VarPill("PDF gerado anteriormente","variavel_arquivo","ex: contrato_arquivo")}
         {TVar("Nome do documento final","nome_documento","contrato_{{cpf}}.pdf",45)}
@@ -1454,10 +1468,10 @@ function saida(obj) {
         <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,color:"#1f2937",fontSize:11}}><input type="checkbox" checked={d.exigir_localizacao === true} onChange={e=>u({exigir_localizacao:e.target.checked})}/>Solicitar geolocalização como evidência adicional</label>
         {VarPill("Salvar ID da sessão em","variavel_sessao","ex: assinatura_wolf_id")}
         {VarPill("Salvar resultado em","variavel_resultado","ex: assinatura_confirmada")}
-        {TVar("Mensagem com o link","mensagem_link","Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",75)}
-        {TVar("Mensagem após assinatura","mensagem_assinado","Assinatura confirmada com sucesso...",60)}
+        {d.assinatura_bilateral !== true && TVar("Mensagem com o link","mensagem_link","Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",75)}
+        {TVar("Mensagem após todas as assinaturas","mensagem_assinado","As duas assinaturas foram confirmadas...",60)}
         {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui iniciar a assinatura agora...",60)}
-        <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize:10,lineHeight:1.45}}>OTP, consentimento, selfie e assinatura são obrigatórios. A selfie é evidência de identidade; ela só será chamada de biometria verificada quando houver provedor de prova de vida e comparação facial. Conecte somente <b>Assinado</b> ao bloco <b>Enviar Venda</b>.</div>
+        <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize:10,lineHeight:1.45}}>OTP, consentimento, selfie e assinatura são obrigatórios para cada signatário. Conecte somente <b>Assinado</b> ao bloco <b>Enviar Venda</b>; essa saída só é liberada após empresa e cliente assinarem.</div>
       </>;
     case "validar_assinatura":
       return <>
@@ -2624,6 +2638,7 @@ export default function FluxosPage() {
   const [fluxos,setFluxos]         = useState<Fluxo[]>([]);
   const [filasBanco,setFilasBanco] = useState<FilaItem[]>([]); // 🆕
   const [atendentesBanco,setAtendentesBanco] = useState<AtendenteItem[]>([]); // 🆕 atendentes do workspace
+  const [representantesAssinatura,setRepresentantesAssinatura] = useState<RepresentanteAssinatura[]>([]);
   const [view,setView]             = useState<"lista"|"editor">("lista");
   const [fluxoAtivo,setFluxoAtivo] = useState<Fluxo|null>(null);
   const [nos,setNos]               = useState<No[]>([]);
@@ -2706,6 +2721,7 @@ export default function FluxosPage() {
       load(username);
       fetchFilas(username); // 🆕
       fetchAtendentes(username); // 🆕 atendentes pro bloco Transferir modo humano
+      fetchRepresentantesAssinatura(username);
 
       // 🔒 MULTI-TENANT: Realtime AGORA filtra por workspace_id no servidor.
       // Antes recebia eventos de fluxos/filas de TODOS workspaces — vazamento de
@@ -2794,6 +2810,30 @@ export default function FluxosPage() {
     }
   }
 
+  async function fetchRepresentantesAssinatura(username?: string) {
+    const u = username || wsId;
+    if (!u) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`/api/contratos/empresa?workspaceId=${encodeURIComponent(u)}`, {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      const lista = Array.isArray(payload?.representantes) ? payload.representantes : [];
+      setRepresentantesAssinatura(lista.map((item: any) => ({
+        id: String(item.id),
+        nome: String(item.nome || "Representante"),
+        cargo: item.cargo ? String(item.cargo) : "",
+        email: item.email ? String(item.email) : "",
+        padrao: item.padrao === true,
+      })));
+    } catch (error) {
+      console.warn("[fluxos] não consegui carregar representantes de assinatura:", error);
+      setRepresentantesAssinatura([]);
+    }
+  }
   async function criarFluxo() {
     if(!form.nome.trim()){alert("Digite o nome!");return;}
     setCriando(true);
@@ -2818,6 +2858,7 @@ export default function FluxosPage() {
     setFluxoAtivo({...f, nos:nosNormalizados}); setNos(nosNormalizados); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
     fetchFilas(); // 🆕 recarrega filas ao abrir o editor
     fetchAtendentes(); // 🆕 recarrega atendentes ao abrir o editor
+    fetchRepresentantesAssinatura();
   }
 
   async function salvar(opcoes?: { fecharEditor?: boolean; avisarSucesso?: boolean }): Promise<boolean> {
@@ -2846,6 +2887,13 @@ export default function FluxosPage() {
       }
       if (n.tipo === "gatilho_crm" && !n.dados?.campo) problemas.push("⚡ Alteração no CRM → selecione o campo observado");
       if (n.tipo === "atualizar_venda" && (!Array.isArray(n.dados?.atualizacoes) || !n.dados.atualizacoes.some((x:any)=>x.campo))) problemas.push("📝 Atualizar Venda → adicione pelo menos um campo");
+      if (n.tipo === "assinatura_wolf" && n.dados?.assinatura_bilateral === true) {
+        const faltam: string[] = [];
+        if (!n.dados?.representante_id) faltam.push("representante da empresa");
+        if (!n.dados?.variavel_email) faltam.push("variável do e-mail do cliente");
+        if (!n.dados?.variavel_arquivo) faltam.push("variável do PDF");
+        if (faltam.length > 0) problemas.push(`🖋️ Assinatura Wolf bilateral → falta: ${faltam.join(", ")}`);
+      }
       if (n.tipo === "gmail") {
         const faltam: string[] = [];
         if (!n.dados?.smtp_user) faltam.push("usuário SMTP");
@@ -3674,6 +3722,7 @@ export default function FluxosPage() {
                 setNos={setNos}
                 filasBanco={filasBanco}
                 atendentesBanco={atendentesBanco}
+                representantesAssinatura={representantesAssinatura}
                 nos={nos}
                 statusVendaOpcoes={statusVendaOpcoes}
                 camposPropostaUnif={camposPropostaUnif}
