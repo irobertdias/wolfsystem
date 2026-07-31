@@ -44,6 +44,8 @@ export default function AssinarWolfPage() {
   const canvasAssinaturaRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const desenhandoRef = useRef(false);
+  const assinaturaCapturadaRef = useRef("");
+  const temTracoAssinaturaRef = useRef(false);
 
   useEffect(() => {
     let ativo = true;
@@ -90,8 +92,6 @@ export default function AssinarWolfPage() {
 
   useEffect(() => {
     if (!carregando && !erro) prepararCanvasAssinatura();
-    window.addEventListener("resize", prepararCanvasAssinatura);
-    return () => window.removeEventListener("resize", prepararCanvasAssinatura);
   }, [carregando, erro, prepararCanvasAssinatura]);
 
   function coordenada(event: PointerEvent<HTMLCanvasElement>) {
@@ -117,12 +117,20 @@ export default function AssinarWolfPage() {
     const p = coordenada(event);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
+    temTracoAssinaturaRef.current = true;
     setAssinou(true);
   }
 
   function finalizarDesenho(event: PointerEvent<HTMLCanvasElement>) {
     desenhandoRef.current = false;
+    if (temTracoAssinaturaRef.current) assinaturaCapturadaRef.current = event.currentTarget.toDataURL("image/png");
     try { event.currentTarget.releasePointerCapture(event.pointerId); } catch {}
+  }
+
+  function limparAssinatura() {
+    assinaturaCapturadaRef.current = "";
+    temTracoAssinaturaRef.current = false;
+    prepararCanvasAssinatura();
   }
 
   async function solicitarOtp() {
@@ -290,7 +298,7 @@ export default function AssinarWolfPage() {
           aceite_assinatura_eletronica: aceiteAssinatura,
           aceite_selfie: aceiteSelfie,
           consentimento_texto: info?.consentimento_texto || CONSENTIMENTO,
-          assinatura: canvasAssinaturaRef.current.toDataURL("image/png"),
+          assinatura: assinaturaCapturadaRef.current || canvasAssinaturaRef.current.toDataURL("image/png"),
           selfie,
           ...localizacao,
         }),
@@ -444,7 +452,7 @@ export default function AssinarWolfPage() {
       <section style={styles.card}>
         <div style={styles.cardHeader}>
           <div><span style={styles.number}>4</span><strong>Desenhe sua assinatura</strong></div>
-          <button type="button" onClick={prepararCanvasAssinatura} style={styles.textButton}>Limpar</button>
+          <button type="button" onClick={limparAssinatura} style={styles.textButton}>Limpar</button>
         </div>
         <p style={styles.muted}>Use o dedo, a caneta digital ou o mouse. Esta imagem ficará legível no PDF final.</p>
         <canvas
