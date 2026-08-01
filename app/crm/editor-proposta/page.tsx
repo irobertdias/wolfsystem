@@ -65,6 +65,8 @@ const getSecaoKey = (campos: CampoUnificado[], idx: number): string => {
   if (campo.origem === "fixo") {
     return (campo as any).secao || "personalizado";
   }
+  const secaoCustomizada = String((campo as any).secao_customizada || "").trim();
+  if (secaoCustomizada) return `custom:${labelToSlug(secaoCustomizada)}`;
   for (let i = idx - 1; i >= 0; i--) {
     if (campos[i].origem === "fixo" && (campos[i] as any).secao) {
       return (campos[i] as any).secao;
@@ -156,6 +158,7 @@ export default function EditorProposta() {
         opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" ? JSON.parse(c.opcoes) : []),
         placeholder: c.placeholder,
         ativo: c.ativo,
+        secao_customizada: c.secao_customizada || null,
       }));
 
       const lista = montarCamposUnificados(configs, customs);
@@ -235,7 +238,7 @@ export default function EditorProposta() {
     return () => observer.disconnect();
   }, [campos]);
 
-  const adicionarCustom = () => {
+  const adicionarCustom = (secaoCustomizada?: string) => {
     const maxOrdem = campos.reduce((m, c) => Math.max(m, c.ordem), 0);
     const novo: CampoUnificado = {
       origem: "custom",
@@ -246,8 +249,26 @@ export default function EditorProposta() {
       visivel: true,
       ordem: maxOrdem + 1,
       opcoes: [],
+      secao_customizada: secaoCustomizada?.trim() || null,
     };
     setCampos([...campos, { ...novo, mostrar_na_lista: true } as any]);
+    setDirty(true);
+  };
+
+  const adicionarSecao = () => {
+    const nome = window.prompt("Nome da nova se\u00e7\u00e3o:")?.trim();
+    if (!nome) return;
+    adicionarCustom(nome);
+  };
+
+  const renomearSecao = (nomeAtual: string) => {
+    const novoNome = window.prompt("Novo nome da se\u00e7\u00e3o:", nomeAtual)?.trim();
+    if (!novoNome || novoNome === nomeAtual) return;
+    setCampos(atuais => atuais.map(campo =>
+      campo.origem === "custom" && String((campo as any).secao_customizada || "").trim() === nomeAtual
+        ? { ...campo, secao_customizada: novoNome } as any
+        : campo
+    ));
     setDirty(true);
   };
 
@@ -446,6 +467,7 @@ export default function EditorProposta() {
             opcoes: c.tipo === "dropdown" ? (c.opcoes || []).filter(o => o.trim()) : null,
             ativo: true,
             placeholder: c.placeholder || null,
+            secao_customizada: (c as any).secao_customizada?.trim() || null,
             mostrar_na_lista: mostrarNaLista,
           }).eq("id", existeId).eq("workspace_id", workspace.username);
         } else {
@@ -459,6 +481,7 @@ export default function EditorProposta() {
             opcoes: c.tipo === "dropdown" ? (c.opcoes || []).filter(o => o.trim()) : null,
             ativo: true,
             placeholder: c.placeholder || null,
+            secao_customizada: (c as any).secao_customizada?.trim() || null,
             mostrar_na_lista: mostrarNaLista,
           }]);
         }
@@ -480,10 +503,13 @@ export default function EditorProposta() {
     for (let i = 0; i < campos.length; i++) {
       const sec = getSecaoKey(campos, i);
       if (sec !== secaoAtual) {
+        const nomeSecaoCustomizada = sec.startsWith("custom:")
+          ? String((campos[i] as any).secao_customizada || "").trim()
+          : "";
         const labelRaw = (SECOES_LABEL as any)?.[sec];
-        const label = typeof labelRaw === "string"
+        const label = nomeSecaoCustomizada || (typeof labelRaw === "string"
           ? labelRaw
-          : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec);
+          : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec));
         const corCustom = (labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null;
         const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
         grupoAtual = {
@@ -714,7 +740,12 @@ export default function EditorProposta() {
             <input placeholder="🔍 Buscar campo por nome..." value={busca} onChange={e => setBusca(e.target.value)}
               style={{ ...inputStyle, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
             <div style={{ flex: 1 }} />
-            <button onClick={adicionarCustom}
+            <button onClick={adicionarSecao}
+              style={{
+                background: "#ffffff", color: "#7c3aed", border: "1px solid #c4b5fd", borderRadius: 10,
+                padding: "9px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+              }}>{"+ Nova seção"}</button>
+            <button onClick={() => adicionarCustom()}
               style={{
                 background: "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)",
                 color: "white", border: "none", borderRadius: 10,
@@ -783,6 +814,10 @@ export default function EditorProposta() {
                       <h2 style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: -0.2 }}>{g.label}</h2>
                       {g.meta.descricao && <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{g.meta.descricao}</p>}
                     </div>
+                    {g.key.startsWith("custom:") && <>
+                      <button type="button" onClick={() => adicionarCustom(g.label)} style={{ background: "#fff", color: g.meta.cor, border: `1px solid ${g.meta.cor}40`, borderRadius: 8, padding: "6px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>+ Campo</button>
+                      <button type="button" onClick={() => renomearSecao(g.label)} title="Renomear se\u00e7\u00e3o" style={{ background: "#fff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 8, padding: "6px 9px", fontSize: 12, cursor: "pointer" }}>{"✏️"}</button>
+                    </>}
                     <span style={{
                       background: `${g.meta.cor}10`,
                       color: g.meta.cor,

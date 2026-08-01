@@ -126,6 +126,8 @@ const getSecaoKey = (campos: CampoUnificado[], idx: number): string => {
   if (campo.origem === "fixo") {
     return (campo as any).secao || "personalizado";
   }
+  const secaoCustomizada = String((campo as any).secao_customizada || "").trim();
+  if (secaoCustomizada) return `custom:${secaoCustomizada.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/(^_|_$)/g, "")}`;
   // Custom — herda do fixo anterior (prioridade) > próximo
   for (let i = idx - 1; i >= 0; i--) {
     if (campos[i].origem === "fixo" && (campos[i] as any).secao) {
@@ -294,6 +296,7 @@ function PropostaForm() {
           opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" ? JSON.parse(c.opcoes) : []),
           placeholder: c.placeholder,
           ativo: c.ativo,
+          secao_customizada: c.secao_customizada || null,
         }));
 
         const lista2 = montarCamposUnificados(configs, customs).filter(c => c.visivel);
@@ -660,11 +663,14 @@ function PropostaForm() {
     for (let i = 0; i < camposUnificados.length; i++) {
       const sec = getSecaoKey(camposUnificados, i);
       if (sec !== secaoAtual) {
+        const nomeSecaoCustomizada = sec.startsWith("custom:")
+          ? String((camposUnificados[i] as any).secao_customizada || "").trim()
+          : "";
         // FIX react-error-31: SECOES_LABEL pode ser string OU objeto {titulo, cor}
         const labelRaw = (SECOES_LABEL as any)?.[sec];
-        const label = typeof labelRaw === "string"
+        const label = nomeSecaoCustomizada || (typeof labelRaw === "string"
           ? labelRaw
-          : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec);
+          : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec));
         const corCustom = (labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null;
         const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
         grupoAtual = {
