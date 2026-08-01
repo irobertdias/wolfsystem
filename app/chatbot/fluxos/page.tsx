@@ -14,7 +14,7 @@ type TipoNo =
   | "input_arquivo" | "input_cards"
   | "condicao" | "variavel" | "redirecionar" | "script" | "espera"
   | "teste_ab" | "webhook" | "pular" | "retornar"
-  | "google_sheets" | "http_request" | "openai" | "fluxo_ia" | "claude_ai" | "gmail"
+  | "google_sheets" | "http_request" | "openai" | "fluxo_ia" | "biblioteca_ia" | "claude_ai" | "gmail"
   | "gerar_documento" | "validar_assinatura" | "assinatura_wolf"
   | "meta_capi"  // 🆕 v20: dispara evento de conversão pra Meta (Pixel + Conversions API)
   | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar"
@@ -106,6 +106,7 @@ const B: Record<TipoNo, BC> = {
   openai:               {label:"OpenAI",          icone:"🤖", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
   fluxo_ia:             {label:"Fluxo por IA",    icone:"✨", cor:"#7c3aed", saidas:["Dados confirmados","Erro","Limite de recusas atingido","Limite de lembretes atingido"], grupo:"Integrações"},
   claude_ai:            {label:"Claude AI",       icone:"🧠", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
+  biblioteca_ia:        {label:"Biblioteca IA",   icone:"\uD83D\uDCDA", cor:"#0f766e", saidas:[], grupo:"Integra\u00e7\u00f5es"},
   gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
   gerar_documento:      {label:"Gerar Documento", icone:"📄", cor:"#0f766e", saidas:["Enviado","Erro"],              grupo:"Documentos"},
   validar_assinatura:   {label:"Validar Assinatura",icone:"✍️",cor:"#7c3aed", saidas:["Assinado","Não assinado","Erro"],grupo:"Documentos"},
@@ -199,6 +200,7 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
     gerar_documento:{titulo:"CONTRATO",nome_arquivo:"contrato_{{numero}}.pdf",modelo:"CONTRATANTE: {{nome}}\nCPF: {{cpf}}\n\nEscreva aqui as cláusulas do contrato.",rodape:"",legenda:"Segue o contrato para leitura e assinatura. Depois, envie o arquivo assinado por aqui.",incluir_area_assinatura:true,rotulo_assinatura:"Assinatura do cliente",nome_signatario:"{{nome}}",permitir_variaveis_vazias:false,variavel_arquivo:"contrato_arquivo",variavel_enviado:"contrato_enviado",mensagem_erro:"Não consegui gerar o contrato agora. Vou encaminhar para nossa equipe."},
+    biblioteca_ia:{ativo:true,ia_alvo_id:"",confianca_minima:0.72,reenvio_minutos:30,materiais:[]},
     validar_assinatura:{pergunta:"Agora envie por aqui o contrato assinado em PDF ou foto legível.",nome_signatario:"{{nome}}",criterios:"",confianca_minima:0.8,modelo_ia:"gpt-4o-mini",variavel_resultado:"assinatura_confirmada",mensagem_aguardando:"Preciso que você anexe o contrato assinado em PDF ou foto legível para continuar.",mensagem_assinado:"Recebi o contrato e confirmei a assinatura. Vou dar continuidade ao seu atendimento.",mensagem_nao_assinado:"Não consegui confirmar a assinatura nesse arquivo. Confira a área de assinatura e envie novamente, por favor.",mensagem_erro:"Não consegui analisar a assinatura agora. Vou encaminhar para nossa equipe."},
     assinatura_wolf:{assinatura_bilateral:true,representante_id:"",nome_signatario:"{{nome}}",variavel_cpf:"cpf",variavel_email:"email",variavel_arquivo:"contrato_arquivo",titulo_documento:"Contrato de prestação de serviços",nome_documento:"contrato_{{cpf}}.pdf",url_publica:"https://wolfgyn.com.br",expira_horas:48,exigir_otp:true,exigir_selfie:true,exigir_localizacao:false,variavel_sessao:"assinatura_wolf_id",variavel_resultado:"assinatura_confirmada",mensagem_aguardando_empresa:"Seu contrato foi gerado e enviado primeiro ao representante da empresa. Assim que ele assinar, você receberá automaticamente o seu link por WhatsApp e e-mail.",mensagem_aguardando_cliente:"O contrato já foi assinado pela empresa e agora aguarda a sua assinatura no link enviado por WhatsApp e e-mail.",mensagem_link:"Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",mensagem_assinado:"As duas assinaturas foram confirmadas e o contrato final foi enviado por WhatsApp e e-mail. Vou continuar seu atendimento.",mensagem_erro:"Não consegui iniciar a assinatura agora. Vou encaminhar para nossa equipe."},
     fluxo_ia:{extensoes_ia_ativas:false,ext_normalizadores_ativa:false,ext_crm_ativa:false,ext_retomada_ativa:false,ext_followups_ativa:false,ext_consulta_negativa_ativa:false,ext_fila_ativa:false,ext_multimidia_ativa:false,apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,arquivos_salvar_regras:[],midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
@@ -289,6 +291,7 @@ function getPreview(no: No): string {
     case "openai": return `GPT: ${d.modelo}`;
     case "fluxo_ia": return "IA coleta " + (Array.isArray(d.variaveis) ? d.variaveis.length : 0) + " variável(is)" + (d.followups_extensao_ativa === true ? " • Agenda e lembretes ativos" : "");
     case "claude_ai": return `Claude: ${d.modelo}`;
+    case "biblioteca_ia": return "Biblioteca IA com " + (Array.isArray(d.materiais) ? d.materiais.filter((m:{ativo?:boolean}) => m?.ativo !== false).length : 0) + " material(is) ativo(s)";
     case "gmail": return d.smtp_user ? `📨 ${d.para||"?"}` : "⚠️ SMTP não configurado";
     // 🆕 v20: preview do bloco Meta Pixel/CAPI
     case "meta_capi": {
@@ -545,7 +548,7 @@ function TVarComponent({
   );
 }
 
-function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, representantesAssinatura, nos, statusVendaOpcoes, camposPropostaUnif, vendedorIALiberado, salvarConfiguracaoMidia, salvandoMidiaId }: {
+function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, representantesAssinatura, nos, statusVendaOpcoes, camposPropostaUnif, vendedorIALiberado, salvarConfiguracaoMidia, salvandoMidiaId, workspaceId }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
@@ -559,11 +562,13 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   vendedorIALiberado: boolean;
   salvarConfiguracaoMidia: (id: string, dados: Record<string, boolean>) => Promise<void>;
   salvandoMidiaId: string | null;
+  workspaceId: string | null;
 }) {
   const d = noSel.dados;
   const id = noSel.id;
   const u = (o: Record<string,any>) => updateNo(id, o);
 
+  const [uploadandoBibliotecaId, setUploadandoBibliotecaId] = useState<string | null>(null);
   if (noSel.tipo === "fluxo_ia" && !vendedorIALiberado) {
     return (
       <div style={{border:"1px solid #ddd6fe",background:"linear-gradient(145deg,#faf5ff,#fff)",borderRadius:14,padding:22,textAlign:"center"}}>
@@ -1529,7 +1534,164 @@ function saida(obj) {
         {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui analisar agora...",60)}
         <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize:10,lineHeight:1.45}}>Conecte somente <b>Assinado</b> ao bloco <b>Enviar Venda</b>. A análise é uma triagem operacional e não substitui validação jurídica ou pericial.</div>
       </>;
+    case "biblioteca_ia": {
+      type MaterialBiblioteca = {
+        id: string;
+        ativo: boolean;
+        tipo: "video" | "imagem" | "arquivo" | "link";
+        titulo: string;
+        descricao: string;
+        palavras_chave: string;
+        url: string;
+        nome_arquivo: string;
+        legenda: string;
+      };
+      const materiais: MaterialBiblioteca[] = Array.isArray(d.materiais) ? d.materiais : [];
+      const blocosIA = nos.filter(n => n.tipo === "fluxo_ia");
+      const salvarMateriais = (lista: MaterialBiblioteca[]) => u({ materiais: lista });
+      const atualizarMaterial = (indice: number, patch: Partial<MaterialBiblioteca>) =>
+        salvarMateriais(materiais.map((item, i) => i === indice ? { ...item, ...patch } : item));
+      const adicionarMaterial = () => salvarMateriais([...materiais, {
+        id: "material_" + uid(),
+        ativo: true,
+        tipo: "video",
+        titulo: "",
+        descricao: "",
+        palavras_chave: "",
+        url: "",
+        nome_arquivo: "",
+        legenda: "",
+      }]);
+      return <>
+        <div style={{background:"#ecfdf5",border:"1px solid #a7f3d0",borderRadius:9,padding:10,marginBottom:10}}>
+          <p style={{color:"#047857",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>{"Biblioteca de materiais da IA"}</p>
+          <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.5}}>
+            {"Cadastre videos, imagens, arquivos ou links. Durante a conversa, a IA escolhe no maximo um material relacionado a duvida, envia ao cliente e continua a coleta normalmente."}
+          </p>
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:7,color:"#1f2937",fontSize:11,marginBottom:10}}>
+          <input type="checkbox" checked={d.ativo !== false} onChange={e => u({ativo:e.target.checked})}/>
+          {"Biblioteca ativa"}
+        </label>
+        <div style={{marginBottom:10}}>
+          <label style={LS}>{"Bloco IA atendido"}</label>
+          <select value={d.ia_alvo_id || ""} onChange={e=>u({ia_alvo_id:e.target.value})} style={IS}>
+            <option value="">{"Todos os blocos Fluxo por IA"}</option>
+            {blocosIA.map((bloco:No) => (
+              <option key={bloco.id} value={bloco.id}>
+                {String(bloco.dados?.titulo || bloco.dados?.nome || resumo(bloco)).slice(0,80)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+          <div>
+            <label style={LS}>{"Confianca minima"}</label>
+            <input type="number" min={0.5} max={0.99} step={0.01} value={d.confianca_minima ?? 0.72}
+              onChange={e=>u({confianca_minima:Math.max(.5,Math.min(.99,Number(e.target.value)||.72))})} style={IS}/>
+          </div>
+          <div>
+            <label style={LS}>{"Reenvio apos (minutos)"}</label>
+            <input type="number" min={0} max={10080} value={d.reenvio_minutos ?? 30}
+              onChange={e=>u({reenvio_minutos:Math.max(0,Math.min(10080,Number(e.target.value)||0))})} style={IS}/>
+          </div>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <strong style={{fontSize:11,color:"#0f172a"}}>{"Materiais (" + materiais.length + ")"}</strong>
+          <button type="button" onClick={adicionarMaterial}
+            style={{border:"1px solid #10b981",background:"#ecfdf5",color:"#047857",borderRadius:7,padding:"6px 9px",fontSize:10,fontWeight:800,cursor:"pointer"}}>
+            {"+ Adicionar material"}
+          </button>
+        </div>
+        {materiais.length === 0 && (
+          <div style={{border:"1px dashed #cbd5e1",borderRadius:8,padding:14,textAlign:"center",color:"#64748b",fontSize:10}}>
+            {"Adicione pelo menos um material para a IA poder orientar o cliente."}
+          </div>
+        )}
+        {materiais.map((material, indice) => (
+          <div key={material.id || indice} style={{border:"1px solid #d1fae5",background:"#f8fffc",borderRadius:10,padding:10,marginBottom:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
+              <input type="checkbox" checked={material.ativo !== false} onChange={e=>atualizarMaterial(indice,{ativo:e.target.checked})}/>
+              <select value={material.tipo || "video"} onChange={e=>atualizarMaterial(indice,{tipo:e.target.value as MaterialBiblioteca["tipo"]})}
+                style={{...IS,width:105,padding:"6px 7px"}}>
+                <option value="video">{"Video"}</option>
+                <option value="imagem">{"Imagem"}</option>
+                <option value="arquivo">{"Arquivo"}</option>
+                <option value="link">{"Link"}</option>
+              </select>
+              <input value={material.titulo || ""} onChange={e=>atualizarMaterial(indice,{titulo:e.target.value})}
+                style={{...IS,flex:1,padding:"6px 8px"}} placeholder="Ex.: Como baixar contrato na Caixa"/>
+              <button type="button" onClick={()=>salvarMateriais(materiais.filter((_,i)=>i!==indice))}
+                style={{border:"1px solid #fecaca",background:"#fff1f2",color:"#dc2626",borderRadius:7,padding:"6px 8px",cursor:"pointer"}}>{"Excluir"}</button>
+            </div>
+            <label style={LS}>{"Quando a IA deve usar este material"}</label>
+            <textarea value={material.descricao || ""} onChange={e=>atualizarMaterial(indice,{descricao:e.target.value})}
+              style={{...IS,height:62,resize:"vertical",marginBottom:7}} placeholder="Ex.: quando o cliente perguntar onde encontrar ou baixar o contrato do emprestimo na Caixa."/>
+            <label style={LS}>{"Palavras-chave (separe por virgula)"}</label>
+            <input value={material.palavras_chave || ""} onChange={e=>atualizarMaterial(indice,{palavras_chave:e.target.value})}
+              style={{...IS,marginBottom:7}} placeholder="caixa, contrato, ccb, onde encontrar, baixar"/>
+            {material.tipo !== "link" && (
+              <div style={{marginBottom:7}}>
+                <label style={LS}>{"Enviar arquivo do computador"}</label>
+                <input
+                  type="file"
+                  accept={material.tipo === "video" ? "video/*" : material.tipo === "imagem" ? "image/*" : ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"}
+                  disabled={!workspaceId || uploadandoBibliotecaId === material.id}
+                  onChange={async e => {
+                    const arquivo = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!arquivo || !workspaceId) return;
+                    const limite = material.tipo === "imagem" ? 5 * 1024 * 1024 : material.tipo === "video" ? 16 * 1024 * 1024 : 25 * 1024 * 1024;
+                    if (arquivo.size > limite) {
+                      alert("Arquivo acima do limite permitido para este tipo de material.");
+                      return;
+                    }
+                    const nomeSeguro = arquivo.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+                    const caminho = `${workspaceId}/biblioteca-ia/${Date.now()}_${nomeSeguro}`;
+                    setUploadandoBibliotecaId(material.id);
+                    try {
+                      const { error } = await supabase.storage.from("respostas-rapidas-midia")
+                        .upload(caminho, arquivo, { upsert:false, contentType:arquivo.type || undefined });
+                      if (error) throw error;
+                      const { data:urlData } = supabase.storage.from("respostas-rapidas-midia").getPublicUrl(caminho);
+                      atualizarMaterial(indice, { url:urlData.publicUrl, nome_arquivo:arquivo.name });
+                    } catch (erro:unknown) {
+                      const mensagemErro = erro instanceof Error ? erro.message : "erro desconhecido";
+                      alert("Nao foi possivel enviar o material: " + mensagemErro);
+                    } finally {
+                      setUploadandoBibliotecaId(null);
+                    }
+                  }}
+                  style={{...IS,padding:"7px 8px",fontSize:10}}
+                />
+                {uploadandoBibliotecaId === material.id && <span style={{fontSize:10,color:"#047857"}}>{"Enviando material..."}</span>}
+              </div>
+            )}
+            <label style={LS}>{"URL publica direta"}</label>
+            <input type="url" value={material.url || ""} onChange={e=>atualizarMaterial(indice,{url:e.target.value})}
+              style={{...IS,marginBottom:7}} placeholder="https://cdn.exemplo.com/tutorial-caixa.mp4"/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
+              <div>
+                <label style={LS}>{"Nome do arquivo (opcional)"}</label>
+                <input value={material.nome_arquivo || ""} onChange={e=>atualizarMaterial(indice,{nome_arquivo:e.target.value})}
+                  style={IS} placeholder="tutorial-caixa.mp4"/>
+              </div>
+              <div>
+                <label style={LS}>{"Legenda enviada"}</label>
+                <input value={material.legenda || ""} onChange={e=>atualizarMaterial(indice,{legenda:e.target.value})}
+                  style={IS} placeholder="Veja onde encontrar seu contrato."/>
+              </div>
+            </div>
+          </div>
+        ))}
+        <p style={{color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:8}}>
+          {"Use URL HTTPS publica e direta. Limites: imagem 5 MB, video 16 MB e arquivo 25 MB. Links de paginas, como YouTube, devem usar o tipo Link."}
+        </p>
+      </>;
+    }
+
     case "fluxo_ia": {
+
       const camposIA: Array<{nome:string;label:string;tipo:string;obrigatoria:boolean;diferente_de?:string}> =
         Array.isArray(d.variaveis) ? d.variaveis : [];
       const atualizarCampoIA = (indice: number, patch: Record<string, any>) => {
@@ -1540,6 +1702,7 @@ function saida(obj) {
       type ConsultaIA = {
         id:string; nome:string; descricao:string; tipo:"http"|"script";
         variavel_gatilho:string; variavel_resultado:string; obrigatoria:boolean;
+
         resultado_disponivel?:string; resultado_indisponivel?:string;
         acao_indisponibilidade?:"aguardar"|"finalizar"; mensagem_indisponibilidade?:string;
         retorno_negativo_aplicar_etiqueta?:boolean; retorno_negativo_nome_etiqueta?:string;
@@ -2964,6 +3127,24 @@ export default function FluxosPage() {
         }
       }      if (n.tipo === "gatilho_crm" && !n.dados?.campo) problemas.push("⚡ Alteração no CRM → selecione o campo observado");
       if (n.tipo === "atualizar_venda" && (!Array.isArray(n.dados?.atualizacoes) || !n.dados.atualizacoes.some((x:any)=>x.campo))) problemas.push("📝 Atualizar Venda → adicione pelo menos um campo");
+      if (n.tipo === "biblioteca_ia" && n.dados?.ativo !== false) {
+        const materiais = Array.isArray(n.dados?.materiais) ? n.dados.materiais.filter((item:any)=>item?.ativo !== false) : [];
+        if (!materiais.length) problemas.push("Biblioteca IA: adicione pelo menos um material ativo");
+        const ids = new Set<string>();
+        for (const material of materiais) {
+          const idMaterial = String(material?.id || "").trim();
+          const titulo = String(material?.titulo || "").trim();
+          const descricao = String(material?.descricao || "").trim();
+          const url = String(material?.url || "").trim();
+          if (!idMaterial || !titulo || !descricao || !url) problemas.push("Biblioteca IA: preencha titulo, quando usar e URL de cada material");
+          if (idMaterial && ids.has(idMaterial)) problemas.push("Biblioteca IA: existe material com identificador duplicado");
+          if (idMaterial) ids.add(idMaterial);
+          if (url && !/^https:\/\//i.test(url)) problemas.push("Biblioteca IA: a URL precisa comecar com https://");
+        }
+        const alvo = String(n.dados?.ia_alvo_id || "").trim();
+        if (alvo && !nos.some(item=>item.id===alvo && item.tipo==="fluxo_ia")) problemas.push("Biblioteca IA: o bloco IA selecionado nao existe mais");
+      }
+
       if (n.tipo === "assinatura_wolf" && n.dados?.assinatura_bilateral === true) {
         const faltam: string[] = [];
         if (!n.dados?.representante_id) faltam.push("representante da empresa");
@@ -3826,6 +4007,7 @@ export default function FluxosPage() {
                 vendedorIALiberado={vendedorIALiberado}
                 salvarConfiguracaoMidia={salvarConfiguracaoMidia}
                 salvandoMidiaId={salvandoMidiaId}
+                workspaceId={wsId}
               />
             </div>
 
