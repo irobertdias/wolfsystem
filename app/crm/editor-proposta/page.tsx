@@ -64,11 +64,12 @@ const SECAO_META: Record<string, { icone: string; cor: string; descricao: string
 const getSecaoKey = (campos: CampoUnificado[], idx: number): string => {
   const campo = campos[idx];
   if (!campo) return "personalizado";
+  const secaoEscolhida = String((campo as any).secao_customizada || "").trim();
+  if (secaoEscolhida.startsWith("@")) return secaoEscolhida.slice(1) || "personalizado";
+  if (secaoEscolhida) return `custom:${labelToSlug(secaoEscolhida)}`;
   if (campo.origem === "fixo") {
     return (campo as any).secao || "personalizado";
   }
-  const secaoCustomizada = String((campo as any).secao_customizada || "").trim();
-  if (secaoCustomizada) return `custom:${labelToSlug(secaoCustomizada)}`;
   for (let i = idx - 1; i >= 0; i--) {
     if (campos[i].origem === "fixo" && (campos[i] as any).secao) {
       return (campos[i] as any).secao;
@@ -148,6 +149,7 @@ export default function EditorProposta() {
         ordem: c.ordem,
         opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" && c.opcoes ? JSON.parse(c.opcoes) : null),
         placeholder_custom: c.placeholder_custom,
+        secao_customizada: c.secao_customizada || null,
       }));
 
       const customs: CampoCustom[] = (respCustom.data || []).map((c: any) => ({
@@ -390,6 +392,7 @@ export default function EditorProposta() {
         const labelMudou = c.label.trim() !== def.labelPadrao;
         const obrigMudou = c.obrigatorio !== def.obrigatorioPadrao;
         const ordemMudou = c.ordem !== def.ordemPadrao;
+        const secaoMudou = !!String((c as any).secao_customizada || "").trim();
 
         let opcoesMudou = false;
         let opcoesFinal: string[] | null = null;
@@ -409,7 +412,7 @@ export default function EditorProposta() {
         const obrigatorioFinal = obrigMudou ? c.obrigatorio : null;
         const ordemFinal = ordemMudou ? c.ordem : null;
 
-        if (!labelMudou && !obrigMudou && !ordemMudou && !opcoesMudou && !placeholderMudou && !mostrarMudou && c.visivel) {
+        if (!labelMudou && !obrigMudou && !ordemMudou && !secaoMudou && !opcoesMudou && !placeholderMudou && !mostrarMudou && c.visivel) {
           if (c.idConfig) {
             await supabase.from("proposta_campos_padrao_config")
               .delete()
@@ -428,6 +431,7 @@ export default function EditorProposta() {
           ordem: ordemFinal,
           opcoes: opcoesFinal,
           placeholder_custom: placeholderFinal,
+          secao_customizada: String((c as any).secao_customizada || "").trim() || null,
           mostrar_na_lista: mostrarNaListaAtual,
         };
 
@@ -528,9 +532,10 @@ export default function EditorProposta() {
         const label = nomeSecaoCustomizada || (typeof labelRaw === "string"
           ? labelRaw
           : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec));
-        const corSecaoCustomizada = sec.startsWith("custom:") && /^#[0-9a-fA-F]{6}$/.test(String((campos[i] as any).secao_cor || ""))
-          ? String((campos[i] as any).secao_cor)
+        const campoComCor = sec.startsWith("custom:")
+          ? campos.find((item, indice) => getSecaoKey(campos, indice) === sec && /^#[0-9a-fA-F]{6}$/.test(String((item as any).secao_cor || "")))
           : null;
+        const corSecaoCustomizada = campoComCor ? String((campoComCor as any).secao_cor) : null;
         const corCustom = corSecaoCustomizada || ((labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null);
         const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
         grupoAtual = {
@@ -567,6 +572,18 @@ export default function EditorProposta() {
     }
     return lista;
   }, [grupos]);
+
+  const opcoesDestinoSecao = useMemo(() => {
+    const padroes = Object.entries(SECOES_LABEL).map(([key, meta]: any) => ({ value: `@${key}`, label: meta?.titulo || meta?.label || key, cor: meta?.cor || "#6b7280" }));
+    const personalizadas = new Map<string, string>();
+    for (const campo of campos) {
+      const nome = String((campo as any).secao_customizada || "").trim();
+      if (!nome || nome.startsWith("@")) continue;
+      const cor = /^#[0-9a-fA-F]{6}$/.test(String((campo as any).secao_cor || "")) ? String((campo as any).secao_cor) : "#7c3aed";
+      if (!personalizadas.has(nome)) personalizadas.set(nome, cor);
+    }
+    return [...padroes, ...Array.from(personalizadas, ([label, cor]) => ({ value: label, label, cor }))];
+  }, [campos]);
 
   const stats = useMemo(() => ({
     total: campos.length,
@@ -862,6 +879,7 @@ export default function EditorProposta() {
                         idx={idx}
                         totalCampos={campos.length}
                         secaoMeta={g.meta}
+                        opcoesSecao={opcoesDestinoSecao}
                         inputStyle={inputStyle}
                         isMobile={isMobile}
                         atualizar={atualizar}
@@ -945,7 +963,7 @@ function Stat({ label, valor, cor }: { label: string; valor: string; cor: string
   );
 }
 
-function CampoCard({ campo, idx, totalCampos, secaoMeta, inputStyle, isMobile, atualizar, mover, remover, adicionarOpcao, atualizarOpcao, removerOpcao }: any) {
+function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle, isMobile, atualizar, mover, remover, adicionarOpcao, atualizarOpcao, removerOpcao }: any) {
   const ehFixo = campo.origem === "fixo";
   const corBadge = ehFixo ? "#3b82f6" : "#a855f7";
   const bgBadge = ehFixo ? "#eff6ff" : "#f3e8ff";
@@ -1066,6 +1084,17 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, inputStyle, isMobile, a
       )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, background: "#eef2ff", border: "1px solid #c7d2fe", padding: "5px 9px", borderRadius: 8 }}>
+          <span style={{ color: "#4338ca", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{"Seção:"}</span>
+          <select value={String(campo.secao_customizada || "")} onChange={evento => {
+            const valor = evento.target.value;
+            const opcao = (opcoesSecao || []).find((item: any) => item.value === valor);
+            atualizar(idx, { secao_customizada: valor || null, secao_cor: valor && !valor.startsWith("@") ? (opcao?.cor || campo.secao_cor || "#7c3aed") : null });
+          }} style={{ background: "#fff", color: "#374151", border: "1px solid #c7d2fe", borderRadius: 6, padding: "4px 7px", fontSize: 11, minWidth: 170 }}>
+            <option value="">{ehFixo ? "Se\u00e7\u00e3o original" : "Herdar pela posi\u00e7\u00e3o"}</option>
+            {(opcoesSecao || []).map((opcao: any) => <option key={opcao.value} value={opcao.value}>{opcao.label}</option>)}
+          </select>
+        </label>
         <label style={{
           display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
           background: campo.obrigatorio ? "#f0fdf4" : "#ffffff",

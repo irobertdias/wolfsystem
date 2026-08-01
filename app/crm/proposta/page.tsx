@@ -123,11 +123,12 @@ const SECAO_META: Record<string, { icone: string; cor: string; descricao: string
 const getSecaoKey = (campos: CampoUnificado[], idx: number): string => {
   const campo = campos[idx];
   if (!campo) return "personalizado";
+  const secaoEscolhida = String((campo as any).secao_customizada || "").trim();
+  if (secaoEscolhida.startsWith("@")) return secaoEscolhida.slice(1) || "personalizado";
+  if (secaoEscolhida) return `custom:${secaoEscolhida.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/(^_|_$)/g, "")}`;
   if (campo.origem === "fixo") {
     return (campo as any).secao || "personalizado";
   }
-  const secaoCustomizada = String((campo as any).secao_customizada || "").trim();
-  if (secaoCustomizada) return `custom:${secaoCustomizada.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/(^_|_$)/g, "")}`;
   // Custom — herda do fixo anterior (prioridade) > próximo
   for (let i = idx - 1; i >= 0; i--) {
     if (campos[i].origem === "fixo" && (campos[i] as any).secao) {
@@ -285,6 +286,7 @@ function PropostaForm() {
           ordem: c.ordem,
           opcoes: Array.isArray(c.opcoes) ? c.opcoes : (typeof c.opcoes === "string" && c.opcoes ? JSON.parse(c.opcoes) : null),
           placeholder_custom: c.placeholder_custom,
+          secao_customizada: c.secao_customizada || null,
         }));
         const customs: CampoCustom[] = (respCustom.data || []).map((c: any) => ({
           id: c.id,
@@ -672,9 +674,10 @@ function PropostaForm() {
         const label = nomeSecaoCustomizada || (typeof labelRaw === "string"
           ? labelRaw
           : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec));
-        const corSecaoCustomizada = sec.startsWith("custom:") && /^#[0-9a-fA-F]{6}$/.test(String((camposUnificados[i] as any).secao_cor || ""))
-          ? String((camposUnificados[i] as any).secao_cor)
+        const campoComCor = sec.startsWith("custom:")
+          ? camposUnificados.find((item, indice) => getSecaoKey(camposUnificados, indice) === sec && /^#[0-9a-fA-F]{6}$/.test(String((item as any).secao_cor || "")))
           : null;
+        const corSecaoCustomizada = campoComCor ? String((campoComCor as any).secao_cor) : null;
         const corCustom = corSecaoCustomizada || ((labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null);
         const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
         grupoAtual = {

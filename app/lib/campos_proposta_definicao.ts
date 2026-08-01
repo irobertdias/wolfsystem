@@ -102,7 +102,8 @@ export type ConfigCampoPadrao = {
   visivel: boolean;
   ordem?: number | null;
   opcoes?: string[] | null;            // 🆕 v3: customiza lista de dropdowns
-  placeholder_custom?: string | null;  // 🆕 v3: customiza placeholder
+  placeholder_custom?: string | null;
+  secao_customizada?: string | null;  // 🆕 v3: customiza placeholder
 };
 
 export type CampoCustom = {
@@ -167,6 +168,7 @@ export function montarCamposUnificados(
       opcoes: opcoesCustom || f.opcoes,        // 🆕 v3
       placeholder: placeholderCustom || f.placeholderPadrao,  // 🆕 v3
       secao: f.secaoPadrao,
+      secao_customizada: cfg?.secao_customizada || null,
       larguraTotal: f.larguraTotal,
       idConfig: cfg?.id,
     };
