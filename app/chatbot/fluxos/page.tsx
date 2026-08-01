@@ -1579,7 +1579,7 @@ function saida(obj) {
             <option value="">{"Todos os blocos Fluxo por IA"}</option>
             {blocosIA.map((bloco:No) => (
               <option key={bloco.id} value={bloco.id}>
-                {String(bloco.dados?.titulo || bloco.dados?.nome || resumo(bloco)).slice(0,80)}
+                {String(bloco.dados?.titulo || bloco.dados?.nome || getPreview(bloco)).slice(0,80)}
               </option>
             ))}
           </select>
