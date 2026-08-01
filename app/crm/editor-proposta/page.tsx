@@ -85,6 +85,7 @@ export default function EditorProposta() {
   const podeEditar = isDono || isSuperAdmin || perfil === "Administrador";
 
   const [campos, setCampos] = useState<CampoUnificado[]>([]);
+  const [camposRemovidos, setCamposRemovidos] = useState<CampoUnificado[]>([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -130,7 +131,6 @@ export default function EditorProposta() {
         supabase.from("proposta_campos_customizados")
           .select("*")
           .eq("workspace_id", workspace.username)
-          .eq("ativo", true)
           .order("ordem", { ascending: true }),
       ]);
 
@@ -173,7 +173,25 @@ export default function EditorProposta() {
           ? !!mostrarFixoMap.get(c.slug)
           : !!mostrarCustomMap.get(c.slug),
       }));
-      setCampos(enriquecida as any);
+      const removidosFixos = enriquecida.filter(c => c.origem === "fixo" && c.visivel === false);
+      const ativos = enriquecida.filter(c => c.visivel !== false);
+      const removidosCustom: CampoUnificado[] = (respCustom.data || [])
+        .filter((c: any) => c.ativo === false)
+        .map((c: any) => ({
+          origem: "custom" as const,
+          slug: c.slug,
+          label: c.label,
+          tipo: c.tipo,
+          obrigatorio: !!c.obrigatorio,
+          visivel: false,
+          ordem: typeof c.ordem === "number" ? c.ordem : 999,
+          opcoes: Array.isArray(c.opcoes) ? c.opcoes : [],
+          placeholder: c.placeholder,
+          idCustom: c.id,
+          mostrar_na_lista: !!c.mostrar_na_lista,
+        } as any));
+      setCampos(ativos as any);
+      setCamposRemovidos([...removidosFixos, ...removidosCustom] as any);
       setDirty(false);
     } catch (e) {
       console.error("[EditorProposta] erro fetch:", e);
@@ -249,29 +267,47 @@ export default function EditorProposta() {
 
   const remover = async (idx: number) => {
     const c = campos[idx];
-    if (c.origem === "fixo") {
-      if (confirm(`Ocultar o campo "${c.label}"?\n\nEle deixa de aparecer no formulário, mas os dados das propostas existentes ficam preservados.`)) {
-        atualizar(idx, { visivel: false });
-      }
-      return;
-    }
-    const msg = c.idCustom
-      ? `Remover o campo "${c.label}"?\n\nOs valores já preenchidos nas propostas existentes NÃO serão excluídos.`
-      : `Remover o campo "${c.label || "novo"}"?`;
+    const msg = c.origem === "fixo"
+      ? `Excluir o campo padrão "${c.label}" deste workspace?\n\nEle desaparecerá do CRM e dos fluxos somente neste workspace. Os dados antigos serão preservados e o campo poderá ser restaurado.`
+      : c.idCustom
+        ? `Excluir o campo "${c.label}" deste workspace?\n\nOs valores já preenchidos serão preservados e o campo poderá ser restaurado.`
+        : `Remover o campo "${c.label || "novo"}"?`;
     if (!confirm(msg)) return;
 
-    if (c.idCustom && workspace?.username) {
-      const { error } = await supabase
-        .from("proposta_campos_customizados")
-        .update({ ativo: false })
-        .eq("id", c.idCustom)
-        .eq("workspace_id", workspace.username);
-      if (error) { alert("Erro ao remover: " + error.message); return; }
+    if (workspace?.username && c.origem === "fixo") {
+      const resposta = c.idConfig
+        ? await supabase.from("proposta_campos_padrao_config").update({ visivel: false })
+            .eq("id", c.idConfig).eq("workspace_id", workspace.username)
+        : await supabase.from("proposta_campos_padrao_config").insert([{
+            workspace_id: workspace.username, campo_slug: c.slug, visivel: false,
+          }]);
+      if (resposta.error) { alert("Erro ao excluir: " + resposta.error.message); return; }
+    } else if (c.idCustom && workspace?.username) {
+      const { error } = await supabase.from("proposta_campos_customizados")
+        .update({ ativo: false }).eq("id", c.idCustom).eq("workspace_id", workspace.username);
+      if (error) { alert("Erro ao excluir: " + error.message); return; }
     }
-    setCampos(campos.filter((_, i) => i !== idx).map((c, i) => ({ ...c, ordem: i })));
-    setDirty(true);
+    if (c.origem === "fixo" || c.idCustom) await fetchCampos();
+    else setCampos(campos.filter((_, i) => i !== idx));
   };
 
+  const restaurar = async (campo: CampoUnificado) => {
+    if (!workspace?.username) return;
+    if (campo.origem === "fixo") {
+      const resposta = campo.idConfig
+        ? await supabase.from("proposta_campos_padrao_config").update({ visivel: true })
+            .eq("id", campo.idConfig).eq("workspace_id", workspace.username)
+        : await supabase.from("proposta_campos_padrao_config").insert([{
+            workspace_id: workspace.username, campo_slug: campo.slug, visivel: true,
+          }]);
+      if (resposta.error) { alert("Erro ao restaurar: " + resposta.error.message); return; }
+    } else if (campo.idCustom) {
+      const { error } = await supabase.from("proposta_campos_customizados")
+        .update({ ativo: true }).eq("id", campo.idCustom).eq("workspace_id", workspace.username);
+      if (error) { alert("Erro ao restaurar: " + error.message); return; }
+    }
+    await fetchCampos();
+  };
   const adicionarOpcao = (idx: number) => {
     const c = campos[idx];
     atualizar(idx, { opcoes: [...(c.opcoes || []), ""] });
@@ -491,7 +527,8 @@ export default function EditorProposta() {
     visiveis: campos.filter(c => c.visivel).length,
     obrigatorios: campos.filter(c => c.obrigatorio).length,
     mostrarLista: campos.filter(c => (c as any).mostrar_na_lista).length,
-  }), [campos]);
+    removidos: camposRemovidos.length,
+  }), [campos, camposRemovidos]);
 
   const buscaLower = busca.trim().toLowerCase();
   const matchaBusca = (c: CampoUnificado) => {
@@ -653,6 +690,7 @@ export default function EditorProposta() {
                 <Stat label="Obrigatórios" valor={stats.obrigatorios.toString()} cor="#16a34a" />
                 <Stat label="Na tela principal" valor={stats.mostrarLista.toString()} cor="#f59e0b" />
                 <Stat label="Personalizados" valor={stats.custom.toString()} cor="#a855f7" />
+                <Stat label="Removidos" valor={stats.removidos.toString()} cor="#dc2626" />
               </div>
             </div>
 
@@ -780,6 +818,28 @@ export default function EditorProposta() {
             })
           )}
 
+          {!loading && camposRemovidos.length > 0 && (
+            <div style={{ ...cardStyle, overflow: "hidden", border: "1px solid #fecaca" }}>
+              <div style={{ padding: "14px 20px", background: "#fef2f2", borderBottom: "1px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <h2 style={{ color: "#991b1b", fontSize: 14, fontWeight: 800, margin: 0 }}>🗑️ Campos removidos deste workspace</h2>
+                  <p style={{ color: "#b91c1c", fontSize: 11, margin: "3px 0 0" }}>Não aparecem no CRM nem nos fluxos. Os dados históricos continuam preservados.</p>
+                </div>
+                <span style={{ background: "#fff", color: "#dc2626", border: "1px solid #fecaca", padding: "4px 10px", borderRadius: 10, fontSize: 11, fontWeight: 800 }}>{camposRemovidos.length}</span>
+              </div>
+              <div style={{ padding: isMobile ? 12 : 16, display: "flex", flexDirection: "column", gap: 8 }}>
+                {camposRemovidos.map(campo => (
+                  <div key={`removido-${campo.origem}-${campo.slug}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 9, padding: "10px 12px" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <span style={{ display: "block", color: "#374151", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{campo.label}</span>
+                      <span style={{ color: "#9ca3af", fontSize: 10 }}>{campo.origem === "fixo" ? "Campo padrão removido neste workspace" : "Campo personalizado removido"}</span>
+                    </div>
+                    <button type="button" onClick={() => restaurar(campo)} style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 8, padding: "7px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>↩ Restaurar</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {!loading && campos.length > 0 && (
             <div style={{ ...cardStyle, padding: isMobile ? 14 : 18, background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -910,14 +970,14 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, inputStyle, isMobile, a
         ))}
 
         <button onClick={() => remover(idx)}
-          title={ehFixo ? "Ocultar campo (não pode ser deletado)" : "Remover campo"}
+          title="Excluir campo deste workspace"
           style={{
-            background: ehFixo ? "#fffbeb" : "#fef2f2",
-            color: ehFixo ? "#f59e0b" : "#dc2626",
-            border: `1px solid ${ehFixo ? "#fde68a" : "#fecaca"}`,
+            background: "#fef2f2",
+            color: "#dc2626",
+            border: "1px solid #fecaca",
             borderRadius: 10, padding: "9px 12px", fontSize: 14,
             cursor: "pointer", height: 38, whiteSpace: "nowrap", fontWeight: 600,
-          }}>{ehFixo ? "👁️‍🗨️" : "🗑️"}</button>
+          }}>🗑️</button>
       </div>
 
       {isMobile && (
@@ -958,19 +1018,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, inputStyle, isMobile, a
           <span style={{ color: campo.obrigatorio ? "#16a34a" : "#6b7280", fontSize: 11, fontWeight: 600 }}>⭐ Obrigatório</span>
         </label>
 
-        <label style={{
-          display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
-          background: campo.visivel ? "#eff6ff" : "#f3f4f6",
-          border: `1px solid ${campo.visivel ? "#bfdbfe" : "#e5e7eb"}`,
-          padding: "5px 11px", borderRadius: 8,
-        }}>
-          <input type="checkbox" checked={campo.visivel}
-            onChange={(e) => atualizar(idx, { visivel: e.target.checked })}
-            style={{ accentColor: campo.visivel ? "#3b82f6" : "#9ca3af", width: 14, height: 14, cursor: "pointer" }} />
-          <span style={{ color: campo.visivel ? "#3b82f6" : "#6b7280", fontSize: 11, fontWeight: 600 }}>
-            {campo.visivel ? "👁️ Visível" : "🙈 Oculto"}
-          </span>
-        </label>
+
 
         <label style={{
           display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
