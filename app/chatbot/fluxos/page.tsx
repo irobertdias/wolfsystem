@@ -580,33 +580,70 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   // Usado pro autocomplete/dropdown nos blocos que usam variáveis.
   const variaveisDoFluxo = (() => {
     const set = new Set<string>();
+    const adicionar = (valor: unknown) => {
+      const nome = String(valor || "").trim();
+      if (nome) set.add(nome);
+    };
     nos.forEach(n => {
       const dn = n.dados || {};
       // Blocos que CAPTURAM variáveis
-      if (dn.variavel) set.add(dn.variavel);
-      if (dn.variavel_resposta) set.add(dn.variavel_resposta);
-      if (dn.variavel_status) set.add(dn.variavel_status);
+      adicionar(dn.variavel);
+      adicionar(dn.variavel_resposta);
+      adicionar(dn.variavel_status);
+      adicionar(dn.variavel_resultado);
+      adicionar(dn.variavel_arquivo);
+      adicionar(dn.variavel_enviado);
+      adicionar(dn.variavel_sessao);
       // Fluxo por IA guarda várias variáveis dentro de dados.variaveis.
       if (Array.isArray(dn.variaveis)) {
         dn.variaveis.forEach((campo: any) => {
-          const nome = String(campo?.nome || "").trim();
-          if (nome) set.add(nome);
+          adicionar(campo?.nome);
+        });
+      }
+      // Arquivos privados salvos diretamente pelo motor.
+      if (Array.isArray(dn.arquivos_salvar_regras)) {
+        dn.arquivos_salvar_regras.forEach((regra: any) => {
+          const variavel = String(regra?.variavel || "").trim();
+          adicionar(variavel);
+          if (variavel && regra?.obrigatoria === true) adicionar(`${variavel}_validado`);
         });
       }
       // Resultados das consultas automáticas também ficam disponíveis.
       if (Array.isArray(dn.consultas)) {
         dn.consultas.forEach((consulta: any) => {
-          const resultado = String(consulta?.variavel_resultado || "").trim();
-          const status = String(consulta?.variavel_status || "").trim();
-          if (resultado) set.add(resultado);
-          if (status) set.add(status);
+          adicionar(consulta?.variavel_resultado);
+          adicionar(consulta?.variavel_status);
         });
       }
+      // Saidas criadas automaticamente pelos modulos isolados.
+      if (n.tipo === "gerar_documento") {
+        adicionar(dn.variavel_arquivo || "contrato_arquivo");
+        adicionar(dn.variavel_enviado || "contrato_enviado");
+      }
+      if (n.tipo === "validar_assinatura") {
+        adicionar(dn.variavel_resultado || "assinatura_confirmada");
+        adicionar("contrato_assinado_arquivo");
+      }
+      if (n.tipo === "assinatura_wolf") {
+        adicionar(dn.variavel_sessao || "assinatura_wolf_id");
+        adicionar(dn.variavel_resultado || "assinatura_confirmada");
+        [
+          "assinatura_wolf_link",
+          "contrato_assinado_arquivo",
+          "assinatura_wolf_status",
+          "assinatura_tipo",
+          "assinatura_biometria_status",
+          "assinatura_hash_documento",
+          "assinatura_auditoria_id",
+          "assinatura_empresa_confirmada",
+          "assinatura_cliente_confirmada",
+        ].forEach(adicionar);
+      }
       // Bloco "variavel" (set manual)
-      if (n.tipo === "variavel" && dn.nome) set.add(dn.nome);
+      if (n.tipo === "variavel") adicionar(dn.nome);
       // Condições — referenciam mas também incluo pra autocompletar
       if (Array.isArray(dn.condicoes)) {
-        dn.condicoes.forEach((c: any) => { if (c.variavel) set.add(c.variavel); });
+        dn.condicoes.forEach((c: any) => adicionar(c.variavel));
       }
     });
     return Array.from(set).sort();
