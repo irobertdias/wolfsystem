@@ -86,6 +86,7 @@ export default function EditorProposta() {
 
   const [campos, setCampos] = useState<CampoUnificado[]>([]);
   const [camposRemovidos, setCamposRemovidos] = useState<CampoUnificado[]>([]);
+  const [removidosAbertos, setRemovidosAbertos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -820,14 +821,14 @@ export default function EditorProposta() {
 
           {!loading && camposRemovidos.length > 0 && (
             <div style={{ ...cardStyle, overflow: "hidden", border: "1px solid #fecaca" }}>
-              <div style={{ padding: "14px 20px", background: "#fef2f2", borderBottom: "1px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ padding: "14px 20px", background: "#fef2f2", borderBottom: removidosAbertos ? "1px solid #fecaca" : "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                 <div>
                   <h2 style={{ color: "#991b1b", fontSize: 14, fontWeight: 800, margin: 0 }}>🗑️ Campos removidos deste workspace</h2>
                   <p style={{ color: "#b91c1c", fontSize: 11, margin: "3px 0 0" }}>Não aparecem no CRM nem nos fluxos. Os dados históricos continuam preservados.</p>
                 </div>
-                <span style={{ background: "#fff", color: "#dc2626", border: "1px solid #fecaca", padding: "4px 10px", borderRadius: 10, fontSize: 11, fontWeight: 800 }}>{camposRemovidos.length}</span>
+                <button type="button" onClick={() => setRemovidosAbertos(aberto => !aberto)} aria-expanded={removidosAbertos} aria-label={removidosAbertos ? "Recolher campos removidos" : "Mostrar campos removidos"} style={{ background: "#fff", color: "#dc2626", border: "1px solid #fecaca", padding: "6px 10px", borderRadius: 10, fontSize: 11, fontWeight: 800, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}><span>{camposRemovidos.length}</span><span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>{removidosAbertos ? "\u25B2" : "\u25BC"}</span></button>
               </div>
-              <div style={{ padding: isMobile ? 12 : 16, display: "flex", flexDirection: "column", gap: 8 }}>
+              {removidosAbertos && <div style={{ padding: isMobile ? 12 : 16, display: "flex", flexDirection: "column", gap: 8 }}>
                 {camposRemovidos.map(campo => (
                   <div key={`removido-${campo.origem}-${campo.slug}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 9, padding: "10px 12px" }}>
                     <div style={{ minWidth: 0 }}>
@@ -837,7 +838,7 @@ export default function EditorProposta() {
                     <button type="button" onClick={() => restaurar(campo)} style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 8, padding: "7px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>↩ Restaurar</button>
                   </div>
                 ))}
-              </div>
+              </div>}
             </div>
           )}
           {!loading && campos.length > 0 && (
