@@ -45,6 +45,8 @@ const labelToSlug = (label: string): string =>
     .replace(/(^_|_$)/g, "")
     .slice(0, 50);
 
+const CORES_SECOES_PERSONALIZADAS = ["#7c3aed", "#2563eb", "#0891b2", "#059669", "#d97706", "#dc2626", "#db2777", "#4f46e5"];
+
 const SECAO_META: Record<string, { icone: string; cor: string; descricao: string; ordem: number }> = {
   pessoal:        { icone: "👤", cor: "#3b82f6", descricao: "Identificação do cliente",        ordem: 1 },
   endereco:       { icone: "📍", cor: "#06b6d4", descricao: "Onde será a instalação",           ordem: 2 },
@@ -159,6 +161,7 @@ export default function EditorProposta() {
         placeholder: c.placeholder,
         ativo: c.ativo,
         secao_customizada: c.secao_customizada || null,
+        secao_cor: c.secao_cor || null,
       }));
 
       const lista = montarCamposUnificados(configs, customs);
@@ -238,7 +241,7 @@ export default function EditorProposta() {
     return () => observer.disconnect();
   }, [campos]);
 
-  const adicionarCustom = (secaoCustomizada?: string) => {
+  const adicionarCustom = (secaoCustomizada?: string, secaoCor?: string) => {
     const maxOrdem = campos.reduce((m, c) => Math.max(m, c.ordem), 0);
     const novo: CampoUnificado = {
       origem: "custom",
@@ -250,6 +253,7 @@ export default function EditorProposta() {
       ordem: maxOrdem + 1,
       opcoes: [],
       secao_customizada: secaoCustomizada?.trim() || null,
+      secao_cor: secaoCor || null,
     };
     setCampos([...campos, { ...novo, mostrar_na_lista: true } as any]);
     setDirty(true);
@@ -258,7 +262,9 @@ export default function EditorProposta() {
   const adicionarSecao = () => {
     const nome = window.prompt("Nome da nova se\u00e7\u00e3o:")?.trim();
     if (!nome) return;
-    adicionarCustom(nome);
+    const secoesAtuais = new Set(campos.map(c => String((c as any).secao_customizada || "").trim()).filter(Boolean));
+    const corInicial = CORES_SECOES_PERSONALIZADAS[secoesAtuais.size % CORES_SECOES_PERSONALIZADAS.length];
+    adicionarCustom(nome, corInicial);
   };
 
   const renomearSecao = (nomeAtual: string) => {
@@ -267,6 +273,16 @@ export default function EditorProposta() {
     setCampos(atuais => atuais.map(campo =>
       campo.origem === "custom" && String((campo as any).secao_customizada || "").trim() === nomeAtual
         ? { ...campo, secao_customizada: novoNome } as any
+        : campo
+    ));
+    setDirty(true);
+  };
+
+  const alterarCorSecao = (nomeSecao: string, novaCor: string) => {
+    if (!/^#[0-9a-fA-F]{6}$/.test(novaCor)) return;
+    setCampos(atuais => atuais.map(campo =>
+      campo.origem === "custom" && String((campo as any).secao_customizada || "").trim() === nomeSecao
+        ? { ...campo, secao_cor: novaCor } as any
         : campo
     ));
     setDirty(true);
@@ -468,6 +484,7 @@ export default function EditorProposta() {
             ativo: true,
             placeholder: c.placeholder || null,
             secao_customizada: (c as any).secao_customizada?.trim() || null,
+            secao_cor: (c as any).secao_cor || null,
             mostrar_na_lista: mostrarNaLista,
           }).eq("id", existeId).eq("workspace_id", workspace.username);
         } else {
@@ -482,6 +499,7 @@ export default function EditorProposta() {
             ativo: true,
             placeholder: c.placeholder || null,
             secao_customizada: (c as any).secao_customizada?.trim() || null,
+            secao_cor: (c as any).secao_cor || null,
             mostrar_na_lista: mostrarNaLista,
           }]);
         }
@@ -510,7 +528,10 @@ export default function EditorProposta() {
         const label = nomeSecaoCustomizada || (typeof labelRaw === "string"
           ? labelRaw
           : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec));
-        const corCustom = (labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null;
+        const corSecaoCustomizada = sec.startsWith("custom:") && /^#[0-9a-fA-F]{6}$/.test(String((campos[i] as any).secao_cor || ""))
+          ? String((campos[i] as any).secao_cor)
+          : null;
+        const corCustom = corSecaoCustomizada || ((labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null);
         const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
         grupoAtual = {
           key: sec,
@@ -815,7 +836,10 @@ export default function EditorProposta() {
                       {g.meta.descricao && <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{g.meta.descricao}</p>}
                     </div>
                     {g.key.startsWith("custom:") && <>
-                      <button type="button" onClick={() => adicionarCustom(g.label)} style={{ background: "#fff", color: g.meta.cor, border: `1px solid ${g.meta.cor}40`, borderRadius: 8, padding: "6px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>+ Campo</button>
+                      <label title="Escolher cor da se\u00e7\u00e3o" style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden" }}>
+                        <input type="color" value={g.meta.cor} onChange={evento => alterarCorSecao(g.label, evento.target.value)} style={{ width: 42, height: 42, border: 0, padding: 0, background: "transparent", cursor: "pointer" }} />
+                      </label>
+                      <button type="button" onClick={() => adicionarCustom(g.label, g.meta.cor)} style={{ background: "#fff", color: g.meta.cor, border: `1px solid ${g.meta.cor}40`, borderRadius: 8, padding: "6px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>+ Campo</button>
                       <button type="button" onClick={() => renomearSecao(g.label)} title="Renomear se\u00e7\u00e3o" style={{ background: "#fff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 8, padding: "6px 9px", fontSize: 12, cursor: "pointer" }}>{"✏️"}</button>
                     </>}
                     <span style={{

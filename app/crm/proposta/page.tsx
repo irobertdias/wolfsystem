@@ -297,6 +297,7 @@ function PropostaForm() {
           placeholder: c.placeholder,
           ativo: c.ativo,
           secao_customizada: c.secao_customizada || null,
+          secao_cor: c.secao_cor || null,
         }));
 
         const lista2 = montarCamposUnificados(configs, customs).filter(c => c.visivel);
@@ -671,7 +672,10 @@ function PropostaForm() {
         const label = nomeSecaoCustomizada || (typeof labelRaw === "string"
           ? labelRaw
           : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec));
-        const corCustom = (labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null;
+        const corSecaoCustomizada = sec.startsWith("custom:") && /^#[0-9a-fA-F]{6}$/.test(String((camposUnificados[i] as any).secao_cor || ""))
+          ? String((camposUnificados[i] as any).secao_cor)
+          : null;
+        const corCustom = corSecaoCustomizada || ((labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null);
         const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
         grupoAtual = {
           key: sec,

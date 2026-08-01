@@ -116,6 +116,7 @@ export type CampoCustom = {
   placeholder?: string | null;
   ativo?: boolean;
   secao_customizada?: string | null;
+  secao_cor?: string | null;
 };
 
 // Estrutura unificada usada na renderização — junta fixos (resolvidos com config)
@@ -133,6 +134,7 @@ export type CampoUnificado = {
   placeholder?: string | null;
   secao?: string;
   secao_customizada?: string | null;
+  secao_cor?: string | null;
   larguraTotal?: boolean;
   idConfig?: number;       // id em proposta_campos_padrao_config (se fixo)
   idCustom?: number;       // id em proposta_campos_customizados (se custom)
@@ -186,6 +188,7 @@ export function montarCamposUnificados(
       opcoes: c.opcoes,
       placeholder: c.placeholder,
       secao_customizada: c.secao_customizada || null,
+      secao_cor: c.secao_cor || null,
       secao: c.secao_customizada?.trim() || undefined,
       idCustom: c.id,
     }));
