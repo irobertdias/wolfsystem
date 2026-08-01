@@ -141,6 +141,48 @@ export type CampoUnificado = {
   idCustom?: number;       // id em proposta_campos_customizados (se custom)
 };
 
+// Mantem todos os campos de uma mesma secao juntos, preservando a ordem das
+// secoes e a ordem interna. Tambem corrige configuracoes antigas divididas.
+export function agruparCamposPorSecao(campos: CampoUnificado[]): CampoUnificado[] {
+  const ordenados = [...campos].sort((a, b) => a.ordem - b.ordem);
+
+  const chaveExplicita = (campo: CampoUnificado): string => {
+    const escolhida = String(campo.secao_customizada || "").trim();
+    if (escolhida.startsWith("@")) return `padrao:${escolhida.slice(1)}`;
+    if (escolhida) return `custom:${escolhida.toLocaleLowerCase("pt-BR")}`;
+    if (campo.origem === "fixo" && campo.secao) return `padrao:${campo.secao}`;
+    return "";
+  };
+
+  const chaves = ordenados.map(chaveExplicita);
+  for (let i = 0; i < chaves.length; i++) {
+    if (chaves[i]) continue;
+    for (let anterior = i - 1; anterior >= 0; anterior--) {
+      if (chaves[anterior]) { chaves[i] = chaves[anterior]; break; }
+    }
+    if (chaves[i]) continue;
+    for (let proximo = i + 1; proximo < chaves.length; proximo++) {
+      if (chaves[proximo]) { chaves[i] = chaves[proximo]; break; }
+    }
+    if (!chaves[i]) chaves[i] = "personalizado";
+  }
+
+  const ordemSecoes: string[] = [];
+  const grupos = new Map<string, CampoUnificado[]>();
+  ordenados.forEach((campo, indice) => {
+    const chave = chaves[indice];
+    if (!grupos.has(chave)) {
+      ordemSecoes.push(chave);
+      grupos.set(chave, []);
+    }
+    grupos.get(chave)!.push(campo);
+  });
+
+  return ordemSecoes
+    .flatMap(chave => grupos.get(chave) || [])
+    .map((campo, indice) => ({ ...campo, ordem: indice + 1 }));
+}
+
 // Helper: aplica a config do workspace nos campos fixos e devolve a lista unificada
 export function montarCamposUnificados(
   configsFixos: ConfigCampoPadrao[],
@@ -196,5 +238,5 @@ export function montarCamposUnificados(
     }));
 
   // 4. Junta e ordena pela ordem
-  return [...fixos, ...customsUnif].sort((a, b) => a.ordem - b.ordem);
+  return agruparCamposPorSecao([...fixos, ...customsUnif]);
 }

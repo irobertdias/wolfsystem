@@ -10,6 +10,7 @@ import {
   CAMPOS_FIXOS,
   CAMPOS_FIXOS_MAP,
   SECOES_LABEL,
+  agruparCamposPorSecao,
   montarCamposUnificados,
   type CampoUnificado,
   type ConfigCampoPadrao,
@@ -244,7 +245,6 @@ export default function EditorProposta() {
   }, [campos]);
 
   const adicionarCustom = (secaoCustomizada?: string, secaoCor?: string) => {
-    const maxOrdem = campos.reduce((m, c) => Math.max(m, c.ordem), 0);
     const novo: CampoUnificado = {
       origem: "custom",
       slug: "",
@@ -252,12 +252,24 @@ export default function EditorProposta() {
       tipo: "texto",
       obrigatorio: false,
       visivel: true,
-      ordem: maxOrdem + 1,
+      ordem: campos.length + 1,
       opcoes: [],
       secao_customizada: secaoCustomizada?.trim() || null,
       secao_cor: secaoCor || null,
     };
-    setCampos([...campos, { ...novo, mostrar_na_lista: true } as any]);
+    const nomeSecao = secaoCustomizada?.trim();
+    if (!nomeSecao) {
+      setCampos(agruparCamposPorSecao([...campos, { ...novo, mostrar_na_lista: true } as any]));
+    } else {
+      const chaveSecao = `custom:${labelToSlug(nomeSecao)}`;
+      let ultimoIndice = -1;
+      campos.forEach((_, indice) => {
+        if (getSecaoKey(campos, indice) === chaveSecao) ultimoIndice = indice;
+      });
+      const novaLista = [...campos];
+      novaLista.splice(ultimoIndice >= 0 ? ultimoIndice + 1 : novaLista.length, 0, { ...novo, mostrar_na_lista: true } as any);
+      setCampos(novaLista.map((campo, indice) => ({ ...campo, ordem: indice + 1 })));
+    }
     setDirty(true);
   };
 
