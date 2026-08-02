@@ -56,16 +56,10 @@ function resultadosDoJob(job: JobValidacao | null): Resultado[] {
   ];
 }
 
-function baixarArquivo(nome: string, conteudo: string, tipo = "text/plain;charset=utf-8") {
-  const blob = new Blob(["\uFEFF" + conteudo], { type: tipo });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nome;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+function numeroParaCopia(item: Resultado) {
+  const original = String(item.original || "").trim();
+  const digitosOriginais = original.replace(/\D/g, "");
+  return digitosOriginais || original || String(item.numero || "").trim();
 }
 
 export default function ValidacaoNumerosPage() {
@@ -82,6 +76,7 @@ export default function ValidacaoNumerosPage() {
   const [job, setJob] = useState<JobValidacao | null>(null);
   const [erro, setErro] = useState("");
   const [filtro, setFiltro] = useState<"todos" | "validos" | "invalidos">("todos");
+  const [copiado, setCopiado] = useState<"validos" | "invalidos" | null>(null);
   const [qrCanalId, setQrCanalId] = useState<number | null>(null);
   const [qrImage, setQrImage] = useState("");
   const [qrStatus, setQrStatus] = useState("");
@@ -232,11 +227,14 @@ export default function ValidacaoNumerosPage() {
     } catch (e) { setErro((e as Error).message || "Falha ao iniciar a valida\u00e7\u00e3o."); }
   };
 
-  const copiar = async (lista: Resultado[]) => navigator.clipboard.writeText(lista.map((r) => r.numero).join("\n"));
-  const exportarCsv = () => {
-    const linhas = [["numero_original", "numero_normalizado", "status", "motivo"], ...resultados.map((r) => [r.original, r.numero, r.status.toUpperCase(), r.erroChecagem || ""])];
-    const csv = linhas.map((l) => l.map((v) => '"' + String(v).replaceAll('"', '""') + '"').join(";")).join("\n");
-    baixarArquivo("validacao-numeros.csv", csv, "text/csv;charset=utf-8");
+  const copiar = async (lista: Resultado[], tipo: "validos" | "invalidos") => {
+    try {
+      await navigator.clipboard.writeText(lista.map(numeroParaCopia).filter(Boolean).join("\n"));
+      setCopiado(tipo);
+      window.setTimeout(() => setCopiado((atual) => atual === tipo ? null : atual), 1800);
+    } catch {
+      setErro("Não foi possível copiar os números. Verifique a permissão da área de transferência do navegador.");
+    }
   };
 
   const card = { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)" };
@@ -278,7 +276,7 @@ export default function ValidacaoNumerosPage() {
       </section>
 
       {job && <section style={{ ...card, padding: 20, display: "grid", gap: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: "0 0 4px", fontSize: 17 }}>Resultado</h2><p style={{ margin: 0, color: "#64748b", fontSize: 12 }}>Status: {job.status} - {job.processados}/{job.total} consultados</p></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button onClick={() => copiar(validos)} disabled={!validos.length} style={{ ...button, background: "#ecfdf5", color: "#047857" }}>Copiar v&aacute;lidos</button><button onClick={() => baixarArquivo("numeros-com-whatsapp.txt", validos.map((r) => r.numero).join("\n"))} disabled={!validos.length} style={{ ...button, background: "#eff6ff", color: "#1d4ed8" }}>Baixar v&aacute;lidos</button><button onClick={exportarCsv} disabled={!resultados.length} style={{ ...button, background: "#f8fafc", color: "#334155", border: "1px solid #cbd5e1" }}>Baixar CSV completo</button></div></div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: "0 0 4px", fontSize: 17 }}>Resultado</h2><p style={{ margin: 0, color: "#64748b", fontSize: 12 }}>Status: {job.status} - {job.processados}/{job.total} consultados</p></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button onClick={() => copiar(validos, "validos")} disabled={!validos.length} style={{ ...button, background: "#ecfdf5", color: "#047857" }}>{copiado === "validos" ? "Copiados!" : `Copiar com WhatsApp (${validos.length})`}</button><button onClick={() => copiar(invalidos, "invalidos")} disabled={!invalidos.length} style={{ ...button, background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca" }}>{copiado === "invalidos" ? "Copiados!" : `Copiar sem WhatsApp / inválidos (${invalidos.length})`}</button></div></div>
         <div style={{ height: 9, borderRadius: 999, background: "#e2e8f0", overflow: "hidden" }}><div style={{ height: "100%", width: progresso + "%", background: "linear-gradient(90deg,#2563eb,#06b6d4)", transition: "width .3s" }}/></div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 10 }}><Resumo titulo="Com WhatsApp" valor={validos.length} cor="#059669"/><Resumo titulo="Sem WhatsApp" valor={(job.semWhatsapp || []).length} cor="#dc2626"/><Resumo titulo="Formato inv&aacute;lido" valor={(job.invalidos || []).length} cor="#d97706"/></div>
         <div style={{ display: "flex", gap: 8 }}><Filtro ativo={filtro === "todos"} onClick={() => setFiltro("todos")}>Todos</Filtro><Filtro ativo={filtro === "validos"} onClick={() => setFiltro("validos")}>Com WhatsApp</Filtro><Filtro ativo={filtro === "invalidos"} onClick={() => setFiltro("invalidos")}>Sem WhatsApp / inv&aacute;lidos</Filtro></div>
