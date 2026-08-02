@@ -136,6 +136,7 @@ export async function POST(req: NextRequest) {
     // 🆕 MÓDULOS COMERCIAIS — todos os boleanos do schema cadastros
     modulo_roleta,
     modulo_disparos_web,
+    modulo_validacao_numeros,
     modulo_disparos_api,
     modulo_voip,
     modulo_api_integracao,
@@ -235,6 +236,7 @@ export async function POST(req: NextRequest) {
       // 🆕 MÓDULOS COMERCIAIS (default = false — admin libera o que vendeu)
       modulo_roleta:         !!modulo_roleta,
       modulo_disparos_web:   !!modulo_disparos_web,
+      modulo_validacao_numeros: !!modulo_validacao_numeros,
       modulo_disparos_api:   !!modulo_disparos_api,
       modulo_voip:           !!modulo_voip,
       modulo_api_integracao: !!modulo_api_integracao,
@@ -401,7 +403,7 @@ export async function PATCH(req: NextRequest) {
       "usuarios_liberados", "conexoes_liberadas",
       "permite_webjs", "permite_waba", "permite_instagram",
       "ia", "autorizado",
-      "modulo_roleta", "modulo_disparos_web", "modulo_disparos_api",
+      "modulo_roleta", "modulo_disparos_web", "modulo_validacao_numeros", "modulo_disparos_api",
       "modulo_voip", "modulo_api_integracao", "modulo_instagram",
       "modulo_cobranca", "modulo_meta_ads", "modulo_contratos_assinaturas", "modulo_contratos_plano", "modulo_contratos_com_crm", "modulo_equipes", "modulo_funil_avancado",
       "modulo_rh", "modulo_bater_ponto", "modulo_financeiro", "financeiro_opcoes",

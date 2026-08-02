@@ -20,6 +20,7 @@ import { useWorkspace } from "./useWorkspace";
 export type Modulos = {
   roleta: boolean;
   disparos_web: boolean;
+  validacao_numeros: boolean;
   disparos_api: boolean;
   voip: boolean;
   api_integracao: boolean;
@@ -45,7 +46,7 @@ export const FIN_OPCOES = [
 const FIN_TODAS: Record<string, boolean> = Object.fromEntries(FIN_OPCOES.map((k) => [k, true]));
 
 const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
-  roleta: false, disparos_web: false, disparos_api: false,
+  roleta: false, disparos_web: false, validacao_numeros: false, disparos_api: false,
   voip: false, api_integracao: false, instagram: false,
   cobranca: false, meta_ads: false, vendedor_ia: false, contratos_assinaturas: false, rh: false, bater_ponto: false,
   financeiro: false, financeiro_opcoes: {},
@@ -97,7 +98,7 @@ export function useModulos() {
         // isso os módulos voltariam todos false pro time interno da casa.
         if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true, vendedor_ia: true, contratos_assinaturas: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
+            setModulos({ roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true, vendedor_ia: true, contratos_assinaturas: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -105,7 +106,7 @@ export function useModulos() {
 
         // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
-          .select("modulo_roleta, modulo_disparos_web, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_meta_ads, modulo_vendedor_ia, modulo_contratos_assinaturas, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
+          .select("modulo_roleta, modulo_disparos_web, modulo_validacao_numeros, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_meta_ads, modulo_vendedor_ia, modulo_contratos_assinaturas, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
           .eq("email", ownerEmail)
           .maybeSingle();
 
@@ -113,6 +114,7 @@ export function useModulos() {
           setModulos({
             roleta: !!cad?.modulo_roleta,
             disparos_web: !!cad?.modulo_disparos_web,
+            validacao_numeros: !!cad?.modulo_validacao_numeros,
             disparos_api: !!cad?.modulo_disparos_api,
             voip: !!cad?.modulo_voip,
             api_integracao: !!cad?.modulo_api_integracao,
@@ -149,7 +151,7 @@ export function useModulos() {
 //   if (!modulos.voip) return <ModuloBloqueado modulo="voip" />;
 // ═══════════════════════════════════════════════════════════════════════
 
-type ModuloKey = "roleta" | "disparos_web" | "disparos_api" | "voip" | "api_integracao" | "instagram" | "meta_ads" | "vendedor_ia" | "rh" | "bater_ponto";
+type ModuloKey = "roleta" | "disparos_web" | "validacao_numeros" | "disparos_api" | "voip" | "api_integracao" | "instagram" | "meta_ads" | "vendedor_ia" | "rh" | "bater_ponto";
 
 const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: string; planoNecessario: string; cor: string }> = {
   roleta: {
@@ -165,6 +167,13 @@ const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: strin
     desc: "Envie campanhas de WhatsApp para milhares de contatos usando conexão via QR Code.",
     planoNecessario: "Intermediário ou Ultra",
     cor: "#3b82f6",
+  },
+  validacao_numeros: {
+    icone: "\u2705",
+    nome: "Valida\u00e7\u00e3o de n\u00fameros",
+    desc: "Higienize listas e separe os n\u00fameros que possuem WhatsApp sem enviar mensagens.",
+    planoNecessario: "Libera\u00e7\u00e3o comercial",
+    cor: "#0891b2",
   },
   disparos_api: {
     icone: "📨",

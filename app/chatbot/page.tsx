@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { usePermissao } from "../hooks/usePermissao";
+import { useModulos } from "../hooks/useModulos";
 import { ChatSection } from "./_sections/ChatSection";
 import { DashboardSection } from "./_sections/DashboardSection";
 import { ConexoesSection } from "./_sections/ConexoesSection";
@@ -17,6 +18,7 @@ function ChatbotInner() {
   const aba = searchParams.get("aba") || "chat";
   const { workspace } = useWorkspace();
   const { permissoes, isDono } = usePermissao();
+  const { modulos } = useModulos();
   const [menuAberto, setMenuAberto] = useState<string | null>("atendimentos");
 
   const [isMobile, setIsMobile] = useState(false);
@@ -59,6 +61,7 @@ function ChatbotInner() {
       subitens: [
         ...((isDono || permissoes.templates_waba) ? [{ key: "templates", label: "Templates", path: "/chatbot/templates" }] : []),
         ...((isDono || permissoes.disparo_enviar) ? [{ key: "disparos", label: "Disparos em Massa", path: "/chatbot/disparos" }] : []),
+        ...(((isDono || permissoes.disparo_enviar) && modulos.validacao_numeros) ? [{ key: "validacao_numeros", label: "Valida\u00e7\u00e3o de n\u00fameros", path: "/chatbot/validacao-numeros" }] : []),
       ]
     }] : []),
     ...(podeVerCadastro ? [{
