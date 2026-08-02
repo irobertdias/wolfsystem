@@ -2063,39 +2063,63 @@ function InfoCard({ titulo, valor, detalhe, cor, icone }: any) {
 }
 
 function BloqueioPosFinalizacao({ workspaceId, podeGerenciar, IS, cardStyle, labelStyle }: any) {
-  const { workspace, wsId } = useWorkspace();
   const [horasBloqueio, setHorasBloqueio] = useState<number>(24);
   const [salvando, setSalvando] = useState(false);
+  const [carregandoConfiguracao, setCarregandoConfiguracao] = useState(true);
   const [editado, setEditado] = useState(false);
 
   useEffect(() => {
-    if (workspace && (workspace as any).bloqueio_pos_finalizacao_horas !== undefined) {
-      const valor = (workspace as any).bloqueio_pos_finalizacao_horas;
-      setHorasBloqueio(valor === null ? 24 : valor);
-    }
-  }, [workspace]);
+    if (!workspaceId) return;
+    let ativo = true;
+    const carregar = async () => {
+      setCarregandoConfiguracao(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Sessao expirada. Entre novamente no sistema.");
+        const resposta = await fetch(
+          `/api/workspace/configuracoes/bloqueio-pos-finalizacao?workspaceId=${encodeURIComponent(workspaceId)}`,
+          { headers: { Authorization: `Bearer ${session.access_token}` } }
+        );
+        const resultado = await resposta.json().catch(() => ({}));
+        if (!resposta.ok || resultado?.success !== true) throw new Error(resultado?.error || "Nao foi possivel carregar a configuracao.");
+        if (ativo) {
+          setHorasBloqueio(Number(resultado.horas) || 0);
+          setEditado(false);
+        }
+      } catch (error: any) {
+        if (ativo) alert("Erro ao carregar o bloqueio pos-finalizacao: " + (error?.message || "erro desconhecido"));
+      } finally {
+        if (ativo) setCarregandoConfiguracao(false);
+      }
+    };
+    carregar();
+    return () => { ativo = false; };
+  }, [workspaceId]);
 
   const salvar = async () => {
-    if (!wsId) return;
+    if (!workspaceId) return;
     setSalvando(true);
-    const { error } = await supabase.from("workspaces")
-      .update({ bloqueio_pos_finalizacao_horas: horasBloqueio })
-      .eq("username", wsId);
-    if (!error && horasBloqueio === 0) {
-      await supabase.from("atendimentos")
-        .update({ bloqueado_ate: null, atendente_finalizou: null })
-        .eq("workspace_id", wsId)
-        .not("bloqueado_ate", "is", null);
-    }
-    setSalvando(false);
-    if (error) {
-      alert("❌ Erro ao salvar: " + error.message);
-    } else {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessao expirada. Entre novamente no sistema.");
+      const resposta = await fetch("/api/workspace/configuracoes/bloqueio-pos-finalizacao", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ workspaceId, horas: horasBloqueio }),
+      });
+      const resultado = await resposta.json().catch(() => ({}));
+      if (!resposta.ok || resultado?.success !== true) throw new Error(resultado?.error || "Nao foi possivel salvar a configuracao.");
+      const horasConfirmadas = Number(resultado.horas) || 0;
+      setHorasBloqueio(horasConfirmadas);
       setEditado(false);
-      alert(horasBloqueio === 0
-        ? "✅ Bloqueio desativado! Todos os contatos bloqueados foram liberados."
-        : "✅ Configuração salva!"
+      alert(horasConfirmadas === 0
+        ? `Bloqueio desativado! ${Number(resultado.atendimentosLiberados) || 0} atendimento(s) antigo(s) foram liberados.`
+        : "Configuracao salva e confirmada no servidor!"
       );
+    } catch (error: any) {
+      alert("Erro ao salvar: " + (error?.message || "erro desconhecido"));
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -2118,7 +2142,7 @@ function BloqueioPosFinalizacao({ workspaceId, podeGerenciar, IS, cardStyle, lab
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <input type="number" min={0} max={720} value={horasBloqueio}
             onChange={e => { setHorasBloqueio(Math.max(0, Math.min(720, parseInt(e.target.value) || 0))); setEditado(true); }}
-            disabled={!podeGerenciar}
+            disabled={!podeGerenciar || carregandoConfiguracao || salvando}
             style={{ ...IS, width: 110, fontWeight: 700 }} />
           <span style={{ color: "#6b7280", fontSize: 12, fontWeight: 500 }}>
             {horasBloqueio === 0 ? "(desativado)" : horasBloqueio === 24 ? "(1 dia)" : horasBloqueio === 48 ? "(2 dias)" : horasBloqueio === 168 ? "(1 semana)" : `(${horasBloqueio}h)`}
@@ -2138,7 +2162,7 @@ function BloqueioPosFinalizacao({ workspaceId, podeGerenciar, IS, cardStyle, lab
           {[0, 12, 24, 48, 72, 168].map(h => {
             const ativo = horasBloqueio === h;
             return (
-              <button key={h} disabled={!podeGerenciar} onClick={() => { setHorasBloqueio(h); setEditado(true); }}
+              <button key={h} disabled={!podeGerenciar || carregandoConfiguracao || salvando} onClick={() => { setHorasBloqueio(h); setEditado(true); }}
                 style={{
                   background: ativo ? "#3b82f6" : "#ffffff",
                   color: ativo ? "white" : "#6b7280",
