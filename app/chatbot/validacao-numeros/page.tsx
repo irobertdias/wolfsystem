@@ -80,10 +80,12 @@ export default function ValidacaoNumerosPage() {
   const [qrCanalId, setQrCanalId] = useState<number | null>(null);
   const [qrImage, setQrImage] = useState("");
   const [qrStatus, setQrStatus] = useState("");
+  const [qrErro, setQrErro] = useState("");
   const [qrAberto, setQrAberto] = useState(false);
   const [qrPolling, setQrPolling] = useState(false);
   const [acaoCanal, setAcaoCanal] = useState<"reconectar" | "qr" | null>(null);
   const arquivoRef = useRef<HTMLInputElement>(null);
+  const qrTentativasRef = useRef(0);
 
   const podeAcessar = isDono || perfil === "Administrador" || !!permissoes.disparo_enviar;
   const workspaceIds = useMemo(() => Array.from(new Set(
@@ -109,7 +111,11 @@ export default function ValidacaoNumerosPage() {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     });
     const data = await resp.json().catch(() => ({}));
-    if (!resp.ok || data?.success === false || data?.status === "erro") throw new Error(data?.error || "Falha na comunica\u00e7\u00e3o com o WhatsApp.");
+    if (!resp.ok || data?.success === false || data?.status === "erro") {
+      const falha = new Error(data?.error || "Falha na comunica\u00e7\u00e3o com o WhatsApp.") as Error & { upstreamStatus?: number };
+      falha.upstreamStatus = Number(data?.upstreamStatus || resp.status || 0) || undefined;
+      throw falha;
+    }
     return data;
   }, []);
 
@@ -138,15 +144,34 @@ export default function ValidacaoNumerosPage() {
         const rota = "qr-data&canalId=" + encodeURIComponent(String(qrCanalId)) + "&workspaceId=" + encodeURIComponent(qrWorkspaceId);
         const data = await wa(rota);
         if (!ativo) return;
-        if (data.qr) setQrImage(data.qr);
+        if (data.erro) {
+          setQrErro(data.erro);
+          setQrStatus("erro");
+          setQrPolling(false);
+          return;
+        }
+        if (data.qr) { setQrImage(data.qr); setQrErro(""); }
         setQrStatus(data.status || "desconectado");
+        qrTentativasRef.current += 1;
+        if (!data.qr && data.status !== "conectado" && qrTentativasRef.current >= 30) {
+          setQrErro("O WhatsApp Web nao gerou o QR em 45 segundos. Tente gerar novamente; nenhum outro canal sera reiniciado.");
+          setQrStatus("erro");
+          setQrPolling(false);
+          return;
+        }
         if (data.status === "conectado") {
           setQrPolling(false);
           await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrCanalId).in("workspace_id", workspaceIds);
           await carregarCanais();
           window.setTimeout(() => setQrAberto(false), 900);
         }
-      } catch (e) { if (ativo) setErro((e as Error).message); }
+      } catch (e) {
+        if (ativo) {
+          setQrErro((e as Error).message);
+          setQrStatus("erro");
+          setQrPolling(false);
+        }
+      }
     };
     consultar();
     const timer = window.setInterval(consultar, 1500);
@@ -164,7 +189,14 @@ export default function ValidacaoNumerosPage() {
           setJob(data.job as JobValidacao);
           if (data.job.status === "erro") setErro(data.job.erro || "A valida\u00e7\u00e3o foi interrompida.");
         }
-      } catch (e) { if (ativo) setErro((e as Error).message); }
+      } catch (e) {
+        if (!ativo) return;
+        const falha = e as Error & { upstreamStatus?: number };
+        setErro(falha.message);
+        if (falha.upstreamStatus === 404) {
+          setJob((atual) => atual ? { ...atual, status: "erro", erro: falha.message, concluidoEm: new Date().toISOString() } : atual);
+        }
+      }
     };
     consultar();
     const timer = window.setInterval(consultar, 1200);
@@ -193,14 +225,14 @@ export default function ValidacaoNumerosPage() {
       const canal = data as Canal;
       await wa("canal/criar", { canalId: canal.id, workspaceId: wsId });
       setCanais([canal]); setCanalId(canal.id);
-      setQrCanalId(canal.id); setQrImage(""); setQrStatus("desconectado"); setQrAberto(true); setQrPolling(true);
+      setQrCanalId(canal.id); setQrImage(""); setQrErro(""); qrTentativasRef.current = 0; setQrStatus("desconectado"); setQrAberto(true); setQrPolling(true);
     } catch (e) { setErro((e as Error).message || "N\u00e3o foi poss\u00edvel criar o canal."); }
     finally { setCriandoCanal(false); }
   };
 
   const abrirQr = async (canal: Canal) => {
     if (!confirm("Gerar um novo QR para o canal exclusivo de valida\u00e7\u00e3o?\n\nIsto encerra a sess\u00e3o salva atual. Use somente para trocar a conta ou quando a reconex\u00e3o normal n\u00e3o funcionar.")) return;
-    setErro(""); setAcaoCanal("qr"); setQrCanalId(canal.id); setQrImage(""); setQrStatus("desconectado"); setQrAberto(true); setQrPolling(false);
+    setErro(""); setAcaoCanal("qr"); setQrCanalId(canal.id); setQrImage(""); setQrErro(""); qrTentativasRef.current = 0; setQrStatus("desconectado"); setQrAberto(true); setQrPolling(false);
     try {
       await wa("resetar", { canalId: canal.id, workspaceId: canal.workspace_id });
       await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", canal.id).eq("workspace_id", canal.workspace_id);
@@ -211,7 +243,7 @@ export default function ValidacaoNumerosPage() {
 
   const reconectarCanal = async (canal: Canal) => {
     if (acaoCanal) return;
-    setErro(""); setAcaoCanal("reconectar"); setQrCanalId(canal.id); setQrImage(""); setQrStatus("reconectando"); setQrAberto(true); setQrPolling(false);
+    setErro(""); setAcaoCanal("reconectar"); setQrCanalId(canal.id); setQrImage(""); setQrErro(""); qrTentativasRef.current = 0; setQrStatus("reconectando"); setQrAberto(true); setQrPolling(false);
     try {
       const data = await wa("reconectar", { canalId: canal.id, workspaceId: canal.workspace_id });
       setQrStatus(data?.sessao_salva === false ? "desconectado" : "reconectando");
@@ -306,7 +338,7 @@ export default function ValidacaoNumerosPage() {
       </section>}
     </div>
 
-    {qrAberto && <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.58)", display: "grid", placeItems: "center", zIndex: 3000, padding: 20 }}><section style={{ ...card, width: "min(440px,100%)", padding: 28, textAlign: "center" }}><h2 style={{ margin: "0 0 8px" }}>{qrStatus === "reconectando" ? "Reconectando canal de consulta" : "Conectar canal de consulta"}</h2><p style={{ margin: "0 0 18px", color: "#64748b", fontSize: 13 }}>{qrStatus === "reconectando" ? "Tentando restaurar a sess\u00e3o salva. Se ela n\u00e3o existir, o QR aparecer\u00e1 automaticamente." : qrImage ? "No WhatsApp, abra Aparelhos conectados e leia este QR." : "Preparando a conex\u00e3o e aguardando um novo c\u00f3digo QR."}</p><div style={{ minHeight: 240, display: "grid", placeItems: "center" }}>{qrStatus === "conectado" ? <div style={{ color: "#047857", fontWeight: 900, fontSize: 18 }}>&#9989; Conectado</div> : qrImage ? <img src={qrImage} alt="Codigo QR" width={230} height={230} style={{ borderRadius: 10 }}/> : <span style={{ color: "#64748b" }}>{qrStatus === "reconectando" ? "Restaurando sess\u00e3o salva..." : "Gerando c\u00f3digo QR..."}</span>}</div><div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginTop: 16 }}>{qrStatus !== "conectado" && canalQr && <button disabled={!!acaoCanal} onClick={() => abrirQr(canalQr)} style={{ ...button, background: "#ecfdf5", color: "#0f766e", border: "1px solid #99f6e4" }}>Gerar outro QR</button>}<button onClick={() => { setQrAberto(false); setQrPolling(false); }} style={{ ...button, background: "#f1f5f9", color: "#334155" }}>Fechar</button></div></section></div>}
+    {qrAberto && <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.58)", display: "grid", placeItems: "center", zIndex: 3000, padding: 20 }}><section style={{ ...card, width: "min(440px,100%)", padding: 28, textAlign: "center" }}><h2 style={{ margin: "0 0 8px" }}>{qrStatus === "reconectando" ? "Reconectando canal de consulta" : "Conectar canal de consulta"}</h2><p style={{ margin: "0 0 18px", color: "#64748b", fontSize: 13 }}>{qrStatus === "reconectando" ? "Tentando restaurar a sess\u00e3o salva. Se ela n\u00e3o existir, o QR aparecer\u00e1 automaticamente." : qrImage ? "No WhatsApp, abra Aparelhos conectados e leia este QR." : "Preparando a conex\u00e3o e aguardando um novo c\u00f3digo QR."}</p><div style={{ minHeight: 240, display: "grid", placeItems: "center" }}>{qrStatus === "conectado" ? <div style={{ color: "#047857", fontWeight: 900, fontSize: 18 }}>&#9989; Conectado</div> : qrErro ? <div style={{ color: "#b91c1c", fontWeight: 800, fontSize: 14, maxWidth: 330 }}>{qrErro}</div> : qrImage ? <img src={qrImage} alt="Codigo QR" width={230} height={230} style={{ borderRadius: 10 }}/> : <span style={{ color: "#64748b" }}>{qrStatus === "reconectando" ? "Restaurando sess\u00e3o salva..." : "Gerando c\u00f3digo QR..."}</span>}</div><div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginTop: 16 }}>{qrStatus !== "conectado" && canalQr && <button disabled={!!acaoCanal} onClick={() => abrirQr(canalQr)} style={{ ...button, background: "#ecfdf5", color: "#0f766e", border: "1px solid #99f6e4" }}>Gerar outro QR</button>}<button onClick={() => { setQrAberto(false); setQrPolling(false); }} style={{ ...button, background: "#f1f5f9", color: "#334155" }}>Fechar</button></div></section></div>}
   </main>;
 }
 

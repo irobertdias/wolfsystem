@@ -17,16 +17,16 @@ export async function GET(req: NextRequest) {
     const text = await resp.text();
     if (!resp.ok) {
       console.error(`[proxy GET] ${rota} → ${resp.status}:`, text.slice(0, 500));
-      return NextResponse.json({ status: "erro", error: `VPS ${resp.status}: ${text.slice(0, 300)}` }, { status: 200 });
+      return NextResponse.json({ status: "erro", upstreamStatus: resp.status, error: `VPS ${resp.status}: ${text.slice(0, 300)}` }, { status: 200 });
     }
     try {
       return NextResponse.json(JSON.parse(text));
     } catch {
       return NextResponse.json({ status: "erro", error: "VPS não-JSON: " + text.slice(0, 200) }, { status: 200 });
     }
-  } catch (error: any) {
-    console.error(`[proxy GET] ${rota} catch:`, error.message);
-    return NextResponse.json({ status: "desconectado", error: "Servidor offline: " + error.message }, { status: 200 });
+  } catch (error: unknown) {
+    console.error(`[proxy GET] ${rota} catch:`, error instanceof Error ? error.message : String(error));
+    return NextResponse.json({ status: "desconectado", error: "Servidor offline: " + (error instanceof Error ? error.message : String(error)) }, { status: 200 });
   }
 }
 
@@ -44,15 +44,15 @@ export async function POST(req: NextRequest) {
     const text = await resp.text();
     if (!resp.ok) {
       console.error(`[proxy POST] ${rota} → ${resp.status}:`, text.slice(0, 500));
-      return NextResponse.json({ success: false, error: `VPS ${resp.status}: ${text.slice(0, 300)}` }, { status: 200 });
+      return NextResponse.json({ success: false, upstreamStatus: resp.status, error: `VPS ${resp.status}: ${text.slice(0, 300)}` }, { status: 200 });
     }
     try {
       return NextResponse.json(JSON.parse(text));
     } catch {
       return NextResponse.json({ success: false, error: "VPS não-JSON: " + text.slice(0, 200) }, { status: 200 });
     }
-  } catch (error: any) {
-    console.error(`[proxy POST] ${rota} catch:`, error.message);
-    return NextResponse.json({ success: false, error: "Servidor offline: " + error.message }, { status: 200 });
+  } catch (error: unknown) {
+    console.error(`[proxy POST] ${rota} catch:`, error instanceof Error ? error.message : String(error));
+    return NextResponse.json({ success: false, error: "Servidor offline: " + (error instanceof Error ? error.message : String(error)) }, { status: 200 });
   }
 }
