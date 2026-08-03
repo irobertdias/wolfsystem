@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
@@ -776,9 +776,7 @@ export function ChatSection() {
     return () => { cancel = true; };
   }, [wsId]);
 
-  const WA_BASE = process.env.NEXT_PUBLIC_WHATSAPP_URL || "";
   // 🆕 Backend wolf-meta — usado pra Instagram/Messenger (rotas /send/*)
-  const META_BASE = process.env.NEXT_PUBLIC_META_URL || "https://meta.api.wolfgyn.com.br";
 
   // 🆕 Áudio com OU sem transcrição
   //    Formato do backend: "[audio:filename]"  ou  "[audio:filename]\n📝 transcrição..."
@@ -1038,10 +1036,10 @@ export function ChatSection() {
       const canal = canais.find(c => String(c.id) === String(canalId));
       const tipo = canal?.tipo;
       if (tipo === "meta" || tipo === "instagram" || tipo === "messenger") {
-        return `${META_BASE}/midia/${filename}`;
+        return `/api/meta?rota=midia&filename=${encodeURIComponent(filename)}&workspaceId=${encodeURIComponent(wsId || "")}`;
       }
     }
-    return `/api/whatsapp-media?filename=${encodeURIComponent(filename)}`;
+    return `/api/whatsapp-media?filename=${encodeURIComponent(filename)}&workspaceId=${encodeURIComponent(wsId || "")}`;
   };
 
   const wa = async (rota: string, body?: object) => {
@@ -2002,7 +2000,7 @@ export function ChatSection() {
           if (ultimaCliente?.origem) origem = ultimaCliente.origem;
           else origem = "messenger";
         }
-        const r = await fetch(`${META_BASE}/send/texto`, {
+        const r = await fetch("/api/meta?rota=send/texto", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ workspaceId: wsId, canalId: atendimentoAtivo.canal_id, recipientId: atendimentoAtivo.numero, texto: mensagemFinal, atendimentoId: atendimentoAtivo.id, origem: origem })
         });
@@ -2107,7 +2105,7 @@ export function ChatSection() {
         fd.append("atendimentoId", String(atendimentoAtivo.id));
         fd.append("origem", origem);
         if (legendaArquivo) fd.append("legenda", legendaArquivo);
-        const r = await fetch(`${META_BASE}/send/enviar-midia-arquivo`, { method: "POST", body: fd });
+        const r = await fetch("/api/meta?rota=send/enviar-midia-arquivo", { method: "POST", body: fd });
         const data = await r.json();
         if (!(data.success || data.sucesso)) { notify(traduzirErro(data.erro || data.error || "Erro ao enviar arquivo"), "erro"); }
         else { cancelarEnvioArquivo(); }
@@ -2118,7 +2116,7 @@ export function ChatSection() {
         fd.append("canalId", String(atendimentoAtivo.canal_id));
         fd.append("workspaceId", String(wsId));
         if (legendaArquivo) fd.append("legenda", legendaArquivo);
-        const resp = await fetch(`${WA_BASE}/enviar-midia`, { method: "POST", body: fd });
+        const resp = await fetch("/api/whatsapp-midia", { method: "POST", body: fd });
         const data = await resp.json();
         if (!data.success) { notify(traduzirErro(data.error || "Erro ao enviar arquivo"), "erro"); }
         else { cancelarEnvioArquivo(); }
@@ -2135,7 +2133,9 @@ export function ChatSection() {
     const msgsCliente = historico.filter(m => m.de === "cliente");
     if (msgsCliente.length === 0) { return { janelaExpirada: true, horasDesdeUltimaMsgCliente: 9999 }; }
     const ultimaMsgCliente = msgsCliente[msgsCliente.length - 1];
-    const tempoMs = Date.now() - new Date(ultimaMsgCliente.created_at).getTime();
+    const criadaEm = ultimaMsgCliente.created_at;
+    if (!criadaEm) { return { janelaExpirada: true, horasDesdeUltimaMsgCliente: 9999 }; }
+    const tempoMs = Date.now() - new Date(criadaEm).getTime();
     const horas = tempoMs / (1000 * 60 * 60);
     return { janelaExpirada: horas > 24, horasDesdeUltimaMsgCliente: horas };
   })();
@@ -2228,7 +2228,7 @@ export function ChatSection() {
         fd.append("workspaceId", String(wsId));
         fd.append("atendimentoId", String(atendimentoAtivo.id));
         fd.append("origem", origem);
-        const r = await fetch(`${META_BASE}/send/enviar-midia-arquivo`, { method: "POST", body: fd });
+        const r = await fetch("/api/meta?rota=send/enviar-midia-arquivo", { method: "POST", body: fd });
         const data = await r.json();
         if (!(data.success || data.sucesso)) { notify(traduzirErro(data.erro || data.error || "Erro ao enviar áudio"), "erro"); }
       } else {
@@ -2239,7 +2239,7 @@ export function ChatSection() {
         form.append("numero", atendimentoAtivo.numero);
         form.append("canalId", String(atendimentoAtivo.canal_id));
         form.append("workspaceId", String(wsId));
-        const resp = await fetch(`${WA_BASE}/enviar-audio`, { method: "POST", body: form });
+        const resp = await fetch("/api/whatsapp-audio", { method: "POST", body: form });
         const data = await resp.json();
         if (!data.success) notify(traduzirErro(data.error || "Erro ao enviar áudio"), "erro");
       }
@@ -3096,7 +3096,7 @@ export function ChatSection() {
                       if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal.", "aviso"); return; }
                       // 🔒 MULTI-TENANT: workspaceId obrigatório — validado no backend também
                       try {
-                        const resp = await fetch(`${WA_BASE}/enviar-midia-url`, {
+                        const resp = await fetch("/api/whatsapp?rota=enviar-midia-url", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({

@@ -18,7 +18,7 @@ import { supabase } from "../lib/supabase";
 
 export type StatusChamada =
   | "ocioso" | "iniciando" | "chamando" | "conectado" | "encerrando"
-  | "sem_resposta" | "ocupado" | "falha" | "caixa_postal";
+  | "sem_resposta" | "ocupado" | "falha" | "caixa_postal" | "encerrada";
 
 export type ChamadaAtiva = {
   numero: string;

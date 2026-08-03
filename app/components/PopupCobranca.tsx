@@ -51,8 +51,7 @@ export default function PopupCobranca() {
   if (
     cobranca.fase === "imune" ||
     cobranca.fase === "ativo" ||
-    cobranca.fase === "carregando" ||
-    cobranca.fase === "sem_config"
+    cobranca.fase === "carregando"
   ) return null;
 
   if (!cobranca.popupVisivel) return null;

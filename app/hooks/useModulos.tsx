@@ -151,7 +151,7 @@ export function useModulos() {
 //   if (!modulos.voip) return <ModuloBloqueado modulo="voip" />;
 // ═══════════════════════════════════════════════════════════════════════
 
-type ModuloKey = "roleta" | "disparos_web" | "validacao_numeros" | "disparos_api" | "voip" | "api_integracao" | "instagram" | "meta_ads" | "vendedor_ia" | "rh" | "bater_ponto";
+type ModuloKey = "roleta" | "disparos_web" | "validacao_numeros" | "disparos_api" | "voip" | "api_integracao" | "instagram" | "cobranca" | "meta_ads" | "vendedor_ia" | "rh" | "bater_ponto";
 
 const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: string; planoNecessario: string; cor: string }> = {
   roleta: {
@@ -202,6 +202,13 @@ const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: strin
     desc: "Atendimento unificado no Instagram Direct Messages. Responda mensagens do Instagram pela mesma tela do WhatsApp.",
     planoNecessario: "Ultra",
     cor: "#8b5cf6",
+  },
+  cobranca: {
+    icone: "\uD83D\uDCB0",
+    nome: "Cobran\u00e7a",
+    desc: "Acompanhe faturas, pagamentos, inadimpl\u00eancia e negocia\u00e7\u00f5es do seu workspace.",
+    planoNecessario: "Libera\u00e7\u00e3o comercial",
+    cor: "#16a34a",
   },
   meta_ads: {
     icone: "📊",

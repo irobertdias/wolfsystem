@@ -19,6 +19,7 @@ export type Proposta = {
   plano?: string | null;
   valor_plano?: number | null;
   vencimento?: string | null;
+  data_instalacao?: string | null;
   status_venda?: string | null;
   cpf?: string | null;
   dados_customizados?: Record<string, any> | null;
@@ -26,12 +27,14 @@ export type Proposta = {
 };
 
 export type StatusFatura = "paga" | "paga_atraso" | "pendente" | "atrasada";
+export type StatusFaturaDB = StatusFatura | "paga_parcial" | "promessa" | "negociacao" | "acordo" | "nao_pagara" | "cancelada" | "juridico" | "protestada";
 export type Bucket = "paga" | "pendente" | "inadimplente";
 
 export type FaturaStatusDB = {
   proposta_id: number;
   numero_referencia: string;
-  status: StatusFatura;
+  status: StatusFaturaDB;
+  data_vencimento?: string | null;
   data_pagamento?: string | null;
   promessa_data?: string | null;
   observacoes?: string | null;
@@ -283,7 +286,7 @@ export function rotuloProx(p: ProxVenc): { texto: string; cor: string; bg: strin
 //    Sem wsId, retorna vazio — evita vazar dados de outros workspaces.
 export async function carregarPropostas(wsId: string | null | undefined): Promise<{ propostas: Proposta[]; faltando: boolean }> {
   if (!wsId) return { propostas: [], faltando: false };
-  const COLS = "id, nome, telefone1, plano, valor_plano, vencimento, status_venda, cpf, dados_customizados, created_at";
+  const COLS = "id, nome, telefone1, plano, valor_plano, vencimento, data_instalacao, status_venda, cpf, dados_customizados, created_at";
   const PAGE = 1000; let acc: any[] = []; let off = 0;
   try {
     while (off < 600000) {

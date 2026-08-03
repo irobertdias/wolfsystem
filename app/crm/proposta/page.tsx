@@ -316,7 +316,7 @@ function PropostaForm() {
 
         // ── Listas auto-populadas (equipe / fila / etiqueta) ──
         const tiposPresentes = new Set(lista2.map(c => c.tipo as string));
-        const promises: Promise<any>[] = [];
+        const promises: PromiseLike<any>[] = [];
         if (tiposPresentes.has("equipe")) {
           promises.push(
             supabase.from("equipes")

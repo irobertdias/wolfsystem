@@ -21,7 +21,10 @@ export default function Login() {
     if (data.user) {
       // 1. Verifica se é dono de workspace
       const { data: workspace } = await supabase.from("workspaces").select("id, ativo").eq("owner_id", data.user.id).single();
-      if (workspace) { router.push("/crm"); return; }
+      if (workspace) {
+        if (workspace.ativo !== true) { setErro("Seu acesso ainda não foi autorizado pelo administrador!"); await supabase.auth.signOut(); return; }
+        router.push("/crm"); return;
+      }
 
       // 2. Verifica se é usuário de algum workspace
       const { data: usuarioWs } = await supabase.from("usuarios_workspace").select("workspace_id").eq("email", email).single();

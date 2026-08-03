@@ -1859,7 +1859,7 @@ export default function Funil() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
                         <XAxis type="number" stroke="#6b7280" fontSize={10} tickFormatter={v => `R$${v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} />
                         <YAxis dataKey="nomeCurto" type="category" stroke="#6b7280" fontSize={10} width={85} />
-                        <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 12 }} formatter={(v: any, n: string) => [formatBRL(v), n === "receita" ? "Realizado" : "Pipeline"]} cursor={{ fill: "#f3f4f6" }} />
+                        <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 12 }} formatter={(v: any, n: any) => [formatBRL(v), n === "receita" ? "Realizado" : "Pipeline"]} cursor={{ fill: "#f3f4f6" }} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
                         <Bar dataKey="receita" stackId="a" fill="#16a34a" name="Realizado" />
                         <Bar dataKey="pipeline" stackId="a" fill="#3b82f6" name="Pipeline" radius={[0, 8, 8, 0]} />
@@ -2297,7 +2297,7 @@ export default function Funil() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="label" stroke="#6b7280" fontSize={10} />
                     <YAxis stroke="#6b7280" fontSize={10} tickFormatter={v => `${v}%`} domain={[0, 100]} />
-                    <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 12 }} formatter={(v: any, n: string) => [`${v}%`, n === "taxaGanho" ? "Ganho" : n === "taxaPerda" ? "Perdido" : "Em aberto"]} />
+                    <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 12 }} formatter={(v: any, n: any) => [`${v}%`, n === "taxaGanho" ? "Ganho" : n === "taxaPerda" ? "Perdido" : "Em aberto"]} />
                     <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => v === "taxaGanho" ? "Ganho" : v === "taxaPerda" ? "Perdido" : "Em aberto"} />
                     <Bar dataKey="taxaGanho" stackId="a" fill="#16a34a" />
                     <Bar dataKey="taxaAberto" stackId="a" fill="#f59e0b" />

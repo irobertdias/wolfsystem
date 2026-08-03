@@ -21,7 +21,6 @@ declare global {
 const ADMIN_EMAIL = "robert.dias@live.com";
 
 // 🆕 Backend wolf-meta + Facebook Login pra Empresas
-const META_BASE = process.env.NEXT_PUBLIC_META_URL || "https://meta.api.wolfgyn.com.br";
 const FB_APP_ID = "1658330965492693";
 const FB_CONFIG_ID = "852551211216508";
 
@@ -267,7 +266,7 @@ export function ConexoesSection() {
   const verificarStatusWaba = async (canalId: number, workspaceIdDoCanal: string) => {
     const qs = `canalId=${canalId}&workspaceId=${encodeURIComponent(workspaceIdDoCanal)}`;
     try {
-      const resp = await fetch(`https://api.wolfgyn.com.br/waba/verificar-status?${qs}`, { cache: "no-store" });
+      const resp = await fetch(`/api/whatsapp?rota=waba/verificar-status&${qs}`, { cache: "no-store" });
       const json = await resp.json();
       if (!resp.ok) throw new Error(json?.error || "Falha ao consultar o canal");
       return json;
@@ -378,7 +377,7 @@ export function ConexoesSection() {
     const interval = setInterval(async () => {
       try {
         if (!wsId) return;
-        const resp = await fetch(`https://api.wolfgyn.com.br/status?workspaceId=${encodeURIComponent(wsId)}`);
+        const resp = await fetch(`/api/whatsapp?rota=status&workspaceId=${encodeURIComponent(wsId)}`);
         const data = await resp.json();
         if (data.sessoes && Array.isArray(data.sessoes)) {
           const ids = wsIdsRef.current;
@@ -437,7 +436,7 @@ export function ConexoesSection() {
       tentativas++;
       setQrTentativas(tentativas);
       try {
-        const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store" });
+        const resp = await fetch(`/api/whatsapp?rota=qr-data&canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store" });
         if (!resp.ok) { console.warn(`[QR poll] status HTTP ${resp.status} — tentativa ${tentativas}`); return; }
         const data = await resp.json();
         if (data.qr && data.qr !== qrImageUrl) setQrImageUrl(data.qr);
@@ -564,7 +563,7 @@ export function ConexoesSection() {
         const accessToken = response.authResponse.accessToken;
         (async () => {
           try {
-            const r = await fetch(`${META_BASE}/auth/listar-pages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accessToken }) });
+            const r = await fetch("/api/meta?rota=auth/listar-pages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: wsId, accessToken }) });
             const data = await r.json();
             if (data.sucesso && Array.isArray(data.pages)) {
               if (data.pages.length === 0) { setResultadoMeta({ sucesso: false, mensagem: "Nenhuma página do Facebook foi encontrada nessa conta." }); }
@@ -587,7 +586,7 @@ export function ConexoesSection() {
     const pagesEscolhidas = pagesDisponiveis.filter(p => pagesSelecionadas.has(p.id));
     setConectandoMeta(true);
     try {
-      const r = await fetch(`${META_BASE}/auth/conectar-pages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: wsId, pages: pagesEscolhidas }) });
+      const r = await fetch("/api/meta?rota=auth/conectar-pages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: wsId, pages: pagesEscolhidas }) });
       const data = await r.json();
       if (data.sucesso) { setResultadoMeta({ sucesso: true, mensagem: `${data.pages_processadas} página(s) conectada(s)!`, pages: data.resultados }); await fetchConexoes(); setShowSelecaoPages(false); }
       else { setResultadoMeta({ sucesso: false, mensagem: data.erro || "Erro ao conectar as páginas." }); }
@@ -917,7 +916,7 @@ export function ConexoesSection() {
                   onClick={async () => {
                     if (!qrCanalId) return;
                     try {
-                      const resp = await fetch(`https://api.wolfgyn.com.br/qr-data?canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store" });
+                      const resp = await fetch(`/api/whatsapp?rota=qr-data&canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store" });
                       const data = await resp.json();
                       if (data.status === "conectado") {
                         await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrCanalId).in("workspace_id", wsIdsRef.current);

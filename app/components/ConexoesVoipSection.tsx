@@ -526,7 +526,7 @@ export default function ConexoesVoipSection() {
                         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
                           <div style={{ background: "#ffffff", border: "1px solid #bbf7d0", borderLeft: "4px solid #16a34a", borderRadius: 10, padding: 12 }}>
                             <p style={{ color: "#16a34a", fontSize: 11, fontWeight: 700, margin: "0 0 8px" }}>📋 URL pra cadastrar no TwiML App da Twilio:</p>
-                            <code style={{ display: "block", color: "#1f2937", fontSize: 11, background: "#1f2937", color: "#86efac", padding: "8px 10px", borderRadius: 6, wordBreak: "break-all", fontFamily: "monospace" }}>
+                            <code style={{ display: "block", fontSize: 11, background: "#1f2937", color: "#86efac", padding: "8px 10px", borderRadius: 6, wordBreak: "break-all", fontFamily: "monospace" }}>
                               https://api.wolfgyn.com.br/voip/twilio/twiml/{wsId || "SEU_WORKSPACE"}
                             </code>
                             <p style={{ color: "#6b7280", fontSize: 10, margin: "8px 0 0" }}>

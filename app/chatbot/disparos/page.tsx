@@ -227,7 +227,7 @@ export default function DisparosPage() {
   const sincronizarTemplatesMeta = async (canalId: number, workspaceIdDoCanal: string) => {
     const body = { canalId, workspaceId: workspaceIdDoCanal };
     try {
-      const resp = await fetch("https://api.wolfgyn.com.br/templates/sincronizar", {
+      const resp = await fetch("/api/whatsapp?rota=templates/sincronizar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -244,7 +244,7 @@ export default function DisparosPage() {
   const verificarTemplateMeta = async (templateId: number, workspaceIdDoCanal: string) => {
     const qs = `templateId=${templateId}&workspaceId=${encodeURIComponent(workspaceIdDoCanal)}`;
     try {
-      const resp = await fetch(`https://api.wolfgyn.com.br/templates/verificar-status?${qs}`, { cache: "no-store" });
+      const resp = await fetch(`/api/whatsapp?rota=templates/verificar-status&${qs}`, { cache: "no-store" });
       const json = await resp.json();
       if (!resp.ok || json?.success === false) throw new Error(json?.error || "Falha ao consultar template na Meta");
       return json;
@@ -611,7 +611,7 @@ export default function DisparosPage() {
   const consultarStatusWabaReal = async (canalId: number, workspaceIdDoCanal: string) => {
     const qs = `canalId=${canalId}&workspaceId=${encodeURIComponent(workspaceIdDoCanal)}`;
     try {
-      const resp = await fetch(`https://api.wolfgyn.com.br/waba/verificar-status?${qs}`, { cache: "no-store" });
+      const resp = await fetch(`/api/whatsapp?rota=waba/verificar-status&${qs}`, { cache: "no-store" });
       return await resp.json();
     } catch (e) {
       const resp = await fetch(`/api/whatsapp?rota=waba/verificar-status&${qs}`, { cache: "no-store" });
