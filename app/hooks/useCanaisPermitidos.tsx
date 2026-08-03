@@ -43,7 +43,14 @@ export type EstadoCanaisPermitidos = {
 };
 
 export function useCanaisPermitidos(): EstadoCanaisPermitidos {
-  const { permissoes, isDono, isSuperAdmin, loading: permLoading } = usePermissao();
+  const {
+    permissoes,
+    isDono,
+    isSuperAdmin,
+    workspaceId,
+    userEmail,
+    loading: permLoading,
+  } = usePermissao();
   const [canaisPermitidos, setCanaisPermitidos] = useState<Set<number> | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -61,8 +68,7 @@ export function useCanaisPermitidos(): EstadoCanaisPermitidos {
         return;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!userEmail || !workspaceId) {
         setCanaisPermitidos(new Set());  // sem login = vê nada
         setLoading(false);
         return;
@@ -73,9 +79,8 @@ export function useCanaisPermitidos(): EstadoCanaisPermitidos {
       let grupoId: number | null = null;
       const { data: u } = await supabase.from("usuarios_workspace")
         .select("canais_acesso, grupo_id")
-        .eq("email", user.email)
-        .order("created_at", { ascending: false })
-        .limit(1)
+        .eq("workspace_id", workspaceId)
+        .ilike("email", userEmail)
         .maybeSingle();
 
       if (u) {
@@ -89,6 +94,7 @@ export function useCanaisPermitidos(): EstadoCanaisPermitidos {
         const { data: g } = await supabase.from("grupos_permissao")
           .select("canais_acesso")
           .eq("id", grupoId)
+          .eq("workspace_id", workspaceId)
           .maybeSingle();
         if (Array.isArray(g?.canais_acesso)) canaisGrupo = (g!.canais_acesso as any[]).map(Number);
       }
@@ -101,7 +107,7 @@ export function useCanaisPermitidos(): EstadoCanaisPermitidos {
     } finally {
       setLoading(false);
     }
-  }, [veTudoCanais]);
+  }, [veTudoCanais, workspaceId, userEmail]);
 
   useEffect(() => {
     if (permLoading) return;  // espera o usePermissao terminar
