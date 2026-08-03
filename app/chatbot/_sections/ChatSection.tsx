@@ -1189,9 +1189,10 @@ export function ChatSection() {
             if (a.status === "pendente") return "aguardando";
             return "abertos";
           })();
-          // Usa exatamente a mesma regra da lista e dos contadores:
-          // acesso total ao workspace OU filas/canais liberados para o usuário.
-          return podeVerAtendimento(a, aba);
+          // Permissão literal: chat_todos vê tudo; chat_proprio vê apenas os próprios.
+          if (isDono || permissoes.chat_todos) return true;
+          if (!permissoes.chat_proprio) return false;
+          return a.atendente?.toLowerCase() === user?.email?.toLowerCase();
         });
         if (novosVisiveis.length > 0) {
           tocarSomChatNovo();
@@ -1648,14 +1649,9 @@ export function ChatSection() {
     for (const a of atendimentos) {
       const count = naoLidasPorAtendimento[a.id];
       if (!count) continue;
-      // Verifica se o user vê esse atendimento
-      const atendenteEhReal = !!a.atendente && !["BOT", "Humano"].includes(a.atendente);
-      const aba = a.status === "resolvido" ? "finalizados" :
-                  a.atendente === "BOT" ? "automatico" :
-                  atendenteEhReal ? "abertos" :
-                  a.status === "pendente" ? "aguardando" : "abertos";
+      // Mesma regra literal da lista: chat_todos vê tudo; chat_proprio só os próprios.
       const podeVer = (isDono || permissoes.chat_todos) ||
-                      (aba === "abertos" || aba === "finalizados" ? a.atendente === user?.email : true);
+                      (!!permissoes.chat_proprio && a.atendente?.toLowerCase() === user?.email?.toLowerCase());
       if (podeVer) total += count;
     }
     document.title = total > 0 ? `(${total > 99 ? "99+" : total}) Wolf System` : "Wolf System";
@@ -1663,7 +1659,7 @@ export function ChatSection() {
       // Restaura title quando componente desmonta (ex: navegou pra outra página)
       if (typeof document !== "undefined") document.title = "Wolf System";
     };
-  }, [naoLidasPorAtendimento, atendimentos, isDono, permissoes.chat_todos, user?.email]);
+  }, [naoLidasPorAtendimento, atendimentos, isDono, permissoes.chat_proprio, permissoes.chat_todos, user?.email]);
 
   useEffect(() => {
     if (!atendimentoAtivo) { setEtiquetasAtendimento([]); return; }
@@ -1762,13 +1758,12 @@ export function ChatSection() {
   };
 
   // 🆕 ═══════════════════════════════════════════════════════════════════════
-  // VISIBILIDADE MULTI-TENANT POR FILA E CANAL
+  // VISIBILIDADE ESTRITA POR FILA — atendente comum só vê atendimentos das filas dele
   // ═══════════════════════════════════════════════════════════════════════
   // Antes: aba "Aguardando" / "Automático" mostrava TODOS os pendentes — atendente da
   // fila SKY via leads da fila FLIX e podia pegar (caos operacional).
   //
-  // Agora: usuário em FILA1,FILA2 só vê atendimentos dessas filas em TODAS as abas,
-  // respeitando também os canais liberados no cadastro do usuário/grupo.
+  // Agora: usuário em FILA1,FILA2 só vê atendimentos dessas filas em TODAS as abas.
   // Quem tem permissão "chat_todos" (dono/supervisor/grupos personalizados com flag)
   // mantém visão geral.
   //
@@ -1796,33 +1791,21 @@ export function ChatSection() {
     return minhasFilas.includes(filaAtendimento);
   };
 
-  // Verifica se o canal do atendimento está entre os canais liberados no frontend.
-  // Dono, super admin e chat_todos já recebem veTudoCanais=true pelo hook.
-  const meuCanalAtende = (canalId: number | null | undefined): boolean => {
-    if (veTudoCanais) return true;
-    if (!canaisPermitidos) return true;
-    if (canalId === null || canalId === undefined) return false;
-    return canaisPermitidos.has(Number(canalId));
-  };
-
   const podeVerAtendimento = (a: Atendimento, aba: string): boolean => {
     // Quem tem chat_todos (dono/supervisor/permissão elevada) vê tudo, em qualquer aba
     if (podeVerTudo) {
       // Exceção: aba finalizados pra quem é dono/supervisor — toggle de "ver só os meus"
       if (aba === "finalizados" && !mostrarTodosFinalizados) {
-        return a.atendente === user?.email;
+        return a.atendente?.toLowerCase() === user?.email?.toLowerCase();
       }
       return true;
     }
 
-    // Atendente comum: o escopo é definido pelo que o administrador selecionou
-    // no frontend (filas + canais), sempre dentro do workspace atual.
+    // Atendente comum: fila/canal são recortes adicionais, mas a permissão
+    // chat_proprio continua significando literalmente "somente os meus".
     if (!minhaFilaAtende(a.fila)) return false;
-    if (!meuCanalAtende(a.canal_id)) return false;
-
-    // A atribuição a outro atendente não esconde a conversa. Se a fila e o canal
-    // foram liberados, o usuário vê Automático, Aguardando, Abertos e Finalizados.
-    return true;
+    if (!permissoes.chat_proprio) return false;
+    return a.atendente?.toLowerCase() === user?.email?.toLowerCase();
   };
 
   // 🆕 FILTROS DO PAINEL (fila/atendente/canal/etiqueta/equipe/tempo) — extraído pra função

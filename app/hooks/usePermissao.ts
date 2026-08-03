@@ -14,9 +14,8 @@ import { supabase } from "../lib/supabase";
 //      → MAS respeita o limite do plano que paga
 //
 //   👔 Administrador = "Ministro de Estado"
-//      → Sub-usuário com PODERES IGUAIS AO DONO
-//      → IGNORA qualquer grupo de permissão atribuído (acesso total sempre)
-//      → Pra ter "admin com restrições", use perfil Supervisor + grupo
+//      → Sem grupo: recebe o padrão administrativo completo
+//      → Com grupo: respeita exatamente as permissões marcadas no grupo
 //
 //   🔍 Supervisor / 👤 Atendente = "Ministros comuns"
 //      → Respeita o grupo de permissão configurado pelo Dono
@@ -138,7 +137,7 @@ export type Permissoes = {
   // 👤 PESSOAL
   config_proprio: boolean;
 
-  // ⚠️ ADMIN (usado por perfil === "Administrador")
+  // ⚠️ ADMIN (true apenas quando o conjunto efetivo concede poder administrativo)
   administrador: boolean;
 
   // 🚪 ACESSO AOS MÓDULOS (mostra/esconde o botão na barra lateral)
@@ -147,7 +146,7 @@ export type Permissoes = {
   telefonia_acessar: boolean;
 };
 
-// Dono e Administrador recebem TUDO habilitado
+// Permissões totais do Dono e do Administrador SEM grupo restritivo
 const PERMISSOES_DONO: Permissoes = {
   chat_proprio: true, chat_todos: true, chat_interno: true, respostas_rapidas: true,
   transferir_chat: true, finalizar_chat: true,
@@ -298,31 +297,39 @@ export function usePermissao() {
         setEquipeId(equipesDoUsuario[0] || null);
         setWorkspaceId(usuarioWs.workspace_id || "");   // 🆕 workspace do sub-usuário
 
-        // 🆕 FIX (sessão 18): Administrador SEMPRE tem acesso total, IGNORA grupo.
-        // Por design: "Administrador" implica acesso TOTAL, igual ao Dono.
-        // Pra criar "admin com restrições", use perfil Supervisor + grupo.
-        if (usuarioWs.perfil === "Administrador") {
-          setPermissoes({ ...PERMISSOES_DONO, administrador: true });
-          setLoading(false);
-          return;
-        }
-
-        // Tem grupo customizado? (vale pra Supervisor e Atendente)
+        // Tem grupo customizado? O grupo é a fonte de verdade para QUALQUER
+        // subusuário, inclusive Administrador. Dono e superadmin já foram tratados acima.
         if (usuarioWs.grupo_id) {
-          const { data: grupo } = await supabase.from("grupos_permissao")
-            .select("permissoes").eq("id", usuarioWs.grupo_id).maybeSingle();
+          const { data: grupo, error: erroGrupo } = await supabase.from("grupos_permissao")
+            .select("permissoes")
+            .eq("id", usuarioWs.grupo_id)
+            .eq("workspace_id", usuarioWs.workspace_id)
+            .maybeSingle();
 
-          if (grupo?.permissoes) {
+          if (!erroGrupo && grupo?.permissoes) {
             // Mescla com PERMISSOES_ZERO pra garantir que TODAS as chaves existam
             // (importante: grupos antigos podem não ter as novas permissões)
             setPermissoes({ ...PERMISSOES_ZERO, ...grupo.permissoes });
             setLoading(false);
             return;
           }
+
+          // Grupo foi selecionado, mas não pôde ser carregado: falha fechado.
+          // Nunca herda o padrão do perfil, pois isso criaria permissões não marcadas.
+          console.error("[usePermissao] grupo configurado não encontrado", {
+            workspaceId: usuarioWs.workspace_id,
+            grupoId: usuarioWs.grupo_id,
+            erro: erroGrupo?.message,
+          });
+          setPermissoes(PERMISSOES_ZERO);
+          setLoading(false);
+          return;
         }
 
         // Sem grupo — usa padrão por perfil
-        if (usuarioWs.perfil === "Supervisor") {
+        if (usuarioWs.perfil === "Administrador") {
+          setPermissoes({ ...PERMISSOES_DONO, administrador: true });
+        } else if (usuarioWs.perfil === "Supervisor") {
           setPermissoes(PERMISSOES_SUPERVISOR);
         } else {
           setPermissoes(PERMISSOES_ATENDENTE);
@@ -336,12 +343,12 @@ export function usePermissao() {
 
   // ─── Helpers ────────────────────────────────────────────────────────
 
-  // Checa uma permissão pontual (dono/admin/super admin sempre passam)
+  // Checa uma permissão pontual (dono/superadmin sempre passam; subusuário usa o grupo/padrão efetivo)
   const tem = (key: keyof Permissoes): boolean =>
     isSuperAdmin || isDono || !!permissoes[key];
 
-  // Manda total? (dono, super admin ou perfil Administrador)
-  const veTudo = isSuperAdmin || isDono || perfil === "Administrador";
+  // Manda total? Dono/superadmin sempre; subusuário somente se a permissão efetiva conceder.
+  const veTudo = isSuperAdmin || isDono || !!permissoes.administrador;
 
   // 🆕 Escopo de visão pra uma área que tem permissão "de equipe" e "própria".
   // Ex: vendas → escopoVisao("vendas_equipe", "vendas_proprio")
