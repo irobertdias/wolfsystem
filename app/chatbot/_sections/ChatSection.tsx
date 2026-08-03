@@ -3032,16 +3032,14 @@ export function ChatSection() {
                     </p>
                   </div>
                 ) : respostasRapidas.map((r, i) => (
-                  <button key={i} onClick={async () => {
-                    // Sempre popula o texto (pode ser vazio se a resposta for só mídia)
-                    setMensagem(r.mensagem || "");
+                  <button type="button" key={i} onClick={async () => {
                     setShowRespostas(false);
 
-                    // 🆕 Se tiver mídia pré-anexada, envia ela agora via /enviar-midia-url
+                    // Se houver mídia, o texto será enviado somente como legenda.
+                    // Nunca o mantenha simultaneamente no composer.
                     if (r.midia_url && atendimentoAtivo) {
+                      setMensagem("");
                       if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal.", "aviso"); return; }
-                      const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
-                      const ehMeta = canalAtual?.tipo === "meta" || canalAtual?.tipo === "instagram" || canalAtual?.tipo === "messenger";
                       // 🔒 MULTI-TENANT: workspaceId obrigatório — validado no backend também
                       try {
                         const resp = await fetch(`${WA_BASE}/enviar-midia-url`, {
@@ -3058,14 +3056,17 @@ export function ChatSection() {
                         });
                         const data = await resp.json();
                         if (!data.success) {
+                          // Se a mídia falhar, restaura o texto para envio manual.
+                          setMensagem(r.mensagem || "");
                           notify("Erro ao enviar mídia da resposta rápida: " + (data.error || "desconhecido"), "erro");
-                        } else {
-                          // Mídia enviada com legenda — limpa o texto do input pra não mandar em duplicata
-                          if (r.mensagem) setMensagem("");
                         }
                       } catch (e: any) {
+                        setMensagem(r.mensagem || "");
                         notify("Erro ao enviar mídia da resposta rápida: " + (e?.message || "desconhecido"), "erro");
                       }
+                    } else {
+                      // Sem mídia, mantém o comportamento de preencher para revisão.
+                      setMensagem(r.mensagem || "");
                     }
                   }}
                     style={{ background: "#ffffff", border: "1px solid #2a3942", borderRadius: 8, padding: "8px 12px", color: "#1f2937", fontSize: 12, cursor: "pointer", textAlign: "left", display: "flex", gap: 10, alignItems: "center" }}>
