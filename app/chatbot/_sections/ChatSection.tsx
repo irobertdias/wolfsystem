@@ -29,7 +29,7 @@ type Atendimento = {
 type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; canal_id?: number; origem?: string; provider_message_id?: string | null; status_entrega?: string | null; };
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
 type UsuarioWs = { email: string; nome: string; fila?: string | null; };
-type CanalInfo = { id: number; nome: string; tipo: string; };
+type CanalInfo = { id: number; nome: string; tipo: string; modulos?: string[] | null; };
 
 // Realtime e polling podem entregar a mesma linha quase ao mesmo tempo. Mantemos
 // apenas uma ocorrência por id (ou pelo identificador do provedor) antes de renderizar.
@@ -384,6 +384,7 @@ export function ChatSection() {
   // quando Enter/clique aconteciam quase juntos.
   const enviandoMsgRef = useRef(false);
   const [canais, setCanais] = useState<CanalInfo[]>([]);
+  const canaisExclusivosValidacaoRef = useRef<Set<number>>(new Set());
   const [filtroCanal, setFiltroCanal] = useState<string>("todos");
 
   const [mostrarTodosFinalizados, setMostrarTodosFinalizados] = useState(false);
@@ -1122,7 +1123,14 @@ export function ChatSection() {
   const fetchCanais = async () => {
     if (!wsId) return;
     const { data } = await supabase.from("conexoes").select("id, nome, tipo, modulos").eq("workspace_id", wsId);
-    setCanais(data || []);
+    const lista = (data || []) as CanalInfo[];
+    canaisExclusivosValidacaoRef.current = new Set(
+      lista
+        .filter(c => Array.isArray(c.modulos) && c.modulos.includes("validacao_numeros"))
+        .map(c => Number(c.id))
+    );
+    // Canal de consulta não aparece como canal de atendimento no chat.
+    setCanais(lista.filter(c => !canaisExclusivosValidacaoRef.current.has(Number(c.id))));
   };
 
   // 🆕 LIMITE DE ATENDIMENTOS NÃO RESOLVIDOS — quando o workspace tem mais que LIMITE_ATIVOS
@@ -1256,7 +1264,9 @@ export function ChatSection() {
     // 📡 TRAVA DE CANAIS — atendente só vê atendimentos dos canais que o usuário/grupo libera
     //    Dono / Super Admin / usuários com permissoes.chat_todos → veTudoCanais=true (ignora a trava)
     //    Atendentes restritos → só vê canais que estão em (usuarios_workspace.canais_acesso ∪ grupos_permissao.canais_acesso)
-    let listaFinal = lista;
+    // Registros antigos criados indevidamente por canais exclusivos de
+    // validação também ficam fora do chat. Nada é apagado do banco.
+    let listaFinal = lista.filter(a => !canaisExclusivosValidacaoRef.current.has(Number(a.canal_id)));
     if (!veTudoCanais && canaisPermitidos) {
       listaFinal = listaFinal.filter(a => {
         // Atendimento sem canal_id → fica de fora (não tem como decidir, mais seguro esconder)
@@ -1543,8 +1553,12 @@ export function ChatSection() {
 
   useEffect(() => {
     if (!wsId) return;
-    fetchCanais();
-    fetchAtendimentos();
+    // Primeiro identifica os canais exclusivos; depois carrega os chats para
+    // que nem a primeira renderização exiba atendimentos desses canais.
+    void (async () => {
+      await fetchCanais();
+      await fetchAtendimentos();
+    })();
     fetchEtiquetasWorkspace();
     fetchUsuariosWorkspace();
 
