@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
@@ -93,7 +93,7 @@ export async function PATCH(request: NextRequest) {
     let atendimentosLiberados = 0;
     if (horasInformadas === 0) {
       const { data: liberados, error: liberarError } = await supabaseAdmin.from("atendimentos")
-        .update({ bloqueado_ate: null, atendente_finalizou: null })
+        .update({ bloqueado_contato: false, bloqueado_ate: null, atendente_finalizou: null })
         .eq("workspace_id", acesso.workspaceId)
         .not("bloqueado_ate", "is", null).select("id");
       if (liberarError) throw liberarError;

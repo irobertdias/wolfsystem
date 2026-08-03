@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
@@ -2227,7 +2227,6 @@ export function ChatSection() {
     if (!wsId) { notify("Workspace não carregado. Recarregue a página.", "erro"); return; }
 
     const agora = new Date();
-    const bloqueadoAte = new Date(agora.getTime() + 24 * 60 * 60 * 1000).toISOString();
     const atendimentoId = atendimentoAtivo?.numero === numero && (!canalId || atendimentoAtivo?.canal_id === canalId)
       ? atendimentoAtivo.id
       : null;
@@ -2237,9 +2236,11 @@ export function ChatSection() {
       bloqueado_ia: true,
       bloqueado_fluxo: true,
       bloqueado_typebot: true,
-      bloqueado_contato: true,
-      bloqueado_ate: bloqueadoAte,
-      atendente_finalizou: user?.email || null,
+      // O backend /finalizar é a única fonte do período de bloqueio.
+      // Ele lê o valor salvo no workspace; 0 mantém estes campos limpos.
+      bloqueado_contato: false,
+      bloqueado_ate: null,
+      atendente_finalizou: null,
       updated_at: agora.toISOString(),
     };
 
