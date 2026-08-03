@@ -15,11 +15,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const range = req.headers.get("range");
     const upstream = await fetch(
       `${WHATSAPP_URL}/audios/${encodeURIComponent(filename)}`,
       {
         cache: "no-store",
-        headers: { "ngrok-skip-browser-warning": "true" }
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+          ...(range ? { Range: range } : {})
+        }
       }
     );
 
@@ -32,9 +36,14 @@ export async function GET(req: NextRequest) {
 
     const headers = new Headers();
     headers.set("Content-Type", upstream.headers.get("content-type") || "application/octet-stream");
+    headers.set("Accept-Ranges", upstream.headers.get("accept-ranges") || "bytes");
+    for (const name of ["content-length", "content-range", "content-disposition"]) {
+      const value = upstream.headers.get(name);
+      if (value) headers.set(name, value);
+    }
     headers.set("Cache-Control", "private, no-store, max-age=0");
     headers.set("X-Content-Type-Options", "nosniff");
-    return new NextResponse(upstream.body, { status: 200, headers });
+    return new NextResponse(upstream.body, { status: upstream.status === 206 ? 206 : 200, headers });
   } catch (error: any) {
     console.error("[whatsapp-media] Falha ao buscar mídia:", error?.message || error);
     return NextResponse.json({ error: "Servidor de mídia indisponível" }, { status: 502 });

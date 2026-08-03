@@ -31,6 +31,24 @@ type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
 type UsuarioWs = { email: string; nome: string; fila?: string | null; };
 type CanalInfo = { id: number; nome: string; tipo: string; };
 
+// Realtime e polling podem entregar a mesma linha quase ao mesmo tempo. Mantemos
+// apenas uma ocorrência por id (ou pelo identificador do provedor) antes de renderizar.
+const chaveMensagem = (msg: Mensagem) => {
+  if (msg.id !== undefined && msg.id !== null) return `id:${msg.id}`;
+  if (msg.provider_message_id) return `provider:${msg.provider_message_id}`;
+  return `fallback:${msg.workspace_id || ""}:${msg.canal_id || ""}:${msg.numero}:${msg.de}:${msg.created_at || ""}:${msg.mensagem}`;
+};
+
+const deduplicarMensagens = (mensagens: Mensagem[]) => {
+  const vistas = new Set<string>();
+  return mensagens.filter(msg => {
+    const chave = chaveMensagem(msg);
+    if (vistas.has(chave)) return false;
+    vistas.add(chave);
+    return true;
+  });
+};
+
 /// 🆕 Papel de parede estilo WhatsApp Light — fundo bege com símbolos sutis (balões, corações, estrela, envelope, relógio, check, presente, câmera, folha)
 const WA_BG_LIGHT = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='%23000000' fill-opacity='0.05'><path d='M20 30 q0 -10 10 -10 h40 q10 0 10 10 v15 q0 10 -10 10 h-25 l-10 10 v-10 h-5 q-10 0 -10 -10 z'/><path d='M120 32 q-8 -10 -16 0 q-8 10 8 22 q16 -12 8 -22 z'/><path d='M195 25 l3 8 l9 0 l-7 5 l3 9 l-8 -5 l-8 5 l3 -9 l-7 -5 l9 0 z'/><rect x='100' y='90' width='40' height='25' rx='3' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M100 95 l20 14 l20 -14' stroke='%23000000' stroke-opacity='0.05' stroke-width='2' fill='none'/><circle cx='195' cy='105' r='12' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M195 97 v8 l5 4' stroke='%23000000' stroke-opacity='0.05' stroke-width='2' fill='none' stroke-linecap='round'/><path d='M35 95 l8 8 l16 -16' stroke='%23000000' stroke-opacity='0.05' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/><rect x='20' y='160' width='30' height='30' rx='2'/><rect x='90' y='155' width='35' height='25' rx='3' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><circle cx='107' cy='167' r='6' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M170 165 q-5 10 5 20 q10 -5 15 -15 q-5 -10 -20 -5 z'/><circle cx='60' cy='200' r='6'/></g></svg>")`;
 
@@ -133,33 +151,63 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
   const [duration, setDuration] = useState(0);
   const [waveform, setWaveform] = useState<number[]>(Array(40).fill(0.3));
   const [loaded, setLoaded] = useState(false);
+  const [playbackSrc, setPlaybackSrc] = useState("");
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let cancel = false;
+    let objectUrl = "";
+    const controller = new AbortController();
+    setLoaded(false);
+    setLoadError(false);
+    setPlaybackSrc("");
     (async () => {
       try {
-        const resp = await fetch(src);
-        const buf = await resp.arrayBuffer();
-        // @ts-ignore
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        const ctx = new AudioCtx();
-        const audioBuffer = await ctx.decodeAudioData(buf);
-        const raw = audioBuffer.getChannelData(0);
-        const samples = 40;
-        const blockSize = Math.floor(raw.length / samples);
-        const peaks: number[] = [];
-        for (let i = 0; i < samples; i++) {
-          let sum = 0;
-          for (let j = 0; j < blockSize; j++) sum += Math.abs(raw[i * blockSize + j] || 0);
-          peaks.push(sum / blockSize);
+        // Uma única requisição alimenta tanto o player quanto a waveform. Antes o
+        // navegador fazia duas requisições concorrentes ao proxy e o áudio podia
+        // ficar eternamente em "carregando".
+        const resp = await fetch(src, { cache: "no-store", signal: controller.signal });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        if (cancel) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPlaybackSrc(objectUrl);
+        try {
+          const buf = await blob.arrayBuffer();
+          // @ts-ignore
+          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+          const ctx = new AudioCtx();
+          const audioBuffer = await ctx.decodeAudioData(buf);
+          const raw = audioBuffer.getChannelData(0);
+          const samples = 40;
+          const blockSize = Math.floor(raw.length / samples);
+          const peaks: number[] = [];
+          for (let i = 0; i < samples; i++) {
+            let sum = 0;
+            for (let j = 0; j < blockSize; j++) sum += Math.abs(raw[i * blockSize + j] || 0);
+            peaks.push(sum / blockSize);
+          }
+          const max = Math.max(...peaks, 0.01);
+          const normalized = peaks.map(p => Math.max(0.15, p / max));
+          if (!cancel) setWaveform(normalized);
+          try { ctx.close(); } catch {}
+        } catch (waveformError) {
+          // Alguns codecs tocam normalmente no elemento <audio>, embora o
+          // AudioContext não consiga decodificá-los para desenhar a waveform.
+          console.warn("Falha ao gerar waveform:", waveformError);
         }
-        const max = Math.max(...peaks, 0.01);
-        const normalized = peaks.map(p => Math.max(0.15, p / max));
-        if (!cancel) setWaveform(normalized);
-        try { ctx.close(); } catch {}
-      } catch (err) { console.warn("Falha ao gerar waveform:", err); }
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
+          console.warn("Falha ao carregar áudio:", err);
+          if (!cancel) setLoadError(true);
+        }
+      }
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [src]);
 
   useEffect(() => {
@@ -204,7 +252,7 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 260, padding: "4px 2px" }}>
-      <audio ref={audioRef} src={src} preload="metadata" style={{ display: "none" }} />
+      <audio ref={audioRef} src={playbackSrc || undefined} preload="metadata" style={{ display: "none" }} />
       <button onClick={toggle}
         style={{ width: 36, height: 36, borderRadius: "50%", background: isOwn ? "#ffffff22" : "#00a88422", border: "none", color: isOwn ? "#ffffff" : "#00a884", fontSize: 16, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
         {playing ? "⏸" : "▶"}
@@ -220,7 +268,7 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
           })}
         </div>
         <span style={{ fontSize: 11, color: isOwn ? "#a3e4d0" : "#8696a0", fontVariantNumeric: "tabular-nums" }}>
-          {loaded ? format(playing || current > 0 ? current : duration) : "carregando…"}
+          {loadError ? "áudio indisponível" : loaded ? format(playing || current > 0 ? current : duration) : "carregando…"}
         </span>
       </div>
       <div style={{ width: 36, height: 36, borderRadius: "50%", background: isOwn ? "#ffffff22" : "#8696a033", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 }}>
@@ -332,6 +380,9 @@ export function ChatSection() {
   const [atendimentoAtivo, setAtendimentoAtivo] = useState<Atendimento | null>(null);
   const [historico, setHistorico] = useState<Mensagem[]>([]);
   const [enviandoMsg, setEnviandoMsg] = useState(false);
+  // Trava síncrona: o state só atualiza no próximo render e permitia dois disparos
+  // quando Enter/clique aconteciam quase juntos.
+  const enviandoMsgRef = useRef(false);
   const [canais, setCanais] = useState<CanalInfo[]>([]);
   const [filtroCanal, setFiltroCanal] = useState<string>("todos");
 
@@ -1232,7 +1283,7 @@ export function ChatSection() {
       .eq("workspace_id", wsId);
     if (canalId) query = query.eq("canal_id", canalId);
     const { data } = await query.order("created_at", { ascending: true });
-    setHistorico(data || []);
+    setHistorico(deduplicarMensagens((data || []) as Mensagem[]));
   };
 
   // 🆕 Atualizar manualmente — chamado pelo botão 🔄 da toolbar.
@@ -1680,7 +1731,7 @@ export function ChatSection() {
         // Defesa extra: confere workspace mesmo após filter (não custa nada)
         if (m.workspace_id !== wsId) return;
         if (m.numero === num && (!cId || m.canal_id === cId)) {
-          setHistorico(p => [...p, m]);
+          setHistorico(p => deduplicarMensagens([...p, m]));
           // 🆕 Se o user está scrollado pra cima lendo msg antiga, NÃO arrasta ele pra baixo —
           // apenas sinaliza que chegou msg nova. Ele decide quando descer clicando no badge.
           if (!stickyFundoRef.current) {
@@ -1893,6 +1944,8 @@ export function ChatSection() {
   const enviarMensagem = async () => {
     if (!mensagem || !atendimentoAtivo) return;
     if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal. Não é possível enviar.", "aviso"); return; }
+    if (enviandoMsgRef.current) return;
+    enviandoMsgRef.current = true;
     if (editandoMsg && editandoMsg.id) {
       setEnviandoMsg(true);
       try {
@@ -1907,6 +1960,7 @@ export function ChatSection() {
         }
       } catch (e: any) { notify(traduzirErro(e), "erro"); }
       setEnviandoMsg(false);
+      enviandoMsgRef.current = false;
       return;
     }
     setEnviandoMsg(true);
@@ -1952,6 +2006,7 @@ export function ChatSection() {
     }
     catch { notify("Falha ao enviar mensagem. Tente novamente.", "erro"); }
     setEnviandoMsg(false);
+    enviandoMsgRef.current = false;
   };
 
   const inserirEmoji = (emoji: string) => { setMensagem(prev => prev + emoji); };
@@ -2848,7 +2903,7 @@ export function ChatSection() {
                 : historico.map((msg, i) => {
                     if (msg.de === "sistema") {
                       return (
-                        <div key={i} style={{ display: "flex", justifyContent: "center", margin: "4px 0" }}>
+                        <div key={chaveMensagem(msg)} style={{ display: "flex", justifyContent: "center", margin: "4px 0" }}>
                           <div style={{ background: "#fff4c7", color: "#3b4a54", border: "1px solid #eadca4", boxShadow: "0 1px 2px rgba(11,20,26,0.08)", fontSize: 11.5, fontWeight: 600, padding: "6px 14px", borderRadius: 8, maxWidth: "80%", textAlign: "center" }}>
                             {msg.mensagem}
                             {msg.created_at && <div style={{ fontSize: 10, color: "#54656f", fontWeight: 600, marginTop: 3 }}>{dataHoraMsg(msg.created_at)}</div>}
@@ -2872,7 +2927,7 @@ export function ChatSection() {
                     if (foiEditada) msgTextoLimpo = msgTextoLimpo.replace(/\s*\*\(editado\)\*\s*$/, "");
                     const mensagemApagada = msgTextoLimpo === "[Mensagem apagada]";
                     return (
-                      <div key={i} onMouseEnter={() => setHoverMsgIdx(i)} onMouseLeave={() => { setHoverMsgIdx(prev => prev === i ? null : prev); }}
+                      <div key={chaveMensagem(msg)} onMouseEnter={() => setHoverMsgIdx(i)} onMouseLeave={() => { setHoverMsgIdx(prev => prev === i ? null : prev); }}
                         style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end", position: "relative" }}>
                         <div style={{ maxWidth, padding: ehMidia ? "4px 4px 7px" : "7px 11px 8px", borderRadius: isCliente ? "8px 8px 8px 2px" : "8px 8px 2px 8px", background: isCliente ? "#ffffff" : "#d9fdd3", border: `1px solid ${isCliente ? "#e1e7ea" : "#c5e9bf"}`, boxShadow: "0 1px 1px rgba(11,20,26,0.14)", position: "relative" }}>
                           {!isCliente && !ehAudio && !ehMidia && <p style={{ color: isBot ? "#027eb5" : "#1f7a5a", fontSize: 10.5, margin: "0 0 3px", fontWeight: 800, letterSpacing: 0.15 }}>{isBot ? "BOT" : "Voc\u00ea"}</p>}
