@@ -82,6 +82,7 @@ export default function ValidacaoNumerosPage() {
   const [qrStatus, setQrStatus] = useState("");
   const [qrAberto, setQrAberto] = useState(false);
   const [qrPolling, setQrPolling] = useState(false);
+  const [acaoCanal, setAcaoCanal] = useState<"reconectar" | "qr" | null>(null);
   const arquivoRef = useRef<HTMLInputElement>(null);
 
   const podeAcessar = isDono || perfil === "Administrador" || !!permissoes.disparo_enviar;
@@ -94,6 +95,8 @@ export default function ValidacaoNumerosPage() {
   const invalidos = useMemo(() => resultados.filter((r) => r.status !== "com_whatsapp"), [resultados]);
   const exibidos = useMemo(() => filtro === "validos" ? validos : filtro === "invalidos" ? invalidos : resultados, [filtro, resultados, validos, invalidos]);
   const canalAtual = canais.find((c) => c.id === canalId) || null;
+  const canalQr = canais.find((c) => c.id === qrCanalId) || null;
+  const qrWorkspaceId = canalQr?.workspace_id || wsId || "";
   const validando = !!job && !["concluido", "erro"].includes(job.status);
   const progresso = job?.total ? Math.min(100, Math.round((job.processados / job.total) * 100)) : (job?.status === "concluido" ? 100 : 0);
 
@@ -128,11 +131,11 @@ export default function ValidacaoNumerosPage() {
   useEffect(() => { carregarCanais(); }, [carregarCanais]);
 
   useEffect(() => {
-    if (!qrPolling || !qrAberto || !qrCanalId || !wsId) return;
+    if (!qrPolling || !qrAberto || !qrCanalId || !qrWorkspaceId) return;
     let ativo = true;
     const consultar = async () => {
       try {
-        const rota = "qr-data&canalId=" + encodeURIComponent(String(qrCanalId)) + "&workspaceId=" + encodeURIComponent(wsId);
+        const rota = "qr-data&canalId=" + encodeURIComponent(String(qrCanalId)) + "&workspaceId=" + encodeURIComponent(qrWorkspaceId);
         const data = await wa(rota);
         if (!ativo) return;
         if (data.qr) setQrImage(data.qr);
@@ -148,7 +151,7 @@ export default function ValidacaoNumerosPage() {
     consultar();
     const timer = window.setInterval(consultar, 1500);
     return () => { ativo = false; window.clearInterval(timer); };
-  }, [qrPolling, qrAberto, qrCanalId, wsId, wa, carregarCanais, workspaceIds]);
+  }, [qrPolling, qrAberto, qrCanalId, qrWorkspaceId, wa, carregarCanais, workspaceIds]);
 
   useEffect(() => {
     if (!job?.id || ["concluido", "erro"].includes(job.status) || !wsId) return;
@@ -196,13 +199,28 @@ export default function ValidacaoNumerosPage() {
   };
 
   const abrirQr = async (canal: Canal) => {
-    if (!confirm("Gerar um novo QR para o canal exclusivo de valida\u00e7\u00e3o?")) return;
-    setErro(""); setQrCanalId(canal.id); setQrImage(""); setQrStatus("desconectado"); setQrAberto(true); setQrPolling(false);
+    if (!confirm("Gerar um novo QR para o canal exclusivo de valida\u00e7\u00e3o?\n\nIsto encerra a sess\u00e3o salva atual. Use somente para trocar a conta ou quando a reconex\u00e3o normal n\u00e3o funcionar.")) return;
+    setErro(""); setAcaoCanal("qr"); setQrCanalId(canal.id); setQrImage(""); setQrStatus("desconectado"); setQrAberto(true); setQrPolling(false);
     try {
       await wa("resetar", { canalId: canal.id, workspaceId: canal.workspace_id });
       await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", canal.id).eq("workspace_id", canal.workspace_id);
       setQrPolling(true);
     } catch (e) { setQrAberto(false); setErro((e as Error).message); }
+    finally { setAcaoCanal(null); }
+  };
+
+  const reconectarCanal = async (canal: Canal) => {
+    if (acaoCanal) return;
+    setErro(""); setAcaoCanal("reconectar"); setQrCanalId(canal.id); setQrImage(""); setQrStatus("reconectando"); setQrAberto(true); setQrPolling(false);
+    try {
+      const data = await wa("reconectar", { canalId: canal.id, workspaceId: canal.workspace_id });
+      setQrStatus(data?.sessao_salva === false ? "desconectado" : "reconectando");
+      setQrPolling(true);
+      await carregarCanais();
+    } catch (e) {
+      setQrAberto(false);
+      setErro((e as Error).message || "N\u00e3o foi poss\u00edvel reconectar o canal.");
+    } finally { setAcaoCanal(null); }
   };
 
   const importarArquivo = (arquivo?: File) => {
@@ -263,7 +281,11 @@ export default function ValidacaoNumerosPage() {
               {canais.map((c) => <option key={c.id} value={c.id}>{c.nome} - {c.status === "conectado" ? "conectado" : "desconectado"}{c.numero ? " (" + c.numero + ")" : ""}</option>)}
             </select>
           </label>
-          <button onClick={() => canalAtual && abrirQr(canalAtual)} style={{ ...button, color: "#0f766e", background: "#ecfdf5", border: "1px solid #99f6e4" }}>{canalAtual?.status === "conectado" ? "Trocar conex&atilde;o / QR" : "Conectar por QR"}</button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <button disabled={!canalAtual || !!acaoCanal} onClick={() => canalAtual && reconectarCanal(canalAtual)} style={{ ...button, color: "#1d4ed8", background: "#eff6ff", border: "1px solid #bfdbfe", opacity: acaoCanal ? .6 : 1 }}>{acaoCanal === "reconectar" ? "Reconectando..." : "Reconectar sess\u00e3o"}</button>
+            <button disabled={!canalAtual || !!acaoCanal} onClick={() => canalAtual && abrirQr(canalAtual)} style={{ ...button, color: "#0f766e", background: "#ecfdf5", border: "1px solid #99f6e4", opacity: acaoCanal ? .6 : 1 }}>Gerar novo QR</button>
+            <button disabled={carregandoCanais} onClick={carregarCanais} style={{ ...button, color: "#475569", background: "#fff", border: "1px solid #cbd5e1" }}>{carregandoCanais ? "Atualizando..." : "Atualizar status"}</button>
+          </div>
         </div>}
       </section>
 
@@ -284,7 +306,7 @@ export default function ValidacaoNumerosPage() {
       </section>}
     </div>
 
-    {qrAberto && <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.58)", display: "grid", placeItems: "center", zIndex: 3000, padding: 20 }}><section style={{ ...card, width: "min(420px,100%)", padding: 28, textAlign: "center" }}><h2 style={{ margin: "0 0 8px" }}>Conectar canal de consulta</h2><p style={{ margin: "0 0 18px", color: "#64748b", fontSize: 13 }}>No WhatsApp, abra Aparelhos conectados e leia este QR.</p><div style={{ minHeight: 240, display: "grid", placeItems: "center" }}>{qrStatus === "conectado" ? <div style={{ color: "#047857", fontWeight: 900, fontSize: 18 }}>&#9989; Conectado</div> : qrImage ? <img src={qrImage} alt="Codigo QR" width={230} height={230} style={{ borderRadius: 10 }}/> : <span style={{ color: "#64748b" }}>Gerando c&oacute;digo QR...</span>}</div><button onClick={() => { setQrAberto(false); setQrPolling(false); }} style={{ ...button, marginTop: 16, background: "#f1f5f9", color: "#334155" }}>Fechar</button></section></div>}
+    {qrAberto && <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.58)", display: "grid", placeItems: "center", zIndex: 3000, padding: 20 }}><section style={{ ...card, width: "min(440px,100%)", padding: 28, textAlign: "center" }}><h2 style={{ margin: "0 0 8px" }}>{qrStatus === "reconectando" ? "Reconectando canal de consulta" : "Conectar canal de consulta"}</h2><p style={{ margin: "0 0 18px", color: "#64748b", fontSize: 13 }}>{qrStatus === "reconectando" ? "Tentando restaurar a sess\u00e3o salva. Se ela n\u00e3o existir, o QR aparecer\u00e1 automaticamente." : qrImage ? "No WhatsApp, abra Aparelhos conectados e leia este QR." : "Preparando a conex\u00e3o e aguardando um novo c\u00f3digo QR."}</p><div style={{ minHeight: 240, display: "grid", placeItems: "center" }}>{qrStatus === "conectado" ? <div style={{ color: "#047857", fontWeight: 900, fontSize: 18 }}>&#9989; Conectado</div> : qrImage ? <img src={qrImage} alt="Codigo QR" width={230} height={230} style={{ borderRadius: 10 }}/> : <span style={{ color: "#64748b" }}>{qrStatus === "reconectando" ? "Restaurando sess\u00e3o salva..." : "Gerando c\u00f3digo QR..."}</span>}</div><div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginTop: 16 }}>{qrStatus !== "conectado" && canalQr && <button disabled={!!acaoCanal} onClick={() => abrirQr(canalQr)} style={{ ...button, background: "#ecfdf5", color: "#0f766e", border: "1px solid #99f6e4" }}>Gerar outro QR</button>}<button onClick={() => { setQrAberto(false); setQrPolling(false); }} style={{ ...button, background: "#f1f5f9", color: "#334155" }}>Fechar</button></div></section></div>}
   </main>;
 }
 
