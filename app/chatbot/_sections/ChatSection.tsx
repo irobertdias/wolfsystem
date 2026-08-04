@@ -1246,9 +1246,13 @@ export function ChatSection() {
             if (a.status === "pendente") return "aguardando";
             return "abertos";
           })();
-          // Permissão literal: chat_todos vê tudo; chat_proprio vê apenas os próprios.
+          // Permissão literal: chat_todos vê tudo; chat_proprio vê apenas os próprios —
+          // exceto em "automatico"/"aguardando", que são leads não reivindicados (mesmo
+          // fix de podeVerAtendimento abaixo: sem isso, o som de chat novo nunca tocava
+          // pra leads BOT/pendentes, porque nenhum tem atendente === meu email ainda).
           if (isDono || permissoes.chat_todos) return true;
           if (!permissoes.chat_proprio) return false;
+          if (aba === "automatico" || aba === "aguardando") return true;
           return a.atendente?.toLowerCase() === user?.email?.toLowerCase();
         });
         if (novosVisiveis.length > 0) {
@@ -1864,10 +1868,19 @@ export function ChatSection() {
       return true;
     }
 
-    // Atendente comum: fila/canal são recortes adicionais, mas a permissão
-    // chat_proprio continua significando literalmente "somente os meus".
+    // Atendente comum: fila/canal são recortes adicionais.
     if (!minhaFilaAtende(a.fila)) return false;
     if (!permissoes.chat_proprio) return false;
+
+    // 🐛 FIX: "automatico" (BOT) e "aguardando" (pendente sem atendente) são leads
+    // NÃO reivindicados — a fila já limita quem pode ver, e o botão "Parar BOT"/pegar
+    // atendimento existe justamente pra qualquer atendente da fila puxar um desses.
+    // Antes, exigir atendente === meu email aqui significava que um lead sem atendente
+    // (BOT ou vazio) NUNCA batia com ninguém — a aba inteira ficava invisível pra
+    // qualquer atendente sem chat_todos, mesmo estando na fila certa.
+    if (aba === "automatico" || aba === "aguardando") return true;
+
+    // "abertos"/"finalizados": aqui sim, "somente os meus".
     return a.atendente?.toLowerCase() === user?.email?.toLowerCase();
   };
 
