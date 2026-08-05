@@ -2101,6 +2101,19 @@ export function ChatSection() {
     if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal.", "aviso"); return; }
     setEnviandoMidia(true); setStickyFundo(true); setTemMensagemNova(false);
     try {
+      const lerRespostaEnvio = async (resposta: Response) => {
+        const texto = await resposta.text();
+        let dados: any = {};
+        try { dados = texto ? JSON.parse(texto) : {}; }
+        catch {
+          if (resposta.status === 413 || /request entity too large|payload too large/i.test(texto)) {
+            throw new Error("O arquivo excedeu o limite do servidor de envio.");
+          }
+          throw new Error(texto.trim().slice(0, 240) || `Erro HTTP ${resposta.status}`);
+        }
+        if (!resposta.ok && !dados?.error && !dados?.erro) dados.error = `Erro HTTP ${resposta.status}`;
+        return dados;
+      };
       const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
       const tipoCanal = canalAtual?.tipo;
       const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
@@ -2119,20 +2132,41 @@ export function ChatSection() {
         fd.append("origem", origem);
         if (legendaArquivo) fd.append("legenda", legendaArquivo);
         const r = await fetch("/api/meta?rota=send/enviar-midia-arquivo", { method: "POST", body: fd });
-        const data = await r.json();
+        const data = await lerRespostaEnvio(r);
         if (!(data.success || data.sucesso)) { notify(traduzirErro(data.erro || data.error || "Erro ao enviar arquivo"), "erro"); }
         else { cancelarEnvioArquivo(); }
       } else {
-        const fd = new FormData();
-        fd.append("arquivo", arquivoSelecionado);
-        fd.append("numero", atendimentoAtivo.numero);
-        fd.append("canalId", String(atendimentoAtivo.canal_id));
-        fd.append("workspaceId", String(wsId));
-        if (legendaArquivo) fd.append("legenda", legendaArquivo);
-        const resp = await fetch("/api/whatsapp-midia", { method: "POST", body: fd });
-        const data = await resp.json();
-        if (!data.success) { notify(traduzirErro(data.error || "Erro ao enviar arquivo"), "erro"); }
-        else { cancelarEnvioArquivo(); }
+        // Arquivos maiores que ~4,5 MB nao podem atravessar uma Function da Vercel.
+        // Sobe direto no Storage do workspace e envia ao backend somente a URL.
+        const nomeSeguro = arquivoSelecionado.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const storagePath = `${wsId}/${Date.now()}_chat_${nomeSeguro}`;
+        const bucket = supabase.storage.from("respostas-rapidas-midia");
+        const { error: uploadError } = await bucket.upload(storagePath, arquivoSelecionado, {
+          upsert: false,
+          contentType: arquivoSelecionado.type || "application/octet-stream",
+        });
+        if (uploadError) throw new Error(`Nao foi possivel preparar o arquivo: ${uploadError.message}`);
+        try {
+          const { data: publicData } = bucket.getPublicUrl(storagePath);
+          const resp = await fetch("/api/whatsapp?rota=enviar-midia-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              midiaUrl: publicData.publicUrl,
+              midiaNome: arquivoSelecionado.name,
+              numero: atendimentoAtivo.numero,
+              canalId: String(atendimentoAtivo.canal_id),
+              workspaceId: String(wsId),
+              legenda: legendaArquivo || "",
+            }),
+          });
+          const data = await lerRespostaEnvio(resp);
+          if (!data.success) notify(traduzirErro(data.error || "Erro ao enviar arquivo"), "erro");
+          else cancelarEnvioArquivo();
+        } finally {
+          // A URL serve apenas como ponte de upload; o backend ja salvou a copia usada no chat.
+          await bucket.remove([storagePath]).catch(() => undefined);
+        }
       }
     } catch (e: any) { notify(traduzirErro(e), "erro"); }
     setEnviandoMidia(false);
