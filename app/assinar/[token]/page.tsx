@@ -16,8 +16,10 @@ type AssinaturaInfo = {
   biometria_status: string;
   consentimento_versao: string;
   consentimento_texto: string;
-  papel?: "empresa" | "cliente";
-  signatarios?: Array<{ papel: "empresa" | "cliente"; ordem: number; nome: string; status: string; assinatura_em?: string | null }>;
+  papel?: "empresa" | "cliente" | "testemunha" | "interveniente" | "outro";
+  papel_label?: string;
+  otp_meio?: "whatsapp" | "email";
+  signatarios?: Array<{ id?: string; papel: string; papel_label?: string; ordem: number; nome: string; otp_meio?: "whatsapp" | "email"; status: string; assinatura_em?: string | null }>;
 };
 
 const CONSENTIMENTO =
@@ -273,7 +275,7 @@ export default function AssinarWolfPage() {
   async function concluir() {
     setErro("");
     if (!/^\d{6}$/.test(otp)) {
-      setErro("Informe o código de 6 dígitos enviado pelo WhatsApp.");
+      setErro(`Informe o c\u00f3digo de 6 d\u00edgitos enviado por ${info?.otp_meio === "email" ? "e-mail" : "WhatsApp"}.`);
       return;
     }
     if (!aceiteContrato || !aceiteAssinatura || !aceiteSelfie) {
@@ -307,6 +309,7 @@ export default function AssinarWolfPage() {
       });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || "Falha ao concluir assinatura");
+      setInfo(atual => atual ? { ...atual, status: data.status || "concluida" } : atual);
       setConcluida(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e: any) {
@@ -336,7 +339,7 @@ export default function AssinarWolfPage() {
         <div style={styles.successIcon}>✓</div>
         <h1 style={styles.title}>Contrato assinado com sucesso</h1>
         <p style={styles.muted}>
-          {info?.papel === "empresa" ? "Sua assinatura foi registrada. Agora o cliente receberá automaticamente o contrato já assinado pela empresa." : "As duas assinaturas foram concluídas. O PDF final e as evidências serão enviados por WhatsApp e e-mail aos participantes."}
+          {info?.status === "aguardando_proximo" ? "Sua assinatura foi registrada. A pr\u00f3xima pessoa receber\u00e1 automaticamente o convite para assinar." : "Todas as assinaturas foram conclu\u00eddas. O PDF final e as evid\u00eancias ser\u00e3o enviados aos participantes."}
         </p>
         <div style={styles.notice}>
           Guarde o PDF recebido. Ele contém sua assinatura legível e a trilha técnica da assinatura.
@@ -349,7 +352,7 @@ export default function AssinarWolfPage() {
     return <main style={styles.center}>
       <div style={styles.successIcon}>✓</div>
       <h1 style={styles.title}>Esta etapa já foi assinada</h1>
-      <p style={styles.muted}>{info.papel === "empresa" ? "A assinatura da empresa foi concluída. O contrato já seguiu para o cliente." : "Sua assinatura foi concluída e o contrato final está sendo entregue aos participantes."}</p>
+      <p style={styles.muted}>Sua assinatura foi conclu\u00edda. O documento seguir\u00e1 automaticamente para a pr\u00f3xima pessoa ou, se todos j\u00e1 assinaram, ser\u00e1 entregue aos participantes.</p>
     </main>;
   }
 
@@ -378,9 +381,9 @@ export default function AssinarWolfPage() {
 
       {info?.signatarios?.length ? <section style={styles.progressCard}>
         <div style={styles.progressTitle}>Andamento das assinaturas</div>
-        {info.signatarios.map(participante => <div key={participante.papel} style={styles.progressRow}>
+        {info.signatarios.map(participante => <div key={participante.id || `${participante.ordem}-${participante.papel}-${participante.nome}`} style={styles.progressRow}>
           <span style={participante.status === "concluida" ? styles.progressDone : styles.progressPending}>{participante.status === "concluida" ? "✓" : participante.ordem}</span>
-          <div><strong>{participante.papel === "empresa" ? "Representante da empresa" : "Cliente"}</strong><small style={styles.progressName}>{participante.nome}</small></div>
+          <div><strong>{participante.papel_label || (participante.papel === "empresa" ? "Representante da empresa" : participante.papel === "cliente" ? "Cliente" : "Signat\u00e1rio")}</strong><small style={styles.progressName}>{participante.nome}</small></div>
           <b style={participante.status === "concluida" ? styles.progressStatusDone : styles.progressStatusPending}>{participante.status === "concluida" ? "Assinado" : participante.status === "pendente" ? "Sua vez de assinar" : "Aguardando"}</b>
         </div>)}
       </section> : null}
@@ -408,7 +411,7 @@ export default function AssinarWolfPage() {
         <div style={styles.cardHeader}>
           <div><span style={styles.number}>2</span><strong>Confirme o código recebido</strong></div>
         </div>
-        <p style={styles.muted}>Enviaremos um código de 6 dígitos para o mesmo WhatsApp deste atendimento.</p>
+        <p style={styles.muted}>{info?.otp_meio === "email" ? "Enviaremos um c\u00f3digo de 6 d\u00edgitos para o seu e-mail cadastrado." : "Enviaremos um c\u00f3digo de 6 d\u00edgitos para o WhatsApp cadastrado neste contrato."}</p>
         <div style={styles.row}>
           <button type="button" onClick={solicitarOtp} disabled={enviandoOtp} style={styles.secondaryButton}>
             {enviandoOtp ? "Enviando..." : otpEnviado ? "Reenviar código" : "Enviar código"}

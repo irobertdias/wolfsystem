@@ -19,13 +19,17 @@ export async function POST(request: NextRequest) {
     if (pdfBase64.length > 4_200_000) return NextResponse.json({ success: false, error: "PDF maior que 3 MB" }, { status: 413 });
     const payload = {
       workspace_id: acesso.workspaceId,
-      canal_id: Number(body.canal_id), numero: String(body.numero || ""),
+      canal_id: body.canal_id ? Number(body.canal_id) : null,
+      numero: String(body.numero || ""),
       nome_signatario: String(body.nome_signatario || ""), cpf: String(body.cpf || ""),
       email_signatario: String(body.email_signatario || ""), titulo: String(body.titulo || "Contrato"),
       conteudo: String(body.conteudo || ""), pdf_base64: pdfBase64,
       mensagem: String(body.mensagem || ""), expira_horas: Number(body.expira_horas || 48),
       exigir_localizacao: body.exigir_localizacao === true, proposta_id: propostaId,
       representante_id: String(body.representante_id || ""),
+      otp_meio_representante: String(body.otp_meio_representante || ""),
+      otp_meio_cliente: String(body.otp_meio_cliente || ""),
+      participantes_adicionais: Array.isArray(body.participantes_adicionais) ? body.participantes_adicionais : [],
       criado_por: acesso.email,
     };
     if (!payload.representante_id) {
