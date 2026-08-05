@@ -1286,6 +1286,39 @@ export function ChatSection() {
     }
   };
 
+  // Mantem a lista sincronizada tambem quando a mensagem sai do atendente.
+  // O backend atualiza updated_at ao receber do cliente, mas alguns provedores nao
+  // atualizam o atendimento no envio. Sem isto, o chat so subia na resposta seguinte.
+  const refletirAtividadeAtendimento = (
+    alvo: { id?: number; numero: string; canalId?: number },
+    resumo: string,
+    instante = new Date().toISOString(),
+    persistir = false,
+  ) => {
+    const corresponde = (a: Atendimento) => {
+      if (alvo.id) return a.id === alvo.id;
+      return a.numero === alvo.numero &&
+        (!alvo.canalId || !a.canal_id || Number(a.canal_id) === Number(alvo.canalId));
+    };
+    const atualizar = (a: Atendimento): Atendimento =>
+      corresponde(a) ? { ...a, mensagem: resumo, updated_at: instante } : a;
+
+    setAtendimentos(prev => [...prev.map(atualizar)].sort((a, b) =>
+      new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime()
+    ));
+    setAtendimentoAtivo(prev => prev && corresponde(prev) ? atualizar(prev) : prev);
+
+    if (persistir && alvo.id && wsId) {
+      void (async () => {
+        const { error } = await supabase.from("atendimentos")
+          .update({ mensagem: resumo, updated_at: instante })
+          .eq("id", alvo.id)
+          .eq("workspace_id", wsId);
+        if (error) console.warn("Nao foi possivel persistir atividade do atendimento:", error.message);
+      })();
+    }
+  };
+
   const fetchHistorico = async (numero: string, canalId?: number) => {
     if (!wsId) return;  // 🔒 SEGURANÇA: sem wsId, não busca nada (evita vazamento)
     // 🔒 MULTI-TENANT: sempre filtra por workspace_id — antes vazava mensagens entre workspaces
@@ -1748,6 +1781,11 @@ export function ChatSection() {
         if (m.workspace_id !== wsId) return;
         if (m.numero === num && (!cId || m.canal_id === cId)) {
           setHistorico(p => deduplicarMensagens([...p, m]));
+          refletirAtividadeAtendimento(
+            { numero: m.numero, canalId: m.canal_id },
+            m.mensagem,
+            m.created_at || new Date().toISOString(),
+          );
           // 🆕 Se o user está scrollado pra cima lendo msg antiga, NÃO arrasta ele pra baixo —
           // apenas sinaliza que chegou msg nova. Ele decide quando descer clicando no badge.
           if (!stickyFundoRef.current) {
@@ -2024,6 +2062,12 @@ export function ChatSection() {
       }
       if (!resp.success) { notify(traduzirErro(resp.error || "Erro ao enviar"), "erro"); }
       else {
+        refletirAtividadeAtendimento(
+          { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
+          mensagemFinal,
+          new Date().toISOString(),
+          true,
+        );
         setMensagem("");
         setRespondendoMsg(null);
         if (mensagemTextareaRef.current) { mensagemTextareaRef.current.style.height = "auto"; }
@@ -2134,7 +2178,15 @@ export function ChatSection() {
         const r = await fetch("/api/meta?rota=send/enviar-midia-arquivo", { method: "POST", body: fd });
         const data = await lerRespostaEnvio(r);
         if (!(data.success || data.sucesso)) { notify(traduzirErro(data.erro || data.error || "Erro ao enviar arquivo"), "erro"); }
-        else { cancelarEnvioArquivo(); }
+        else {
+          refletirAtividadeAtendimento(
+            { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
+            legendaArquivo.trim() || arquivoSelecionado.name,
+            new Date().toISOString(),
+            true,
+          );
+          cancelarEnvioArquivo();
+        }
       } else {
         // Arquivos maiores que ~4,5 MB nao podem atravessar uma Function da Vercel.
         // Sobe direto no Storage do workspace e envia ao backend somente a URL.
@@ -2162,7 +2214,15 @@ export function ChatSection() {
           });
           const data = await lerRespostaEnvio(resp);
           if (!data.success) notify(traduzirErro(data.error || "Erro ao enviar arquivo"), "erro");
-          else cancelarEnvioArquivo();
+          else {
+            refletirAtividadeAtendimento(
+              { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
+              legendaArquivo.trim() || arquivoSelecionado.name,
+              new Date().toISOString(),
+              true,
+            );
+            cancelarEnvioArquivo();
+          }
         } finally {
           // A URL serve apenas como ponte de upload; o backend ja salvou a copia usada no chat.
           await bucket.remove([storagePath]).catch(() => undefined);
@@ -2217,7 +2277,15 @@ export function ChatSection() {
     try {
       const resp = await wa("enviar-template", { numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id, templateId: templateEscolhido.id, variaveis: templateVars, workspaceId: wsId });
       if (!resp.success) { notify(traduzirErro(resp.error || "Erro ao enviar template"), "erro"); }
-      else { setShowTemplateModal(false); setTemplateEscolhido(null); setTemplateVars({}); setStickyFundo(true); }
+      else {
+        refletirAtividadeAtendimento(
+          { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
+          "Template enviado: " + (templateEscolhido.nome || templateEscolhido.name || "WhatsApp"),
+          new Date().toISOString(),
+          true,
+        );
+        setShowTemplateModal(false); setTemplateEscolhido(null); setTemplateVars({}); setStickyFundo(true);
+      }
     } catch (e: any) { notify(traduzirErro(e), "erro"); }
     setEnviandoTemplate(false);
   };
@@ -2278,6 +2346,12 @@ export function ChatSection() {
         const r = await fetch("/api/meta?rota=send/enviar-midia-arquivo", { method: "POST", body: fd });
         const data = await r.json();
         if (!(data.success || data.sucesso)) { notify(traduzirErro(data.erro || data.error || "Erro ao enviar áudio"), "erro"); }
+        else refletirAtividadeAtendimento(
+          { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
+          "Áudio enviado",
+          new Date().toISOString(),
+          true,
+        );
       } else {
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         audioChunksRef.current = [];
@@ -2289,6 +2363,12 @@ export function ChatSection() {
         const resp = await fetch("/api/whatsapp-audio", { method: "POST", body: form });
         const data = await resp.json();
         if (!data.success) notify(traduzirErro(data.error || "Erro ao enviar áudio"), "erro");
+        else refletirAtividadeAtendimento(
+          { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
+          "Áudio enviado",
+          new Date().toISOString(),
+          true,
+        );
       }
     } catch (e: any) { notify(traduzirErro(e), "erro"); }
     setEnviandoAudio(false); setTempoGravacao(0);
@@ -3160,6 +3240,13 @@ export function ChatSection() {
                           // Se a mídia falhar, restaura o texto para envio manual.
                           setMensagem(r.mensagem || "");
                           notify("Erro ao enviar mídia da resposta rápida: " + (data.error || "desconhecido"), "erro");
+                        } else {
+                          refletirAtividadeAtendimento(
+                            { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
+                            r.mensagem || r.midia_nome || "Mídia enviada",
+                            new Date().toISOString(),
+                            true,
+                          );
                         }
                       } catch (e: any) {
                         setMensagem(r.mensagem || "");
