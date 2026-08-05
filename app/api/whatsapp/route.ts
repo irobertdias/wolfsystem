@@ -40,7 +40,15 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
     await exigirEscopoDoAtendimento(acesso, rota, body);
     const params = new URLSearchParams(); entrada.searchParams.forEach((valor, chave) => { if (chave !== "rota") params.set(chave, valor); }); params.set("workspaceId", acesso.workspaceId);
     const resp = await fetch(`${WHATSAPP_URL}/${rota}${params.size ? `?${params.toString()}` : ""}`, { method: metodo, cache: "no-store", headers: { "ngrok-skip-browser-warning": "true", "x-wolf-internal-secret": segredoInternoWolf(), ...(metodo === "POST" ? { "Content-Type": "application/json" } : {}) }, ...(metodo === "POST" ? { body: JSON.stringify({ ...body, workspaceId: acesso.workspaceId, workspace_id: acesso.workspaceId }) } : {}) });
-    const texto = await resp.text(); if (!resp.ok) return NextResponse.json({ success: false, status: "erro", upstreamStatus: resp.status, error: `VPS ${resp.status}: ${texto.slice(0, 300)}` }, { status: resp.status });
+    const texto = await resp.text();
+    if (!resp.ok) {
+      let detalhe = texto;
+      try {
+        const json = JSON.parse(texto) as { error?: unknown; erro?: unknown; message?: unknown };
+        detalhe = String(json.error || json.erro || json.message || texto);
+      } catch {}
+      return NextResponse.json({ success: false, status: "erro", upstreamStatus: resp.status, error: detalhe.slice(0, 500) }, { status: resp.status });
+    }
     try { return NextResponse.json(JSON.parse(texto)); } catch { return NextResponse.json({ success: false, error: "VPS não retornou JSON" }, { status: 502 }); }
   } catch (error) { const item = respostaErroAcesso(error); console.error(`[proxy ${metodo}]`, item.message); return NextResponse.json({ success: false, status: "erro", error: item.message }, { status: item.status }); }
 }
