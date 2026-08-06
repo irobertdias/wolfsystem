@@ -49,6 +49,13 @@ const deduplicarMensagens = (mensagens: Mensagem[]) => {
   });
 };
 
+const statusLeituraMensagem = (status?: string | null) => {
+  const valor = String(status || "").trim().toLowerCase();
+  const lida = ["read", "lido", "lida", "visualizado", "visualizada", "played", "reproduzido"].includes(valor);
+  const falhou = ["failed", "falha", "erro", "error"].includes(valor);
+  return { lida, falhou, titulo: lida ? "Lida pelo cliente" : falhou ? "Falha no envio" : "Enviada, aguardando leitura" };
+};
+
 /// 🆕 Papel de parede estilo WhatsApp Light — fundo bege com símbolos sutis (balões, corações, estrela, envelope, relógio, check, presente, câmera, folha)
 const WA_BG_LIGHT = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='%23000000' fill-opacity='0.05'><path d='M20 30 q0 -10 10 -10 h40 q10 0 10 10 v15 q0 10 -10 10 h-25 l-10 10 v-10 h-5 q-10 0 -10 -10 z'/><path d='M120 32 q-8 -10 -16 0 q-8 10 8 22 q16 -12 8 -22 z'/><path d='M195 25 l3 8 l9 0 l-7 5 l3 9 l-8 -5 l-8 5 l3 -9 l-7 -5 l9 0 z'/><rect x='100' y='90' width='40' height='25' rx='3' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M100 95 l20 14 l20 -14' stroke='%23000000' stroke-opacity='0.05' stroke-width='2' fill='none'/><circle cx='195' cy='105' r='12' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M195 97 v8 l5 4' stroke='%23000000' stroke-opacity='0.05' stroke-width='2' fill='none' stroke-linecap='round'/><path d='M35 95 l8 8 l16 -16' stroke='%23000000' stroke-opacity='0.05' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/><rect x='20' y='160' width='30' height='30' rx='2'/><rect x='90' y='155' width='35' height='25' rx='3' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><circle cx='107' cy='167' r='6' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M170 165 q-5 10 5 20 q10 -5 15 -15 q-5 -10 -20 -5 z'/><circle cx='60' cy='200' r='6'/></g></svg>")`;
 
@@ -1792,6 +1799,16 @@ export function ChatSection() {
             setTemMensagemNova(true);
           }
         }
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mensagens", filter: `workspace_id=eq.${wsId}` }, (payload) => {
+        const atualizada = payload.new as Mensagem;
+        if (atualizada.workspace_id !== wsId) return;
+        if (atualizada.numero !== num || (cId && atualizada.canal_id !== cId)) return;
+        setHistorico(anterior => anterior.map(item => {
+          const mesmoId = item.id !== undefined && atualizada.id !== undefined && item.id === atualizada.id;
+          const mesmoProvider = !!item.provider_message_id && item.provider_message_id === atualizada.provider_message_id;
+          return mesmoId || mesmoProvider ? { ...item, ...atualizada } : item;
+        }));
       }).subscribe();
     const polling = setInterval(() => fetchHistorico(num, cId), 3000);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
@@ -3166,7 +3183,10 @@ export function ChatSection() {
                           {msg.created_at && (
                             <p style={{ color: "#54656f", fontSize: 10.5, fontWeight: 600, margin: "3px 2px 0 0", textAlign: "right", lineHeight: 1 }}>
                               {foiEditada && <span style={{ fontStyle: "italic", marginRight: 6, opacity: 0.85 }}>editada</span>}
-                              {horaMsg(msg.created_at)}{!isCliente && <span style={{ color: "#53bdeb", fontWeight: 900, marginLeft: 3 }}>{"\u2713\u2713"}</span>}
+                              {horaMsg(msg.created_at)}{!isCliente && (() => {
+                                const entrega = statusLeituraMensagem(msg.status_entrega);
+                                return <span title={entrega.titulo} aria-label={entrega.titulo} style={{ color: entrega.lida ? "#53bdeb" : entrega.falhou ? "#dc2626" : "#667781", fontWeight: 900, marginLeft: 3 }}>{entrega.falhou ? "!" : "\u2713\u2713"}</span>;
+                              })()}
                             </p>
                           )}
                         </div>
