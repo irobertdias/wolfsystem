@@ -153,6 +153,9 @@ export default function DisparosPage() {
   const [enviando, setEnviando] = useState(false);
   const [disparoDetalhe, setDisparoDetalhe] = useState<Disparo | null>(null);
   const [contatosDetalhe, setContatosDetalhe] = useState<any[]>([]);
+  const [qualidadeCanalDetalhe, setQualidadeCanalDetalhe] = useState<{ loading: boolean; qualidade: QualidadeApi; status: string; erro: string | null }>({
+    loading: false, qualidade: "Desconhecida", status: "", erro: null,
+  });
   const [integridadeApi, setIntegridadeApi] = useState<IntegridadeApi>(integridadeInicial);
   const [atualizandoIntegridade, setAtualizandoIntegridade] = useState(false);
   const [atualizandoTemplateMeta, setAtualizandoTemplateMeta] = useState(false);
@@ -336,6 +339,35 @@ export default function DisparosPage() {
     const i = setInterval(fetchContatos, 3000);
     return () => clearInterval(i);
   }, [disparoDetalhe?.id]);
+
+  useEffect(() => {
+    let ativo = true;
+    if (!disparoDetalhe || disparoDetalhe.tipo !== "waba") {
+      setQualidadeCanalDetalhe({ loading: false, qualidade: "Desconhecida", status: "", erro: null });
+      return () => { ativo = false; };
+    }
+    const canal = canais.find(c => Number(c.id) === Number(disparoDetalhe.canal_id));
+    if (!canal) {
+      setQualidadeCanalDetalhe({ loading: false, qualidade: "Desconhecida", status: "", erro: "Canal não encontrado no workspace." });
+      return () => { ativo = false; };
+    }
+    setQualidadeCanalDetalhe(prev => ({ ...prev, loading: true, erro: null }));
+    consultarStatusWabaReal(canal.id, canal.workspace_id || wsId || workspaceIds[0])
+      .then(resp => {
+        if (!ativo) return;
+        setQualidadeCanalDetalhe({
+          loading: false,
+          qualidade: normalizarQualidade(resp?.quality_rating || resp?.qualidade || resp?.quality),
+          status: String(resp?.meta_status || resp?.status || canal.status || "desconhecido"),
+          erro: resp?.success === false ? traduzirErro({ ...resp, code: resp?.error_code }) : null,
+        });
+      })
+      .catch(erro => {
+        if (!ativo) return;
+        setQualidadeCanalDetalhe({ loading: false, qualidade: "Desconhecida", status: canal.status || "", erro: erro?.message || "Falha ao consultar a Meta." });
+      });
+    return () => { ativo = false; };
+  }, [disparoDetalhe?.id, disparoDetalhe?.canal_id, disparoDetalhe?.tipo, canais.length, workspaceKey]);
 
   const processarNumeros = (texto: string): string[] => {
     return texto
@@ -739,12 +771,40 @@ export default function DisparosPage() {
 
   const corScore = integridadeApi.score >= 85 ? "#059669" : integridadeApi.score >= 60 ? "#f59e0b" : "#dc2626";
   const corQualidade = integridadeApi.qualidade === "Alta" ? "#059669" : integridadeApi.qualidade === "Média" ? "#f59e0b" : integridadeApi.qualidade === "Baixa" ? "#dc2626" : "#64748b";
+  const corQualidadeCanalDetalhe = qualidadeCanalDetalhe.qualidade === "Alta" ? "#059669" : qualidadeCanalDetalhe.qualidade === "Média" ? "#f59e0b" : qualidadeCanalDetalhe.qualidade === "Baixa" ? "#dc2626" : "#64748b";
   // A pontuacao de integridade e apenas informativa. Falhas anteriores,
   // indisponibilidade temporaria das metricas ou pagamento pendente nao devem
   // esconder/desativar o botao; o backend devolve o motivo real de cada erro.
   const podeDispararApi = tipoDisparo !== "waba" || !!canalSelecionado;
   // O botão só bloqueia durante a criação. As validações exibem mensagens simples ao clicar.
   const envioBloqueado = enviando;
+  const canalDisparoDetalhe = disparoDetalhe
+    ? canais.find(c => Number(c.id) === Number(disparoDetalhe.canal_id))
+    : undefined;
+  const resumoDisparoDetalhe = (() => {
+    const sucessoStatus = new Set(["enviado", "sent", "entregue", "delivered", "lido", "read", "played", "reproduzido"]);
+    const falhaStatus = new Set(["falha", "failed", "erro", "error"]);
+    const lidoStatus = new Set(["lido", "read", "played", "reproduzido"]);
+    const entregueStatus = new Set(["entregue", "delivered"]);
+    let sucessos = 0, falhas = 0, lidos = 0, entregues = 0;
+    for (const contato of contatosDetalhe) {
+      const status = String(contato?.status || "").toLowerCase();
+      if (sucessoStatus.has(status)) sucessos += 1;
+      if (falhaStatus.has(status)) falhas += 1;
+      if (lidoStatus.has(status)) lidos += 1;
+      if (entregueStatus.has(status) || lidoStatus.has(status)) entregues += 1;
+    }
+    const processados = sucessos + falhas;
+    const taxa = processados > 0 ? Math.round((sucessos / processados) * 100) : 0;
+    const pendentes = Math.max(0, contatosDetalhe.length - processados);
+    const qualidade = processados === 0 ? "Aguardando"
+      : taxa >= 95 ? "Excelente"
+      : taxa >= 85 ? "Boa"
+      : taxa >= 70 ? "Atenção"
+      : "Crítica";
+    const cor = processados === 0 ? "#64748b" : taxa >= 95 ? "#059669" : taxa >= 85 ? "#16a34a" : taxa >= 70 ? "#f59e0b" : "#dc2626";
+    return { sucessos, falhas, lidos, entregues, processados, pendentes, taxa, qualidade, cor };
+  })();
   const barraIntegridade = (label: string, valor: number, total: number, cor: string, detalhe: string) => {
     const largura = pct(valor, total);
     return (
@@ -1410,6 +1470,51 @@ export default function DisparosPage() {
                 {disparoDetalhe.tipo === "waba" ? "🔗" : "📱"} {disparoDetalhe.nome || `Disparo #${disparoDetalhe.id}`}
               </h3>
               <button onClick={() => setDisparoDetalhe(null)} style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            </div>
+
+            <div style={{ padding: "16px 22px", borderBottom: "1px solid #e5e7eb", background: "#ffffff" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 12 }}>
+                <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 12px" }}>
+                  <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, margin: "0 0 4px", textTransform: "uppercase" }}>Canal utilizado</p>
+                  <p style={{ color: "#1e3a8a", fontSize: 13, fontWeight: 800, margin: 0 }}>{canalDisparoDetalhe?.nome || ("Canal #" + disparoDetalhe.canal_id)}</p>
+                  <p style={{ color: "#475569", fontSize: 10.5, margin: "3px 0 0" }}>
+                    {disparoDetalhe.tipo === "waba" ? "API Oficial WABA" : "WhatsApp Web"}
+                    {canalDisparoDetalhe?.numero ? (" · " + canalDisparoDetalhe.numero) : ""}
+                  </p>
+                </div>
+                <div style={{ background: resumoDisparoDetalhe.cor + "10", border: "1px solid " + resumoDisparoDetalhe.cor + "45", borderRadius: 10, padding: "10px 12px" }}>
+                  <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, margin: "0 0 4px", textTransform: "uppercase" }}>Qualidade do disparo</p>
+                  <p style={{ color: resumoDisparoDetalhe.cor, fontSize: 13, fontWeight: 900, margin: 0 }}>{resumoDisparoDetalhe.qualidade} · {resumoDisparoDetalhe.taxa}%</p>
+                  <p style={{ color: "#475569", fontSize: 10.5, margin: "3px 0 0" }}>{resumoDisparoDetalhe.sucessos} sucesso(s) · {resumoDisparoDetalhe.falhas} falha(s)</p>
+                </div>
+                {disparoDetalhe.tipo === "waba" && (
+                  <div style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: 10, padding: "10px 12px" }}>
+                    <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, margin: "0 0 4px", textTransform: "uppercase" }}>Qualidade Meta atual</p>
+                    <p style={{ color: corQualidadeCanalDetalhe, fontSize: 13, fontWeight: 900, margin: 0 }}>
+                      {qualidadeCanalDetalhe.loading ? "Consultando..." : qualidadeCanalDetalhe.qualidade}
+                    </p>
+                    <p style={{ color: "#475569", fontSize: 10.5, margin: "3px 0 0" }}>{qualidadeCanalDetalhe.status || canalDisparoDetalhe?.status || "Status desconhecido"}</p>
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
+                {[
+                  ["Processados", resumoDisparoDetalhe.processados, "#2563eb"],
+                  ["Sucessos", resumoDisparoDetalhe.sucessos, "#059669"],
+                  ["Falhas", resumoDisparoDetalhe.falhas, "#dc2626"],
+                  ["Pendentes", resumoDisparoDetalhe.pendentes, "#d97706"],
+                ].map(([label, valor, cor]) => (
+                  <div key={String(label)} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 9px", textAlign: "center" }}>
+                    <strong style={{ display: "block", color: String(cor), fontSize: 14 }}>{String(valor)}</strong>
+                    <span style={{ color: "#64748b", fontSize: 9.5, fontWeight: 700 }}>{String(label)}</span>
+                  </div>
+                ))}
+              </div>
+              {qualidadeCanalDetalhe.erro && disparoDetalhe.tipo === "waba" && (
+                <p style={{ color: "#991b1b", fontSize: 10.5, fontWeight: 700, margin: "9px 0 0", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 7, padding: "6px 8px" }}>
+                  Qualidade Meta indisponível: {qualidadeCanalDetalhe.erro}
+                </p>
+              )}
             </div>
 
             <div style={{ padding: "16px 22px", borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
