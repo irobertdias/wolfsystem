@@ -134,6 +134,7 @@ export function ConexoesSection() {
   const [canalDestinoId, setCanalDestinoId] = useState("");
   const [resumoTransferencia, setResumoTransferencia] = useState<any | null>(null);
   const [transferindoConversas, setTransferindoConversas] = useState(false);
+  const [erroTransferencia, setErroTransferencia] = useState("");
 
   const [limites, setLimites] = useState<LimitesPlano>({ conexoes: 1, webjs: true, waba: false, instagram: false });
   const [camposCrm, setCamposCrm] = useState<CampoUnificado[]>(montarCamposUnificados([], []));
@@ -816,28 +817,47 @@ export function ConexoesSection() {
   };
 
   const abrirTransferencia = async (canal: Conexao) => {
-    setShowMenuEngrenagem(null); setCanalTransferencia(canal); setCanalDestinoId(""); setResumoTransferencia(null);
+    setShowMenuEngrenagem(null); setCanalTransferencia(canal); setCanalDestinoId(""); setResumoTransferencia(null); setErroTransferencia("");
     try {
       const resp = await fetch("/api/whatsapp?rota=canal/transferir-conversas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: canal.workspace_id, canalOrigemId: canal.id, acao: "resumo" }) });
       const data = await resp.json();
       if (!resp.ok || !data.success) throw new Error(data.error || "Falha ao consultar conversas");
       setResumoTransferencia(data.resumo);
-    } catch (e: any) { notify("Não foi possível consultar o canal", "erro", traduzirErro(e)); }
+    } catch (e: any) {
+      const mensagem = traduzirErro(e);
+      setErroTransferencia(mensagem);
+      notify("Não foi possível consultar o canal", "erro", mensagem);
+    }
   };
 
-  const confirmarTransferencia = async () => {
+  const confirmarTransferencia = async (permitirMesclarDuplicados = false) => {
     if (!canalTransferencia || !canalDestinoId) return;
     const destino = conexoes.find(c => c.id === Number(canalDestinoId));
     if (!destino) return notify("Selecione o canal de destino", "aviso");
-    if (!confirm(`Transferir ${resumoTransferencia?.atendimentos || 0} conversa(s) para ${destino.nome}?\n\nNenhum registro será apagado. Se houver cliente duplicado no destino, a operação será bloqueada.`)) return;
+    if (!permitirMesclarDuplicados && !confirm(`Transferir ${resumoTransferencia?.atendimentos || 0} conversa(s) para ${destino.nome}?\n\nMensagens, arquivos e históricos serão preservados. Se houver cliente duplicado, o sistema pedirá uma confirmação adicional.`)) return;
+    setErroTransferencia("");
     setTransferindoConversas(true);
     try {
-      const resp = await fetch("/api/whatsapp?rota=canal/transferir-conversas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: canalTransferencia.workspace_id, canalOrigemId: canalTransferencia.id, canalDestinoId: destino.id, acao: "transferir" }) });
-      const data = await resp.json();
+      const resp = await fetch("/api/whatsapp?rota=canal/transferir-conversas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: canalTransferencia.workspace_id, canalOrigemId: canalTransferencia.id, canalDestinoId: destino.id, acao: "transferir", permitirMesclarDuplicados }) });
+      const texto = await resp.text();
+      let data: any = {};
+      try { data = texto ? JSON.parse(texto) : {}; } catch (_) { data = { error: texto || `HTTP ${resp.status}` }; }
+      if (resp.status === 409 && Number(data.quantidadeConflitos || data.conflitos?.length || 0) > 0) {
+        const quantidade = Number(data.quantidadeConflitos || data.conflitos.length);
+        setErroTransferencia(`${quantidade} cliente(s) já possuem conversa no canal de destino.`);
+        setTransferindoConversas(false);
+        const confirmarMesclagem = confirm(`${quantidade} cliente(s) já existem em ${destino.nome}.\n\nDeseja MESCLAR esses cadastros e continuar?\n\nTodas as mensagens, arquivos e memórias serão preservados. Para cada cliente duplicado ficará apenas um card no canal de destino.`);
+        if (confirmarMesclagem) await confirmarTransferencia(true);
+        return;
+      }
       if (!resp.ok || !data.success) throw new Error(data.error || "Falha ao transferir conversas");
-      notify(`${data.transferidas} conversa(s) transferida(s)`, "sucesso", `${data.mensagens} mensagem(ns) preservada(s)`);
+      notify(`${data.transferidas} conversa(s) transferida(s)`, "sucesso", `${data.mensagens} mensagem(ns) preservada(s)${data.mescladas ? ` · ${data.mescladas} cadastro(s) duplicado(s) mesclado(s)` : ""}`);
       setCanalTransferencia(null);
-    } catch (e: any) { notify("Transferência não concluída", "erro", traduzirErro(e)); }
+    } catch (e: any) {
+      const mensagem = traduzirErro(e);
+      setErroTransferencia(mensagem);
+      notify("Transferência não concluída", "erro", mensagem);
+    }
     finally { setTransferindoConversas(false); }
   };
 
@@ -1528,15 +1548,16 @@ export function ConexoesSection() {
                 <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: 14 }}><strong style={{ display: "block", color: "#1d4ed8", fontSize: 22 }}>{resumoTransferencia?.mensagens ?? "..."}</strong><span style={{ color: "#6b7280", fontSize: 11 }}>Mensagens</span></div>
               </div>
               <label style={{ display: "block", color: "#334155", fontSize: 12, fontWeight: 800, marginBottom: 7 }}>Canal de destino</label>
-              <select value={canalDestinoId} onChange={e => setCanalDestinoId(e.target.value)} disabled={transferindoConversas} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", background: "#fff", color: "#0f172a", fontSize: 13 }}>
+              <select value={canalDestinoId} onChange={e => { setCanalDestinoId(e.target.value); setErroTransferencia(""); }} disabled={transferindoConversas} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", background: "#fff", color: "#0f172a", fontSize: 13 }}>
                 <option value="">Selecione...</option>
                 {conexoes.filter(c => c.id !== canalTransferencia.id && c.workspace_id === canalTransferencia.workspace_id).map(c => <option key={c.id} value={c.id}>{c.nome} - {c.tipo === "waba" ? "WhatsApp API" : "WhatsApp Web"}</option>)}
               </select>
-              <p style={{ margin: "12px 0 0", padding: 12, borderRadius: 10, background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e", fontSize: 11.5, lineHeight: 1.5 }}>O histórico e a memória serão preservados. Se um cliente já existir no destino, nada será alterado e o sistema avisará.</p>
+              <p style={{ margin: "12px 0 0", padding: 12, borderRadius: 10, background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e", fontSize: 11.5, lineHeight: 1.5 }}>O histórico, as mensagens e os arquivos serão preservados. Se um cliente já existir no destino, o sistema pedirá sua confirmação antes de mesclar os dois cadastros.</p>
+              {erroTransferencia && <div role="alert" style={{ marginTop: 12, padding: 12, borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", fontSize: 12, fontWeight: 700, lineHeight: 1.45 }}>{erroTransferencia}</div>}
             </div>
             <div style={{ padding: "14px 22px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => setCanalTransferencia(null)} disabled={transferindoConversas} style={{ padding: "10px 16px", borderRadius: 9, border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontWeight: 700, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={confirmarTransferencia} disabled={transferindoConversas || !canalDestinoId || !resumoTransferencia} style={{ padding: "10px 16px", borderRadius: 9, border: "none", background: transferindoConversas || !canalDestinoId ? "#c4b5fd" : "#7c3aed", color: "#fff", fontWeight: 800, cursor: transferindoConversas ? "wait" : "pointer" }}>{transferindoConversas ? "Transferindo..." : "Transferir agora"}</button>
+              <button onClick={() => confirmarTransferencia(false)} disabled={transferindoConversas || !canalDestinoId || !resumoTransferencia} style={{ padding: "10px 16px", borderRadius: 9, border: "none", background: transferindoConversas || !canalDestinoId ? "#c4b5fd" : "#7c3aed", color: "#fff", fontWeight: 800, cursor: transferindoConversas ? "wait" : "pointer" }}>{transferindoConversas ? "Transferindo..." : "Transferir agora"}</button>
             </div>
           </div>
         </div>
