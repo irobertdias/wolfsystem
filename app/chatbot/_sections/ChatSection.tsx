@@ -1802,17 +1802,32 @@ export function ChatSection() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mensagens", filter: `workspace_id=eq.${wsId}` }, (payload) => {
         const atualizada = payload.new as Mensagem;
-        if (atualizada.workspace_id !== wsId) return;
-        if (atualizada.numero !== num || (cId && atualizada.canal_id !== cId)) return;
-        setHistorico(anterior => anterior.map(item => {
-          const mesmoId = item.id !== undefined && atualizada.id !== undefined && item.id === atualizada.id;
-          const mesmoProvider = !!item.provider_message_id && item.provider_message_id === atualizada.provider_message_id;
-          return mesmoId || mesmoProvider ? { ...item, ...atualizada } : item;
-        }));
-      }).subscribe();
-    const polling = setInterval(() => fetchHistorico(num, cId), 3000);
+        // O Realtime pode devolver bigint/numeric como string dependendo do driver.
+        // Normalize antes de comparar para não descartar um recibo de leitura válido.
+        if (String(atualizada.workspace_id || "") !== String(wsId || "")) return;
+        if (String(atualizada.numero || "") !== String(num || "")) return;
+        if (cId && Number(atualizada.canal_id || 0) !== Number(cId)) return;
+        setHistorico(anterior => {
+          let mudou = false;
+          const proximo = anterior.map(item => {
+            const mesmoId = item.id !== undefined && atualizada.id !== undefined && String(item.id) === String(atualizada.id);
+            const mesmoProvider = !!item.provider_message_id && String(item.provider_message_id) === String(atualizada.provider_message_id || "");
+            if (!mesmoId && !mesmoProvider) return item;
+            if (item.status_entrega !== atualizada.status_entrega) mudou = true;
+            return { ...item, ...atualizada };
+          });
+          return mudou ? proximo : anterior;
+        });
+      }).subscribe(status => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.warn("Realtime de mensagens indisponível; sincronização automática de segurança permanece ativa.", status);
+        }
+      });
+    // O Realtime é instantâneo. Este polling leve cobre quedas temporárias do websocket
+    // e impede que o operador precise atualizar a página manualmente.
+    const polling = setInterval(() => fetchHistorico(num, cId), 1250);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
-  }, [atendimentoAtivo?.numero, atendimentoAtivo?.id, atendimentoAtivo?.canal_id]);
+  }, [wsId, atendimentoAtivo?.numero, atendimentoAtivo?.id, atendimentoAtivo?.canal_id]);
 // 🔧 FIX: SINCRONIZA atendimentoAtivo COM DADOS MAIS RECENTES DO ARRAY atendimentos
   // Antes: ao clicar "Parar BOT", "Assumir", etc, o DB atualizava e fetchAtendimentos()
   // trazia os dados novos pro array, MAS atendimentoAtivo era um state separado que ficava
