@@ -1569,6 +1569,7 @@ function AbaEquipes({ equipes, usuarios, filas, usuariosPorEquipe, filasPorEquip
 function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGerenciar, isMobile, IS, cardStyle, labelStyle, onRefetch }: any) {
   const [busca, setBusca] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editandoFila, setEditandoFila] = useState<Fila | null>(null);
   const [formFila, setFormFila] = useState({ nome: "", conexao: "", equipe_id: "" });
   const [salvando, setSalvando] = useState(false);
 
@@ -1585,19 +1586,101 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
 
   const abrirNova = () => {
     if (!podeGerenciar) return alert("Sem permissão.");
+    setEditandoFila(null);
     setFormFila({ nome: "", conexao: "", equipe_id: "" });
     setShowForm(true);
   };
+
+  const abrirEditar = (fila: Fila) => {
+    if (!podeGerenciar) return alert("Sem permissão.");
+    setEditandoFila(fila);
+    setFormFila({
+      nome: fila.nome,
+      conexao: fila.conexao || "",
+      equipe_id: fila.equipe_id || "",
+    });
+    setShowForm(true);
+  };
+
+  const substituirNomeFilaNoCsv = (csv: string, nomeAntigo: string, nomeNovo: string) =>
+    csv.split(",")
+      .map(nome => nome.trim())
+      .filter(Boolean)
+      .map(nome => nome === nomeAntigo ? nomeNovo : nome)
+      .join(",");
+
   const salvar = async () => {
     if (!formFila.nome.trim()) return alert("Digite o nome da fila!");
     setSalvando(true);
     try {
-      const { error } = await supabase.from("filas").insert([{
-        nome: formFila.nome.trim(),
+      const nomeNovo = formFila.nome.trim();
+      const dadosFila = {
+        nome: nomeNovo,
         conexao: formFila.conexao.trim() || null,
-        workspace_id: workspaceId,
         equipe_id: formFila.equipe_id || null,
-      }]);
+      };
+
+      let error: any = null;
+      if (editandoFila) {
+        const resposta = await supabase.from("filas")
+          .update(dadosFila)
+          .eq("id", editandoFila.id)
+          .eq("workspace_id", workspaceId);
+        error = resposta.error;
+
+        if (!error && editandoFila.nome !== nomeNovo) {
+          const nomeAntigo = editandoFila.nome;
+
+          // O restante do sistema ainda referencia a fila pelo nome. A renomeação
+          // precisa acompanhar esses vínculos para não retirar acessos nem deixar
+          // canais, conversas ou blocos de transferência presos no nome antigo.
+          const atualizacoesDiretas = await Promise.all([
+            supabase.from("conexoes").update({ fila: nomeNovo })
+              .eq("workspace_id", workspaceId).eq("fila", nomeAntigo),
+            supabase.from("atendimentos").update({ fila: nomeNovo })
+              .eq("workspace_id", workspaceId).eq("fila", nomeAntigo),
+          ]);
+          const erroDireto = atualizacoesDiretas.find(resultado => resultado.error)?.error;
+          if (erroDireto) throw erroDireto;
+
+          const usuariosAfetados = usuarios.filter((usuario: Usuario) =>
+            (usuario.fila || "").split(",").map(nome => nome.trim()).includes(nomeAntigo)
+          );
+          for (const usuario of usuariosAfetados) {
+            let consulta = supabase.from("usuarios_workspace")
+              .update({ fila: substituirNomeFilaNoCsv(usuario.fila || "", nomeAntigo, nomeNovo) })
+              .eq("workspace_id", workspaceId);
+            consulta = usuario.id ? consulta.eq("id", usuario.id) : consulta.eq("email", usuario.email);
+            const { error: erroUsuario } = await consulta;
+            if (erroUsuario) throw erroUsuario;
+          }
+
+          const { data: fluxosDaFila, error: erroFluxos } = await supabase.from("fluxos")
+            .select("id,nos")
+            .eq("workspace_id", workspaceId);
+          if (erroFluxos) throw erroFluxos;
+          for (const fluxo of fluxosDaFila || []) {
+            let alterou = false;
+            const nosAtualizados = (fluxo.nos || []).map((no: any) => {
+              if (no?.tipo !== "transferir" || no?.dados?.fila !== nomeAntigo) return no;
+              alterou = true;
+              return { ...no, dados: { ...no.dados, fila: nomeNovo } };
+            });
+            if (!alterou) continue;
+            const { error: erroFluxo } = await supabase.from("fluxos")
+              .update({ nos: nosAtualizados })
+              .eq("id", fluxo.id)
+              .eq("workspace_id", workspaceId);
+            if (erroFluxo) throw erroFluxo;
+          }
+        }
+      } else {
+        const resposta = await supabase.from("filas").insert([{
+          ...dadosFila,
+          workspace_id: workspaceId,
+        }]);
+        error = resposta.error;
+      }
       if (error) {
         if (error.code === "23505") alert("❌ Já existe uma fila com esse nome neste workspace!");
         else alert("Erro: " + error.message);
@@ -1605,6 +1688,7 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
       }
       await onRefetch();
       setShowForm(false);
+      setEditandoFila(null);
       setFormFila({ nome: "", conexao: "", equipe_id: "" });
     } catch (e: any) { alert("Erro: " + e.message); }
     setSalvando(false);
@@ -1637,7 +1721,7 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
       {showForm && (
         <div style={{ ...cardStyle, padding: 22, borderTop: "3px solid #16a34a" }}>
           <p style={{ color: "#16a34a", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
-            ➕ Nova Fila
+            {editandoFila ? "✏️ Editar Fila" : "➕ Nova Fila"}
           </p>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 18 }}>
             <div>
@@ -1672,7 +1756,7 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
             </div>
           )}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button onClick={() => { setShowForm(false); setFormFila({ nome: "", conexao: "", equipe_id: "" }); }}
+            <button onClick={() => { setShowForm(false); setEditandoFila(null); setFormFila({ nome: "", conexao: "", equipe_id: "" }); }}
               style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
               Cancelar
             </button>
@@ -1682,7 +1766,7 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
                 color: "white", border: "none", borderRadius: 10,
                 padding: "9px 22px", fontSize: 12, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
                 boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
-              }}>{salvando ? "Salvando..." : "💾 Salvar"}</button>
+              }}>{salvando ? "Salvando..." : editandoFila ? "💾 Salvar alterações" : "💾 Salvar"}</button>
           </div>
         </div>
       )}
@@ -1743,8 +1827,12 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
                         </span>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
-                        <button onClick={() => excluir(f)}
-                          style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
+                        <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
+                          <button onClick={() => abrirEditar(f)} title="Editar fila"
+                            style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>✏️ Editar</button>
+                          <button onClick={() => excluir(f)} title="Excluir fila"
+                            style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
+                        </div>
                       </td>
                     </tr>
                   );

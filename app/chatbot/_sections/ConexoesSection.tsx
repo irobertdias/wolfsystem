@@ -130,6 +130,10 @@ export function ConexoesSection() {
 
   const [encerrandoMassa, setEncerrandoMassa] = useState(false);
   const [registrandoWaba, setRegistrandoWaba] = useState(false);
+  const [canalTransferencia, setCanalTransferencia] = useState<Conexao | null>(null);
+  const [canalDestinoId, setCanalDestinoId] = useState("");
+  const [resumoTransferencia, setResumoTransferencia] = useState<any | null>(null);
+  const [transferindoConversas, setTransferindoConversas] = useState(false);
 
   const [limites, setLimites] = useState<LimitesPlano>({ conexoes: 1, webjs: true, waba: false, instagram: false });
   const [camposCrm, setCamposCrm] = useState<CampoUnificado[]>(montarCamposUnificados([], []));
@@ -811,10 +815,46 @@ export function ConexoesSection() {
     } catch (e: any) { notify("Operação falhou", "erro", traduzirErro(e)); }
   };
 
+  const abrirTransferencia = async (canal: Conexao) => {
+    setShowMenuEngrenagem(null); setCanalTransferencia(canal); setCanalDestinoId(""); setResumoTransferencia(null);
+    try {
+      const resp = await fetch("/api/whatsapp?rota=canal/transferir-conversas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: canal.workspace_id, canalOrigemId: canal.id, acao: "resumo" }) });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) throw new Error(data.error || "Falha ao consultar conversas");
+      setResumoTransferencia(data.resumo);
+    } catch (e: any) { notify("Não foi possível consultar o canal", "erro", traduzirErro(e)); }
+  };
+
+  const confirmarTransferencia = async () => {
+    if (!canalTransferencia || !canalDestinoId) return;
+    const destino = conexoes.find(c => c.id === Number(canalDestinoId));
+    if (!destino) return notify("Selecione o canal de destino", "aviso");
+    if (!confirm(`Transferir ${resumoTransferencia?.atendimentos || 0} conversa(s) para ${destino.nome}?\n\nNenhum registro será apagado. Se houver cliente duplicado no destino, a operação será bloqueada.`)) return;
+    setTransferindoConversas(true);
+    try {
+      const resp = await fetch("/api/whatsapp?rota=canal/transferir-conversas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: canalTransferencia.workspace_id, canalOrigemId: canalTransferencia.id, canalDestinoId: destino.id, acao: "transferir" }) });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) throw new Error(data.error || "Falha ao transferir conversas");
+      notify(`${data.transferidas} conversa(s) transferida(s)`, "sucesso", `${data.mensagens} mensagem(ns) preservada(s)`);
+      setCanalTransferencia(null);
+    } catch (e: any) { notify("Transferência não concluída", "erro", traduzirErro(e)); }
+    finally { setTransferindoConversas(false); }
+  };
+
   const excluirCanal = async (id: number) => {
-    if (!confirm("Excluir esse canal?\n\nTodo o histórico vai ser preservado mas o canal será removido.")) return;
     const canal = conexoes.find(c => c.id === id);
     if (!canal) { notify("Canal não encontrado", "erro"); return; }
+    try {
+      const resp = await fetch("/api/whatsapp?rota=canal/transferir-conversas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: canal.workspace_id, canalOrigemId: id, acao: "resumo" }) });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) throw new Error(data.error || "Falha ao verificar o canal");
+      if (Number(data.resumo?.atendimentos || 0) > 0 || Number(data.resumo?.mensagens || 0) > 0) {
+        setShowMenuEngrenagem(null); setCanalTransferencia(canal); setCanalDestinoId(""); setResumoTransferencia(data.resumo);
+        notify("Transfira as conversas antes de excluir", "aviso", `Este canal possui ${data.resumo.atendimentos} conversa(s) e ${data.resumo.mensagens} mensagem(ns).`);
+        return;
+      }
+    } catch (e: any) { notify("Canal não excluído", "erro", traduzirErro(e)); return; }
+    if (!confirm(`Excluir o canal ${canal.nome}?\n\nO canal está sem conversas. O login salvo do WhatsApp Web também será removido.`)) return;
     if (canal.tipo === "webjs") { try { await wa("desconectar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {} }
     await supabase.from("conexoes").delete().eq("id", id).eq("workspace_id", canal.workspace_id);
     await fetchConexoes(); setShowMenuEngrenagem(null);
@@ -1463,6 +1503,7 @@ export function ConexoesSection() {
                       {c.tipo === "waba" && <button onClick={() => registrarNumeroWaba(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#16a34a", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f0fdf4"} onMouseLeave={e => e.currentTarget.style.background = "none"}>🟢 Ativar Número na Meta</button>}
                       <button onClick={() => encerrarAtendimentosEmMassa("aguardando", c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#f59e0b", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#fffbeb"} onMouseLeave={e => e.currentTarget.style.background = "none"}>⏳ Encerrar Aguardando</button>
                       <button onClick={() => encerrarAtendimentosEmMassa("abertos", c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#3b82f6", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#eff6ff"} onMouseLeave={e => e.currentTarget.style.background = "none"}>💬 Encerrar Abertos</button>
+                      {conexoes.length > 1 && <button onClick={() => abrirTransferencia(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#7c3aed", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#f5f3ff"} onMouseLeave={e => e.currentTarget.style.background = "none"}>⇄ Transferir conversas</button>}
                       <div style={{ height: 1, background: "#e5e7eb", margin: "4px 0" }} />
                       <button onClick={() => excluirCanal(c.id)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#dc2626", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"} onMouseLeave={e => e.currentTarget.style.background = "none"}>🗑️ Excluir Canal</button>
                     </div>
@@ -1471,6 +1512,33 @@ export function ConexoesSection() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {canalTransferencia && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", zIndex: 2300, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ ...cardStyle, width: "100%", maxWidth: 520, overflow: "hidden" }}>
+            <div style={{ padding: "20px 22px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", gap: 16 }}>
+              <div><h2 style={{ margin: 0, color: "#0f172a", fontSize: 18 }}>Transferir conversas</h2><p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 12 }}>Origem: {canalTransferencia.nome}</p></div>
+              <button onClick={() => !transferindoConversas && setCanalTransferencia(null)} style={{ width: 34, height: 34, border: "1px solid #e2e8f0", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 18 }}>×</button>
+            </div>
+            <div style={{ padding: 22 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
+                <div style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: 12, padding: 14 }}><strong style={{ display: "block", color: "#6d28d9", fontSize: 22 }}>{resumoTransferencia?.atendimentos ?? "..."}</strong><span style={{ color: "#6b7280", fontSize: 11 }}>Conversas</span></div>
+                <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: 14 }}><strong style={{ display: "block", color: "#1d4ed8", fontSize: 22 }}>{resumoTransferencia?.mensagens ?? "..."}</strong><span style={{ color: "#6b7280", fontSize: 11 }}>Mensagens</span></div>
+              </div>
+              <label style={{ display: "block", color: "#334155", fontSize: 12, fontWeight: 800, marginBottom: 7 }}>Canal de destino</label>
+              <select value={canalDestinoId} onChange={e => setCanalDestinoId(e.target.value)} disabled={transferindoConversas} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", background: "#fff", color: "#0f172a", fontSize: 13 }}>
+                <option value="">Selecione...</option>
+                {conexoes.filter(c => c.id !== canalTransferencia.id && c.workspace_id === canalTransferencia.workspace_id).map(c => <option key={c.id} value={c.id}>{c.nome} - {c.tipo === "waba" ? "WhatsApp API" : "WhatsApp Web"}</option>)}
+              </select>
+              <p style={{ margin: "12px 0 0", padding: 12, borderRadius: 10, background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e", fontSize: 11.5, lineHeight: 1.5 }}>O histórico e a memória serão preservados. Se um cliente já existir no destino, nada será alterado e o sistema avisará.</p>
+            </div>
+            <div style={{ padding: "14px 22px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button onClick={() => setCanalTransferencia(null)} disabled={transferindoConversas} style={{ padding: "10px 16px", borderRadius: 9, border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontWeight: 700, cursor: "pointer" }}>Cancelar</button>
+              <button onClick={confirmarTransferencia} disabled={transferindoConversas || !canalDestinoId || !resumoTransferencia} style={{ padding: "10px 16px", borderRadius: 9, border: "none", background: transferindoConversas || !canalDestinoId ? "#c4b5fd" : "#7c3aed", color: "#fff", fontWeight: 800, cursor: transferindoConversas ? "wait" : "pointer" }}>{transferindoConversas ? "Transferindo..." : "Transferir agora"}</button>
+            </div>
+          </div>
         </div>
       )}
 
