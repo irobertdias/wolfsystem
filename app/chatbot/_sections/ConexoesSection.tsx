@@ -864,20 +864,12 @@ export function ConexoesSection() {
   const excluirCanal = async (id: number) => {
     const canal = conexoes.find(c => c.id === id);
     if (!canal) { notify("Canal não encontrado", "erro"); return; }
-    try {
-      const resp = await fetch("/api/whatsapp?rota=canal/transferir-conversas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceId: canal.workspace_id, canalOrigemId: id, acao: "resumo" }) });
-      const data = await resp.json();
-      if (!resp.ok || !data.success) throw new Error(data.error || "Falha ao verificar o canal");
-      if (Number(data.resumo?.atendimentos || 0) > 0 || Number(data.resumo?.mensagens || 0) > 0) {
-        setShowMenuEngrenagem(null); setCanalTransferencia(canal); setCanalDestinoId(""); setResumoTransferencia(data.resumo);
-        notify("Transfira as conversas antes de excluir", "aviso", `Este canal possui ${data.resumo.atendimentos} conversa(s) e ${data.resumo.mensagens} mensagem(ns).`);
-        return;
-      }
-    } catch (e: any) { notify("Canal não excluído", "erro", traduzirErro(e)); return; }
-    if (!confirm(`Excluir o canal ${canal.nome}?\n\nO canal está sem conversas. O login salvo do WhatsApp Web também será removido.`)) return;
+    if (!confirm(`Excluir o canal ${canal.nome}?\n\nA transferência de conversas é opcional. O login salvo do WhatsApp Web também será removido.`)) return;
     if (canal.tipo === "webjs") { try { await wa("desconectar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {} }
-    await supabase.from("conexoes").delete().eq("id", id).eq("workspace_id", canal.workspace_id);
+    const { error } = await supabase.from("conexoes").delete().eq("id", id).eq("workspace_id", canal.workspace_id);
+    if (error) { notify("Canal não excluído", "erro", traduzirErro(error)); return; }
     await fetchConexoes(); setShowMenuEngrenagem(null);
+    notify("Canal excluído", "sucesso");
   };
 
   const modoColor: Record<string, string> = { nenhum: "#6b7280", ia: "#10b981", fluxo: "#8b5cf6", typebot: "#a78bfa" };
