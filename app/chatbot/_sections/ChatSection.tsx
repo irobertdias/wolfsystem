@@ -2003,18 +2003,13 @@ export function ChatSection() {
   }
 
   const atendimentosFiltrados = atendimentos
-    // 🆕 Quando busca tem 3+ chars, IGNORA filtro de aba (busca global em todas)
-    //    Antes: user buscava "98300-9410" mas atendimento tava em "Finalizados" e
-    //    o filtro de aba "Abertos" excluía → resultado 0.
-    //    Agora: busca >= 3 chars vê TODAS as abas (e mostra a aba do match).
-    .filter(a => busca.trim().length >= 3 || classificarAba(a) === abaConversa)
-    // 🔒 BUG FIX VAZAMENTO ENTRE ATENDENTES — quando busca >= 3 chars (modo "busca global em todas as abas"),
-    // usa a aba REAL do atendimento ao invés da aba selecionada. Antes a Nayara podia ver leads do
-    // Thiago porque a busca passava pelo filtro com abaConversa="aguardando" (que só filtra por fila),
-    // mesmo o atendimento real estando em "abertos" (que filtra por atendente específico).
-    // Agora: cada atendente só vê SEUS atendimentos em abertos/finalizados, mesmo via busca.
-    // Dono/supervisor (chat_todos) mantém visão geral.
-    .filter(a => podeVerAtendimento(a, busca.trim().length >= 3 ? classificarAba(a) : abaConversa))
+    // A busca respeita a aba selecionada. A busca global antiga misturava atendimentos
+    // finalizados em "Abertos" e "Aguardando", inclusive exibindo o botão "Reabrir"
+    // no meio das conversas ativas.
+    .filter(a => classificarAba(a) === abaConversa)
+    // As permissões continuam sendo avaliadas pela aba selecionada, que agora
+    // coincide obrigatoriamente com a aba real do atendimento.
+    .filter(a => podeVerAtendimento(a, abaConversa))
     // 🆕 BUSCA: nome OU número OU mensagem (atendimentosComMatch é Set vindo do banco)
     //    Se busca curta (<3) ou vazia: filtro padrão por nome/número
     //    Se busca >= 3: ALÉM de nome/número, considera atendimentos com match em mensagens
