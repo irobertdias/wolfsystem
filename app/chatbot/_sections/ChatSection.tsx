@@ -2804,7 +2804,7 @@ export function ChatSection() {
         {/* 🆕 Badge informativa: avisa que está buscando em mensagens */}
         {busca.trim().length >= 3 && atendimentosComMatch !== null && (
           <div style={{ padding: "8px 14px", background: ehClaro ? "#dbeafe" : "#1e3a5f", borderBottom: `1px solid ${tema.bordaSutil}`, fontSize: 11, color: ehClaro ? "#1e40af" : "#93c5fd" }}>
-            🔍 Busca por <b>"{busca}"</b> — {atendimentosFiltrados.length} atendimento(s) encontrado(s) em <b>todas as abas</b>
+            🔍 Busca por <b>"{busca}"</b> — {atendimentosFiltrados.length} atendimento(s) encontrado(s) nesta aba
           </div>
         )}
         {busca.trim().length > 0 && busca.trim().length < 3 && (
