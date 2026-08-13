@@ -116,6 +116,7 @@ export default function ContratosPage() {
   const [editando, setEditando] = useState<Contrato | null>(null);
   const [reenviando, setReenviando] = useState("");
   const [excluindo, setExcluindo] = useState("");
+  const [copiandoLink, setCopiandoLink] = useState("");
   const [clientes, setClientes] = useState<ClienteCRM[]>([]);
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
   const [representantes, setRepresentantes] = useState<Representante[]>([]);
@@ -258,6 +259,29 @@ export default function ContratosPage() {
       else alert(contrato.status === "concluida" ? "Contrato assinado reenviado aos participantes!" : "Contrato e novo link reenviados ao participante atual!");
     } catch (e: any) { setErro(e.message || "Não foi possível reenviar o contrato"); }
     finally { setReenviando(""); }
+  }
+  async function copiarLinkAssinatura(contrato: Contrato, signatario: SignatarioContrato) {
+    if (!signatario.id) return setErro("Signat\u00e1rio sem identificador v\u00e1lido");
+    setCopiandoLink(signatario.id); setErro("");
+    try {
+      const response = await requisicao(
+        `/api/contratos/${contrato.id}/signatarios/${signatario.id}/link`,
+        {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspaceId, expira_horas: 48 }),
+        }
+      );
+      const data = await response.json();
+      const link = String(data.link || "");
+      if (!link) throw new Error("O backend n\u00e3o retornou o link de assinatura");
+      try {
+        await navigator.clipboard.writeText(link);
+        alert(`Link de ${signatario.nome} copiado para a \u00e1rea de transfer\u00eancia.`);
+      } catch {
+        window.prompt("Copie o link de assinatura:", link);
+      }
+    } catch (e: any) { setErro(e.message || "N\u00e3o foi poss\u00edvel obter o link de assinatura"); }
+    finally { setCopiandoLink(""); }
   }
   async function excluirContrato(contrato: Contrato) {
     const aviso = contrato.status === "concluida"
@@ -559,7 +583,7 @@ export default function ContratosPage() {
           <footer><button disabled={salvando} onClick={() => { setCriando(false); setEditando(null); }}>Cancelar</button><button className={styles.newButton} disabled={salvando} onClick={criarContrato}>{salvando ? (editando ? "Criando versão…" : "Criando…") : (editando ? "Salvar nova versão e reenviar" : "Criar e enviar para assinatura")}</button></footer>
         </section>
       </div>}
-      {selecionado && <div className={styles.modalBackdrop} onMouseDown={e => { if (e.target === e.currentTarget) setSelecionado(null); }}><section className={styles.modal} role="dialog" aria-modal="true"><header><div><span>TRILHA DE AUDITORIA</span><h2>{selecionado.nome_signatario}</h2><p>{selecionado.contrato_nome}</p></div><button onClick={() => setSelecionado(null)}>×</button></header>{selecionado.signatarios?.length ? <div className={styles.modalSigners}>{selecionado.signatarios.map(s => <div key={s.id || s.ordem}><span>{s.ordem}</span><b>{s.papel_label || (s.papel === "empresa" ? "Representante da empresa" : s.papel === "cliente" ? "Cliente" : "Signat\u00e1rio")}<small>{s.nome}</small></b><em className={s.status === "concluida" ? styles.signerDone : styles.signerWaiting}>{s.status === "concluida" ? `Assinado em ${dataHora(s.assinatura_em)}` : s.status === "pendente" ? "Aguardando assinatura" : "Aguardando participante anterior"}</em></div>)}</div> : null}<div className={styles.auditGrid}><Audit label="Situação" value={(STATUS[selecionado.status] || { label: selecionado.status }).label}/><Audit label="Identificador" value={selecionado.id}/><Audit label="Origem" value={selecionado.origem === "crm" ? `Cliente do CRM #${selecionado.proposta_id}` : selecionado.origem === "avulso" ? "Contrato avulso" : "Fluxo da IA"}/><Audit label="Telefone" value={selecionado.numero || "N\u00e3o informado"}/><Audit label="CPF" value={selecionado.cpf_ultimos4 ? `Final ${selecionado.cpf_ultimos4}` : "Não informado"}/><Audit label="Criado em" value={dataHora(selecionado.created_at)}/><Audit label="Assinado em" value={dataHora(selecionado.assinatura_em)}/><Audit label="OTP" value={selecionado.otp_confirmado_em ? `Confirmado em ${dataHora(selecionado.otp_confirmado_em)}` : "Ainda não confirmado"}/><Audit label="Identidade" value={selecionado.biometria_status === "selfie_evidencia" ? "Selfie preservada como evidência" : "Não verificada"}/><Audit label="IP da assinatura" value={selecionado.ip_assinatura || "Não disponível"}/><Audit label="Consentimento" value={selecionado.consentimento_versao || "—"}/><Audit label="Hash do original" value={curto(selecionado.contrato_hash_original, 28)} mono/><Audit label="Hash do assinado" value={curto(selecionado.contrato_hash_assinado, 28)} mono/><Audit label="HMAC da auditoria" value={curto(selecionado.auditoria_hmac, 28)} mono/></div><div className={styles.modalNote}>A selfie é evidência de identidade e não é apresentada como biometria facial verificada. O PDF assinado contém a assinatura legível e o certificado completo.</div><footer><button onClick={() => setSelecionado(null)}>Fechar</button>{podeBaixar && selecionado.status === "concluida" && <button className={styles.download} onClick={() => baixar(selecionado)} disabled={baixando === selecionado.id}>{baixando === selecionado.id ? "Baixando…" : "Baixar contrato assinado"}</button>}</footer></section></div>}
+      {selecionado && <div className={styles.modalBackdrop} onMouseDown={e => { if (e.target === e.currentTarget) setSelecionado(null); }}><section className={styles.modal} role="dialog" aria-modal="true"><header><div><span>TRILHA DE AUDITORIA</span><h2>{selecionado.nome_signatario}</h2><p>{selecionado.contrato_nome}</p></div><button onClick={() => setSelecionado(null)}>×</button></header>{selecionado.signatarios?.length ? <div className={styles.modalSigners}>{selecionado.signatarios.map(s => <div key={s.id || s.ordem}><span>{s.ordem}</span><b>{s.papel_label || (s.papel === "empresa" ? "Representante da empresa" : s.papel === "cliente" ? "Cliente" : "Signat\u00e1rio")}<small>{s.nome}</small></b><em className={s.status === "concluida" ? styles.signerDone : styles.signerWaiting}>{s.status === "concluida" ? `Assinado em ${dataHora(s.assinatura_em)}` : s.status === "pendente" ? "Aguardando assinatura" : "Aguardando participante anterior"}</em>{podeReenviar && s.status === "pendente" && <button className={styles.copyLinkButton} onClick={() => copiarLinkAssinatura(selecionado, s)} disabled={!s.id || copiandoLink === s.id}>{copiandoLink === s.id ? "Copiando..." : "Copiar link"}</button>}</div>)}</div> : null}<div className={styles.auditGrid}><Audit label="Situação" value={(STATUS[selecionado.status] || { label: selecionado.status }).label}/><Audit label="Identificador" value={selecionado.id}/><Audit label="Origem" value={selecionado.origem === "crm" ? `Cliente do CRM #${selecionado.proposta_id}` : selecionado.origem === "avulso" ? "Contrato avulso" : "Fluxo da IA"}/><Audit label="Telefone" value={selecionado.numero || "N\u00e3o informado"}/><Audit label="CPF" value={selecionado.cpf_ultimos4 ? `Final ${selecionado.cpf_ultimos4}` : "Não informado"}/><Audit label="Criado em" value={dataHora(selecionado.created_at)}/><Audit label="Assinado em" value={dataHora(selecionado.assinatura_em)}/><Audit label="OTP" value={selecionado.otp_confirmado_em ? `Confirmado em ${dataHora(selecionado.otp_confirmado_em)}` : "Ainda não confirmado"}/><Audit label="Identidade" value={selecionado.biometria_status === "selfie_evidencia" ? "Selfie preservada como evidência" : "Não verificada"}/><Audit label="IP da assinatura" value={selecionado.ip_assinatura || "Não disponível"}/><Audit label="Consentimento" value={selecionado.consentimento_versao || "—"}/><Audit label="Hash do original" value={curto(selecionado.contrato_hash_original, 28)} mono/><Audit label="Hash do assinado" value={curto(selecionado.contrato_hash_assinado, 28)} mono/><Audit label="HMAC da auditoria" value={curto(selecionado.auditoria_hmac, 28)} mono/></div><div className={styles.modalNote}>A selfie é evidência de identidade e não é apresentada como biometria facial verificada. O PDF assinado contém a assinatura legível e o certificado completo.</div><footer><button onClick={() => setSelecionado(null)}>Fechar</button>{podeBaixar && selecionado.status === "concluida" && <button className={styles.download} onClick={() => baixar(selecionado)} disabled={baixando === selecionado.id}>{baixando === selecionado.id ? "Baixando…" : "Baixar contrato assinado"}</button>}</footer></section></div>}
     </main>
   );
 }
