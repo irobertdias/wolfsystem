@@ -13,6 +13,7 @@ type AssinaturaInfo = {
   exigir_selfie: boolean;
   exigir_otp: boolean;
   exigir_localizacao: boolean;
+  exigir_documento_identidade?: boolean;
   biometria_status: string;
   consentimento_versao: string;
   consentimento_texto: string;
@@ -38,6 +39,10 @@ export default function AssinarWolfPage() {
   const [aceiteAssinatura, setAceiteAssinatura] = useState(false);
   const [aceiteSelfie, setAceiteSelfie] = useState(false);
   const [selfie, setSelfie] = useState("");
+  const [documentoFrente, setDocumentoFrente] = useState("");
+  const [documentoVerso, setDocumentoVerso] = useState("");
+  const [guiaSelfie, setGuiaSelfie] = useState("Enquadre seu rosto no oval");
+  const [desafiosSelfie, setDesafiosSelfie] = useState<Array<{ etapa: string; em: string }>>([]);
   const [cameraAberta, setCameraAberta] = useState(false);
   const [cameraPronta, setCameraPronta] = useState(false);
   const [assinou, setAssinou] = useState(false);
@@ -50,6 +55,8 @@ export default function AssinarWolfPage() {
   const desenhandoRef = useRef(false);
   const assinaturaCapturadaRef = useRef("");
   const temTracoAssinaturaRef = useRef(false);
+  const guiaExecucaoRef = useRef(0);
+  const guiaExecutandoRef = useRef(false);
 
   useEffect(() => {
     let ativo = true;
@@ -70,6 +77,7 @@ export default function AssinarWolfPage() {
     if (token) void carregar();
     return () => {
       ativo = false;
+      guiaExecucaoRef.current += 1;
       streamRef.current?.getTracks().forEach(track => track.stop());
     };
   }, [token]);
@@ -187,10 +195,13 @@ export default function AssinarWolfPage() {
   }, [cameraAberta]);
 
   function fecharCamera() {
+    guiaExecucaoRef.current += 1;
+    guiaExecutandoRef.current = false;
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
     setCameraPronta(false);
     setCameraAberta(false);
+    setGuiaSelfie("Enquadre seu rosto no oval");
   }
 
   async function abrirCamera() {
@@ -231,6 +242,95 @@ export default function AssinarWolfPage() {
         ctx.drawImage(imagem, sx, sy, lado, lado, 0, 0, 720, 720);
         setSelfie(canvas.toDataURL("image/jpeg", 0.82));
         fecharCamera();
+        setErro("");
+      };
+      imagem.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function aguardar(ms: number) {
+    return new Promise(resolve => window.setTimeout(resolve, ms));
+  }
+
+  async function rostoEnquadrado(): Promise<boolean> {
+    const video = videoRef.current;
+    if (!video || video.videoWidth <= 0) return false;
+    const FaceDetectorCtor = (window as any).FaceDetector;
+    if (!FaceDetectorCtor) return true;
+    try {
+      const detector = new FaceDetectorCtor({ fastMode: true, maxDetectedFaces: 1 });
+      const rostos = await detector.detect(video);
+      if (rostos.length !== 1) return false;
+      const box = rostos[0].boundingBox;
+      const cx = box.x + box.width / 2;
+      const cy = box.y + box.height / 2;
+      return box.width >= video.videoWidth * 0.25 && box.width <= video.videoWidth * 0.78
+        && cx >= video.videoWidth * 0.3 && cx <= video.videoWidth * 0.7
+        && cy >= video.videoHeight * 0.28 && cy <= video.videoHeight * 0.72;
+    } catch {
+      return true;
+    }
+  }
+
+  async function iniciarCapturaGuiada() {
+    if (!cameraPronta || guiaExecutandoRef.current) return;
+    guiaExecutandoRef.current = true;
+    const execucao = ++guiaExecucaoRef.current;
+    setErro("");
+    setDesafiosSelfie([]);
+    try {
+      setGuiaSelfie("Enquadre seu rosto no oval");
+      const limite = Date.now() + 12_000;
+      while (Date.now() < limite && execucao === guiaExecucaoRef.current) {
+        if (await rostoEnquadrado()) break;
+        await aguardar(350);
+      }
+      if (execucao !== guiaExecucaoRef.current) return;
+      if (!(await rostoEnquadrado())) {
+        setErro("Não consegui confirmar o enquadramento. Centralize o rosto no oval e tente novamente.");
+        return;
+      }
+      const etapas = [
+        { etapa: "rosto_enquadrado", texto: "Ótimo. Agora sorria" },
+        { etapa: "sorriso_solicitado", texto: "Agora olhe para a esquerda" },
+        { etapa: "movimento_esquerda_solicitado", texto: "Volte a olhar para a câmera" },
+      ];
+      for (const item of etapas) {
+        if (execucao !== guiaExecucaoRef.current) return;
+        setGuiaSelfie(item.texto);
+        setDesafiosSelfie(atual => [...atual, { etapa: item.etapa, em: new Date().toISOString() }]);
+        await aguardar(1800);
+      }
+      if (execucao !== guiaExecucaoRef.current) return;
+      setGuiaSelfie("Capturando…");
+      setDesafiosSelfie(atual => [...atual, { etapa: "selfie_capturada", em: new Date().toISOString() }]);
+      capturarSelfie();
+    } finally {
+      guiaExecutandoRef.current = false;
+    }
+  }
+
+  function carregarDocumentoArquivo(file: File | undefined, lado: "frente" | "verso") {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setErro("Envie uma foto válida do documento."); return; }
+    if (file.size > 8 * 1024 * 1024) { setErro("A foto do documento deve ter no máximo 8 MB."); return; }
+    const reader = new FileReader();
+    reader.onerror = () => setErro("Não foi possível ler a foto do documento.");
+    reader.onload = () => {
+      const imagem = new Image();
+      imagem.onerror = () => setErro("A foto do documento é inválida.");
+      imagem.onload = () => {
+        const limite = 1600;
+        const escala = Math.min(1, limite / Math.max(imagem.naturalWidth, imagem.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(imagem.naturalWidth * escala));
+        canvas.height = Math.max(1, Math.round(imagem.naturalHeight * escala));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.86);
+        if (lado === "frente") setDocumentoFrente(dataUrl); else setDocumentoVerso(dataUrl);
         setErro("");
       };
       imagem.src = String(reader.result || "");
@@ -286,6 +386,10 @@ export default function AssinarWolfPage() {
       setErro("Tire a selfie de evidência.");
       return;
     }
+    if (info?.exigir_documento_identidade && (!documentoFrente || !documentoVerso)) {
+      setErro("Envie a frente e o verso do documento de identidade.");
+      return;
+    }
     if (!assinou || !canvasAssinaturaRef.current) {
       setErro("Desenhe sua assinatura no campo indicado.");
       return;
@@ -304,6 +408,9 @@ export default function AssinarWolfPage() {
           consentimento_texto: info?.consentimento_texto || CONSENTIMENTO,
           assinatura: assinaturaCapturadaRef.current || canvasAssinaturaRef.current.toDataURL("image/png"),
           selfie,
+          selfie_desafios: desafiosSelfie,
+          documento_frente: info?.exigir_documento_identidade ? documentoFrente : undefined,
+          documento_verso: info?.exigir_documento_identidade ? documentoVerso : undefined,
           ...localizacao,
         }),
       });
@@ -433,7 +540,7 @@ export default function AssinarWolfPage() {
           <div><span style={styles.number}>3</span><strong>Tire uma selfie de evidência</strong></div>
         </div>
         <p style={styles.muted}>
-          Posicione o rosto em local iluminado. A selfie será protegida e vinculada à trilha desta assinatura.
+          Posicione o rosto em local iluminado. O sistema orientará o enquadramento, sorriso e movimento do rosto antes da captura automática. A selfie será protegida e vinculada à trilha desta assinatura.
           Nesta versão ela é uma evidência visual, não uma validação biométrica facial automatizada.
         </p>
         {!selfie && !cameraAberta && (
@@ -443,10 +550,11 @@ export default function AssinarWolfPage() {
           <div style={styles.cameraBox}>
             <div style={styles.videoWrap}>
               <video ref={videoRef} autoPlay playsInline muted style={styles.video}/>
-              <span style={styles.cameraStatus}>{cameraPronta ? "Câmera pronta" : "Carregando câmera…"}</span>
+              <div style={styles.faceGuide}><div style={styles.faceOval}/><strong style={styles.guideText}>{cameraPronta ? guiaSelfie : "Carregando câmera…"}</strong></div>
+              <span style={styles.cameraStatus}>{cameraPronta ? "Captura guiada ativa" : "Carregando câmera…"}</span>
             </div>
             <div style={styles.row}>
-              <button type="button" onClick={capturarSelfie} disabled={!cameraPronta} style={{ ...styles.primaryButton, opacity: cameraPronta ? 1 : 0.55 }}>Capturar selfie</button>
+              <button type="button" onClick={iniciarCapturaGuiada} disabled={!cameraPronta} style={{ ...styles.primaryButton, opacity: cameraPronta ? 1 : 0.55 }}>Iniciar captura guiada</button>
               <button type="button" onClick={fecharCamera} style={styles.textButton}>Cancelar</button>
             </div>
           </div>
@@ -469,9 +577,30 @@ export default function AssinarWolfPage() {
         <canvas ref={canvasSelfieRef} style={{ display: "none" }}/>
       </section>
 
+      {info?.exigir_documento_identidade && <section style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div><span style={styles.number}>4</span><strong>Envie seu documento de identidade</strong></div>
+        </div>
+        <p style={styles.muted}>Fotografe a frente e o verso do RG, CIN ou CNH. As imagens ficam privadas e vinculadas somente à trilha desta assinatura.</p>
+        <div style={styles.documentGrid}>
+          <label style={styles.documentBox}>
+            <strong>Frente do documento</strong>
+            {documentoFrente && <img src={documentoFrente} alt="Frente do documento" style={styles.documentPreview}/>}
+            <span style={styles.secondaryButton}>{documentoFrente ? "Trocar frente" : "Fotografar frente"}</span>
+            <input type="file" accept="image/*" capture="environment" onChange={e => carregarDocumentoArquivo(e.target.files?.[0], "frente")} style={styles.hiddenInput}/>
+          </label>
+          <label style={styles.documentBox}>
+            <strong>Verso do documento</strong>
+            {documentoVerso && <img src={documentoVerso} alt="Verso do documento" style={styles.documentPreview}/>}
+            <span style={styles.secondaryButton}>{documentoVerso ? "Trocar verso" : "Fotografar verso"}</span>
+            <input type="file" accept="image/*" capture="environment" onChange={e => carregarDocumentoArquivo(e.target.files?.[0], "verso")} style={styles.hiddenInput}/>
+          </label>
+        </div>
+      </section>}
+
       <section style={styles.card}>
         <div style={styles.cardHeader}>
-          <div><span style={styles.number}>4</span><strong>Desenhe sua assinatura</strong></div>
+          <div><span style={styles.number}>{info?.exigir_documento_identidade ? 5 : 4}</span><strong>Desenhe sua assinatura</strong></div>
           <button type="button" onClick={limparAssinatura} style={styles.textButton}>Limpar</button>
         </div>
         <p style={styles.muted}>Use o dedo, a caneta digital ou o mouse. Esta imagem ficará legível no PDF final.</p>
@@ -488,7 +617,7 @@ export default function AssinarWolfPage() {
 
       <section style={styles.card}>
         <div style={styles.cardHeader}>
-          <div><span style={styles.number}>5</span><strong>Confirme sua manifestação de vontade</strong></div>
+          <div><span style={styles.number}>{info?.exigir_documento_identidade ? 6 : 5}</span><strong>Confirme sua manifestação de vontade</strong></div>
         </div>
         <label style={styles.check}>
           <input type="checkbox" checked={aceiteContrato} onChange={e => setAceiteContrato(e.target.checked)}/>
@@ -500,7 +629,7 @@ export default function AssinarWolfPage() {
         </label>
         <label style={styles.check}>
           <input type="checkbox" checked={aceiteSelfie} onChange={e => setAceiteSelfie(e.target.checked)}/>
-          <span>Autorizo a coleta da selfie, OTP e dados técnicos exclusivamente para comprovar esta assinatura e prevenir fraude.</span>
+          <span>Autorizo a coleta da selfie, OTP, dados técnicos{info?.exigir_documento_identidade ? " e das imagens do meu documento de identidade" : ""} exclusivamente para comprovar esta assinatura e prevenir fraude.</span>
         </label>
         <p style={styles.legal}>{info?.consentimento_texto || CONSENTIMENTO}</p>
       </section>
@@ -549,9 +678,15 @@ const styles: Record<string, CSSProperties> = {
   secondaryButton: { border: "1px solid #84adff", background: "#eff4ff", color: "#004eeb", borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer" },
   primaryButton: { border: 0, background: "#155eef", color: "#fff", borderRadius: 10, padding: "12px 18px", fontWeight: 800, cursor: "pointer" },
   cameraBox: { display: "grid", gap: 12, justifyItems: "center", marginTop: 12 },
-  videoWrap: { position: "relative", width: "min(100%,420px)", maxWidth: "100%" },
+  videoWrap: { position: "relative", width: "min(100%,420px)", maxWidth: "100%", overflow: "hidden", borderRadius: 16 },
+  faceGuide: { position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none", zIndex: 2 },
+  faceOval: { width: "55%", height: "72%", border: "3px solid #84adff", borderRadius: "50%", boxShadow: "0 0 0 999px rgba(0,0,0,.25)" },
+  guideText: { position: "absolute", top: 14, left: 14, right: 14, textAlign: "center", padding: "9px 12px", borderRadius: 10, background: "rgba(16,24,40,.82)", color: "#fff", fontSize: 13 },
   video: { display: "block", width: "100%", maxWidth: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 16, background: "#101828", transform: "scaleX(-1)" },
   cameraStatus: { position: "absolute", left: 10, bottom: 10, padding: "6px 9px", borderRadius: 999, background: "rgba(16,24,40,.78)", color: "#fff", fontSize: 11, fontWeight: 800 },
+  documentGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 14, marginTop: 14 },
+  documentBox: { display: "grid", gap: 9, padding: 14, border: "1px dashed #84adff", borderRadius: 12, background: "#f8faff" },
+  documentPreview: { width: "100%", height: 150, objectFit: "contain", borderRadius: 9, background: "#eef2f6" },
   captureLabel: { display: "inline-flex", marginTop: 12, border: "1px solid #84adff", background: "#fff", color: "#004eeb", borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer" },
   hiddenInput: { position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" },
   selfieBox: { display: "flex", gap: 16, alignItems: "center", marginTop: 12, flexWrap: "wrap" },

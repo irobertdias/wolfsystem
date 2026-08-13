@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       nome_signatario: String(body.nome_signatario || ""), cpf: String(body.cpf || ""),
       email_signatario: String(body.email_signatario || ""), titulo: String(body.titulo || "Contrato"),
       conteudo: String(body.conteudo || ""), pdf_base64: pdfBase64, mensagem: String(body.mensagem || ""),
-      expira_horas: Number(body.expira_horas || 48), exigir_localizacao: body.exigir_localizacao === true,
+      expira_horas: Number(body.expira_horas || 48), exigir_localizacao: body.exigir_localizacao === true, exigir_documento_identidade: body.exigir_documento_identidade === true,
       proposta_id: propostaId, representante_id: String(body.representante_id || ""), criado_por: acesso.email,
     };
     const rota = body.modo_assinatura === "envelope_v1"

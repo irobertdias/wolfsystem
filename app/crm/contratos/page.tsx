@@ -46,6 +46,7 @@ type Contrato = {
   expira_em: string;
   concluida_em?: string | null;
   created_at: string;
+  exigir_documento_identidade?: boolean;
 };
 type ClienteCRM = { id: number; nome: string; cpf?: string; email?: string; telefone1?: string; telefone2?: string; endereco?: string; cep?: string; cidade?: string; estado?: string };
 type Conexao = { id: number; nome: string; tipo: string; status: string; numero?: string };
@@ -54,14 +55,14 @@ type FormContrato = {
   representante_id: string; origem: "crm" | "avulso"; proposta_id: string; nome: string; cpf: string;
   email: string; telefone: string; canal_id: string; otp_meio_representante: MeioOtp; otp_meio_cliente: MeioOtp;
   participantes_adicionais: ParticipanteAdicional[]; titulo: string; conteudo: string; pdf_base64: string;
-  pdf_nome: string; mensagem: string; expira_horas: number; exigir_localizacao: boolean;
+  pdf_nome: string; mensagem: string; expira_horas: number; exigir_localizacao: boolean; exigir_documento_identidade: boolean;
 };
 const FORM_INICIAL: FormContrato = {
   representante_id: "", origem: "crm", proposta_id: "", nome: "", cpf: "", email: "", telefone: "",
   canal_id: "", otp_meio_representante: "email", otp_meio_cliente: "email", participantes_adicionais: [],
   titulo: "Contrato de prestação de serviços", conteudo: "", pdf_base64: "", pdf_nome: "",
   mensagem: "Olá, {{nome}}. Seu contrato está pronto para revisão e assinatura: {{link}}",
-  expira_horas: 48, exigir_localizacao: false,
+  expira_horas: 48, exigir_localizacao: false, exigir_documento_identidade: false,
 };
 type Resumo = { total: number; assinados: number; pendentes: number; expirados: number; problemas: number };
 type Paginacao = { pagina: number; limite: number; total: number; paginas: number };
@@ -232,6 +233,7 @@ export default function ContratosPage() {
         telefone: contrato.numero || "", canal_id: String(contrato.canal_id || ""),
         titulo: String(contrato.contrato_nome || "Contrato").replace(/\.pdf$/i, ""),
         conteudo: "", pdf_base64: "", pdf_nome: "",
+        exigir_documento_identidade: contrato.exigir_documento_identidade === true,
       });
       setCriando(true);
     } catch (e: any) { setErro(e.message || "Não foi possível preparar a edição"); }
@@ -383,7 +385,7 @@ export default function ContratosPage() {
           canal_id: formContrato.canal_id ? Number(formContrato.canal_id) : null, numero: formContrato.telefone, nome_signatario: formContrato.nome,
           cpf: formContrato.cpf, email_signatario: formContrato.email, titulo: formContrato.titulo,
           conteudo: formContrato.conteudo, pdf_base64: formContrato.pdf_base64, mensagem: formContrato.mensagem,
-          expira_horas: formContrato.expira_horas, exigir_localizacao: formContrato.exigir_localizacao,
+          expira_horas: formContrato.expira_horas, exigir_localizacao: formContrato.exigir_localizacao, exigir_documento_identidade: formContrato.exigir_documento_identidade,
           representante_id: formContrato.representante_id, otp_meio_representante: formContrato.otp_meio_representante,
           otp_meio_cliente: formContrato.otp_meio_cliente, participantes_adicionais: formContrato.participantes_adicionais,
           modo_assinatura: editando?.modo_assinatura || "envelope_v1" }),
@@ -579,6 +581,7 @@ export default function ContratosPage() {
             <label className={styles.full}>Mensagem de envio<textarea rows={3} value={formContrato.mensagem} onChange={e => setFormContrato({ ...formContrato, mensagem: e.target.value })}/><small>Use {"{{nome}}"} e {"{{link}}"}.</small></label>
             <label>Validade<select value={formContrato.expira_horas} onChange={e => setFormContrato({ ...formContrato, expira_horas: Number(e.target.value) })}><option value={24}>24 horas</option><option value={48}>48 horas</option><option value={72}>3 dias</option><option value={168}>7 dias</option></select></label>
             <label className={styles.checkLabel}><input type="checkbox" checked={formContrato.exigir_localizacao} onChange={e => setFormContrato({ ...formContrato, exigir_localizacao: e.target.checked })}/> Solicitar localização</label>
+            <label className={styles.checkLabel}><input type="checkbox" checked={formContrato.exigir_documento_identidade} onChange={e => setFormContrato({ ...formContrato, exigir_documento_identidade: e.target.checked })}/> Exigir documento de identidade (frente e verso)</label>
           </div>
           <footer><button disabled={salvando} onClick={() => { setCriando(false); setEditando(null); }}>Cancelar</button><button className={styles.newButton} disabled={salvando} onClick={criarContrato}>{salvando ? (editando ? "Criando versão…" : "Criando…") : (editando ? "Salvar nova versão e reenviar" : "Criar e enviar para assinatura")}</button></footer>
         </section>

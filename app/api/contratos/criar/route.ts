@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       email_signatario: String(body.email_signatario || ""), titulo: String(body.titulo || "Contrato"),
       conteudo: String(body.conteudo || ""), pdf_base64: pdfBase64,
       mensagem: String(body.mensagem || ""), expira_horas: Number(body.expira_horas || 48),
-      exigir_localizacao: body.exigir_localizacao === true, proposta_id: propostaId,
+      exigir_localizacao: body.exigir_localizacao === true, exigir_documento_identidade: body.exigir_documento_identidade === true, proposta_id: propostaId,
       representante_id: String(body.representante_id || ""),
       otp_meio_representante: String(body.otp_meio_representante || ""),
       otp_meio_cliente: String(body.otp_meio_cliente || ""),
