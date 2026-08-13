@@ -24,7 +24,16 @@ export async function POST(
         body: JSON.stringify({ workspace_id: acesso.workspaceId, expira_horas: Number(body.expira_horas || 48) }),
       }
     );
-    const data = await response.json().catch(() => ({ success: false, error: "Resposta inválida do backend" }));
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const detalhe = (await response.text()).slice(0, 180);
+      const rotaAusente = response.status === 404 || detalhe.includes("Cannot POST");
+      return NextResponse.json(
+        { success: false, error: rotaAusente ? "O backend de assinaturas está desatualizado. Publique o arquivo assinatura-wolf-envelopes.js e reinicie o serviço." : `Backend retornou HTTP ${response.status} em formato inválido.` },
+        { status: response.status >= 400 ? response.status : 502, headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
+    const data = await response.json();
     return NextResponse.json(data, { status: response.status, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     const falha = respostaErroContratos(error);
