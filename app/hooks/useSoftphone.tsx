@@ -1,21 +1,21 @@
-﻿"use client";
+"use client";
 import { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from "react";
 import { supabase } from "../lib/supabase";
 import { SipWebRtcClient } from "../lib/sipWebRtcClient";
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ðŸŽ§ SOFTPHONE â€” Context + Hook com suporte hÃ­brido (Twilio real + mock)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// Fluxo automÃ¡tico:
-// 1. Ao tentar ligar, busca conexÃ£o Twilio ativa no workspace
-// 2. Se encontrou â†’ usa Twilio Voice SDK real
-// 3. Se nÃ£o encontrou ou falhou â†’ cai no MOCK (simula chamada pra UI nÃ£o quebrar)
+// ═══════════════════════════════════════════════════════════════════════
+// 🎧 SOFTPHONE — Context + Hook com suporte híbrido (Twilio real + mock)
+// ═══════════════════════════════════════════════════════════════════════
+// Fluxo automático:
+// 1. Ao tentar ligar, busca conexão Twilio ativa no workspace
+// 2. Se encontrou → usa Twilio Voice SDK real
+// 3. Se não encontrou ou falhou → cai no MOCK (simula chamada pra UI não quebrar)
 //
 // Isso permite testar a UI mesmo sem Twilio configurado.
 // Quando cliente conecta Twilio corretamente, chamadas viram REAIS sem mudar nada.
 //
 // REQUER: npm install @twilio/voice-sdk
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════
 
 export type StatusChamada =
   | "ocioso" | "iniciando" | "chamando" | "conectado" | "encerrando"
@@ -65,12 +65,12 @@ export function useSoftphone() {
   const ctx = useContext(SoftphoneContext);
   if (!ctx) {
     if (typeof window !== "undefined") {
-      console.warn("âš ï¸ useSoftphone chamado fora de <SoftphoneProvider>.");
+      console.warn("⚠️ useSoftphone chamado fora de <SoftphoneProvider>.");
     }
     return {
       chamada: null, aberto: false,
       setAberto: () => {},
-      iniciarChamada: () => { alert("âš ï¸ Softphone indisponÃ­vel nesta tela."); },
+      iniciarChamada: () => { alert("⚠️ Softphone indisponível nesta tela."); },
       encerrarChamada: () => {}, toggleMudo: () => {}, enviarDTMF: () => {},
       segundosConectado: 0,
       canais: [], canalSelecionadoId: null, setCanalSelecionadoId: () => {},
@@ -100,7 +100,7 @@ async function getWorkspaceEusuario(): Promise<{ workspaceId: string | null; ema
   } catch (e) { return { workspaceId: null, email: null }; }
 }
 
-// Busca conexÃ£o Twilio ativa pro workspace (cache 60s)
+// Busca conexão Twilio ativa pro workspace (cache 60s)
 let twilioConfigCache: { conn: any | null; ts: number } = { conn: null, ts: 0 };
 async function buscarConfigTwilio(workspaceId: string) {
   const agora = Date.now();
@@ -181,18 +181,18 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
         })
       });
       return resp.ok;
-    } catch (e) { console.error("Erro ao registrar ligaÃ§Ã£o:", e); return false; }
+    } catch (e) { console.error("Erro ao registrar ligação:", e); return false; }
   }, []);
 
-  // â”€â”€â”€ Inicializa Twilio Device (carrega SDK, pega token, cria Device) â”€â”€
+  // ─── Inicializa Twilio Device (carrega SDK, pega token, cria Device) ──
   const inicializarTwilioDevice = async (conexaoId?: number): Promise<any | null> => {
     try {
-      // Carrega SDK dinamicamente (evita quebrar build quando pacote nÃ£o instalado)
+      // Carrega SDK dinamicamente (evita quebrar build quando pacote não instalado)
       let TwilioSDK;
       try {
         TwilioSDK = await import("@twilio/voice-sdk");
       } catch (e) {
-        console.warn("ðŸ“ž @twilio/voice-sdk nÃ£o instalado â€” usando mock. Rode: npm install @twilio/voice-sdk");
+        console.warn("📞 @twilio/voice-sdk não instalado — usando mock. Rode: npm install @twilio/voice-sdk");
         return null;
       }
 
@@ -207,7 +207,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
 
       if (!tokenResp.ok) {
         const err = await tokenResp.json().catch(() => ({}));
-        console.warn(`ðŸ“ž Sem Twilio configurado (${err.error || "erro"}) â€” usando mock`);
+        console.warn(`📞 Sem Twilio configurado (${err.error || "erro"}) — usando mock`);
         return null;
       }
 
@@ -221,7 +221,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
       await device.register();
       deviceRef.current = device;
       twilioDeviceCanalRef.current = conexaoId || null;
-      console.log("ðŸ“ž Twilio Device inicializado");
+      console.log("📞 Twilio Device inicializado");
       return device;
     } catch (e: any) {
       console.error("Erro ao inicializar Twilio:", e.message);
@@ -229,7 +229,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // â”€â”€â”€ Chamada REAL via Twilio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Chamada REAL via Twilio ───────────────────────────────────────────
   const iniciarChamadaTwilio = async (numero: string, nome: string | undefined, device: any, canal: CanalVoip) => {
     const numeroLimpo = numero.replace(/\D/g, "");
     const numeroE164 = numeroLimpo.startsWith("55") ? `+${numeroLimpo}` : `+55${numeroLimpo}`;
@@ -275,7 +275,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // â”€â”€â”€ Chamada MOCK (fallback quando Twilio nÃ£o disponÃ­vel) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Chamada MOCK (fallback quando Twilio não disponível) ──────────────
   const iniciarChamadaSip = async (numero: string, nome: string | undefined, canal: CanalVoip) => {
     const { workspaceId } = await getWorkspaceEusuario();
     if (!workspaceId) throw new Error("Workspace nao identificado");
@@ -323,12 +323,12 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
 
   const iniciarChamada = useCallback(async (numero: string, nome?: string) => {
     if (chamada && chamada.status !== "ocioso") {
-      alert("JÃ¡ existe uma chamada em andamento. Encerre a atual primeiro.");
+      alert("Já existe uma chamada em andamento. Encerre a atual primeiro.");
       return;
     }
 
     const { workspaceId } = await getWorkspaceEusuario();
-    if (!workspaceId) { alert("UsuÃ¡rio nÃ£o autenticado."); return; }
+    if (!workspaceId) { alert("Usuário não autenticado."); return; }
 
     const selecionado = canais.find(c => c.id === canalSelecionadoId) || canais[0];
     if (selecionado?.provider === "sip_manual") {
@@ -362,7 +362,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     }
 
     if (chamada.modoReal && callRef.current) {
-      // Desliga chamada real â€” o evento disconnect vai finalizar
+      // Desliga chamada real — o evento disconnect vai finalizar
       try { callRef.current.disconnect(); } catch (e) { console.error(e); }
       return;
     }
@@ -394,7 +394,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
     else if (chamada.modoReal && callRef.current) {
       try { callRef.current.sendDigits(digito); } catch (e) { console.error(e); }
     } else {
-      console.log(`ðŸ”¢ DTMF (mock): ${digito}`);
+      console.log(`🔢 DTMF (mock): ${digito}`);
     }
   }, [chamada]);
 

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
@@ -72,10 +72,10 @@ export default function ConexoesVoipSection() {
   const [enviando, setEnviando] = useState(false);
   const [mostrarAjuda, setMostrarAjuda] = useState<"twilio" | "zenvia" | "sip_manual" | null>(null);
 
-  // Ã°Å¸â€ â€¢ HIERARQUIA Presidente Ã¢â€ â€™ STF Ã¢â€ â€™ Ministros:
-  //   Ã°Å¸â€˜â€˜ Super Admin Wolf (vocÃƒÂª): bypass total
-  //   Ã°Å¸ÂÂ¢ Dono workspace: respeita mÃƒÂ³dulo do plano (se plano tem VOIP, vÃƒÂª)
-  //   Ã°Å¸â€˜Â¤ Sub-usuÃƒÂ¡rio (Supervisor/Atendente/Admin): respeita plano E grupo de permissÃƒÂ£o (voip_conexoes)
+  // 🆕 HIERARQUIA Presidente → STF → Ministros:
+  //   👑 Super Admin Wolf (você): bypass total
+  //   🏢 Dono workspace: respeita módulo do plano (se plano tem VOIP, vê)
+  //   👤 Sub-usuário (Supervisor/Atendente/Admin): respeita plano E grupo de permissão (voip_conexoes)
   const podeGerenciar = (() => {
     if (isSuperAdmin) return true;
     if (!modulos.voip) return false;
@@ -154,7 +154,7 @@ export default function ConexoesVoipSection() {
   };
 
   const salvar = async () => {
-    if (!nome.trim()) { alert("Digite um nome pra conexÃƒÂ£o"); return; }
+    if (!nome.trim()) { alert("Digite um nome pra conexão"); return; }
     if (!providerEscolhido) { alert("Escolha o tipo de canal"); return; }
 
     setEnviando(true);
@@ -169,7 +169,7 @@ export default function ConexoesVoipSection() {
 
       if (providerEscolhido === "twilio") {
         if (!modoEdicao && (!twilioAccountSid || !twilioAuthToken)) {
-          alert("Account SID e Auth Token sÃƒÂ£o obrigatÃƒÂ³rios"); setEnviando(false); return;
+          alert("Account SID e Auth Token são obrigatórios"); setEnviando(false); return;
         }
         if (twilioAccountSid) config.twilio_account_sid = twilioAccountSid;
         if (twilioAuthToken) config.twilio_auth_token = twilioAuthToken;
@@ -179,7 +179,7 @@ export default function ConexoesVoipSection() {
         if (twilioNumeroDid) config.twilio_numero_did = twilioNumeroDid;
       } else if (providerEscolhido === "zenvia") {
         if (!modoEdicao && !zenviaAccessToken) {
-          alert("Access Token ÃƒÂ© obrigatÃƒÂ³rio"); setEnviando(false); return;
+          alert("Access Token é obrigatório"); setEnviando(false); return;
         }
         if (zenviaAccessToken) config.zenvia_access_token = zenviaAccessToken;
         if (zenviaDidId) config.zenvia_did_id = parseInt(zenviaDidId);
@@ -209,15 +209,15 @@ export default function ConexoesVoipSection() {
       }
 
       if (!resp.success) {
-        alert("Ã¢ÂÅ’ Erro: " + (resp.error || "desconhecido"));
+        alert("❌ Erro: " + (resp.error || "desconhecido"));
       } else {
-        alert(modoEdicao ? "Ã¢Å“â€¦ ConexÃƒÂ£o atualizada!" : `Ã¢Å“â€¦ ConexÃƒÂ£o criada e testada!${resp.info_conta?.nome_conta ? "\n\nConta: " + resp.info_conta.nome_conta : ""}`);
+        alert(modoEdicao ? "✅ Conexão atualizada!" : `✅ Conexão criada e testada!${resp.info_conta?.nome_conta ? "\n\nConta: " + resp.info_conta.nome_conta : ""}`);
         setShowModal(false);
         limparForm();
         fetchConexoes();
       }
     } catch (e: any) {
-      alert("Ã¢ÂÅ’ Erro: " + e.message);
+      alert("❌ Erro: " + e.message);
     }
     setEnviando(false);
   };
@@ -226,15 +226,15 @@ export default function ConexoesVoipSection() {
     const resp = await wa("voip/conexao/testar", { conexaoId: c.id, workspaceId: wsId });
     if (resp.success) {
       const info = resp.info || {};
-      alert(`Ã¢Å“â€¦ ConexÃƒÂ£o OK!\n\n${c.provider === "twilio" ? `Conta: ${info.nome_conta}\nStatus: ${info.status_conta}` : `Email: ${info.email}\nSaldo: R$ ${info.saldo || "?"}`}`);
+      alert(`✅ Conexão OK!\n\n${c.provider === "twilio" ? `Conta: ${info.nome_conta}\nStatus: ${info.status_conta}` : `Email: ${info.email}\nSaldo: R$ ${info.saldo || "?"}`}`);
     } else {
-      alert(`Ã¢ÂÅ’ ConexÃƒÂ£o falhou: ${resp.info?.erro || resp.error}`);
+      alert(`❌ Conexão falhou: ${resp.info?.erro || resp.error}`);
     }
     fetchConexoes();
   };
 
   const deletar = async (c: ConexaoVoip) => {
-    if (!confirm(`Deletar conexÃƒÂ£o "${c.nome}"?\n\nIsso remove as credenciais. LigaÃƒÂ§ÃƒÂµes antigas continuam no histÃƒÂ³rico.`)) return;
+    if (!confirm(`Deletar conexão "${c.nome}"?\n\nIsso remove as credenciais. Ligações antigas continuam no histórico.`)) return;
     const resp = await wa("voip/conexao/deletar", { conexaoId: c.id, workspaceId: wsId });
     if (resp.success) fetchConexoes();
     else alert("Erro ao deletar: " + resp.error);
@@ -245,9 +245,9 @@ export default function ConexoesVoipSection() {
   };
 
   const corStatus = (s: string) => s === "conectado" ? "#16a34a" : s === "erro" ? "#dc2626" : s === "testando" ? "#f59e0b" : "#6b7280";
-  const emojiStatus = (s: string) => s === "conectado" ? "Ã°Å¸Å¸Â¢" : s === "erro" ? "Ã°Å¸â€Â´" : s === "testando" ? "Ã°Å¸Å¸Â¡" : "Ã¢Å¡Â«";
+  const emojiStatus = (s: string) => s === "conectado" ? "🟢" : s === "erro" ? "🔴" : s === "testando" ? "🟡" : "⚫";
 
-  // Ã°Å¸Å½Â¨ ESTILOS LIGHT TECH
+  // 🎨 ESTILOS LIGHT TECH
   const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
   const cardStyle = {
     background: "#ffffff",
@@ -271,11 +271,11 @@ export default function ConexoesVoipSection() {
             fontSize: 40, margin: "0 auto 16px",
             boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
           }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>Ã°Å¸â€â€™</span>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
           </div>
           <h1 style={{ color: "#1f2937", fontSize: 20, fontWeight: 700, margin: "0 0 8px" }}>Acesso Restrito</h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 8px" }}>Seu usuÃƒÂ¡rio nÃƒÂ£o tem permissÃƒÂ£o para gerenciar conexÃƒÂµes VOIP.</p>
-          <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, lineHeight: 1.5 }}>PeÃƒÂ§a ao dono do workspace pra marcar "Gerenciar conexÃƒÂµes VOIP" no seu grupo de permissÃƒÂ£o.</p>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 8px" }}>Seu usuário não tem permissão para gerenciar conexões VOIP.</p>
+          <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, lineHeight: 1.5 }}>Peça ao dono do workspace pra marcar "Gerenciar conexões VOIP" no seu grupo de permissão.</p>
         </div>
       </div>
     );
@@ -284,7 +284,7 @@ export default function ConexoesVoipSection() {
   return (
     <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#f8fafc", minHeight: "100vh" }}>
 
-      {/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â HEADER Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */}
+      {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{
           width: 48, height: 48, borderRadius: 14,
@@ -292,26 +292,26 @@ export default function ConexoesVoipSection() {
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 24, boxShadow: "0 8px 20px rgba(22,163,74,0.25)",
         }}>
-          <span style={{ filter: "saturate(0) brightness(2)" }}>Ã°Å¸â€œÅ¾</span>
+          <span style={{ filter: "saturate(0) brightness(2)" }}>📞</span>
         </div>
         <div>
           <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Telefonia VOIP</h1>
           <p style={{ color: "#6b7280", fontSize: 13, margin: "2px 0 0", lineHeight: 1.5, maxWidth: 760 }}>
-            Conecte Twilio, Zenvia ou um canal PABX/SIP para fazer ligaÃ§Ãµes pelo sistema. Cada workspace tem suas prÃ³prias conexÃµes.
+            Conecte Twilio, Zenvia ou um canal PABX/SIP para fazer ligações pelo sistema. Cada workspace tem suas próprias conexões.
           </p>
         </div>
       </div>
 
-      {/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â AVISO LGPD Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */}
+      {/* ═══ AVISO LGPD ═══ */}
       <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderLeft: "4px solid #f59e0b", borderRadius: 12, padding: "14px 18px" }}>
         <p style={{ color: "#92400e", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
-          <b>Ã¢Å¡Â Ã¯Â¸Â Importante:</b> ligaÃƒÂ§ÃƒÂ£o em massa pra quem nÃƒÂ£o autorizou ÃƒÂ© proibido no Brasil (LGPD + Anatel).
-          Os contatos marcados como "sem opt-in" serÃƒÂ£o <b>automaticamente ignorados</b> nas campanhas. VocÃƒÂª pode marcar o opt-in
-          no cadastro de cada cliente ou importÃƒÂ¡-lo via CSV.
+          <b>⚠️ Importante:</b> ligação em massa pra quem não autorizou é proibido no Brasil (LGPD + Anatel).
+          Os contatos marcados como "sem opt-in" serão <b>automaticamente ignorados</b> nas campanhas. Você pode marcar o opt-in
+          no cadastro de cada cliente ou importá-lo via CSV.
         </p>
       </div>
 
-      {/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â LISTA DE CONEXÃƒâ€¢ES Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */}
+      {/* ═══ LISTA DE CONEXÕES ═══ */}
       {loading ? (
         <p style={{ color: "#6b7280", textAlign: "center", padding: 40 }}>Carregando...</p>
       ) : conexoes.length === 0 ? (
@@ -323,10 +323,10 @@ export default function ConexoesVoipSection() {
             fontSize: 40, margin: "0 auto 16px",
             boxShadow: "0 12px 24px rgba(22,163,74,0.25)",
           }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>Ã°Å¸â€œÅ¾</span>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>📞</span>
           </div>
           <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 6px" }}>Nenhum provedor conectado ainda</h3>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 18px" }}>Conecte Twilio, Zenvia ou um ramal PABX/SIP para comeÃ§ar a fazer ligaÃ§Ãµes.</p>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 18px" }}>Conecte Twilio, Zenvia ou um ramal PABX/SIP para começar a fazer ligações.</p>
           <button onClick={() => { limparForm(); setShowModal(true); }}
             style={{
               background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
@@ -358,7 +358,7 @@ export default function ConexoesVoipSection() {
                       {c.provider === "twilio" ? "TW" : c.provider === "sip_manual" ? "SIP" : "ZE"} {c.nome}
                     </p>
                     <p style={{ color: "#9ca3af", fontSize: 11, margin: "3px 0 0", textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.3 }}>
-                      {c.provider === "twilio" ? "Twilio" : c.provider === "sip_manual" ? "PABX / SIP" : "Zenvia"} Â· ID {c.id}
+                      {c.provider === "twilio" ? "Twilio" : c.provider === "sip_manual" ? "PABX / SIP" : "Zenvia"} · ID {c.id}
                     </p>
                   </div>
                   <span style={{
@@ -372,12 +372,12 @@ export default function ConexoesVoipSection() {
 
                 {c.numero_bina && (
                   <p style={{ color: "#6b7280", fontSize: 11, margin: "8px 0" }}>
-                    Ã°Å¸â€œÂ± Bina: <code style={{ color: "#16a34a", fontFamily: "monospace", background: "#f0fdf4", padding: "2px 6px", borderRadius: 4, border: "1px solid #bbf7d0", fontWeight: 600 }}>{c.numero_bina}</code>
+                    📱 Bina: <code style={{ color: "#16a34a", fontFamily: "monospace", background: "#f0fdf4", padding: "2px 6px", borderRadius: 4, border: "1px solid #bbf7d0", fontWeight: 600 }}>{c.numero_bina}</code>
                   </p>
                 )}
                 {c.provider === "twilio" && c.twilio_numero_did && (
                   <p style={{ color: "#6b7280", fontSize: 11, margin: "8px 0" }}>
-                    Ã¢ËœÅ½Ã¯Â¸Â DID: <code style={{ color: "#3b82f6", fontFamily: "monospace", background: "#eff6ff", padding: "2px 6px", borderRadius: 4, border: "1px solid #bfdbfe", fontWeight: 600 }}>{c.twilio_numero_did}</code>
+                    ☎️ DID: <code style={{ color: "#3b82f6", fontFamily: "monospace", background: "#eff6ff", padding: "2px 6px", borderRadius: 4, border: "1px solid #bfdbfe", fontWeight: 600 }}>{c.twilio_numero_did}</code>
                   </p>
                 )}
                                 {c.provider === "sip_manual" && c.sip_extension && (
@@ -386,41 +386,41 @@ export default function ConexoesVoipSection() {
                   </p>
                 )}{c.provider === "zenvia" && c.zenvia_numero_did && (
                   <p style={{ color: "#6b7280", fontSize: 11, margin: "8px 0" }}>
-                    Ã¢ËœÅ½Ã¯Â¸Â DID: <code style={{ color: "#3b82f6", fontFamily: "monospace", background: "#eff6ff", padding: "2px 6px", borderRadius: 4, border: "1px solid #bfdbfe", fontWeight: 600 }}>{c.zenvia_numero_did}</code>
+                    ☎️ DID: <code style={{ color: "#3b82f6", fontFamily: "monospace", background: "#eff6ff", padding: "2px 6px", borderRadius: 4, border: "1px solid #bfdbfe", fontWeight: 600 }}>{c.zenvia_numero_did}</code>
                   </p>
                 )}
 
                 <p style={{ color: "#6b7280", fontSize: 11, margin: "8px 0" }}>
-                  Ã°Å¸â€¢Ëœ HorÃƒÂ¡rio: <b style={{ color: "#374151" }}>{c.horario_inicio}Ã¢â‚¬â€œ{c.horario_fim}</b> Ã‚Â· <b style={{ color: "#374151" }}>{(c.dias_permitidos || []).length} dias</b>
+                  🕘 Horário: <b style={{ color: "#374151" }}>{c.horario_inicio}–{c.horario_fim}</b> · <b style={{ color: "#374151" }}>{(c.dias_permitidos || []).length} dias</b>
                 </p>
                 <p style={{ color: "#6b7280", fontSize: 11, margin: "8px 0 14px" }}>
-                  {c.permite_gravacao ? "Ã°Å¸Å½â„¢Ã¯Â¸Â GravaÃƒÂ§ÃƒÂ£o ativa" : "Ã°Å¸â€â€¡ Sem gravaÃƒÂ§ÃƒÂ£o"}
+                  {c.permite_gravacao ? "🎙️ Gravação ativa" : "🔇 Sem gravação"}
                 </p>
 
                 {c.erro_msg && (
                   <p style={{ background: "#fef2f2", color: "#991b1b", padding: "8px 12px", borderRadius: 8, fontSize: 11, margin: "0 0 12px", border: "1px solid #fecaca" }}>
-                    Ã¢Å¡Â Ã¯Â¸Â {c.erro_msg}
+                    ⚠️ {c.erro_msg}
                   </p>
                 )}
 
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   <button onClick={() => testarConexao(c)} title="Re-testar credenciais"
                     style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "6px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
-                    Ã°Å¸â€â€ž Testar
+                    🔄 Testar
                   </button>
                   <button onClick={() => abrirParaEditar(c)}
                     style={{ background: "#fffbeb", color: "#f59e0b", border: "1px solid #fde68a", borderRadius: 8, padding: "6px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
-                    Ã¢Å“ÂÃ¯Â¸Â Editar
+                    ✏️ Editar
                   </button>
                   <button onClick={() => deletar(c)}
                     style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
-                    Ã°Å¸â€”â€˜Ã¯Â¸Â Deletar
+                    🗑️ Deletar
                   </button>
                 </div>
               </div>
             );
           })}
-          {/* BotÃƒÂ£o "adicionar" sempre visÃƒÂ­vel */}
+          {/* Botão "adicionar" sempre visível */}
           <button onClick={() => { limparForm(); setShowModal(true); }}
             style={{
               background: "#ffffff", border: "2px dashed #d1d5db", borderRadius: 14,
@@ -434,7 +434,7 @@ export default function ConexoesVoipSection() {
         </div>
       )}
 
-      {/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â MODAL Ã¢â‚¬â€ CRIAR/EDITAR Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */}
+      {/* ═══ MODAL — CRIAR/EDITAR ═══ */}
       {showModal && (
         <div onClick={() => !enviando && setShowModal(false)}
           style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -442,14 +442,14 @@ export default function ConexoesVoipSection() {
             style={{ ...cardStyle, width: "100%", maxWidth: 700, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h2 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
-                {modoEdicao ? "Ã¢Å“ÂÃ¯Â¸Â Editar conexÃƒÂ£o" : "Ã¢Å¾â€¢ Nova conexÃƒÂ£o VOIP"}
+                {modoEdicao ? "✏️ Editar conexão" : "➕ Nova conexão VOIP"}
               </h2>
               <button onClick={() => setShowModal(false)} disabled={enviando}
-                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: enviando ? "not-allowed" : "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>Ã¢Å“â€¢</button>
+                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: enviando ? "not-allowed" : "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
 
             <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
-              {/* Seletor de provedor (sÃƒÂ³ na criaÃƒÂ§ÃƒÂ£o) */}
+              {/* Seletor de provedor (só na criação) */}
               {!modoEdicao && !providerEscolhido && (
                 <div>
                   <p style={{ color: "#6b7280", fontSize: 11, margin: "0 0 12px", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>
@@ -465,11 +465,11 @@ export default function ConexoesVoipSection() {
                       onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.background = "#eff6ff"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(59,130,246,0.15)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.boxShadow = "none"; }}
                     >
-                      <p style={{ fontSize: 30, margin: "0 0 8px" }}>Ã°Å¸Å’Â</p>
+                      <p style={{ fontSize: 30, margin: "0 0 8px" }}>🌐</p>
                       <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>Twilio</p>
                       <p style={{ color: "#6b7280", fontSize: 11, margin: 0, lineHeight: 1.5 }}>
-                        Internacional Ã‚Â· Docs em inglÃƒÂªs Ã‚Â· PreÃƒÂ§os em USD<br/>
-                        Fixo BR ~R$ 0,08/min Ã‚Â· MÃƒÂ³vel BR ~R$ 0,30/min
+                        Internacional · Docs em inglês · Preços em USD<br/>
+                        Fixo BR ~R$ 0,08/min · Móvel BR ~R$ 0,30/min
                       </p>
                     </button>
                     <button onClick={() => setProviderEscolhido("zenvia")}
@@ -481,11 +481,11 @@ export default function ConexoesVoipSection() {
                       onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#16a34a"; e.currentTarget.style.background = "#f0fdf4"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(22,163,74,0.15)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.boxShadow = "none"; }}
                     >
-                      <p style={{ fontSize: 30, margin: "0 0 8px" }}>Ã°Å¸â€¡Â§Ã°Å¸â€¡Â·</p>
+                      <p style={{ fontSize: 30, margin: "0 0 8px" }}>🇧🇷</p>
                       <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>Zenvia</p>
                       <p style={{ color: "#6b7280", fontSize: 11, margin: 0, lineHeight: 1.5 }}>
-                        Brasileiro Ã‚Â· Docs em PT Ã‚Â· Suporte BR<br/>
-                        Fixo R$ 0,09/min Ã‚Â· MÃƒÂ³vel R$ 0,35/min
+                        Brasileiro · Docs em PT · Suporte BR<br/>
+                        Fixo R$ 0,09/min · Móvel R$ 0,35/min
                       </p>
                     </button>
                     <button onClick={() => setProviderEscolhido("sip_manual")}
@@ -498,7 +498,7 @@ export default function ConexoesVoipSection() {
                 </div>
               )}
 
-              {/* FormulÃƒÂ¡rio */}
+              {/* Formulário */}
               {providerEscolhido && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 14, borderBottom: "1px solid #e5e7eb" }}>
@@ -516,7 +516,7 @@ export default function ConexoesVoipSection() {
                       </p>
                       {providerEscolhido !== "sip_manual" && <button onClick={() => setMostrarAjuda(providerEscolhido)}
                         style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 11, cursor: "pointer", padding: 0, textDecoration: "underline", fontWeight: 600 }}>
-                        Ã°Å¸â€œâ€“ Como obter as credenciais?
+                        📖 Como obter as credenciais?
                       </button>}
                     </div>
                     {!modoEdicao && (
@@ -528,7 +528,7 @@ export default function ConexoesVoipSection() {
                   </div>
 
                   <div>
-                    <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Nome da conexÃƒÂ£o *</label>
+                    <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Nome da conexão *</label>
                     <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Twilio Vendas" style={IS} />
                   </div>
 
@@ -537,47 +537,47 @@ export default function ConexoesVoipSection() {
                     <>
                       <div>
                         <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>
-                          Account SID * {modoEdicao && <span style={{ color: "#f59e0b", textTransform: "none", fontWeight: 500 }}>(jÃƒÂ¡ salvo, sÃƒÂ³ substitui se mudar)</span>}
+                          Account SID * {modoEdicao && <span style={{ color: "#f59e0b", textTransform: "none", fontWeight: 500 }}>(já salvo, só substitui se mudar)</span>}
                         </label>
-                        <input value={twilioAccountSid} onChange={e => setTwilioAccountSid(e.target.value)} placeholder="ACÃ¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" style={{ ...IS, fontFamily: "monospace" }} />
+                        <input value={twilioAccountSid} onChange={e => setTwilioAccountSid(e.target.value)} placeholder="AC•••••••••••••••••••••••••••" style={{ ...IS, fontFamily: "monospace" }} />
                       </div>
                       <div>
                         <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>
                           Auth Token * {modoEdicao && <span style={{ color: "#f59e0b", textTransform: "none", fontWeight: 500 }}>(deixe vazio pra manter)</span>}
                         </label>
-                        <input type="password" value={twilioAuthToken} onChange={e => setTwilioAuthToken(e.target.value)} placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" style={{ ...IS, fontFamily: "monospace" }} />
+                        <input type="password" value={twilioAuthToken} onChange={e => setTwilioAuthToken(e.target.value)} placeholder="••••••••••••••••••••••••••••••••" style={{ ...IS, fontFamily: "monospace" }} />
                       </div>
                       <div>
-                        <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>NÃƒÂºmero DID (Caller ID)</label>
+                        <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Número DID (Caller ID)</label>
                         <input value={twilioNumeroDid} onChange={e => setTwilioNumeroDid(e.target.value)} placeholder="+5511999999999" style={IS} />
-                        <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>NÃƒÂºmero comprado na Twilio que aparece no celular de quem recebe.</p>
+                        <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>Número comprado na Twilio que aparece no celular de quem recebe.</p>
                       </div>
                       <details open style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: "12px 16px" }}>
-                        <summary style={{ cursor: "pointer", color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>Ã¢Å¡Â¡ Credenciais para ligaÃƒÂ§ÃƒÂµes no navegador (obrigatÃƒÂ³rio)</summary>
+                        <summary style={{ cursor: "pointer", color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>⚡ Credenciais para ligações no navegador (obrigatório)</summary>
                         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
                           <div style={{ background: "#ffffff", border: "1px solid #bbf7d0", borderLeft: "4px solid #16a34a", borderRadius: 10, padding: 12 }}>
-                            <p style={{ color: "#16a34a", fontSize: 11, fontWeight: 700, margin: "0 0 8px" }}>Ã°Å¸â€œâ€¹ URL pra cadastrar no TwiML App da Twilio:</p>
+                            <p style={{ color: "#16a34a", fontSize: 11, fontWeight: 700, margin: "0 0 8px" }}>📋 URL pra cadastrar no TwiML App da Twilio:</p>
                             <code style={{ display: "block", fontSize: 11, background: "#1f2937", color: "#86efac", padding: "8px 10px", borderRadius: 6, wordBreak: "break-all", fontFamily: "monospace" }}>
                               https://api.wolfgyn.com.br/voip/twilio/twiml/{wsId || "SEU_WORKSPACE"}
                             </code>
                             <p style={{ color: "#6b7280", fontSize: 10, margin: "8px 0 0" }}>
-                              No dashboard Twilio Ã¢â€ â€™ Voice Ã¢â€ â€™ TwiML Apps Ã¢â€ â€™ (criar) Ã¢â€ â€™ cole essa URL no campo "Voice Request URL" (mÃƒÂ©todo POST).
+                              No dashboard Twilio → Voice → TwiML Apps → (criar) → cole essa URL no campo "Voice Request URL" (método POST).
                             </p>
                           </div>
                           <div>
                             <label style={{ color: "#6b7280", fontSize: 10, fontWeight: 600, display: "block", marginBottom: 4 }}>API Key SID *</label>
-                            <input value={twilioApiKeySid} onChange={e => setTwilioApiKeySid(e.target.value)} placeholder="SKÃ¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" style={{ ...IS, fontFamily: "monospace" }} />
+                            <input value={twilioApiKeySid} onChange={e => setTwilioApiKeySid(e.target.value)} placeholder="SK•••••" style={{ ...IS, fontFamily: "monospace" }} />
                           </div>
                           <div>
                             <label style={{ color: "#6b7280", fontSize: 10, fontWeight: 600, display: "block", marginBottom: 4 }}>API Key Secret *</label>
-                            <input type="password" value={twilioApiKeySecret} onChange={e => setTwilioApiKeySecret(e.target.value)} placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" style={{ ...IS, fontFamily: "monospace" }} />
+                            <input type="password" value={twilioApiKeySecret} onChange={e => setTwilioApiKeySecret(e.target.value)} placeholder="•••••" style={{ ...IS, fontFamily: "monospace" }} />
                           </div>
                           <div>
                             <label style={{ color: "#6b7280", fontSize: 10, fontWeight: 600, display: "block", marginBottom: 4 }}>TwiML App SID *</label>
-                            <input value={twilioTwimlAppSid} onChange={e => setTwilioTwimlAppSid(e.target.value)} placeholder="APÃ¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" style={{ ...IS, fontFamily: "monospace" }} />
+                            <input value={twilioTwimlAppSid} onChange={e => setTwilioTwimlAppSid(e.target.value)} placeholder="AP•••••" style={{ ...IS, fontFamily: "monospace" }} />
                           </div>
                           <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, lineHeight: 1.5 }}>
-                            Todos sÃƒÂ£o necessÃƒÂ¡rios pra ligar pelo navegador. Veja o tutorial no menu "Ajuda" pra saber como gerar cada um no dashboard Twilio.
+                            Todos são necessários pra ligar pelo navegador. Veja o tutorial no menu "Ajuda" pra saber como gerar cada um no dashboard Twilio.
                           </p>
                         </div>
                       </details>
@@ -591,7 +591,7 @@ export default function ConexoesVoipSection() {
                         <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>
                           Access Token * {modoEdicao && <span style={{ color: "#f59e0b", textTransform: "none", fontWeight: 500 }}>(deixe vazio pra manter)</span>}
                         </label>
-                        <input type="password" value={zenviaAccessToken} onChange={e => setZenviaAccessToken(e.target.value)} placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" style={{ ...IS, fontFamily: "monospace" }} />
+                        <input type="password" value={zenviaAccessToken} onChange={e => setZenviaAccessToken(e.target.value)} placeholder="••••••••••••••••••••••••••••••••" style={{ ...IS, fontFamily: "monospace" }} />
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
                         <div>
@@ -599,7 +599,7 @@ export default function ConexoesVoipSection() {
                           <input value={zenviaDidId} onChange={e => setZenviaDidId(e.target.value)} placeholder="123" style={IS} />
                         </div>
                         <div>
-                          <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>NÃƒÂºmero DID (Caller ID)</label>
+                          <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Número DID (Caller ID)</label>
                           <input value={zenviaNumeroDid} onChange={e => setZenviaNumeroDid(e.target.value)} placeholder="+5511999999999" style={IS} />
                         </div>
                       </div>
@@ -632,26 +632,26 @@ export default function ConexoesVoipSection() {
 
                   {/* Config comum */}
                   <div>
-                    <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Ã°Å¸â€œÂ± Bina (opcional)</label>
+                    <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>📱 Bina (opcional)</label>
                     <input value={numeroBina} onChange={e => setNumeroBina(e.target.value)} placeholder="+5562981519991" style={IS} />
-                    <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>NÃƒÂºmero alternativo que aparece no celular de quem recebe. Se vazio, usa o DID.</p>
+                    <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>Número alternativo que aparece no celular de quem recebe. Se vazio, usa o DID.</p>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     <div>
-                      <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Ã°Å¸â€¢Ëœ HorÃƒÂ¡rio inÃƒÂ­cio</label>
+                      <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>🕘 Horário início</label>
                       <input type="time" value={horarioInicio} onChange={e => setHorarioInicio(e.target.value)} style={{ ...IS, colorScheme: "light" }} />
                     </div>
                     <div>
-                      <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Ã°Å¸â€¢Ëœ HorÃƒÂ¡rio fim</label>
+                      <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>🕘 Horário fim</label>
                       <input type="time" value={horarioFim} onChange={e => setHorarioFim(e.target.value)} style={{ ...IS, colorScheme: "light" }} />
                     </div>
                   </div>
 
                   <div>
-                    <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 8, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Ã°Å¸â€œâ€¦ Dias permitidos pra ligaÃƒÂ§ÃƒÂ£o</label>
+                    <label style={{ color: "#6b7280", fontSize: 11, display: "block", marginBottom: 8, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>📅 Dias permitidos pra ligação</label>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {[["seg","Seg"],["ter","Ter"],["qua","Qua"],["qui","Qui"],["sex","Sex"],["sab","SÃƒÂ¡b"],["dom","Dom"]].map(([id, label]) => {
+                      {[["seg","Seg"],["ter","Ter"],["qua","Qua"],["qui","Qui"],["sex","Sex"],["sab","Sáb"],["dom","Dom"]].map(([id, label]) => {
                         const ativo = diasPermitidos.includes(id);
                         return (
                           <button key={id} onClick={() => toggleDia(id)}
@@ -679,10 +679,10 @@ export default function ConexoesVoipSection() {
                     transition: "all 0.15s",
                   }}>
                     <input type="checkbox" checked={permiteGravacao} onChange={e => setPermiteGravacao(e.target.checked)} style={{ accentColor: "#16a34a", width: 16, height: 16 }} />
-                    <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 600 }}>Ã°Å¸Å½â„¢Ã¯Â¸Â Gravar chamadas automaticamente</span>
+                    <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 600 }}>🎙️ Gravar chamadas automaticamente</span>
                   </label>
                   <p style={{ color: "#9ca3af", fontSize: 10, margin: "-8px 0 0", paddingLeft: 4 }}>
-                    Por LGPD, vocÃƒÂª deve avisar o cliente de que a ligaÃƒÂ§ÃƒÂ£o ÃƒÂ© gravada no inÃƒÂ­cio da chamada.
+                    Por LGPD, você deve avisar o cliente de que a ligação é gravada no início da chamada.
                   </p>
                 </div>
               )}
@@ -702,7 +702,7 @@ export default function ConexoesVoipSection() {
                     cursor: enviando ? "not-allowed" : "pointer", fontWeight: 700,
                     boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
                   }}>
-                  {enviando ? "Ã¢ÂÂ³ Testando e salvando..." : modoEdicao ? "Ã°Å¸â€™Â¾ Salvar" : "Ã°Å¸â€Å’ Conectar e testar"}
+                  {enviando ? "⏳ Testando e salvando..." : modoEdicao ? "💾 Salvar" : "🔌 Conectar e testar"}
                 </button>
               </div>
             )}
@@ -710,7 +710,7 @@ export default function ConexoesVoipSection() {
         </div>
       )}
 
-      {/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â MODAL AJUDA Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */}
+      {/* ═══ MODAL AJUDA ═══ */}
       {mostrarAjuda && (
         <div onClick={() => setMostrarAjuda(null)}
           style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 4000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -723,7 +723,7 @@ export default function ConexoesVoipSection() {
                 border: `1px solid ${mostrarAjuda === "twilio" ? "#bfdbfe" : "#bbf7d0"}`,
                 display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
               }}>
-                {mostrarAjuda === "twilio" ? "Ã°Å¸Å’Â" : "Ã°Å¸â€¡Â§Ã°Å¸â€¡Â·"}
+                {mostrarAjuda === "twilio" ? "🌐" : "🇧🇷"}
               </div>
               <h2 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: 0 }}>
                 Como obter credenciais {mostrarAjuda === "twilio" ? "Twilio" : "Zenvia"}
@@ -732,20 +732,20 @@ export default function ConexoesVoipSection() {
 
             {mostrarAjuda === "twilio" ? (
               <ol style={{ color: "#374151", fontSize: 13, lineHeight: 1.8, paddingLeft: 20 }}>
-                <li>Acesse <a href="https://www.twilio.com/try-twilio" target="_blank" style={{ color: "#3b82f6", fontWeight: 600 }}>twilio.com/try-twilio</a> e crie uma conta (trial tem USD 15 grÃƒÂ¡tis).</li>
-                <li>No painel, copie o <b>Account SID</b> e <b>Auth Token</b> da pÃƒÂ¡gina inicial.</li>
-                <li>Menu esquerdo Ã¢â€ â€™ <b>Phone Numbers Ã¢â€ â€™ Buy a Number</b> Ã¢â€ â€™ compra um nÃƒÂºmero BR (~USD 1/mÃƒÂªs).</li>
-                <li>Cole o nÃƒÂºmero no campo <b>DID (Caller ID)</b> com prefixo internacional: <code style={{ background: "#f3f4f6", color: "#1f2937", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", border: "1px solid #e5e7eb" }}>+55...</code></li>
-                <li>Pronto! Com Account SID + Auth Token + NÃƒÂºmero vocÃƒÂª jÃƒÂ¡ faz ligaÃƒÂ§ÃƒÂµes via API.</li>
-                <li><b>(Opcional, pra softphone no navegador)</b>: vai em <b>API Keys</b> e gera uma chave com permissÃƒÂ£o Voice. Depois cria um <b>TwiML App</b> apontando pra <code style={{ background: "#f3f4f6", color: "#1f2937", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", border: "1px solid #e5e7eb" }}>https://api.wolfgyn.com.br/voip/twiml</code>. Mas isso sÃƒÂ³ precisa na Fase 2.</li>
+                <li>Acesse <a href="https://www.twilio.com/try-twilio" target="_blank" style={{ color: "#3b82f6", fontWeight: 600 }}>twilio.com/try-twilio</a> e crie uma conta (trial tem USD 15 grátis).</li>
+                <li>No painel, copie o <b>Account SID</b> e <b>Auth Token</b> da página inicial.</li>
+                <li>Menu esquerdo → <b>Phone Numbers → Buy a Number</b> → compra um número BR (~USD 1/mês).</li>
+                <li>Cole o número no campo <b>DID (Caller ID)</b> com prefixo internacional: <code style={{ background: "#f3f4f6", color: "#1f2937", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", border: "1px solid #e5e7eb" }}>+55...</code></li>
+                <li>Pronto! Com Account SID + Auth Token + Número você já faz ligações via API.</li>
+                <li><b>(Opcional, pra softphone no navegador)</b>: vai em <b>API Keys</b> e gera uma chave com permissão Voice. Depois cria um <b>TwiML App</b> apontando pra <code style={{ background: "#f3f4f6", color: "#1f2937", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", border: "1px solid #e5e7eb" }}>https://api.wolfgyn.com.br/voip/twiml</code>. Mas isso só precisa na Fase 2.</li>
               </ol>
             ) : (
               <ol style={{ color: "#374151", fontSize: 13, lineHeight: 1.8, paddingLeft: 20 }}>
-                <li>Acesse <a href="https://zenvia.com" target="_blank" style={{ color: "#3b82f6", fontWeight: 600 }}>zenvia.com</a> e solicite demonstraÃƒÂ§ÃƒÂ£o comercial (ÃƒÂ© pay-as-you-go apÃƒÂ³s setup).</li>
-                <li>ApÃƒÂ³s ativar a conta, entre no painel <a href="https://app.zenvia.com" target="_blank" style={{ color: "#3b82f6", fontWeight: 600 }}>app.zenvia.com</a>.</li>
-                <li>Menu Ã¢â€ â€™ <b>API Tokens</b> Ã¢â€ â€™ gere um token com permissÃƒÂ£o de <b>Voice</b>.</li>
-                <li>Menu Ã¢â€ â€™ <b>DIDs</b> Ã¢â€ â€™ aluga um nÃƒÂºmero brasileiro. Anote o <b>ID do DID</b> e o <b>nÃƒÂºmero</b>.</li>
-                <li>Cole o token, DID ID e o nÃƒÂºmero nos campos aqui.</li>
+                <li>Acesse <a href="https://zenvia.com" target="_blank" style={{ color: "#3b82f6", fontWeight: 600 }}>zenvia.com</a> e solicite demonstração comercial (é pay-as-you-go após setup).</li>
+                <li>Após ativar a conta, entre no painel <a href="https://app.zenvia.com" target="_blank" style={{ color: "#3b82f6", fontWeight: 600 }}>app.zenvia.com</a>.</li>
+                <li>Menu → <b>API Tokens</b> → gere um token com permissão de <b>Voice</b>.</li>
+                <li>Menu → <b>DIDs</b> → aluga um número brasileiro. Anote o <b>ID do DID</b> e o <b>número</b>.</li>
+                <li>Cole o token, DID ID e o número nos campos aqui.</li>
                 <li>Pronto! Lembrete: Zenvia cobra setup inicial + minutagem. Confirme os valores com o comercial deles.</li>
               </ol>
             )}
