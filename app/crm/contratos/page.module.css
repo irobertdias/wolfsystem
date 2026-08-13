@@ -11,4 +11,3 @@
 @media(max-width:760px){.participantsHeader{align-items:flex-start;flex-direction:column}.participantsHeader button{width:100%}.participantGrid{grid-template-columns:1fr}}
 
 .copyLinkButton{border:1px solid #84adff;background:#eff6ff;color:#175cd3;border-radius:8px;padding:7px 10px;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap}.copyLinkButton:hover{background:#dbeafe;border-color:#528bff}.copyLinkButton:disabled{opacity:.55;cursor:wait}
-\n
