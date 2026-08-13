@@ -1,17 +1,17 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { useSoftphone } from "../hooks/useSoftphone";
 
-// ═══════════════════════════════════════════════════════════════════════
-// 🎧 SOFTPHONE — UI flutuante no canto inferior direito
-// ═══════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ðŸŽ§ SOFTPHONE â€” UI flutuante no canto inferior direito
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 2 modos:
 // - Minimizado (bolha redonda): clica pra abrir
 // - Expandido (card): mostra chamada ativa OU teclado discador
-// ═══════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// 🆕 FASE 1.6 MOBILE — bolha menor e mais alta no celular (sai de cima do input),
-// card expandido com largura responsiva (não estoura a tela).
+// ðŸ†• FASE 1.6 MOBILE â€” bolha menor e mais alta no celular (sai de cima do input),
+// card expandido com largura responsiva (nÃ£o estoura a tela).
 // Desktop continua igual: bolha 56px com bottom 100, card 320px.
 const SOFTPHONE_BOTTOM_DESKTOP = 100;
 const SOFTPHONE_BOTTOM_MOBILE = 180;
@@ -19,7 +19,7 @@ const SOFTPHONE_RIGHT_DESKTOP = 24;
 const SOFTPHONE_RIGHT_MOBILE = 12;
 
 export function Softphone() {
-  const { chamada, aberto, setAberto, iniciarChamada, encerrarChamada, toggleMudo, enviarDTMF, segundosConectado } = useSoftphone();
+  const { chamada, aberto, setAberto, iniciarChamada, encerrarChamada, toggleMudo, enviarDTMF, segundosConectado, canais, canalSelecionadoId, setCanalSelecionadoId } = useSoftphone();
   const [numeroDigitado, setNumeroDigitado] = useState("");
   const [modoTeclado, setModoTeclado] = useState(true);
 
@@ -41,7 +41,7 @@ export function Softphone() {
     chamando: "Chamando...",
     conectado: "Conectado",
     encerrando: "Encerrando...",
-    sem_resposta: "Não atendeu",
+    sem_resposta: "NÃ£o atendeu",
     ocupado: "Ocupado",
     falha: "Falha na chamada",
     caixa_postal: "Caixa postal",
@@ -88,12 +88,12 @@ export function Softphone() {
 
   const chamarManual = () => {
     const n = numeroDigitado.replace(/\D/g, "");
-    if (n.length < 8) { alert("Digite um número válido (mínimo 8 dígitos)"); return; }
+    if (n.length < 8) { alert("Digite um nÃºmero vÃ¡lido (mÃ­nimo 8 dÃ­gitos)"); return; }
     iniciarChamada(n);
     setNumeroDigitado("");
   };
 
-  // ═══════ MODO MINIMIZADO ═══════
+  // â•â•â•â•â•â•â• MODO MINIMIZADO â•â•â•â•â•â•â•
   if (!aberto) {
     const tamanho = isMobile ? (temChamada ? 50 : 44) : 56;
     const opacity = isMobile && !temChamada ? 0.75 : 1;
@@ -126,7 +126,7 @@ export function Softphone() {
         onMouseEnter={e => { if (!temChamada) e.currentTarget.style.transform = "scale(1.08)"; }}
         onMouseLeave={e => { if (!temChamada) e.currentTarget.style.transform = "scale(1)"; }}
       >
-        📞
+        ðŸ“ž
         {temChamada && (
           <span style={{
             position: "absolute", top: -3, right: -3,
@@ -135,14 +135,14 @@ export function Softphone() {
             border: "2px solid #ffffff",
             boxShadow: "0 2px 6px rgba(220,38,38,0.4)",
           }}>
-            •
+            â€¢
           </span>
         )}
       </button>
     );
   }
 
-  // ═══════ MODO EXPANDIDO ═══════
+  // â•â•â•â•â•â•â• MODO EXPANDIDO â•â•â•â•â•â•â•
   return (
     <>
       <style>{`
@@ -172,13 +172,13 @@ export function Softphone() {
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 18 }}>📞</span>
+            <span style={{ fontSize: 18 }}>ðŸ“ž</span>
             <span style={{ color: "white", fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>Discador</span>
             <span style={{
               background: "rgba(255,255,255,0.25)", color: "white",
               fontSize: 9, padding: "2px 7px", borderRadius: 6, fontWeight: 700,
               backdropFilter: "blur(4px)",
-            }}>MOCK</span>
+            }}>{canais.find(c => c.id === canalSelecionadoId)?.provider === "sip_manual" ? "SIP" : canais.find(c => c.id === canalSelecionadoId)?.provider === "twilio" ? "TWILIO" : canais.length ? "VOIP" : "MOCK"}</span>
           </div>
           <button onClick={() => setAberto(false)} title="Minimizar"
             style={{
@@ -189,11 +189,20 @@ export function Softphone() {
               display: "flex", alignItems: "center", justifyContent: "center",
               fontWeight: 700,
             }}>
-            −
+            âˆ’
           </button>
         </div>
 
-        {/* ÁREA DE CHAMADA ATIVA ou TECLADO */}
+        {/* ÃREA DE CHAMADA ATIVA ou TECLADO */}
+        {!temChamada && canais.length > 0 && (
+          <div style={{ padding: "10px 14px 0", background: "#fff" }}>
+            <label style={{ display: "block", fontSize: 9, color: "#6b7280", fontWeight: 700, marginBottom: 4, textTransform: "uppercase" }}>Canal de sa?da</label>
+            <select value={canalSelecionadoId || ""} onChange={e => setCanalSelecionadoId(Number(e.target.value) || null)} style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 8, padding: "8px 10px", fontSize: 11, background: "white", color: "#1f2937" }}>
+              {canais.map(c => <option key={c.id} value={c.id}>{c.nome} - {c.provider === "sip_manual" ? `PABX/SIP ramal ${c.sip_extension || ""}` : c.provider}</option>)}
+            </select>
+          </div>
+        )}
+
         {temChamada ? (
           <ChamadaAtivaView
             chamada={chamada!}
@@ -222,7 +231,7 @@ export function Softphone() {
   );
 }
 
-// ─── Vista de chamada ativa ───────────────────────────────────────────
+// â”€â”€â”€ Vista de chamada ativa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, formatTempo, formatarNumero, toggleMudo, encerrar, enviarDTMF, adicionarDigito }: any) {
   const [mostrarTeclado, setMostrarTeclado] = useState(false);
   const tocando = chamada.status === "chamando" || chamada.status === "iniciando";
@@ -230,7 +239,7 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
 
   return (
     <div style={{ padding: 24, textAlign: "center", background: "#ffffff" }}>
-      {/* Avatar / Nome / Número */}
+      {/* Avatar / Nome / NÃºmero */}
       <div style={{
         width: 84, height: 84, borderRadius: "50%",
         background: `linear-gradient(135deg, ${cor} 0%, ${cor}dd 100%)`,
@@ -261,12 +270,12 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
         <span style={{ color: cor, fontSize: 12, fontWeight: 700 }}>{labelStatus(chamada.status)}</span>
         {chamada.status === "conectado" && (
           <span style={{ color: cor, fontSize: 12, fontFamily: "monospace", marginLeft: 2, fontWeight: 700 }}>
-            · {formatTempo(segundosConectado)}
+            Â· {formatTempo(segundosConectado)}
           </span>
         )}
       </div>
 
-      {/* Teclado DTMF (só mostra quando conectado E clicou em mostrar) */}
+      {/* Teclado DTMF (sÃ³ mostra quando conectado E clicou em mostrar) */}
       {chamada.status === "conectado" && mostrarTeclado && (
         <div style={{ marginBottom: 16 }}>
           <TecladoNumerico adicionar={(d: string) => enviarDTMF(d)} compacto />
@@ -289,7 +298,7 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
                 boxShadow: chamada.mudo ? "0 4px 12px rgba(220,38,38,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
                 transition: "all 0.15s",
               }}>
-              {chamada.mudo ? "🔇" : "🎤"}
+              {chamada.mudo ? "ðŸ”‡" : "ðŸŽ¤"}
             </button>
             <button onClick={() => setMostrarTeclado(!mostrarTeclado)} title="Teclado"
               style={{
@@ -303,7 +312,7 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
                 boxShadow: mostrarTeclado ? "0 4px 12px rgba(59,130,246,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
                 transition: "all 0.15s",
               }}>
-              🔢
+              ðŸ”¢
             </button>
           </>
         )}
@@ -318,18 +327,18 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
           }}
           onMouseEnter={e => e.currentTarget.style.transform = "rotate(135deg) scale(1.05)"}
           onMouseLeave={e => e.currentTarget.style.transform = "rotate(135deg) scale(1)"}>
-          📞
+          ðŸ“ž
         </button>
       </div>
     </div>
   );
 }
 
-// ─── Vista do teclado (pra digitar manual e ligar) ─────────────────────
+// â”€â”€â”€ Vista do teclado (pra digitar manual e ligar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNumero }: any) {
   return (
     <div style={{ padding: 18, background: "#ffffff" }}>
-      {/* Display do número */}
+      {/* Display do nÃºmero */}
       <div style={{
         background: "#f9fafb",
         borderRadius: 12, padding: "16px 14px",
@@ -345,13 +354,13 @@ function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNum
           letterSpacing: numero ? 1 : 0,
           fontWeight: numero ? 700 : 400,
         }}>
-          {numero ? formatarNumero(numero) : "Digite o número..."}
+          {numero ? formatarNumero(numero) : "Digite o nÃºmero..."}
         </span>
       </div>
 
       <TecladoNumerico adicionar={adicionar} />
 
-      {/* Botões inferiores */}
+      {/* BotÃµes inferiores */}
       <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
         <button onClick={apagar} disabled={!numero}
           style={{
@@ -365,7 +374,7 @@ function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNum
             opacity: numero ? 1 : 0.5,
             transition: "all 0.15s",
           }}>
-          ⌫ Apagar
+          âŒ« Apagar
         </button>
         <button onClick={chamar} disabled={!numero}
           style={{
@@ -381,14 +390,14 @@ function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNum
             boxShadow: numero ? "0 4px 12px rgba(22,163,74,0.3)" : "none",
             transition: "all 0.15s",
           }}>
-          📞 Ligar
+          ðŸ“ž Ligar
         </button>
       </div>
     </div>
   );
 }
 
-// ─── Teclado numérico (usado em 2 lugares) ─────────────────────────────
+// â”€â”€â”€ Teclado numÃ©rico (usado em 2 lugares) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TecladoNumerico({ adicionar, compacto = false }: { adicionar: (d: string) => void; compacto?: boolean }) {
   const teclas: Array<[string, string]> = [
     ["1", ""], ["2", "ABC"], ["3", "DEF"],
