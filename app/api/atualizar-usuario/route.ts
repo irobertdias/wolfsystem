@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
         novo_email, nova_senha,
         nome, telefone, foto_url,
         perfil, fila, grupo_id, equipe_id,
-        equipes_acesso, filas_acesso, canais_acesso,
+        equipes_acesso, filas_acesso, canais_acesso, voip_conexoes_acesso,
         ramal, exige_ponto, exige_selfie,
       } = body;
 
@@ -269,6 +269,7 @@ export async function POST(req: NextRequest) {
       if (Array.isArray(equipes_acesso)) updateWs.equipes_acesso = equipes_acesso;
       if (Array.isArray(filas_acesso)) updateWs.filas_acesso = filas_acesso;
       if (Array.isArray(canais_acesso)) updateWs.canais_acesso = canais_acesso;
+      if (Array.isArray(voip_conexoes_acesso)) updateWs.voip_conexoes_acesso = voip_conexoes_acesso.map(Number).filter(Number.isFinite);
       if (typeof ramal === "string") updateWs.ramal = ramal || null;
       if (typeof exige_ponto === "boolean") updateWs.exige_ponto = exige_ponto;
       if (typeof exige_selfie === "boolean") updateWs.exige_selfie = exige_selfie;

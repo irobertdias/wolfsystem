@@ -15,7 +15,9 @@ export async function POST(req: NextRequest) {
     equipe_id,                    // 🆕 equipe primária
     equipes_acesso,               // 🆕 múltiplas equipes (UUID[])
     filas_acesso,                 // 🆕 múltiplas filas (INT[])
-    canais_acesso,                // 🆕 canais/conexões (INT[])
+    canais_acesso,
+    voip_conexoes_acesso,          // canais de telefonia autorizados
+    // 🆕 canais/conexões (INT[])
     ramal,                        // 🆕 ramal VOIP
     telefone,                     // 🆕 telefone pessoal
     exige_ponto,                  // 🕐 trava de acesso por ponto
@@ -160,7 +162,10 @@ export async function POST(req: NextRequest) {
       equipe_id: equipe_id || null,                                              // 🆕
       equipes_acesso: Array.isArray(equipes_acesso) ? equipes_acesso : [],       // 🆕
       filas_acesso: Array.isArray(filas_acesso) ? filas_acesso : [],             // 🆕
-      canais_acesso: Array.isArray(canais_acesso) ? canais_acesso : [],          // 🆕
+      canais_acesso: Array.isArray(canais_acesso) ? canais_acesso : [],
+      voip_conexoes_acesso: Array.isArray(voip_conexoes_acesso)
+        ? voip_conexoes_acesso.map(Number).filter(Number.isFinite)
+        : [],          // 🆕
       ramal: ramal || null,                                                       // 🆕
       telefone: telefone || null,                                                 // 🆕
       exige_ponto: exige_ponto !== false,                                         // default true

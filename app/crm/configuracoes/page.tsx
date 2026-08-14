@@ -28,7 +28,8 @@ type Usuario = {
   equipe_id?: string | null;            // equipe primária
   equipes_acesso?: string[] | null;     // 🆕 múltiplas equipes que enxerga (UUID[])
   filas_acesso?: number[] | null;       // 🆕 múltiplas filas que atende (INT[])
-  canais_acesso?: number[] | null;      // 🆕 canais (conexões) que pode usar (INT[])
+  canais_acesso?: number[] | null;
+  voip_conexoes_acesso?: number[] | null;      // 🆕 canais (conexões) que pode usar (INT[])
   ramal?: string | null;                // 🆕 ramal VOIP
   telefone?: string | null;             // 🆕 telefone pessoal
   exige_selfie?: boolean | null;        // 🆕 exige selfie ao bater ponto (override por usuário)
@@ -205,7 +206,8 @@ export default function Configuracoes() {
   const [gruposPermissao, setGruposPermissao] = useState<GrupoPermissao[]>([]);
   const [filas, setFilas] = useState<Fila[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
-  const [conexoes, setConexoes] = useState<any[]>([]);  // 🆕 canais que o usuário pode atender
+  const [conexoes, setConexoes] = useState<any[]>([]);
+  const [voipConexoes, setVoipConexoes] = useState<any[]>([]);  // 🆕 canais que o usuário pode atender
 
   const podeGerenciarUsuarios = isDono || isSuperAdmin || !!permissoes?.usuarios_gerenciar;
   const podeGerenciarFilas = isDono || isSuperAdmin || !!permissoes?.filas;
@@ -273,7 +275,15 @@ export default function Configuracoes() {
     if (data) setConexoes(data);
   };
 
-  // ═══ INIT ═══
+  const fetchVoipConexoes = async (wsId: string) => {
+    const { data } = await supabase.from("conexoes_voip")
+      .select("id, nome, provider, status, numero_bina, twilio_numero_did, zenvia_numero_did, sip_extension")
+      .eq("workspace_id", wsId)
+      .order("nome", { ascending: true });
+    if (data) setVoipConexoes(data);
+  };
+
+  // INIT
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -287,7 +297,7 @@ export default function Configuracoes() {
         const wsId = wsDono.username;
         if (!wsId) { alert("Erro: workspace sem username."); setCarregandoInit(false); return; }
         setWorkspaceId(wsId);
-        await Promise.all([fetchUsuarios(wsId), fetchGrupos(wsId), fetchFilas(wsId), fetchEquipes(wsId), fetchConexoes(wsId)]);
+        await Promise.all([fetchUsuarios(wsId), fetchGrupos(wsId), fetchFilas(wsId), fetchEquipes(wsId), fetchConexoes(wsId), fetchVoipConexoes(wsId)]);
         if (!admin) {
           const { data: cadastro } = await supabase.from("cadastros").select("usuarios_liberados").eq("email", user.email).maybeSingle();
           if (cadastro) setLimites({ usuarios_liberados: cadastro.usuarios_liberados || 1 });
@@ -312,7 +322,7 @@ export default function Configuracoes() {
 
       const wsId = usuarioWs.workspace_id;
       setWorkspaceId(wsId);
-      await Promise.all([fetchUsuarios(wsId), fetchGrupos(wsId), fetchFilas(wsId), fetchEquipes(wsId), fetchConexoes(wsId)]);
+      await Promise.all([fetchUsuarios(wsId), fetchGrupos(wsId), fetchFilas(wsId), fetchEquipes(wsId), fetchConexoes(wsId), fetchVoipConexoes(wsId)]);
 
       const { data: wsSub } = await supabase.from("workspaces").select("owner_email").eq("username", wsId).maybeSingle();
       if (wsSub?.owner_email) {
@@ -334,6 +344,7 @@ export default function Configuracoes() {
       .on("postgres_changes", { event: "*", schema: "public", table: "grupos_permissao", filter: `workspace_id=eq.${workspaceId}` }, () => fetchGrupos(workspaceId))
       .on("postgres_changes", { event: "*", schema: "public", table: "filas", filter: `workspace_id=eq.${workspaceId}` }, () => fetchFilas(workspaceId))
       .on("postgres_changes", { event: "*", schema: "public", table: "equipes", filter: `workspace_id=eq.${workspaceId}` }, () => fetchEquipes(workspaceId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "conexoes_voip", filter: `workspace_id=eq.${workspaceId}` }, () => fetchVoipConexoes(workspaceId))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [workspaceId]);
@@ -503,6 +514,7 @@ export default function Configuracoes() {
           equipes={equipes}
           filas={filas}
           conexoes={conexoes}
+          voipConexoes={voipConexoes}
           gruposPermissao={gruposPermissao}
           equipeById={equipeById}
           workspaceId={workspaceId}
@@ -575,7 +587,7 @@ export default function Configuracoes() {
 // ═══════════════════════════════════════════════════════════════════════
 // 👥 ABA USUÁRIOS — 🆕 v2 com cascade Equipe → Filas
 // ═══════════════════════════════════════════════════════════════════════
-function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equipeById, workspaceId, isAdmin, limites, limiteAtingido, podeGerenciar, isMobile, IS, cardStyle, labelStyle, modulos, modulosCarregados, onRefetch }: any) {
+function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposPermissao, equipeById, workspaceId, isAdmin, limites, limiteAtingido, podeGerenciar, isMobile, IS, cardStyle, labelStyle, modulos, modulosCarregados, onRefetch }: any) {
   const [busca, setBusca] = useState("");
   const [filtroPerfil, setFiltroPerfil] = useState<"todos" | "Administrador" | "Supervisor" | "Atendente">("todos");
   const [filtroEquipe, setFiltroEquipe] = useState<string>("todas");
@@ -588,6 +600,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
     equipes_acesso: [] as string[],
     filas_acesso: [] as number[],
     canais_acesso: [] as number[],
+    voip_conexoes_acesso: [] as number[],
     ramal: "",
     exige_ponto: true,
     exige_selfie: true,
@@ -627,7 +640,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
     setFormUsuario({
       nome: "", email: "", telefone: "", senha: "",
       perfil: "Atendente", fila: "", grupo_id: "", equipe_id: "",
-      equipes_acesso: [], filas_acesso: [], canais_acesso: [],
+      equipes_acesso: [], filas_acesso: [], canais_acesso: [], voip_conexoes_acesso: [],
       ramal: "",
       exige_ponto: true, exige_selfie: true,
       novo_email: "", nova_senha: "",
@@ -648,6 +661,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
       equipes_acesso: Array.isArray(u.equipes_acesso) ? u.equipes_acesso : [],
       filas_acesso: Array.isArray(u.filas_acesso) ? u.filas_acesso : [],
       canais_acesso: Array.isArray(u.canais_acesso) ? u.canais_acesso : [],
+      voip_conexoes_acesso: Array.isArray(u.voip_conexoes_acesso) ? u.voip_conexoes_acesso.map(Number) : [],
       ramal: u.ramal || "",
       exige_ponto: u.exige_ponto !== false,
       exige_selfie: u.exige_selfie !== false,
@@ -722,6 +736,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
             equipes_acesso: formUsuario.equipes_acesso,
             filas_acesso: formUsuario.filas_acesso,
             canais_acesso: formUsuario.canais_acesso,
+            voip_conexoes_acesso: formUsuario.voip_conexoes_acesso,
             // Grupo de permissão
             grupo_id: formUsuario.grupo_id ? parseInt(formUsuario.grupo_id) : null,
             // Voip + ponto
@@ -767,6 +782,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
           equipes_acesso: formUsuario.equipes_acesso,
           filas_acesso: formUsuario.filas_acesso,
           canais_acesso: formUsuario.canais_acesso,
+          voip_conexoes_acesso: formUsuario.voip_conexoes_acesso,
           ramal: formUsuario.ramal || null,
           telefone: formUsuario.telefone || null,
           exige_ponto: formUsuario.exige_ponto,
@@ -1084,6 +1100,46 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, gruposPermissao, equi
               <p style={{ color: "#9ca3af", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
                 Marque os canais que esse usuário pode ver no chat. Soma com os canais do grupo dele.
               </p>
+              {modulosCarregados && modulos?.voip && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #e5e7eb" }}>
+                  <label style={labelStyle}>📞 Canais de telefonia autorizados</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {voipConexoes.length === 0 ? (
+                      <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>
+                        Nenhuma conexão de telefonia cadastrada.
+                      </p>
+                    ) : voipConexoes.map((conexao: any) => {
+                      const conexaoId = Number(conexao.id);
+                      const ativa = formUsuario.voip_conexoes_acesso.includes(conexaoId);
+                      const provider = conexao.provider === "sip_manual" ? "PABX/SIP" : conexao.provider === "twilio" ? "Twilio" : conexao.provider === "zenvia" ? "Zenvia" : conexao.provider;
+                      const identificador = conexao.numero_bina || conexao.twilio_numero_did || conexao.zenvia_numero_did || conexao.sip_extension || "";
+                      const toggle = () => setFormUsuario({
+                        ...formUsuario,
+                        voip_conexoes_acesso: ativa
+                          ? formUsuario.voip_conexoes_acesso.filter((id: number) => id !== conexaoId)
+                          : [...formUsuario.voip_conexoes_acesso, conexaoId],
+                      });
+                      return (
+                        <button key={conexao.id} type="button" onClick={toggle}
+                          style={{
+                            background: ativa ? "#ecfdf5" : "#ffffff",
+                            color: ativa ? "#047857" : "#6b7280",
+                            border: "1.5px solid " + (ativa ? "#10b981" : "#e5e7eb"),
+                            borderRadius: 10, padding: "8px 12px",
+                            fontSize: 11.5, fontWeight: 700, cursor: "pointer",
+                            display: "flex", alignItems: "center", gap: 5,
+                          }}>
+                          {ativa && <span>✓</span>}
+                          📞 {conexao.nome} · {provider}{identificador ? ` · ${identificador}` : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p style={{ color: "#9ca3af", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+                    Somente os canais marcados aparecerão no softphone deste usuário.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Selfie ao bater ponto (só se módulo bater_ponto liberado) */}

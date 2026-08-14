@@ -8,6 +8,7 @@ function exigirPermissaoDaRota(acesso: AcessoWolf, rota: string, metodo: string)
   if (rota.startsWith("templates/") || rota.startsWith("waba/")) return exigirPermissao(acesso, "templates_waba", "conexoes");
   if (rota.startsWith("validar-numeros") || rota.startsWith("validacao-numeros")) return exigirPermissao(acesso, "disparo_enviar");
   if (rota === "qr-data") return exigirPermissao(acesso, "conexoes", "disparo_enviar");
+  if (rota === "voip/conexoes/listar" && metodo === "GET") return exigirPermissao(acesso, "voip_usar", "voip_conexoes");
   if (rota.startsWith("voip/conexao") || rota.startsWith("voip/conexoes")) return exigirPermissao(acesso, "voip_conexoes");
   if (rota.startsWith("voip/")) return exigirPermissao(acesso, "voip_usar", "voip_conexoes");
   if (rota.startsWith("canal/") || ["configurar-ia", "resetar", "reconectar", "sincronizar-conversas", "desconectar"].some((item) => rota === item || rota.startsWith(item + "/"))) return exigirPermissao(acesso, "conexoes");
@@ -28,6 +29,35 @@ async function exigirEscopoDoAtendimento(acesso: AcessoWolf, rota: string, body:
   const { data: atendimento } = await supabaseServer.from("atendimentos").select("id,atendente").eq("workspace_id", acesso.workspaceId).eq("numero", numero).eq("canal_id", canalId).maybeSingle();
   if (!atendimento || String(atendimento.atendente || "").toLowerCase() !== acesso.email) throw Object.assign(new Error("Este atendimento não está atribuído ao seu usuário"), { statusCode: 403 });
 }
+function gerenciaTodasConexoesVoip(acesso: AcessoWolf) {
+  return acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador || acesso.permissoes.voip_conexoes === true;
+}
+
+async function conexoesVoipPermitidas(acesso: AcessoWolf): Promise<number[] | null> {
+  if (gerenciaTodasConexoesVoip(acesso)) return null;
+  const { data, error } = await supabaseServer.from("usuarios_workspace")
+    .select("voip_conexoes_acesso")
+    .eq("workspace_id", acesso.workspaceId)
+    .ilike("email", acesso.email)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return Array.isArray(data?.voip_conexoes_acesso)
+    ? data.voip_conexoes_acesso.map(Number).filter(Number.isFinite)
+    : [];
+}
+
+async function exigirConexaoVoipPermitida(acesso: AcessoWolf, rota: string, body: Record<string, unknown>) {
+  if (!rota.startsWith("voip/") || gerenciaTodasConexoesVoip(acesso)) return;
+  const valor = body.conexaoId ?? body.canalVoipId ?? body.conexao_id ?? body.canal_voip_id;
+  if (valor === undefined || valor === null || valor === "") return;
+  const conexaoId = Number(valor);
+  const permitidas = await conexoesVoipPermitidas(acesso);
+  if (!Number.isFinite(conexaoId) || !permitidas?.includes(conexaoId)) {
+    throw Object.assign(new Error("Canal de telefonia não autorizado para este usuário"), { statusCode: 403 });
+  }
+}
 async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
   try {
     const entrada = new URL(request.url); const rota = normalizarRota(entrada.searchParams.get("rota") || "status");
@@ -38,6 +68,7 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
     if (rota === "disparos/criar") await exigirModulo(acesso, "modulo_disparos_web");
     if (rota === "disparos/criar-waba") await exigirModulo(acesso, "modulo_disparos_api");
     await exigirEscopoDoAtendimento(acesso, rota, body);
+    await exigirConexaoVoipPermitida(acesso, rota, body);
     const params = new URLSearchParams(); entrada.searchParams.forEach((valor, chave) => { if (chave !== "rota") params.set(chave, valor); }); params.set("workspaceId", acesso.workspaceId);
     const resp = await fetch(`${WHATSAPP_URL}/${rota}${params.size ? `?${params.toString()}` : ""}`, { method: metodo, cache: "no-store", headers: { "ngrok-skip-browser-warning": "true", "x-wolf-internal-secret": segredoInternoWolf(), ...(metodo === "POST" ? { "Content-Type": "application/json" } : {}) }, ...(metodo === "POST" ? { body: JSON.stringify({ ...body, workspaceId: acesso.workspaceId, workspace_id: acesso.workspaceId }) } : {}) });
     const texto = await resp.text();
@@ -49,7 +80,20 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
       } catch {}
       return NextResponse.json({ success: false, status: "erro", upstreamStatus: resp.status, error: detalhe.slice(0, 500) }, { status: resp.status });
     }
-    try { return NextResponse.json(JSON.parse(texto)); } catch { return NextResponse.json({ success: false, error: "VPS não retornou JSON" }, { status: 502 }); }
+    try {
+      const json = JSON.parse(texto) as Record<string, any>;
+      if (rota === "voip/conexoes/listar" && metodo === "GET") {
+        const permitidas = await conexoesVoipPermitidas(acesso);
+        if (permitidas !== null) {
+          json.conexoes = Array.isArray(json.conexoes)
+            ? json.conexoes.filter((conexao: any) => permitidas.includes(Number(conexao.id)))
+            : [];
+        }
+      }
+      return NextResponse.json(json);
+    } catch {
+      return NextResponse.json({ success: false, error: "VPS não retornou JSON" }, { status: 502 });
+    }
   } catch (error) { const item = respostaErroAcesso(error); console.error(`[proxy ${metodo}]`, item.message); return NextResponse.json({ success: false, status: "erro", error: item.message }, { status: item.status }); }
 }
 export async function GET(request: NextRequest) { return encaminhar(request, "GET"); }
