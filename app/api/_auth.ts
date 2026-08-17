@@ -81,8 +81,18 @@ export async function exigirModulo(acesso: AcessoWolf, coluna: string) {
 export async function exigirAtendimentoDoUsuario(acesso: AcessoWolf, numero: string, canalId: string) {
   if (acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador || acesso.permissoes.chat_todos === true) return;
   exigirPermissao(acesso, "chat_proprio");
-  const { data } = await supabaseServer.from("atendimentos").select("id,atendente").eq("workspace_id", acesso.workspaceId).eq("numero", numero).eq("canal_id", canalId).limit(1).maybeSingle();
-  if (!data || String(data.atendente || "").toLowerCase() !== acesso.email) throw falhar("Este atendimento não está atribuído ao seu usuário", 403);
+  const { data, error } = await supabaseServer
+    .from("atendimentos")
+    .select("id,atendente")
+    .eq("workspace_id", acesso.workspaceId)
+    .eq("numero", numero)
+    .eq("canal_id", canalId);
+  if (error) throw error;
+
+  const pertenceAoUsuario = (data || []).some(
+    (item) => String(item.atendente || "").trim().toLowerCase() === acesso.email
+  );
+  if (!pertenceAoUsuario) throw falhar("Este atendimento não está atribuído ao seu usuário", 403);
 }
 
 export function exigirPermissao(acesso: AcessoWolf, ...alternativas: string[]) { if (acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador || alternativas.some((chave) => acesso.permissoes[chave] === true)) return; throw falhar("Sem permissão para esta ação", 403); }
