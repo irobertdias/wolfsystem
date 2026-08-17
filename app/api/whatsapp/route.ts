@@ -69,8 +69,13 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
     if (rota === "disparos/criar-waba") await exigirModulo(acesso, "modulo_disparos_api");
     await exigirEscopoDoAtendimento(acesso, rota, body);
     await exigirConexaoVoipPermitida(acesso, rota, body);
+    // A identidade de quem assume um atendimento vem exclusivamente da sessao
+    // autenticada. Nunca confie no e-mail enviado pelo navegador.
+    const bodySeguro = rota === "assumir"
+      ? { ...body, atendenteEmail: acesso.email }
+      : body;
     const params = new URLSearchParams(); entrada.searchParams.forEach((valor, chave) => { if (chave !== "rota") params.set(chave, valor); }); params.set("workspaceId", acesso.workspaceId);
-    const resp = await fetch(`${WHATSAPP_URL}/${rota}${params.size ? `?${params.toString()}` : ""}`, { method: metodo, cache: "no-store", headers: { "ngrok-skip-browser-warning": "true", "x-wolf-internal-secret": segredoInternoWolf(), ...(metodo === "POST" ? { "Content-Type": "application/json" } : {}) }, ...(metodo === "POST" ? { body: JSON.stringify({ ...body, workspaceId: acesso.workspaceId, workspace_id: acesso.workspaceId }) } : {}) });
+    const resp = await fetch(`${WHATSAPP_URL}/${rota}${params.size ? `?${params.toString()}` : ""}`, { method: metodo, cache: "no-store", headers: { "ngrok-skip-browser-warning": "true", "x-wolf-internal-secret": segredoInternoWolf(), ...(metodo === "POST" ? { "Content-Type": "application/json" } : {}) }, ...(metodo === "POST" ? { body: JSON.stringify({ ...bodySeguro, workspaceId: acesso.workspaceId, workspace_id: acesso.workspaceId }) } : {}) });
     const texto = await resp.text();
     if (!resp.ok) {
       let detalhe = texto;

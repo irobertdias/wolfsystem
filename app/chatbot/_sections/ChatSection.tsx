@@ -2404,9 +2404,12 @@ export function ChatSection() {
   const assumirChatDaLista = async (e: React.MouseEvent, a: Atendimento) => {
     e.stopPropagation();
     if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
-    await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId, atendenteEmail: user.email });
-    await inserirMensagemSistema(a.numero, `Chat assumido por: ${meuNome}`, a.canal_id);
-    await fetchAtendimentos();
+    try {
+      const resposta = await wa("assumir", { atendimentoId: a.id, numero: a.numero, canalId: a.canal_id, workspaceId: wsId });
+      if (!resposta?.success) throw new Error(resposta?.error || "Não foi possível assumir o atendimento.");
+      await inserirMensagemSistema(a.numero, `Chat assumido por: ${meuNome}`, a.canal_id);
+      await fetchAtendimentos();
+    } catch (err: any) { notify(traduzirErro(err), "erro"); }
   };
 
   const pararBotDaLista = async (e: React.MouseEvent, a: Atendimento) => {
@@ -2414,8 +2417,8 @@ export function ChatSection() {
     if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
     if (!confirm(`Parar o BOT para ${a.nome}?\n\nO BOT vai parar de responder automaticamente. Você assume o atendimento.`)) return;
     try {
-      await supabase.from("atendimentos").update({ bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true }).eq("id", a.id).eq("workspace_id", wsId);
-      await wa("assumir", { numero: a.numero, canalId: a.canal_id, workspaceId: wsId, atendenteEmail: user.email });
+      const resposta = await wa("assumir", { atendimentoId: a.id, numero: a.numero, canalId: a.canal_id, workspaceId: wsId });
+      if (!resposta?.success) throw new Error(resposta?.error || "Não foi possível assumir o atendimento.");
       await inserirMensagemSistema(a.numero, `BOT interrompido. Chat assumido por: ${meuNome}`, a.canal_id);
       await fetchAtendimentos();
       setAbaConversa("abertos");
@@ -2425,10 +2428,17 @@ export function ChatSection() {
 
   const assumirChat = async (numero: string, canalId?: number) => {
     if (!user?.email) { notify("Usuário não identificado. Recarregue a página.", "aviso"); return; }
-    await wa("assumir", { numero, canalId, workspaceId: wsId, atendenteEmail: user.email });
-    await inserirMensagemSistema(numero, `Chat assumido por: ${meuNome}`, canalId);
-    fetchAtendimentos();
-    setAbaConversa("abertos");
+    try {
+      const atendimentoId = atendimentoAtivo?.numero === numero && (!canalId || atendimentoAtivo.canal_id === canalId)
+        ? atendimentoAtivo.id
+        : atendimentos.find(a => a.numero === numero && (!canalId || a.canal_id === canalId))?.id;
+      if (!atendimentoId) throw new Error("Atendimento não identificado. Atualize a lista e tente novamente.");
+      const resposta = await wa("assumir", { atendimentoId, numero, canalId, workspaceId: wsId });
+      if (!resposta?.success) throw new Error(resposta?.error || "Não foi possível assumir o atendimento.");
+      await inserirMensagemSistema(numero, `Chat assumido por: ${meuNome}`, canalId);
+      await fetchAtendimentos();
+      setAbaConversa("abertos");
+    } catch (err: any) { notify(traduzirErro(err), "erro"); }
   };
   const finalizarChat = async (numero: string, canalId?: number) => {
     if (!isDono && !permissoes.finalizar_chat) { notify("Você não tem permissão para finalizar atendimentos.", "erro"); return; }
@@ -2533,7 +2543,8 @@ export function ChatSection() {
     }
     try {
       await supabase.from("atendimentos").update({ bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true, atendente: user.email, status: "aberto" }).eq("id", atendimentoAtivo.id).eq("workspace_id", wsId);
-      await wa("assumir", { numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id, workspaceId: wsId, atendenteEmail: user.email });
+      const resposta = await wa("assumir", { atendimentoId: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
+      if (!resposta?.success) throw new Error(resposta?.error || "Não foi possível assumir o atendimento.");
       await inserirMensagemSistema(atendimentoAtivo.numero, `🛑 BOT/IA interrompido. Chat assumido por: ${meuNome}`, atendimentoAtivo.canal_id);
       await fetchAtendimentos();
       setAbaConversa("abertos");
