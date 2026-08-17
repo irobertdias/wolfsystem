@@ -8,6 +8,7 @@ function exigirPermissaoDaRota(acesso: AcessoWolf, rota: string, metodo: string)
   if (rota.startsWith("templates/") || rota.startsWith("waba/")) return exigirPermissao(acesso, "templates_waba", "conexoes");
   if (rota.startsWith("validar-numeros") || rota.startsWith("validacao-numeros")) return exigirPermissao(acesso, "disparo_enviar");
   if (rota === "qr-data") return exigirPermissao(acesso, "conexoes", "disparo_enviar");
+  if (rota.startsWith("voip/ura/")) return exigirPermissao(acesso, "voip_campanhas", "voip_conexoes");
   if (rota === "voip/conexoes/listar" && metodo === "GET") return exigirPermissao(acesso, "voip_usar", "voip_conexoes");
   if (rota.startsWith("voip/conexao") || rota.startsWith("voip/conexoes")) return exigirPermissao(acesso, "voip_conexoes");
   if (rota.startsWith("voip/")) return exigirPermissao(acesso, "voip_usar", "voip_conexoes");
@@ -50,7 +51,15 @@ async function conexoesVoipPermitidas(acesso: AcessoWolf): Promise<number[] | nu
 
 async function exigirConexaoVoipPermitida(acesso: AcessoWolf, rota: string, body: Record<string, unknown>) {
   if (!rota.startsWith("voip/") || gerenciaTodasConexoesVoip(acesso)) return;
-  const valor = body.conexaoId ?? body.canalVoipId ?? body.conexao_id ?? body.canal_voip_id;
+  let valor = body.conexaoId ?? body.canalVoipId ?? body.conexao_id ?? body.canal_voip_id;
+  const campanhaId = body.campanhaId ?? body.campanha_id;
+  if ((valor === undefined || valor === null || valor === "") && campanhaId) {
+    const { data: campanha, error } = await supabaseServer.from("voip_ura_campanhas")
+      .select("conexao_id").eq("workspace_id", acesso.workspaceId).eq("id", campanhaId).maybeSingle();
+    if (error) throw error;
+    if (!campanha) throw Object.assign(new Error("Campanha de telefonia não encontrada"), { statusCode: 404 });
+    valor = campanha.conexao_id;
+  }
   if (valor === undefined || valor === null || valor === "") return;
   const conexaoId = Number(valor);
   const permitidas = await conexoesVoipPermitidas(acesso);
@@ -68,7 +77,7 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
     if (rota === "disparos/criar") await exigirModulo(acesso, "modulo_disparos_web");
     if (rota === "disparos/criar-waba") await exigirModulo(acesso, "modulo_disparos_api");
     await exigirEscopoDoAtendimento(acesso, rota, body);
-    await exigirConexaoVoipPermitida(acesso, rota, body);
+    await exigirConexaoVoipPermitida(acesso, rota, { ...body, campanhaId: body.campanhaId || entrada.searchParams.get("campanhaId"), conexaoId: body.conexaoId || entrada.searchParams.get("conexaoId") });
     // A identidade de quem assume um atendimento vem exclusivamente da sessao
     // autenticada. Nunca confie no e-mail enviado pelo navegador.
     const bodySeguro = rota === "assumir"
@@ -92,6 +101,14 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
         if (permitidas !== null) {
           json.conexoes = Array.isArray(json.conexoes)
             ? json.conexoes.filter((conexao: any) => permitidas.includes(Number(conexao.id)))
+            : [];
+        }
+      }
+      if (rota === "voip/ura/campanhas" && metodo === "GET") {
+        const permitidas = await conexoesVoipPermitidas(acesso);
+        if (permitidas !== null) {
+          json.campanhas = Array.isArray(json.campanhas)
+            ? json.campanhas.filter((campanha: any) => permitidas.includes(Number(campanha.conexao_id)))
             : [];
         }
       }

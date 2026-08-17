@@ -2,7 +2,7 @@
 // Rota: /crm/telefonia
 // O componente ConexoesVoipSection fica em app/components/ConexoesVoipSection.tsx
 "use client";
-import ConexoesVoipSection from "../../components/ConexoesVoipSection";
+import TelefoniaHub from "../../components/TelefoniaHub";
 import { useModulos, ModuloBloqueado } from "../../hooks/useModulos";
 import { usePermissao } from "../../hooks/usePermissao";
 
@@ -43,7 +43,7 @@ export default function TelefoniaPage() {
   if (!modulos.voip) return <ModuloBloqueado modulo="voip" />;
 
   // 🔒 PERMISSÃO voip_conexoes — gerenciar conexões VOIP é restrito
-  if (!isDono && !isSuperAdmin && !permissoes.voip_conexoes) {
+  if (!isDono && !isSuperAdmin && !permissoes.voip_conexoes && !permissoes.voip_campanhas && !permissoes.voip_usar) {
     return (
       <div style={{
         minHeight: "100vh", padding: 32, fontFamily: "Arial, sans-serif",
@@ -67,12 +67,12 @@ export default function TelefoniaPage() {
           </div>
           <h1 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
           <p style={{ color: "#6b7280", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-            Você não tem permissão para gerenciar conexões VOIP. Entre em contato com o administrador do workspace.
+            Você não tem permissão para acessar a telefonia. Entre em contato com o administrador do workspace.
           </p>
         </div>
       </div>
     );
   }
 
-  return <ConexoesVoipSection />;
+  return <TelefoniaHub />;
 }
