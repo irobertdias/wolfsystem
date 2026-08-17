@@ -95,3 +95,28 @@ comment on table public.voip_ura_fluxos is 'Fluxos de URA por workspace. Acesso 
 comment on table public.voip_ura_campanhas is 'Campanhas de ligacao automatica isoladas por workspace e conexao VOIP.';
 comment on table public.voip_ura_contatos is 'Lista higienizada de contatos e resultado individual da URA.';
 comment on table public.voip_ura_eventos is 'Trilha tecnica de chamadas, teclas DTMF, transferencias e erros.';
+
+-- Extensao isolada de roteamento humano + WhatsApp (reaplicavel).
+alter table public.voip_ura_campanhas
+  add column if not exists canal_whatsapp_id bigint references public.conexoes(id) on delete set null,
+  add column if not exists fila_destino text,
+  add column if not exists modo_atribuicao text not null default 'fila',
+  add column if not exists atendente_email text,
+  add column if not exists atendentes_permitidos text[] not null default '{}'::text[];
+
+alter table public.voip_ura_contatos
+  add column if not exists atendimento_id bigint,
+  add column if not exists atendente_email text,
+  add column if not exists transcricao text,
+  add column if not exists ultima_intencao text,
+  add column if not exists ia_historico jsonb not null default '[]'::jsonb;
+
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'voip_ura_campanhas_modo_atribuicao_check') then
+    alter table public.voip_ura_campanhas add constraint voip_ura_campanhas_modo_atribuicao_check
+      check (modo_atribuicao in ('fila','roleta','atendente'));
+  end if;
+end $$;
+
+create index if not exists voip_ura_campanhas_whatsapp_idx on public.voip_ura_campanhas(workspace_id, canal_whatsapp_id);
+create index if not exists voip_ura_contatos_atendimento_idx on public.voip_ura_contatos(workspace_id, atendimento_id) where atendimento_id is not null;

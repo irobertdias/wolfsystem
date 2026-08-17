@@ -121,6 +121,7 @@ export type Permissoes = {
   voip_usar: boolean;
   voip_conexoes: boolean;
   voip_campanhas: boolean;
+  voip_ura_atender: boolean;
 
   // ⚙️ ADMINISTRAÇÃO
   conexoes: boolean;
@@ -148,22 +149,95 @@ export type Permissoes = {
 
 // Permissões totais do Dono e do Administrador SEM grupo restritivo
 const PERMISSOES_DONO: Permissoes = {
-  chat_proprio: true, chat_todos: true, chat_interno: true, respostas_rapidas: true,
-  transferir_chat: true, finalizar_chat: true,
-  contatos_ver: true, contatos_editar: true, etiquetas: true,
-  dashboard: true, vendas_proprio: true, vendas_equipe: true, funil: true, proposta_criar: true,
-  contratos_acessar: true, contratos_criar: true, contratos_editar: true, contratos_reenviar: true, contratos_excluir: true, contratos_baixar: true, contratos_configurar: true,
-  rh: true, bater_ponto: true, cobranca: true,
-  rh_dashboard: true, rh_indicadores: true, rh_funcionarios: true, rh_departamentos: true, rh_cargos: true, rh_folha: true, rh_holerites: true, rh_encargos: true, rh_ponto: true, rh_ferias: true, rh_afastamentos: true, rh_banco_horas: true, rh_beneficios: true, rh_vale_transporte: true, rh_vale_refeicao: true, rh_plano_saude: true, rh_vagas: true, rh_candidatos: true, rh_selecao: true, rh_treinamentos: true, rh_avaliacoes: true, rh_documentos: true, rh_contratos: true, rh_config: true,
-  financeiro_acessar: true, fin_dashboard: true, fin_indicadores: true, fin_contas_receber: true, fin_contas_pagar: true, fin_caixa: true, fin_transferencias: true, fin_contas_bancarias: true, fin_conciliacao: true, fin_extrato: true, fin_integracao_banco: true, fin_emitir_nota: true, fin_notas_recebidas: true, fin_boletos: true, fin_plano_contas: true, fin_centros_custo: true, fin_contatos: true, fin_formas_pagamento: true, fin_dre: true, fin_fluxo_caixa: true, fin_relatorios: true, fin_config: true,
-  disparo_enviar: true, templates_waba: true,
-  voip_usar: true, voip_conexoes: true, voip_campanhas: true,
-  conexoes: true, filas: true, usuarios_gerenciar: true, grupos_permissao: true,
-  roleta_gerenciar: true, configuracoes_workspace: true,
-  relatorios: true, relatorios_voip: true,
+  chat_proprio: true,
+  chat_todos: true,
+  chat_interno: true,
+  respostas_rapidas: true,
+  transferir_chat: true,
+  finalizar_chat: true,
+  contatos_ver: true,
+  contatos_editar: true,
+  etiquetas: true,
+  dashboard: true,
+  vendas_proprio: true,
+  vendas_equipe: true,
+  funil: true,
+  proposta_criar: true,
+  contratos_acessar: true,
+  contratos_criar: true,
+  contratos_editar: true,
+  contratos_reenviar: true,
+  contratos_excluir: true,
+  contratos_baixar: true,
+  contratos_configurar: true,
+  rh: true,
+  bater_ponto: true,
+  cobranca: true,
+  rh_dashboard: true,
+  rh_indicadores: true,
+  rh_funcionarios: true,
+  rh_departamentos: true,
+  rh_cargos: true,
+  rh_folha: true,
+  rh_holerites: true,
+  rh_encargos: true,
+  rh_ponto: true,
+  rh_ferias: true,
+  rh_afastamentos: true,
+  rh_banco_horas: true,
+  rh_beneficios: true,
+  rh_vale_transporte: true,
+  rh_vale_refeicao: true,
+  rh_plano_saude: true,
+  rh_vagas: true,
+  rh_candidatos: true,
+  rh_selecao: true,
+  rh_treinamentos: true,
+  rh_avaliacoes: true,
+  rh_documentos: true,
+  rh_contratos: true,
+  rh_config: true,
+  financeiro_acessar: true,
+  fin_dashboard: true,
+  fin_indicadores: true,
+  fin_contas_receber: true,
+  fin_contas_pagar: true,
+  fin_caixa: true,
+  fin_transferencias: true,
+  fin_contas_bancarias: true,
+  fin_conciliacao: true,
+  fin_extrato: true,
+  fin_integracao_banco: true,
+  fin_emitir_nota: true,
+  fin_notas_recebidas: true,
+  fin_boletos: true,
+  fin_plano_contas: true,
+  fin_centros_custo: true,
+  fin_contatos: true,
+  fin_formas_pagamento: true,
+  fin_dre: true,
+  fin_fluxo_caixa: true,
+  fin_relatorios: true,
+  fin_config: true,
+  disparo_enviar: true,
+  templates_waba: true,
+  voip_usar: true,
+  voip_conexoes: true,
+  voip_campanhas: true,
+  voip_ura_atender: true,
+  conexoes: true,
+  filas: true,
+  usuarios_gerenciar: true,
+  grupos_permissao: true,
+  roleta_gerenciar: true,
+  configuracoes_workspace: true,
+  relatorios: true,
+  relatorios_voip: true,
   config_proprio: true,
   administrador: true,
-  crm_acessar: true, chatbot_acessar: true, telefonia_acessar: true,
+  crm_acessar: true,
+  chatbot_acessar: true,
+  telefonia_acessar: true,
 };
 
 // Supervisor: tudo menos admin de workspace
@@ -174,40 +248,125 @@ const PERMISSOES_SUPERVISOR: Permissoes = {
   grupos_permissao: false,
   configuracoes_workspace: false,
   voip_conexoes: false,
+  voip_ura_atender: false,
   administrador: false,
-  contratos_acessar: false, contratos_criar: false, contratos_editar: false, contratos_reenviar: false, contratos_excluir: false, contratos_baixar: false, contratos_configurar: false,
-  crm_acessar: true, chatbot_acessar: true, telefonia_acessar: true,
+  contratos_acessar: false,
+  contratos_criar: false,
+  contratos_editar: false,
+  contratos_reenviar: false,
+  contratos_excluir: false,
+  contratos_baixar: false,
+  contratos_configurar: false,
+  crm_acessar: true,
+  chatbot_acessar: true,
+  telefonia_acessar: true,
 };
 
 // Atendente padrão
 const PERMISSOES_ATENDENTE: Permissoes = {
-  chat_proprio: true, chat_todos: false, chat_interno: true, respostas_rapidas: true,
-  transferir_chat: true, finalizar_chat: true,
-  contatos_ver: true, contatos_editar: false, etiquetas: false,
-  dashboard: true, vendas_proprio: true, vendas_equipe: false, funil: false, proposta_criar: true,
-  contratos_acessar: false, contratos_criar: false, contratos_editar: false, contratos_reenviar: false, contratos_excluir: false, contratos_baixar: false, contratos_configurar: false,
-  rh: false, bater_ponto: true, cobranca: false,
-  rh_dashboard: false, rh_indicadores: false, rh_funcionarios: false, rh_departamentos: false, rh_cargos: false, rh_folha: false, rh_holerites: false, rh_encargos: false, rh_ponto: false, rh_ferias: false, rh_afastamentos: false, rh_banco_horas: false, rh_beneficios: false, rh_vale_transporte: false, rh_vale_refeicao: false, rh_plano_saude: false, rh_vagas: false, rh_candidatos: false, rh_selecao: false, rh_treinamentos: false, rh_avaliacoes: false, rh_documentos: false, rh_contratos: false, rh_config: false,
-  financeiro_acessar: false, fin_dashboard: false, fin_indicadores: false, fin_contas_receber: false, fin_contas_pagar: false, fin_caixa: false, fin_transferencias: false, fin_contas_bancarias: false, fin_conciliacao: false, fin_extrato: false, fin_integracao_banco: false, fin_emitir_nota: false, fin_notas_recebidas: false, fin_boletos: false, fin_plano_contas: false, fin_centros_custo: false, fin_contatos: false, fin_formas_pagamento: false, fin_dre: false, fin_fluxo_caixa: false, fin_relatorios: false, fin_config: false,
-  disparo_enviar: false, templates_waba: false,
-  voip_usar: true, voip_conexoes: false, voip_campanhas: false,
-  conexoes: false, filas: false, usuarios_gerenciar: false, grupos_permissao: false,
-  roleta_gerenciar: false, configuracoes_workspace: false,
-  relatorios: false, relatorios_voip: false,
+  chat_proprio: true,
+  chat_todos: false,
+  chat_interno: true,
+  respostas_rapidas: true,
+  transferir_chat: true,
+  finalizar_chat: true,
+  contatos_ver: true,
+  contatos_editar: false,
+  etiquetas: false,
+  dashboard: true,
+  vendas_proprio: true,
+  vendas_equipe: false,
+  funil: false,
+  proposta_criar: true,
+  contratos_acessar: false,
+  contratos_criar: false,
+  contratos_editar: false,
+  contratos_reenviar: false,
+  contratos_excluir: false,
+  contratos_baixar: false,
+  contratos_configurar: false,
+  rh: false,
+  bater_ponto: true,
+  cobranca: false,
+  rh_dashboard: false,
+  rh_indicadores: false,
+  rh_funcionarios: false,
+  rh_departamentos: false,
+  rh_cargos: false,
+  rh_folha: false,
+  rh_holerites: false,
+  rh_encargos: false,
+  rh_ponto: false,
+  rh_ferias: false,
+  rh_afastamentos: false,
+  rh_banco_horas: false,
+  rh_beneficios: false,
+  rh_vale_transporte: false,
+  rh_vale_refeicao: false,
+  rh_plano_saude: false,
+  rh_vagas: false,
+  rh_candidatos: false,
+  rh_selecao: false,
+  rh_treinamentos: false,
+  rh_avaliacoes: false,
+  rh_documentos: false,
+  rh_contratos: false,
+  rh_config: false,
+  financeiro_acessar: false,
+  fin_dashboard: false,
+  fin_indicadores: false,
+  fin_contas_receber: false,
+  fin_contas_pagar: false,
+  fin_caixa: false,
+  fin_transferencias: false,
+  fin_contas_bancarias: false,
+  fin_conciliacao: false,
+  fin_extrato: false,
+  fin_integracao_banco: false,
+  fin_emitir_nota: false,
+  fin_notas_recebidas: false,
+  fin_boletos: false,
+  fin_plano_contas: false,
+  fin_centros_custo: false,
+  fin_contatos: false,
+  fin_formas_pagamento: false,
+  fin_dre: false,
+  fin_fluxo_caixa: false,
+  fin_relatorios: false,
+  fin_config: false,
+  disparo_enviar: false,
+  templates_waba: false,
+  voip_usar: true,
+  voip_conexoes: false,
+  voip_campanhas: false,
+  voip_ura_atender: false,
+  conexoes: false,
+  filas: false,
+  usuarios_gerenciar: false,
+  grupos_permissao: false,
+  roleta_gerenciar: false,
+  configuracoes_workspace: false,
+  relatorios: false,
+  relatorios_voip: false,
   config_proprio: true,
   administrador: false,
   // 🆕 FIX: faltavam essas 3 chaves — ficavam `undefined` (efetivamente "false" em
   // condicionais), o que podia esconder esses módulos do menu do atendente mesmo
   // quando ele deveria ter acesso (ex: chat_proprio=true mas chatbot_acessar ausente).
-  crm_acessar: true, chatbot_acessar: true, telefonia_acessar: true,
+  crm_acessar: true,
+  chatbot_acessar: true,
+  telefonia_acessar: true,
 };
 
 // Objeto-base: se um grupo salvo tiver campos faltando (ex: foi criado antes dessa atualização),
 // a gente mescla com FALSE em todas as chaves novas.
-export const PERMISSOES_ZERO: Permissoes = Object.keys(PERMISSOES_DONO).reduce((acc, k) => {
-  (acc as any)[k] = false;
-  return acc;
-}, {} as Permissoes);
+export const PERMISSOES_ZERO: Permissoes = Object.keys(PERMISSOES_DONO).reduce(
+  (acc, k) => {
+    (acc as any)[k] = false;
+    return acc;
+  },
+  {} as Permissoes,
+);
 
 // Versão com TUDO true — usada como fallback pro super admin Wolf
 const PERMISSOES_SUPER_ADMIN: Permissoes = { ...PERMISSOES_DONO };
@@ -224,33 +383,42 @@ export function usePermissao() {
   const [isDono, setIsDono] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [perfil, setPerfil] = useState("");
-  const [equipeId, setEquipeId] = useState<string | null>(null);  // 🆕 uuid da equipe (null = sem recorte) — primeira equipe, por compat
-  const [equipeIds, setEquipeIds] = useState<string[]>([]);        // 🆕 TODAS as equipes do atendente (equipes_acesso)
-  const [workspaceId, setWorkspaceId] = useState<string>("");      // 🆕 username do workspace atual
-  const [userEmail, setUserEmail] = useState<string>("");          // 🆕 email do usuário logado
+  const [equipeId, setEquipeId] = useState<string | null>(null); // 🆕 uuid da equipe (null = sem recorte) — primeira equipe, por compat
+  const [equipeIds, setEquipeIds] = useState<string[]>([]); // 🆕 TODAS as equipes do atendente (equipes_acesso)
+  const [workspaceId, setWorkspaceId] = useState<string>(""); // 🆕 username do workspace atual
+  const [userEmail, setUserEmail] = useState<string>(""); // 🆕 email do usuário logado
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       setUserEmail(user.email || "");
 
       // Detecta SUPER ADMIN Wolf — bypass total em qualquer workspace
-      const ehSuperAdmin = (user.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      const ehSuperAdmin =
+        (user.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
       setIsSuperAdmin(ehSuperAdmin);
 
       // ═══ É dono do workspace atual? ═══
-      const { data: ws } = await supabase.from("workspaces").select("id, username")
-        .eq("owner_id", user.id).maybeSingle();
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("id, username")
+        .eq("owner_id", user.id)
+        .maybeSingle();
 
       if (ws) {
         setIsDono(true);
         setPerfil(ehSuperAdmin ? "super_admin" : "dono");
         setPermissoes(PERMISSOES_DONO);
         setWorkspaceId(ws.username || "");
-        setEquipeId(null);              // dono enxerga todas as equipes do workspace
+        setEquipeId(null); // dono enxerga todas as equipes do workspace
         setLoading(false);
         return;
       }
@@ -262,7 +430,8 @@ export function usePermissao() {
         setPerfil("super_admin");
         setPermissoes(PERMISSOES_SUPER_ADMIN);
         // Tenta descobrir o workspace via vínculo de sub-usuário (se houver)
-        const { data: suWs } = await supabase.from("usuarios_workspace")
+        const { data: suWs } = await supabase
+          .from("usuarios_workspace")
           .select("workspace_id")
           .eq("email", user.email)
           .order("created_at", { ascending: false })
@@ -280,7 +449,8 @@ export function usePermissao() {
       // o mesmo campo que o ChatSection já usa pra filtrar respostas rápidas). Com a
       // coluna errada, equipeId ficava sempre null pro atendente comum, e qualquer tela
       // que dependesse de escopoVisao() pra recortar por equipe não recortava nada.
-      const { data: usuarioWs } = await supabase.from("usuarios_workspace")
+      const { data: usuarioWs } = await supabase
+        .from("usuarios_workspace")
         .select("perfil, grupo_id, equipes_acesso, workspace_id")
         .eq("email", user.email)
         .order("created_at", { ascending: false })
@@ -292,15 +462,20 @@ export function usePermissao() {
         // 🆕 equipes_acesso é array (atendente pode estar em mais de uma equipe).
         // equipeId (singular) fica como a primeira, mantido só por compatibilidade
         // com código existente que já lê esse campo; equipeIds traz o array completo.
-        const equipesDoUsuario: string[] = Array.isArray(usuarioWs.equipes_acesso) ? usuarioWs.equipes_acesso : [];
+        const equipesDoUsuario: string[] = Array.isArray(
+          usuarioWs.equipes_acesso,
+        )
+          ? usuarioWs.equipes_acesso
+          : [];
         setEquipeIds(equipesDoUsuario);
         setEquipeId(equipesDoUsuario[0] || null);
-        setWorkspaceId(usuarioWs.workspace_id || "");   // 🆕 workspace do sub-usuário
+        setWorkspaceId(usuarioWs.workspace_id || ""); // 🆕 workspace do sub-usuário
 
         // Tem grupo customizado? O grupo é a fonte de verdade para QUALQUER
         // subusuário, inclusive Administrador. Dono e superadmin já foram tratados acima.
         if (usuarioWs.grupo_id) {
-          const { data: grupo, error: erroGrupo } = await supabase.from("grupos_permissao")
+          const { data: grupo, error: erroGrupo } = await supabase
+            .from("grupos_permissao")
             .select("permissoes")
             .eq("id", usuarioWs.grupo_id)
             .eq("workspace_id", usuarioWs.workspace_id)
@@ -359,7 +534,7 @@ export function usePermissao() {
   //   - não tem nenhuma          → "none"
   const escopoVisao = (
     keyEquipe: keyof Permissoes,
-    keyProprio: keyof Permissoes
+    keyProprio: keyof Permissoes,
   ): EscopoVisao => {
     if (veTudo) return "all";
     if (permissoes[keyEquipe]) return equipeIds.length > 0 ? "team" : "all";
@@ -372,13 +547,13 @@ export function usePermissao() {
     isDono,
     isSuperAdmin,
     perfil,
-    equipeId,      // 🆕 primeira equipe (compat)
-    equipeIds,     // 🆕 todas as equipes do atendente
-    workspaceId,   // 🆕
-    userEmail,     // 🆕
+    equipeId, // 🆕 primeira equipe (compat)
+    equipeIds, // 🆕 todas as equipes do atendente
+    workspaceId, // 🆕
+    userEmail, // 🆕
     loading,
-    tem,           // 🆕
-    veTudo,        // 🆕
-    escopoVisao,   // 🆕
+    tem, // 🆕
+    veTudo, // 🆕
+    escopoVisao, // 🆕
   };
 }
