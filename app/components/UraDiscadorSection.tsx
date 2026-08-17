@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWorkspace } from "../hooks/useWorkspace";
+import styles from "./UraDiscadorSection.module.css";
 
 type Conexao = { id: number; nome: string; provider: string; status: string };
 type CanalWhatsApp = { id: number; nome: string; tipo: string; status: string };
@@ -402,6 +403,7 @@ export default function UraDiscadorSection() {
   };
   return (
     <main
+      className={styles.page}
       style={{
         padding: 32,
         fontFamily: "Arial,sans-serif",
@@ -410,6 +412,7 @@ export default function UraDiscadorSection() {
       }}
     >
       <div
+        className={styles.hero}
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -418,21 +421,29 @@ export default function UraDiscadorSection() {
           flexWrap: "wrap",
         }}
       >
-        <div>
-          <h1 style={{ margin: 0, fontSize: 25 }}>URA e discador automático</h1>
+        <div className={styles.heroCopy}>
+          <span className={styles.eyebrow}>WOLF VOICE INTELLIGENCE</span>
+          <h1 style={{ margin: 0, fontSize: 25 }}>Central de voz e automação</h1>
           <p style={{ color: "#64748b" }}>
-            Campanhas multi-tenant, planilhas, DTMF, transferência e resultados
-            por conexão.
+            Crie jornadas inteligentes, acompanhe campanhas e conecte cada chamada
+            ao atendimento certo.
           </p>
+          <div className={styles.heroMetrics}>
+            <span><b>{campanhas.length}</b> campanhas</span>
+            <span><b>{fluxos.length}</b> fluxos</span>
+            <span><b>{twilio.length}</b> conexões prontas</span>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className={styles.tabs} style={{ display: "flex", gap: 8 }}>
           <button
+            className={aba === "campanhas" ? styles.tabActive : styles.tab}
             style={btn(aba === "campanhas" ? "#16a34a" : "#64748b")}
             onClick={() => setAba("campanhas")}
           >
             Campanhas
           </button>
           <button
+            className={aba === "fluxos" ? styles.tabActive : styles.tab}
             style={btn(aba === "fluxos" ? "#16a34a" : "#64748b")}
             onClick={() => setAba("fluxos")}
           >
@@ -441,6 +452,7 @@ export default function UraDiscadorSection() {
         </div>
       </div>
       <div
+        className={styles.notice}
         style={{
           background: "#fffbeb",
           border: "1px solid #fde68a",
@@ -450,9 +462,9 @@ export default function UraDiscadorSection() {
           marginBottom: 16,
         }}
       >
-        🔐 A discagem só funciona após ativar <b>VOIP_URA_ENABLED=true</b> no
-        servidor. Atualmente a origem automática está pronta para Twilio. PABX
-        manual exige API, AMI ou ARI do fornecedor.
+        <span className={styles.noticeIcon}>i</span>
+        <span>A discagem é liberada após ativar <b>VOIP_URA_ENABLED=true</b>. A origem
+        automática está pronta para Twilio; PABX manual exige API, AMI ou ARI do fornecedor.</span>
       </div>
       {erro && (
         <div
@@ -481,8 +493,11 @@ export default function UraDiscadorSection() {
         </div>
       )}
       {aba === "fluxos" ? (
-        <section style={card}>
-          <h2>Editor do fluxo</h2>
+        <section className={styles.editorPanel} style={card}>
+          <div className={styles.sectionHeading}>
+            <div><span className={styles.sectionKicker}>JORNADA DE VOZ</span><h2>Editor visual da URA</h2></div>
+            <span className={styles.countBadge}>{nos.length} etapas</span>
+          </div>
           <div
             style={{ display: "grid", gridTemplateColumns: "2fr 3fr", gap: 12 }}
           >
@@ -503,6 +518,7 @@ export default function UraDiscadorSection() {
             {nos.map((n, i) => (
               <div
                 key={n.id}
+                className={styles.nodeCard}
                 style={{
                   border: "1px solid #e2e8f0",
                   borderRadius: 10,
@@ -729,14 +745,18 @@ export default function UraDiscadorSection() {
         </section>
       ) : (
         <div
+          className={styles.campaignLayout}
           style={{
             display: "grid",
             gridTemplateColumns: "minmax(300px,420px) 1fr",
             gap: 18,
           }}
         >
-          <section style={card}>
-            <h2>Nova campanha</h2>
+          <section className={styles.campaignForm} style={card}>
+            <div className={styles.sectionHeading}>
+              <div><span className={styles.sectionKicker}>NOVA OPERAÇÃO</span><h2>Criar campanha</h2></div>
+              <span className={styles.stepBadge}>01</span>
+            </div>
             <label>Nome</label>
             <input
               style={input}
@@ -941,9 +961,9 @@ export default function UraDiscadorSection() {
               Criar e importar
             </button>
           </section>
-          <section style={card}>
+          <section className={styles.campaignList} style={card}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <h2>Campanhas</h2>
+              <div><span className={styles.sectionKicker}>MONITORAMENTO</span><h2>Campanhas</h2></div>
               <button style={btn("#475569")} onClick={carregar}>
                 Atualizar
               </button>

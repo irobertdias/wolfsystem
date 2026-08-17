@@ -3,16 +3,17 @@ import { useState } from "react";
 import ConexoesVoipSection from "./ConexoesVoipSection";
 import UraDiscadorSection from "./UraDiscadorSection";
 import { usePermissao } from "../hooks/usePermissao";
+import styles from "./TelefoniaHub.module.css";
 
 export default function TelefoniaHub() {
   const { isDono, isSuperAdmin, permissoes } = usePermissao();
   const podeConexoes = isDono || isSuperAdmin || !!permissoes.voip_conexoes;
   const podeCampanhas = isDono || isSuperAdmin || !!permissoes.voip_campanhas;
   const [aba, setAba] = useState<"conexoes" | "ura">(podeCampanhas ? "ura" : "conexoes");
-  return <div style={{minHeight:"100vh",background:"#f6f8fc"}}>
-    <div style={{display:"flex",gap:8,padding:"22px 32px 0"}}>
-      {podeConexoes && <button onClick={()=>setAba("conexoes")} style={botao(aba==="conexoes")}>☎️ Conexões e ramais</button>}
-      {podeCampanhas && <button onClick={()=>setAba("ura")} style={botao(aba==="ura")}>🤖 URA e campanhas</button>}
+  return <div className={styles.shell} style={{minHeight:"100vh",background:"#f6f8fc"}}>
+    <div className={styles.navigation} style={{display:"flex",gap:8,padding:"22px 32px 0"}}>
+      {podeConexoes && <button className={aba==="conexoes" ? styles.active : styles.item} onClick={()=>setAba("conexoes")} style={botao(aba==="conexoes")}><span className={styles.navIcon}>C</span><span><b>Conexões</b><small>Provedores e ramais</small></span></button>}
+      {podeCampanhas && <button className={aba==="ura" ? styles.active : styles.item} onClick={()=>setAba("ura")} style={botao(aba==="ura")}><span className={styles.navIcon}>U</span><span><b>URA inteligente</b><small>Fluxos e campanhas</small></span></button>}
     </div>
     {aba === "conexoes" && podeConexoes ? <ConexoesVoipSection/> : podeCampanhas ? <UraDiscadorSection/> : null}
   </div>;
