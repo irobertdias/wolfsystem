@@ -27,390 +27,446 @@ body {
 * {
   box-sizing: border-box;
 }
-/* WOLF PREMIUM SHELL — AZM LAYOUT */
+/* WOLF PREMIUM SHELL — MODELO ESTRUTURAL AZM, IDENTIDADE WOLF */
 :root {
-  --wolf-accent: #12a76f;
-  --wolf-accent-deep: #087a55;
-  --wolf-accent-soft: #e9fbf3;
-  --wolf-gold: #dca93a;
-  --wolf-ink: #17211d;
-  --wolf-muted: #66756e;
-  --wolf-line: rgba(24, 86, 64, 0.12);
-  --wolf-surface: rgba(255, 255, 255, 0.92);
-  --wolf-shadow: 0 18px 45px rgba(21, 62, 47, 0.09), 0 2px 8px rgba(21, 62, 47, 0.05);
+  --wolf-shell-accent: #16a34a;
+  --wolf-shell-accent-strong: #15803d;
+  --wolf-shell-surface: #ffffff;
+  --wolf-shell-muted: #f4f6f8;
+  --wolf-shell-border: #e3e7ec;
+  --wolf-shell-text: #10213d;
+  --wolf-shell-subtle: #718096;
 }
 
-.wolf-premium-shell,
-.wolf-chat-shell {
-  color: var(--wolf-ink);
-  background:
-    radial-gradient(circle at 8% -8%, rgba(18, 167, 111, 0.12), transparent 30%),
-    radial-gradient(circle at 92% 4%, rgba(220, 169, 58, 0.10), transparent 25%),
-    linear-gradient(180deg, #f7fbf9 0%, #f2f7f5 100%) !important;
+.wolf-premium-shell {
+  min-height: 100vh;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 92px 62px minmax(0, 1fr);
+  overflow: hidden;
+  color: var(--wolf-shell-text);
+  background: #f8fafc;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-.wolf-premium-content,
-.wolf-commercial-content,
-.wolf-chat-workspace {
-  scrollbar-color: rgba(18, 167, 111, 0.34) transparent;
-  scrollbar-width: thin;
+.wolf-premium-header {
+  position: relative;
+  z-index: 90;
+  display: grid;
+  grid-template-columns: minmax(210px, 280px) minmax(0, 1fr) minmax(190px, 280px);
+  align-items: center;
+  gap: 24px;
+  padding: 10px 28px;
+  background: var(--wolf-shell-surface);
+  border-bottom: 1px solid var(--wolf-shell-border);
+  box-shadow: 0 12px 34px rgba(16, 33, 61, 0.07);
 }
 
-.wolf-premium-content::-webkit-scrollbar,
-.wolf-commercial-content::-webkit-scrollbar,
-.wolf-chat-workspace::-webkit-scrollbar,
-.wolf-premium-navigation::-webkit-scrollbar,
-.wolf-commercial-navigation::-webkit-scrollbar,
-.wolf-chat-navigation::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.wolf-premium-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: max-content;
+  max-width: 100%;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
 }
 
-.wolf-premium-content::-webkit-scrollbar-thumb,
-.wolf-commercial-content::-webkit-scrollbar-thumb,
-.wolf-chat-workspace::-webkit-scrollbar-thumb,
-.wolf-premium-navigation::-webkit-scrollbar-thumb,
-.wolf-commercial-navigation::-webkit-scrollbar-thumb,
-.wolf-chat-navigation::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(18, 167, 111, 0.28);
+.wolf-premium-brand-mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 52px;
+  border-radius: 16px;
+  background: #111827;
+  box-shadow: 0 10px 24px rgba(16, 33, 61, 0.18);
 }
 
-@media (min-width: 768px) {
-  .wolf-premium-shell,
-  .wolf-chat-shell {
-    flex-direction: column !important;
-    min-height: 100vh;
-    height: 100vh !important;
-    overflow: hidden;
-  }
-
-  .wolf-premium-navigation,
-  .wolf-chat-navigation {
-    position: relative !important;
-    inset: auto !important;
-    z-index: 90 !important;
-    width: 100% !important;
-    min-height: 84px !important;
-    height: auto !important;
-    flex: 0 0 auto !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 8px !important;
-    padding: 11px 20px !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    transform: none !important;
-    border: 0 !important;
-    border-bottom: 1px solid var(--wolf-line) !important;
-    background: rgba(255, 255, 255, 0.91) !important;
-    box-shadow: 0 10px 30px rgba(21, 62, 47, 0.07) !important;
-    backdrop-filter: blur(18px) saturate(1.25);
-  }
-
-  .wolf-premium-navigation > :first-child,
-  .wolf-chat-navigation > :first-child {
-    flex: 0 0 218px !important;
-    min-width: 218px !important;
-    margin: 0 10px 0 0 !important;
-    padding: 8px 12px !important;
-    border: 1px solid rgba(18, 167, 111, 0.13) !important;
-    border-radius: 16px !important;
-    background: linear-gradient(135deg, rgba(18, 167, 111, 0.08), rgba(255, 255, 255, 0.88)) !important;
-  }
-
-  .wolf-premium-navigation > button,
-  .wolf-premium-navigation > div > button,
-  .wolf-chat-navigation button {
-    min-height: 42px;
-    border-radius: 12px !important;
-    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease !important;
-  }
-
-  .wolf-premium-navigation > button:hover,
-  .wolf-premium-navigation > div > button:hover,
-  .wolf-chat-navigation button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 22px rgba(18, 167, 111, 0.10);
-  }
-
-  .wolf-premium-navigation > button {
-    flex: 0 0 auto !important;
-    width: auto !important;
-    min-width: max-content;
-    margin: 0 !important;
-    padding: 10px 14px !important;
-    border: 1px solid rgba(24, 86, 64, 0.10) !important;
-    background: rgba(250, 253, 252, 0.9) !important;
-  }
-
-  .wolf-premium-navigation > div:not(:first-child) {
-    flex: 0 0 auto;
-    margin: 0 !important;
-  }
-
-  .wolf-premium-navigation > div:not(:first-child):has(> button) {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 7px !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-  }
-
-  .wolf-premium-navigation > div:not(:first-child):has(> button) > button {
-    width: auto !important;
-    min-width: max-content;
-    margin: 0 !important;
-    padding: 10px 14px !important;
-    border: 1px solid rgba(24, 86, 64, 0.10) !important;
-    background: rgba(250, 253, 252, 0.9) !important;
-  }
-
-  .wolf-premium-navigation > div:last-child {
-    margin-left: auto !important;
-  }
-
-  .wolf-premium-content {
-    width: 100% !important;
-    min-width: 0;
-    flex: 1 1 auto !important;
-    overflow: auto !important;
-    padding: 22px 24px 30px !important;
-    background:
-      linear-gradient(rgba(18, 167, 111, 0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(18, 167, 111, 0.025) 1px, transparent 1px) !important;
-    background-size: 34px 34px !important;
-  }
-
-  .wolf-premium-content > * {
-    width: min(100%, 1840px);
-    margin-inline: auto;
-  }
-
-  .wolf-commercial-shell {
-    flex-direction: column !important;
-    gap: 14px;
-    width: 100% !important;
-    min-height: 100%;
-    background: transparent !important;
-  }
-
-  .wolf-commercial-navigation {
-    position: relative !important;
-    inset: auto !important;
-    z-index: 35 !important;
-    display: flex !important;
-    width: 100% !important;
-    min-height: 70px !important;
-    height: auto !important;
-    flex: 0 0 auto !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 12px !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    padding: 9px 12px !important;
-    transform: none !important;
-    border: 1px solid var(--wolf-line) !important;
-    border-radius: 19px !important;
-    background: var(--wolf-surface) !important;
-    box-shadow: var(--wolf-shadow) !important;
-    backdrop-filter: blur(16px);
-  }
-
-  .wolf-commercial-navigation > :first-child {
-    flex: 0 0 210px !important;
-    width: 210px !important;
-    min-height: 48px !important;
-    padding: 6px 12px !important;
-    border: 0 !important;
-    border-right: 1px solid var(--wolf-line) !important;
-  }
-
-  .wolf-commercial-tabs {
-    display: flex !important;
-    flex: 1 0 auto !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 7px !important;
-    padding: 0 !important;
-  }
-
-  .wolf-commercial-tabs > button {
-    width: auto !important;
-    min-width: max-content;
-    margin: 0 !important;
-    padding: 10px 15px !important;
-    border-radius: 12px !important;
-  }
-
-  .wolf-commercial-content {
-    width: 100% !important;
-    min-width: 0;
-    flex: 1 1 auto !important;
-    overflow: visible !important;
-    padding: 0 !important;
-    background: transparent !important;
-  }
-
-  .wolf-chat-navigation {
-    min-height: 76px !important;
-    padding-block: 9px !important;
-  }
-
-  .wolf-chat-navigation > :first-child {
-    flex-basis: 230px !important;
-    min-width: 230px !important;
-  }
-
-  .wolf-chat-modules {
-    display: flex !important;
-    flex: 1 0 auto !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 7px !important;
-    padding: 0 !important;
-  }
-
-  .wolf-chat-modules > div {
-    position: relative;
-    flex: 0 0 auto;
-    margin: 0 !important;
-  }
-
-  .wolf-chat-modules > div > button {
-    width: auto !important;
-    min-width: max-content;
-    padding: 10px 14px !important;
-    border: 1px solid rgba(24, 86, 64, 0.10) !important;
-    background: rgba(250, 253, 252, 0.9) !important;
-  }
-
-  .wolf-chat-modules > div > div {
-    position: fixed;
-    z-index: 120;
-    top: 72px;
-    min-width: 240px;
-    padding: 8px !important;
-    border: 1px solid var(--wolf-line);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.98);
-    box-shadow: 0 22px 55px rgba(20, 56, 43, 0.16);
-  }
-
-  .wolf-chat-return {
-    flex: 0 0 auto;
-    margin-left: auto !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-  }
-
-  .wolf-chat-return button {
-    width: auto !important;
-    min-width: max-content;
-    padding-inline: 15px !important;
-  }
-
-  .wolf-chat-workspace {
-    width: 100% !important;
-    min-width: 0;
-    flex: 1 1 auto !important;
-    overflow: hidden !important;
-  }
+.wolf-premium-brand-mark img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
-/* Refinamento visual compartilhado sem alterar componentes funcionais */
-.wolf-premium-content input,
-.wolf-premium-content select,
-.wolf-premium-content textarea,
-.wolf-commercial-content input,
-.wolf-commercial-content select,
-.wolf-commercial-content textarea {
-  border-color: rgba(24, 86, 64, 0.15) !important;
-  border-radius: 11px !important;
-  outline: none;
-  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+.wolf-premium-brand-copy,
+.wolf-premium-brand-copy small {
+  display: block;
+  min-width: 0;
 }
 
-.wolf-premium-content input:focus,
-.wolf-premium-content select:focus,
-.wolf-premium-content textarea:focus,
-.wolf-commercial-content input:focus,
-.wolf-commercial-content select:focus,
-.wolf-commercial-content textarea:focus {
-  border-color: rgba(18, 167, 111, 0.62) !important;
-  box-shadow: 0 0 0 4px rgba(18, 167, 111, 0.09) !important;
+.wolf-premium-brand-copy b {
+  display: block;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
-.wolf-premium-content table,
-.wolf-commercial-content table {
-  border-collapse: separate;
-  border-spacing: 0;
+.wolf-premium-brand-copy small {
+  max-width: 170px;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--wolf-shell-subtle);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.wolf-premium-content button,
-.wolf-commercial-content button {
-  letter-spacing: -0.01em;
+.wolf-premium-launcher {
+  justify-self: center;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px;
+  overflow-x: auto;
+  background: var(--wolf-shell-muted);
+  border: 1px solid var(--wolf-shell-border);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 2px rgba(16, 33, 61, 0.04), 0 1px 0 #fff;
+  scrollbar-width: none;
 }
 
-@media (max-width: 767px) {
-  .wolf-premium-shell,
-  .wolf-chat-shell {
-    min-height: 100dvh;
-    height: 100dvh !important;
-    overflow: hidden;
-  }
+.wolf-premium-launcher::-webkit-scrollbar { display: none; }
 
-  .wolf-premium-navigation,
-  .wolf-commercial-navigation,
-  .wolf-chat-navigation {
-    position: fixed !important;
-    inset: 0 auto 0 0 !important;
-    z-index: 1000 !important;
-    width: min(318px, 88vw) !important;
-    height: 100dvh !important;
-    min-height: 100dvh !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    transform: translateX(-105%) !important;
-    border: 0 !important;
-    border-right: 1px solid var(--wolf-line) !important;
-    background: rgba(255, 255, 255, 0.98) !important;
-    box-shadow: 16px 0 45px rgba(20, 56, 43, 0.18) !important;
-    backdrop-filter: blur(18px);
-  }
+.wolf-premium-launcher button {
+  min-width: 72px;
+  height: 57px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 5px 11px;
+  border: 0;
+  border-radius: 13px;
+  color: #667085;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.18s ease, color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
 
-  .wolf-premium-navigation.open,
-  .wolf-commercial-navigation.open,
-  .wolf-chat-navigation.open {
-    transform: translateX(0) !important;
-  }
+.wolf-premium-launcher button i {
+  font-style: normal;
+  font-size: 17px;
+  line-height: 1;
+}
 
-  .wolf-premium-content {
-    width: 100% !important;
-    padding: 66px 12px 18px !important;
-  }
+.wolf-premium-launcher button span {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
 
-  .wolf-commercial-shell {
-    width: 100% !important;
-  }
+.wolf-premium-launcher button:hover {
+  color: var(--wolf-shell-text);
+  background: #fff;
+  transform: translateY(-1px);
+}
 
-  .wolf-commercial-content {
-    width: 100% !important;
-    padding: 0 !important;
-  }
+.wolf-premium-launcher button.active {
+  color: #fff;
+  background: linear-gradient(145deg, var(--wolf-shell-accent), var(--wolf-shell-accent-strong));
+  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
 
-  .wolf-chat-workspace {
-    width: 100% !important;
-    min-width: 0;
-  }
+.wolf-premium-user {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
 
-  .wolf-chat-modules {
-    width: 100%;
+.wolf-premium-profile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.wolf-premium-user .avatar {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 35px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  background-color: #111827;
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 7px 16px rgba(16, 33, 61, 0.2);
+}
+
+.wolf-premium-user .identity b,
+.wolf-premium-user .identity small {
+  display: block;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wolf-premium-user .identity b { font-size: 11px; }
+.wolf-premium-user .identity small { margin-top: 3px; color: var(--wolf-shell-subtle); font-size: 8px; }
+
+.wolf-premium-user .logout {
+  width: 35px;
+  height: 35px;
+  border: 1px solid var(--wolf-shell-border);
+  border-radius: 12px;
+  color: #dc2626;
+  background: #fff;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.wolf-premium-context {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 34px;
+  background: rgba(250, 251, 252, 0.94);
+  border-bottom: 1px solid var(--wolf-shell-border);
+}
+
+.wolf-premium-context-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.wolf-premium-context-title span {
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--wolf-shell-accent-strong);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.wolf-premium-context-title b {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.wolf-premium-context .context-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.wolf-premium-context .context-actions span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #667085;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.wolf-premium-context .system-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+  box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.1);
+}
+
+.wolf-premium-context .context-actions button {
+  padding: 9px 13px;
+  border: 1px solid var(--wolf-shell-border);
+  border-radius: 10px;
+  color: var(--wolf-shell-text);
+  background: #fff;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.wolf-premium-content {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 28px;
+  background: #f8fafc;
+}
+
+/* Subnavegação comercial no mesmo padrão de módulos do AZM. */
+.wolf-commercial-shell {
+  min-height: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+}
+
+.wolf-commercial-navigation {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 76px;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 14px !important;
+  padding: 10px 14px !important;
+  overflow: visible !important;
+  border: 1px solid var(--wolf-shell-border) !important;
+  border-radius: 18px;
+  background: #fff !important;
+  box-shadow: 0 10px 28px rgba(16, 33, 61, 0.06);
+}
+
+.wolf-commercial-navigation > :first-child {
+  flex: 0 0 auto;
+  margin: 0 !important;
+  padding: 0 16px 0 4px !important;
+  border-right: 1px solid var(--wolf-shell-border);
+}
+
+.wolf-commercial-tabs {
+  min-width: 0;
+  display: flex !important;
+  flex: 1 1 auto;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px !important;
+  overflow-x: auto;
+  padding: 4px !important;
+  scrollbar-width: none;
+}
+
+.wolf-commercial-tabs::-webkit-scrollbar { display: none; }
+.wolf-commercial-tabs > button { flex: 0 0 auto; width: auto !important; min-width: 108px; }
+
+.wolf-commercial-content {
+  width: 100% !important;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0 !important;
+}
+
+/* Atendimento mantém os componentes Wolf, reorganizados no modelo horizontal AZM. */
+.wolf-chat-shell { flex-direction: column !important; }
+
+.wolf-chat-navigation {
+  width: 100% !important;
+  height: 92px !important;
+  min-height: 92px;
+  flex-direction: row !important;
+  align-items: center;
+  overflow: visible !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--wolf-shell-border) !important;
+  background: #fff !important;
+  box-shadow: 0 12px 34px rgba(16, 33, 61, 0.07) !important;
+  z-index: 80 !important;
+}
+
+.wolf-chat-navigation > div:first-child {
+  width: 242px;
+  height: 100%;
+  padding: 14px 22px !important;
+  border: 0 !important;
+}
+
+.wolf-chat-modules {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: visible;
+  padding: 7px !important;
+}
+
+.wolf-chat-modules > div { position: relative; margin: 0 !important; }
+.wolf-chat-modules > div > button { min-width: 118px; padding: 10px 12px !important; }
+
+.wolf-chat-modules > div > div {
+  position: absolute;
+  top: 52px;
+  left: 0;
+  z-index: 100;
+  min-width: 220px;
+  padding: 7px !important;
+  background: #fff;
+  border: 1px solid var(--wolf-shell-border);
+  border-radius: 13px;
+  box-shadow: 0 18px 38px rgba(16, 33, 61, 0.13);
+}
+
+.wolf-chat-return {
+  margin-left: auto;
+  padding: 0 20px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.wolf-chat-return button { width: auto !important; white-space: nowrap; }
+.wolf-chat-workspace { width: 100% !important; min-height: 0; }
+
+@media (max-width: 1180px) {
+  .wolf-premium-header {
+    grid-template-columns: 190px minmax(0, 1fr) 52px;
+    gap: 12px;
+    padding-inline: 18px;
   }
+  .wolf-premium-brand-copy small,
+  .wolf-premium-user .identity { display: none; }
+  .wolf-premium-launcher { justify-self: stretch; }
+}
+
+@media (max-width: 760px) {
+  .wolf-premium-shell { grid-template-rows: 76px 52px minmax(0, 1fr); }
+  .wolf-premium-header {
+    grid-template-columns: 52px minmax(0, 1fr) 42px;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  .wolf-premium-brand-copy,
+  .wolf-premium-profile { display: none; }
+  .wolf-premium-brand-mark { width: 46px; height: 46px; flex-basis: 46px; border-radius: 14px; }
+  .wolf-premium-brand-mark img { width: 34px; height: 34px; }
+  .wolf-premium-launcher { justify-self: stretch; border-radius: 14px; padding: 4px; }
+  .wolf-premium-launcher button { min-width: 62px; height: 49px; padding: 4px 8px; }
+  .wolf-premium-launcher button span { font-size: 8px; }
+  .wolf-premium-context { min-height: 52px; padding: 8px 12px; }
+  .wolf-premium-context-title span,
+  .wolf-premium-context .context-actions span,
+  .wolf-premium-context .context-actions button { display: none; }
+  .wolf-premium-context-title b { font-size: 15px; }
+  .wolf-premium-content { padding: 12px; }
+  .wolf-commercial-navigation { align-items: flex-start; flex-direction: column !important; }
+  .wolf-commercial-navigation > :first-child { width: 100%; border-right: 0; border-bottom: 1px solid var(--wolf-shell-border); padding-bottom: 10px !important; }
+  .wolf-commercial-tabs { width: 100%; }
+  .wolf-chat-navigation { height: auto !important; min-height: 76px; overflow-x: auto !important; }
+  .wolf-chat-navigation > div:first-child { width: 170px; min-width: 170px; padding: 10px !important; }
+  .wolf-chat-return { padding: 0 10px !important; }
 }

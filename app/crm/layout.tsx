@@ -221,341 +221,105 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     transition: "all 0.15s",
   });
 
+  const launchers = [
+    ...(isSuperAdmin ? [{ path: "/crm/clientes", label: "Clientes", icon: "👥", visivel: true }] : []),
+    { path: "/crm/visao", label: "Visão", icon: "📊", visivel: true },
+    { path: crmItems[0]?.path || "/crm/dashboard", label: "CRM", icon: "🎯", visivel: podeVerCRM },
+    { path: "/chatbot", label: "Atendimento", icon: "💬", visivel: podeVerChatbot },
+    { path: "/crm/contratos", label: "Contratos", icon: "📄", visivel: podeVerContratos },
+    { path: "/crm/meta-ads", label: "Central Ads", icon: "📣", visivel: podeVerMetaAds },
+    { path: "/crm/telefonia", label: "Telefonia", icon: "📞", visivel: modulosCarregados && podeVerTelefonia },
+    { path: "/crm/cobranca", label: "Cobrança", icon: "💳", visivel: modulosCarregados && podeVerCobranca },
+    { path: "/crm/rh", label: "Pessoas", icon: "👥", visivel: modulosCarregados && podeVerRH },
+    { path: "/crm/ponto", label: "Ponto", icon: "🕐", visivel: modulosCarregados && podeBaterPonto },
+    { path: "/crm/financeiro", label: "Financeiro", icon: "💰", visivel: modulosCarregados && podeVerFinanceiro },
+    { path: "/crm/configuracoes", label: "Ajustes", icon: "⚙️", visivel: podeVerConfig },
+  ].filter((item) => item.visivel);
+
+  const launcherAtivo = (path: string) => {
+    if (path === "/crm/visao" || path === "/chatbot" || path === "/crm/clientes") {
+      return pathname === path || (path === "/chatbot" && pathname.startsWith("/chatbot/"));
+    }
+    if (path === (crmItems[0]?.path || "/crm/dashboard")) {
+      return crmItems.some((item) => pathname === item.path || pathname.startsWith(`${item.path}/`));
+    }
+    return pathname === path || pathname.startsWith(`${path}/`);
+  };
+
+  const paginaAtual = launchers.find((item) => launcherAtivo(item.path))?.label
+    || pathname.split("/").filter(Boolean).slice(-1)[0]?.replaceAll("-", " ")
+    || "Visão geral";
+
+  const iniciaisUsuario = (userNome || userEmail || "W")
+    .split(" ")
+    .map((parte) => parte[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
     <AuthGuard>
-      <div className="wolf-premium-shell" style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#f8fafc", position: "relative" }}>
-        {!isMobile && menuRecolhido && (
-          <button
-            onClick={alternarMenuRecolhido}
-            title="Abrir menu"
-            style={{
-              position: "fixed",
-              top: 8,
-              left: 8,
-              zIndex: 999,
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              color: "#1f2937",
-              borderRadius: 10,
-              width: 40,
-              height: 34,
-              fontSize: 20,
-              cursor: "pointer",
-              lineHeight: 1,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-              fontWeight: 800,
-            }}
-          >
-            ☰
+      <div className="wolf-premium-shell">
+        <header className="wolf-premium-header">
+          <button className="wolf-premium-brand" onClick={() => navegarPara("/crm/visao")}>
+            <span className="wolf-premium-brand-mark">
+              <img src="/logo1.png" alt="Wolf System" />
+            </span>
+            <span className="wolf-premium-brand-copy">
+              <b>WOLF SYSTEM</b>
+              <small>{workspaceNome || "GESTÃO COMPLETA"}</small>
+            </span>
           </button>
-        )}
 
-        {isMobile && !menuMobileAberto && (
-          <button
-            onClick={() => setMenuMobileAberto(true)}
-            title="Abrir menu"
-            style={{
-              position: "fixed",
-              top: 8,
-              left: 8,
-              zIndex: 999,
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              color: "#1f2937",
-              borderRadius: 10,
-              padding: "8px 14px",
-              fontSize: 18,
-              cursor: "pointer",
-              lineHeight: 1,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-              fontWeight: 700,
-            }}
-          >
-            ☰
-          </button>
-        )}
-
-        {isMobile && menuMobileAberto && (
-          <div
-            onClick={() => setMenuMobileAberto(false)}
-            style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 999 }}
-          />
-        )}
-
-        {(!menuRecolhido || isMobile) && (
-          <div
-            className={`wolf-premium-navigation ${menuMobileAberto ? "open" : ""}`}
-            style={{
-              width: isMobile ? 280 : 220,
-              background: "#ffffff",
-              borderRight: "1px solid #e5e7eb",
-              display: "flex",
-              flexDirection: "column",
-              padding: 16,
-              gap: 6,
-              flexShrink: 0,
-              overflowY: "auto",
-              position: isMobile ? "fixed" : "relative",
-              top: isMobile ? 0 : "auto",
-              left: isMobile ? 0 : "auto",
-              bottom: isMobile ? 0 : "auto",
-              height: isMobile ? "100vh" : "auto",
-              zIndex: isMobile ? 1000 : "auto",
-              transform: isMobile && !menuMobileAberto ? "translateX(-100%)" : "translateX(0)",
-              transition: "transform 0.25s ease",
-              boxShadow: isMobile ? "4px 0 16px rgba(0,0,0,0.08)" : "none",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow: "0 4px 12px rgba(31,41,55,0.2)",
-                    padding: 5,
-                    flexShrink: 0,
-                  }}
-                >
-                  <img src="/logo1.png" alt="Wolf" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
-                </div>
-
-                <div style={{ minWidth: 0 }}>
-                  <span style={{ color: "#1f2937", fontWeight: 700, fontSize: 13, display: "block" }}>Wolf CRM</span>
-                  <span style={{ color: "#16a34a", fontSize: 10, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>
-                    {workspaceNome || "Carregando..."}
-                  </span>
-                </div>
-              </div>
-
-              {!isMobile && (
-                <button
-                  onClick={alternarMenuRecolhido}
-                  title="Diminuir menu"
-                  style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e5e7eb",
-                    color: "#475569",
-                    fontSize: 16,
-                    cursor: "pointer",
-                    width: 30,
-                    height: 30,
-                    borderRadius: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    fontWeight: 800,
-                  }}
-                >
-                  «
-                </button>
-              )}
-
-              {isMobile && (
-                <button
-                  onClick={() => setMenuMobileAberto(false)}
-                  title="Fechar menu"
-                  style={{
-                    background: "#f3f4f6",
-                    border: "none",
-                    color: "#6b7280",
-                    fontSize: 16,
-                    cursor: "pointer",
-                    width: 30,
-                    height: 30,
-                    borderRadius: 8,
-                  }}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            <button
-              onClick={() => navegarPara("/meu-perfil")}
-              title="Clique pra editar seu perfil"
-              style={{
-                background: "#f9fafb",
-                border: "1px solid #e5e7eb",
-                borderRadius: 10,
-                padding: "9px 12px",
-                marginBottom: 6,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                width: "100%",
-                textAlign: "left",
-              }}
-            >
-              {(() => {
-                const iniciais = (userNome || userEmail || "?").split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
-                let h = 0;
-                for (let i = 0; i < userEmail.length; i++) h = userEmail.charCodeAt(i) + ((h << 5) - h);
-                const cores = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#ef4444", "#0ea5e9", "#a855f7"];
-                const cor = cores[Math.abs(h) % cores.length];
-
-                return (
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                      background: userFotoUrl ? `url(${userFotoUrl}) center/cover` : `linear-gradient(135deg, ${cor} 0%, ${cor}cc 100%)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#fff",
-                      fontSize: 13,
-                      fontWeight: 800,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {!userFotoUrl && iniciais}
-                  </div>
-                );
-              })()}
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ color: "#9ca3af", fontSize: 9, margin: "0 0 1px", fontWeight: 700, textTransform: "uppercase" }}>Logado como</p>
-                <p style={{ color: "#1f2937", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 700 }}>
-                  {userNome || userEmail.split("@")[0]}
-                </p>
-                <p style={{ color: "#6b7280", fontSize: 10, margin: "1px 0 0", fontWeight: 500 }}>{perfilLabel}</p>
-              </div>
-
-              <span style={{ color: "#9ca3af", fontSize: 12, flexShrink: 0 }}>✏️</span>
-            </button>
-
-            {ehDonoOuAdmin && !isSuperAdmin && (
-              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderLeft: "3px solid #f59e0b", borderRadius: 10, padding: "9px 12px", marginBottom: 6 }}>
-                <p style={{ color: "#92400e", fontSize: 10, margin: "0 0 2px", fontWeight: 700, textTransform: "uppercase" }}>Plano</p>
-                <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>👥 {usuariosCount}/{limiteUsuarios} usuários</span>
-              </div>
-            )}
-
-            {menuItems.map((item) => {
-              const ativo = isActive(item.path);
-
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navegarPara(item.path)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "9px 14px",
-                    background: ativo ? "#f0fdf4" : "transparent",
-                    border: "none",
-                    borderLeft: ativo ? "3px solid #16a34a" : "3px solid transparent",
-                    borderRadius: ativo ? "0 8px 8px 0" : 8,
-                    cursor: "pointer",
-                    color: ativo ? "#16a34a" : "#4b5563",
-                    fontSize: 13,
-                    fontWeight: ativo ? 700 : 500,
-                    textAlign: "left",
-                    marginLeft: ativo ? -3 : 0,
-                  }}
-                >
-                  <span>{item.icon}</span>
-                  {item.label}
-                  {(item as any).badge > 0 && (
-                    <span style={{ background: "#16a34a", color: "white", borderRadius: 10, padding: "1px 8px", fontSize: 10, marginLeft: "auto", fontWeight: 700 }}>
-                      {(item as any).badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-
-            <div style={{ borderTop: "1px solid #e5e7eb", marginTop: 10, paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-              {podeVerCRM && (
-                <button onClick={() => navegarPara(crmItems[0]?.path || "/crm/dashboard")} style={botaoMenu(crmRotaAtiva, "#f0fdf4", "#dcfce7", "#bbf7d0", "#16a34a", "#16a34a")}>
-                  <span>🎯</span> CRM
-                </button>
-              )}
-
-              {podeVerContratos && (
-                <button onClick={() => navegarPara("/crm/contratos")} style={botaoMenu(isActive("/crm/contratos"), "#eff6ff", "#dbeafe", "#bfdbfe", "#2563eb", "#1d4ed8")}>
-                  <span>📄</span> Contratos
-                </button>
-              )}
-              {podeVerChatbot && (
-                <button onClick={() => navegarPara("/chatbot")} style={botaoMenu(false, "#eff6ff", "#dbeafe", "#bfdbfe", "#3b82f6", "#3b82f6")}>
-                  <span>💬</span> Chatbot
-                </button>
-              )}
-
-              {podeVerMetaAds && (
-                <button onClick={() => navegarPara("/crm/meta-ads")} style={botaoMenu(isActive("/crm/meta-ads"), "#faf5ff", "#f3e8ff", "#e9d5ff", "#9333ea", "#7e22ce")}>
-                  <span>&#128202;</span> Central Ads
-                </button>
-              )}
-
-              {modulosCarregados && podeVerTelefonia && (
-                <button onClick={() => navegarPara("/crm/telefonia")} style={botaoMenu(isActive("/crm/telefonia"), "#f0fdfa", "#ccfbf1", "#99f6e4", "#0d9488", "#0d9488")}>
-                  <span>📞</span> Telefonia
-                </button>
-              )}
-
-              {modulosCarregados && podeVerCobranca && (
-                <button onClick={() => navegarPara("/crm/cobranca")} style={botaoMenu(isActive("/crm/cobranca"), "#fef2f2", "#fee2e2", "#fecaca", "#dc2626", "#dc2626")}>
-                  <span>💰</span> Cobrança
-                </button>
-              )}
-
-              {modulosCarregados && podeVerRH && (
-                <button onClick={() => navegarPara("/crm/rh")} style={botaoMenu(isActive("/crm/rh"), "#eef2ff", "#e0e7ff", "#c7d2fe", "#4f46e5", "#4f46e5")}>
-                  <span>🧑‍💼</span> RH
-                </button>
-              )}
-
-              {modulosCarregados && podeBaterPonto && (
-                <button onClick={() => navegarPara("/crm/ponto")} style={botaoMenu(isActive("/crm/ponto"), "#fdf2f8", "#fce7f3", "#f9a8d4", "#db2777", "#db2777")}>
-                  <span>🕐</span> Bater Ponto
-                </button>
-              )}
-
-              {modulosCarregados && podeVerFinanceiro && (
-                <button onClick={() => navegarPara("/crm/financeiro")} style={botaoMenu(isActive("/crm/financeiro"), "#fffbeb", "#fef3c7", "#fcd34d", "#d97706", "#d97706")}>
-                  <span>💰</span> Financeiro
-                </button>
-              )}
-
-              {podeVerConfig && (
-                <button onClick={() => navegarPara("/crm/configuracoes")} style={botaoMenu(isActive("/crm/configuracoes"), "#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569")}>
-                  <span>⚙️</span> Configurações
-                </button>
-              )}
-            </div>
-
-            <div style={{ marginTop: "auto", borderTop: "1px solid #e5e7eb", paddingTop: 10 }}>
-              <button onClick={signOut} style={botaoMenu(false, "#fef2f2", "#fee2e2", "#fecaca", "#dc2626", "#dc2626")}>
-                <span>🚪</span> Sair
+          <nav className="wolf-premium-launcher" aria-label="Módulos do sistema">
+            {launchers.map((item) => (
+              <button
+                key={item.path}
+                className={launcherAtivo(item.path) ? "active" : ""}
+                onClick={() => navegarPara(item.path)}
+                title={item.label}
+              >
+                <i>{item.icon}</i>
+                <span>{item.label}</span>
               </button>
-            </div>
-          </div>
-        )}
+            ))}
+          </nav>
 
-        <div
-          className="wolf-premium-content"
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: isMobile ? "56px 12px 16px" : menuRecolhido ? "56px 20px 20px" : 32,
-            width: isMobile ? "100%" : "auto",
-            minWidth: 0,
-          }}
-        >
-          <PontoGuard ativo={modulosCarregados ? modulos.bater_ponto : undefined}>{children}</PontoGuard>
+          <div className="wolf-premium-user">
+            <button className="wolf-premium-profile" onClick={() => navegarPara("/meu-perfil")} title="Editar perfil">
+              <span
+                className="avatar"
+                style={userFotoUrl ? { backgroundImage: `url(${userFotoUrl})` } : undefined}
+              >
+                {!userFotoUrl && iniciaisUsuario}
+              </span>
+              <span className="identity">
+                <b>{userNome || userEmail.split("@")[0] || "Usuário"}</b>
+                <small>{perfilLabel.replace(/^\S+\s*/, "")}</small>
+              </span>
+            </button>
+            <button className="logout" onClick={signOut} title="Sair">↗</button>
+          </div>
+        </header>
+
+        <div className="wolf-premium-context">
+          <div className="wolf-premium-context-title">
+            <span>{workspaceNome || "WOLF SYSTEM"}</span>
+            <b>{paginaAtual}</b>
+          </div>
+          <div className="context-actions">
+            {ehDonoOuAdmin && !isSuperAdmin && (
+              <span className="plan-info">👥 {usuariosCount}/{limiteUsuarios} usuários</span>
+            )}
+            <span className="system-status"><i /> Sistema operacional</span>
+            <button onClick={() => navegarPara("/crm/visao")}>Visão executiva</button>
+          </div>
         </div>
+
+        <main className="wolf-premium-content">
+          <PontoGuard ativo={modulosCarregados ? modulos.bater_ponto : undefined}>{children}</PontoGuard>
+        </main>
       </div>
     </AuthGuard>
   );
