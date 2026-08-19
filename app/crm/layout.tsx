@@ -223,7 +223,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthGuard>
-      <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#f8fafc", position: "relative" }}>
+      <div className="wolf-premium-shell" style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#f8fafc", position: "relative" }}>
         {!isMobile && menuRecolhido && (
           <button
             onClick={alternarMenuRecolhido}
@@ -284,6 +284,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
         {(!menuRecolhido || isMobile) && (
           <div
+            className={`wolf-premium-navigation ${menuMobileAberto ? "open" : ""}`}
             style={{
               width: isMobile ? 280 : 220,
               background: "#ffffff",
@@ -544,6 +545,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         )}
 
         <div
+          className="wolf-premium-content"
           style={{
             flex: 1,
             overflowY: "auto",

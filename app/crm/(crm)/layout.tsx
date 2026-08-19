@@ -70,6 +70,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
 
   return (
     <div
+      className="wolf-commercial-shell"
       style={{
         display: "flex",
         height: "100%",
@@ -122,6 +123,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
 
       {!esconderSubmenuDesktop && (
         <div
+          className={`wolf-commercial-navigation ${menuAberto ? "open" : ""}`}
           style={{
             width: isMobile ? 260 : 224,
             background: "#ffffff",
@@ -193,7 +195,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
             </div>
           </div>
 
-          <div style={{ padding: 10, flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+          <div className="wolf-commercial-tabs" style={{ padding: 10, flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
             {itens.map((item) => {
               const selecionado = ativo(item.path);
 
@@ -251,6 +253,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
       )}
 
       <div
+        className="wolf-commercial-content"
         style={{
           flex: 1,
           overflowY: "auto",

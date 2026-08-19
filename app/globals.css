@@ -27,3 +27,390 @@ body {
 * {
   box-sizing: border-box;
 }
+/* WOLF PREMIUM SHELL — AZM LAYOUT */
+:root {
+  --wolf-accent: #12a76f;
+  --wolf-accent-deep: #087a55;
+  --wolf-accent-soft: #e9fbf3;
+  --wolf-gold: #dca93a;
+  --wolf-ink: #17211d;
+  --wolf-muted: #66756e;
+  --wolf-line: rgba(24, 86, 64, 0.12);
+  --wolf-surface: rgba(255, 255, 255, 0.92);
+  --wolf-shadow: 0 18px 45px rgba(21, 62, 47, 0.09), 0 2px 8px rgba(21, 62, 47, 0.05);
+}
+
+.wolf-premium-shell,
+.wolf-chat-shell {
+  color: var(--wolf-ink);
+  background:
+    radial-gradient(circle at 8% -8%, rgba(18, 167, 111, 0.12), transparent 30%),
+    radial-gradient(circle at 92% 4%, rgba(220, 169, 58, 0.10), transparent 25%),
+    linear-gradient(180deg, #f7fbf9 0%, #f2f7f5 100%) !important;
+}
+
+.wolf-premium-content,
+.wolf-commercial-content,
+.wolf-chat-workspace {
+  scrollbar-color: rgba(18, 167, 111, 0.34) transparent;
+  scrollbar-width: thin;
+}
+
+.wolf-premium-content::-webkit-scrollbar,
+.wolf-commercial-content::-webkit-scrollbar,
+.wolf-chat-workspace::-webkit-scrollbar,
+.wolf-premium-navigation::-webkit-scrollbar,
+.wolf-commercial-navigation::-webkit-scrollbar,
+.wolf-chat-navigation::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.wolf-premium-content::-webkit-scrollbar-thumb,
+.wolf-commercial-content::-webkit-scrollbar-thumb,
+.wolf-chat-workspace::-webkit-scrollbar-thumb,
+.wolf-premium-navigation::-webkit-scrollbar-thumb,
+.wolf-commercial-navigation::-webkit-scrollbar-thumb,
+.wolf-chat-navigation::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(18, 167, 111, 0.28);
+}
+
+@media (min-width: 768px) {
+  .wolf-premium-shell,
+  .wolf-chat-shell {
+    flex-direction: column !important;
+    min-height: 100vh;
+    height: 100vh !important;
+    overflow: hidden;
+  }
+
+  .wolf-premium-navigation,
+  .wolf-chat-navigation {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 90 !important;
+    width: 100% !important;
+    min-height: 84px !important;
+    height: auto !important;
+    flex: 0 0 auto !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 11px 20px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    transform: none !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--wolf-line) !important;
+    background: rgba(255, 255, 255, 0.91) !important;
+    box-shadow: 0 10px 30px rgba(21, 62, 47, 0.07) !important;
+    backdrop-filter: blur(18px) saturate(1.25);
+  }
+
+  .wolf-premium-navigation > :first-child,
+  .wolf-chat-navigation > :first-child {
+    flex: 0 0 218px !important;
+    min-width: 218px !important;
+    margin: 0 10px 0 0 !important;
+    padding: 8px 12px !important;
+    border: 1px solid rgba(18, 167, 111, 0.13) !important;
+    border-radius: 16px !important;
+    background: linear-gradient(135deg, rgba(18, 167, 111, 0.08), rgba(255, 255, 255, 0.88)) !important;
+  }
+
+  .wolf-premium-navigation > button,
+  .wolf-premium-navigation > div > button,
+  .wolf-chat-navigation button {
+    min-height: 42px;
+    border-radius: 12px !important;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease !important;
+  }
+
+  .wolf-premium-navigation > button:hover,
+  .wolf-premium-navigation > div > button:hover,
+  .wolf-chat-navigation button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(18, 167, 111, 0.10);
+  }
+
+  .wolf-premium-navigation > button {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: max-content;
+    margin: 0 !important;
+    padding: 10px 14px !important;
+    border: 1px solid rgba(24, 86, 64, 0.10) !important;
+    background: rgba(250, 253, 252, 0.9) !important;
+  }
+
+  .wolf-premium-navigation > div:not(:first-child) {
+    flex: 0 0 auto;
+    margin: 0 !important;
+  }
+
+  .wolf-premium-navigation > div:not(:first-child):has(> button) {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .wolf-premium-navigation > div:not(:first-child):has(> button) > button {
+    width: auto !important;
+    min-width: max-content;
+    margin: 0 !important;
+    padding: 10px 14px !important;
+    border: 1px solid rgba(24, 86, 64, 0.10) !important;
+    background: rgba(250, 253, 252, 0.9) !important;
+  }
+
+  .wolf-premium-navigation > div:last-child {
+    margin-left: auto !important;
+  }
+
+  .wolf-premium-content {
+    width: 100% !important;
+    min-width: 0;
+    flex: 1 1 auto !important;
+    overflow: auto !important;
+    padding: 22px 24px 30px !important;
+    background:
+      linear-gradient(rgba(18, 167, 111, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(18, 167, 111, 0.025) 1px, transparent 1px) !important;
+    background-size: 34px 34px !important;
+  }
+
+  .wolf-premium-content > * {
+    width: min(100%, 1840px);
+    margin-inline: auto;
+  }
+
+  .wolf-commercial-shell {
+    flex-direction: column !important;
+    gap: 14px;
+    width: 100% !important;
+    min-height: 100%;
+    background: transparent !important;
+  }
+
+  .wolf-commercial-navigation {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 35 !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 70px !important;
+    height: auto !important;
+    flex: 0 0 auto !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 9px 12px !important;
+    transform: none !important;
+    border: 1px solid var(--wolf-line) !important;
+    border-radius: 19px !important;
+    background: var(--wolf-surface) !important;
+    box-shadow: var(--wolf-shadow) !important;
+    backdrop-filter: blur(16px);
+  }
+
+  .wolf-commercial-navigation > :first-child {
+    flex: 0 0 210px !important;
+    width: 210px !important;
+    min-height: 48px !important;
+    padding: 6px 12px !important;
+    border: 0 !important;
+    border-right: 1px solid var(--wolf-line) !important;
+  }
+
+  .wolf-commercial-tabs {
+    display: flex !important;
+    flex: 1 0 auto !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 0 !important;
+  }
+
+  .wolf-commercial-tabs > button {
+    width: auto !important;
+    min-width: max-content;
+    margin: 0 !important;
+    padding: 10px 15px !important;
+    border-radius: 12px !important;
+  }
+
+  .wolf-commercial-content {
+    width: 100% !important;
+    min-width: 0;
+    flex: 1 1 auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  .wolf-chat-navigation {
+    min-height: 76px !important;
+    padding-block: 9px !important;
+  }
+
+  .wolf-chat-navigation > :first-child {
+    flex-basis: 230px !important;
+    min-width: 230px !important;
+  }
+
+  .wolf-chat-modules {
+    display: flex !important;
+    flex: 1 0 auto !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 0 !important;
+  }
+
+  .wolf-chat-modules > div {
+    position: relative;
+    flex: 0 0 auto;
+    margin: 0 !important;
+  }
+
+  .wolf-chat-modules > div > button {
+    width: auto !important;
+    min-width: max-content;
+    padding: 10px 14px !important;
+    border: 1px solid rgba(24, 86, 64, 0.10) !important;
+    background: rgba(250, 253, 252, 0.9) !important;
+  }
+
+  .wolf-chat-modules > div > div {
+    position: fixed;
+    z-index: 120;
+    top: 72px;
+    min-width: 240px;
+    padding: 8px !important;
+    border: 1px solid var(--wolf-line);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 22px 55px rgba(20, 56, 43, 0.16);
+  }
+
+  .wolf-chat-return {
+    flex: 0 0 auto;
+    margin-left: auto !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .wolf-chat-return button {
+    width: auto !important;
+    min-width: max-content;
+    padding-inline: 15px !important;
+  }
+
+  .wolf-chat-workspace {
+    width: 100% !important;
+    min-width: 0;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+  }
+}
+
+/* Refinamento visual compartilhado sem alterar componentes funcionais */
+.wolf-premium-content input,
+.wolf-premium-content select,
+.wolf-premium-content textarea,
+.wolf-commercial-content input,
+.wolf-commercial-content select,
+.wolf-commercial-content textarea {
+  border-color: rgba(24, 86, 64, 0.15) !important;
+  border-radius: 11px !important;
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.wolf-premium-content input:focus,
+.wolf-premium-content select:focus,
+.wolf-premium-content textarea:focus,
+.wolf-commercial-content input:focus,
+.wolf-commercial-content select:focus,
+.wolf-commercial-content textarea:focus {
+  border-color: rgba(18, 167, 111, 0.62) !important;
+  box-shadow: 0 0 0 4px rgba(18, 167, 111, 0.09) !important;
+}
+
+.wolf-premium-content table,
+.wolf-commercial-content table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.wolf-premium-content button,
+.wolf-commercial-content button {
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 767px) {
+  .wolf-premium-shell,
+  .wolf-chat-shell {
+    min-height: 100dvh;
+    height: 100dvh !important;
+    overflow: hidden;
+  }
+
+  .wolf-premium-navigation,
+  .wolf-commercial-navigation,
+  .wolf-chat-navigation {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    z-index: 1000 !important;
+    width: min(318px, 88vw) !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    transform: translateX(-105%) !important;
+    border: 0 !important;
+    border-right: 1px solid var(--wolf-line) !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    box-shadow: 16px 0 45px rgba(20, 56, 43, 0.18) !important;
+    backdrop-filter: blur(18px);
+  }
+
+  .wolf-premium-navigation.open,
+  .wolf-commercial-navigation.open,
+  .wolf-chat-navigation.open {
+    transform: translateX(0) !important;
+  }
+
+  .wolf-premium-content {
+    width: 100% !important;
+    padding: 66px 12px 18px !important;
+  }
+
+  .wolf-commercial-shell {
+    width: 100% !important;
+  }
+
+  .wolf-commercial-content {
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .wolf-chat-workspace {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .wolf-chat-modules {
+    width: 100%;
+  }
+}

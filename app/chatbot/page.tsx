@@ -79,7 +79,7 @@ function ChatbotInner() {
   ];
 
   return (
-    <div style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#f8fafc", position: "relative" }}>
+    <div className="wolf-chat-shell" style={{ display: "flex", height: "100vh", fontFamily: "Arial, sans-serif", background: "#f8fafc", position: "relative" }}>
 
       {/* 🆕 BOTÃO HAMBÚRGUER ☰ — só aparece no mobile */}
       {isMobile && !menuMobileAberto && (
@@ -118,7 +118,7 @@ function ChatbotInner() {
       )}
 
       {/* SIDEBAR */}
-      <div style={{
+      <div className={`wolf-chat-navigation ${menuMobileAberto ? "open" : ""}`} style={{
         width: isMobile ? 280 : 240,
         background: "#ffffff",
         borderRight: "1px solid #e5e7eb",
@@ -164,7 +164,7 @@ function ChatbotInner() {
             >✕</button>
           )}
         </div>
-        <div style={{ padding: 10, flex: 1 }}>
+        <div className="wolf-chat-modules" style={{ padding: 10, flex: 1 }}>
           {menus.map(menu => {
             const ativo = menuAberto === menu.key;
             return (
@@ -226,7 +226,7 @@ function ChatbotInner() {
             );
           })}
         </div>
-        <div style={{ padding: 12, borderTop: "1px solid #e5e7eb", background: "#fafbfc" }}>
+        <div className="wolf-chat-return" style={{ padding: 12, borderTop: "1px solid #e5e7eb", background: "#fafbfc" }}>
           <button onClick={() => navegarPara("/crm")} style={{
             display: "flex", alignItems: "center", gap: 8, width: "100%",
             padding: "10px 12px",
@@ -251,7 +251,7 @@ function ChatbotInner() {
       </div>
 
       {/* CONTEÚDO */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", width: isMobile ? "100%" : "auto", minWidth: 0 }}>
+      <div className="wolf-chat-workspace" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", width: isMobile ? "100%" : "auto", minWidth: 0 }}>
         {aba === "chat" && <ChatSection />}
         {aba === "dashboard_atendimentos" && permissoes.dashboard && <DashboardSection />}
         {aba === "conexoes" && !permissoes.conexoes && (
