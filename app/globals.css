@@ -375,12 +375,17 @@ body {
 }
 
 /* Atendimento mantém os componentes Wolf, reorganizados no modelo horizontal AZM. */
-.wolf-chat-shell { flex-direction: column !important; }
+.wolf-chat-shell {
+  flex-direction: column !important;
+  min-height: 0;
+  overflow: hidden;
+}
 
 .wolf-chat-navigation {
   width: 100% !important;
   height: 92px !important;
   min-height: 92px;
+  flex: 0 0 92px !important;
   flex-direction: row !important;
   align-items: center;
   overflow: visible !important;
@@ -430,7 +435,13 @@ body {
 }
 
 .wolf-chat-return button { width: auto !important; white-space: nowrap; }
-.wolf-chat-workspace { width: 100% !important; min-height: 0; }
+.wolf-chat-workspace {
+  width: 100% !important;
+  flex: 1 1 auto !important;
+  height: 0 !important;
+  min-height: 0;
+  overflow: hidden !important;
+}
 
 @media (max-width: 1180px) {
   .wolf-premium-header {

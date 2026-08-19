@@ -2660,7 +2660,7 @@ export function ChatSection() {
   });
 
   return (
-    <div style={{ display: "flex", flex: 1, height: "100vh" }}>
+    <div style={{ display: "flex", flex: 1, height: "100%", minHeight: 0, overflow: "hidden" }}>
       {/* 🔔 CSS de animação da bolinha azul piscando (notificação não lida) */}
       <style>{`
         @keyframes pulseBlue {
@@ -3219,7 +3219,7 @@ export function ChatSection() {
 
             {!stickyFundo && (
               <button onClick={irParaFundo} title={temMensagemNova ? "Nova mensagem recebida — clique pra ver" : "Ir para a última mensagem"}
-                style={{ position: "absolute", right: 20, bottom: 90, width: 42, height: 42, borderRadius: "50%", background: temMensagemNova ? "#00a884" : "#2a3942", border: "1px solid " + (temMensagemNova ? "#00a884" : "#3b4a54"), color: "#1f2937", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.4)", zIndex: 10, fontWeight: "bold" }}>
+                style={{ position: "absolute", right: isMobile ? 68 : 92, bottom: 90, width: 42, height: 42, borderRadius: "50%", background: temMensagemNova ? "#00a884" : "#2a3942", border: "1px solid " + (temMensagemNova ? "#00a884" : "#3b4a54"), color: "#1f2937", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.4)", zIndex: 10, fontWeight: "bold" }}>
                 ↓
                 {temMensagemNova && <span style={{ position: "absolute", top: -4, right: -4, width: 12, height: 12, background: "#dc2626", borderRadius: "50%", border: "2px solid #ffffff" }} />}
               </button>
