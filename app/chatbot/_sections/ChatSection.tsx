@@ -1011,6 +1011,21 @@ export function ChatSection() {
   };
   // ═══════════════════════════════════════════════════════════════════════════
 
+  const pareceBase64MidiaBruta = (valor: unknown): boolean => {
+    const texto = typeof valor === "string" ? valor.trim() : "";
+    if (!texto) return false;
+    if (/^data:(?:image|video|audio|application)\/[\w.+-]+;base64,/i.test(texto)) return true;
+
+    const prefixos = ["/9j/", "iVBORw0KGgo", "R0lGOD", "UklGR"];
+    return prefixos.some((prefixo) => {
+      const indice = texto.indexOf(prefixo);
+      if (indice < 0) return false;
+      const candidato = texto.slice(indice).replace(/\s+/g, "");
+      return candidato.length >= 512 && /^[A-Za-z0-9+/]+={0,2}$/.test(candidato);
+    });
+  };
+
+  const placeholderBase64Midia = "⚠️ Mídia recebida, mas este registro antigo foi salvo em formato inválido.";
   // 🆕 Parsers de mídia nova (img/video/file) — formato: "[tipo:filename]" ou "[tipo:filename]\nlegenda"
   const parseMidia = (txt: string): { tipo: "img" | "video" | "file" | null; filename: string; legenda: string } => {
     if (typeof txt !== "string") return { tipo: null, filename: "", legenda: "" };
@@ -1019,7 +1034,7 @@ export function ChatSection() {
     return {
       tipo: match[1] as "img" | "video" | "file",
       filename: match[2],
-      legenda: match[4] || ""
+      legenda: pareceBase64MidiaBruta(match[4] || "") ? "" : (match[4] || "")
     };
   };
 
@@ -3111,6 +3126,9 @@ export function ChatSection() {
                     if (!ehAudio && !ehMidia && typeof msg.mensagem === "string") {
                       const m = msg.mensagem.match(/^↪️ \*([^*]+)\*: "([\s\S]+?)"\n\n([\s\S]*)$/);
                       if (m) { quoteAutor = m[1]; quoteTexto = m[2]; msgTextoLimpo = m[3]; }
+                    }
+                    if (!ehAudio && !ehMidia && pareceBase64MidiaBruta(msgTextoLimpo)) {
+                      msgTextoLimpo = placeholderBase64Midia;
                     }
                     const foiEditada = typeof msgTextoLimpo === "string" && /\*\(editado\)\*\s*$/.test(msgTextoLimpo);
                     if (foiEditada) msgTextoLimpo = msgTextoLimpo.replace(/\s*\*\(editado\)\*\s*$/, "");
