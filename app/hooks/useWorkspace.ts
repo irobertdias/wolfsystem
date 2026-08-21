@@ -17,6 +17,7 @@ type Workspace = {
 type User = {
   id: string;
   email: string;
+  user_metadata?: Record<string, unknown>;
 };
 
 export function useWorkspace() {
@@ -30,7 +31,11 @@ export function useWorkspace() {
       setLoading(true);
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) { setLoading(false); return; }
-      setUser({ id: authUser.id, email: authUser.email || "" });
+      setUser({
+        id: authUser.id,
+        email: authUser.email || "",
+        user_metadata: authUser.user_metadata || {},
+      });
 
       // ═══ 1. É dono do workspace? ═══
       const { data: wsDono } = await supabase

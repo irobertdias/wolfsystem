@@ -306,6 +306,25 @@ export async function PATCH(req: NextRequest) {
 
     let emailAtual = cadastro.email as string;
 
+    // O nome pessoal do dono vive também no Auth e é usado como assinatura no chat.
+    // Não confundir com `workspaces.nome`, que representa a empresa/workspace.
+    if (typeof campos.nome === "string" && campos.nome.trim() && cadastro.user_id) {
+      const { data: authAtual } = await supabase.auth.admin.getUserById(cadastro.user_id);
+      const { error: nomeAuthError } = await supabase.auth.admin.updateUserById(cadastro.user_id, {
+        user_metadata: {
+          ...(authAtual?.user?.user_metadata || {}),
+          nome: campos.nome.trim(),
+        },
+      });
+
+      if (nomeAuthError) {
+        return NextResponse.json({
+          success: false,
+          error: "Falha ao sincronizar o nome do usuário: " + nomeAuthError.message,
+        });
+      }
+    }
+
     // ═══════════════════════════════════════════════════════
     // Troca de E-MAIL — atualiza Auth + cadastros + workspaces.owner_email
     // ═══════════════════════════════════════════════════════

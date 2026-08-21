@@ -1411,7 +1411,17 @@ export function ChatSection() {
     // Frontend filtra atendimento por: usuario.fila contém a fila do atendimento (CSV).
     const { data } = await supabase.from("usuarios_workspace").select("email, nome, fila").eq("workspace_id", wsId);
     if (data) subs.push(...data);
-    if (workspace?.owner_email) { subs.push({ email: workspace.owner_email, nome: workspace.nome || "Dono" }); }
+    if (workspace?.owner_email) {
+      const ehProprioDono = user?.email?.toLowerCase() === workspace.owner_email.toLowerCase();
+      const nomePessoalDono = ehProprioDono
+        ? String(user?.user_metadata?.nome || "").trim()
+        : "";
+      subs.push({
+        email: workspace.owner_email,
+        // Nome da pessoa assina a mensagem; workspace.nome continua sendo o nome da empresa.
+        nome: nomePessoalDono || workspace.nome || "Dono",
+      });
+    }
     setUsuariosWs(subs);
     if (user?.email) {
       const eu = subs.find(s => s.email?.toLowerCase() === user.email?.toLowerCase());

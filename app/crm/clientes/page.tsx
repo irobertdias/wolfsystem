@@ -645,14 +645,15 @@ export default function Clientes() {
       }
 
       if (cadastroSelecionado) {
-        // 🆕 Se o email e/ou o username mudaram, isso precisa passar pela rota
+        // 🆕 Se email, username e/ou nome pessoal mudaram, isso precisa passar pela rota
         // admin (só ela tem service role pra tocar no Auth e chamar a
         // renomeação em cascata do workspace). Os demais campos continuam
         // sendo salvos direto pelo update abaixo.
         const emailMudou = !!formCadastro.email && formCadastro.email !== cadastroSelecionado.email;
         const usernameMudou = !!formCadastro.username && formCadastro.username !== cadastroSelecionado.username;
+        const nomeMudou = !!formCadastro.nome && formCadastro.nome !== cadastroSelecionado.nome;
 
-        if (emailMudou || usernameMudou) {
+        if (emailMudou || usernameMudou || nomeMudou) {
           const token = await getToken();
           if (!token) { alert("Sessão expirou."); setSalvandoCliente(false); return; }
           const respRename = await fetch("/api/admin/cliente", {
@@ -662,13 +663,14 @@ export default function Clientes() {
               email: cadastroSelecionado.email,
               ...(emailMudou ? { novo_email: formCadastro.email } : {}),
               ...(usernameMudou ? { novo_username: formCadastro.username } : {}),
+              ...(nomeMudou ? { nome: formCadastro.nome } : {}),
             }),
           });
           const renameResult = await respRename.json();
           if (!renameResult.success) {
             if (renameResult.error === "email_exists") alert("❌ Este e-mail já está em uso por outro cliente!");
             else if (renameResult.error === "username_exists") alert("❌ Este username já está em uso!");
-            else alert("Erro ao trocar e-mail/username: " + renameResult.error);
+            else alert("Erro ao atualizar os dados de acesso: " + renameResult.error);
             setSalvandoCliente(false);
             return;
           }
