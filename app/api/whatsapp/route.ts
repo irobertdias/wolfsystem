@@ -2,6 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { autenticarWorkspace, exigirModulo, exigirPermissao, respostaErroAcesso, segredoInternoWolf, supabaseServer, type AcessoWolf } from "../_auth";
 
 const WHATSAPP_URL = process.env.WHATSAPP_URL || process.env.NEXT_PUBLIC_WHATSAPP_URL || "http://localhost:3001";
+const WHATSAPP_TIMEOUT_MS = 25_000;
+
+async function consultarWhatsapp(url: string, init: RequestInit, permitirNovaTentativa: boolean) {
+  const totalTentativas = permitirNovaTentativa ? 2 : 1;
+  let ultimoErro: unknown;
+
+  for (let tentativa = 1; tentativa <= totalTentativas; tentativa += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), WHATSAPP_TIMEOUT_MS);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } catch (error) {
+      ultimoErro = error;
+      console.error(`[proxy WhatsApp] falha de rede na tentativa ${tentativa}/${totalTentativas}`, {
+        url,
+        erro: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (tentativa < totalTentativas) {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+  }
+
+  const mensagem = ultimoErro instanceof Error && ultimoErro.name === "AbortError"
+    ? "O serviço do WhatsApp demorou para responder. Tente novamente em alguns instantes."
+    : "O serviço do WhatsApp está temporariamente indisponível. Tente novamente em alguns instantes.";
+  throw Object.assign(new Error(mensagem), { statusCode: 503 });
+}
 function normalizarRota(valor: string) { const rota = decodeURIComponent(valor || "status").replace(/^\/+|\/+$/g, ""); if (!/^[a-z0-9_\-/:]+$/i.test(rota) || rota.includes("..") || rota.includes("//")) throw Object.assign(new Error("Rota inválida"), { statusCode: 400 }); return rota; }
 function exigirPermissaoDaRota(acesso: AcessoWolf, rota: string, metodo: string) {
   if (rota.startsWith("disparos/")) return exigirPermissao(acesso, "disparo_enviar");
@@ -84,7 +115,8 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
       ? { ...body, atendenteEmail: acesso.email }
       : body;
     const params = new URLSearchParams(); entrada.searchParams.forEach((valor, chave) => { if (chave !== "rota") params.set(chave, valor); }); params.set("workspaceId", acesso.workspaceId);
-    const resp = await fetch(`${WHATSAPP_URL}/${rota}${params.size ? `?${params.toString()}` : ""}`, { method: metodo, cache: "no-store", headers: { "ngrok-skip-browser-warning": "true", "x-wolf-internal-secret": segredoInternoWolf(), ...(metodo === "POST" ? { "Content-Type": "application/json" } : {}) }, ...(metodo === "POST" ? { body: JSON.stringify({ ...bodySeguro, workspaceId: acesso.workspaceId, workspace_id: acesso.workspaceId }) } : {}) });
+    const urlWhatsapp = `${WHATSAPP_URL}/${rota}${params.size ? `?${params.toString()}` : ""}`;
+    const resp = await consultarWhatsapp(urlWhatsapp, { method: metodo, cache: "no-store", headers: { "ngrok-skip-browser-warning": "true", "x-wolf-internal-secret": segredoInternoWolf(), ...(metodo === "POST" ? { "Content-Type": "application/json" } : {}) }, ...(metodo === "POST" ? { body: JSON.stringify({ ...bodySeguro, workspaceId: acesso.workspaceId, workspace_id: acesso.workspaceId }) } : {}) }, metodo === "GET");
     const texto = await resp.text();
     if (!resp.ok) {
       let detalhe = texto;

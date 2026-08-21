@@ -618,7 +618,7 @@ export function ChatSection() {
     if (msg.includes("404") || msg.includes("not found")) {
       return "Recurso não encontrado.";
     }
-    if (msg.includes("network") || msg.includes("failed to fetch") || msg.includes("err_internet")) {
+    if (msg.includes("network") || msg.includes("failed to fetch") || msg.includes("fetch failed") || msg.includes("err_internet")) {
       return "Falha de conexão. Verifique sua internet.";
     }
 
