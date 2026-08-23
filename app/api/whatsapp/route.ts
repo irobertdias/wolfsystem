@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { autenticarWorkspace, exigirModulo, exigirPermissao, respostaErroAcesso, segredoInternoWolf, supabaseServer, type AcessoWolf } from "../_auth";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const WHATSAPP_URL = process.env.WHATSAPP_URL || process.env.NEXT_PUBLIC_WHATSAPP_URL || "http://localhost:3001";
-const WHATSAPP_TIMEOUT_MS = 25_000;
+const WHATSAPP_GET_TIMEOUT_MS = 20_000;
+const WHATSAPP_POST_TIMEOUT_MS = 55_000;
 
 async function consultarWhatsapp(url: string, init: RequestInit, permitirNovaTentativa: boolean) {
   const totalTentativas = permitirNovaTentativa ? 2 : 1;
+  const timeoutMs = String(init.method || "GET").toUpperCase() === "POST"
+    ? WHATSAPP_POST_TIMEOUT_MS
+    : WHATSAPP_GET_TIMEOUT_MS;
   let ultimoErro: unknown;
 
   for (let tentativa = 1; tentativa <= totalTentativas; tentativa += 1) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), WHATSAPP_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetch(url, { ...init, signal: controller.signal });
     } catch (error) {
@@ -28,7 +35,10 @@ async function consultarWhatsapp(url: string, init: RequestInit, permitirNovaTen
     }
   }
 
-  const mensagem = ultimoErro instanceof Error && ultimoErro.name === "AbortError"
+  const descricaoErro = ultimoErro instanceof Error
+    ? `${ultimoErro.name} ${ultimoErro.message} ${String((ultimoErro as Error & { cause?: unknown }).cause || "")}`
+    : String(ultimoErro || "");
+  const mensagem = /abort|timeout/i.test(descricaoErro)
     ? "O serviço do WhatsApp demorou para responder. Tente novamente em alguns instantes."
     : "O serviço do WhatsApp está temporariamente indisponível. Tente novamente em alguns instantes.";
   throw Object.assign(new Error(mensagem), { statusCode: 503 });
