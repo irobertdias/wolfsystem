@@ -109,6 +109,9 @@ export function ConexoesSection() {
   const [qrConectado, setQrConectado] = useState(false);
   const [qrNumero, setQrNumero] = useState("");
   const [qrTentativas, setQrTentativas] = useState(0);
+  const [qrRecuperarAusentes, setQrRecuperarAusentes] = useState(false);
+  const [qrRecuperacaoHoras, setQrRecuperacaoHoras] = useState("24");
+  const recuperacaoQrIniciadaRef = useRef<number | null>(null);
   const [showModalNovoCanal, setShowModalNovoCanal] = useState(false);
   const [conectandoMeta, setConectandoMeta] = useState(false);
   const [resultadoMeta, setResultadoMeta] = useState<{ sucesso?: boolean; mensagem?: string; pages?: any[] } | null>(null);
@@ -433,6 +436,58 @@ export function ConexoesSection() {
     return () => { ativo = false; clearInterval(intervalo); };
   }, [chaveCanaisWaba]);
 
+  const iniciarRecuperacaoAposQr = async (canalId: number) => {
+    if (!qrRecuperarAusentes || recuperacaoQrIniciadaRef.current === canalId) return;
+
+    const canal = conexoes.find((item) => item.id === canalId);
+    if (!canal) {
+      notify(
+        "WhatsApp conectado",
+        "aviso",
+        "Atualize a página e use Recuperar conversas no menu do canal para importar o histórico"
+      );
+      return;
+    }
+
+    recuperacaoQrIniciadaRef.current = canalId;
+    const horas = Number(qrRecuperacaoHoras);
+    const agora = new Date();
+    const local = (data: Date) => {
+      const ajustada = new Date(data.getTime() - data.getTimezoneOffset() * 60000);
+      return ajustada.toISOString().slice(0, 16);
+    };
+
+    setCanalRecuperacao(canal);
+    setPeriodoRecuperacao(String(horas));
+    setInicioRecuperacao(local(new Date(agora.getTime() - horas * 60 * 60 * 1000)));
+    setFimRecuperacao(local(agora));
+    setJobRecuperacao(null);
+    setIniciandoRecuperacao(true);
+
+    try {
+      const data = await wa("sincronizar-conversas", {
+        canalId: canal.id,
+        workspaceId: canal.workspace_id,
+        horas,
+      });
+      if (!data?.success || !data?.job) {
+        recuperacaoQrIniciadaRef.current = null;
+        notify("WhatsApp conectou, mas a recuperação não iniciou", "erro", traduzirErro(data));
+        return;
+      }
+      setJobRecuperacao(data.job);
+      notify(
+        data.existente ? "Recuperação já estava em andamento" : "Recuperação iniciada",
+        "sucesso",
+        `Comparando as últimas ${horas === 6 ? "6 horas" : horas === 24 ? "24 horas" : "3 dias"} com o CRM`
+      );
+    } catch (e: any) {
+      recuperacaoQrIniciadaRef.current = null;
+      notify("WhatsApp conectou, mas a recuperação não iniciou", "erro", traduzirErro(e));
+    } finally {
+      setIniciandoRecuperacao(false);
+    }
+  };
   // 🆕 POLLING RÁPIDO + DETECÇÃO VIA ESTADO
   useEffect(() => {
     if (!qrPolling || !showModalQR || !qrCanalId) return;
@@ -454,12 +509,13 @@ export function ConexoesSection() {
           await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" })
             .eq("id", qrCanalId).in("workspace_id", wsIdsRef.current);
           await fetchConexoes();
+          await iniciarRecuperacaoAposQr(qrCanalId);
           setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
         }
       } catch (e: any) { console.warn(`[QR poll] erro fetch:`, e?.message || e); }
     }, 1500);
     return () => clearInterval(interval);
-  }, [qrPolling, showModalQR, qrCanalId]);
+  }, [qrPolling, showModalQR, qrCanalId, qrRecuperarAusentes, qrRecuperacaoHoras]);
 
   // 🆕 PLANO B — observa estado `conexoes` via Realtime
   useEffect(() => {
@@ -470,9 +526,10 @@ export function ConexoesSection() {
       setQrConectado(true);
       setQrNumero(canal.numero || "");
       setQrPolling(false);
+      void iniciarRecuperacaoAposQr(qrCanalId);
       setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
     }
-  }, [conexoes, showModalQR, qrCanalId, qrConectado]);
+  }, [conexoes, showModalQR, qrCanalId, qrConectado, qrRecuperarAusentes, qrRecuperacaoHoras]);
 
   const registrarNumeroWaba = async (c: Conexao) => {
     const usarPinPadrao = confirm(`🟢 Ativar o número na Meta?\n\nCanal: ${c.nome}\nNúmero: ${c.numero}\n\nClique OK pra usar o PIN padrão (000000).\nClique CANCELAR se você configurou um PIN personalizado (2FA).`);
@@ -693,7 +750,7 @@ export function ConexoesSection() {
     const canal = conexoes.find(c => c.id === id);
     if (!canal) return;
     setQrCanalId(id); setResetando(true); setShowModalQR(true);
-    setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0);
+    setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0); setQrRecuperarAusentes(false); setQrRecuperacaoHoras("24"); recuperacaoQrIniciadaRef.current = null;
     try { await wa("resetar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {}
     await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", id).eq("workspace_id", canal.workspace_id);
     await fetchConexoes(); setResetando(false); setQrPolling(true);
@@ -710,7 +767,7 @@ export function ConexoesSection() {
       if (data.sessao_salva === false) {
         notify(`${c.nome} não tem sessão salva`, "aviso", "O código QR será aberto para leitura");
         setQrCanalId(c.id); setResetando(false); setShowModalQR(true);
-        setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0);
+        setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0); setQrRecuperarAusentes(false); setQrRecuperacaoHoras("24"); recuperacaoQrIniciadaRef.current = null;
         setQrPolling(true);
       } else {
         notify(`${c.nome} reconectando...`, "sucesso", "A sessão será restaurada automaticamente. Não é necessário ler outro código QR");
@@ -941,7 +998,7 @@ export function ConexoesSection() {
       {/* ═══ MODAL QR CODE ═══ */}
       {showModalQR && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ ...cardStyle, padding: 32, width: 420, textAlign: "center" }}>
+          <div style={{ ...cardStyle, padding: 32, width: 460, maxHeight: "92vh", overflowY: "auto", textAlign: "center" }}>
             <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 16px", boxShadow: "0 8px 20px rgba(22,163,74,0.25)" }}>
               <span style={{ filter: "saturate(0) brightness(2)" }}>📱</span>
             </div>
@@ -962,7 +1019,7 @@ export function ConexoesSection() {
               <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 14, marginBottom: 14, textAlign: "left" }}>
                 <p style={{ color: "#92400e", fontSize: 12, fontWeight: 700, margin: "0 0 6px" }}>⚠️ Tá demorando mais que o normal</p>
                 <p style={{ color: "#78350f", fontSize: 11, margin: "0 0 10px", lineHeight: 1.4 }}>
-                  Se já aparece conectado no celular, clica em <b>Já Conectei!</b> pra atualizar. Senão, tenta gerar um novo QR.
+                  Se já aparece conectado no celular, clique em <b>Verificar conexão</b>. Senão, tente gerar um novo QR.
                 </p>
                 <button
                   onClick={async () => {
@@ -974,6 +1031,7 @@ export function ConexoesSection() {
                         await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrCanalId).in("workspace_id", wsIdsRef.current);
                         await fetchConexoes();
                         setQrConectado(true); setQrNumero(data.numero || "");
+                        await iniciarRecuperacaoAposQr(qrCanalId);
                         setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
                       } else { notify("Backend ainda não reconheceu a conexão", "aviso", `Status atual: ${data.status}. Tenta de novo ou recria o QR.`); }
                     } catch (e: any) { notify("Falha ao verificar QR", "erro", traduzirErro(e)); }
@@ -984,9 +1042,69 @@ export function ConexoesSection() {
               </div>
             )}
 
+            <div style={{ background: qrRecuperarAusentes ? "#eff6ff" : "#f8fafc", border: `1px solid ${qrRecuperarAusentes ? "#93c5fd" : "#e5e7eb"}`, borderRadius: 12, padding: 14, marginBottom: 16, textAlign: "left" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={qrRecuperarAusentes}
+                  onChange={(e) => setQrRecuperarAusentes(e.target.checked)}
+                  style={{ marginTop: 2, width: 16, height: 16 }}
+                />
+                <span>
+                  <strong style={{ display: "block", color: "#1f2937", fontSize: 13 }}>Recuperar conversas ausentes do CRM</strong>
+                  <span style={{ display: "block", color: "#64748b", fontSize: 11, lineHeight: 1.45, marginTop: 3 }}>
+                    Após conectar, compara o histórico do WhatsApp Web e importa somente as mensagens que ainda não estão no CRM.
+                  </span>
+                </span>
+              </label>
+              {qrRecuperarAusentes && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 12 }}>
+                  {[
+                    { valor: "6", rotulo: "6 horas" },
+                    { valor: "24", rotulo: "1 dia" },
+                    { valor: "72", rotulo: "3 dias" },
+                  ].map((opcao) => (
+                    <button
+                      key={opcao.valor}
+                      type="button"
+                      onClick={() => setQrRecuperacaoHoras(opcao.valor)}
+                      style={{
+                        background: qrRecuperacaoHoras === opcao.valor ? "#2563eb" : "#fff",
+                        color: qrRecuperacaoHoras === opcao.valor ? "#fff" : "#475569",
+                        border: `1px solid ${qrRecuperacaoHoras === opcao.valor ? "#2563eb" : "#cbd5e1"}`,
+                        borderRadius: 8,
+                        padding: "8px 6px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {opcao.rotulo}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button onClick={() => { setShowModalQR(false); setQrPolling(false); setQrImageUrl(""); setQrTentativas(0); }} style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Fechar</button>
-              {!qrConectado && <button onClick={async () => { if (qrCanalId) { await supabase.from("conexoes").update({ status: "conectado", numero: qrNumero || "Conectado" }).eq("id", qrCanalId).in("workspace_id", wsIdsRef.current); await fetchConexoes(); } setShowModalQR(false); setQrPolling(false); setQrTentativas(0); }} style={{ background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>✅ Já Conectei!</button>}
+              {!qrConectado && <button onClick={async () => {
+                if (!qrCanalId) return;
+                try {
+                  const resp = await fetch(`/api/whatsapp?rota=qr-data&canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store" });
+                  const data = await resp.json();
+                  if (!resp.ok || data.status !== "conectado") {
+                    notify("Conexão ainda não confirmada", "aviso", "Aguarde o WhatsApp concluir a conexão e tente novamente");
+                    return;
+                  }
+                  await supabase.from("conexoes").update({ status: "conectado", numero: data.numero || "Conectado" }).eq("id", qrCanalId).in("workspace_id", wsIdsRef.current);
+                  await fetchConexoes();
+                  setQrConectado(true); setQrNumero(data.numero || ""); setQrPolling(false);
+                  await iniciarRecuperacaoAposQr(qrCanalId);
+                  setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
+                } catch (e: any) {
+                  notify("Falha ao verificar conexão", "erro", traduzirErro(e));
+                }
+              }} style={{ background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>✅ Verificar conexão</button>}
             </div>
           </div>
         </div>
