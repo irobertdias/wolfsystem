@@ -469,6 +469,7 @@ export function ConexoesSection() {
         canalId: canal.id,
         workspaceId: canal.workspace_id,
         horas,
+        origem: "pos_qr",
       });
       if (!data?.success || !data?.job) {
         recuperacaoQrIniciadaRef.current = null;
