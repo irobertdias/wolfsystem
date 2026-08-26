@@ -23,7 +23,7 @@ begin
       (
         select array_agg(conexao.id order by conexao.id)
         from public.conexoes_voip as conexao
-        where conexao.workspace_id = usuario.workspace_id
+        where conexao.workspace_id::text = usuario.workspace_id::text
       ),
       '{}'::bigint[]
     );

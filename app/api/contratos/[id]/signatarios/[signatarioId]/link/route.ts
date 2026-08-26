@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { autenticarContratos, exigirPermissaoContratos, respostaErroContratos } from "../../../../_auth";
 
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_WHATSAPP_URL || "https://api.wolfgyn.com.br";
@@ -24,16 +24,26 @@ export async function POST(
         body: JSON.stringify({ workspace_id: acesso.workspaceId, expira_horas: Number(body.expira_horas || 48) }),
       }
     );
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-      const detalhe = (await response.text()).slice(0, 180);
-      const rotaAusente = response.status === 404 || detalhe.includes("Cannot POST");
+    const respostaBruta = await response.text();
+    let data: Record<string, unknown> | null = null;
+    try {
+      data = respostaBruta ? JSON.parse(respostaBruta) : null;
+    } catch {
+      data = null;
+    }
+    if (!data || typeof data !== "object") {
+      const detalhe = respostaBruta.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 180);
+      const rotaAusente = response.status === 404 || respostaBruta.includes("Cannot POST");
       return NextResponse.json(
-        { success: false, error: rotaAusente ? "O backend de assinaturas está desatualizado. Publique o arquivo assinatura-wolf-envelopes.js e reinicie o serviço." : `Backend retornou HTTP ${response.status} em formato inválido.` },
+        {
+          success: false,
+          error: rotaAusente
+            ? "O backend de assinaturas está desatualizado. Publique assinatura-wolf-envelopes.js e reinicie o serviço."
+            : `O backend de assinaturas retornou HTTP ${response.status} sem JSON${detalhe ? `: ${detalhe}` : "."}`,
+        },
         { status: response.status >= 400 ? response.status : 502, headers: { "Cache-Control": "private, no-store" } }
       );
     }
-    const data = await response.json();
     return NextResponse.json(data, { status: response.status, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     const falha = respostaErroContratos(error);
