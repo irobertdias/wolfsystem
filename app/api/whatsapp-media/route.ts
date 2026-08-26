@@ -15,7 +15,20 @@ export async function GET(req: NextRequest) {
     if (error) throw error;
     const referencia = (referencias || []).find((item) => String(item.mensagem || "").includes(filename));
     if (!referencia) return NextResponse.json({ error: "Mídia não pertence a este workspace" }, { status: 403 });
-    await exigirAtendimentoDoUsuario(acesso, String(referencia.numero || ""), String(referencia.canal_id || ""));
+    try {
+      await exigirAtendimentoDoUsuario(acesso, String(referencia.numero || ""), String(referencia.canal_id || ""));
+    } catch (erroCanalHistorico) {
+      const { data: atendimentoAtual, error: erroAtendimento } = await supabaseServer
+        .from("atendimentos")
+        .select("id")
+        .eq("workspace_id", acesso.workspaceId)
+        .eq("numero", String(referencia.numero || ""))
+        .ilike("atendente", acesso.email)
+        .limit(1)
+        .maybeSingle();
+      if (erroAtendimento) throw erroAtendimento;
+      if (!atendimentoAtual) throw erroCanalHistorico;
+    }
     const range = req.headers.get("range");
     const upstream = await fetch(`${WHATSAPP_URL}/audios/${encodeURIComponent(filename)}`, { cache: "no-store", headers: { "ngrok-skip-browser-warning": "true", "x-wolf-internal-secret": segredoInternoWolf(), ...(range ? { Range: range } : {}) } });
     if (!upstream.ok || !upstream.body) return NextResponse.json({ error: `Mídia indisponível (${upstream.status})` }, { status: upstream.status === 404 ? 404 : 502 });
