@@ -117,7 +117,9 @@ export function useCanaisPermitidos(): EstadoCanaisPermitidos {
   // Helper: filtra um array pegando canal_id de cada item
   const filtrarPorCanal = useCallback(<T,>(itens: T[], getCanalId: (item: T) => number | null | undefined): T[] => {
     if (veTudoCanais) return itens;
-    if (!canaisPermitidos) return itens;  // ainda carregando — devolve tudo (evita "sumir" itens)
+    // Enquanto as permissões ainda estão sendo resolvidas, não exponha canais.
+    // A lista será recalculada assim que o carregamento terminar.
+    if (!canaisPermitidos) return [];
     return itens.filter(item => {
       const cid = getCanalId(item);
       if (cid === null || cid === undefined) return false;  // sem canal_id = filtra fora

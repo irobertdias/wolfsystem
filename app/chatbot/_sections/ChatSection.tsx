@@ -289,7 +289,11 @@ export function ChatSection() {
   const { workspace, wsId, user } = useWorkspace();
   const { permissoes, isDono } = usePermissao();
   // 📡 Trava de canais por usuário/grupo — controla quais conexões o user vê
-  const { veTudoCanais, canaisPermitidos } = useCanaisPermitidos();
+  const {
+    veTudoCanais,
+    canaisPermitidos,
+    loading: canaisPermissoesLoading,
+  } = useCanaisPermitidos();
   // 🆕 Softphone — botão de ligar chama iniciarChamada(numero, nome)
   const { iniciarChamada } = useSoftphone();
   // 👥 Filtro de equipe (mesmo padrão de Vendas / Contatos / Dashboard)
@@ -1224,6 +1228,10 @@ export function ChatSection() {
 
   const fetchAtendimentos = async () => {
     if (!wsId) return;
+    if (!veTudoCanais && canaisPermissoesLoading) {
+      setAtendimentos([]);
+      return;
+    }
     // 🆕 Paginação — Supabase corta em 1000 por query. Pra pegar até LIMITE_ATIVOS (5000),
     // faz 5 queries de 1000 em 1000 ordenadas por updated_at desc.
     // Antes só trazia 1000, então atendimentos antigos sumiam da lista mesmo estando no banco.
@@ -1291,12 +1299,14 @@ export function ChatSection() {
     // Registros antigos criados indevidamente por canais exclusivos de
     // validação também ficam fora do chat. Nada é apagado do banco.
     let listaFinal = lista.filter(a => !canaisExclusivosValidacaoRef.current.has(Number(a.canal_id)));
-    if (!veTudoCanais && canaisPermitidos) {
-      listaFinal = listaFinal.filter(a => {
-        // Atendimento sem canal_id → fica de fora (não tem como decidir, mais seguro esconder)
-        if (a.canal_id === null || a.canal_id === undefined) return false;
-        return canaisPermitidos.has(Number(a.canal_id));
-      });
+    if (!veTudoCanais) {
+      listaFinal = canaisPermitidos
+        ? listaFinal.filter(a => {
+            // Atendimento sem canal_id → fica de fora (não tem como decidir, mais seguro esconder)
+            if (a.canal_id === null || a.canal_id === undefined) return false;
+            return canaisPermitidos.has(Number(a.canal_id));
+          })
+        : [];
     }
 
     setAtendimentos(listaFinal);
@@ -1646,7 +1656,14 @@ export function ChatSection() {
       .subscribe();
     const polling = setInterval(() => fetchAtendimentos(), 5000);
     return () => { supabase.removeChannel(ch); clearInterval(polling); };
-  }, [wsId, workspace?.owner_email, user?.email]);
+  }, [
+    wsId,
+    workspace?.owner_email,
+    user?.email,
+    veTudoCanais,
+    canaisPermissoesLoading,
+    canaisPermitidos,
+  ]);
 
   // 🆕 useEffect próprio pro mapa de etiquetas por atendimento.
   // Roda quando: lista de atendimentos muda OU alguma relação atendimento_etiqueta muda no banco.
@@ -3215,7 +3232,7 @@ export function ChatSection() {
                           )}
                           {midia.tipo === "file" && (
                             <div>
-                              <a href={audioUrl(midia.filename, msg.canal_id)} target="_blank" rel="noreferrer" download
+                              <a href={audioUrl(midia.filename, msg.canal_id)} target="_blank" rel="noreferrer"
                                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(255,255,255,0.72)", border: "1px solid rgba(84,101,111,0.16)", borderRadius: 7, textDecoration: "none" }}>
                                 <span style={{ fontSize: 32 }}>{iconePorExtensao(midia.filename)}</span>
                                 <div style={{ flex: 1, minWidth: 0 }}>
