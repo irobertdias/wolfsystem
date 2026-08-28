@@ -66,7 +66,7 @@ type IntegridadeWaba = {
 type JobRecuperacao = {
   id: string;
   canalId: number;
-  status: "aguardando" | "processando" | "concluido" | "erro";
+  status: "aguardando" | "processando" | "concluido" | "cancelado" | "erro";
   etapa: string;
   inicio: string;
   fim: string;
@@ -436,58 +436,8 @@ export function ConexoesSection() {
     return () => { ativo = false; clearInterval(intervalo); };
   }, [chaveCanaisWaba]);
 
-  const iniciarRecuperacaoAposQr = async (canalId: number) => {
-    if (!qrRecuperarAusentes || recuperacaoQrIniciadaRef.current === canalId) return;
-
-    const canal = conexoes.find((item) => item.id === canalId);
-    if (!canal) {
-      notify(
-        "WhatsApp conectado",
-        "aviso",
-        "Atualize a página e use Recuperar conversas no menu do canal para importar o histórico"
-      );
-      return;
-    }
-
-    recuperacaoQrIniciadaRef.current = canalId;
-    const horas = Number(qrRecuperacaoHoras);
-    const agora = new Date();
-    const local = (data: Date) => {
-      const ajustada = new Date(data.getTime() - data.getTimezoneOffset() * 60000);
-      return ajustada.toISOString().slice(0, 16);
-    };
-
-    setCanalRecuperacao(canal);
-    setPeriodoRecuperacao(String(horas));
-    setInicioRecuperacao(local(new Date(agora.getTime() - horas * 60 * 60 * 1000)));
-    setFimRecuperacao(local(agora));
-    setJobRecuperacao(null);
-    setIniciandoRecuperacao(true);
-
-    try {
-      const data = await wa("sincronizar-conversas", {
-        canalId: canal.id,
-        workspaceId: canal.workspace_id,
-        horas,
-        origem: "pos_qr",
-      });
-      if (!data?.success || !data?.job) {
-        recuperacaoQrIniciadaRef.current = null;
-        notify("WhatsApp conectou, mas a recuperação não iniciou", "erro", traduzirErro(data));
-        return;
-      }
-      setJobRecuperacao(data.job);
-      notify(
-        data.existente ? "Recuperação já estava em andamento" : "Recuperação iniciada",
-        "sucesso",
-        `Comparando as últimas ${horas === 6 ? "6 horas" : horas === 24 ? "24 horas" : "3 dias"} com o CRM`
-      );
-    } catch (e: any) {
-      recuperacaoQrIniciadaRef.current = null;
-      notify("WhatsApp conectou, mas a recuperação não iniciou", "erro", traduzirErro(e));
-    } finally {
-      setIniciandoRecuperacao(false);
-    }
+  const iniciarRecuperacaoAposQr = async (_canalId: number) => {
+    // Segurança: nunca varrer histórico logo após autenticar. A recuperação é somente manual.
   };
   // 🆕 POLLING RÁPIDO + DETECÇÃO VIA ESTADO
   useEffect(() => {
@@ -796,6 +746,7 @@ export function ConexoesSection() {
     const body: Record<string, any> = {
       canalId: canalRecuperacao.id,
       workspaceId: canalRecuperacao.workspace_id,
+      origem: "manual",
     };
     if (periodoRecuperacao === "personalizado") {
       const inicio = new Date(inicioRecuperacao);
@@ -830,8 +781,27 @@ export function ConexoesSection() {
     }
   };
 
+  const cancelarRecuperacao = async () => {
+    if (!canalRecuperacao || !jobRecuperacao?.id) return;
+    try {
+      const data = await wa("sincronizar-conversas/cancelar", {
+        canalId: canalRecuperacao.id,
+        workspaceId: canalRecuperacao.workspace_id,
+        jobId: jobRecuperacao.id,
+      });
+      if (!data?.success || !data?.job) {
+        notify("Não foi possível cancelar", "erro", traduzirErro(data));
+        return;
+      }
+      setJobRecuperacao(data.job);
+      notify("Recuperação cancelada", "aviso", "Nenhuma nova conversa será consultada.");
+    } catch (e: any) {
+      notify("Não foi possível cancelar", "erro", traduzirErro(e));
+    }
+  };
+
   useEffect(() => {
-    if (!canalRecuperacao || !jobRecuperacao?.id || ["concluido", "erro"].includes(jobRecuperacao.status)) return;
+    if (!canalRecuperacao || !jobRecuperacao?.id || ["concluido", "cancelado", "erro"].includes(jobRecuperacao.status)) return;
     let ativo = true;
     const consultar = async () => {
       try {
@@ -845,7 +815,7 @@ export function ConexoesSection() {
         if (!ativo || !data?.success || !data?.job) return;
         const atualizado = data.job as JobRecuperacao;
         setJobRecuperacao(atualizado);
-        if (["concluido", "erro"].includes(atualizado.status) && !jobsRecuperacaoNotificados.current.has(atualizado.id)) {
+        if (["concluido", "cancelado", "erro"].includes(atualizado.status) && !jobsRecuperacaoNotificados.current.has(atualizado.id)) {
           jobsRecuperacaoNotificados.current.add(atualizado.id);
           if (atualizado.status === "concluido") {
             notify(
@@ -853,6 +823,8 @@ export function ConexoesSection() {
               "sucesso",
               `${atualizado.recebidas} recebida(s), ${atualizado.enviadas} enviada(s) e ${atualizado.duplicadas} já existente(s)`
             );
+          } else if (atualizado.status === "cancelado") {
+            notify("Recuperação cancelada", "aviso", "Nenhuma nova conversa será consultada.");
           } else {
             notify("Recuperação interrompida", "erro", atualizado.erro || "Consulte os logs do canal");
           }
@@ -1043,48 +1015,11 @@ export function ConexoesSection() {
               </div>
             )}
 
-            <div style={{ background: qrRecuperarAusentes ? "#eff6ff" : "#f8fafc", border: `1px solid ${qrRecuperarAusentes ? "#93c5fd" : "#e5e7eb"}`, borderRadius: 12, padding: 14, marginBottom: 16, textAlign: "left" }}>
-              <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={qrRecuperarAusentes}
-                  onChange={(e) => setQrRecuperarAusentes(e.target.checked)}
-                  style={{ marginTop: 2, width: 16, height: 16 }}
-                />
-                <span>
-                  <strong style={{ display: "block", color: "#1f2937", fontSize: 13 }}>Recuperar conversas ausentes do CRM</strong>
-                  <span style={{ display: "block", color: "#64748b", fontSize: 11, lineHeight: 1.45, marginTop: 3 }}>
-                    Após conectar, compara o histórico do WhatsApp Web e importa somente as mensagens que ainda não estão no CRM.
-                  </span>
-                </span>
-              </label>
-              {qrRecuperarAusentes && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 12 }}>
-                  {[
-                    { valor: "6", rotulo: "6 horas" },
-                    { valor: "24", rotulo: "1 dia" },
-                    { valor: "72", rotulo: "3 dias" },
-                  ].map((opcao) => (
-                    <button
-                      key={opcao.valor}
-                      type="button"
-                      onClick={() => setQrRecuperacaoHoras(opcao.valor)}
-                      style={{
-                        background: qrRecuperacaoHoras === opcao.valor ? "#2563eb" : "#fff",
-                        color: qrRecuperacaoHoras === opcao.valor ? "#fff" : "#475569",
-                        border: `1px solid ${qrRecuperacaoHoras === opcao.valor ? "#2563eb" : "#cbd5e1"}`,
-                        borderRadius: 8,
-                        padding: "8px 6px",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {opcao.rotulo}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 12, padding: 14, marginBottom: 16, textAlign: "left" }}>
+              <strong style={{ display: "block", color: "#92400e", fontSize: 13 }}>Recuperação somente manual</strong>
+              <span style={{ display: "block", color: "#78350f", fontSize: 11, lineHeight: 1.5, marginTop: 4 }}>
+                Por segurança, o histórico não é consultado após o QR. Conecte o canal, aguarde estabilizar e use “Recuperar conversas” no menu do canal.
+              </span>
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button onClick={() => { setShowModalQR(false); setQrPolling(false); setQrImageUrl(""); setQrTentativas(0); }} style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Fechar</button>
@@ -1773,6 +1708,15 @@ export function ConexoesSection() {
 
             <div style={{ padding: "14px 22px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => setCanalRecuperacao(null)} style={{ background: "#fff", color: "#475569", border: "1px solid #cbd5e1", borderRadius: 9, padding: "9px 15px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Fechar</button>
+              {!!jobRecuperacao && ["aguardando", "processando"].includes(jobRecuperacao.status) && (
+                <button
+                  type="button"
+                  onClick={cancelarRecuperacao}
+                  style={{ background: "#fff", color: "#b91c1c", border: "1px solid #fca5a5", borderRadius: 9, padding: "9px 15px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                >
+                  Cancelar recuperação
+                </button>
+              )}
               <button
                 onClick={iniciarRecuperacao}
                 disabled={iniciandoRecuperacao || (!!jobRecuperacao && ["aguardando", "processando"].includes(jobRecuperacao.status))}
