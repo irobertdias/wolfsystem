@@ -32,7 +32,7 @@ type JobValidacao = {
 };
 type Resultado = ItemJob & { status: "com_whatsapp" | "sem_whatsapp" | "invalido" };
 
-const LIMITE = 500;
+const LIMITE = 10_000;
 const MODULO_CANAL = "validacao_numeros";
 
 function separarEntradas(texto: string) {
@@ -322,7 +322,7 @@ export default function ValidacaoNumerosPage() {
       </section>
 
       <section style={{ ...card, padding: 20, display: "grid", gap: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: "0 0 5px", fontSize: 17 }}>Lista para higieniza&ccedil;&atilde;o</h2><p style={{ margin: 0, color: "#64748b", fontSize: 12 }}>Cole um n&uacute;mero por linha ou importe CSV/TXT. Limite: {LIMITE} por consulta.</p></div><button onClick={() => arquivoRef.current?.click()} style={{ ...button, background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}>Importar CSV/TXT</button></div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: "0 0 5px", fontSize: 17 }}>Lista para higieniza&ccedil;&atilde;o</h2><p style={{ margin: 0, color: "#64748b", fontSize: 12 }}>Cole um n&uacute;mero por linha ou importe CSV/TXT. Limite: {LIMITE.toLocaleString("pt-BR")} por consulta.</p><p style={{ margin: "5px 0 0", color: "#b45309", fontSize: 12 }}>Listas grandes s&atilde;o processadas lentamente, com intervalos aleat&oacute;rios e pausas de seguran&ccedil;a entre lotes. A valida&ccedil;&atilde;o de 10 mil n&uacute;meros pode levar v&aacute;rias horas.</p></div><button onClick={() => arquivoRef.current?.click()} style={{ ...button, background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}>Importar CSV/TXT</button></div>
         <input ref={arquivoRef} type="file" accept=".csv,.txt,text/csv,text/plain" hidden onChange={(e) => importarArquivo(e.target.files?.[0])}/>
         <textarea value={texto} onChange={(e) => { setTexto(e.target.value); setJob(null); }} placeholder={"5562999999999\n5562888888888"} style={{ ...input, minHeight: 190, resize: "vertical", fontFamily: "ui-monospace,monospace" }}/>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}><span style={{ color: entradas.length > LIMITE ? "#dc2626" : "#475569", fontSize: 12, fontWeight: 800 }}>{entradas.length} n&uacute;mero(s) &uacute;nico(s)</span><button disabled={validando || !entradas.length || canalAtual?.status !== "conectado"} onClick={iniciarValidacao} style={{ ...button, background: "#2563eb", color: "#fff", opacity: validando || canalAtual?.status !== "conectado" ? .55 : 1 }}>{validando ? "Validando..." : "Validar lista"}</button></div>
