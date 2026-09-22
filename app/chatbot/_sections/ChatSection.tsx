@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabase";
+import { nomeArquivoAudio, lerRespostaAudio } from "../../lib/audio-envio";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useSoftphone } from "../../hooks/useSoftphone";
@@ -2393,6 +2394,8 @@ export function ChatSection() {
     await new Promise<void>((resolve) => { recorder.onstop = () => resolve(); try { recorder.stop(); } catch { resolve(); } });
     pararStream(); setGravando(false);
     try {
+      const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || audioChunksRef.current[0]?.type || "application/octet-stream" });
+      if (!blob.size) throw new Error("A gravação ficou vazia. Grave o áudio novamente.");
       const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
       const tipoCanal = canalAtual?.tipo;
       const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
@@ -2402,10 +2405,9 @@ export function ChatSection() {
         else if (tipoCanal === "messenger") origem = "messenger";
         else if (atendimentoAtivo.origem) origem = atendimentoAtivo.origem;
         else { const ultimaCliente = [...historico].reverse().find(m => m.de === "cliente" && m.origem); origem = ultimaCliente?.origem || "messenger"; }
-        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         audioChunksRef.current = [];
         const fd = new FormData();
-        const file = new File([blob], `audio_${Date.now()}.webm`, { type: blob.type });
+        const file = new File([blob], nomeArquivoAudio(blob.type), { type: blob.type });
         fd.append("arquivo", file);
         fd.append("recipientId", atendimentoAtivo.numero);
         fd.append("canalId", String(atendimentoAtivo.canal_id));
@@ -2413,26 +2415,23 @@ export function ChatSection() {
         fd.append("atendimentoId", String(atendimentoAtivo.id));
         fd.append("origem", origem);
         const r = await fetch("/api/meta?rota=send/enviar-midia-arquivo", { method: "POST", body: fd });
-        const data = await r.json();
-        if (!(data.success || data.sucesso)) { notify(traduzirErro(data.erro || data.error || "Erro ao enviar áudio"), "erro"); }
-        else refletirAtividadeAtendimento(
+        await lerRespostaAudio(r);
+        refletirAtividadeAtendimento(
           { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
           "Áudio enviado",
           new Date().toISOString(),
           true,
         );
       } else {
-        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         audioChunksRef.current = [];
         const form = new FormData();
-        form.append("audio", blob);
+        form.append("audio", blob, nomeArquivoAudio(blob.type));
         form.append("numero", atendimentoAtivo.numero);
         form.append("canalId", String(atendimentoAtivo.canal_id));
         form.append("workspaceId", String(wsId));
         const resp = await fetch("/api/whatsapp-audio", { method: "POST", body: form });
-        const data = await resp.json();
-        if (!data.success) notify(traduzirErro(data.error || "Erro ao enviar áudio"), "erro");
-        else refletirAtividadeAtendimento(
+        await lerRespostaAudio(resp);
+        refletirAtividadeAtendimento(
           { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
           "Áudio enviado",
           new Date().toISOString(),

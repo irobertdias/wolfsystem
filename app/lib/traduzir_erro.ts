@@ -163,6 +163,8 @@ export function traduzirErro(err: any): string {
     return "Token de acesso expirou. Reconecte o canal nas Configurações.";
 
   // WhatsApp Web / Puppeteer / WebJS
+  if (m.includes("data passed to getter must include an id property"))
+    return "Falha interna no envio pelo WhatsApp Web. O suporte precisa verificar a integração de mídias do canal.";
   if (m.includes("detached frame") || m.includes("frame was detached"))
     return "A sessão do WhatsApp Web desconectou. Vamos reconectar automaticamente em alguns segundos.";
   if (m.includes("session closed") || m.includes("protocol error") || m.includes("target closed"))
