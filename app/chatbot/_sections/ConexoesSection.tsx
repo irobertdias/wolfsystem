@@ -443,17 +443,28 @@ export function ConexoesSection() {
   useEffect(() => {
     if (!qrPolling || !showModalQR || !qrCanalId) return;
     let tentativas = 0;
-    const interval = setInterval(async () => {
+    let cancelado = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const controller = new AbortController();
+    const consultar = async () => {
       tentativas++;
       setQrTentativas(tentativas);
       try {
-        const resp = await fetch(`/api/whatsapp?rota=qr-data&canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store" });
+        const resp = await fetch(`/api/whatsapp?rota=qr-data&canalId=${qrCanalId}&workspaceId=${encodeURIComponent(wsId || "")}`, { cache: "no-store", signal: controller.signal });
         if (!resp.ok) { console.warn(`[QR poll] status HTTP ${resp.status} — tentativa ${tentativas}`); return; }
         const data = await resp.json();
+        if (cancelado) return;
+        if (data.erro) {
+          cancelado = true;
+          setQrPolling(false);
+          notify("Falha ao gerar QR Code", "erro", traduzirErro(data.erro));
+          return;
+        }
         if (data.qr && data.qr !== qrImageUrl) setQrImageUrl(data.qr);
         console.log(`[QR poll #${tentativas}] canal=${qrCanalId} status=${data.status} numero=${data.numero || "—"}`);
         if (data.status === "conectado") {
           console.log(`[QR poll] ✅ DETECTOU CONEXÃO — fechando modal`);
+          cancelado = true;
           setQrConectado(true);
           setQrNumero(data.numero || "");
           setQrPolling(false);
@@ -463,9 +474,11 @@ export function ConexoesSection() {
           await iniciarRecuperacaoAposQr(qrCanalId);
           setTimeout(() => { setShowModalQR(false); setQrImageUrl(""); setQrTentativas(0); }, 800);
         }
-      } catch (e: any) { console.warn(`[QR poll] erro fetch:`, e?.message || e); }
-    }, 1500);
-    return () => clearInterval(interval);
+      } catch (e: unknown) { if (!cancelado) console.warn(`[QR poll] erro fetch:`, e instanceof Error ? e.message : String(e)); }
+      finally { if (!cancelado) timer = setTimeout(consultar, 1500); }
+    };
+    void consultar();
+    return () => { cancelado = true; clearTimeout(timer); controller.abort(); };
   }, [qrPolling, showModalQR, qrCanalId, qrRecuperarAusentes, qrRecuperacaoHoras]);
 
   // 🆕 PLANO B — observa estado `conexoes` via Realtime
@@ -700,11 +713,17 @@ export function ConexoesSection() {
   const abrirQR = async (id: number) => {
     const canal = conexoes.find(c => c.id === id);
     if (!canal) return;
-    setQrCanalId(id); setResetando(true); setShowModalQR(true);
+    setQrPolling(false); setQrCanalId(id); setResetando(true); setShowModalQR(true);
     setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0); setQrRecuperarAusentes(false); setQrRecuperacaoHoras("24"); recuperacaoQrIniciadaRef.current = null;
-    try { await wa("resetar", { canalId: id, workspaceId: canal.workspace_id }); } catch (e) {}
-    await supabase.from("conexoes").update({ status: "desconectado", numero: "" }).eq("id", id).eq("workspace_id", canal.workspace_id);
-    await fetchConexoes(); setResetando(false); setQrPolling(true);
+    try {
+      const resposta = await wa("resetar", { canalId: id, workspaceId: canal.workspace_id });
+      if (!resposta?.success) throw new Error(resposta?.error || "O servidor nao iniciou a geracao do QR Code.");
+      setQrPolling(true);
+      void fetchConexoes();
+    } catch (erro) {
+      setQrPolling(false);
+      notify("Falha ao gerar QR Code", "erro", traduzirErro(erro));
+    } finally { setResetando(false); }
   };
 
   const reconectarCanal = async (c: Conexao) => {
