@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabase";
+import { chaveMensagem, mesclarHistorico, atualizarRecibo, criarSincronizadorHistorico, type MensagemHistorico } from "../../lib/historico-mensagens";
 import { nomeArquivoAudio, lerRespostaAudio } from "../../lib/audio-envio";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
@@ -27,28 +28,10 @@ type Atendimento = {
   // Usado pra contar mensagens "não lidas" (mensagens do cliente com created_at > visualizado_em).
   visualizado_em?: string | null;
 };
-type Mensagem = { id?: number; created_at?: string; numero: string; mensagem: string; de: string; workspace_id?: string; canal_id?: number; origem?: string; provider_message_id?: string | null; status_entrega?: string | null; };
+type Mensagem = MensagemHistorico;
 type Etiqueta = { id: number; nome: string; cor: string; icone: string; };
 type UsuarioWs = { email: string; nome: string; fila?: string | null; };
 type CanalInfo = { id: number; nome: string; tipo: string; modulos?: string[] | null; };
-
-// Realtime e polling podem entregar a mesma linha quase ao mesmo tempo. Mantemos
-// apenas uma ocorrência por id (ou pelo identificador do provedor) antes de renderizar.
-const chaveMensagem = (msg: Mensagem) => {
-  if (msg.id !== undefined && msg.id !== null) return `id:${msg.id}`;
-  if (msg.provider_message_id) return `provider:${msg.provider_message_id}`;
-  return `fallback:${msg.workspace_id || ""}:${msg.canal_id || ""}:${msg.numero}:${msg.de}:${msg.created_at || ""}:${msg.mensagem}`;
-};
-
-const deduplicarMensagens = (mensagens: Mensagem[]) => {
-  const vistas = new Set<string>();
-  return mensagens.filter(msg => {
-    const chave = chaveMensagem(msg);
-    if (vistas.has(chave)) return false;
-    vistas.add(chave);
-    return true;
-  });
-};
 
 const statusLeituraMensagem = (status?: string | null) => {
   const valor = String(status || "").trim().toLowerCase();
@@ -391,6 +374,7 @@ export function ChatSection() {
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [atendimentoAtivo, setAtendimentoAtivo] = useState<Atendimento | null>(null);
   const [historico, setHistorico] = useState<Mensagem[]>([]);
+  const sincronizadorHistoricoRef = useRef<{ workspace: string; numero: string; canal?: number; atualizar: () => Promise<void> } | null>(null);
   const [enviandoMsg, setEnviandoMsg] = useState(false);
   // Trava síncrona: o state só atualiza no próximo render e permitia dois disparos
   // quando Enter/clique aconteciam quase juntos.
@@ -1353,15 +1337,10 @@ export function ChatSection() {
   };
 
   const fetchHistorico = async (numero: string, canalId?: number) => {
-    if (!wsId) return;  // 🔒 SEGURANÇA: sem wsId, não busca nada (evita vazamento)
-    // 🔒 MULTI-TENANT: sempre filtra por workspace_id — antes vazava mensagens entre workspaces
-    // que tivessem o mesmo número (ex: lead da Abc + lead da RM TELECOM com mesmo telefone).
-    let query = supabase.from("mensagens").select("*")
-      .eq("numero", numero)
-      .eq("workspace_id", wsId);
-    if (canalId) query = query.eq("canal_id", canalId);
-    const { data } = await query.order("created_at", { ascending: true });
-    setHistorico(deduplicarMensagens((data || []) as Mensagem[]));
+    const sessao = sincronizadorHistoricoRef.current;
+    if (sessao && sessao.workspace === String(wsId) && sessao.numero === String(numero) && sessao.canal === canalId) {
+      await sessao.atualizar();
+    }
   };
 
   // 🆕 Atualizar manualmente — chamado pelo botão 🔄 da toolbar.
@@ -1812,64 +1791,75 @@ export function ChatSection() {
   }, [naoLidasPorAtendimento, atendimentos, isDono, permissoes.chat_proprio, permissoes.chat_todos, user?.email]);
 
   useEffect(() => {
-    if (!atendimentoAtivo) { setEtiquetasAtendimento([]); return; }
     setHistorico([]);
-    // 🆕 Ao abrir um atendimento NOVO, reseta o sticky pra true e esconde o badge —
-    // o user acabou de entrar no chat, faz sentido ir pro fundo.
+    if (!wsId || !atendimentoAtivo) { setEtiquetasAtendimento([]); return; }
+    let ativo = true;
+    const num = atendimentoAtivo.numero;
+    const cId = atendimentoAtivo.canal_id;
+    const pertence = (m: Partial<Mensagem>, parcial = false) =>
+      (parcial && m.workspace_id == null || String(m.workspace_id) === String(wsId)) &&
+      (parcial && m.numero == null || String(m.numero) === String(num)) &&
+      (!cId || parcial && m.canal_id == null || String(m.canal_id) === String(cId));
+    const sincronizador = criarSincronizadorHistorico(
+      async (inicial, signal) => {
+        const mensagens: Mensagem[] = [];
+        const tamanho = inicial ? 500 : 200;
+        // Na abertura pagina todo o histórico. Nas sincronizações busca as mais
+        // recentes, evitando o limite que antes escondia o fim de chats longos.
+        for (let inicio = 0; ; inicio += tamanho) {
+          let query = supabase.from("mensagens").select("*")
+            .eq("numero", num).eq("workspace_id", wsId);
+          if (cId) query = query.eq("canal_id", cId);
+          const { data, error } = await query.order("created_at", { ascending: false })
+            .order("id", { ascending: false }).range(inicio, inicio + tamanho - 1).abortSignal(signal);
+          if (error) throw error;
+          if (signal.aborted) return [];
+          mensagens.push(...(data || []) as Mensagem[]);
+          if (!inicial || (data || []).length < tamanho) break;
+        }
+        return mensagens.filter(m => pertence(m));
+      },
+      mensagens => setHistorico(anterior => ativo ? mesclarHistorico(anterior, mensagens) : anterior),
+      erro => console.warn("Falha ao sincronizar mensagens; nova tentativa automática:", erro),
+    );
+    sincronizadorHistoricoRef.current = { workspace: String(wsId), numero: String(num), canal: cId, atualizar: sincronizador.atualizar };
     setStickyFundo(true);
     setTemMensagemNova(false);
-    fetchHistorico(atendimentoAtivo.numero, atendimentoAtivo.canal_id);
+    void sincronizador.atualizar();
     fetchEtiquetasAtendimento(atendimentoAtivo.id);
-    const num = atendimentoAtivo.numero; const cId = atendimentoAtivo.canal_id;
-    // 🔒 SEGURANÇA MULTI-TENANT: filter `workspace_id=eq.${wsId}` no postgres_changes garante
-    // que o canal só recebe INSERTs deste workspace. Antes recebia de TODOS workspaces e filtrava
-    // no JS — vulnerável (e desperdiçava ciclos). Agora o Postgres filtra na fonte.
     const ch = supabase.channel(`msgs_${wsId}_${num}_${Date.now()}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens", filter: `workspace_id=eq.${wsId}` }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens", filter: `workspace_id=eq.${wsId}` }, payload => {
         const m = payload.new as Mensagem;
-        // Defesa extra: confere workspace mesmo após filter (não custa nada)
-        if (m.workspace_id !== wsId) return;
-        if (m.numero === num && (!cId || m.canal_id === cId)) {
-          setHistorico(p => deduplicarMensagens([...p, m]));
-          refletirAtividadeAtendimento(
-            { numero: m.numero, canalId: m.canal_id },
-            m.mensagem,
-            m.created_at || new Date().toISOString(),
-          );
-          // 🆕 Se o user está scrollado pra cima lendo msg antiga, NÃO arrasta ele pra baixo —
-          // apenas sinaliza que chegou msg nova. Ele decide quando descer clicando no badge.
-          if (!stickyFundoRef.current) {
-            setTemMensagemNova(true);
-          }
-        }
+        if (!ativo || !pertence(m)) return;
+        setHistorico(anterior => ativo ? mesclarHistorico(anterior, [m]) : anterior);
+        refletirAtividadeAtendimento({ numero: m.numero, canalId: m.canal_id }, m.mensagem, m.created_at || new Date().toISOString());
+        if (!stickyFundoRef.current) setTemMensagemNova(true);
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mensagens", filter: `workspace_id=eq.${wsId}` }, (payload) => {
-        const atualizada = payload.new as Mensagem;
-        // O Realtime pode devolver bigint/numeric como string dependendo do driver.
-        // Normalize antes de comparar para não descartar um recibo de leitura válido.
-        if (String(atualizada.workspace_id || "") !== String(wsId || "")) return;
-        if (String(atualizada.numero || "") !== String(num || "")) return;
-        if (cId && Number(atualizada.canal_id || 0) !== Number(cId)) return;
-        setHistorico(anterior => {
-          let mudou = false;
-          const proximo = anterior.map(item => {
-            const mesmoId = item.id !== undefined && atualizada.id !== undefined && String(item.id) === String(atualizada.id);
-            const mesmoProvider = !!item.provider_message_id && String(item.provider_message_id) === String(atualizada.provider_message_id || "");
-            if (!mesmoId && !mesmoProvider) return item;
-            if (item.status_entrega !== atualizada.status_entrega) mudou = true;
-            return { ...item, ...atualizada };
-          });
-          return mudou ? proximo : anterior;
-        });
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mensagens", filter: `workspace_id=eq.${wsId}` }, payload => {
+        const m = payload.new as Partial<Mensagem>;
+        if (!ativo || !pertence(m, true)) return;
+        // Eventos parciais são aplicados apenas a IDs já presentes neste chat.
+        setHistorico(anterior => ativo ? atualizarRecibo(anterior, m) : anterior);
       }).subscribe(status => {
+        if (!ativo) return;
+        if (status === "SUBSCRIBED") void sincronizador.atualizar();
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          console.warn("Realtime de mensagens indisponível; sincronização automática de segurança permanece ativa.", status);
+          console.warn("Realtime de mensagens indisponível; sincronização automática permanece ativa.", status);
         }
       });
-    // O Realtime é instantâneo. Este polling leve cobre quedas temporárias do websocket
-    // e impede que o operador precise atualizar a página manualmente.
-    const polling = setInterval(() => fetchHistorico(num, cId), 1250);
-    return () => { supabase.removeChannel(ch); clearInterval(polling); };
+    const polling = setInterval(() => { void sincronizador.atualizar(); }, 1250);
+    const atualizarAoRetornar = () => { if (document.visibilityState === "visible") void sincronizador.atualizar(); };
+    window.addEventListener("focus", atualizarAoRetornar);
+    document.addEventListener("visibilitychange", atualizarAoRetornar);
+    return () => {
+      ativo = false;
+      sincronizador.encerrar();
+      sincronizadorHistoricoRef.current = null;
+      void supabase.removeChannel(ch);
+      clearInterval(polling);
+      window.removeEventListener("focus", atualizarAoRetornar);
+      document.removeEventListener("visibilitychange", atualizarAoRetornar);
+    };
   }, [wsId, atendimentoAtivo?.numero, atendimentoAtivo?.id, atendimentoAtivo?.canal_id]);
 // 🔧 FIX: SINCRONIZA atendimentoAtivo COM DADOS MAIS RECENTES DO ARRAY atendimentos
   // Antes: ao clicar "Parar BOT", "Assumir", etc, o DB atualizava e fetchAtendimentos()
@@ -2633,7 +2623,6 @@ export function ChatSection() {
   const abrirAtendimento = async (a: Atendimento) => {
     setAtendimentoAtivo(a);
     setHistorico([]);
-    fetchHistorico(a.numero, a.canal_id);
     setNaoLidasPorAtendimento(prev => { const novo = { ...prev }; delete novo[a.id]; return novo; });
     if (ultimaQtdNaoLidasRef.current[a.id]) { ultimaQtdNaoLidasRef.current = { ...ultimaQtdNaoLidasRef.current, [a.id]: 0 }; }
     try {
