@@ -53,7 +53,7 @@ function exigirPermissaoDaRota(acesso: AcessoWolf, rota: string, metodo: string)
   if (rota === "voip/conexoes/listar" && metodo === "GET") return exigirPermissao(acesso, "voip_usar", "voip_conexoes");
   if (rota.startsWith("voip/conexao") || rota.startsWith("voip/conexoes")) return exigirPermissao(acesso, "voip_conexoes");
   if (rota.startsWith("voip/")) return exigirPermissao(acesso, "voip_usar", "voip_conexoes");
-  if (rota.startsWith("canal/") || ["configurar-ia", "resetar", "reconectar", "sincronizar-conversas", "desconectar"].some((item) => rota === item || rota.startsWith(item + "/"))) return exigirPermissao(acesso, "conexoes");
+  if (rota.startsWith("canal/") || ["configurar-ia", "iniciar-qr", "resetar", "reconectar", "sincronizar-conversas", "desconectar"].some((item) => rota === item || rota.startsWith(item + "/"))) return exigirPermissao(acesso, "conexoes");
   if (["enviar", "enviar-template", "enviar-midia-url", "apagar-mensagem", "assumir", "finalizar", "devolver"].includes(rota)) { if (rota === "finalizar") return exigirPermissao(acesso, "finalizar_chat"); if (rota === "devolver") return exigirPermissao(acesso, "transferir_chat"); return exigirPermissao(acesso, "chat_proprio", "chat_todos"); }
   if (metodo === "GET") return exigirPermissao(acesso, "chat_proprio", "chat_todos", "conexoes");
   exigirPermissao(acesso, "administrador");

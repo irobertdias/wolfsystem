@@ -716,8 +716,10 @@ export function ConexoesSection() {
     setQrPolling(false); setQrCanalId(id); setResetando(true); setShowModalQR(true);
     setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0); setQrRecuperarAusentes(false); setQrRecuperacaoHoras("24"); recuperacaoQrIniciadaRef.current = null;
     try {
-      const resposta = await wa("resetar", { canalId: id, workspaceId: canal.workspace_id });
+      let resposta = await wa("iniciar-qr", { canalId: id, workspaceId: canal.workspace_id });
+      if (resposta?.upstreamStatus === 404) resposta = await wa("reconectar", { canalId: id, workspaceId: canal.workspace_id });
       if (!resposta?.success) throw new Error(resposta?.error || "O servidor nao iniciou a geracao do QR Code.");
+      if (resposta.qr) setQrImageUrl(resposta.qr);
       setQrPolling(true);
       void fetchConexoes();
     } catch (erro) {
@@ -732,10 +734,13 @@ export function ConexoesSection() {
     try {
       const data = await wa("reconectar", { canalId: c.id, workspaceId: c.workspace_id });
       if (!data.success) { notify("Falha ao reconectar", "erro", traduzirErro(data)); return; }
-      await supabase.from("conexoes").update({ status: "desconectado" }).eq("id", c.id).eq("workspace_id", c.workspace_id);
       await fetchConexoes();
-      if (data.sessao_salva === false) {
-        notify(`${c.nome} não tem sessão salva`, "aviso", "O código QR será aberto para leitura");
+      if (data.conectado || data.status === "conectado") {
+        notify(`${c.nome} ja esta conectado`, "sucesso");
+        return;
+      }
+      if (data.sessao_salva === false || data.status === "aguardando_qr") {
+        notify(`${c.nome}: leia o QR para conectar`, "aviso", "O código QR será aberto para leitura");
         setQrCanalId(c.id); setResetando(false); setShowModalQR(true);
         setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0); setQrRecuperarAusentes(false); setQrRecuperacaoHoras("24"); recuperacaoQrIniciadaRef.current = null;
         setQrPolling(true);
