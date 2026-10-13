@@ -2147,9 +2147,7 @@ export function ChatSection() {
     return cat.emojis.filter(e => e.includes(emojiBusca));
   })();
 
-  const handleArquivoSelecionado = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const prepararArquivoParaEnvio = (file: File) => {
     const canalAtual = canais.find(c => c.id === atendimentoAtivo?.canal_id);
     const tipoCanal = canalAtual?.tipo;
     const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
@@ -2188,11 +2186,32 @@ export function ChatSection() {
       notify(`${tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1)} muito grande (${tamanhoMB} MB).`, "aviso", `Limite do WhatsApp pra ${tipoLabel}: ${limiteMB} MB. ${dica}`);
       if (fileUploadRef.current) fileUploadRef.current.value = ""; return;
     }
+    if (arquivoPreviewUrl) URL.revokeObjectURL(arquivoPreviewUrl);
     setArquivoSelecionado(file);
     if (file.type.startsWith("image/") || file.type.startsWith("video/")) { const url = URL.createObjectURL(file); setArquivoPreviewUrl(url); }
     else { setArquivoPreviewUrl(""); }
     setLegendaArquivo("");
     if (fileUploadRef.current) fileUploadRef.current.value = "";
+  };
+
+  const handleArquivoSelecionado = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) prepararArquivoParaEnvio(file);
+  };
+
+  const handleColarImagem = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const item = Array.from(e.clipboardData.items).find(item => item.kind === "file" && item.type.startsWith("image/"));
+    const imagem = item?.getAsFile() || Array.from(e.clipboardData.files).find(file => file.type.startsWith("image/"));
+    if (!imagem || !atendimentoAtivo) return;
+    e.preventDefault();
+    if (enviandoMidia || arquivoSelecionado) {
+      notify("Envie ou cancele o anexo atual antes de colar outra imagem.", "aviso");
+      return;
+    }
+    const extensao = imagem.type === "image/jpeg" ? "jpg" : imagem.type.split("/")[1] || "png";
+    const arquivo = imagem.name ? imagem : new File([imagem], "recorte-" + Date.now() + "." + extensao, { type: imagem.type });
+    prepararArquivoParaEnvio(arquivo);
+    setShowEmojiPicker(false);
   };
 
   const cancelarEnvioArquivo = () => {
@@ -3411,7 +3430,7 @@ export function ChatSection() {
                     <button onClick={abrirModalTemplate} title={janelaExpirada ? "Enviar template (janela 24h expirada)" : "Enviar template aprovado"}
                       style={{ background: janelaExpirada ? "#f59e0b" : "none", color: janelaExpirada ? "white" : "#8696a0", border: "none", borderRadius: "50%", width: 38, height: 38, fontSize: 18, cursor: "pointer", animation: janelaExpirada ? "pulse 2s infinite" : "none" }}>📋</button>
                   )}
-                  <textarea ref={mensagemTextareaRef} placeholder={isMobile ? "Mensagem" : (meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem")} value={mensagem}
+                  <textarea onPaste={handleColarImagem} ref={mensagemTextareaRef} placeholder={isMobile ? "Mensagem" : (meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem")} value={mensagem}
                     onChange={e => {
                       setMensagem(e.target.value);
                       if (e.target.value === "/" && permissoes.respostas_rapidas) setShowRespostas(true);
