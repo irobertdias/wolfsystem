@@ -8,17 +8,20 @@ import { useModulos } from "../../hooks/useModulos";
 import styles from "./page.module.css";
 import { empresaDoContrato, representantePadrao, formatarCnpj, type EmpresaContrato } from "../../lib/contratos-empresas";
 
+import { opcoesAssinatura, type OpcoesAssinatura } from "../../lib/assinatura-opcoes";
+
 type StatusFiltro = "todos" | "assinados" | "pendentes" | "expirados" | "problemas";
 type PapelSignatario = "empresa" | "cliente" | "testemunha" | "interveniente" | "outro";
 type MeioOtp = "whatsapp" | "email";
 type SignatarioContrato = {
   id?: string; papel: PapelSignatario; papel_label?: string; ordem: number; nome: string;
   email?: string; numero?: string; otp_meio?: MeioOtp; status: string; assinatura_em?: string | null;
-  empresa_snapshot?: { empresa_id?: string; representante_id?: string };
+  assinatura_opcoes?: OpcoesAssinatura;
+  empresa_snapshot?: { empresa_id?: string; representante_id?: string; assinatura_opcoes?: OpcoesAssinatura };
 };
 type ParticipanteAdicional = {
   id_local: string; papel: PapelSignatario; papel_label: string;
-  nome: string; cpf: string; email: string; numero: string; otp_meio: MeioOtp;
+  nome: string; cpf: string; email: string; numero: string; otp_meio: MeioOtp; assinatura_opcoes: OpcoesAssinatura;
 };
 type Contrato = {
   id: string;
@@ -56,12 +59,14 @@ type Representante = { id: string; empresa_id: string; nome: string; cargo: stri
 type FormContrato = {
   empresa_id: string; representante_id: string; origem: "crm" | "avulso"; proposta_id: string; nome: string; cpf: string;
   email: string; telefone: string; canal_id: string; otp_meio_representante: MeioOtp; otp_meio_cliente: MeioOtp;
+  assinatura_opcoes_representante: OpcoesAssinatura; assinatura_opcoes_cliente: OpcoesAssinatura;
   participantes_adicionais: ParticipanteAdicional[]; titulo: string; conteudo: string; pdf_base64: string;
   pdf_nome: string; mensagem: string; expira_horas: number; exigir_localizacao: boolean; exigir_documento_identidade: boolean;
 };
 const FORM_INICIAL: FormContrato = {
   empresa_id: "", representante_id: "", origem: "crm", proposta_id: "", nome: "", cpf: "", email: "", telefone: "",
   canal_id: "", otp_meio_representante: "email", otp_meio_cliente: "email", participantes_adicionais: [],
+  assinatura_opcoes_representante: opcoesAssinatura(), assinatura_opcoes_cliente: opcoesAssinatura(),
   titulo: "Contrato de prestação de serviços", conteudo: "", pdf_base64: "", pdf_nome: "",
   mensagem: "Olá, {{nome}}. Seu contrato está pronto para revisão e assinatura: {{link}}",
   expira_horas: 48, exigir_localizacao: false, exigir_documento_identidade: false,
@@ -228,6 +233,7 @@ export default function ContratosPage() {
         id_local: item.id || "participante-" + item.ordem,
         papel: item.papel,
         papel_label: item.papel_label || (item.papel === "testemunha" ? "Testemunha" : "Signat\u00e1rio"),
+        assinatura_opcoes: opcoesAssinatura(item.assinatura_opcoes || item.empresa_snapshot?.assinatura_opcoes, contrato.exigir_documento_identidade),
         nome: item.nome || "", cpf: "", email: item.email || "", numero: item.numero || "", otp_meio: item.otp_meio || "email",
       }));
       setEditando(contrato);
@@ -237,6 +243,8 @@ export default function ContratosPage() {
         representante_id: String(representanteSelecionado?.id || ""),
         otp_meio_representante: representanteAtual?.otp_meio || "email",
         otp_meio_cliente: clienteAtual?.otp_meio || "email",
+        assinatura_opcoes_representante: opcoesAssinatura(representanteAtual?.assinatura_opcoes || representanteAtual?.empresa_snapshot?.assinatura_opcoes, contrato.exigir_documento_identidade),
+        assinatura_opcoes_cliente: opcoesAssinatura(clienteAtual?.assinatura_opcoes || clienteAtual?.empresa_snapshot?.assinatura_opcoes, contrato.exigir_documento_identidade),
         participantes_adicionais: adicionais,
         origem: contrato.origem === "crm" ? "crm" : "avulso",
         proposta_id: contrato.proposta_id ? String(contrato.proposta_id) : "",
@@ -335,6 +343,7 @@ export default function ContratosPage() {
       ...atual,
       participantes_adicionais: [...atual.participantes_adicionais, {
         id_local: "participante-" + Date.now() + "-" + Math.random().toString(16).slice(2),
+        assinatura_opcoes: opcoesAssinatura(),
         papel: "testemunha", papel_label: "Testemunha", nome: "", cpf: "", email: "", numero: "", otp_meio: "email",
       }],
     }));
@@ -368,16 +377,16 @@ export default function ContratosPage() {
     if (!formContrato.nome.trim() || !formContrato.empresa_id || !formContrato.representante_id) {
       setErro("Informe o cliente, a empresa e seu representante"); return;
     }
-    if (formContrato.otp_meio_representante === "whatsapp" && !formContrato.canal_id) {
+    if (formContrato.assinatura_opcoes_representante.exigir_otp && formContrato.otp_meio_representante === "whatsapp" && !formContrato.canal_id) {
       setErro("Selecione um canal para o representante receber o OTP pelo WhatsApp"); return;
     }
-    if (formContrato.otp_meio_cliente === "whatsapp" && (!formContrato.canal_id || formContrato.telefone.replace(/\D/g, "").length < 10)) {
+    if (formContrato.assinatura_opcoes_cliente.exigir_otp && formContrato.otp_meio_cliente === "whatsapp" && (!formContrato.canal_id || formContrato.telefone.replace(/\D/g, "").length < 10)) {
       setErro("Para OTP por WhatsApp, selecione o canal e informe o telefone do cliente"); return;
     }
     const participanteInvalido = formContrato.participantes_adicionais.find(item =>
       item.nome.trim().length < 3 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.email.trim()) ||
-      (item.otp_meio === "whatsapp" && (!formContrato.canal_id || item.numero.replace(/\D/g, "").length < 10))
+      (item.assinatura_opcoes.exigir_otp && item.otp_meio === "whatsapp" && (!formContrato.canal_id || item.numero.replace(/\D/g, "").length < 10))
     );
     if (participanteInvalido) {
       setErro("Revise nome, e-mail e meio de OTP dos participantes adicionais"); return;
@@ -398,6 +407,7 @@ export default function ContratosPage() {
           conteudo: formContrato.conteudo, pdf_base64: formContrato.pdf_base64, mensagem: formContrato.mensagem,
           expira_horas: formContrato.expira_horas, exigir_localizacao: formContrato.exigir_localizacao, exigir_documento_identidade: formContrato.exigir_documento_identidade,
           empresa_id: formContrato.empresa_id, representante_id: formContrato.representante_id, otp_meio_representante: formContrato.otp_meio_representante,
+          assinatura_opcoes_representante: formContrato.assinatura_opcoes_representante, assinatura_opcoes_cliente: formContrato.assinatura_opcoes_cliente,
           otp_meio_cliente: formContrato.otp_meio_cliente, participantes_adicionais: formContrato.participantes_adicionais,
           modo_assinatura: editando?.modo_assinatura || "envelope_v1" }),
       });
@@ -540,7 +550,7 @@ export default function ContratosPage() {
               <small>Este representante assina primeiro. Os demais recebem o convite automaticamente, na ordem.</small>
             </label>
             <label>OTP do representante
-              <select value={formContrato.otp_meio_representante} onChange={e => setFormContrato({ ...formContrato, otp_meio_representante: e.target.value as MeioOtp })}>
+              <select disabled={!formContrato.assinatura_opcoes_representante.exigir_otp} value={formContrato.otp_meio_representante} onChange={e => setFormContrato({ ...formContrato, otp_meio_representante: e.target.value as MeioOtp })}>
                 <option value="email">Receber por e-mail</option>
                 <option value="whatsapp" disabled={!formContrato.canal_id}>Receber por WhatsApp</option>
               </select>
@@ -551,7 +561,7 @@ export default function ContratosPage() {
             <label>Telefone WhatsApp<input value={formContrato.telefone} onChange={e => setFormContrato({ ...formContrato, telefone: e.target.value })} placeholder="Opcional quando o OTP for por e-mail"/></label>
             <label>E-mail<input type="email" value={formContrato.email} onChange={e => setFormContrato({ ...formContrato, email: e.target.value })}/></label>
             <label>OTP do cliente
-              <select value={formContrato.otp_meio_cliente} onChange={e => setFormContrato({ ...formContrato, otp_meio_cliente: e.target.value as MeioOtp })}>
+              <select disabled={!formContrato.assinatura_opcoes_cliente.exigir_otp} value={formContrato.otp_meio_cliente} onChange={e => setFormContrato({ ...formContrato, otp_meio_cliente: e.target.value as MeioOtp })}>
                 <option value="email">Receber por e-mail</option>
                 <option value="whatsapp" disabled={!formContrato.canal_id}>Receber por WhatsApp</option>
               </select>
@@ -563,6 +573,12 @@ export default function ContratosPage() {
               </select>
               <small>Sem canal configurado, o link e o código de confirmação são enviados exclusivamente por e-mail.</small>
             </label>
+            <section className={styles.full + " " + styles.participantsBox}>
+              <b>Como cada pessoa vai assinar</b>
+              <p>Escolha as etapas para cada participante. A assinatura desenhada e o aceite do contrato são obrigatórios.</p>
+              <OpcoesAssinaturaEditor titulo="Representante da empresa" valor={formContrato.assinatura_opcoes_representante} onChange={valor => setFormContrato({ ...formContrato, assinatura_opcoes_representante: valor })}/>
+              <OpcoesAssinaturaEditor titulo="Cliente" valor={formContrato.assinatura_opcoes_cliente} onChange={valor => setFormContrato({ ...formContrato, assinatura_opcoes_cliente: valor })}/>
+            </section>
             <section className={styles.full + " " + styles.participantsBox}>
               <div className={styles.participantsHeader}>
                 <div><b>Outros signatários</b><small>Adicione representantes, testemunhas ou intervenientes. Limite total: 20 pessoas.</small></div>
@@ -589,11 +605,12 @@ export default function ContratosPage() {
                       <label>E-mail<input type="email" value={participante.email} onChange={e => atualizarParticipante(participante.id_local, { email: e.target.value })}/></label>
                       <label>Telefone WhatsApp<input value={participante.numero} onChange={e => atualizarParticipante(participante.id_local, { numero: e.target.value })} placeholder="Opcional para OTP por e-mail"/></label>
                       <label>Receber OTP
-                        <select value={participante.otp_meio} onChange={e => atualizarParticipante(participante.id_local, { otp_meio: e.target.value as MeioOtp })}>
+                        <select disabled={!participante.assinatura_opcoes.exigir_otp} value={participante.otp_meio} onChange={e => atualizarParticipante(participante.id_local, { otp_meio: e.target.value as MeioOtp })}>
                           <option value="email">Por e-mail</option><option value="whatsapp" disabled={!formContrato.canal_id}>Por WhatsApp</option>
                         </select>
                       </label>
                     </div>
+                    <OpcoesAssinaturaEditor titulo="Etapas deste participante" valor={participante.assinatura_opcoes} onChange={valor => atualizarParticipante(participante.id_local, { assinatura_opcoes: valor })}/>
                   </div>)}
             </section>
             <label className={styles.full}>Título do contrato<input value={formContrato.titulo} onChange={e => setFormContrato({ ...formContrato, titulo: e.target.value })}/></label>
@@ -602,7 +619,6 @@ export default function ContratosPage() {
             <label className={styles.full}>Mensagem de envio<textarea rows={3} value={formContrato.mensagem} onChange={e => setFormContrato({ ...formContrato, mensagem: e.target.value })}/><small>Use {"{{nome}}"} e {"{{link}}"}.</small></label>
             <label>Validade<select value={formContrato.expira_horas} onChange={e => setFormContrato({ ...formContrato, expira_horas: Number(e.target.value) })}><option value={24}>24 horas</option><option value={48}>48 horas</option><option value={72}>3 dias</option><option value={168}>7 dias</option></select></label>
             <label className={styles.checkLabel}><input type="checkbox" checked={formContrato.exigir_localizacao} onChange={e => setFormContrato({ ...formContrato, exigir_localizacao: e.target.checked })}/> Solicitar localização</label>
-            <label className={styles.checkLabel}><input type="checkbox" checked={formContrato.exigir_documento_identidade} onChange={e => setFormContrato({ ...formContrato, exigir_documento_identidade: e.target.checked })}/> Exigir documento de identidade (frente e verso)</label>
           </div>
           <footer><button disabled={salvando} onClick={() => { setCriando(false); setEditando(null); }}>Cancelar</button><button className={styles.newButton} disabled={salvando} onClick={criarContrato}>{salvando ? (editando ? "Criando versão…" : "Criando…") : (editando ? "Salvar nova versão e reenviar" : "Criar e enviar para assinatura")}</button></footer>
         </section>
@@ -614,4 +630,16 @@ export default function ContratosPage() {
 
 function Audit({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return <div className={styles.auditItem}><small>{label}</small><b className={mono ? styles.mono : ""} title={value}>{value}</b></div>;
+}
+function OpcoesAssinaturaEditor({ titulo, valor, onChange }: { titulo: string; valor: OpcoesAssinatura; onChange: (valor: OpcoesAssinatura) => void }) {
+  return <fieldset className={styles.participantCard}>
+    <legend>{titulo}</legend>
+    <div className={styles.participantGrid}>
+      <label>Captura facial<select value={valor.facial} onChange={e => onChange({ ...valor, facial: e.target.value as OpcoesAssinatura["facial"] })}>
+        <option value="nenhuma">Sem foto facial</option><option value="foto">Somente foto facial / selfie</option><option value="guiada">Captura facial guiada</option>
+      </select><small>A captura guiada orienta sorriso e movimento; não compara biometria com um documento.</small></label>
+      <label className={styles.checkLabel}><input type="checkbox" checked={valor.exigir_otp} onChange={e => onChange({ ...valor, exigir_otp: e.target.checked })}/> Exigir código de confirmação (token)</label>
+      <label className={styles.checkLabel}><input type="checkbox" checked={valor.exigir_documento_identidade} onChange={e => onChange({ ...valor, exigir_documento_identidade: e.target.checked })}/> Exigir documento de identidade (frente e verso)</label>
+    </div>
+  </fieldset>;
 }

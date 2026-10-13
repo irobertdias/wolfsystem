@@ -11,6 +11,7 @@ type AssinaturaInfo = {
   documento: string;
   expira_em: string;
   exigir_selfie: boolean;
+  selfie_modo?: "nenhuma" | "foto" | "guiada";
   exigir_otp: boolean;
   exigir_localizacao: boolean;
   exigir_documento_identidade?: boolean;
@@ -58,6 +59,12 @@ export default function AssinarWolfPage() {
   const temTracoAssinaturaRef = useRef(false);
   const guiaExecucaoRef = useRef(0);
   const guiaExecutandoRef = useRef(false);
+  const exigirOtp = info?.exigir_otp !== false;
+  const exigirSelfie = info?.exigir_selfie !== false;
+  const capturaGuiada = info?.selfie_modo === "guiada";
+  const etapaSelfie = 2 + Number(exigirOtp);
+  const etapaDocumento = etapaSelfie + Number(exigirSelfie);
+  const etapaAssinatura = etapaDocumento + Number(info?.exigir_documento_identidade === true);
 
   useEffect(() => {
     let ativo = true;
@@ -104,8 +111,8 @@ export default function AssinarWolfPage() {
   }, []);
 
   useEffect(() => {
-    if (!carregando && !erro) prepararCanvasAssinatura();
-  }, [carregando, erro, prepararCanvasAssinatura]);
+    if (!carregando) prepararCanvasAssinatura();
+  }, [carregando, prepararCanvasAssinatura]);
 
   function coordenada(event: PointerEvent<HTMLCanvasElement>) {
     const canvas = event.currentTarget;
@@ -378,7 +385,7 @@ export default function AssinarWolfPage() {
 
   async function concluir() {
     setErro("");
-    if (!/^\d{6}$/.test(otp)) {
+    if (exigirOtp && !/^\d{6}$/.test(otp)) {
       setErro(`Informe o c\u00f3digo de 6 d\u00edgitos enviado por ${info?.otp_meio === "email" ? "e-mail" : "WhatsApp"}.`);
       return;
     }
@@ -386,7 +393,7 @@ export default function AssinarWolfPage() {
       setErro("Leia e marque os três consentimentos obrigatórios.");
       return;
     }
-    if (!selfie) {
+    if (exigirSelfie && !selfie) {
       setErro("Tire a selfie de evidência.");
       return;
     }
@@ -411,8 +418,8 @@ export default function AssinarWolfPage() {
           aceite_selfie: aceiteSelfie,
           consentimento_texto: info?.consentimento_texto || CONSENTIMENTO,
           assinatura: assinaturaCapturadaRef.current || canvasAssinaturaRef.current.toDataURL("image/png"),
-          selfie,
-          selfie_desafios: desafiosSelfie,
+          selfie: exigirSelfie ? selfie : undefined,
+          selfie_desafios: capturaGuiada ? desafiosSelfie : [],
           documento_frente: info?.exigir_documento_identidade ? documentoFrente : undefined,
           documento_verso: info?.exigir_documento_identidade ? documentoVerso : undefined,
           ...localizacao,
@@ -518,7 +525,7 @@ export default function AssinarWolfPage() {
         />
       </section>
 
-      <section style={styles.card}>
+      {exigirOtp && <section style={styles.card}>
         <div style={styles.cardHeader}>
           <div><span style={styles.number}>2</span><strong>Confirme o código recebido</strong></div>
         </div>
@@ -542,15 +549,14 @@ export default function AssinarWolfPage() {
           {erroOtp && <p role="alert" style={styles.alert}>{erroOtp}</p>}
           {otpEnviado && <p style={styles.muted}>Código enviado. Confira {info?.otp_meio === "email" ? "seu e-mail" : "seu WhatsApp"}.</p>}
         </div>
-      </section>
+      </section>}
 
-      <section style={styles.card}>
+      {exigirSelfie && <section style={styles.card}>
         <div style={styles.cardHeader}>
-          <div><span style={styles.number}>3</span><strong>Tire uma selfie de evidência</strong></div>
+          <div><span style={styles.number}>{etapaSelfie}</span><strong>Tire uma selfie de evidência</strong></div>
         </div>
         <p style={styles.muted}>
-          Posicione o rosto em local iluminado. O sistema orientará o enquadramento, sorriso e movimento do rosto antes da captura automática. A selfie será protegida e vinculada à trilha desta assinatura.
-          Nesta versão ela é uma evidência visual, não uma validação biométrica facial automatizada.
+          {capturaGuiada ? "Siga as orientações de enquadramento, sorriso e movimento antes da captura." : "Tire uma foto do seu rosto. Você pode usar a câmera ou fotografar com o celular."} A foto fica vinculada a esta assinatura.
         </p>
         {!selfie && !cameraAberta && (
           <button type="button" onClick={abrirCamera} style={styles.secondaryButton}>Abrir câmera</button>
@@ -560,15 +566,15 @@ export default function AssinarWolfPage() {
             <div style={styles.videoWrap}>
               <video ref={videoRef} autoPlay playsInline muted style={styles.video}/>
               <div style={styles.faceGuide}><div style={styles.faceOval}/><strong style={styles.guideText}>{cameraPronta ? guiaSelfie : "Carregando câmera…"}</strong></div>
-              <span style={styles.cameraStatus}>{cameraPronta ? "Captura guiada ativa" : "Carregando câmera…"}</span>
+              <span style={styles.cameraStatus}>{cameraPronta ? capturaGuiada ? "Captura guiada ativa" : "Câmera pronta" : "Carregando câmera…"}</span>
             </div>
             <div style={styles.row}>
-              <button type="button" onClick={iniciarCapturaGuiada} disabled={!cameraPronta} style={{ ...styles.primaryButton, opacity: cameraPronta ? 1 : 0.55 }}>Iniciar captura guiada</button>
+              <button type="button" onClick={capturaGuiada ? iniciarCapturaGuiada : capturarSelfie} disabled={!cameraPronta} style={{ ...styles.primaryButton, opacity: cameraPronta ? 1 : 0.55 }}>{capturaGuiada ? "Iniciar captura guiada" : "Tirar foto"}</button>
               <button type="button" onClick={fecharCamera} style={styles.textButton}>Cancelar</button>
             </div>
           </div>
         )}
-        {!selfie && (
+        {!selfie && !capturaGuiada && (
           <label style={styles.captureLabel}>
             Tirar foto com o celular
             <input type="file" accept="image/*" capture="user" onChange={e => carregarSelfieArquivo(e.target.files?.[0])} style={styles.hiddenInput}/>
@@ -584,11 +590,11 @@ export default function AssinarWolfPage() {
           </div>
         )}
         <canvas ref={canvasSelfieRef} style={{ display: "none" }}/>
-      </section>
+      </section>}
 
       {info?.exigir_documento_identidade && <section style={styles.card}>
         <div style={styles.cardHeader}>
-          <div><span style={styles.number}>4</span><strong>Envie seu documento de identidade</strong></div>
+          <div><span style={styles.number}>{etapaDocumento}</span><strong>Envie seu documento de identidade</strong></div>
         </div>
         <p style={styles.muted}>Fotografe a frente e o verso do RG, CIN ou CNH. As imagens ficam privadas e vinculadas somente à trilha desta assinatura.</p>
         <div style={styles.documentGrid}>
@@ -609,7 +615,7 @@ export default function AssinarWolfPage() {
 
       <section style={styles.card}>
         <div style={styles.cardHeader}>
-          <div><span style={styles.number}>{info?.exigir_documento_identidade ? 5 : 4}</span><strong>Desenhe sua assinatura</strong></div>
+          <div><span style={styles.number}>{etapaAssinatura}</span><strong>Desenhe sua assinatura</strong></div>
           <button type="button" onClick={limparAssinatura} style={styles.textButton}>Limpar</button>
         </div>
         <p style={styles.muted}>Use o dedo, a caneta digital ou o mouse. Esta imagem ficará legível no PDF final.</p>
@@ -626,7 +632,7 @@ export default function AssinarWolfPage() {
 
       <section style={styles.card}>
         <div style={styles.cardHeader}>
-          <div><span style={styles.number}>{info?.exigir_documento_identidade ? 6 : 5}</span><strong>Confirme sua manifestação de vontade</strong></div>
+          <div><span style={styles.number}>{etapaAssinatura + 1}</span><strong>Confirme sua manifestação de vontade</strong></div>
         </div>
         <label style={styles.check}>
           <input type="checkbox" checked={aceiteContrato} onChange={e => setAceiteContrato(e.target.checked)}/>
@@ -638,7 +644,7 @@ export default function AssinarWolfPage() {
         </label>
         <label style={styles.check}>
           <input type="checkbox" checked={aceiteSelfie} onChange={e => setAceiteSelfie(e.target.checked)}/>
-          <span>Autorizo a coleta da selfie, OTP, dados técnicos{info?.exigir_documento_identidade ? " e das imagens do meu documento de identidade" : ""} exclusivamente para comprovar esta assinatura e prevenir fraude.</span>
+          <span>Autorizo a coleta dos dados técnicos{exigirSelfie ? ", da foto facial" : ""}{exigirOtp ? ", do código de confirmação" : ""}{info?.exigir_documento_identidade ? " e das imagens do meu documento de identidade" : ""} para comprovar esta assinatura.</span>
         </label>
         <p style={styles.legal}>{info?.consentimento_texto || CONSENTIMENTO}</p>
       </section>
