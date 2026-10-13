@@ -58,3 +58,33 @@ test('PDF do contrato materializa LID e envia uma vez pelo destinatario resolvid
   await require(path.join(backend, 'src/services/assinatura-wolf.js'))._envelopes.enviarPdf(ctx, { workspace_id: 'ws', canal_id: 154, numero: '5561999999999' }, 'contrato.pdf', 'contrato.pdf');
   assert.deepEqual(tentativas, ['5561999999999@c.us', '123456789012345@lid']);
 });
+
+test('OTP de contrato existente acrescenta DDI e resolve LID mesmo com getNumberId null', async () => {
+  const { ctx, env } = contexto(false);
+  env.signatario.numero = '(62) 98123-4567';
+  const cache = new Map();
+  ctx.resolverDestinoWebjs = async (client, numero) => {
+    assert.equal(numero, '5562981234567');
+    if (cache.has(numero)) return { jid: cache.get(numero), via: 'conversa-recebida' };
+    throw new Error('getNumberId retornou null');
+  };
+  ctx.sessoes[154].client.getContactLidAndPhone = async ids => {
+    assert.deepEqual(ids, ['5562981234567@c.us']);
+    return [{ pn: '5562981234567@c.us', lid: '123456789012345@lid' }];
+  };
+  ctx.registrarDestinoConversaWebjs = (client, numero, jid) => cache.set(numero, jid);
+  ctx.enviarTextoWebjs = async (client, numero) => {
+    assert.equal(numero, '5562981234567');
+    assert.equal(cache.get(numero), '123456789012345@lid');
+    return { success: true, messageId: 'otp-1' };
+  };
+  await otp(ctx, env);
+});
+
+test('normalizacao de telefone nao altera CPF nem telefone internacional explicito', () => {
+  const { telefoneAssinatura } = require(path.join(backend, 'src/services/assinatura-wolf-destino.js'));
+  assert.equal(telefoneAssinatura('(62) 3123-4567'), '556231234567');
+  assert.equal(telefoneAssinatura('+1 202 555 0100'), '12025550100');
+  assert.equal(telefoneAssinatura('+55 62 98123-4567'), '5562981234567');
+  assert.equal(require(path.join(backend, 'src/services/assinatura-wolf.js'))._test.numeroLimpo('123.456.789-00'), '12345678900');
+});
