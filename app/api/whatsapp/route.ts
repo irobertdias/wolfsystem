@@ -123,7 +123,7 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
         method: "GET", cache: "no-store", headers: { "x-wolf-internal-secret": segredoInternoWolf() },
       }, false);
       const capacidade = await recursos.json().catch(() => ({}));
-      if (!recursos.ok || capacidade.resposta_nativa !== true) {
+      if (!recursos.ok || capacidade.resposta_nativa !== true || capacidade.resposta_protocolo !== 2) {
         throw Object.assign(new Error("Instale a atualização de respostas nativas no backend do WhatsApp para responder esta mensagem."), { statusCode: 503 });
       }
     }

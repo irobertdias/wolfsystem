@@ -2121,6 +2121,11 @@ export function ChatSection() {
       } else {
         resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: nomeHeader + mensagem, responderMensagemId: respondendoMsg?.id, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
       }
+      if (respondendoMsg && tipoCanal !== "meta" && tipoCanal !== "instagram" && tipoCanal !== "messenger" && resp.success && resp.respostaNativa !== true) {
+        notify("O servidor nao confirmou a citacao nativa. Confira o WhatsApp antes de reenviar.", "aviso");
+        setEnviandoMsg(false); enviandoMsgRef.current = false;
+        return;
+      }
       if (!resp.success) { notify(traduzirErro(resp.error || "Erro ao enviar"), "erro"); }
       else {
         refletirAtividadeAtendimento(
