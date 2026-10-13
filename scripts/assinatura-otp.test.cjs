@@ -49,3 +49,12 @@ test('front mostra erro junto ao OTP e libera botao apos falha', async () => {
   assert.equal(state.enviado, false);
   assert.ok(source.indexOf('{erroOtp &&') < source.indexOf('Tire uma selfie de evidência'));
 });
+
+test('PDF do contrato materializa LID e envia uma vez pelo destinatario resolvido', async () => {
+  const tentativas = [];
+  const client = { getContactLidAndPhone: async () => [{ lid: '123456789012345@lid' }], sendMessage: async jid => { tentativas.push(jid); if (jid.endsWith('@c.us')) throw new Error('No LID for user'); return { id: { _serialized: 'pdf-1' } }; } };
+  const ctx = { app: { post() {} }, upload: { single() { return () => {}; } }, resolverDestinoWebjs: async () => ({ jid: '5561999999999@c.us' }), sessoes: { 154: { tipo: 'webjs', status: 'conectado', client } }, validarCanalDoWorkspace: async () => ({ ok: true }), MessageMedia: { fromFilePath: () => ({}) }, salvarMensagem: async () => {}, path };
+  require(path.join(backend, 'src/routes/midias.js'))(ctx);
+  await require(path.join(backend, 'src/services/assinatura-wolf.js'))._envelopes.enviarPdf(ctx, { workspace_id: 'ws', canal_id: 154, numero: '5561999999999' }, 'contrato.pdf', 'contrato.pdf');
+  assert.deepEqual(tentativas, ['5561999999999@c.us', '123456789012345@lid']);
+});
