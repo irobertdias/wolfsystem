@@ -34,6 +34,7 @@ export default function AssinarWolfPage() {
   const [erro, setErro] = useState("");
   const [otp, setOtp] = useState("");
   const [otpEnviado, setOtpEnviado] = useState(false);
+  const [erroOtp, setErroOtp] = useState("");
   const [enviandoOtp, setEnviandoOtp] = useState(false);
   const [aceiteContrato, setAceiteContrato] = useState(false);
   const [aceiteAssinatura, setAceiteAssinatura] = useState(false);
@@ -147,16 +148,19 @@ export default function AssinarWolfPage() {
 
   async function solicitarOtp() {
     setErro("");
+    setErroOtp("");
+    setOtpEnviado(false);
     setEnviandoOtp(true);
     try {
       const response = await fetch(`/api/assinatura-wolf/${encodeURIComponent(token)}/otp`, {
         method: "POST",
+        signal: AbortSignal.timeout(45000),
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ success: false, error: "Resposta inválida do serviço de assinatura. Tente novamente." }));
       if (!response.ok || !data.success) throw new Error(data.error || "Falha ao enviar código");
       setOtpEnviado(true);
     } catch (e: any) {
-      setErro(e.message || "Não foi possível enviar o código");
+      setErroOtp(e.name === "TimeoutError" ? "O envio demorou para responder. Confira se o código chegou antes de solicitar novamente." : e.message || "Não foi possível enviar o código");
     } finally {
       setEnviandoOtp(false);
     }
@@ -530,8 +534,13 @@ export default function AssinarWolfPage() {
             autoComplete="one-time-code"
             placeholder="000000"
             aria-label="Código de confirmação"
+            aria-describedby="otp-status"
             style={styles.otp}
           />
+        </div>
+        <div id="otp-status" aria-live="polite">
+          {erroOtp && <p role="alert" style={styles.alert}>{erroOtp}</p>}
+          {otpEnviado && <p style={styles.muted}>Código enviado. Confira {info?.otp_meio === "email" ? "seu e-mail" : "seu WhatsApp"}.</p>}
         </div>
       </section>
 

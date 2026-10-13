@@ -19,6 +19,7 @@ export async function POST(
       `${BACKEND}/assinaturas-wolf/envelopes/${encodeURIComponent(token)}/otp`,
       {
         method: "POST",
+        signal: AbortSignal.timeout(40000),
         cache: "no-store",
         headers: headersProxyAssinatura(request, true),
         body: "{}",
@@ -26,15 +27,17 @@ export async function POST(
     );
     if (response.status === 404) {
       response = await fetch(`${BACKEND}/assinaturas-wolf/${encodeURIComponent(token)}/otp`, {
-        method: "POST", cache: "no-store", headers: headersProxyAssinatura(request, true), body: "{}",
+        method: "POST", cache: "no-store", headers: headersProxyAssinatura(request, true), body: "{}", signal: AbortSignal.timeout(40000),
       });
     }
+    if (!response.ok) console.error(`[Wolf Sign OTP] Backend recusou o envio: HTTP ${response.status}`);
     const data = await response.json().catch(() => ({ success: false, error: "Resposta inválida" }));
     return NextResponse.json(data, {
       status: response.status,
       headers: { "Cache-Control": "no-store" },
     });
-  } catch {
+  } catch (error) {
+    console.error("[Wolf Sign OTP] Falha ao acessar backend:", error instanceof Error ? error.name : "Erro de conexão");
     return NextResponse.json(
       { success: false, error: "Não foi possível enviar o código" },
       { status: 502 }
