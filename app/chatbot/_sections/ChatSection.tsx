@@ -2067,6 +2067,7 @@ export function ChatSection() {
   const enviarMensagem = async () => {
     if (!mensagem || !atendimentoAtivo) return;
     if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal. Não é possível enviar.", "aviso"); return; }
+    if (respondendoMsg && !respondendoMsg.id) { notify("Aguarde a mensagem aparecer no historico antes de responder.", "aviso"); return; }
     if (enviandoMsgRef.current) return;
     enviandoMsgRef.current = true;
     if (editandoMsg && editandoMsg.id) {
@@ -2118,7 +2119,7 @@ export function ChatSection() {
         const data = await r.json();
         resp = data.sucesso ? { success: true } : { success: false, error: data.erro || "Erro no envio" };
       } else {
-        resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: mensagemFinal, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
+        resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: nomeHeader + mensagem, responderMensagemId: respondendoMsg?.id, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
       }
       if (!resp.success) { notify(traduzirErro(resp.error || "Erro ao enviar"), "erro"); }
       else {

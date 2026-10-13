@@ -118,6 +118,15 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
     if (rota === "disparos/criar") await exigirModulo(acesso, "modulo_disparos_web");
     if (rota === "disparos/criar-waba") await exigirModulo(acesso, "modulo_disparos_api");
     await exigirEscopoDoAtendimento(acesso, rota, body);
+    if (rota === "enviar" && body.responderMensagemId != null) {
+      const recursos = await consultarWhatsapp(`${WHATSAPP_URL}/mensagens/recursos`, {
+        method: "GET", cache: "no-store", headers: { "x-wolf-internal-secret": segredoInternoWolf() },
+      }, false);
+      const capacidade = await recursos.json().catch(() => ({}));
+      if (!recursos.ok || capacidade.resposta_nativa !== true) {
+        throw Object.assign(new Error("Instale a atualização de respostas nativas no backend do WhatsApp para responder esta mensagem."), { statusCode: 503 });
+      }
+    }
     await exigirConexaoVoipPermitida(acesso, rota, { ...body, campanhaId: body.campanhaId || entrada.searchParams.get("campanhaId"), conexaoId: body.conexaoId || entrada.searchParams.get("conexaoId") });
     // A identidade de quem assume um atendimento vem exclusivamente da sessao
     // autenticada. Nunca confie no e-mail enviado pelo navegador.
