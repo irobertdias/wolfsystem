@@ -1,3 +1,4 @@
+import { validarEmpresaRepresentante } from "../../_empresa";
 import { NextRequest, NextResponse } from "next/server";
 import { autenticarContratos, exigirFranquiaContratos, exigirPermissaoContratos, respostaErroContratos, supabaseContratos } from "../../_auth";
 
@@ -16,9 +17,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         .eq("id", propostaId).eq("workspace_id", acesso.workspaceId).maybeSingle();
       if (!proposta) return NextResponse.json({ success: false, error: "Cliente do CRM não pertence a este workspace" }, { status: 400 });
     }
+    const empresaId = await validarEmpresaRepresentante(acesso.workspaceId, String(body.empresa_id || ""), String(body.representante_id || ""));
     const pdfBase64 = String(body.pdf_base64 || "");
     if (pdfBase64.length > 4_200_000) return NextResponse.json({ success: false, error: "PDF maior que 3 MB" }, { status: 413 });
     const payload = {
+      empresa_id: empresaId,
       workspace_id: acesso.workspaceId, canal_id: Number(body.canal_id), numero: String(body.numero || ""),
       nome_signatario: String(body.nome_signatario || ""), cpf: String(body.cpf || ""),
       email_signatario: String(body.email_signatario || ""), titulo: String(body.titulo || "Contrato"),

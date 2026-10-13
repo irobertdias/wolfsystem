@@ -77,7 +77,8 @@ const idsEnvelope = (lista.data || [])
     if (idsEnvelope.length) {
       const { data: signatarios, error: signatariosError } = await supabaseContratos
         .from("assinatura_wolf_signatarios")
-        .select("id,sessao_id,papel,papel_label,ordem,nome,email,numero,otp_meio,status,assinatura_em")
+        .select("id,sessao_id,papel,papel_label,ordem,nome,email,numero,otp_meio,status,assinatura_em,empresa_snapshot")
+        .eq("workspace_id", acesso.workspaceId)
         .in("sessao_id", idsEnvelope)
         .order("ordem", { ascending: true });
       if (signatariosError) throw signatariosError;

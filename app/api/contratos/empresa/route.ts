@@ -1,133 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
 import { autenticarContratos, exigirPermissaoContratos, respostaErroContratos, supabaseContratos } from "../_auth";
+import { validarCadastroEmpresa, type RepresentanteEmpresa } from "../../../lib/contratos-empresas";
 
 export const dynamic = "force-dynamic";
-
-function somenteDigitos(value: unknown) {
-  return String(value || "").replace(/\D/g, "");
-}
-
 export async function GET(request: NextRequest) {
   try {
-    const acesso = await autenticarContratos(
-      request,
-      request.nextUrl.searchParams.get("workspaceId") || ""
-    );
-    const { data: empresa, error } = await supabaseContratos
-      .from("assinatura_wolf_empresas")
-      .select("*")
-      .eq("workspace_id", acesso.workspaceId)
-      .maybeSingle();
+    const acesso = await autenticarContratos(request, request.nextUrl.searchParams.get("workspaceId") || "");
+    const { data, error } = await supabaseContratos.from("assinatura_wolf_empresas").select("*")
+      .eq("workspace_id", acesso.workspaceId).eq("ativa", true).order("created_at", { ascending: true }).order("id");
     if (error) throw error;
-    let representantes: any[] = [];
-    if (empresa) {
-      const consulta = await supabaseContratos
-        .from("assinatura_wolf_representantes")
-        .select("*")
-        .eq("workspace_id", acesso.workspaceId)
-        .eq("empresa_id", empresa.id)
-        .eq("ativo", true)
-        .order("padrao", { ascending: false })
-        .order("nome", { ascending: true });
-      if (consulta.error) throw consulta.error;
-      representantes = consulta.data || [];
+    const rows = data || [];
+    let representantes: RepresentanteEmpresa[] = [];
+    if (rows.length) {
+      const reps = await supabaseContratos.from("assinatura_wolf_representantes").select("*")
+        .eq("workspace_id", acesso.workspaceId).in("empresa_id", rows.map(e => e.id)).eq("ativo", true)
+        .order("padrao", { ascending: false }).order("nome");
+      if (reps.error) throw reps.error;
+      representantes = reps.data || [];
     }
-    return NextResponse.json({ success: true, empresa, representantes });
+    const empresas = rows.map(empresa => ({ ...empresa, representantes: representantes.filter(r => r.empresa_id === empresa.id) }));
+    const id = request.nextUrl.searchParams.get("empresaId");
+    const selecionada = id ? empresas.find(e => e.id === id) : empresas[0];
+    if (id && !selecionada) return NextResponse.json({ success: false, error: "Empresa não encontrada neste workspace" }, { status: 404 });
+    return NextResponse.json({ success: true, empresas, empresa: selecionada || null, representantes: selecionada?.representantes || [] });
   } catch (error) {
     const falha = respostaErroContratos(error);
     return NextResponse.json({ success: false, error: falha.message }, { status: falha.status });
   }
 }
-
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const acesso = await autenticarContratos(request, String(body.workspaceId || ""));
     exigirPermissaoContratos(acesso, "contratos_configurar");
-    const empresaBody = body.empresa || {};
-    const razaoSocial = String(empresaBody.razao_social || "").trim();
-    const cnpj = somenteDigitos(empresaBody.cnpj);
-    const endereco = String(empresaBody.endereco_completo || "").trim();
-    const email = String(empresaBody.email || "").trim();
-    if (razaoSocial.length < 3 || cnpj.length !== 14 || endereco.length < 10) {
-      return NextResponse.json(
-        { success: false, error: "Informe razão social, CNPJ válido e endereço completo" },
-        { status: 400 }
-      );
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ success: false, error: "E-mail da empresa inválido" }, { status: 400 });
-    }
-    const agora = new Date().toISOString();
-    const { data: empresa, error } = await supabaseContratos
-      .from("assinatura_wolf_empresas")
-      .upsert({
-        workspace_id: acesso.workspaceId,
-        razao_social: razaoSocial,
-        nome_fantasia: String(empresaBody.nome_fantasia || "").trim() || null,
-        cnpj,
-        endereco_completo: endereco,
-        email,
-        telefone: somenteDigitos(empresaBody.telefone) || null,
-        ativa: true,
-        updated_at: agora,
-      }, { onConflict: "workspace_id" })
-      .select("*")
-      .single();
-    if (error) throw error;
-
+    const empresa = body.empresa || {};
     const representantes = Array.isArray(body.representantes) ? body.representantes : [];
-    if (!representantes.length) {
-      return NextResponse.json({ success: false, error: "Cadastre ao menos um representante" }, { status: 400 });
+    validarCadastroEmpresa(empresa, representantes);
+    const { data, error } = await supabaseContratos.rpc("assinatura_wolf_salvar_empresa", {
+      p_workspace_id: acesso.workspaceId, p_empresa_id: empresa.id || null,
+      p_empresa: empresa, p_representantes: representantes,
+    });
+    if (error) {
+      if (error.code === "23505") throw Object.assign(new Error("Já existe uma empresa com esse CNPJ neste workspace"), { statusCode: 400 });
+      if (["P0001", "22P02"].includes(error.code)) throw Object.assign(new Error(error.message), { statusCode: 400 });
+      throw error;
     }
-    await supabaseContratos
-      .from("assinatura_wolf_representantes")
-      .update({ ativo: false, padrao: false, updated_at: agora })
-      .eq("workspace_id", acesso.workspaceId)
-      .eq("empresa_id", empresa.id);
-
-    const salvos = [];
-    for (let index = 0; index < representantes.length; index += 1) {
-      const item = representantes[index] || {};
-      const nome = String(item.nome || "").trim();
-      const cpf = somenteDigitos(item.cpf);
-      const cargo = String(item.cargo || "").trim();
-      const repEmail = String(item.email || "").trim();
-      const numero = somenteDigitos(item.numero);
-      if (nome.length < 3 || cpf.length !== 11 || cargo.length < 2 || numero.length < 10 || !emailValido(repEmail)) {
-        return NextResponse.json(
-          { success: false, error: `Revise os dados do representante ${index + 1}` },
-          { status: 400 }
-        );
-      }
-      const registro = {
-        ...(item.id ? { id: String(item.id) } : {}),
-        empresa_id: empresa.id,
-        workspace_id: acesso.workspaceId,
-        nome,
-        cpf,
-        cargo,
-        email: repEmail,
-        numero,
-        ativo: true,
-        padrao: index === 0 ? true : item.padrao === true,
-        updated_at: agora,
-      };
-      const { data, error: repError } = await supabaseContratos
-        .from("assinatura_wolf_representantes")
-        .upsert(registro)
-        .select("*")
-        .single();
-      if (repError) throw repError;
-      salvos.push(data);
-    }
-    return NextResponse.json({ success: true, empresa, representantes: salvos });
+    return NextResponse.json({ success: true, ...data });
   } catch (error) {
     const falha = respostaErroContratos(error);
     return NextResponse.json({ success: false, error: falha.message }, { status: falha.status });
   }
-}
-
-function emailValido(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }

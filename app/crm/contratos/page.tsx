@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useModulos } from "../../hooks/useModulos";
 import styles from "./page.module.css";
+import { empresaDoContrato, representantePadrao, formatarCnpj, type EmpresaContrato } from "../../lib/contratos-empresas";
 
 type StatusFiltro = "todos" | "assinados" | "pendentes" | "expirados" | "problemas";
 type PapelSignatario = "empresa" | "cliente" | "testemunha" | "interveniente" | "outro";
@@ -13,6 +14,7 @@ type MeioOtp = "whatsapp" | "email";
 type SignatarioContrato = {
   id?: string; papel: PapelSignatario; papel_label?: string; ordem: number; nome: string;
   email?: string; numero?: string; otp_meio?: MeioOtp; status: string; assinatura_em?: string | null;
+  empresa_snapshot?: { empresa_id?: string; representante_id?: string };
 };
 type ParticipanteAdicional = {
   id_local: string; papel: PapelSignatario; papel_label: string;
@@ -50,15 +52,15 @@ type Contrato = {
 };
 type ClienteCRM = { id: number; nome: string; cpf?: string; email?: string; telefone1?: string; telefone2?: string; endereco?: string; cep?: string; cidade?: string; estado?: string };
 type Conexao = { id: number; nome: string; tipo: string; status: string; numero?: string };
-type Representante = { id: string; nome: string; cargo: string; email: string; numero: string; padrao: boolean };
+type Representante = { id: string; empresa_id: string; nome: string; cargo: string; email: string; numero: string; padrao: boolean };
 type FormContrato = {
-  representante_id: string; origem: "crm" | "avulso"; proposta_id: string; nome: string; cpf: string;
+  empresa_id: string; representante_id: string; origem: "crm" | "avulso"; proposta_id: string; nome: string; cpf: string;
   email: string; telefone: string; canal_id: string; otp_meio_representante: MeioOtp; otp_meio_cliente: MeioOtp;
   participantes_adicionais: ParticipanteAdicional[]; titulo: string; conteudo: string; pdf_base64: string;
   pdf_nome: string; mensagem: string; expira_horas: number; exigir_localizacao: boolean; exigir_documento_identidade: boolean;
 };
 const FORM_INICIAL: FormContrato = {
-  representante_id: "", origem: "crm", proposta_id: "", nome: "", cpf: "", email: "", telefone: "",
+  empresa_id: "", representante_id: "", origem: "crm", proposta_id: "", nome: "", cpf: "", email: "", telefone: "",
   canal_id: "", otp_meio_representante: "email", otp_meio_cliente: "email", participantes_adicionais: [],
   titulo: "Contrato de prestação de serviços", conteudo: "", pdf_base64: "", pdf_nome: "",
   mensagem: "Olá, {{nome}}. Seu contrato está pronto para revisão e assinatura: {{link}}",
@@ -120,6 +122,7 @@ export default function ContratosPage() {
   const [copiandoLink, setCopiandoLink] = useState("");
   const [clientes, setClientes] = useState<ClienteCRM[]>([]);
   const [conexoes, setConexoes] = useState<Conexao[]>([]);
+  const [empresas, setEmpresas] = useState<EmpresaContrato[]>([]);
   const [representantes, setRepresentantes] = useState<Representante[]>([]);
   const [formContrato, setFormContrato] = useState<FormContrato>({ ...FORM_INICIAL });
 
@@ -180,7 +183,7 @@ export default function ContratosPage() {
   ], [resumo]);
 
   async function abrirNovoContrato() {
-    setErro("");
+    setErro(""); setEditando(null);
     try {
       const response = await requisicao(`/api/contratos/clientes?workspaceId=${encodeURIComponent(workspaceId)}`);
       const data = await response.json();
@@ -188,10 +191,12 @@ export default function ContratosPage() {
       setConexoes(data.conexoes || []);
       const empresaResponse = await requisicao(`/api/contratos/empresa?workspaceId=${encodeURIComponent(workspaceId)}`);
       const empresaData = await empresaResponse.json();
-      const reps: Representante[] = empresaData.representantes || [];
-      if (!reps.length) throw new Error("Cadastre a empresa e ao menos um representante antes de criar contratos");
-      setRepresentantes(reps);
-      setFormContrato({ ...FORM_INICIAL, representante_id: String(reps.find(r => r.padrao)?.id || reps[0]?.id || ""), canal_id: String(data.conexoes?.find((c: Conexao) => c.status === "conectado")?.id || data.conexoes?.[0]?.id || "") });
+      const lista: EmpresaContrato[] = empresaData.empresas || [];
+      const reps: Representante[] = lista.flatMap(e => e.representantes.map(r => ({ ...r, id: String(r.id), empresa_id: e.id })));
+      if (!reps.length) throw new Error("Cadastre uma empresa e ao menos um representante antes de criar contratos");
+      setEmpresas(lista); setRepresentantes(reps);
+      const primeira = lista.find(e => e.representantes.length);
+      setFormContrato({ ...FORM_INICIAL, empresa_id: primeira?.id || "", representante_id: String(representantePadrao(primeira)?.id || ""), canal_id: String(data.conexoes?.find((c: Conexao) => c.status === "conectado")?.id || data.conexoes?.[0]?.id || "") });
       setCriando(true);
     } catch (e: any) { setErro(e.message || "Não foi possível preparar o novo contrato"); }
   }
@@ -205,25 +210,31 @@ export default function ContratosPage() {
       setConexoes(data.conexoes || []);
       const empresaResponse = await requisicao(`/api/contratos/empresa?workspaceId=${encodeURIComponent(workspaceId)}`);
       const empresaData = await empresaResponse.json();
-      const reps: Representante[] = empresaData.representantes || [];
-      if (!reps.length) throw new Error("Cadastre a empresa e ao menos um representante antes de criar contratos");
-      setRepresentantes(reps);
-      setEditando(contrato);
+      const lista: EmpresaContrato[] = empresaData.empresas || [];
+      const reps: Representante[] = lista.flatMap(e => e.representantes.map(r => ({ ...r, id: String(r.id), empresa_id: e.id })));
+      if (!reps.length) throw new Error("Cadastre uma empresa e ao menos um representante antes de criar contratos");
+      setEmpresas(lista); setRepresentantes(reps);
       const signatarios = contrato.signatarios || [];
       const representanteAtual = signatarios.find(item => item.ordem === 1);
       const clienteAtual = signatarios.find(item => item.papel === "cliente") || signatarios.find(item => item.ordem === 2);
-      const representanteSelecionado = reps.find(item =>
-        (representanteAtual?.email && item.email === representanteAtual.email) || item.nome === representanteAtual?.nome
-      );
+      const snapshot = representanteAtual?.empresa_snapshot;
+      const empresaAnterior = empresaDoContrato(lista, snapshot);
+      if (snapshot?.empresa_id && !empresaAnterior) throw new Error("A empresa deste contrato não está disponível no cadastro do workspace");
+      const candidatos = reps.filter(item => (!empresaAnterior || item.empresa_id === empresaAnterior.id) &&
+        (snapshot?.representante_id ? item.id === snapshot.representante_id :
+          ((representanteAtual?.email && item.email === representanteAtual.email) || item.nome === representanteAtual?.nome)));
+      const representanteSelecionado = candidatos.length === 1 ? candidatos[0] : undefined;
       const adicionais: ParticipanteAdicional[] = signatarios.filter(item => item.ordem > 2).map(item => ({
         id_local: item.id || "participante-" + item.ordem,
         papel: item.papel,
         papel_label: item.papel_label || (item.papel === "testemunha" ? "Testemunha" : "Signat\u00e1rio"),
         nome: item.nome || "", cpf: "", email: item.email || "", numero: item.numero || "", otp_meio: item.otp_meio || "email",
       }));
+      setEditando(contrato);
       setFormContrato({
         ...FORM_INICIAL,
-        representante_id: String(representanteSelecionado?.id || reps.find(r => r.padrao)?.id || reps[0]?.id || ""),
+        empresa_id: empresaAnterior?.id || representanteSelecionado?.empresa_id || "",
+        representante_id: String(representanteSelecionado?.id || ""),
         otp_meio_representante: representanteAtual?.otp_meio || "email",
         otp_meio_cliente: clienteAtual?.otp_meio || "email",
         participantes_adicionais: adicionais,
@@ -354,8 +365,8 @@ export default function ContratosPage() {
   }
 
   async function criarContrato() {
-    if (!formContrato.nome.trim() || !formContrato.representante_id) {
-      setErro("Informe o nome do cliente e o representante da empresa"); return;
+    if (!formContrato.nome.trim() || !formContrato.empresa_id || !formContrato.representante_id) {
+      setErro("Informe o cliente, a empresa e seu representante"); return;
     }
     if (formContrato.otp_meio_representante === "whatsapp" && !formContrato.canal_id) {
       setErro("Selecione um canal para o representante receber o OTP pelo WhatsApp"); return;
@@ -386,7 +397,7 @@ export default function ContratosPage() {
           cpf: formContrato.cpf, email_signatario: formContrato.email, titulo: formContrato.titulo,
           conteudo: formContrato.conteudo, pdf_base64: formContrato.pdf_base64, mensagem: formContrato.mensagem,
           expira_horas: formContrato.expira_horas, exigir_localizacao: formContrato.exigir_localizacao, exigir_documento_identidade: formContrato.exigir_documento_identidade,
-          representante_id: formContrato.representante_id, otp_meio_representante: formContrato.otp_meio_representante,
+          empresa_id: formContrato.empresa_id, representante_id: formContrato.representante_id, otp_meio_representante: formContrato.otp_meio_representante,
           otp_meio_cliente: formContrato.otp_meio_cliente, participantes_adicionais: formContrato.participantes_adicionais,
           modo_assinatura: editando?.modo_assinatura || "envelope_v1" }),
       });
@@ -445,7 +456,7 @@ export default function ContratosPage() {
           <div style={{ marginTop: 9, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}><span style={{ background: "#e0e7ff", color: "#3730a3", borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 850, textTransform: "capitalize" }}>Plano {planoUso.nome}</span><span style={{ color: "#64748b", fontSize: 11 }}>{planoUso.limite_mensal === null ? `${planoUso.usados_mes} contratos usados neste mês · ilimitado` : `${planoUso.usados_mes} de ${planoUso.limite_mensal} contratos usados neste mês`}</span></div>
         </div>
         <div className={styles.headerActions}>
-          {podeConfigurar && <button className={styles.refreshButton} onClick={() => router.push("/crm/contratos/configuracoes")}>⚙ Empresa e representantes</button>}
+          {podeConfigurar && <button className={styles.refreshButton} onClick={() => router.push("/crm/contratos/configuracoes")}>⚙ Empresas e representantes</button>}
           {podeCriar && <button className={styles.newButton} onClick={abrirNovoContrato}>＋ Novo contrato</button>}
           <button className={styles.refreshButton} onClick={() => carregar(paginacao.pagina, true)} disabled={atualizando}>
             <span className={atualizando ? styles.spin : ""}>↻</span> {atualizando ? "Atualizando" : "Atualizar"}
@@ -507,14 +518,24 @@ export default function ContratosPage() {
         <section className={`${styles.modal} ${styles.createModal}`} role="dialog" aria-modal="true">
           <header><div><span>{editando ? "NOVA VERSÃO" : "NOVO DOCUMENTO"}</span><h2>{editando ? "Editar contrato" : "Criar contrato"}</h2><p>{editando ? "A nova versão revoga o link anterior e é reenviada ao cliente." : "Use um cliente do CRM ou crie um contrato avulso."}</p></div><button disabled={salvando} onClick={() => { setCriando(false); setEditando(null); }}>×</button></header>
           <div className={styles.sourceTabs}>
-            <button className={formContrato.origem === "crm" ? styles.sourceActive : ""} onClick={() => setFormContrato({ ...FORM_INICIAL, origem: "crm", representante_id: formContrato.representante_id, canal_id: formContrato.canal_id, otp_meio_representante: formContrato.otp_meio_representante, otp_meio_cliente: formContrato.otp_meio_cliente, participantes_adicionais: formContrato.participantes_adicionais })}>Cliente do CRM</button>
-            <button className={formContrato.origem === "avulso" ? styles.sourceActive : ""} onClick={() => setFormContrato({ ...FORM_INICIAL, origem: "avulso", representante_id: formContrato.representante_id, canal_id: formContrato.canal_id, otp_meio_representante: formContrato.otp_meio_representante, otp_meio_cliente: formContrato.otp_meio_cliente, participantes_adicionais: formContrato.participantes_adicionais })}>Contrato avulso</button>
+            <button className={formContrato.origem === "crm" ? styles.sourceActive : ""} onClick={() => setFormContrato({ ...FORM_INICIAL, origem: "crm", empresa_id: formContrato.empresa_id, representante_id: formContrato.representante_id, canal_id: formContrato.canal_id, otp_meio_representante: formContrato.otp_meio_representante, otp_meio_cliente: formContrato.otp_meio_cliente, participantes_adicionais: formContrato.participantes_adicionais })}>Cliente do CRM</button>
+            <button className={formContrato.origem === "avulso" ? styles.sourceActive : ""} onClick={() => setFormContrato({ ...FORM_INICIAL, origem: "avulso", empresa_id: formContrato.empresa_id, representante_id: formContrato.representante_id, canal_id: formContrato.canal_id, otp_meio_representante: formContrato.otp_meio_representante, otp_meio_cliente: formContrato.otp_meio_cliente, participantes_adicionais: formContrato.participantes_adicionais })}>Contrato avulso</button>
           </div>
           {erro && <div className={styles.alert}><span>!</span>{erro}<button onClick={() => setErro("")}>×</button></div>}<div className={styles.formGrid}>
+            <label className={styles.full}>Empresa responsável pelo contrato
+              <select value={formContrato.empresa_id} onChange={e => {
+                const empresa = empresas.find(item => item.id === e.target.value);
+                setFormContrato({ ...formContrato, empresa_id: e.target.value, representante_id: String(representantePadrao(empresa)?.id || "") });
+              }}>
+                <option value="">Selecione a empresa…</option>
+                {empresas.map(e => <option key={e.id} value={e.id}>{e.nome_fantasia || e.razao_social} · CNPJ {formatarCnpj(e.cnpj)}</option>)}
+              </select>
+              {empresas.find(e => e.id === formContrato.empresa_id) && <small>{empresas.find(e => e.id === formContrato.empresa_id)?.razao_social} · {empresas.find(e => e.id === formContrato.empresa_id)?.endereco_completo}</small>}
+            </label>
             <label className={styles.full}>Quem assina pela empresa
-              <select value={formContrato.representante_id} onChange={e => setFormContrato({ ...formContrato, representante_id: e.target.value })}>
+              <select disabled={!formContrato.empresa_id} value={formContrato.representante_id} onChange={e => setFormContrato({ ...formContrato, representante_id: e.target.value })}>
                 <option value="">Selecione o representante…</option>
-                {representantes.map(r => <option key={r.id} value={r.id}>{r.nome} · {r.cargo}{r.padrao ? " · padrão" : ""}</option>)}
+                {representantes.filter(r => r.empresa_id === formContrato.empresa_id).map(r => <option key={r.id} value={r.id}>{r.nome} · {r.cargo}{r.padrao ? " · padrão" : ""}</option>)}
               </select>
               <small>Este representante assina primeiro. Os demais recebem o convite automaticamente, na ordem.</small>
             </label>
