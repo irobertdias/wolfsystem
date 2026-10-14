@@ -33,7 +33,7 @@ test('recuperacao LID conserva citacao e falha da citacao nao envia texto comum'
   assert.equal(chamadas[1][0], '123456789012345@lid');
   assert.equal(chamadas[1][2].quotedMessageId, id);
   client.sendMessage = async () => { throw Error('Could not get the quoted message.'); };
-  await assert.rejects(reply.enviarRespostaWebjs(ctx, client, '5561999999999', 'resposta', id), /quoted message/);
+  await assert.rejects(reply.enviarRespostaWebjs(ctx, client, '5561999999999', 'resposta', id), /mensagem original/);
 });
 
 test('WABA envia context.message_id, sem acrescentar a citacao no texto', async () => {
@@ -75,4 +75,39 @@ test('funcao real do frontend separa texto enviado e citacao visual', async () =
   assert.equal(payload.mensagem, '*Robert*\nResposta');
   assert.equal(payload.responderMensagemId, 42);
   assert.equal(context.enviandoMsgRef.current, false);
+});
+
+test('recupera a chave por LID sem mudar a mensagem original nem sua autoria', async () => {
+  const original = 'false_5561999999999@c.us_ORIGINAL';
+  const atual = 'false_123456789012345@lid_ORIGINAL';
+  const chamadas = [];
+  const client = { getMessageById: async id => id === atual ? { id: { _serialized: atual } } : null, getContactLidAndPhone: async () => [{ pn: '5561999999999@c.us', lid: '123456789012345@lid' }], sendMessage: async (...args) => { chamadas.push(args); return { hasQuotedMsg: true }; } };
+  await reply.enviarRespostaWebjs({ resolverDestinoWebjs: async () => ({ jid: '5561999999999@c.us' }) }, client, '5561999999999', 'Resposta', original);
+  assert.equal(chamadas.length, 1);
+  assert.equal(chamadas[0][0], '123456789012345@lid');
+  assert.equal(chamadas[0][2].quotedMessageId, atual);
+});
+
+test('carrega mensagens recentes da conversa antes de enviar citacao', async () => {
+  const id = 'false_5561999999999@c.us_ORIGINAL';
+  let carregou = false, envios = 0;
+  const client = { getMessageById: async () => null, getChatById: async chatId => ({ fetchMessages: async options => { assert.equal(chatId, '5561999999999@c.us'); assert.equal(options.limit, 100); carregou = true; return [{ id: { _serialized: id } }]; } }), sendMessage: async (destino, texto, opts) => { assert.equal(carregou, true); assert.equal(opts.quotedMessageId, id); envios++; return { hasQuotedMsg: true }; } };
+  await reply.enviarRespostaWebjs({ resolverDestinoWebjs: async () => ({ jid: '5561999999999@c.us' }) }, client, '5561999999999', 'Resposta', id);
+  assert.equal(envios, 1);
+});
+
+test('nao cita outra mensagem com mesmo texto ou autoria diferente e nao envia sem citacao', async () => {
+  let envios = 0;
+  const client = { getMessageById: async () => null, getChatById: async () => ({ fetchMessages: async () => [{ id: { _serialized: 'true_5561999999999@c.us_ORIGINAL' }, body: 'Oi' }, { id: { _serialized: 'false_5561999999999@c.us_OUTRA' }, body: 'Oi' }] }), sendMessage: async () => { envios++; } };
+  await assert.rejects(reply.enviarRespostaWebjs({ resolverDestinoWebjs: async () => ({ jid: '5561999999999@c.us' }) }, client, '5561999999999', 'Resposta', 'false_5561999999999@c.us_ORIGINAL'), error => error.statusCode === 409 && error.message.includes('nao esta disponivel'));
+  assert.equal(envios, 0);
+});
+
+test('erro de cache anterior ao envio recarrega conversa e retenta apenas uma vez', async () => {
+  const id = 'false_5561999999999@c.us_ORIGINAL';
+  let envios = 0, recuperacoes = 0;
+  const client = { getMessageById: async () => ({ id: { _serialized: id } }), getChatById: async () => ({ fetchMessages: async () => { recuperacoes++; return [{ id: { _serialized: id } }]; } }), sendMessage: async () => { envios++; if (envios === 1) throw Error('Could not get the quoted message.'); return { hasQuotedMsg: true }; } };
+  await reply.enviarRespostaWebjs({ resolverDestinoWebjs: async () => ({ jid: '5561999999999@c.us' }) }, client, '5561999999999', 'Resposta', id);
+  assert.equal(recuperacoes, 1);
+  assert.equal(envios, 2);
 });
