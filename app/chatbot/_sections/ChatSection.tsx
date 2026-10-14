@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { deveNotificarAtendimento } from "../../lib/notificacoes-atendimento";
 import { supabase } from "../../lib/supabase";
 import { chaveMensagem, mesclarHistorico, atualizarRecibo, criarSincronizadorHistorico, type MensagemHistorico } from "../../lib/historico-mensagens";
 import { nomeArquivoAudio, lerRespostaAudio } from "../../lib/audio-envio";
@@ -317,6 +318,10 @@ export function ChatSection() {
   // Som ligado/desligado — atendente decide. Salvo em localStorage por usuário.
   // Default: ligado (teleatendimento precisa ouvir).
   const [somAtivo, setSomAtivo] = useState<boolean>(true);
+  const somAtivoRef = useRef(somAtivo);
+  somAtivoRef.current = somAtivo;
+  const contextoNotificacaoRef = useRef({ workspaceId: wsId || "", email: user?.email, podeAcessarChat: Boolean(isDono || permissoes.chat_proprio || permissoes.chat_todos), todosCanais: veTudoCanais, carregandoCanais: canaisPermissoesLoading, canaisPermitidos });
+  contextoNotificacaoRef.current = { workspaceId: wsId || "", email: user?.email, podeAcessarChat: Boolean(isDono || permissoes.chat_proprio || permissoes.chat_todos), todosCanais: veTudoCanais, carregandoCanais: canaisPermissoesLoading, canaisPermitidos };
   // Map<atendimento_id, qtd_nao_lidas> — quantas msgs do cliente vieram após visualizado_em
   const [naoLidasPorAtendimento, setNaoLidasPorAtendimento] = useState<Record<number, number>>({});
   // Set de IDs já conhecidos — usado pra detectar "atendimento NOVO" (toca som diferente)
@@ -328,6 +333,13 @@ export function ChatSection() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   // Ref pra última quantidade conhecida de não lidas por atendimento — pra detectar quando aumentou
   const ultimaQtdNaoLidasRef = useRef<Record<number, number>>({});
+  const contagemNotificacoesInicializadaRef = useRef(false);
+  useEffect(() => {
+    atendimentosConhecidosRef.current = new Set();
+    primeiraCargaAtendimentosRef.current = true;
+    ultimaQtdNaoLidasRef.current = {};
+    contagemNotificacoesInicializadaRef.current = false;
+  }, [wsId, user?.email]);
 
   const [mensagem, setMensagem] = useState("");
   // 🆕 Ref pro textarea de mensagem — usado pra resetar altura após envio
@@ -923,7 +935,7 @@ export function ChatSection() {
   // Toca som tipo "ding-DONG" — 2 tons em sequência. Usado pra ATENDIMENTO NOVO (chat inédito).
   // Mais alto e perceptível pra atendente nunca perder.
   const tocarSomChatNovo = () => {
-    if (!somAtivo) return;
+    if (!somAtivoRef.current) return;
     const ctx = getAudioCtx();
     if (!ctx) return;
     try {
@@ -956,7 +968,7 @@ export function ChatSection() {
   // Toca som tipo "ding" curto — 1 tom só, suave. Usado pra MENSAGEM em chat existente.
   // Mais discreto pra não cansar o atendente que recebe muitas msgs.
   const tocarSomMsgExistente = () => {
-    if (!somAtivo) return;
+    if (!somAtivoRef.current) return;
     const ctx = getAudioCtx();
     if (!ctx) return;
     try {
@@ -1252,24 +1264,7 @@ export function ChatSection() {
       // Pra atendentes comuns: só toca se chat foi atribuído pra eles ou tá na fila deles
       if (novos.length > 0) {
         // Filtra novos que esse atendente vai conseguir ver
-        const novosVisiveis = novos.filter(a => {
-          const aba = (() => {
-            if (a.status === "resolvido") return "finalizados";
-            if (a.atendente === "BOT") return "automatico";
-            const atendenteEhReal = !!a.atendente && !["BOT", "Humano"].includes(a.atendente);
-            if (atendenteEhReal) return "abertos";
-            if (a.status === "pendente") return "aguardando";
-            return "abertos";
-          })();
-          // Permissão literal: chat_todos vê tudo; chat_proprio vê apenas os próprios —
-          // exceto em "automatico"/"aguardando", que são leads não reivindicados (mesmo
-          // fix de podeVerAtendimento abaixo: sem isso, o som de chat novo nunca tocava
-          // pra leads BOT/pendentes, porque nenhum tem atendente === meu email ainda).
-          if (isDono || permissoes.chat_todos) return true;
-          if (!permissoes.chat_proprio) return false;
-          if (aba === "automatico" || aba === "aguardando") return true;
-          return a.atendente?.toLowerCase() === user?.email?.toLowerCase();
-        });
+        const novosVisiveis = novos.filter(a => deveNotificarAtendimento(a, { ...contextoNotificacaoRef.current, canaisExcluidos: canaisExclusivosValidacaoRef.current }));
         if (novosVisiveis.length > 0) {
           tocarSomChatNovo();
         }
@@ -1751,11 +1746,13 @@ export function ChatSection() {
           const idNum = parseInt(id);
           const antes = ultimas[idNum] || 0;
           const agora = novoMap[idNum];
-          if (agora > antes && idNum !== atendimentoAtivo?.id) {
+          const atendimento = ativos.find(a => a.id === idNum);
+          if (agora > antes && idNum !== atendimentoAtivo?.id && atendimento && deveNotificarAtendimento(atendimento, { ...contextoNotificacaoRef.current, canaisExcluidos: canaisExclusivosValidacaoRef.current })) {
             teveAumento = true;
           }
         }
-        const primeiraVez = Object.keys(ultimas).length === 0;
+        const primeiraVez = !contagemNotificacoesInicializadaRef.current;
+        contagemNotificacoesInicializadaRef.current = true;
         if (teveAumento && !primeiraVez) {
           tocarSomMsgExistente();
         }
@@ -1767,7 +1764,7 @@ export function ChatSection() {
     })();
 
     return () => { cancelado = true; };
-  }, [atendimentos, wsId, atendimentoAtivo?.id]);
+  }, [atendimentos, wsId, user?.email, atendimentoAtivo?.id]);
 
   // 🔔 Atualiza title da aba do navegador com (N) Wolf System quando tem não lidas
   useEffect(() => {
