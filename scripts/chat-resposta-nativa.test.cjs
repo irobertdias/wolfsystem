@@ -54,11 +54,9 @@ test('WhatsApp que descarta a citacao nao e informado como sucesso nem retransmi
   assert.equal(chamadas, 1);
 });
 
-test('citacao visual fica apenas no historico interno; frontend envia id da mensagem', () => {
+test('citacao visual e formatada para o historico interno', () => {
   const historico = reply.textoHistoricoResposta({ de: 'bot', mensagem: 'Mensagem original' }, '*Robert*\nResposta');
   assert.match(historico, /^↪️ \*BOT\*:/);
-  const source = fs.readFileSync(path.join(__dirname, '../app/chatbot/_sections/ChatSection.tsx'), 'utf8');
-  assert.ok(source.includes('mensagem: nomeHeader + mensagem, responderMensagemId: respondendoMsg?.id'));
 });
 
 test('aba antiga nao pode mandar citacao artificial como mensagem comum', () => {

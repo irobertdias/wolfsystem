@@ -2064,8 +2064,17 @@ export function ChatSection() {
 
   const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas" || filtroCanal !== "todos" || filtroTempo !== "tudo";
 
-  const enviarMensagem = async () => {
-    if (!mensagem || !atendimentoAtivo) return;
+  const enviarMensagem = async (texto?: unknown) => {
+    const textoEnviar = typeof texto === "string" ? texto : mensagem;
+    if (!textoEnviar || !atendimentoAtivo) return;
+    if (enviandoMsgRef.current) return;
+    if (typeof texto !== "string" && /^\/\S+$/.test(textoEnviar.trim())) {
+      const atalho = textoEnviar.trim().replace(/^\//, "").toLowerCase();
+      const resposta = permissoes.respostas_rapidas ? respostasRapidas.find(r => r.atalho.trim().replace(/^\//, "").toLowerCase() === atalho) : undefined;
+      if (!resposta) { notify("Resposta rapida nao encontrada para este atalho.", "aviso"); return; }
+      await aplicarRespostaRapida(resposta, true);
+      return;
+    }
     if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal. Não é possível enviar.", "aviso"); return; }
     if (respondendoMsg && !respondendoMsg.id) { notify("Aguarde a mensagem aparecer no historico antes de responder.", "aviso"); return; }
     if (enviandoMsgRef.current) return;
@@ -2074,7 +2083,7 @@ export function ChatSection() {
       setEnviandoMsg(true);
       try {
         const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
-        const novoTexto = nomeHeader + mensagem.trim() + " *(editado)*";
+        const novoTexto = nomeHeader + textoEnviar.trim() + " *(editado)*";
         const { error } = await supabase.from("mensagens").update({ mensagem: novoTexto }).eq("id", editandoMsg.id).eq("workspace_id", wsId);
         if (error) { notify(traduzirErro(error), "erro"); }
         else {
@@ -2092,12 +2101,12 @@ export function ChatSection() {
     setTemMensagemNova(false);
     try {
       const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
-      let mensagemFinal = nomeHeader + mensagem;
+      let mensagemFinal = nomeHeader + textoEnviar;
       if (respondendoMsg && respondendoMsg.mensagem) {
         const autorQuote = respondendoMsg.de === "cliente" ? (atendimentoAtivo.nome || "Cliente") : respondendoMsg.de === "bot" ? "BOT" : "Atendente";
         const trechoCru = String(respondendoMsg.mensagem).replace(/^\*[^*]+\*\n/, "").replace(/\s*\*\(editado\)\*\s*$/, "");
         const trecho = trechoCru.length > 100 ? trechoCru.slice(0, 100) + "..." : trechoCru;
-        mensagemFinal = `↪️ *${autorQuote}*: "${trecho}"\n\n${nomeHeader}${mensagem}`;
+        mensagemFinal = `↪️ *${autorQuote}*: "${trecho}"\n\n${nomeHeader}${textoEnviar}`;
       }
       const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
       const tipoCanal = canalAtual?.tipo;
@@ -2119,7 +2128,7 @@ export function ChatSection() {
         const data = await r.json();
         resp = data.sucesso ? { success: true } : { success: false, error: data.erro || "Erro no envio" };
       } else {
-        resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: nomeHeader + mensagem, responderMensagemId: respondendoMsg?.id, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
+        resp = await wa("enviar", { numero: atendimentoAtivo.numero, mensagem: nomeHeader + textoEnviar, responderMensagemId: respondendoMsg?.id, canalId: atendimentoAtivo.canal_id, workspaceId: wsId });
       }
       if (respondendoMsg && tipoCanal !== "meta" && tipoCanal !== "instagram" && tipoCanal !== "messenger" && resp.success && resp.respostaNativa !== true) {
         notify("O servidor nao confirmou a citacao nativa. Confira o WhatsApp antes de reenviar.", "aviso");
@@ -2142,6 +2151,55 @@ export function ChatSection() {
     catch { notify("Falha ao enviar mensagem. Tente novamente.", "erro"); }
     setEnviandoMsg(false);
     enviandoMsgRef.current = false;
+  };
+
+  const aplicarRespostaRapida = async (r: (typeof respostasRapidas)[number], enviarAgora = false) => {
+
+    setShowRespostas(false);
+
+    // Se houver mídia, o texto será enviado somente como legenda.
+    // Nunca o mantenha simultaneamente no composer.
+    if (r.midia_url && atendimentoAtivo) {
+      setMensagem("");
+      if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal.", "aviso"); return; }
+      // 🔒 MULTI-TENANT: workspaceId obrigatório — validado no backend também
+      if (enviandoMsgRef.current) return;
+      enviandoMsgRef.current = true; setEnviandoMsg(true);
+      try {
+        const resp = await fetch("/api/whatsapp?rota=enviar-midia-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            midiaUrl: r.midia_url,
+            midiaNome: r.midia_nome || "",
+            numero: atendimentoAtivo.numero,
+            canalId: String(atendimentoAtivo.canal_id),
+            workspaceId: wsId,
+            legenda: r.mensagem || "",
+          }),
+        });
+        const data = await resp.json();
+        if (!data.success) {
+          // Se a mídia falhar, restaura o texto para envio manual.
+          setMensagem(r.mensagem || "");
+          notify("Erro ao enviar mídia da resposta rápida: " + (data.error || "desconhecido"), "erro");
+        } else {
+          refletirAtividadeAtendimento(
+            { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
+            r.mensagem || r.midia_nome || "Mídia enviada",
+            new Date().toISOString(),
+            true,
+          );
+        }
+      } catch (e: any) {
+        setMensagem(r.mensagem || "");
+        notify("Erro ao enviar mídia da resposta rápida: " + (e?.message || "desconhecido"), "erro");
+      } finally { enviandoMsgRef.current = false; setEnviandoMsg(false); }
+    } else {
+      // Sem mídia, mantém o comportamento de preencher para revisão.
+      if (enviarAgora) await enviarMensagem(r.mensagem || "");
+      else setMensagem(r.mensagem || "");
+    }
   };
 
   const inserirEmoji = (emoji: string) => { setMensagem(prev => prev + emoji); };
@@ -3312,50 +3370,7 @@ export function ChatSection() {
                     </p>
                   </div>
                 ) : respostasRapidas.map((r, i) => (
-                  <button type="button" key={i} onClick={async () => {
-                    setShowRespostas(false);
-
-                    // Se houver mídia, o texto será enviado somente como legenda.
-                    // Nunca o mantenha simultaneamente no composer.
-                    if (r.midia_url && atendimentoAtivo) {
-                      setMensagem("");
-                      if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal.", "aviso"); return; }
-                      // 🔒 MULTI-TENANT: workspaceId obrigatório — validado no backend também
-                      try {
-                        const resp = await fetch("/api/whatsapp?rota=enviar-midia-url", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            midiaUrl: r.midia_url,
-                            midiaNome: r.midia_nome || "",
-                            numero: atendimentoAtivo.numero,
-                            canalId: String(atendimentoAtivo.canal_id),
-                            workspaceId: wsId,
-                            legenda: r.mensagem || "",
-                          }),
-                        });
-                        const data = await resp.json();
-                        if (!data.success) {
-                          // Se a mídia falhar, restaura o texto para envio manual.
-                          setMensagem(r.mensagem || "");
-                          notify("Erro ao enviar mídia da resposta rápida: " + (data.error || "desconhecido"), "erro");
-                        } else {
-                          refletirAtividadeAtendimento(
-                            { id: atendimentoAtivo.id, numero: atendimentoAtivo.numero, canalId: atendimentoAtivo.canal_id },
-                            r.mensagem || r.midia_nome || "Mídia enviada",
-                            new Date().toISOString(),
-                            true,
-                          );
-                        }
-                      } catch (e: any) {
-                        setMensagem(r.mensagem || "");
-                        notify("Erro ao enviar mídia da resposta rápida: " + (e?.message || "desconhecido"), "erro");
-                      }
-                    } else {
-                      // Sem mídia, mantém o comportamento de preencher para revisão.
-                      setMensagem(r.mensagem || "");
-                    }
-                  }}
+                  <button type="button" key={i} onClick={() => aplicarRespostaRapida(r)}
                     style={{ background: "#ffffff", border: "1px solid #2a3942", borderRadius: 8, padding: "8px 12px", color: "#1f2937", fontSize: 12, cursor: "pointer", textAlign: "left", display: "flex", gap: 10, alignItems: "center" }}>
                     <span style={{ color: "#00a884", fontWeight: "bold", minWidth: 60 }}>{r.atalho}</span>
                     <span style={{ color: "#4b5563", flex: 1 }}>{r.mensagem}</span>
