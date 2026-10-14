@@ -2555,79 +2555,12 @@ export function ChatSection() {
     if (!isDono && !permissoes.finalizar_chat) { notify("Você não tem permissão para finalizar atendimentos.", "erro"); return; }
     if (!wsId) { notify("Workspace não carregado. Recarregue a página.", "erro"); return; }
 
-    const agora = new Date();
-    const atendimentoId = atendimentoAtivo?.numero === numero && (!canalId || atendimentoAtivo?.canal_id === canalId)
-      ? atendimentoAtivo.id
-      : null;
-
-    const payloadBase: Record<string, any> = {
-      status: "resolvido",
-      bloqueado_ia: true,
-      bloqueado_fluxo: true,
-      bloqueado_typebot: true,
-      // O backend /finalizar é a única fonte do período de bloqueio.
-      // Ele lê o valor salvo no workspace; 0 mantém estes campos limpos.
-      bloqueado_contato: false,
-      bloqueado_ate: null,
-      atendente_finalizou: null,
-      updated_at: agora.toISOString(),
-    };
-
+    const canalFinalizacao = canalId || (atendimentoAtivo?.numero === numero ? atendimentoAtivo.canal_id : undefined);
+    if (!canalFinalizacao) { notify("Atendimento sem canal. Nao foi possivel finalizar.", "erro"); return; }
     try {
-      let updatePayload = { ...payloadBase };
-      let query = supabase.from("atendimentos").update(updatePayload).eq("workspace_id", wsId);
-      if (atendimentoId) query = query.eq("id", atendimentoId);
-      else {
-        query = query.eq("numero", numero);
-        if (canalId) query = query.eq("canal_id", canalId);
-      }
-
-      let { error } = await query;
-
-      // Workspaces antigos podem ainda não ter todos os campos novos. Finalizar não pode travar por isso.
-      if (error && /bloqueado_ate|atendente_finalizou|bloqueado_contato|updated_at/i.test(error.message || "")) {
-        updatePayload = {
-          status: "resolvido",
-          bloqueado_ia: true,
-          bloqueado_fluxo: true,
-          bloqueado_typebot: true,
-        };
-        let fallback = supabase.from("atendimentos").update(updatePayload).eq("workspace_id", wsId);
-        if (atendimentoId) fallback = fallback.eq("id", atendimentoId);
-        else {
-          fallback = fallback.eq("numero", numero);
-          if (canalId) fallback = fallback.eq("canal_id", canalId);
-        }
-        const respFallback = await fallback;
-        error = respFallback.error;
-      }
-
-      if (error) throw error;
-
-      setAtendimentos(prev => prev.map(a => {
-        const mesmoChat = atendimentoId ? a.id === atendimentoId : a.numero === numero && (!canalId || a.canal_id === canalId);
-        return mesmoChat ? { ...a, ...payloadBase, status: "resolvido" } : a;
-      }));
-
-      await inserirMensagemSistema(numero, `Chat finalizado por: ${meuNome}`, canalId);
-
-      try {
-        await supabase.from("fluxo_sessoes")
-          .update({ status: "finalizado" })
-          .eq("workspace_id", wsId)
-          .eq("numero", numero)
-          .eq("status", "ativo");
-      } catch (e) {
-        console.warn("Falha ao finalizar sessão de fluxo (não bloqueia finalização):", e);
-      }
-
-      // O backend limpa estados auxiliares, mas não pode impedir a finalização no banco.
-      try {
-        await wa("finalizar", { numero, canalId, workspaceId: wsId, quemFinalizou: user?.email });
-      } catch (e) {
-        console.warn("Backend /finalizar falhou, mas o atendimento já foi finalizado no banco:", e);
-      }
-
+      const resposta = await wa("finalizar", { numero, canalId: canalFinalizacao, workspaceId: wsId, quemFinalizou: user?.email });
+      if (!resposta?.success) throw new Error(resposta?.error || "Nao foi possivel confirmar a finalizacao e o bloqueio.");
+      await inserirMensagemSistema(numero, `Chat finalizado por: ${meuNome}`, canalFinalizacao);
       await fetchAtendimentos();
       setAbaConversa("finalizados");
       setAtendimentoAtivo(null);

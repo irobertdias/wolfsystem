@@ -135,7 +135,7 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
       : body;
     const params = new URLSearchParams(); entrada.searchParams.forEach((valor, chave) => { if (chave !== "rota") params.set(chave, valor); }); params.set("workspaceId", acesso.workspaceId);
     const urlWhatsapp = `${WHATSAPP_URL}/${rota}${params.size ? `?${params.toString()}` : ""}`;
-    const resp = await consultarWhatsapp(urlWhatsapp, { method: metodo, cache: "no-store", headers: { "ngrok-skip-browser-warning": "true", "x-wolf-internal-secret": segredoInternoWolf(), ...(metodo === "POST" ? { "Content-Type": "application/json" } : {}) }, ...(metodo === "POST" ? { body: JSON.stringify({ ...bodySeguro, workspaceId: acesso.workspaceId, workspace_id: acesso.workspaceId }) } : {}) }, metodo === "GET");
+    const resp = await consultarWhatsapp(urlWhatsapp, { method: metodo, cache: "no-store", headers: { "ngrok-skip-browser-warning": "true", "x-wolf-internal-secret": segredoInternoWolf(), ...(metodo === "POST" ? { "Content-Type": "application/json" } : {}) }, ...(metodo === "POST" ? { body: JSON.stringify({ ...bodySeguro, workspaceId: acesso.workspaceId, workspace_id: acesso.workspaceId, ...(rota === "finalizar" ? { quemFinalizou: acesso.email } : {}) }) } : {}) }, metodo === "GET");
     const texto = await resp.text();
     if (!resp.ok) {
       let detalhe = texto;
