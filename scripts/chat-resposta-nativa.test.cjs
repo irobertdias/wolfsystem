@@ -111,3 +111,22 @@ test('erro de cache anterior ao envio recarrega conversa e retenta apenas uma ve
   assert.equal(recuperacoes, 1);
   assert.equal(envios, 2);
 });
+
+test('remove prefixo interno webjs antes de consultar e citar mensagem recebida', async () => {
+  const id = 'false_123456789012345@lid_ORIGINAL';
+  const consultas = [], envios = [];
+  const client = { getMessageById: async value => { consultas.push(value); return { id: { _serialized: id } }; }, sendMessage: async (...args) => { envios.push(args); return { hasQuotedMsg: true }; } };
+  await reply.enviarRespostaWebjs({ resolverDestinoWebjs: async () => ({ jid: '123456789012345@lid' }) }, client, '5561999999999', 'Resposta', 'webjs:154:' + id);
+  assert.deepEqual(consultas, [id]);
+  assert.equal(envios[0][2].quotedMessageId, id);
+});
+
+test('validacao do canal preserva id interno do registro original sem altera-lo', async () => {
+  const registro = { id: 42, provider_message_id: 'webjs:154:false_123456789012345@lid_ORIGINAL' };
+  const ctx = { supabase: { from: () => ({ select() { return this; }, eq() { return this; }, in() { return this; }, maybeSingle: async () => ({ data: registro, error: null }) }) } };
+  const resultado = await reply.buscarMensagemRespondida(ctx, 42, 'ws', 154, '5561999999999');
+  assert.equal(resultado.provider_message_id, 'false_123456789012345@lid_ORIGINAL');
+  assert.equal(registro.provider_message_id, 'webjs:154:false_123456789012345@lid_ORIGINAL');
+  await assert.rejects(reply.buscarMensagemRespondida(ctx, 42, 'ws', 155, '5561999999999'), error => error.statusCode === 400);
+  assert.equal(reply.normalizarIdResposta('wamid.original', 154), 'wamid.original');
+});
