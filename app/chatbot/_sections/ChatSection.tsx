@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
-import { ordenarAtendimentos, capturarPosicaoLista, restaurarPosicaoLista, type PosicaoLista, type OrdemAtendimentos } from "../../lib/ordenacao-atendimentos";
+import { dataUltimaMensagem, ordenarAtendimentos, capturarPosicaoLista, restaurarPosicaoLista, type PosicaoLista, type OrdemAtendimentos } from "../../lib/ordenacao-atendimentos";
+import { criarIndiceUltimasMensagens } from "../../lib/ultima-mensagem-atendimentos";
 import { deveNotificarAtendimento } from "../../lib/notificacoes-atendimento";
 import { supabase } from "../../lib/supabase";
 import { chaveMensagem, mesclarHistorico, atualizarRecibo, criarSincronizadorHistorico, type MensagemHistorico } from "../../lib/historico-mensagens";
@@ -14,6 +15,7 @@ import { montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom } from
 
 type Atendimento = {
   id: number; created_at: string; updated_at?: string; numero: string; nome: string; mensagem: string;
+  ultima_mensagem_em?: string | null;
   status: string; fila: string; atendente: string; workspace_id: string;
   canal_id?: number;
   equipe_id?: string | null; // 🆕 equipe dona do atendimento (filtro de Equipes)
@@ -378,6 +380,7 @@ export function ChatSection() {
   const [ordemAtendimentos, setOrdemAtendimentos] = useState<OrdemAtendimentos>("recentes");
   const listaAtendimentosRef = useRef<HTMLDivElement>(null);
   const posicaoListaRef = useRef<PosicaoLista | null>(null);
+  const indiceMensagensRef = useRef<{ workspaceId: string; indice: ReturnType<typeof criarIndiceUltimasMensagens> } | null>(null);
   // 🆕 BUSCA EM MENSAGENS — quando user digita 3+ chars, dispara query nas mensagens.
   //    atendimentosComMatch contém IDs de atendimentos que têm a mensagem buscada.
   //    Usado pra filtrar a lista junto com nome/número.
@@ -1231,6 +1234,10 @@ export function ChatSection() {
 
   const fetchAtendimentos = async () => {
     if (!wsId) return;
+    if (indiceMensagensRef.current?.workspaceId !== wsId) {
+      indiceMensagensRef.current = { workspaceId: wsId, indice: criarIndiceUltimasMensagens(supabase, wsId) };
+    }
+    const indiceAtual = indiceMensagensRef.current;
     if (!veTudoCanais && canaisPermissoesLoading) {
       setAtendimentos([]);
       return;
@@ -1295,7 +1302,15 @@ export function ChatSection() {
         : [];
     }
 
-    setAtendimentos(listaFinal);
+    try {
+      const atualizados = await indiceAtual.indice.carregar(listaFinal);
+      if (indiceMensagensRef.current !== indiceAtual) return;
+      setAtendimentos(atualizados);
+    } catch (erro) {
+      console.error("Falha ao consultar última mensagem dos atendimentos:", erro);
+      if (indiceMensagensRef.current !== indiceAtual) return;
+      setAtendimentos(indiceAtual.indice.aplicar(listaFinal));
+    }
 
     // 🆕 Dispara auto-limpeza em background (não aguarda).
     // Só dono/supervisor dispara — atendente comum não tem permissão de fazer update em massa.
@@ -1319,7 +1334,8 @@ export function ChatSection() {
         (!alvo.canalId || !a.canal_id || Number(a.canal_id) === Number(alvo.canalId));
     };
     const atualizar = (a: Atendimento): Atendimento =>
-      corresponde(a) ? { ...a, mensagem: resumo, updated_at: instante } : a;
+      corresponde(a) && Date.parse(instante) >= Date.parse(a.ultima_mensagem_em || a.created_at)
+        ? { ...a, mensagem: resumo, ultima_mensagem_em: instante, updated_at: instante } : a;
 
     setAtendimentos(prev => [...prev.map(atualizar)].sort((a, b) =>
       new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime()
@@ -1628,6 +1644,12 @@ export function ChatSection() {
     fetchRoleta();
 
     const ch = supabase.channel("atendimentos_chat_rt_" + wsId)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens", filter: `workspace_id=eq.${wsId}` }, payload => {
+        const m = payload.new as Mensagem;
+        if (m.de === "sistema" || !m.created_at) return;
+        if (indiceMensagensRef.current?.workspaceId === wsId) indiceMensagensRef.current.indice.registrar({ ...m, created_at: m.created_at });
+        refletirAtividadeAtendimento({ numero: m.numero, canalId: m.canal_id }, m.mensagem, m.created_at);
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos", filter: `workspace_id=eq.${wsId}` }, () => fetchAtendimentos())
       .on("postgres_changes", { event: "*", schema: "public", table: "etiquetas", filter: `workspace_id=eq.${wsId}` }, () => fetchEtiquetasWorkspace())
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${wsId}` }, () => fetchUsuariosWorkspace())
@@ -1835,7 +1857,7 @@ export function ChatSection() {
         const m = payload.new as Mensagem;
         if (!ativo || !pertence(m)) return;
         setHistorico(anterior => ativo ? mesclarHistorico(anterior, [m]) : anterior);
-        refletirAtividadeAtendimento({ numero: m.numero, canalId: m.canal_id }, m.mensagem, m.created_at || new Date().toISOString());
+        if (m.de !== "sistema") refletirAtividadeAtendimento({ numero: m.numero, canalId: m.canal_id }, m.mensagem, m.created_at || new Date().toISOString());
         if (!stickyFundoRef.current) setTemMensagemNova(true);
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mensagens", filter: `workspace_id=eq.${wsId}` }, payload => {
@@ -2891,8 +2913,8 @@ export function ChatSection() {
 
         <div style={{ padding: "8px 14px", background: tema.sidebarBg, borderBottom: `1px solid ${tema.bordaSutil}` }}>
           <label style={{ display: "flex", alignItems: "center", gap: 8, color: tema.textoFraco, fontSize: 11 }}>
-            Última interação
-            <select aria-label="Ordenar atendimentos por última interação" value={ordemAtendimentos}
+            Última mensagem
+            <select aria-label="Ordenar atendimentos pela última mensagem enviada ou recebida" value={ordemAtendimentos}
               onChange={e => setOrdemAtendimentos(e.target.value as OrdemAtendimentos)}
               style={{ ...inputSm, flex: 1, minWidth: 0 }}>
               <option value="recentes">Mais novos primeiro</option>
@@ -2925,7 +2947,7 @@ export function ChatSection() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2, gap: 8 }}>
                       <span style={{ color: temNaoLidas ? (ehClaro ? "#000" : "#ffffff") : tema.textoForte, fontSize: 14, fontWeight: temNaoLidas ? 700 : "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{a.nome}</span>
-                      <span style={{ color: temNaoLidas ? "#00a884" : "#8696a0", fontSize: 11, fontWeight: temNaoLidas ? "bold" : "normal", flexShrink: 0 }}>{tempoRelativo(a.updated_at || a.created_at)}</span>
+                      <span style={{ color: temNaoLidas ? "#00a884" : "#8696a0", fontSize: 11, fontWeight: temNaoLidas ? "bold" : "normal", flexShrink: 0 }}>{tempoRelativo(dataUltimaMensagem(a))}</span>
                     </div>
                     <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       📱 {numeroSanitizado(a.numero)}{a.canal_id && <span style={{ color: "#00a884" }}> • {iconeCanal(a.canal_id, a.origem)} {nomeDoCanal(a.canal_id, a.origem)}</span>}

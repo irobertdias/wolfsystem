@@ -1,12 +1,16 @@
 export type OrdemAtendimentos = "recentes" | "antigos";
 
-export function ordenarAtendimentos<T extends { id: number; created_at: string; updated_at?: string | null }>(
+export function dataUltimaMensagem(a: { created_at: string; ultima_mensagem_em?: string | null }) {
+  return a.ultima_mensagem_em || a.created_at;
+}
+
+export function ordenarAtendimentos<T extends { id: number; created_at: string; ultima_mensagem_em?: string | null }>(
   atendimentos: readonly T[], ordem: OrdemAtendimentos,
 ): T[] {
   const direcao = ordem === "antigos" ? 1 : -1;
   const instante = (data: string) => Date.parse(data) || 0;
   return [...atendimentos].sort((a, b) => direcao * (
-    instante(a.updated_at || a.created_at) - instante(b.updated_at || b.created_at) || a.id - b.id
+    instante(dataUltimaMensagem(a)) - instante(dataUltimaMensagem(b)) || a.id - b.id
   ));
 }
 
