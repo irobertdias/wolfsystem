@@ -7,6 +7,7 @@ import { supabase } from "../../lib/supabase";
 import { chaveMensagem, mesclarHistorico, atualizarRecibo, criarSincronizadorHistorico, type MensagemHistorico } from "../../lib/historico-mensagens";
 import { nomeArquivoAudio, lerRespostaAudio } from "../../lib/audio-envio";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { useConversasFixadas } from "../../hooks/useConversasFixadas";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useSoftphone } from "../../hooks/useSoftphone";
 import { useEquipeFiltro } from "../../hooks/useEquipeFiltro";
@@ -275,6 +276,7 @@ function AudioPlayer({ src, isOwn }: { src: string; isOwn: boolean }) {
 
 export function ChatSection() {
   const { workspace, wsId, user } = useWorkspace();
+  const { fixadas: conversasFixadas, alternar: alternarConversaFixada, carregadas: fixadasCarregadas } = useConversasFixadas(wsId, user?.email);
   const { permissoes, isDono } = usePermissao();
   // 📡 Trava de canais por usuário/grupo — controla quais conexões o user vê
   const {
@@ -2091,7 +2093,7 @@ export function ChatSection() {
       }
       return false;
     })
-    .filter(passaPeloFiltroPainel), ordemAtendimentos);
+    .filter(passaPeloFiltroPainel), ordemAtendimentos, conversasFixadas);
 
   const contextoLista = JSON.stringify([abaConversa, ordemAtendimentos, busca, filtroFila, filtroAtendente, filtroEtiqueta, filtroCanal, filtroTempo, equipeId, wsId]);
   const contextoListaRef = useRef(contextoLista);
@@ -2947,7 +2949,21 @@ export function ChatSection() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2, gap: 8 }}>
                       <span style={{ color: temNaoLidas ? (ehClaro ? "#000" : "#ffffff") : tema.textoForte, fontSize: 14, fontWeight: temNaoLidas ? 700 : "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{a.nome}</span>
-                      <span style={{ color: temNaoLidas ? "#00a884" : "#8696a0", fontSize: 11, fontWeight: temNaoLidas ? "bold" : "normal", flexShrink: 0 }}>{tempoRelativo(dataUltimaMensagem(a))}</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                        <span style={{ color: temNaoLidas ? "#00a884" : "#8696a0", fontSize: 11, fontWeight: temNaoLidas ? "bold" : "normal" }}>{tempoRelativo(dataUltimaMensagem(a))}</span>
+                        <button type="button" title={conversasFixadas.has(a.id) ? "Desafixar conversa" : "Fixar conversa"}
+                          aria-label={conversasFixadas.has(a.id) ? "Desafixar conversa" : "Fixar conversa"}
+                          aria-pressed={conversasFixadas.has(a.id)} disabled={!fixadasCarregadas}
+                          onClick={e => {
+                            e.stopPropagation();
+                            if (!alternarConversaFixada(a.id)) notify("Não foi possível salvar a conversa fixada neste navegador.", "aviso");
+                          }}
+                          style={{ width: 26, height: 26, padding: 4, borderRadius: 6, border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", color: conversasFixadas.has(a.id) ? tema.accent : tema.textoFraco, background: conversasFixadas.has(a.id) ? `${tema.accent}22` : "transparent" }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill={conversasFixadas.has(a.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M8 3h8l-1 7 4 4v2H5v-2l4-4-1-7Z" /><path d="M12 16v6" />
+                          </svg>
+                        </button>
+                      </span>
                     </div>
                     <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       📱 {numeroSanitizado(a.numero)}{a.canal_id && <span style={{ color: "#00a884" }}> • {iconeCanal(a.canal_id, a.origem)} {nomeDoCanal(a.canal_id, a.origem)}</span>}

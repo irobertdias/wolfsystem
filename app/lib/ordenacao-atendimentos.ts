@@ -5,11 +5,11 @@ export function dataUltimaMensagem(a: { created_at: string; ultima_mensagem_em?:
 }
 
 export function ordenarAtendimentos<T extends { id: number; created_at: string; ultima_mensagem_em?: string | null }>(
-  atendimentos: readonly T[], ordem: OrdemAtendimentos,
+  atendimentos: readonly T[], ordem: OrdemAtendimentos, fixadas: ReadonlySet<number> = new Set(),
 ): T[] {
   const direcao = ordem === "antigos" ? 1 : -1;
   const instante = (data: string) => Date.parse(data) || 0;
-  return [...atendimentos].sort((a, b) => direcao * (
+  return [...atendimentos].sort((a, b) => Number(fixadas.has(b.id)) - Number(fixadas.has(a.id)) || direcao * (
     instante(dataUltimaMensagem(a)) - instante(dataUltimaMensagem(b)) || a.id - b.id
   ));
 }

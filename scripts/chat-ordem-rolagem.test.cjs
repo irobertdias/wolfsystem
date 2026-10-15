@@ -11,6 +11,16 @@ vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../a
 }).outputText, { exports: modulo.exports });
 const { ordenarAtendimentos, capturarPosicaoLista, restaurarPosicaoLista } = modulo.exports;
 
+test('fixadas ficam no topo nos dois sentidos sem alterar a ordem por ultima mensagem de cada grupo', () => {
+  const itens = [1, 2, 3, 4].map(id => ({ id, created_at: '2026-01-01T00:00:00Z', ultima_mensagem_em: `2026-10-${10 + id}T12:00:00Z` }));
+  const fixadas = new Set([1, 3]);
+  assert.equal(ordenarAtendimentos(itens, 'recentes', fixadas).map(a => a.id).join(), '3,1,4,2');
+  assert.equal(ordenarAtendimentos(itens, 'antigos', fixadas).map(a => a.id).join(), '1,3,2,4');
+  fixadas.delete(1);
+  assert.equal(ordenarAtendimentos(itens, 'recentes', fixadas).map(a => a.id).join(), '3,4,2,1');
+  assert.equal(ordenarAtendimentos(itens.filter(a => a.id !== 3), 'recentes', fixadas).map(a => a.id).join(), '4,2,1');
+});
+
 test('ordena pela ultima mensagem, nao pela alteracao administrativa ou abertura', () => {
   const itens = [
     { id: 2, created_at: '2026-10-12T12:00:00Z' },
