@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { ordenarAtendimentos, type OrdemAtendimentos } from "../../lib/ordenacao-atendimentos";
 import { deveNotificarAtendimento } from "../../lib/notificacoes-atendimento";
 import { supabase } from "../../lib/supabase";
 import { chaveMensagem, mesclarHistorico, atualizarRecibo, criarSincronizadorHistorico, type MensagemHistorico } from "../../lib/historico-mensagens";
@@ -374,6 +375,7 @@ export function ChatSection() {
   // 🆕 Menu de 3 pontinhos REMOVIDO — todos os botões ficam visíveis na toolbar agora
   const [abaConversa, setAbaConversa] = useState<"automatico" | "aguardando" | "abertos" | "finalizados">("aguardando");
   const [busca, setBusca] = useState("");
+  const [ordemAtendimentos, setOrdemAtendimentos] = useState<OrdemAtendimentos>("recentes");
   // 🆕 BUSCA EM MENSAGENS — quando user digita 3+ chars, dispara query nas mensagens.
   //    atendimentosComMatch contém IDs de atendimentos que têm a mensagem buscada.
   //    Usado pra filtrar a lista junto com nome/número.
@@ -1893,6 +1895,7 @@ export function ChatSection() {
     if (!el) return;
     const distanciaDoFundo = el.scrollHeight - el.scrollTop - el.clientHeight;
     const estaNoFundo = distanciaDoFundo < 120;
+    stickyFundoRef.current = estaNoFundo;
     if (estaNoFundo !== stickyFundo) setStickyFundo(estaNoFundo);
     if (estaNoFundo && temMensagemNova) setTemMensagemNova(false);
   };
@@ -1901,14 +1904,19 @@ export function ChatSection() {
   // Se ele tá lendo msg antiga lá em cima, o polling de 3s NÃO vai mais arrastar ele de volta.
   useEffect(() => {
     if (!stickyFundo) return;
-    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
+    const timer = setTimeout(() => {
+      const el = scrollContainerRef.current;
+      if (el && stickyFundoRef.current) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }, 80);
+    return () => clearTimeout(timer);
   }, [historico, stickyFundo]);
 
   // 🆕 Função pro botão "↓ Nova mensagem" — leva o user pro fundo manualmente e limpa o badge
   const irParaFundo = () => {
     setStickyFundo(true);
     setTemMensagemNova(false);
-    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    const el = scrollContainerRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   };
 
   const filas = [...new Set(atendimentos.map(a => a.fila))].filter(Boolean);
@@ -2034,7 +2042,7 @@ export function ChatSection() {
     console.log(`   → Candidatos na lista atendimentos: ${candidatos.length} (${candidatos.slice(0, 3).map(a => `${a.numero}(${a.nome})`).join(", ")})`);
   }
 
-  const atendimentosFiltrados = atendimentos
+  const atendimentosFiltrados = ordenarAtendimentos(atendimentos
     // A busca respeita a aba selecionada. A busca global antiga misturava atendimentos
     // finalizados em "Abertos" e "Aguardando", inclusive exibindo o botão "Reabrir"
     // no meio das conversas ativas.
@@ -2059,7 +2067,7 @@ export function ChatSection() {
       }
       return false;
     })
-    .filter(passaPeloFiltroPainel);
+    .filter(passaPeloFiltroPainel), ordemAtendimentos);
 
   const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas" || filtroCanal !== "todos" || filtroTempo !== "tudo";
 
@@ -2094,8 +2102,6 @@ export function ChatSection() {
       return;
     }
     setEnviandoMsg(true);
-    setStickyFundo(true);
-    setTemMensagemNova(false);
     try {
       const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
       let mensagemFinal = nomeHeader + textoEnviar;
@@ -2867,6 +2873,17 @@ export function ChatSection() {
           </div>
         )}
 
+        <div style={{ padding: "8px 14px", background: tema.sidebarBg, borderBottom: `1px solid ${tema.bordaSutil}` }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, color: tema.textoFraco, fontSize: 11 }}>
+            Data de abertura
+            <select aria-label="Ordenar atendimentos por data de abertura" value={ordemAtendimentos}
+              onChange={e => setOrdemAtendimentos(e.target.value as OrdemAtendimentos)}
+              style={{ ...inputSm, flex: 1, minWidth: 0 }}>
+              <option value="recentes">Mais novos primeiro</option>
+              <option value="antigos">Mais antigos primeiro</option>
+            </select>
+          </label>
+        </div>
         <div style={{ overflowY: "auto", flex: 1, background: tema.listaItem }}>
           {atendimentosFiltrados.length === 0 ? (
             <div style={{ padding: 32, textAlign: "center" }}>
