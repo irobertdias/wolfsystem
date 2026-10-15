@@ -494,10 +494,9 @@ export function ChatSection() {
   // 💬 RESPONDER / EDITAR MENSAGEM
   // ═══════════════════════════════════════════════════════════════════════
   // respondendoMsg: msg que está sendo respondida. Quando setada, banner aparece
-  //                 acima do input. Ao enviar, concatena quote visual antes do texto.
-  // editandoMsg:    msg que está sendo editada. Atualiza o histórico interno do Wolf
-  //                 (cliente já recebeu a original — APIs do WhatsApp/Meta têm limitação
-  //                 forte pra edit; aqui é só pra correção visual no histórico interno).
+  //                 acima do input. WhatsApp recebe a referência nativa da mensagem.
+  // editandoMsg:    mensagem editada no WhatsApp Web. O histórico só muda depois
+  //                 que o servidor confirma a edição nativa.
   // hoverMsgIdx:    índice da msg sob hover — controla aparição do botão ⋮.
   // menuMsgIdx:     índice da msg com menu aberto.
   type MensagemHist = typeof historico extends Array<infer T> ? T : never;
@@ -517,7 +516,7 @@ export function ChatSection() {
     setEditandoMsg(msg);
     setRespondendoMsg(null);
     // Tira o cabeçalho "*Nome*\n" do início (se tiver) pra editar só o conteúdo real
-    const textoSemCabecalho = String(msg.mensagem || "").replace(/^\*[^*]+\*\n/, "");
+    const textoSemCabecalho = String(msg.mensagem || "").replace(/^↪️ \*[^*]+\*: "[\s\S]+?"\n\n/, "").replace(/^\*[^*]+\*\n/, "");
     // Tira marcador "*(editado)*" se já tiver (evita ficar concatenando)
     const textoLimpo = textoSemCabecalho.replace(/\s*\*\(editado\)\*\s*$/, "");
     setMensagem(textoLimpo);
@@ -533,8 +532,11 @@ export function ChatSection() {
   // Helper: pode editar? (só msgs próprias do atendente, enviadas há < 15min)
   const podeEditarMsg = (msg: any): boolean => {
     if (!msg || msg.de === "cliente" || msg.de === "bot" || msg.de === "sistema") return false;
-    if (!msg.id) return false;
-    if (!msg.created_at) return true; // sem timestamp, assume recente
+    if (!msg.id || !msg.provider_message_id) return false;
+    const canalMensagem = canais.find(c => Number(c.id) === Number(msg.canal_id || atendimentoAtivo?.canal_id));
+    if (canalMensagem?.tipo !== "webjs") return false;
+    if (/^\[(?:img|image|audio|video|file|document):/i.test(String(msg.mensagem || ""))) return false;
+    if (!msg.created_at) return false;
     const idade = Date.now() - new Date(msg.created_at).getTime();
     return idade < 15 * 60 * 1000; // 15 minutos
   };
@@ -2080,14 +2082,12 @@ export function ChatSection() {
       setEnviandoMsg(true);
       try {
         const nomeHeader = meuNome ? `*${meuNome}*\n` : "";
-        const novoTexto = nomeHeader + textoEnviar.trim() + " *(editado)*";
-        const { error } = await supabase.from("mensagens").update({ mensagem: novoTexto }).eq("id", editandoMsg.id).eq("workspace_id", wsId);
-        if (error) { notify(traduzirErro(error), "erro"); }
-        else {
-          setHistorico(h => h.map(m => m.id === editandoMsg.id ? { ...m, mensagem: novoTexto } : m));
-          notify("Mensagem editada no histórico interno.", "info", "Cliente já recebeu a original (limite da API).");
-          setMensagem(""); setEditandoMsg(null);
-        }
+        const novoTexto = nomeHeader + textoEnviar.trim();
+        const resultado = await wa("editar-mensagem", { mensagemId: editandoMsg.id, canalId: atendimentoAtivo.canal_id, workspaceId: wsId, numero: atendimentoAtivo.numero, mensagem: novoTexto });
+        if (!resultado?.success || resultado.edicaoNativa !== true) throw new Error(resultado?.error || "O WhatsApp não confirmou a edição.");
+        setHistorico(h => h.map(m => m.id === editandoMsg.id ? { ...m, mensagem: resultado.mensagem } : m));
+        notify(resultado.persisted === false ? "Edição confirmada no WhatsApp; o histórico interno demorou para atualizar." : "Mensagem editada no WhatsApp.", resultado.persisted === false ? "aviso" : "sucesso");
+        setMensagem(""); setEditandoMsg(null);
       } catch (e: any) { notify(traduzirErro(e), "erro"); }
       setEnviandoMsg(false);
       enviandoMsgRef.current = false;

@@ -54,16 +54,16 @@ function exigirPermissaoDaRota(acesso: AcessoWolf, rota: string, metodo: string)
   if (rota.startsWith("voip/conexao") || rota.startsWith("voip/conexoes")) return exigirPermissao(acesso, "voip_conexoes");
   if (rota.startsWith("voip/")) return exigirPermissao(acesso, "voip_usar", "voip_conexoes");
   if (rota.startsWith("canal/") || ["configurar-ia", "iniciar-qr", "resetar", "reconectar", "sincronizar-conversas", "desconectar"].some((item) => rota === item || rota.startsWith(item + "/"))) return exigirPermissao(acesso, "conexoes");
-  if (["enviar", "enviar-template", "enviar-midia-url", "apagar-mensagem", "assumir", "finalizar", "devolver"].includes(rota)) { if (rota === "finalizar") return exigirPermissao(acesso, "finalizar_chat"); if (rota === "devolver") return exigirPermissao(acesso, "transferir_chat"); return exigirPermissao(acesso, "chat_proprio", "chat_todos"); }
+  if (["enviar", "enviar-template", "enviar-midia-url", "apagar-mensagem", "editar-mensagem", "assumir", "finalizar", "devolver"].includes(rota)) { if (rota === "finalizar") return exigirPermissao(acesso, "finalizar_chat"); if (rota === "devolver") return exigirPermissao(acesso, "transferir_chat"); return exigirPermissao(acesso, "chat_proprio", "chat_todos"); }
   if (metodo === "GET") return exigirPermissao(acesso, "chat_proprio", "chat_todos", "conexoes");
   exigirPermissao(acesso, "administrador");
 }
 async function exigirEscopoDoAtendimento(acesso: AcessoWolf, rota: string, body: Record<string, unknown>) {
   if (acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador || acesso.permissoes.chat_todos === true || rota === "assumir") return;
   if (acesso.permissoes.chat_proprio !== true) return;
-  if (!["enviar", "enviar-template", "enviar-midia-url", "apagar-mensagem", "finalizar", "devolver"].includes(rota)) return;
+  if (!["enviar", "enviar-template", "enviar-midia-url", "apagar-mensagem", "editar-mensagem", "finalizar", "devolver"].includes(rota)) return;
   let numero = String(body.numero || ""); let canalId = String(body.canalId || body.canal_id || "");
-  if (rota === "apagar-mensagem" && body.mensagemId) {
+  if ((rota === "apagar-mensagem" || rota === "editar-mensagem") && body.mensagemId) {
     const { data: mensagem } = await supabaseServer.from("mensagens").select("numero,canal_id").eq("id", body.mensagemId).eq("workspace_id", acesso.workspaceId).maybeSingle();
     numero = String(mensagem?.numero || ""); canalId = String(mensagem?.canal_id || "");
   }
@@ -118,13 +118,15 @@ async function encaminhar(request: NextRequest, metodo: "GET" | "POST") {
     if (rota === "disparos/criar") await exigirModulo(acesso, "modulo_disparos_web");
     if (rota === "disparos/criar-waba") await exigirModulo(acesso, "modulo_disparos_api");
     await exigirEscopoDoAtendimento(acesso, rota, body);
-    if (rota === "enviar" && body.responderMensagemId != null) {
+    if ((rota === "enviar" && body.responderMensagemId != null) || rota === "editar-mensagem") {
       const recursos = await consultarWhatsapp(`${WHATSAPP_URL}/mensagens/recursos`, {
         method: "GET", cache: "no-store", headers: { "x-wolf-internal-secret": segredoInternoWolf() },
       }, false);
       const capacidade = await recursos.json().catch(() => ({}));
-      if (!recursos.ok || capacidade.resposta_nativa !== true || capacidade.resposta_protocolo !== 2) {
-        throw Object.assign(new Error("Instale a atualização de respostas nativas no backend do WhatsApp para responder esta mensagem."), { statusCode: 503 });
+      const suportaAcao = rota === "editar-mensagem" ? capacidade.edicao_nativa === true
+        : capacidade.resposta_nativa === true && capacidade.resposta_protocolo === 2 && capacidade.normaliza_prefixo_webjs === true;
+      if (!recursos.ok || !suportaAcao) {
+        throw Object.assign(new Error("O servidor precisa do pacote de respostas e edição v5 para concluir esta ação no WhatsApp."), { statusCode: 503 });
       }
     }
     await exigirConexaoVoipPermitida(acesso, rota, { ...body, campanhaId: body.campanhaId || entrada.searchParams.get("campanhaId"), conexaoId: body.conexaoId || entrada.searchParams.get("conexaoId") });
