@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { ordenarAtendimentos, type OrdemAtendimentos } from "../../lib/ordenacao-atendimentos";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { ordenarAtendimentos, capturarPosicaoLista, restaurarPosicaoLista, type PosicaoLista, type OrdemAtendimentos } from "../../lib/ordenacao-atendimentos";
 import { deveNotificarAtendimento } from "../../lib/notificacoes-atendimento";
 import { supabase } from "../../lib/supabase";
 import { chaveMensagem, mesclarHistorico, atualizarRecibo, criarSincronizadorHistorico, type MensagemHistorico } from "../../lib/historico-mensagens";
@@ -376,6 +376,8 @@ export function ChatSection() {
   const [abaConversa, setAbaConversa] = useState<"automatico" | "aguardando" | "abertos" | "finalizados">("aguardando");
   const [busca, setBusca] = useState("");
   const [ordemAtendimentos, setOrdemAtendimentos] = useState<OrdemAtendimentos>("recentes");
+  const listaAtendimentosRef = useRef<HTMLDivElement>(null);
+  const posicaoListaRef = useRef<PosicaoLista | null>(null);
   // 🆕 BUSCA EM MENSAGENS — quando user digita 3+ chars, dispara query nas mensagens.
   //    atendimentosComMatch contém IDs de atendimentos que têm a mensagem buscada.
   //    Usado pra filtrar a lista junto com nome/número.
@@ -2069,6 +2071,20 @@ export function ChatSection() {
     })
     .filter(passaPeloFiltroPainel), ordemAtendimentos);
 
+  const contextoLista = JSON.stringify([abaConversa, ordemAtendimentos, busca, filtroFila, filtroAtendente, filtroEtiqueta, filtroCanal, filtroTempo, equipeId, wsId]);
+  const contextoListaRef = useRef(contextoLista);
+  useLayoutEffect(() => {
+    const lista = listaAtendimentosRef.current;
+    if (!lista) return;
+    if (contextoListaRef.current !== contextoLista) {
+      lista.scrollTop = 0;
+      contextoListaRef.current = contextoLista;
+    } else if (posicaoListaRef.current) {
+      restaurarPosicaoLista(lista, posicaoListaRef.current);
+    }
+    posicaoListaRef.current = capturarPosicaoLista(lista, atendimentoAtivo?.id);
+  });
+
   const temFiltroAtivo = filtroFila !== "todas" || filtroAtendente !== "todos" || filtroEtiqueta !== "todas" || filtroCanal !== "todos" || filtroTempo !== "tudo";
 
   const enviarMensagem = async (texto?: unknown) => {
@@ -2875,8 +2891,8 @@ export function ChatSection() {
 
         <div style={{ padding: "8px 14px", background: tema.sidebarBg, borderBottom: `1px solid ${tema.bordaSutil}` }}>
           <label style={{ display: "flex", alignItems: "center", gap: 8, color: tema.textoFraco, fontSize: 11 }}>
-            Data de abertura
-            <select aria-label="Ordenar atendimentos por data de abertura" value={ordemAtendimentos}
+            Última interação
+            <select aria-label="Ordenar atendimentos por última interação" value={ordemAtendimentos}
               onChange={e => setOrdemAtendimentos(e.target.value as OrdemAtendimentos)}
               style={{ ...inputSm, flex: 1, minWidth: 0 }}>
               <option value="recentes">Mais novos primeiro</option>
@@ -2884,7 +2900,9 @@ export function ChatSection() {
             </select>
           </label>
         </div>
-        <div style={{ overflowY: "auto", flex: 1, background: tema.listaItem }}>
+        <div ref={listaAtendimentosRef}
+          onScroll={e => { posicaoListaRef.current = capturarPosicaoLista(e.currentTarget, atendimentoAtivo?.id); }}
+          style={{ overflowY: "auto", flex: 1, minHeight: 0, overflowAnchor: "none", background: tema.listaItem }}>
           {atendimentosFiltrados.length === 0 ? (
             <div style={{ padding: 32, textAlign: "center" }}>
               <p style={{ fontSize: 32, margin: "0 0 8px" }}>{abas.find(a => a.key === abaConversa)?.icon}</p>
@@ -2895,7 +2913,7 @@ export function ChatSection() {
             const naoLidas = naoLidasPorAtendimento[a.id] || 0;
             const temNaoLidas = naoLidas > 0 && atendimentoAtivo?.id !== a.id;
             return (
-              <div key={a.id} onClick={() => abrirAtendimento(a)}
+              <div key={a.id} data-atendimento-id={a.id} onClick={() => abrirAtendimento(a)}
                 style={{ padding: "12px 14px", borderBottom: `1px solid ${tema.bordaSutil}`, cursor: "pointer", background: atendimentoAtivo?.id === a.id ? tema.listaItemSel : "transparent", position: "relative" }}>
                 {temNaoLidas && (
                   <span style={{ position: "absolute", left: 4, top: "50%", transform: "translateY(-50%)", width: 6, height: 6, background: tema.accent, borderRadius: "50%", animation: "pulseBlue 1.5s ease-in-out infinite", zIndex: 1 }} />
