@@ -2562,7 +2562,7 @@ export function ChatSection() {
       if (!resposta?.success) throw new Error(resposta?.error || "Nao foi possivel confirmar a finalizacao e o bloqueio.");
       await inserirMensagemSistema(numero, `Chat finalizado por: ${meuNome}`, canalFinalizacao);
       await fetchAtendimentos();
-      setAbaConversa("finalizados");
+      // Mantém a aba e a lista montada para preservar a posição de rolagem.
       setAtendimentoAtivo(null);
       setHistorico([]);
       notify("Atendimento finalizado.", "sucesso");
