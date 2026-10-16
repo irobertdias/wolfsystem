@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { configurarTesteCliente, lerTesteCliente } from "../../../lib/teste-cliente";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -80,6 +81,17 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
+  if (searchParams.get("acao") === "teste") {
+    try {
+      const { data: cadastro, error } = await supabase.from("cadastros").select("user_id,email").eq("id", searchParams.get("cadastroId")).single();
+      if (error || !cadastro) throw new Error("Cliente não encontrado.");
+      const userId = cadastro.user_id || (await supabase.from("workspaces").select("owner_id").ilike("owner_email", cadastro.email).limit(1).maybeSingle()).data?.owner_id;
+      if (!userId) throw new Error("Login do cliente não encontrado.");
+      const { data, error: erroAuth } = await supabase.auth.admin.getUserById(userId);
+      if (erroAuth || !data.user) throw new Error("Não foi possível consultar o período de teste.");
+      return NextResponse.json({ success: true, teste: lerTesteCliente(data.user.app_metadata) }, { headers: { "Cache-Control": "no-store" } });
+    } catch (error: any) { return NextResponse.json({ success: false, error: error.message }, { status: 400 }); }
+  }
   if (searchParams.get("acao") !== "visao-global") {
     return NextResponse.json({ success: false, error: "Ação inválida" }, { status: 400 });
   }
@@ -161,6 +173,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // ═══ Validações ═══
+    const testeNovo = body.teste_config ? configurarTesteCliente(lerTesteCliente(null), body.teste_config) : lerTesteCliente(null);
     if (!email || !senha || !nome || !username) {
       return NextResponse.json({ success: false, error: "Campos obrigatórios: email, senha, nome, username" });
     }
@@ -189,6 +202,7 @@ export async function POST(req: NextRequest) {
       password: senha,
       email_confirm: true,
       user_metadata: { nome, username: usernameLimpo },
+      app_metadata: { wolf_teste: testeNovo },
     });
 
     if (authError) {
@@ -229,7 +243,7 @@ export async function POST(req: NextRequest) {
       permite_waba: !!permite_waba,
       permite_instagram: !!permite_instagram,
       ia: ia || "gpt",
-      autorizado: !!autorizado,
+      autorizado: testeNovo.modo === "teste" || !!autorizado,
       user_id: userId,
       workspace_id: usernameLimpo,    // 🆕 mesma string que o workspace.username
 
@@ -254,10 +268,10 @@ export async function POST(req: NextRequest) {
       financeiro_opcoes:     financeiro_opcoes || {},   // JSONB com as 22 sub-opções
 
       // 🆕 COBRANÇA AUTOMÁTICA (usada pelo useLembretePagamento)
-      dia_vencimento:      dia_vencimento || null,        // 1-31
+      dia_vencimento:      testeNovo.modo === "teste" ? null : dia_vencimento || null,        // 1-31
       valor_mensalidade:   valor_mensalidade || null,     // numeric
-      proximo_vencimento:  proximo_vencimento || null,    // date
-      status_pagamento:    status_pagamento || "ativo",   // ativo | suspenso | bloqueado
+      proximo_vencimento:  testeNovo.modo === "teste" ? null : proximo_vencimento || null,    // date
+      status_pagamento:    testeNovo.modo === "teste" ? "ativo" : status_pagamento || "ativo",   // ativo | suspenso | bloqueado
     }]);
 
     if (cadError) {
@@ -304,6 +318,15 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Cliente não encontrado" }, { status: 404 });
     }
 
+    let testePendente: { userId: string; metadata: Record<string, any> } | null = null;
+    if (campos.teste_config) {
+      const userId = cadastro.user_id || (await supabase.from("workspaces").select("owner_id").ilike("owner_email", cadastro.email).limit(1).maybeSingle()).data?.owner_id;
+      if (!userId) throw new Error("Login do cliente não encontrado para configurar o teste.");
+      const { data, error: erroUsuario } = await supabase.auth.admin.getUserById(userId);
+      if (erroUsuario || !data.user) throw new Error("Não foi possível consultar o login do cliente.");
+      const teste = configurarTesteCliente(lerTesteCliente(data.user.app_metadata), campos.teste_config);
+      testePendente = { userId, metadata: { ...data.user.app_metadata, wolf_teste: teste } };
+    }
     let emailAtual = cadastro.email as string;
 
     // O nome pessoal do dono vive também no Auth e é usado como assinatura no chat.
@@ -446,6 +469,10 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    if (testePendente) {
+      const { error: erroTeste } = await supabase.auth.admin.updateUserById(testePendente.userId, { app_metadata: testePendente.metadata });
+      if (erroTeste) throw erroTeste;
+    }
     return NextResponse.json({
       success: true,
       email_atual: emailAtual,

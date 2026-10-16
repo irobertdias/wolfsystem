@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useLembretePagamento } from "../hooks/useLembretePagamento";
+import { useAcessoTeste } from "./AcessoTeste";
 
 // ═══════════════════════════════════════════════════════════════════════
 // 💰 PopupCobranca — Componente visual do sistema de cobrança
@@ -40,9 +41,11 @@ const formatarData = (iso: string | null): string => {
 };
 
 export default function PopupCobranca() {
+  const acessoTeste = useAcessoTeste();
   const cobranca = useLembretePagamento();
   const [pixCopiado, setPixCopiado] = useState(false);
   const [emailCopiado, setEmailCopiado] = useState(false);
+  if (acessoTeste.carregando || acessoTeste.erro || acessoTeste.teste?.modo === "teste") return null;
 
   // 🆕 Só ADM (dono / Administrador) vê o valor da mensalidade
   const mostrarValor = cobranca.ehAdm && cobranca.valorMensalidade != null;

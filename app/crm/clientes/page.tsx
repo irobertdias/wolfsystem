@@ -1,4 +1,5 @@
 "use client";
+import ConfiguracaoTesteCliente, { type FormTesteCliente } from "../../components/ConfiguracaoTesteCliente";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -303,6 +304,7 @@ export default function Clientes() {
     status_pagamento: "ativo",
     bloqueio_postergado_ate: null,
   });
+  const [testeCliente, setTesteCliente] = useState<FormTesteCliente | null>(null);
 
   // 🎨 ESTILOS
   const inputStyle = {
@@ -556,6 +558,7 @@ export default function Clientes() {
   };
 
   const abrirNovo = () => {
+    setTesteCliente(null);
     setFormCadastro({
       nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
       username: "",
@@ -577,6 +580,7 @@ export default function Clientes() {
   };
 
   const abrirEditar = (c: Cadastro) => {
+    setTesteCliente(null);
     setFormCadastro({ ...c, modulo_contratos_plano: c.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: c.modulo_contratos_com_crm !== false });
     setCadastroSelecionado(c);
     setShowModalCliente(true);
@@ -635,6 +639,8 @@ export default function Clientes() {
   const toggleFinOpcao = (key: string) => setFormCadastro((prev) => ({ ...prev, financeiro_opcoes: { ...(prev.financeiro_opcoes || {}), [key]: !((prev.financeiro_opcoes || {})[key]) } }));
 
   const salvarCadastro = async () => {
+    if (!testeCliente) { alert("Aguarde carregar a configuração de acesso antes de salvar."); return; }
+    if (testeCliente.modo === "teste" && (!Number.isInteger(testeCliente.duracao_horas) || testeCliente.duracao_horas < 1 || testeCliente.duracao_horas > 8760)) { alert("Informe um prazo de teste entre 1 e 8760 horas."); return; }
     if (!formCadastro.nome || !formCadastro.email) { alert("Nome e email são obrigatórios!"); return; }
     setSalvandoCliente(true);
     try {
@@ -702,11 +708,11 @@ export default function Clientes() {
           financeiro_opcoes: formCadastro.financeiro_opcoes || {},
           ia: formCadastro.ia, autorizado: formCadastro.autorizado,
           // 🆕 cobrança
-          dia_vencimento: formCadastro.dia_vencimento || null,
+          dia_vencimento: testeCliente.modo === "teste" ? null : formCadastro.dia_vencimento || null,
           valor_mensalidade: formCadastro.valor_mensalidade || null,
-          proximo_vencimento: proximoVenc || null,
-          status_pagamento: formCadastro.status_pagamento || "ativo",
-          bloqueio_postergado_ate: formCadastro.bloqueio_postergado_ate || null,
+          proximo_vencimento: testeCliente.modo === "teste" ? null : proximoVenc || null,
+          status_pagamento: testeCliente.modo === "teste" ? "ativo" : formCadastro.status_pagamento || "ativo",
+          bloqueio_postergado_ate: testeCliente.modo === "teste" ? null : formCadastro.bloqueio_postergado_ate || null,
         }).eq("id", cadastroSelecionado.id);
         if (error) { alert("Erro ao salvar: " + error.message); setSalvandoCliente(false); return; }
         const tokenModulo = await getToken();
@@ -714,7 +720,7 @@ export default function Clientes() {
         const respModulo = await fetch("/api/admin/cliente", {
           method: "PATCH",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tokenModulo },
-          body: JSON.stringify({ email: formCadastro.email, modulo_contratos_assinaturas: !!formCadastro.modulo_contratos_assinaturas, modulo_contratos_plano: formCadastro.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: formCadastro.modulo_contratos_com_crm !== false }),
+          body: JSON.stringify({ email: formCadastro.email, teste_config: testeCliente, modulo_contratos_assinaturas: !!formCadastro.modulo_contratos_assinaturas, modulo_contratos_plano: formCadastro.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: formCadastro.modulo_contratos_com_crm !== false }),
         });
         const resultModulo = await respModulo.json();
         if (!resultModulo.success) { alert("Erro ao salvar Contratos e Assinaturas: " + resultModulo.error); setSalvandoCliente(false); return; }
@@ -730,7 +736,7 @@ export default function Clientes() {
         const resp = await fetch("/api/admin/cliente", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify({ ...formCadastro, proximo_vencimento: proximoVenc || null }),
+          body: JSON.stringify({ ...formCadastro, teste_config: testeCliente, proximo_vencimento: proximoVenc || null }),
         });
         const result = await resp.json();
         if (!result.success) {
@@ -933,7 +939,8 @@ export default function Clientes() {
             </div>
 
             {/* 🆕 SEÇÃO COBRANÇA */}
-            <div style={{ background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)", border: "1px solid #fcd34d", borderRadius: 12, padding: 18 }}>
+            <ConfiguracaoTesteCliente cadastroId={cadastroSelecionado?.id} value={testeCliente} onChange={setTesteCliente} />
+            {testeCliente?.modo !== "teste" && <div style={{ background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)", border: "1px solid #fcd34d", borderRadius: 12, padding: 18 }}>
               <p style={{ color: "#92400e", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 4px" }}>💰 Cobrança Automática</p>
               <p style={{ color: "#78350f", fontSize: 11, margin: "0 0 14px", lineHeight: 1.4 }}>
                 Pré-pago. Cliente paga antes de usar. 2 dias antes do venc o sistema começa a mostrar popup; 2 dias após vence, bloqueia.
@@ -974,10 +981,10 @@ export default function Clientes() {
                   <p style={{ color: "#78350f", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>Auto-preenche ao escolher o dia</p>
                 </div>
               </div>
-            </div>
+            </div>}
 
             {/* 🆕 v3 — CONTROLE DE PAGAMENTO (só em modo edit) */}
-            {cadastroSelecionado && (() => {
+            {cadastroSelecionado && testeCliente?.modo !== "teste" && (() => {
               const st = getStatusCobranca(cadastroSelecionado);
               const ehSuspenso = cadastroSelecionado.status_pagamento === "suspenso";
               const temConfianca = !!cadastroSelecionado.bloqueio_postergado_ate;
@@ -1174,7 +1181,7 @@ export default function Clientes() {
                 style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
-              <button onClick={salvarCadastro} disabled={salvandoCliente}
+              <button onClick={salvarCadastro} disabled={salvandoCliente || !testeCliente}
                 style={{
                   background: salvandoCliente ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
                   color: "white", border: "none", borderRadius: 10,

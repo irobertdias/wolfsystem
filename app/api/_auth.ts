@@ -1,5 +1,6 @@
 import { createClient, type User } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
+import { lerTesteCliente, exigirTesteClienteAtivo, buscarTesteDoDono } from "../lib/teste-cliente";
 
 export const SUPER_ADMIN_EMAIL = "robert.dias@live.com";
 export const WOLF_SESSION_COOKIE = "wolf_access_token";
@@ -49,14 +50,16 @@ export async function autenticarWorkspace(request: NextRequest, workspaceSolicit
   if (dono?.username) {
     if (dono.ativo !== true) throw falhar("Workspace aguardando autorização ou desativado", 403);
     if (solicitado && solicitado !== dono.username) throw falhar("Workspace não autorizado", 403);
+    exigirTesteClienteAtivo(lerTesteCliente(identidade.user.app_metadata));
     return { ...identidade, workspaceId: dono.username, isDono: true, isAdministrador: true, perfil: "Administrador", grupoId: null, permissoes: { administrador: true } };
   }
   let query = supabaseServer.from("usuarios_workspace").select("workspace_id,perfil,grupo_id").ilike("email", identidade.email).order("created_at", { ascending: false }).limit(1);
   if (solicitado) query = query.eq("workspace_id", solicitado);
   const { data: vinculo } = await query.maybeSingle();
   if (!vinculo?.workspace_id) throw falhar("Usuário sem acesso a este workspace", 403);
-  const { data: workspaceVinculado } = await supabaseServer.from("workspaces").select("ativo").eq("username", vinculo.workspace_id).maybeSingle();
+  const { data: workspaceVinculado } = await supabaseServer.from("workspaces").select("ativo,owner_id").eq("username", vinculo.workspace_id).maybeSingle();
   if (workspaceVinculado?.ativo !== true) throw falhar("Workspace aguardando autorização ou desativado", 403);
+  exigirTesteClienteAtivo(await buscarTesteDoDono(supabaseServer, workspaceVinculado.owner_id));
   let permissoes: Record<string, boolean> = {};
   if (vinculo.grupo_id) {
     const { data: grupo } = await supabaseServer.from("grupos_permissao").select("permissoes").eq("id", vinculo.grupo_id).eq("workspace_id", vinculo.workspace_id).maybeSingle();

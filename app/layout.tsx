@@ -4,6 +4,7 @@ import "./globals.css";
 import { SoftphoneProvider } from "./hooks/useSoftphone";
 import { Softphone } from "./components/Softphone";
 import PopupCobranca from "./components/PopupCobranca";
+import AcessoTeste from "./components/AcessoTeste";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,11 +49,13 @@ export default function RootLayout({
             🆕 PopupCobranca: sistema de cobrança automática — verifica status do
             workspace e renderiza popup de lembrete/agressivo/bloqueio dependendo
             da fase. Admin master (robert.dias@live.com) é imune. */}
-        <SoftphoneProvider>
-          {children}
-          <Softphone />
-          <PopupCobranca />
-        </SoftphoneProvider>
+        <AcessoTeste>
+          <SoftphoneProvider>
+            {children}
+            <Softphone />
+            <PopupCobranca />
+          </SoftphoneProvider>
+        </AcessoTeste>
       </body>
     </html>
   );
