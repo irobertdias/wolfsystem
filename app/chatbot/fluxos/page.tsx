@@ -5,7 +5,6 @@ import { supabase } from "../../lib/supabase";
 import { useModulos } from "../../hooks/useModulos";
 import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
 import ExtensoesFluxoIA from "./ExtensoesFluxoIA";
-import GrupoPrimeViabilidade from "./GrupoPrimeViabilidade";
 
 type TipoNo =
   | "texto" | "imagem" | "video" | "audio" | "embed"
@@ -3629,12 +3628,6 @@ export default function FluxosPage() {
             e.currentTarget.style.boxShadow="0 4px 12px rgba(139,92,246,0.35), 0 1px 3px rgba(139,92,246,0.2)";
           }}>+ Novo Fluxo</button>
         </div>
-        {wsId === 'grupoprime' && <GrupoPrimeViabilidade onPreparado={async id => {
-          await load(wsId);
-          const { data, error } = await supabase.from('fluxos').select('*').eq('workspace_id', wsId).eq('id', id).single();
-          if (error) throw error;
-          if (data) abrirEditor({ ...data, nos: data.nos || [], conexoes: data.conexoes || [] });
-        }} />}
         {fluxos.length===0 ? (
           <div style={{background:"#ffffff",borderRadius:16,padding:64,textAlign:"center",border:"1px solid #e5e7eb",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
             <div style={{

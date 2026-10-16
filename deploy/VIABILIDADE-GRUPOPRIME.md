@@ -1,7 +1,7 @@
 # Grupo Prime — pré-viabilidade VTAL e vendedor Nio
 
-Estado verificado em 16/10/2026: rascunho **27**, “Grupo Prime · Nio · Viabilidade e
-vendas”, salvo no workspace `grupoprime`, inativo. Módulo vendedor IA habilitado e
+Estado verificado em 16/10/2026: rascunho **27**, “Grupo Prime · Nio · Vendas e
+BKO”, salvo no workspace `grupoprime`, inativo. Módulo vendedor IA habilitado e
 chave GPT configurada após teste real bem-sucedido em 16/10/2026. Nenhuma
 conexão/fila cadastrada nesse workspace. Nenhuma mensagem foi enviada.
 
@@ -52,9 +52,8 @@ nunca são executados ou tratados como instruções.
 
 ## Preparação e ativação
 
-Em Chatbot → Fluxos do `grupoprime`, consultar o CEP ou usar **Preparar vendedor IA**.
-A criação exige permissão de configurações do workspace e módulo vendedor IA.
-Retorna o fluxo existente com o mesmo nome sem sobrescrever personalizações.
+Em Chatbot → Fluxos do `grupoprime`, abrir o vendedor existente. A consulta de CEP
+é executada internamente pelo bloco IA durante a conversa; o painel manual foi removido.
 
 Alternativamente, com as variáveis de ambiente locais:
 
@@ -69,6 +68,46 @@ plano elegível, confirma endereço/interesse e transfere à equipe. As quatro
 saídas IA possuem tratamento humano. Não cria contratos, cobranças ou vendas
 confirmadas apenas por resultado de CEP.
 
+## Automações BKO no mesmo fluxo
+
+Referência consultada: fluxo “CHAT GPT” do workspace `abccompany`. A configuração
+do Grupo Prime mantém os textos fornecidos pelo usuário e adiciona proteção da
+venda contra alterações concorrentes.
+
+- **Aguardando Auditoria → CPF Reprovado:** condição antes da mensagem, captura
+  do CPF reprovado, etiqueta CPF REPROVADO e mensagem inicial literal. Coleta CPF
+  diferente e válido, nome, nascimento, nome da mãe e autorização do novo titular.
+  O cliente confirma os dados antes da saída. Não recomeça a oferta nem consulta CEP.
+- **Novo titular confirmado:** `POST /api/crm/grupoprime/recuperar-cpf` valida os
+  dados e atualiza a mesma proposta para AGUARDANDO AUDITORIA. Preserva plano,
+  endereço e contato, guarda dados anteriores em
+  `dados_customizados.recuperacao_cpf_historico` e limpa RG/e-mail do titular antigo.
+  Usa comparação de CPF, status e updated_at para não sobrescrever alterações do
+  BKO durante a conversa. Repetição de uma requisição concluída não duplica histórico.
+- A credencial de escrita `x-wolf-recuperacao-token` usa HMAC com o escopo
+  `wolf:recuperacao-cpf:grupoprime:v1`. O token de leitura da viabilidade não autoriza
+  alterações. A rota não aceita workspace_id fornecido pelo chamador.
+- **Aguardando Auditoria → Aguardando Instalação ou Gerada:** dois gatilhos,
+  condição da origem e o texto literal de instalação/biometria. Usa nome, status,
+  data e período da própria venda. Data ausente aparece como “A confirmar”; não
+  inventa agenda. Não modifica os dados da venda para enviar o aviso.
+- **Sem disponibilidade:** a extensão de consulta negativa envia o aviso de
+  indisponibilidade e retorno futuro, aplica AGUARDANDO COBERTURA, encerra a sessão
+  e marca o atendimento resolvido, sem continuar pedindo outro CEP. Falha técnica
+  ou cidade ambígua continuam inconclusivas, sem falsa confirmação de indisponibilidade.
+  A etiqueta registra a fila para retorno; esta base histórica não monitora expansão
+  de cobertura em tempo real.
+
+Aplicar/reaplicar a organização, preservando chave, estado ativo e os demais blocos:
+
+```powershell
+node --env-file=.env.local scripts/organizar-vendedor-grupoprime.cjs --apply
+```
+
+O script atualiza somente os ramos `prime_reversao_*` e `prime_aviso_*` do fluxo 27,
+além da configuração de encerramento da consulta. Inclui os status necessários
+nas opções do CRM do Grupo Prime. Não ativa fluxo ou envia mensagens de teste.
+
 Antes de ativar: publicar o código no app, configurar a chave IA no bloco,
 selecionar a fila humana e vincular o fluxo à conexão que recebe o tráfego.
 O gatilho inicial é primeiro contato, não diferencia por si só origem de anúncio.
@@ -80,6 +119,7 @@ Testes:
 
 ```powershell
 node --test scripts/viabilidade-grupoprime.test.cjs
+node --test scripts/recuperacao-grupoprime.test.cjs
 python scripts/importar-viabilidade-vtal.test.py
 node node_modules/typescript/bin/tsc --noEmit --incremental false
 ```

@@ -1,4 +1,5 @@
-export const NOME_VENDEDOR_GRUPOPRIME = 'Grupo Prime · Nio · Viabilidade e vendas';
+export const NOME_VENDEDOR_GRUPOPRIME = 'Grupo Prime · Nio · Vendas e BKO';
+export const MENSAGEM_SEM_DISPONIBILIDADE = 'No momento, não temos disponibilidade de instalação para o CEP informado. 😕\n\nVamos encerrar este atendimento por enquanto. Seu interesse ficará registrado e, quando houver disponibilidade na sua região, retornaremos o contato.\n\nObrigado por procurar a Grupo Prime! 💚';
 
 export function criarVendedorGrupoPrime(origem: string, token: string) {
   const saidas = ['Dados confirmados', 'Erro', 'Limite de recusas atingido', 'Limite de lembretes atingido'];
@@ -34,7 +35,8 @@ Apresente o resumo, peça confirmação e encaminhe a solicitação para valida�
           tipo: 'http', metodo: 'GET', url: `${origem}/api/viabilidade/grupoprime?cep={{cep}}`,
           headers: JSON.stringify({ 'x-wolf-viabilidade-token': token }), variavel_gatilho: 'cep',
           variavel_resultado: 'resposta_viabilidade', obrigatoria: true,
-          retorno_negativo_finalizar_atendimento: false, retorno_negativo_aplicar_etiqueta: false,
+          retorno_negativo_finalizar_atendimento: true, retorno_negativo_aplicar_etiqueta: true,
+          retorno_negativo_nome_etiqueta: 'AGUARDANDO COBERTURA', retorno_negativo_mensagem: MENSAGEM_SEM_DISPONIBILIDADE,
         }],
       } },
       { id: 'prime_humano', tipo: 'transferir', x: 200, y: 600, saidas: ['Próximo'], dados: {
