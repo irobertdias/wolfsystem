@@ -51,6 +51,18 @@ export async function GET(request: NextRequest) {
     }
 
     await autenticarDocumentoCRM(request, workspaceId);
+    if (workspaceId === 'grupoprime') {
+      if (!storagePath.startsWith('grupoprime/') || storagePath.includes('\\')) {
+        return NextResponse.json({ success: false, error: 'Documento não pertence a este workspace' }, { status: 403 });
+      }
+      const { data: arquivo, error } = await supabaseAdmin.storage.from('documentos-clientes').download(storagePath);
+      if (error || !arquivo) return NextResponse.json({ success: false, error: 'Documento indisponível' }, { status: 404 });
+      return new NextResponse(await arquivo.arrayBuffer(), { status: 200, headers: {
+        'Content-Type': arquivo.type || 'application/octet-stream',
+        'Content-Disposition': `inline; filename="${nome.replace(/[^a-zA-Z0-9._-]/g, '_')}"`,
+        'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff',
+      } });
+    }
     const segredo = process.env.WOLF_SIGNATURE_PROXY_SECRET || "";
     if (segredo.length < 32) throw new Error("Proxy seguro dos documentos não configurado");
 

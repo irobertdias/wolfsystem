@@ -12,7 +12,7 @@ function load(file, imports = {}) {
 const helper = load('app/lib/recuperacao-cpf-grupoprime.ts');
 function cpf(base) { let v = base; for (let pos = 9; pos <= 10; pos++) { let soma = 0; for (let i = 0; i < pos; i++) soma += Number(v[i]) * (pos + 1 - i); v += String(((soma * 10) % 11) % 10); } return v; }
 const anterior = cpf('123456789'), novo = cpf('234567890');
-const body = () => ({ proposta_id: 42, cpf_reprovado: anterior, cpf_novo: novo, nome_novo_titular: 'Pessoa Nova', nascimento_novo_titular: '12/03/1990', nome_mae_novo_titular: 'Pessoa Mae', autorizacao_novo_titular: 'SIM' });
+const body = () => ({ numero: '5511999999999', proposta_id: 42, cpf_reprovado: anterior, cpf_novo: novo, nome_novo_titular: 'Pessoa Nova', nascimento_novo_titular: '12/03/1990', nome_mae_novo_titular: 'Pessoa Mae', autorizacao_novo_titular: 'SIM' });
 test('valida dígitos do CPF, diferença e autorização do novo titular', () => {
   assert.equal(helper.cpfValido(anterior), true); assert.equal(helper.cpfValido(novo), true);
   for (const cpf of ['00000000000','11111111111',`${novo.slice(0,-1)}${(Number(novo.at(-1))+1)%10}`]) assert.equal(helper.cpfValido(cpf), false);
@@ -38,6 +38,7 @@ function api(overrides = {}) {
     'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
     '../../../_auth': { supabaseServer: db, autenticarWorkspace: async (_, ws) => { assert.equal(ws, 'grupoprime'); return { workspaceId: ws }; }, exigirPermissao() {}, respostaErroAcesso: e => ({ status: e.statusCode || 500, message: e.message }) },
     '../../../../lib/recuperacao-cpf-grupoprime': helper,
+    '../_documentos': { documentosDaSessaoGrupoPrime: async () => { if(db.docError) throw Object.assign(Error('Documentos pendentes'),{statusCode:422}); return {documentos:{rg_frente:[{url:'frente-privada'}],rg_verso:[{url:'verso-privado'}],comprovante_endereco:[{url:'comprovante-privado'}]}}; } },
   });
   return { db, post: data => mod.POST({ headers: new Headers(), text: async () => JSON.stringify(data) }), raw: mod.POST };
 }
@@ -57,6 +58,9 @@ test('bloqueia outra conta, mudança do BKO e CPF anterior divergente', async ()
   const alterada = api(); alterada.db.row.status_venda = 'INSTALADA'; assert.equal((await alterada.post(body())).status,409); assert.equal(alterada.db.writes,0);
   const cpfMudou = api(); cpfMudou.db.row.cpf = cpf('345678901'); assert.equal((await cpfMudou.post(body())).status,409); assert.equal(cpfMudou.db.writes,0);
   const concorrente = api({ concorrencia: true }); assert.equal((await concorrente.post(body())).status,409); assert.equal(concorrente.db.row.status_venda,'INSTALADA'); assert.equal(concorrente.db.writes,0);
+});
+test('novo CPF não volta para auditoria se os documentos estiverem pendentes',async()=>{
+  const a=api({docError:true});const r=await a.post(body());assert.equal(r.status,422);assert.equal(a.db.writes,0);assert.equal(a.db.row.cpf,anterior);
 });
 test('token de leitura da viabilidade não autoriza alteração de titular', async () => {
   const old = process.env.WOLF_VIABILIDADE_SECRET; process.env.WOLF_VIABILIDADE_SECRET='teste';

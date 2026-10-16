@@ -54,7 +54,7 @@ export function blocosRecuperacaoGrupoPrime(origem: string, token: string, apiKe
   const snapshot = `setVariable('cpf_reprovado', String(variaveis.cpf || '').replace(/\\D/g, ''));
 for (const campo of ['cpf_novo','nome_novo_titular','nascimento_novo_titular','nome_mae_novo_titular','autorizacao_novo_titular','recuperacao_payload','recuperacao_resposta']) delete variaveis[campo];
 return true;`;
-  const payload = `setVariable('recuperacao_payload', JSON.stringify(Object.fromEntries(['proposta_id','cpf_reprovado','cpf_novo','nome_novo_titular','nascimento_novo_titular','nome_mae_novo_titular','autorizacao_novo_titular'].map(campo => [campo, variaveis[campo]])))); return true;`;
+  const payload = `setVariable('recuperacao_payload', JSON.stringify(Object.fromEntries(['numero','proposta_id','cpf_reprovado','cpf_novo','nome_novo_titular','nascimento_novo_titular','nome_mae_novo_titular','autorizacao_novo_titular'].map(campo => [campo, variaveis[campo]])))); return true;`;
   const nos = [
     { id: 'prime_reversao_gatilho', tipo: 'gatilho_crm', x: 650, y: 100, saidas: ['Disparar'], dados: { ativo: true, campo: 'status_venda', operador: 'mudou_para', valor: 'CPF REPROVADO', modo_primeiro_envio: 'texto' } },
     { id: 'prime_reversao_origem', tipo: 'condicao', x: 650, y: 320, saidas: ['Sim', 'Não'], dados: { variavel: 'crm_valor_anterior', operador: 'igual', valor: 'AGUARDANDO AUDITORIA' } },

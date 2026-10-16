@@ -10,10 +10,10 @@ Pergunte se a contratação será para CPF (PF) ou CNPJ (PJ). Use apenas pessoa_
 Explique que a base é histórica e a pré-viabilidade por CEP precisa da confirmação técnica de rua, número e complemento. Sem disponibilidade na base não significa ausência definitiva de rede atual. Não prometa instalação ou porta disponível.
 Entenda o uso (pessoas, dispositivos, trabalho e jogos) e recomende um dos planos elegíveis, informando nome, velocidade e mensalidade. Só cite preço de cartão quando mensalidade_cartao for um número; não some desconto ao preço promocional. Preço fixo até janeiro de 2030 só pode ser citado para tabela promocional. Nunca crie fidelidade, prazo, multa ou taxa de instalação. Globoplay e Mesh só quando constarem no plano; benefícios móveis dependem de cobertura 5G.
 Colete nome, tipo_pessoa, endereco_completo com número e complemento (ou sem complemento), necessidade e plano_interesse com o ID exato do catálogo. Se o cliente não quiser escolher ou a consulta for inconclusiva, registre plano_interesse como ANALISE_HUMANA e siga para a equipe, sem pressionar nem prometer contrato.
-Apresente o resumo, peça confirmação e encaminhe a solicitação para validação técnica e comercial. Não afirme que a venda ou contratação foi concluída. Não peça pagamento, cartão, documentos ou CPF completo nesta triagem. Respeite recusa e pedido de atendimento humano.`;
+Apresente o resumo do plano e peça confirmação. Explique que, para registrar o pedido e enviar ao BKO, a próxima etapa precisa dos dados do titular, RG frente, RG verso e comprovante do endereço de instalação. Não afirme que a venda ou contratação foi concluída. Não peça dados de cartão ou pagamento. Os documentos e CPF serão coletados na etapa seguinte. Respeite recusa e pedido de atendimento humano.`;
   const campos = [
     { nome: 'cep', label: 'CEP de instalação', tipo: 'cep', obrigatoria: true },
-    { nome: 'nome', label: 'Nome do cliente', tipo: 'nome', obrigatoria: true },
+    { nome: 'nome', label: 'Nome completo do titular', tipo: 'nome', obrigatoria: true },
     { nome: 'tipo_pessoa', label: 'Contratação para CPF (PF) ou CNPJ (PJ)', tipo: 'texto', obrigatoria: true },
     { nome: 'endereco_completo', label: 'Cidade, UF, rua, número e complemento', tipo: 'texto', obrigatoria: true },
     { nome: 'necessidade', label: 'Como pretende usar a internet', tipo: 'texto', obrigatoria: true },

@@ -63,10 +63,41 @@ node --env-file=.env.local scripts/preparar-vendedor-grupoprime.cjs --apply
 ```
 
 O segundo comando salva um rascunho inativo. Não altera o módulo contratado.
-O vendedor coleta CEP, consulta cidade e catálogo, distingue PF/PJ, recomenda
-plano elegível, confirma endereço/interesse e transfere à equipe. As quatro
-saídas IA possuem tratamento humano. Não cria contratos, cobranças ou vendas
-confirmadas apenas por resultado de CEP.
+O vendedor coleta CEP, consulta cidade e catálogo, distingue PF/PJ e recomenda
+plano elegível. Após a escolha, coleta cadastro e documentos obrigatórios, confere
+os arquivos privados e registra a proposta como AGUARDANDO AUDITORIA com anexos.
+As saídas de erro/recusa possuem tratamento humano. Não cria contratos, cobranças
+ou vendas aprovadas apenas por resultado de CEP.
+
+## Documentos obrigatórios antes da auditoria
+
+Campos de arquivo criados no CRM do Grupo Prime: `rg_frente`, `rg_verso` e
+`comprovante_endereco`, todos obrigatórios. O BKO visualiza os arquivos privados em
+**Vendas → ficha da venda → Anexos e arquivos**.
+
+A captura existente do motor usa o bucket privado `documentos-clientes`, com regras
+separadas para frente, verso e comprovante do endereço de instalação. RG deve ser
+foto JPEG/PNG/WebP/GIF; comprovante pode ser imagem ou PDF; limite de 15 MB.
+O fluxo não aceita declaração de envio ou marcação textual de SIM como documento.
+
+`POST /api/crm/grupoprime/validar-documentos` usa o token de escopo
+`wolf:documentos:grupoprime:v1`. Busca a sessão ativa do fluxo 27 e verifica as
+três capturas, identidade do RG, caminho do atendimento, existência, tipo e tamanho
+dos objetos no storage privado e foto repetida quando o storage fornece ETag.
+CEP divergente extraído do comprovante impede o envio. A conferência final do
+conteúdo/endereço continua sendo do BKO. O preço para a proposta é resolvido pelo
+catálogo da cidade/PF/PJ, sem confiar em um valor produzido pelo modelo.
+
+Somente a saída de sucesso dessa conferência chega ao bloco Enviar Venda. Os
+metadados dos três anexos são copiados para `dados_customizados` da proposta.
+A leitura autenticada dos documentos do Grupo Prime é feita diretamente pelo
+servidor da aplicação, sem tornar o bucket público ou depender de segredo proxy
+de outro servidor. Nenhum documento real de cliente foi enviado nos testes.
+
+Na recuperação de CPF, a automação limpa as capturas antigas da sessão, prepara a
+identidade do novo titular e exige nova frente, verso e comprovante. A própria API
+de recuperação verifica os arquivos antes de alterar a venda. Os anexos anteriores
+ficam preservados no histórico, e os novos são salvos nos campos visíveis do CRM.
 
 ## Automações BKO no mesmo fluxo
 
@@ -120,6 +151,7 @@ Testes:
 ```powershell
 node --test scripts/viabilidade-grupoprime.test.cjs
 node --test scripts/recuperacao-grupoprime.test.cjs
+node --test scripts/documentos-grupoprime.test.cjs
 python scripts/importar-viabilidade-vtal.test.py
 node node_modules/typescript/bin/tsc --noEmit --incremental false
 ```

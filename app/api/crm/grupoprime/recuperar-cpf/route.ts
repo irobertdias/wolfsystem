@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { autenticarWorkspace, exigirPermissao, respostaErroAcesso, supabaseServer } from '../../../_auth';
 import { normalizarCpf, normalizarStatus, validarRecuperacaoCpf } from '../../../../lib/recuperacao-cpf-grupoprime';
+import { documentosDaSessaoGrupoPrime } from '../_documentos';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,15 +43,17 @@ export async function POST(request: NextRequest) {
     if (normalizarStatus(venda.status_venda) !== 'CPF REPROVADO' || normalizarCpf(venda.cpf) !== dados.anterior) {
       return resposta({ success: false, error: 'A venda foi alterada pelo BKO. Encaminhe à equipe para conferência.' }, 409);
     }
+    const { documentos } = await documentosDaSessaoGrupoPrime(supabaseServer, body.numero, dados.cpf, dados.propostaId);
     const agora = new Date().toISOString();
     const entrada = { registrado_em: agora, cpf_anterior: normalizarCpf(venda.cpf), cpf_novo: dados.cpf,
       titular_anterior: { nome: venda.nome, data_nascimento: venda.data_nascimento, nome_mae: venda.nome_mae, rg: venda.rg, email: venda.email },
+      documentos_anteriores: Object.fromEntries(['rg_frente','rg_verso','comprovante_endereco'].map(k => [k, custom[k] || null])),
       autorizacao_novo_titular: true, origem: 'recuperacao_ia_bko' };
     // Histórico e novos dados são gravados juntos; a comparação protege alterações concorrentes do BKO.
     let update = supabaseServer.from('proposta').update({ cpf: dados.cpf, nome: dados.nome,
       data_nascimento: dados.nascimento, nome_mae: dados.mae, rg: null, email: null,
       status_venda: 'AGUARDANDO AUDITORIA', updated_at: agora,
-      dados_customizados: { ...custom, recuperacao_cpf_historico: [...historico, entrada] },
+      dados_customizados: { ...custom, ...Object.fromEntries(Object.entries(documentos).map(([k, v]) => [k, JSON.stringify(v)])), recuperacao_cpf_historico: [...historico, entrada] },
     }).eq('workspace_id', 'grupoprime').eq('id', venda.id).eq('status_venda', venda.status_venda).eq('cpf', venda.cpf);
     update = venda.updated_at ? update.eq('updated_at', venda.updated_at) : update.is('updated_at', null);
     const { data: atualizada, error: erroUpdate } = await update.select('id,status_venda').maybeSingle();

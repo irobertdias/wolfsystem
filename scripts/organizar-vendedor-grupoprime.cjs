@@ -13,6 +13,7 @@ async function main() {
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
   const helper = carregar('app/lib/recuperacao-cpf-grupoprime.ts');
   const vendedor = carregar('app/lib/vendedor-grupoprime.ts');
+  const anexos = carregar('app/lib/documentos-grupoprime.ts');
   const { data: fluxo, error } = await db.from('fluxos').select('id,nos,conexoes,ativo').eq('workspace_id', 'grupoprime').eq('id', 27).single();
   if (error) throw Error('Fluxo do Grupo Prime não encontrado');
   const principal = fluxo.nos.find(n => n.id === 'prime_vendedor');
@@ -23,16 +24,27 @@ async function main() {
   const token = createHmac('sha256', segredo).update('wolf:recuperacao-cpf:grupoprime:v1').digest('hex');
   const recuperacao = helper.blocosRecuperacaoGrupoPrime(origem, token, principal.dados.apiKey);
   const avisos = helper.blocosAvisosInstalacaoGrupoPrime();
-  const automatizado = id => /^prime_(reversao|aviso)_/.test(id);
+  const tokenDocumentos = createHmac('sha256', segredo).update('wolf:documentos:grupoprime:v1').digest('hex');
+  const documentos = anexos.blocosDocumentosGrupoPrime(origem, tokenDocumentos, principal.dados.apiKey);
+  const roteiroPrincipal = vendedor.criarVendedorGrupoPrime(origem, '').nos.find(n => n.id === 'prime_vendedor').dados;
+  const automatizado = id => /^prime_(reversao|aviso|documentos)_/.test(id);
   const nos = fluxo.nos.filter(n => !automatizado(n.id)).map(n => n.id !== 'prime_vendedor' ? n : {
-    ...n, dados: { ...n.dados, consultas: n.dados.consultas.map(c => c.id !== 'prime_viabilidade' ? c : {
+    ...n, dados: { ...n.dados, prompt: roteiroPrincipal.prompt, variaveis: n.dados.variaveis.map(c => c.nome === 'nome' ? { ...c, label: 'Nome completo do titular' } : c), consultas: n.dados.consultas.map(c => c.id !== 'prime_viabilidade' ? c : {
       ...c, retorno_negativo_finalizar_atendimento: true, retorno_negativo_aplicar_etiqueta: true,
       retorno_negativo_nome_etiqueta: 'AGUARDANDO COBERTURA', retorno_negativo_mensagem: vendedor.MENSAGEM_SEM_DISPONIBILIDADE,
     }) },
   });
-  nos.push(...recuperacao.nos, ...avisos.nos);
-  const conexoes = fluxo.conexoes.filter(c => !automatizado(c.de) && !automatizado(c.para)).concat(recuperacao.conexoes, avisos.conexoes);
-  console.log(JSON.stringify({ fluxo: fluxo.id, ativo: fluxo.ativo, blocos: nos.length, gatilhos: nos.filter(n => n.tipo === 'gatilho_crm').map(n => n.dados.valor), mensagem_recuperacao_literal: true, encerra_sem_disponibilidade: true }));
+  nos.push(...recuperacao.nos, ...avisos.nos, ...documentos.nos);
+  for (const no of nos) {
+    if (no.id === 'prime_humano') { no.y = 2080; no.dados.mensagem = 'Vou encaminhar seu atendimento à equipe Grupo Prime para conferir as pendências e ajudar a concluir o pedido.'; }
+    if (['prime_reversao_payload','prime_reversao_atualizar','prime_reversao_limpar_etiqueta','prime_reversao_coletado','prime_reversao_enviada','prime_reversao_humano'].includes(no.id)) no.y += 440;
+  }
+  const conexoes = fluxo.conexoes.filter(c => !automatizado(c.de) && !automatizado(c.para) && !(c.de === 'prime_vendedor' && c.saidaIndex === 0))
+    .concat([{ id: 'prime_saida_0', de: 'prime_vendedor', saidaIndex: 0, para: 'prime_documentos_entrada' }], recuperacao.conexoes, avisos.conexoes).map(c => {
+    if (c.de === 'prime_reversao_ia' && c.saidaIndex === 0) return { ...c, para: 'prime_reversao_documentos_preparar' };
+    return c;
+  }).concat(documentos.conexoes);
+  console.log(JSON.stringify({ fluxo: fluxo.id, ativo: fluxo.ativo, blocos: nos.length, gatilhos: nos.filter(n => n.tipo === 'gatilho_crm').map(n => n.dados.valor), documentos_obrigatorios: anexos.REGRAS_DOCUMENTOS_GRUPOPRIME.map(r=>r.nome), encerra_sem_disponibilidade: true }));
   if (!process.argv.includes('--apply')) return;
   const { data: config, error: erroConfig } = await db.from('proposta_campos_padrao_config').select('id,opcoes').eq('workspace_id', 'grupoprime').eq('campo_slug', 'status_venda').maybeSingle();
   if (erroConfig) throw erroConfig;
@@ -44,8 +56,17 @@ async function main() {
     : db.from('proposta_campos_padrao_config').insert({ workspace_id: 'grupoprime', campo_slug: 'status_venda', opcoes: atuais, visivel: true, ordem: 52 });
   const { error: erroOpcoes } = await opcoes;
   if (erroOpcoes) throw erroOpcoes;
+  for (const [ordem, regra] of anexos.REGRAS_DOCUMENTOS_GRUPOPRIME.entries()) {
+    const { data: campo, error: erroCampo } = await db.from('proposta_campos_customizados').select('id').eq('workspace_id','grupoprime').eq('slug',regra.variavel).maybeSingle();
+    if (erroCampo) throw erroCampo;
+    const payload = { label: regra.nome, tipo: 'arquivo', obrigatorio: true, ativo: true, ordem: 900 + ordem, placeholder: 'Documento privado obrigatório para auditoria do BKO' };
+    const gravacao = campo ? db.from('proposta_campos_customizados').update(payload).eq('workspace_id','grupoprime').eq('id',campo.id)
+      : db.from('proposta_campos_customizados').insert({ ...payload, workspace_id: 'grupoprime', slug: regra.variavel });
+    const { error: erroGravacao } = await gravacao;
+    if (erroGravacao) throw erroGravacao;
+  }
   const { error: erroSalvar } = await db.from('fluxos').update({ nos, conexoes, nome: vendedor.NOME_VENDEDOR_GRUPOPRIME,
-    descricao: 'Vendas Nio PF/PJ por CEP e cidade; recuperação de CPF reprovado; avisos de instalação e biometria; encerramento sem cobertura.',
+    descricao: 'Vendas Nio PF/PJ; RG frente/verso e comprovante obrigatórios no CRM antes da auditoria; recuperação CPF; avisos BKO; encerramento sem cobertura.',
   }).eq('workspace_id', 'grupoprime').eq('id', fluxo.id);
   if (erroSalvar) throw erroSalvar;
   console.log(JSON.stringify({ salvo: true, fluxo: fluxo.id, ativo_preservado: fluxo.ativo }));
