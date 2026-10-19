@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { trocarEmailUsuarioComVinculos } from "../../lib/troca-email-usuario";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -153,13 +154,17 @@ export async function POST(req: NextRequest) {
     // ───────────────────────────────────────────────────────────────────────
     if (modo === "admin") {
       const {
-        email_alvo, workspace_id,
-        novo_email, nova_senha,
+        email_alvo: emailEntrada, workspace_id,
+        novo_email: novoEmailEntrada, nova_senha,
         nome, telefone, foto_url,
         perfil, fila, grupo_id, equipe_id,
         equipes_acesso, filas_acesso, canais_acesso, voip_conexoes_acesso,
         ramal, exige_ponto, exige_selfie,
       } = body;
+
+      const email_alvo = String(emailEntrada || "").trim();
+      const novo_email = typeof novoEmailEntrada === "string" ? novoEmailEntrada.trim().toLowerCase() : "";
+      const trocandoEmail = !!novo_email && novo_email !== email_alvo.toLowerCase();
 
       if (!email_alvo || !workspace_id) {
         return NextResponse.json({ success: false, error: "email_alvo e workspace_id são obrigatórios" });
@@ -204,8 +209,8 @@ export async function POST(req: NextRequest) {
       // Busca o alvo (precisa pra pegar user_id pro auth.admin.updateUserById)
       const { data: alvo } = await supabase
         .from("usuarios_workspace")
-        .select("perfil, user_id")
-        .eq("email", email_alvo)
+        .select("id, email, perfil, user_id")
+        .ilike("email", email_alvo.replace(/[\\%_]/g, "\\$&"))
         .eq("workspace_id", workspace_id)
         .maybeSingle();
 
@@ -227,26 +232,25 @@ export async function POST(req: NextRequest) {
       }
 
       // Valida e-mail novo (se vier — não pode estar em uso)
-      if (novo_email && novo_email !== email_alvo) {
-        const { data: emailExistente } = await supabase
+      if (trocandoEmail) {
+        if (!/^[^\s@,()]+@[^\s@,()]+\.[^\s@,()]+$/.test(novo_email)) return NextResponse.json({ success: false, error: "E-mail inválido" }, { status: 400 });
+        if (!alvo.user_id) return NextResponse.json({ success: false, error: "Usuário sem login vinculado. Não foi possível trocar o e-mail com segurança." }, { status: 400 });
+        const { data: emailExistente, error: erroEmail } = await supabase
           .from("usuarios_workspace")
-          .select("email")
-          .eq("email", novo_email)
-          .neq("workspace_id", workspace_id)  // OK estar no mesmo workspace (raro mas ok)
+          .select("id")
+          .ilike("email", novo_email.replace(/[\\%_]/g, "\\$&"))
+          .neq("id", alvo.id)
+          .limit(1)
           .maybeSingle();
+        if (erroEmail) return NextResponse.json({ success: false, error: "Não foi possível conferir o e-mail de destino. Tente novamente." }, { status: 503 });
         if (emailExistente) {
-          return NextResponse.json({ success: false, error: "Esse e-mail já está em uso em outro workspace" });
+          return NextResponse.json({ success: false, error: "Esse e-mail já está em uso por outro usuário" });
         }
       }
 
       // ═══ Atualiza Auth (email + senha) ═══
-      if (alvo.user_id && (novo_email || nova_senha)) {
-        const authUpdate: any = {};
-        if (novo_email) {
-          authUpdate.email = novo_email;
-          authUpdate.email_confirm = true;  // admin tá confirmando — pula o email de verificação
-        }
-        if (nova_senha) authUpdate.password = nova_senha;
+      if (!trocandoEmail && alvo.user_id && nova_senha) {
+        const authUpdate = { password: nova_senha };
 
         const { error: authUpdateErr } = await supabase.auth.admin.updateUserById(alvo.user_id, authUpdate);
         if (authUpdateErr) {
@@ -274,7 +278,17 @@ export async function POST(req: NextRequest) {
       if (typeof exige_ponto === "boolean") updateWs.exige_ponto = exige_ponto;
       if (typeof exige_selfie === "boolean") updateWs.exige_selfie = exige_selfie;
       // 🔧 Se trocou email, atualiza tb na tabela usuarios_workspace
-      if (novo_email && novo_email !== email_alvo) updateWs.email = novo_email;
+      if (trocandoEmail) {
+        const resultado = await trocarEmailUsuarioComVinculos(supabase, {
+          workspaceId: workspace_id, usuarioId: alvo.id, authId: alvo.user_id,
+          emailAntigo: alvo.email, emailNovo: novo_email, dadosUsuario: updateWs,
+        });
+        if (nova_senha) {
+          const { error } = await supabase.auth.admin.updateUserById(alvo.user_id, { password: nova_senha });
+          if (error) return NextResponse.json({ success: false, error: "O e-mail e os vínculos foram atualizados, mas a nova senha não foi salva. Tente alterar somente a senha." });
+        }
+        return NextResponse.json({ success: true, email_atual: novo_email, ...resultado });
+      }
 
       if (Object.keys(updateWs).length > 0) {
         const { error: dbErr } = await supabase.from("usuarios_workspace")
