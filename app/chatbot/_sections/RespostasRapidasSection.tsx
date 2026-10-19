@@ -275,7 +275,8 @@ export function RespostasRapidasSection() {
             </div>
             <div>
               <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Mensagem *</label>
-              <input placeholder="Olá! Como posso te ajudar?" value={form.mensagem} onChange={e => setForm({ ...form, mensagem: e.target.value })} style={IS} />
+              <textarea placeholder={"Olá! Como posso te ajudar?\nDigite ou cole sua mensagem com as quebras de linha desejadas."} value={form.mensagem} onChange={e => setForm({ ...form, mensagem: e.target.value })} rows={6} style={{ ...IS, resize: "vertical", minHeight: 140, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }} />
+              <p style={{ color: "#6b7280", fontSize: 11, margin: "6px 0 0" }}>Use Enter para quebrar a linha. Os parágrafos serão mantidos no envio.</p>
             </div>
           </div>
           {/* 🆕 MÍDIA */}
@@ -399,7 +400,7 @@ export function RespostasRapidasSection() {
             }}>
               {r.atalho}
             </span>
-            <p style={{ color: "#4b5563", fontSize: 13, margin: 0, flex: 1 }}>{r.mensagem}</p>
+            <p style={{ color: "#4b5563", fontSize: 13, margin: 0, flex: 1, minWidth: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{r.mensagem}</p>
             {/* 🆕 preview de mídia anexada */}
             {r.midia_url && (
               <a href={r.midia_url} target="_blank" rel="noopener noreferrer"
