@@ -18,8 +18,33 @@ function documentosVenda(venda) {
   });
 }
 function resumoVenda(v,ref) {
-  const campos={Nome:v.nome,CPF:v.cpf,RG:v.rg,"Nome da mãe":v.nome_mae,Nascimento:v.data_nascimento,"E-mail":v.email,Endereço:v.endereco,CEP:v.cep,Cidade:v.cidade,UF:v.estado,"WhatsApp de contato":v.telefone1,"Telefone para ligação":v.telefone2,"WhatsApp da solicitação":v.dados_customizados?.numero_origem_whatsapp,Plano:v.plano,Mensalidade:v.valor_plano,Operadora:v.operadora,Vencimento:v.vencimento,Pagamento:v.forma_pagamento,"Data do pedido":v.data_proposta,Vendedor:v.vendedor,Status:v.status_venda};
-  return `VENDA #${v.id}\n#${ref}\n\n`+Object.entries(campos).map(([k,x])=>`${k}: ${String(x??"Não informado").replace(/[\r\n]/g," ")}`).join("\n")+"\n\nResponda a esta mensagem com CPF REPROVADO, APROVADO, GERADA, AGUARDANDO INSTALAÇÃO, INSTALADA, SEM DISPONIBILIDADE ou CANCELADA. Para agendamento, acrescente:\nDATA: DD/MM/AAAA\nPERIODO: MANHÃ ou TARDE";
+  const limpo=x=>String(x??'').replace(/[\r\n\u0000-\u001f*_~`]/g,' ').replace(/\s+/g,' ').trim()||'Não informado';
+  const linha=(icone,label,valor)=>`${icone} *${label}:* ${limpo(valor)}`;
+  const data=x=>{const s=String(x||'');const m=/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/.exec(s);return m?`${m[3]}/${m[2]}/${m[1]}`:x;};
+  const dinheiro=v.valor_plano!==null&&v.valor_plano!==undefined&&String(v.valor_plano).trim()!==''&&Number.isFinite(Number(v.valor_plano))
+    ?new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v.valor_plano)):v.valor_plano;
+  const pagamento={CARD:'Cartão de crédito',CARTAO:'Cartão de crédito',BOLETO:'Boleto bancário',PIX:'Pix'}[String(v.forma_pagamento||'').toUpperCase()]||v.forma_pagamento;
+  return [
+    `✅ *NOVA VENDA • GRUPO PRIME*`,
+    `📋 *Venda #${limpo(v.id)}* | ${limpo(v.status_venda)}`,
+    '', '*👤 DADOS DO TITULAR*',
+    linha('👤','Nome',v.nome),linha('🪪','CPF',v.cpf),linha('🆔','RG',v.rg),
+    linha('🎂','Nascimento',data(v.data_nascimento)),linha('👩','Nome da mãe',v.nome_mae),linha('✉️','E-mail',v.email),
+    '', '*📞 CONTATOS*',
+    linha('💬','WhatsApp',v.telefone1),linha('☎️','Ligação',v.telefone2),
+    linha('📲','WhatsApp da solicitação',v.dados_customizados?.numero_origem_whatsapp),
+    '', '*📍 LOCAL DA INSTALAÇÃO*',
+    linha('🏠','Endereço',v.endereco),linha('📮','CEP',v.cep),linha('🏙️','Cidade / UF',[v.cidade,v.estado].filter(Boolean).join(' / ')),
+    '', '*🌐 PLANO E PAGAMENTO*',
+    linha('📦','Plano',v.plano),linha('🏢','Operadora',v.operadora),linha('💰','Mensalidade',dinheiro),
+    linha('📅','Vencimento',v.vencimento?`Dia ${v.vencimento}`:null),linha('💳','Pagamento',pagamento),
+    linha('🗓️','Data do pedido',data(v.data_proposta)),linha('🤝','Vendedor',v.vendedor),
+    '', '*📎 DOCUMENTOS*', 'RG frente, RG verso e comprovante de endereço seguem anexados nesta conversa.',
+    '', '*↩️ RETORNO DO BKO*', 'Use *Responder* nesta mensagem e informe um status:',
+    'CPF REPROVADO • APROVADO • GERADA', 'AGUARDANDO INSTALAÇÃO • INSTALADA', 'SEM DISPONIBILIDADE • CANCELADA',
+    '', 'Para informar a agenda, acrescente:', 'DATA: DD/MM/AAAA', 'PERIODO: MANHÃ ou TARDE',
+    '', `🔖 *Referência:* #${limpo(ref)}`,
+  ].join('\n');
 }
 function assinaturaValida(raw,header,segredo) {
   if(!Buffer.isBuffer(raw)||!segredo||!/^sha256=[a-f0-9]{64}$/.test(String(header||"")))return false;

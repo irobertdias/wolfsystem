@@ -53,8 +53,16 @@ function fixture({ativo=true,contatos=1,waba=false}={}){
 }
 test('roleta envia apenas a um BKO e não reenvia os concluídos',async()=>{
  const f=fixture({contatos:5});await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);assert.equal(f.venda.dados_customizados.bko_pendente,'ENVIADO');
- assert.ok(f.envios[0].texto.includes('CPF: 52998224725'));assert.ok(!f.envios[0].texto.includes('apiKey'));
+ assert.ok(f.envios[0].texto.includes('*CPF:* 52998224725'));assert.ok(!f.envios[0].texto.includes('apiKey'));
  await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);
+});
+test('resumo legível preserva dados, moeda, datas e referência sem injetar formatação',()=>{
+ const s=helpers.resumoVenda({id:9,nome:'Ana\n*Teste*',cpf:'01234567890',data_nascimento:'1996-11-03',valor_plano:110,forma_pagamento:'BOLETO',vencimento:10,status_venda:'AGUARDANDO AUDITORIA',dados_customizados:{}},'BKO-9-1234567890ABCDEF');
+ assert.ok(s.includes('*Nome:* Ana Teste'));assert.ok(s.includes('*CPF:* 01234567890'));
+ assert.ok(s.includes('03/11/1996'));assert.match(s,/R\$\s110,00/);assert.ok(s.includes('Boleto bancário'));
+ assert.ok(s.includes('*Vencimento:* Dia 10'));assert.ok(s.includes('#BKO-9-1234567890ABCDEF'));
+ assert.ok(s.includes('RG frente, RG verso e comprovante'));assert.ok(!s.includes('undefined'));
+ assert.ok(helpers.resumoVenda({valor_plano:null},'ref').includes('*Mensalidade:* Não informado'));
 });
 test('retorno por citação atualiza só a venda correta, registra auditoria e não repete evento',async()=>{
  const f=fixture();await f.ctx.verificarVendasBko();await f.retorno();assert.equal(f.venda.status_venda,'APROVADA');assert.equal(f.venda.dados_customizados.bko_retornos.length,1);assert.equal(f.tabelas.crm_automacao_estado[0].snapshot.status_venda,'AGUARDANDO AUDITORIA');
