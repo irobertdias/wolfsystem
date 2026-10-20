@@ -22,12 +22,12 @@ test('assinatura usa corpo original e segredo Meta; adulteração é recusada',(
 });
 function fixture({ativo=true,contatos=1,waba=false}={}){
  const copia=x=>JSON.parse(JSON.stringify(x));
- const fluxo={id:27,workspace_id:'grupoprime',ativo,nos:[{id:'prime_documentos_enviar',dados:{bko_configuracao:{ativo:true,canal_id:157,contatos:Array.from({length:contatos},(_,i)=>({nome:'BKO '+i,numero:'556299999000'+(i+1)}))}}}]};
+ const fluxo={id:27,workspace_id:'grupoprime',ativo,nos:[{id:'prime_documentos_enviar',dados:{bko_configuracao:{ativo:true,canal_id:157,canal_trafego_id:157,fila_nome:"Vendas",contatos:Array.from({length:contatos},(_,i)=>({nome:'BKO '+i,numero:'556299999000'+(i+1)}))}}}]};
  const venda={id:1,workspace_id:'grupoprime',fluxo_id:27,canal_id:157,status_venda:'AGUARDANDO AUDITORIA',cpf:'52998224725',nome:'Pessoa Teste',telefone1:'5562988881111',telefone2:'556233332222',updated_at:'2026-10-20T12:00:00Z',dados_customizados:{bko_pendente:'SIM',numero_origem_whatsapp:'5562988881111'}};
  const hash=createHash('sha256').update('grupoprime:157:5562988881111').digest('hex').slice(0,24);
  const arquivos=new Set();
  for(const tipo of ['rg_frente','rg_verso','comprovante_endereco']){const path=`grupoprime/${hash}/arquivos/${tipo}/teste.jpg`;arquivos.add(path);venda.dados_customizados[tipo]=JSON.stringify([{privado:true,regra_id:'prime_'+(tipo==='comprovante_endereco'?'comprovante':tipo),tipo:'image/jpeg',url:'/api/documentos-clientes/arquivo?workspaceId=grupoprime&path='+encodeURIComponent(path)}]);}
- const tabelas={fluxos:[fluxo],proposta:[venda],crm_automacao_estado:[]},envios=[];
+ const tabelas={fluxos:[fluxo],proposta:[venda],crm_automacao_estado:[],filas:[{id:1,nome:'Vendas',workspace_id:'grupoprime'}]},envios=[];
  let conflito=false,falharEnvio=false;
  const valor=(r,k)=>k.split(/->>?/).reduce((v,c)=>v?.[c],r);
  function query(t){const q={filtros:[],payload:null,tipo:'read',max:Infinity,
@@ -42,7 +42,7 @@ function fixture({ativo=true,contatos=1,waba=false}={}){
    return {data:copia(lista),error:null};},
   maybeSingle(){const r=this.exec();return Promise.resolve({...r,data:r.data?.[0]||null});},then(ok,no){return Promise.resolve(this.exec()).then(ok,no);}};return q;}
  const db={from:query,storage:{from:()=>({download:async p=>arquivos.has(p)?{data:new Blob(['imagem'],{type:'image/jpeg'})}:{data:null,error:Error('ausente')}})}};
- const ctx={supabase:db,app:{get(){}},sessoes:{157:{status:'conectado',conectadoEm:Date.now()-60000,client:{}}},getConfigCanal:async()=>({canalId:157,workspaceId:'grupoprime',tipo:waba?'waba':'webjs',numero:'556233334444',phone_number_id:'id-teste',token:'token-falso'}),
+ const ctx={supabase:db,app:{get(){}},sessoes:{157:{status:'conectado',conectadoEm:Date.now()-60000,client:{}}},getConfigCanal:async()=>({canalId:157,workspaceId:'grupoprime',fila:'Vendas',tipo:waba?'waba':'webjs',numero:'556233334444',phone_number_id:'id-teste',token:'token-falso'}),
   enviarTextoWebjs:async(_c,n,m)=>{if(falharEnvio)throw Error('timeout');envios.push({numero:n,texto:m});return {success:true,messageId:'msg-'+envios.length};},
   enviarMidiaWebjs:async(_c,n,m,o)=>{envios.push({numero:n,arquivo:m,caption:o.caption});return {id:{_serialized:'msg-'+envios.length}};},MessageMedia:class{constructor(tipo,data,nome){this.tipo=tipo;this.nome=nome;}}};
  const mock={exports:{}};
@@ -51,10 +51,10 @@ function fixture({ativo=true,contatos=1,waba=false}={}){
  const retorno=extra=>ctx.tratarRetornoBko({workspaceId:'grupoprime',canalId:157,numero:'5562999990001',mensagem:'APROVADO',messageId:'retorno-1',quotedId:'msg-1',verificado:true,...extra});
  return {ctx,tabelas,envios,venda,fluxo,arquivos,retorno,setConflito:()=>{conflito=true;},setFalha:()=>{falharEnvio=true;}};
 }
-test('envia resumo e três documentos privados para até cinco destinos, sem reenviar os concluídos',async()=>{
- const f=fixture({contatos:5});await f.ctx.verificarVendasBko();assert.equal(f.envios.length,20);assert.equal(f.venda.dados_customizados.bko_pendente,'ENVIADO');
+test('roleta envia apenas a um BKO e não reenvia os concluídos',async()=>{
+ const f=fixture({contatos:5});await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);assert.equal(f.venda.dados_customizados.bko_pendente,'ENVIADO');
  assert.ok(f.envios[0].texto.includes('CPF: 52998224725'));assert.ok(!f.envios[0].texto.includes('apiKey'));
- await f.ctx.verificarVendasBko();assert.equal(f.envios.length,20);
+ await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);
 });
 test('retorno por citação atualiza só a venda correta, registra auditoria e não repete evento',async()=>{
  const f=fixture();await f.ctx.verificarVendasBko();await f.retorno();assert.equal(f.venda.status_venda,'APROVADA');assert.equal(f.venda.dados_customizados.bko_retornos.length,1);assert.equal(f.tabelas.crm_automacao_estado[0].snapshot.status_venda,'AGUARDANDO AUDITORIA');
@@ -78,6 +78,22 @@ test('fluxo pausado não envia nem processa retornos; documentos de outra venda 
 test('timeout fica para revisão e não reenvia automaticamente mensagem de entrega incerta',async()=>{
  const f=fixture();f.setFalha();await f.ctx.verificarVendasBko();assert.equal(f.venda.dados_customizados.bko_pendente,'REVISAR');await f.ctx.verificarVendasBko();assert.equal(f.envios.length,0);
 });
+test('roleta alterna os cinco responsáveis e preserva atribuição na retentativa',async()=>{
+ const f=fixture({contatos:5});
+ for(let i=0;i<6;i++){
+  if(i){const v=JSON.parse(JSON.stringify(f.venda));v.id=i+1;v.dados_customizados.bko_envio=null;delete v.dados_customizados.bko_responsavel;v.dados_customizados.bko_pendente='SIM';f.tabelas.proposta.push(v);}
+  await f.ctx.verificarVendasBko();
+  assert.equal(f.envios[i*4].numero,'556299999000'+(i%5+1));
+ }
+ assert.equal(f.envios.length,24);
+});
+test('filtro de origem impede venda de outro canal ou fila e retorno de BKO não atribuído',async()=>{
+ const f=fixture({contatos:2});const cfg=f.fluxo.nos[0].dados.bko_configuracao;
+ cfg.canal_trafego_id=999;await f.ctx.verificarVendasBko();assert.equal(f.envios.length,0);
+ cfg.canal_trafego_id=157;cfg.fila_nome='Outra';await f.ctx.verificarVendasBko();assert.equal(f.envios.length,0);
+ cfg.fila_nome='Vendas';await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);
+ await f.retorno({numero:'5562999990002'});assert.equal(f.venda.status_venda,'AGUARDANDO AUDITORIA');
+});
 function apiConfig(f,permitido=true){
  const ts=require('typescript'),exp={};
  const auth={autenticarWorkspace:async()=>{if(!permitido)throw Object.assign(Error('Sem acesso'),{statusCode:403});return{workspaceId:'grupoprime',email:'admin@example.com'};},exigirPermissao(){},supabaseServer:f.ctx.supabase,segredoInternoWolf:()=>'',respostaErroAcesso:e=>({status:e.statusCode||500,message:e.message})};
@@ -90,7 +106,7 @@ test('API exige permissão; salvar não reativa fluxo nem revela chave da IA',as
  f.fluxo.nos.push({id:'prime_vendedor',dados:{apiKey:'segredo-que-nao-pode-sair'}});
  const bloqueada=apiConfig(f,false);const r=await bloqueada.api.GET(bloqueada.req());assert.equal(r.status,403);
  const a=apiConfig(f);const get=await a.api.GET(a.req());assert.equal(get.status,200);assert.ok(!JSON.stringify(get).includes('segredo-que-nao-pode-sair'));
- const patch=await a.api.PATCH(a.req({workspaceId:'grupoprime',config:{ativo:true,canal_id:157,contatos:[{nome:'BKO novo',numero:'62977770001'}]}}));
+ const patch=await a.api.PATCH(a.req({workspaceId:'grupoprime',config:{ativo:true,canal_id:157,canal_trafego_id:157,fila_nome:'Vendas',contatos:[{nome:'BKO novo',numero:'62977770001'}]}}));
  assert.equal(patch.status,200);assert.equal(f.fluxo.ativo,false);assert.equal(f.fluxo.nos.find(n=>n.id==='prime_vendedor').dados.apiKey,'segredo-que-nao-pode-sair');
  const outro=await a.api.PATCH(a.req({workspaceId:'grupoprime',config:{ativo:true,canal_id:999,contatos:[{nome:'BKO',numero:'62977770001'}]}}));assert.equal(outro.status,422);
 });

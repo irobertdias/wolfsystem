@@ -7,23 +7,33 @@ type Envio={id:number;status:string;estado:string;erro:string;referencia:string}
 export default function BkoConfig({workspaceId}:{workspaceId:string}) {
   const [config,setConfig]=useState<ConfigBko>({ativo:false,canal_id:null,contatos:[]});
   const [canais,setCanais]=useState<Canal[]>([]),[envios,setEnvios]=useState<Envio[]>([]);
+  const [filas,setFilas]=useState<{id:number;nome:string}[]>([]);
   const [pronto,setPronto]=useState(false),[fluxoAtivo,setFluxoAtivo]=useState(false),[wabaPronto,setWabaPronto]=useState(false);
   const [erro,setErro]=useState(''),[aviso,setAviso]=useState(''),[ocupado,setOcupado]=useState(true);
   async function requisicao(method='GET',body?:unknown){const {data:{session}}=await supabase.auth.getSession();const r=await fetch(`/api/workspace/configuracoes/bko?workspaceId=${encodeURIComponent(workspaceId)}`,{method,headers:{Authorization:`Bearer ${session?.access_token||''}`,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const j=await r.json();if(!r.ok||!j.success)throw Error(j.error||'Não foi possível carregar o BKO.');return j;}
-  async function carregar(){setOcupado(true);setErro('');try{const j=await requisicao();setConfig(j.config);setCanais(j.canais);setEnvios(j.envios);setPronto(j.servidor_pronto);setFluxoAtivo(j.fluxo_ativo);setWabaPronto(j.waba_pronto);}catch(e){setErro((e as Error).message);}finally{setOcupado(false);}}
+  async function carregar(){setOcupado(true);setErro('');try{const j=await requisicao();setConfig(j.config);setCanais(j.canais);setFilas(j.filas||[]);setEnvios(j.envios);setPronto(j.servidor_pronto);setFluxoAtivo(j.fluxo_ativo);setWabaPronto(j.waba_pronto);}catch(e){setErro((e as Error).message);}finally{setOcupado(false);}}
   useEffect(()=>{void carregar();},[workspaceId]);
-  async function salvar(){setOcupado(true);setAviso('');setErro('');try{await requisicao('PATCH',{workspaceId,config});setAviso('Configuração salva.');}catch(e){setErro((e as Error).message);}finally{setOcupado(false);}}
+  async function salvar(){setOcupado(true);setAviso('');setErro('');try{if(config.ativo&&!pronto)throw Error('Instale a atualização da roleta no servidor antes de ativar os envios.');await requisicao('PATCH',{workspaceId,config});setAviso('Configuração salva.');}catch(e){setErro((e as Error).message);}finally{setOcupado(false);}}
   async function retentar(id:number){setOcupado(true);setErro('');try{await requisicao('PATCH',{workspaceId,acao:'retentar',proposta_id:id});await carregar();setAviso('Partes pendentes liberadas para nova tentativa.');}catch(e){setErro((e as Error).message);}finally{setOcupado(false);}}
   const input={padding:10,border:'1px solid #cbd5e1',borderRadius:8,background:'#fff',color:'#0f172a',minWidth:0};
   return <section style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:14,padding:22,color:'#1e293b'}}>
     <h2 style={{margin:'0 0 8px',fontSize:17}}>Retorno de vendas pelo WhatsApp do BKO</h2>
-    <p style={{fontSize:13,color:'#475569'}}>Após o cadastro confirmado e os documentos salvos, cada BKO cadastrado recebe o resumo da venda, RG frente e verso e comprovante de endereço.</p>
+    <p style={{fontSize:13,color:'#475569'}}>Após o cadastro confirmado e os documentos salvos, um único BKO recebe o resumo da venda, RG frente e verso e comprovante de endereço. A roleta alterna os responsáveis na ordem cadastrada e mantém o mesmo BKO nas retentativas.</p>
     <p role="status" style={{fontSize:13,color:pronto?'#166534':'#92400e'}}>{pronto?'Servidor BKO disponível.':'Envio aguardando instalação da integração no servidor WhatsApp.'} {!fluxoAtivo&&'O vendedor está pausado; salvar esta configuração não o reativa.'}</p>
     {erro&&<p role="alert" style={{color:'#b91c1c'}}>{erro}</p>}{aviso&&<p role="status" style={{color:'#166534'}}>{aviso}</p>}
     <label style={{display:'block',margin:'16px 0'}}><input type="checkbox" checked={config.ativo} disabled={ocupado} onChange={e=>setConfig({...config,ativo:e.target.checked})}/> Encaminhar vendas automaticamente para o BKO</label>
     <label style={{display:'grid',gap:6,fontSize:13}}>Canal usado para enviar e receber os retornos
       <select style={input} disabled={ocupado} value={config.canal_id||''} onChange={e=>setConfig({...config,canal_id:e.target.value?Number(e.target.value):null})}><option value="">Selecione uma conexão</option>{canais.map(c=><option key={c.id} value={c.id}>{c.nome} — {c.tipo} — {c.status}</option>)}</select>
     </label>
+    <div style={{display:'grid',gap:12,marginTop:14}}>
+      <label style={{display:'grid',gap:6,fontSize:13}}>Canal de tráfego que recebe os leads
+        <select style={input} disabled={ocupado} value={config.canal_trafego_id||''} onChange={e=>setConfig({...config,canal_trafego_id:e.target.value?Number(e.target.value):null})}><option value="">Selecione o canal de entrada</option>{canais.map(c=><option key={c.id} value={c.id}>{c.nome} — {c.tipo}</option>)}</select>
+      </label>
+      <label style={{display:'grid',gap:6,fontSize:13}}>Fila de origem dos leads
+        <select style={input} disabled={ocupado} value={config.fila_nome||''} onChange={e=>setConfig({...config,fila_nome:e.target.value})}><option value="">Selecione a fila</option>{filas.map(f=><option key={f.id} value={f.nome}>{f.nome}</option>)}</select>
+      </label>
+      <p style={{fontSize:13}}>Somente vendas do canal e da fila selecionados entram na roleta. Configure essa mesma fila no canal de tráfego.</p>
+    </div>
     {canais.find(c=>c.id===config.canal_id)?.tipo==='waba'&&<p style={{fontSize:13,color:'#92400e'}}>{!wabaPronto&&'A integração da API oficial ainda precisa ser configurada no servidor. '}Para usar a API oficial, cada BKO deve enviar uma mensagem a esse canal para iniciar o atendimento. Sem conversa ativa, os documentos aguardam na fila.</p>}
     <div style={{display:'grid',gap:10,margin:'16px 0'}}>{config.contatos.map((c,i)=><div key={i} style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr) auto',gap:8}}>
       <input style={input} aria-label={`Nome do BKO ${i+1}`} placeholder="Nome do BKO" disabled={ocupado} value={c.nome} maxLength={80} onChange={e=>setConfig({...config,contatos:config.contatos.map((x,n)=>n===i?{...x,nome:e.target.value}:x)})}/>

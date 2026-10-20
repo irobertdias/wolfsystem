@@ -30,7 +30,7 @@ module.exports=function carregarBko(ctx) {
   const {supabase:db}=ctx;let rodando=false;
   const segredoMeta=()=>process.env.META_APP_SECRET||process.env.WHATSAPP_APP_SECRET||"";
   ctx.assinaturaBkoValida=req=>assinaturaValida(req.rawBody,req.get("x-hub-signature-256"),segredoMeta());
-  ctx.app.get("/bko/health",(_req,res)=>res.json({versao:1,waba_assinatura:!!segredoMeta(),waba_versao:/^v\d+\.\d+$/.test(process.env.META_GRAPH_VERSION||'')}));
+  ctx.app.get("/bko/health",(_req,res)=>res.json({versao:2,waba_assinatura:!!segredoMeta(),waba_versao:/^v\d+\.\d+$/.test(process.env.META_GRAPH_VERSION||'')}));
   async function configuracao(){
     const {data:f,error}=await db.from("fluxos").select("id,ativo,nos").eq("workspace_id",WS).eq("id",FLUXO).maybeSingle();if(error)throw error;
     const no=f?.nos?.find(n=>n.id==="prime_documentos_enviar");if(!no?.dados?.bko_configuracao)return null;
@@ -82,22 +82,38 @@ module.exports=function carregarBko(ctx) {
   }
   async function processar(v,cfg){
     if(v.workspace_id!==WS||Number(v.fluxo_id)!==FLUXO||v.status_venda!=="AGUARDANDO AUDITORIA"||!cfg.ativo||!cfg.fluxo.ativo)return;
+    if(!cfg.canal_trafego_id||!cfg.fila_nome)return;
+    if(cfg.canal_trafego_id&&Number(v.canal_id)!==cfg.canal_trafego_id)return;
+    if(cfg.fila_nome){const origem=await ctx.getConfigCanal(v.canal_id);if(origem?.workspaceId!==WS||origem.fila!==cfg.fila_nome)return;}
     const c=await configCanal(cfg);const docs=documentosVenda(v);
     let custom=clone(v.dados_customizados||{}),meta=parse(custom.bko_envio);
     if(custom.bko_envio&&!meta.destinatarios)throw Error("Registro de envio inválido; nenhuma mensagem reenviada.");
+    if(meta.destinatarios&&Object.keys(meta.destinatarios).length>1){custom.bko_pendente='REVISAR';custom.bko_erro='Envio antigo para múltiplos BKOs. Confira no CRM antes de continuar.';await salvar(v,custom);return;}
     if(meta.lease&&new Date(meta.lease).getTime()>Date.now())return;
     if(meta.destinatarios&&Object.values(meta.destinatarios).some(d=>d.partes.some(p=>p.estado==="em_envio"))){custom.bko_pendente="REVISAR";custom.bko_erro="Entrega sem confirmação. Confira no WhatsApp antes de liberar nova tentativa.";await salvar(v,custom);return;}
     if(!meta.destinatarios){
+      // Reserva uma vez na configuração compartilhada; CAS impede dois workers de consumir o mesmo turno.
+      const atual=await configuracao();if(!atual?.ativo||!atual.fluxo.ativo||!atual.contatos.length)return;
+      if(atual.canal_id!==cfg.canal_id||atual.canal_trafego_id!==cfg.canal_trafego_id||atual.fila_nome!==cfg.fila_nome)return;
+      const fixo=custom.bko_responsavel;
+      if(fixo&&!atual.contatos.some(x=>x.numero===fixo))throw Error('BKO responsável removido; revisão necessária.');
+      const ultimo=atual.no.dados.bko_ultimo_numero;
+      const escolhido=atual.contatos.find(x=>x.numero===fixo)||atual.contatos[(atual.contatos.findIndex(x=>x.numero===ultimo)+1)%atual.contatos.length];
+      const nos=clone(atual.fluxo.nos),indice=nos.findIndex(x=>x.id===atual.no.id),versao=atual.no.dados.bko_versao;
+      if(!fixo)nos[indice].dados.bko_ultimo_numero=escolhido.numero;nos[indice].dados.bko_versao=randomUUID();
+      let reserva=db.from('fluxos').update({nos}).eq('workspace_id',WS).eq('id',FLUXO);
+      reserva=versao?reserva.eq(`nos->${indice}->dados->>bko_versao`,versao):reserva.is(`nos->${indice}->dados->>bko_versao`,null);
+      const {data:reservado,error:er}=await reserva.select('id').maybeSingle();if(er)throw er;if(!reservado)return;
       const ref=`BKO-${v.id}-${randomBytes(8).toString("hex").toUpperCase()}`;
-      meta={referencia:ref,canal_id:cfg.canal_id,cpf:String(v.cpf),destinatarios:Object.fromEntries(cfg.contatos.map(d=>[d.numero,{partes:[{tipo:"texto",estado:"pendente"},...docs.map(x=>({tipo:x.tipo,estado:"pendente"}))],concluido:false}]))};
-      custom.bko_ref=ref;custom.bko_reply_ids=[];
+      meta={referencia:ref,canal_id:cfg.canal_id,cpf:String(v.cpf),distribuicao:'roleta',destinatarios:{[escolhido.numero]:{partes:[{tipo:"texto",estado:"pendente"},...docs.map(x=>({tipo:x.tipo,estado:"pendente"}))],concluido:false}}};
+      custom.bko_responsavel=escolhido.numero;custom.bko_ref=ref;custom.bko_reply_ids=[];
     }
     if(meta.canal_id!==cfg.canal_id||meta.cpf!==String(v.cpf))throw Error("A configuração ou titular mudou; revisão do envio necessária.");
     meta.lease=new Date(Date.now()+10*60000).toISOString();custom.bko_envio=JSON.stringify(meta);v=await salvar(v,custom);
     try{
       for(const [n,dest]of Object.entries(meta.destinatarios)){
         const atual=await configuracao();if(!atual?.ativo||!atual.fluxo.ativo||atual.canal_id!==cfg.canal_id)throw Error("Encaminhamento pausado.");
-        if(!atual.contatos.some(x=>x.numero===n)){dest.cancelado=true;continue;}
+        if(!atual.contatos.some(x=>x.numero===n))throw Error('BKO responsável removido; revisão necessária.');
         if([v.telefone1,v.telefone2,v.dados_customizados.numero_origem_whatsapp,c.numero].some(x=>numeroBko(x)===n))throw Error("Destinatário BKO coincide com cliente ou canal de envio.");
         const janelaMs=new Date(atual.janelas[n]||0).getTime();
         if(c.tipo==="waba"&&(!Number.isFinite(janelaMs)||janelaMs>Date.now()+60000||Date.now()-janelaMs>23*3600000)){custom=clone(v.dados_customizados);custom.bko_pendente="JANELA";custom.bko_erro="O BKO precisa enviar uma mensagem ao canal da API oficial para iniciar o atendimento.";meta.lease=null;custom.bko_envio=JSON.stringify(meta);await salvar(v,custom);return;}
@@ -161,12 +177,12 @@ module.exports=function carregarBko(ctx) {
   async function verificar(){
     if(rodando)return;rodando=true;
     try{
-      const cfg=await configuracao();if(!cfg?.ativo||!cfg.fluxo.ativo)return;
+      const cfg=await configuracao();if(!cfg?.ativo||!cfg.fluxo.ativo||!cfg.canal_trafego_id||!cfg.fila_nome)return;
       await configCanal(cfg);
-      const {data,error}=await db.from("proposta").select("*").eq("workspace_id",WS).eq("fluxo_id",FLUXO).eq("status_venda","AGUARDANDO AUDITORIA").in("dados_customizados->>bko_pendente",["SIM","JANELA"]).order("id").limit(20);if(error)throw error;
+      const {data,error}=await db.from("proposta").select("*").eq("workspace_id",WS).eq("fluxo_id",FLUXO).eq("status_venda","AGUARDANDO AUDITORIA").eq("canal_id",cfg.canal_trafego_id).in("dados_customizados->>bko_pendente",["SIM","JANELA"]).order("id").limit(20);if(error)throw error;
       for(const v of data||[])try{await processar(v,cfg);}catch(e){
         console.error(`[BKO] venda=${v.id}: ${e.message}`);
-        if(/Documento|Documentação|Registro de envio|Venda sem origem/.test(e.message))try{
+        if(/Documento|Documentação|Registro de envio|Venda sem origem|BKO responsável removido/.test(e.message))try{
           const {data:atual}=await db.from('proposta').select('*').eq('workspace_id',WS).eq('id',v.id).eq('fluxo_id',FLUXO).maybeSingle();
           if(atual&&atual.status_venda==='AGUARDANDO AUDITORIA'&&['SIM','JANELA'].includes(atual.dados_customizados?.bko_pendente))await salvar(atual,{...atual.dados_customizados,bko_pendente:'REVISAR',bko_erro:'Confira os dados e documentos da venda no CRM antes de liberar nova tentativa.'});
         }catch{}

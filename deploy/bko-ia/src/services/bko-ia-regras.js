@@ -31,7 +31,13 @@ function validarConfigBko(raw) {
         falhar('Canal inválido.');
     if (r.ativo && (!contatos.length || !canal_id))
         falhar('Escolha o canal e pelo menos um contato BKO.');
-    return { ativo: r.ativo, canal_id, contatos };
+    const canal_trafego_id = r.canal_trafego_id == null || r.canal_trafego_id === '' ? null : Number(r.canal_trafego_id);
+    if (canal_trafego_id !== null && (!Number.isSafeInteger(canal_trafego_id) || canal_trafego_id <= 0))
+        falhar('Canal de tráfego inválido.');
+    const fila_nome = String(r.fila_nome ?? '').trim();
+    if (fila_nome.length > 150)
+        falhar('Fila inválida.');
+    return { ativo: r.ativo, canal_id, contatos, canal_trafego_id, fila_nome };
 }
 exports.STATUS_BKO = ['CPF REPROVADO', 'APROVADA', 'GERADA', 'AGUARDANDO INSTALAÇÃO', 'INSTALADA', 'SEM DISPONIBILIDADE', 'CANCELADA'];
 function interpretarRetornoBko(texto) {

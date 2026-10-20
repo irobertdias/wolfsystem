@@ -3206,7 +3206,7 @@ export default function FluxosPage() {
         if(indice>=0){
           const dados=(atual.nos as No[])[indice].dados;
           casBko={indice,versao:dados.bko_versao||null};
-          nosParaSalvar=nosParaSalvar.map(n=>n.id==='prime_documentos_enviar'?{...n,dados:{...n.dados,bko_configuracao:dados.bko_configuracao,bko_janelas:dados.bko_janelas,bko_versao:crypto.randomUUID()}}:n);
+          nosParaSalvar=nosParaSalvar.map(n=>n.id==='prime_documentos_enviar'?{...n,dados:{...n.dados,bko_configuracao:dados.bko_configuracao,bko_janelas:dados.bko_janelas,bko_ultimo_numero:dados.bko_ultimo_numero,bko_versao:crypto.randomUUID()}}:n);
         }
       }
       let gravarFluxo = supabase.from("fluxos").update({nos:nosParaSalvar,conexoes:arestas,nome:fluxoAtivo.nome,

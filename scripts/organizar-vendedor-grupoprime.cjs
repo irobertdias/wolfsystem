@@ -30,6 +30,7 @@ async function main() {
   const bkoAnterior = fluxo.nos.find(n=>n.id==='prime_documentos_enviar')?.dados;
   const envioBko = documentos.nos.find(n=>n.id==='prime_documentos_enviar');
   envioBko.dados.bko_configuracao = bkoAnterior?.bko_configuracao || {ativo:false,canal_id:null,contatos:[]};
+  envioBko.dados.bko_ultimo_numero = bkoAnterior?.bko_ultimo_numero || null;
   envioBko.dados.bko_janelas = bkoAnterior?.bko_janelas || {};
   envioBko.dados.bko_versao = randomUUID();
   const roteiroPrincipal = vendedor.criarVendedorGrupoPrime(origem, '').nos.find(n => n.id === 'prime_vendedor').dados;

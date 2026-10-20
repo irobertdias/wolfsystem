@@ -1,3 +1,11 @@
+# Atualização 2 — Roleta BKO
+
+Cada venda nova é atribuída a apenas um BKO, em sequência na ordem cadastrada. A atribuição é salva antes do envio; retentativas mantêm o responsável. Se o responsável for removido, o envio fica para revisão. O cursor compartilhado usa controle de concorrência; uma interrupção durante a reserva pode pular um turno, sem duplicar o envio.
+
+Configure canal de tráfego e fila de origem, além do canal de envio ao BKO. A fila deve ser a mesma configurada no canal de tráfego. Sem essa seleção a versão 2 não inicia novos envios. Vendas antigas já preparadas para múltiplos BKOs ficam para revisão, sem novos disparos. Retornos de vendas já encaminhadas continuam vinculados aos destinatários originais.
+
+Pacote: wolf-bko-roleta-20261020.tar.gz. O instalador pode atualizar a versão anterior, preserva os hooks e cria backup.
+
 # Vendas e retorno BKO por WhatsApp — Grupo Prime
 
 ## Comportamento
