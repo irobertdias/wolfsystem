@@ -5,9 +5,11 @@ const original=fs.readFileSync(path.join(raiz,'src/services/fluxo-ia-multimidia-
 const c={module:{exports:{}}};vm.createContext(c);vm.runInContext(codigo,c);
 const regras=[{id:'prime_rg_frente',nome:'RG frente',variavel:'rg_frente',descricao:'Não aceitar verso como frente',obrigatoria:true},{id:'prime_rg_verso',nome:'RG verso',variavel:'rg_verso',descricao:'Não aceitar frente como verso',obrigatoria:true},{id:'prime_comprovante',nome:'Comprovante',variavel:'comprovante_endereco',obrigatoria:true}];
 test('verso não é confundido com frente por causa da descrição negativa',()=>{
- const r=c.module.exports._test.validarIdentidadeArquivo(regras[1],{ladoDocumento:'verso',dadosExtraidos:{cpf:'52998224725'}},{cpf:'52998224725'});
- assert.equal(r.identidade.cpf,'52998224725');
- assert.throws(()=>c.module.exports._test.validarIdentidadeArquivo(regras[1],{ladoDocumento:'verso',dadosExtraidos:{cpf:'11111111111'}},{cpf:'52998224725'}),e=>e.codigo==='IDENTIDADE_INCOMPATIVEL');
+ const validar=c.module.exports._test.validarIdentidadeArquivo;
+ assert.equal(validar(regras[1],{ladoDocumento:'verso',dadosExtraidos:{}},{}).identidade.lado,'verso');
+ assert.equal(validar(regras[0],{ladoDocumento:'frente',dadosExtraidos:{nome:'Ana Silva'}},{nome:'Ana Silva'}).identidade.nome,'Ana Silva');
+ assert.throws(()=>validar(regras[0],{ladoDocumento:'frente',dadosExtraidos:{nome:'Outra Pessoa'}},{nome:'Ana Silva'}),e=>e.codigo==='IDENTIDADE_INCOMPATIVEL');
+ assert.throws(()=>validar(regras[1],{ladoDocumento:'frente',dadosExtraidos:{}},{}),e=>e.codigo==='LADO_DOCUMENTO_INCORRETO');
 });
 test('face visual corrige ID incorreto sem deduzir a face pela ordem de chegada',()=>{
  const trecho=codigo.slice(codigo.indexOf('    let regra = localizarRegra('),codigo.indexOf('    const nomeRecebido ='));

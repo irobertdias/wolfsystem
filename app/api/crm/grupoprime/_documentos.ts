@@ -52,10 +52,10 @@ export async function documentosDaSessaoGrupoPrime(db: SupabaseClient, numeroEnt
       if (fingerprint) fotos.add(fingerprint);
       let identidade;
       try { identidade = JSON.parse(vars[`__identidade_documento_${regra.variavel}`] || '{}'); } catch { falhar('Não foi possível conferir o titular do RG.'); }
-      if (!identidade.nome && !identidade.cpf && !identidade.rg) falhar('Envie fotos legíveis do RG do titular.');
-      if (identidade.cpf && normalizarCpf(identidade.cpf) !== cpfEsperado) falhar('O RG enviado é de outro titular.');
       const nome = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
-      if (identidade.nome && nome(identidade.nome) !== nome(vars.nome)) falhar('O nome no RG não corresponde ao titular.');
+      if (regra.variavel === 'rg_frente' && (!identidade.nome || nome(identidade.nome) !== nome(vars.nome))) falhar('O nome na frente da identidade não corresponde ao titular.');
+      // Capturas anteriores já validadas permanecem utilizáveis; novas capturas registram a face.
+      if (regra.variavel === 'rg_verso' && identidade.lado !== 'verso' && !identidade.nome && !identidade.cpf && !identidade.rg) falhar('Envie uma foto legível do verso da identidade.');
     }
     documentos[regra.variavel] = [{ url: `${url!.pathname}${url!.search}`, nome: String(arquivo.nome || regra.nome), tipo: mime,
       tamanho, privado: true, categoria: regra.nome, regra_id: regra.id, enviado_em: String(arquivo.enviado_em || '') }];

@@ -26,6 +26,12 @@ test('três arquivos reais da sessão liberam a etapa e preservam metadados priv
  assert.deepEqual(Object.keys(r.documentos),['rg_frente','rg_verso','comprovante_endereco']);
  assert.ok(r.documentos.rg_frente[0].privado);assert.ok(f.filtros.some(([k,v])=>k==='workspace_id'&&v==='grupoprime'));assert.ok(f.filtros.some(([k,v])=>k==='fluxo_id'&&v===27));
 });
+test('frente exige nome correspondente e verso visual dispensa número de RG e CPF extraído',async()=>{
+ const f=fixture();f.vars.__identidade_documento_rg_frente=JSON.stringify({nome:f.vars.nome,lado:'frente'});f.vars.__identidade_documento_rg_verso=JSON.stringify({lado:'verso'});
+ await validar(f.db,f.sessao.numero,f.vars.cpf);
+ f.vars.__identidade_documento_rg_frente=JSON.stringify({nome:'Outra Pessoa',lado:'frente'});
+ await assert.rejects(validar(f.db,f.sessao.numero,f.vars.cpf),e=>e.statusCode===422);
+});
 test('declaração SIM não substitui upload ou documento ausente',async()=>{
  for(const modo of ['flag','meta','storage']){const f=fixture();if(modo==='flag')delete f.vars.rg_verso_validado;if(modo==='meta')delete f.vars.rg_verso;if(modo==='storage')f.objetos.clear();await assert.rejects(validar(f.db,f.sessao.numero,f.vars.cpf),e=>e.statusCode===422);}
 });

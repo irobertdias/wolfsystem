@@ -1,6 +1,17 @@
 const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
 function troca(s,a,b){if(s.includes(b))return s;if(s.split(a).length!==2)throw Error('Encaixe incompatível');return s.replace(a,b);}
 function bridge(s){
+ s=troca(s,'  const identidade = identidadeDaAnalise(analise);',`  // primeIdentidadePorFace: frente confere nome; verso confere apenas a face visual.
+  if (/^prime_rg_/.test(String(regra.id || ""))) {
+    if (ladoLido !== ladoEsperado) throw erroDocumento("LADO_DOCUMENTO_INCORRETO", "Envie uma foto legível da face solicitada da identidade.");
+    if (ladoEsperado === "verso") return { identidade: { lado: "verso" } };
+    const nomeLido = identidadeDaAnalise(analise).nome;
+    const nomeCadastro = String(variaveis?.nome || variaveis?.nome_completo || "").trim();
+    if (!nomeLido) throw erroDocumento("IDENTIDADE_ILEGIVEL", "Não consegui ler o nome na frente da identidade. Envie uma foto com o nome legível, por favor.");
+    if (!nomeCadastro || nomeCanonico(nomeLido) !== nomeCanonico(nomeCadastro)) throw erroDocumento("IDENTIDADE_INCOMPATIVEL", "O nome na frente da identidade não corresponde ao cadastro. Confira se enviou o documento do titular correto.");
+    return { identidade: { nome: nomeLido, lado: "frente" } };
+  }
+  const identidade = identidadeDaAnalise(analise);`);
  const a=s.slice(s.indexOf('function ladoEsperadoRegra('),s.indexOf('function identidadeDaAnalise('));
  const b=`function ladoEsperadoRegra(regra) {
   // primeLadoRegra: palavras de negação na descrição não determinam o lado.
@@ -93,6 +104,8 @@ function bridge(s){
  return s;
 }
 function visao(s){
+ s=troca(s,'    "19. Responda somente JSON valido, sem markdown e sem explicacoes fora do JSON.",',`    regrasArquivo.some(r => /^prime_rg_/.test(r.id)) ? "Grupo Prime: na frente da identidade extraia o nome para conferir com o cadastro. No verso identifique apenas a face visual; não exija nome, CPF ou número de RG nessa face. Nunca invente dados ausentes." : "",
+    "19. Responda somente JSON valido, sem markdown e sem explicacoes fora do JSON.",`);
  s=troca(s,'    "19. Responda somente JSON valido, sem markdown e sem explicacoes fora do JSON.",',`    "19. Responda somente JSON valido, sem markdown e sem explicacoes fora do JSON.",
     regrasArquivo.some(r => /^prime_rg_/.test(r.id)) ? "20. Para RG/CIN, identifique a face pelo conteúdo VISÍVEL, considerando a rotação da foto: a face com retrato é frente; a face de dados, filiação, CPF, registro ou impressão digital sem retrato é verso neste atendimento. Não deduza o lado pela ordem em que as fotos chegaram, pelo arquivo pendente ou pela legenda do cliente. Escolha a regra cujo nome/variável corresponda à face identificada. Ignore palavras em advertências como não aceitar frente como verso. Se não estiver seguro, use lado_documento=desconhecido e não confirme recebimento de um lado específico." : "",
     regrasArquivo.some(r => r.id === "prime_comprovante") ? "21. No Grupo Prime, aceite como comprovante de endereço QUALQUER boleto, fatura (inclusive Claro ou outra operadora), correspondência, conta de consumo, contrato, declaração, carnê, foto, print ou PDF que mostre o endereço da instalação. Não exija nome do titular nem prova de pagamento. Não classifique uma conta pessoal como oferta comercial externa. Extraia o endereço literal em endereco_comprovante e o CEP literal em cep_comprovante quando legíveis, e use regra_arquivo_id=prime_comprovante. Se não houver endereço legível, não invente: informe o que falta." : "",`);
