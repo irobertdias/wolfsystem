@@ -30,7 +30,7 @@ module.exports=function carregarBko(ctx) {
   const {supabase:db}=ctx;let rodando=false;
   const segredoMeta=()=>process.env.META_APP_SECRET||process.env.WHATSAPP_APP_SECRET||"";
   ctx.assinaturaBkoValida=req=>assinaturaValida(req.rawBody,req.get("x-hub-signature-256"),segredoMeta());
-  ctx.app.get("/bko/health",(_req,res)=>res.json({versao:3,waba_assinatura:!!segredoMeta(),waba_versao:/^v\d+\.\d+$/.test(process.env.META_GRAPH_VERSION||'')}));
+  ctx.app.get("/bko/health",(_req,res)=>res.json({versao:4,waba_assinatura:!!segredoMeta(),waba_versao:/^v\d+\.\d+$/.test(process.env.META_GRAPH_VERSION||'')}));
   async function configuracao(){
     const {data:f,error}=await db.from("fluxos").select("id,ativo,nos").eq("workspace_id",WS).eq("id",FLUXO).maybeSingle();if(error)throw error;
     const no=f?.nos?.find(n=>n.id==="prime_documentos_enviar");if(!no?.dados?.bko_configuracao)return null;
@@ -87,6 +87,7 @@ module.exports=function carregarBko(ctx) {
   }
   async function processar(v,cfg){
     cfg=rotaVenda(cfg,v);if(!cfg)return;
+    if(new Date(v.dados_customizados?.bko_tentar_em||0).getTime()>Date.now())return;
     if(v.workspace_id!==WS||Number(v.fluxo_id)!==FLUXO||v.status_venda!=="AGUARDANDO AUDITORIA"||!cfg.ativo||!cfg.fluxo.ativo)return;
     if(!cfg.canal_trafego_id||!cfg.fila_nome)return;
     if(cfg.canal_trafego_id&&Number(v.canal_id)!==cfg.canal_trafego_id)return;
@@ -119,7 +120,7 @@ module.exports=function carregarBko(ctx) {
     meta.lease=new Date(Date.now()+10*60000).toISOString();custom.bko_envio=JSON.stringify(meta);v=await salvar(v,custom);
     try{
       for(const [n,dest]of Object.entries(meta.destinatarios)){
-        const atual=await configuracao();if(!atual?.ativo||!atual.fluxo.ativo||(atual.canal_id!==cfg.canal_id||atual.fila_nome!==cfg.fila_nome))throw Error("Encaminhamento pausado.");
+        const atual=rotaVenda(await configuracao(),v);if(!atual?.ativo||!atual.fluxo.ativo||(atual.canal_id!==cfg.canal_id||atual.fila_nome!==cfg.fila_nome))throw Error("Encaminhamento pausado.");
         if(!atual.contatos.some(x=>x.numero===n))throw Error('BKO responsável removido; revisão necessária.');
         if([c.numero].some(x=>numeroBko(x)===n))throw Error("O próprio canal de envio não pode ser destinatário BKO.");
         const janelaMs=new Date(atual.janelas[n]||0).getTime();
@@ -138,7 +139,7 @@ module.exports=function carregarBko(ctx) {
       }
       meta.lease=null;custom=clone(v.dados_customizados);custom.bko_envio=JSON.stringify(meta);custom.bko_pendente="ENVIADO";custom.bko_erro="";await salvar(v,custom);
     }catch(e){
-      custom=clone(v.dados_customizados);meta.lease=null;custom.bko_envio=JSON.stringify(meta);custom.bko_pendente="REVISAR";custom.bko_erro="Envio interrompido. Confira as partes pendentes antes de tentar novamente.";
+      custom=clone(v.dados_customizados);meta.lease=null;custom.bko_envio=JSON.stringify(meta);custom.bko_pendente="REVISAR";custom.bko_erro="Envio interrompido; retentativa automática das partes ainda não enviadas.";custom.bko_tentar_em=new Date(Date.now()+60000).toISOString();
       try{await salvar(v,custom);}catch{}throw e;
     }
   }
@@ -153,7 +154,13 @@ module.exports=function carregarBko(ctx) {
   }
   const tratarRetorno=async({workspaceId,canalId,numero,mensagem,messageId,quotedId,verificado})=>{
     if(workspaceId!==WS)return false;
-    const cfg=await configuracao(),n=numeroBko(numero);
+    const cfg=await configuracao(),recebido=numeroBko(numero);
+    // WebJS pode devolver o celular brasileiro sem o nono dígito.
+    // Resolver somente entre contatos cadastrados, sem aceitar sufixos arbitrários.
+    const chaveCelular=n=>/^55\d{2}9[6-9]\d{7}$/.test(n)?n.slice(0,4)+n.slice(5):n;
+    const exato=cfg?.contatos.find(x=>x.numero===recebido);
+    const equivalentes=recebido?cfg?.contatos.filter(x=>chaveCelular(x.numero)===chaveCelular(recebido)):[];
+    const n=exato?.numero||(equivalentes?.length===1?equivalentes[0].numero:'');
     if(!cfg?.ativo||Number(canalId)!==cfg.canal_id||!cfg.contatos.some(x=>x.numero===n))return false;
     if(!verificado)return true; // webhook não autenticado nunca atualiza ou envia resposta.
     if(!cfg.fluxo.ativo)return true;
@@ -186,7 +193,7 @@ module.exports=function carregarBko(ctx) {
     try{
       const cfg=await configuracao();if(!cfg?.ativo||!cfg.fluxo.ativo||(cfg.modo!=='por_canal'&&(!cfg.canal_trafego_id||!cfg.fila_nome)))return;
       await configCanal(cfg);
-      const {data,error}=await db.from("proposta").select("*").eq("workspace_id",WS).eq("fluxo_id",FLUXO).eq("status_venda","AGUARDANDO AUDITORIA").in("canal_id",cfg.modo==='por_canal'?cfg.contatos.map(x=>x.canal_trafego_id):[cfg.canal_trafego_id]).in("dados_customizados->>bko_pendente",["SIM","JANELA"]).order("id").limit(20);if(error)throw error;
+      const {data,error}=await db.from("proposta").select("*").eq("workspace_id",WS).eq("fluxo_id",FLUXO).eq("status_venda","AGUARDANDO AUDITORIA").in("canal_id",cfg.modo==='por_canal'?cfg.contatos.map(x=>x.canal_trafego_id):[cfg.canal_trafego_id]).in("dados_customizados->>bko_pendente",["SIM","JANELA","REVISAR"]).order("id").limit(20);if(error)throw error;
       for(const v of data||[])try{await processar(v,cfg);}catch(e){
         console.error(`[BKO] venda=${v.id}: ${e.message}`);
         if(/Documento|Documentação|Registro de envio|Venda sem origem|BKO responsável removido/.test(e.message))try{

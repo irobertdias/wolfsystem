@@ -19,7 +19,7 @@ export default function BkoConfig({workspaceId}:{workspaceId:string}) {
   return <section style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:14,padding:22,color:'#1e293b'}}>
     <h2 style={{margin:'0 0 8px',fontSize:17}}>Retorno de vendas pelo WhatsApp do BKO</h2>
     <p style={{fontSize:13,color:'#475569'}}>Após o cadastro confirmado e os documentos salvos, um único BKO recebe o resumo da venda, RG frente e verso e comprovante de endereço. Cada canal de entrada tem seu BKO definido abaixo: canal A envia para X, canal B envia para Y. Os dados e documentos permanecem salvos no CRM.</p>
-    <p role="status" style={{fontSize:13,color:pronto?'#166534':'#92400e'}}>{pronto?'Servidor BKO disponível.':'Instale a atualização de regras por canal no servidor WhatsApp.'} {!fluxoAtivo&&'O vendedor está pausado; salvar esta configuração não o reativa.'}</p>
+    <p role="status" style={{fontSize:13,color:pronto?'#166534':'#92400e'}}>{pronto?'Servidor BKO disponível.':'Instale a atualização do envio automático no servidor WhatsApp.'} {!fluxoAtivo&&'O vendedor está pausado; salvar esta configuração não o reativa.'}</p>
     {erro&&<p role="alert" style={{color:'#b91c1c'}}>{erro}</p>}{aviso&&<p role="status" style={{color:'#166534'}}>{aviso}</p>}
     <label style={{display:'block',margin:'16px 0'}}><input type="checkbox" checked={config.ativo} disabled={ocupado} onChange={e=>setConfig({...config,ativo:e.target.checked})}/> Encaminhar vendas automaticamente para o BKO</label>
     <label style={{display:'grid',gap:6,fontSize:13}}>Canal usado para enviar e receber os retornos
@@ -44,6 +44,6 @@ export default function BkoConfig({workspaceId}:{workspaceId:string}) {
       <strong>Como o BKO responde</strong><br/>Use “Responder” na mensagem da venda e envie: CPF REPROVADO, APROVADO, GERADA, AGUARDANDO INSTALAÇÃO, INSTALADA, SEM DISPONIBILIDADE ou CANCELADA.<br/>
       Também é possível escrever a referência BKO da venda junto do status. Para agendar, acrescente em linhas separadas: DATA: DD/MM/AAAA e PERIODO: MANHÃ ou TARDE.<br/>“APROVADO” atualiza para APROVADA. Retornos sem venda identificada ou enviados por outros números não alteram o CRM.
     </div>
-    {!!envios.length&&<div style={{marginTop:18}}><h3 style={{fontSize:14}}>Últimos encaminhamentos</h3>{envios.map(e=><div key={e.id} style={{borderTop:'1px solid #e2e8f0',padding:'10px 0',fontSize:13}}>Venda #{e.id} · {e.status} · BKO: {e.estado}{e.erro&&<p style={{color:'#b91c1c'}}>{e.erro}</p>}{e.estado==='REVISAR'&&<><p>Confira o WhatsApp antes de reenviar: uma entrega sem confirmação pode ter ocorrido.</p><button disabled={ocupado} onClick={()=>retentar(e.id)}>Reenviar partes pendentes</button></>}</div>)}</div>}
+    {!!envios.length&&<div style={{marginTop:18}}><h3 style={{fontSize:14}}>Últimos encaminhamentos</h3>{envios.map(e=><div key={e.id} style={{borderTop:'1px solid #e2e8f0',padding:'10px 0',fontSize:13}}>Venda #{e.id} · {e.status} · BKO: {e.estado}{e.erro&&<p style={{color:'#b91c1c'}}>{e.erro}</p>}{e.estado==='REVISAR'&&<p>O sistema retoma automaticamente as partes ainda não enviadas. Entregas sem confirmação permanecem em verificação para evitar duplicatas.</p>}</div>)}</div>}
   </section>;
 }

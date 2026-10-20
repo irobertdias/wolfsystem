@@ -1,3 +1,7 @@
+# Envio automático — versão 4
+
+Vendas prontas em SIM, JANELA ou REVISAR voltam a ser processadas automaticamente; não há aprovação ou botão obrigatório antes do envio. Partes já confirmadas são preservadas. Falhas antes do envio têm retentativa com intervalo. Uma entrega de resultado incerto continua retida para evitar duplicatas, sem ser confundida com aprovação do BKO.
+
 # Atualização v2
 
 Inclui dupla leitura do comprovante quando o CEP extraído difere do cadastro (sem substituir o valor por suposição) e permite que um BKO explicitamente cadastrado coincida com o telefone do cliente em testes. Continua bloqueando o próprio canal de envio como destinatário. A regra de canal de origem e a autorização dos números BKO permanecem obrigatórias.

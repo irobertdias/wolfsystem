@@ -60,6 +60,14 @@ test('retorno por citação atualiza só a venda correta, registra auditoria e n
  const f=fixture();await f.ctx.verificarVendasBko();await f.retorno();assert.equal(f.venda.status_venda,'APROVADA');assert.equal(f.venda.dados_customizados.bko_retornos.length,1);assert.equal(f.tabelas.crm_automacao_estado[0].snapshot.status_venda,'AGUARDANDO AUDITORIA');
  const total=f.envios.length;await f.retorno();assert.equal(f.envios.length,total);
 });
+test('retorno CPF reprovado aceita celular cadastrado sem nono dígito e mantém gatilho CRM',async()=>{
+ const f=fixture();await f.ctx.verificarVendasBko();
+ await f.retorno({numero:'556299990001',mensagem:'CPF REPROVADO'});
+ assert.equal(f.venda.status_venda,'CPF REPROVADO');
+ assert.equal(f.venda.dados_customizados.bko_retornos[0].numero,'5562999990001');
+ assert.equal(f.tabelas.crm_automacao_estado[0].snapshot.status_venda,'AGUARDANDO AUDITORIA');
+ const total=f.envios.length;await f.retorno({numero:'556299990001',mensagem:'CPF REPROVADO'});assert.equal(f.envios.length,total);
+});
 test('origem não autorizada, outro workspace, outro canal ou webhook sem assinatura não atualizam',async()=>{
  for(const extra of [{numero:'5562999999999'},{workspaceId:'outro'},{canalId:999},{verificado:false}]){const f=fixture();await f.ctx.verificarVendasBko();await f.retorno(extra);assert.equal(f.venda.status_venda,'AGUARDANDO AUDITORIA');}
 });
@@ -115,6 +123,10 @@ test('regras rejeitam canal duplicado e mantêm titular atual em revisão se mud
 });
 test('BKO explicitamente configurado pode ser o contato do cliente em uma simulação',async()=>{
  const f=fixture();f.venda.telefone1='5562999990001';await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);assert.equal(f.venda.dados_customizados.bko_pendente,'ENVIADO');
+});
+test('venda pronta em REVISAR retoma automaticamente sem botão e preserva parte já enviada',async()=>{
+ const f=fixture();f.venda.dados_customizados.bko_pendente='REVISAR';f.venda.dados_customizados.bko_envio=JSON.stringify({referencia:'BKO-1-1234567890ABCDEF',canal_id:157,cpf:f.venda.cpf,destinatarios:{'5562999990001':{concluido:false,partes:[{tipo:'texto',estado:'enviado',id:'texto-confirmado'},{tipo:'rg_frente',estado:'pendente'},{tipo:'rg_verso',estado:'pendente'},{tipo:'comprovante_endereco',estado:'pendente'}]}}});
+ f.venda.dados_customizados.bko_reply_ids=['texto-confirmado'];await f.ctx.verificarVendasBko();assert.equal(f.envios.length,3);assert.ok(f.envios.every(x=>x.arquivo));assert.equal(f.venda.dados_customizados.bko_pendente,'ENVIADO');await f.ctx.verificarVendasBko();assert.equal(f.envios.length,3);
 });
 function apiConfig(f,permitido=true){
  const ts=require('typescript'),exp={};

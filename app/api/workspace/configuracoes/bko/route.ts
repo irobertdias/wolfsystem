@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const {data:envios,error:ee}=await supabaseServer.from('proposta').select('id,status_venda,dados_customizados,updated_at').eq('workspace_id',a.workspaceId).eq('fluxo_id',27).not('dados_customizados->>bko_pendente','is',null).order('updated_at',{ascending:false}).limit(20);if(ee)throw ee;
     const {data:filas,error:ef}=await supabaseServer.from('filas').select('id,nome,conexao').eq('workspace_id',a.workspaceId).order('nome');if(ef)throw ef;
     let servidor_pronto=false,waba_pronto=false;
-    try {const r=await fetch(`${process.env.WHATSAPP_URL||process.env.NEXT_PUBLIC_WHATSAPP_URL||'https://api.wolfgyn.com.br'}/bko/health`,{headers:{'x-wolf-internal-secret':segredoInternoWolf()},cache:'no-store',signal:AbortSignal.timeout(4000)});if(r.ok){const j=await r.json();servidor_pronto=j.versao>=3;waba_pronto=!!(j.waba_assinatura&&j.waba_versao);}}catch{}
+    try {const r=await fetch(`${process.env.WHATSAPP_URL||process.env.NEXT_PUBLIC_WHATSAPP_URL||'https://api.wolfgyn.com.br'}/bko/health`,{headers:{'x-wolf-internal-secret':segredoInternoWolf()},cache:'no-store',signal:AbortSignal.timeout(4000)});if(r.ok){const j=await r.json();servidor_pronto=j.versao>=4;waba_pronto=!!(j.waba_assinatura&&j.waba_versao);}}catch{}
     return NextResponse.json({success:true,config,canais,filas,fluxo_ativo:f.ativo,servidor_pronto,waba_pronto,envios:(envios||[]).map(p=>({id:p.id,status:p.status_venda,estado:p.dados_customizados?.bko_pendente,erro:p.dados_customizados?.bko_erro||'',referencia:p.dados_customizados?.bko_ref||''}))});
   }catch(e){return erro(e);}
 }
