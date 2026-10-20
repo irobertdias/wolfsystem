@@ -94,6 +94,25 @@ test('filtro de origem impede venda de outro canal ou fila e retorno de BKO não
  cfg.fila_nome='Vendas';await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);
  await f.retorno({numero:'5562999990002'});assert.equal(f.venda.status_venda,'AGUARDANDO AUDITORIA');
 });
+test('regras por canal enviam A para X e B para Y, sem encaminhar canal sem regra',async()=>{
+ const f=fixture({contatos:2}),cfg=f.fluxo.nos[0].dados.bko_configuracao;
+ cfg.modo='por_canal';cfg.contatos[0].canal_trafego_id=157;cfg.contatos[0].fila_nome='Vendas';cfg.contatos[1].canal_trafego_id=158;cfg.contatos[1].fila_nome='Vendas';
+ const v=JSON.parse(JSON.stringify(f.venda));v.id=2;v.canal_id=158;
+ const anterior=createHash('sha256').update('grupoprime:157:5562988881111').digest('hex').slice(0,24),novo=createHash('sha256').update('grupoprime:158:5562988881111').digest('hex').slice(0,24);
+ for(const tipo of ['rg_frente','rg_verso','comprovante_endereco'])v.dados_customizados[tipo]=v.dados_customizados[tipo].replaceAll(anterior,novo);
+ for(const path of [...f.arquivos])f.arquivos.add(path.replace(anterior,novo));
+ f.tabelas.proposta.push(v,{...JSON.parse(JSON.stringify(v)),id:3,canal_id:159});
+ await f.ctx.verificarVendasBko();assert.deepEqual(f.envios.map(e=>e.numero),[...Array(4).fill('5562999990001'),...Array(4).fill('5562999990002')]);
+ assert.equal(f.tabelas.proposta[2].dados_customizados.bko_pendente,'SIM');
+ await f.retorno({numero:'5562999990002',quotedId:'msg-1'});assert.equal(f.venda.status_venda,'AGUARDANDO AUDITORIA');
+ await f.retorno({numero:'5562999990002',quotedId:'msg-5',messageId:'retorno-B'});assert.equal(v.status_venda,'APROVADA');assert.equal(f.venda.status_venda,'AGUARDANDO AUDITORIA');
+});
+test('regras rejeitam canal duplicado e mantêm titular atual em revisão se mudar o BKO',async()=>{
+ const f=fixture({contatos:2}),cfg=f.fluxo.nos[0].dados.bko_configuracao;
+ cfg.modo='por_canal';cfg.contatos=cfg.contatos.map(c=>({...c,canal_trafego_id:157,fila_nome:'Vendas'}));assert.throws(()=>regras.validarConfigBko(cfg));
+ cfg.contatos.pop();await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);
+ f.fluxo.nos[0].dados.bko_configuracao.contatos[0].numero='5562999990002';f.venda.dados_customizados.bko_pendente='SIM';await f.ctx.verificarVendasBko();assert.equal(f.venda.dados_customizados.bko_pendente,'REVISAR');assert.equal(f.envios.length,4);
+});
 function apiConfig(f,permitido=true){
  const ts=require('typescript'),exp={};
  const auth={autenticarWorkspace:async()=>{if(!permitido)throw Object.assign(Error('Sem acesso'),{statusCode:403});return{workspaceId:'grupoprime',email:'admin@example.com'};},exigirPermissao(){},supabaseServer:f.ctx.supabase,segredoInternoWolf:()=>'',respostaErroAcesso:e=>({status:e.statusCode||500,message:e.message})};
@@ -106,7 +125,8 @@ test('API exige permissão; salvar não reativa fluxo nem revela chave da IA',as
  f.fluxo.nos.push({id:'prime_vendedor',dados:{apiKey:'segredo-que-nao-pode-sair'}});
  const bloqueada=apiConfig(f,false);const r=await bloqueada.api.GET(bloqueada.req());assert.equal(r.status,403);
  const a=apiConfig(f);const get=await a.api.GET(a.req());assert.equal(get.status,200);assert.ok(!JSON.stringify(get).includes('segredo-que-nao-pode-sair'));
- const patch=await a.api.PATCH(a.req({workspaceId:'grupoprime',config:{ativo:true,canal_id:157,canal_trafego_id:157,fila_nome:'Vendas',contatos:[{nome:'BKO novo',numero:'62977770001'}]}}));
+ const patch=await a.api.PATCH(a.req({workspaceId:'grupoprime',config:{ativo:true,modo:'por_canal',canal_id:157,contatos:[{nome:'BKO novo',numero:'62977770001',canal_trafego_id:157,fila_nome:'Vendas'}]}}));
+ for(const extra of [{canal_trafego_id:999,fila_nome:'Vendas'},{canal_trafego_id:157,fila_nome:'Fila de outra conta'}]){const invalida=await a.api.PATCH(a.req({workspaceId:'grupoprime',config:{ativo:true,modo:'por_canal',canal_id:157,contatos:[{nome:'BKO',numero:'62977770001',...extra}]}}));assert.equal(invalida.status,422);}
  assert.equal(patch.status,200);assert.equal(f.fluxo.ativo,false);assert.equal(f.fluxo.nos.find(n=>n.id==='prime_vendedor').dados.apiKey,'segredo-que-nao-pode-sair');
  const outro=await a.api.PATCH(a.req({workspaceId:'grupoprime',config:{ativo:true,canal_id:999,contatos:[{nome:'BKO',numero:'62977770001'}]}}));assert.equal(outro.status,422);
 });

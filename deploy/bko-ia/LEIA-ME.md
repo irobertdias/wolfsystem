@@ -1,3 +1,11 @@
+# Versão 3 — encaminhamento por canal
+
+Selecione até cinco regras: canal de entrada + fila de origem + nome/número do BKO. Um canal só pode ter uma regra; canais diferentes podem enviar ao mesmo BKO. O canal de envio/retorno continua selecionado separadamente. As vendas permanecem registradas no CRM com documentos privados; o pacote envia resumo e os três arquivos ao responsável do canal de origem. Canal sem regra não é encaminhado a outro BKO.
+
+Na migração, preencha o canal e a fila de cada contato já cadastrado e só então reative o encaminhamento. O sistema não presume o destino de cada canal. A versão anterior deve ficar pausada até instalar este pacote. Uma venda com encaminhamento antigo para outro responsável fica para revisão, sem duplicar envio. Retornos continuam sujeitos à referência e ao destinatário original da venda.
+
+Pacote: wolf-bko-por-canal-20261020.tar.gz. Atualiza as versões anteriores de forma idempotente com backup.
+
 # Atualização 2 — Roleta BKO
 
 Cada venda nova é atribuída a apenas um BKO, em sequência na ordem cadastrada. A atribuição é salva antes do envio; retentativas mantêm o responsável. Se o responsável for removido, o envio fica para revisão. O cursor compartilhado usa controle de concorrência; uma interrupção durante a reserva pode pular um turno, sem duplicar o envio.

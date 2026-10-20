@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const {data:envios,error:ee}=await supabaseServer.from('proposta').select('id,status_venda,dados_customizados,updated_at').eq('workspace_id',a.workspaceId).eq('fluxo_id',27).not('dados_customizados->>bko_pendente','is',null).order('updated_at',{ascending:false}).limit(20);if(ee)throw ee;
     const {data:filas,error:ef}=await supabaseServer.from('filas').select('id,nome,conexao').eq('workspace_id',a.workspaceId).order('nome');if(ef)throw ef;
     let servidor_pronto=false,waba_pronto=false;
-    try {const r=await fetch(`${process.env.WHATSAPP_URL||process.env.NEXT_PUBLIC_WHATSAPP_URL||'https://api.wolfgyn.com.br'}/bko/health`,{headers:{'x-wolf-internal-secret':segredoInternoWolf()},cache:'no-store',signal:AbortSignal.timeout(4000)});if(r.ok){const j=await r.json();servidor_pronto=j.versao>=2;waba_pronto=!!(j.waba_assinatura&&j.waba_versao);}}catch{}
+    try {const r=await fetch(`${process.env.WHATSAPP_URL||process.env.NEXT_PUBLIC_WHATSAPP_URL||'https://api.wolfgyn.com.br'}/bko/health`,{headers:{'x-wolf-internal-secret':segredoInternoWolf()},cache:'no-store',signal:AbortSignal.timeout(4000)});if(r.ok){const j=await r.json();servidor_pronto=j.versao>=3;waba_pronto=!!(j.waba_assinatura&&j.waba_versao);}}catch{}
     return NextResponse.json({success:true,config,canais,filas,fluxo_ativo:f.ativo,servidor_pronto,waba_pronto,envios:(envios||[]).map(p=>({id:p.id,status:p.status_venda,estado:p.dados_customizados?.bko_pendente,erro:p.dados_customizados?.bko_erro||'',referencia:p.dados_customizados?.bko_ref||''}))});
   }catch(e){return erro(e);}
 }
@@ -43,10 +43,14 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({success:true});
     }
     const config=validarConfigBko(body.config);
+    if(config.ativo&&config.modo!=='por_canal')throw Object.assign(new Error('Atualize a tela e configure uma regra por canal de entrada.'),{statusCode:422});
     if(config.canal_id){const {data:c}=await supabaseServer.from('conexoes').select('id,numero').eq('workspace_id',a.workspaceId).eq('id',config.canal_id).maybeSingle();if(!c)throw Object.assign(new Error('Canal não pertence ao workspace.'),{statusCode:422});if(config.contatos.some(x=>x.numero===String(c.numero||'').replace(/\D/g,'')))throw Object.assign(new Error('O próprio canal não pode ser um destinatário BKO.'),{statusCode:422});}
-    if(config.ativo&&(!config.canal_trafego_id||!config.fila_nome))throw Object.assign(new Error('Selecione o canal de tráfego e a fila de origem.'),{statusCode:422});
-    if(config.canal_trafego_id){const {data:c}=await supabaseServer.from('conexoes').select('id').eq('workspace_id',a.workspaceId).eq('id',config.canal_trafego_id).maybeSingle();if(!c)throw Object.assign(new Error('Canal de tráfego não pertence ao workspace.'),{statusCode:422});}
-    if(config.fila_nome){const {data:fila}=await supabaseServer.from('filas').select('id').eq('workspace_id',a.workspaceId).eq('nome',config.fila_nome).limit(1).maybeSingle();if(!fila)throw Object.assign(new Error('Fila não pertence ao workspace.'),{statusCode:422});}
+    const regras=config.modo==='por_canal'?config.contatos:[config];
+    for(const regra of regras){
+      if(config.ativo&&(!regra.canal_trafego_id||!regra.fila_nome))throw Object.assign(new Error('Selecione o canal e a fila de entrada de cada regra.'),{statusCode:422});
+      if(regra.canal_trafego_id){const {data:c}=await supabaseServer.from('conexoes').select('id').eq('workspace_id',a.workspaceId).eq('id',regra.canal_trafego_id).maybeSingle();if(!c)throw Object.assign(new Error('Canal de tráfego não pertence ao workspace.'),{statusCode:422});}
+      if(regra.fila_nome){const {data:fila}=await supabaseServer.from('filas').select('id').eq('workspace_id',a.workspaceId).eq('nome',regra.fila_nome).limit(1).maybeSingle();if(!fila)throw Object.assign(new Error('Fila não pertence ao workspace.'),{statusCode:422});}
+    }
     const {data:f,error}=await supabaseServer.from('fluxos').select('nos').eq('workspace_id',a.workspaceId).eq('id',27).single();if(error)throw error;
     const indice=f.nos.findIndex((n:{id:string})=>n.id==='prime_documentos_enviar');if(indice<0)throw Error('Vendedor ausente');
     const anterior=f.nos[indice].dados.bko_versao;

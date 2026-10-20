@@ -22,9 +22,25 @@ function validarConfigBko(raw) {
         const numero = numeroBko(c?.numero);
         if (!numero || !nome || nome.length > 80)
             falhar('Informe nome e WhatsApp com DDD para cada BKO.');
+        if (r.modo === 'por_canal') {
+            const canal_trafego_id = c.canal_trafego_id == null || c.canal_trafego_id === '' ? null : Number(c.canal_trafego_id);
+            const fila_nome = String(c.fila_nome ?? '').trim();
+            if (canal_trafego_id !== null && (!Number.isSafeInteger(canal_trafego_id) || canal_trafego_id <= 0))
+                falhar('Canal de entrada inválido na regra BKO.');
+            if (fila_nome.length > 150)
+                falhar('Fila inválida na regra BKO.');
+            if (r.ativo && (!canal_trafego_id || !fila_nome))
+                falhar('Selecione o canal e a fila de entrada de cada BKO.');
+            return { nome, numero, canal_trafego_id, fila_nome };
+        }
         return { nome, numero };
     });
-    if (new Set(contatos.map(c => c.numero)).size !== contatos.length)
+    if (r.modo === 'por_canal') {
+        const origens = contatos.map(c => c.canal_trafego_id).filter(Boolean);
+        if (new Set(origens).size !== origens.length)
+            falhar('Cada canal de entrada deve ter uma única regra BKO.');
+    }
+    else if (new Set(contatos.map(c => c.numero)).size !== contatos.length)
         falhar('Não repita o mesmo número BKO.');
     const canal_id = r.canal_id == null || r.canal_id === '' ? null : Number(r.canal_id);
     if (canal_id !== null && (!Number.isSafeInteger(canal_id) || canal_id <= 0))
@@ -37,7 +53,7 @@ function validarConfigBko(raw) {
     const fila_nome = String(r.fila_nome ?? '').trim();
     if (fila_nome.length > 150)
         falhar('Fila inválida.');
-    return { ativo: r.ativo, canal_id, contatos, canal_trafego_id, fila_nome };
+    return { ativo: r.ativo, canal_id, contatos, canal_trafego_id, fila_nome, ...(r.modo === 'por_canal' ? { modo: 'por_canal' } : {}) };
 }
 exports.STATUS_BKO = ['CPF REPROVADO', 'APROVADA', 'GERADA', 'AGUARDANDO INSTALAÇÃO', 'INSTALADA', 'SEM DISPONIBILIDADE', 'CANCELADA'];
 function interpretarRetornoBko(texto) {

@@ -1,5 +1,5 @@
-export type ContatoBko = { nome: string; numero: string };
-export type ConfigBko = { ativo: boolean; canal_id: number | null; contatos: ContatoBko[]; canal_trafego_id?: number | null; fila_nome?: string };
+export type ContatoBko = { nome: string; numero: string; canal_trafego_id?: number | null; fila_nome?: string };
+export type ConfigBko = { ativo: boolean; canal_id: number | null; contatos: ContatoBko[]; canal_trafego_id?: number | null; fila_nome?: string; modo?: 'por_canal' };
 export function numeroBko(valor: unknown) {
   const n = String(valor ?? '').trim().replace(/[\s()+.-]/g, '');
   const local = /^55\d{10,11}$/.test(n) ? n.slice(2) : n;
@@ -10,13 +10,24 @@ export function validarConfigBko(raw: unknown): ConfigBko {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) falhar('Configuração inválida.');
   const r = raw as Record<string, unknown>;
   if (typeof r.ativo !== 'boolean' || !Array.isArray(r.contatos) || r.contatos.length > 5) falhar('Cadastre até cinco contatos BKO.');
-  const contatos = (r.contatos as Record<string, unknown>[]).map(c => {
+  const contatos: ContatoBko[] = (r.contatos as Record<string, unknown>[]).map(c => {
     const nome = String(c?.nome ?? '').trim();
     const numero = numeroBko(c?.numero);
     if (!numero || !nome || nome.length > 80) falhar('Informe nome e WhatsApp com DDD para cada BKO.');
+    if(r.modo==='por_canal'){
+      const canal_trafego_id=c.canal_trafego_id==null||c.canal_trafego_id===''?null:Number(c.canal_trafego_id);
+      const fila_nome=String(c.fila_nome??'').trim();
+      if(canal_trafego_id!==null&&(!Number.isSafeInteger(canal_trafego_id)||canal_trafego_id<=0))falhar('Canal de entrada inválido na regra BKO.');
+      if(fila_nome.length>150)falhar('Fila inválida na regra BKO.');
+      if(r.ativo&&(!canal_trafego_id||!fila_nome))falhar('Selecione o canal e a fila de entrada de cada BKO.');
+      return {nome,numero,canal_trafego_id,fila_nome};
+    }
     return { nome, numero };
   });
-  if (new Set(contatos.map(c => c.numero)).size !== contatos.length) falhar('Não repita o mesmo número BKO.');
+  if(r.modo==='por_canal'){
+    const origens=contatos.map(c=>c.canal_trafego_id).filter(Boolean);
+    if(new Set(origens).size!==origens.length)falhar('Cada canal de entrada deve ter uma única regra BKO.');
+  }else if (new Set(contatos.map(c => c.numero)).size !== contatos.length) falhar('Não repita o mesmo número BKO.');
   const canal_id = r.canal_id == null || r.canal_id === '' ? null : Number(r.canal_id);
   if (canal_id !== null && (!Number.isSafeInteger(canal_id) || canal_id <= 0)) falhar('Canal inválido.');
   if (r.ativo && (!contatos.length || !canal_id)) falhar('Escolha o canal e pelo menos um contato BKO.');
@@ -24,7 +35,7 @@ export function validarConfigBko(raw: unknown): ConfigBko {
   if (canal_trafego_id !== null && (!Number.isSafeInteger(canal_trafego_id) || canal_trafego_id <= 0)) falhar('Canal de tráfego inválido.');
   const fila_nome = String(r.fila_nome ?? '').trim();
   if (fila_nome.length > 150) falhar('Fila inválida.');
-  return { ativo: r.ativo as boolean, canal_id, contatos, canal_trafego_id, fila_nome };
+  return { ativo: r.ativo as boolean, canal_id, contatos, canal_trafego_id, fila_nome, ...(r.modo==='por_canal'?{modo:'por_canal' as const}:{}) };
 }
 export const STATUS_BKO = ['CPF REPROVADO', 'APROVADA', 'GERADA', 'AGUARDANDO INSTALAÇÃO', 'INSTALADA', 'SEM DISPONIBILIDADE', 'CANCELADA'];
 export function interpretarRetornoBko(texto: string) {
