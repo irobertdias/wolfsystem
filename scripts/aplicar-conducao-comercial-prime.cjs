@@ -2,6 +2,7 @@ const fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript'),{rand
 const {createClient}=require('@supabase/supabase-js');
 (async()=>{
  const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('app/lib/vendedor-grupoprime.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports});
+ const cadastro={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('app/lib/cadastro-grupoprime.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:cadastro});
  const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY);
  const {data:f,error}=await db.from('fluxos').select('id,nos').eq('workspace_id','grupoprime').eq('id',27).single();if(error)throw error;
  const indice=f.nos.findIndex(n=>n.id==='prime_documentos_enviar');if(indice<0)throw Error('Fluxo incompatível');
@@ -13,6 +14,7 @@ const {createClient}=require('@supabase/supabase-js');
   let prompt=n.dados.prompt||'';
   if(n.id==='prime_vendedor')prompt=principal;
   else if(n.id==='prime_endereco_ia')prompt=exports.etapaEnderecoGrupoPrime('').dados.prompt;
+  else if(n.id==='prime_cadastro_ia')prompt=cadastro.blocosCadastroGrupoPrime('').nos.find(x=>x.id===n.id).dados.prompt+'\n\n'+exports.CONDUCAO_COMERCIAL_GRUPOPRIME;
   else if(!prompt.includes('CONDUÇÃO COMERCIAL ATIVA V2:'))prompt+='\n\n'+exports.CONDUCAO_COMERCIAL_GRUPOPRIME;
   total++;return {...n,dados:{...n.dados,prompt}};
  });
