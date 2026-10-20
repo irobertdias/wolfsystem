@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       data_nascimento: dados.nascimento, nome_mae: dados.mae, rg: null, email: null,
       status_venda: 'AGUARDANDO AUDITORIA', updated_at: agora,
       dados_customizados: { ...custom, ...Object.fromEntries(Object.entries(documentos).map(([k, v]) => [k, JSON.stringify(v)])),
+        cpf: dados.cpf, nome: dados.nome, data_nascimento: dados.nascimento, nome_mae: dados.mae, rg: '', email: '',
         bko_pendente: 'SIM', bko_envio: null, bko_ref: null, bko_reply_ids: [], bko_erro: '',
         recuperacao_cpf_historico: [...historico, {...entrada,bko_referencia_anterior:custom.bko_ref||null}] },
     }).eq('workspace_id', 'grupoprime').eq('id', venda.id).eq('status_venda', venda.status_venda).eq('cpf', venda.cpf);

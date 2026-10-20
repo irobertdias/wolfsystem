@@ -49,6 +49,9 @@ test('altera a mesma venda, guarda histórico e limpa documentos do titular ante
   assert.equal(a.db.row.nome, 'Pessoa Nova'); assert.equal(a.db.row.data_nascimento, '1990-03-12');
   assert.equal(a.db.row.plano, 'preservar'); assert.equal(a.db.row.rg, null);
   assert.equal(a.db.row.dados_customizados.manter, 'sim');
+  assert.equal(a.db.row.dados_customizados.cpf, novo);
+  assert.equal(a.db.row.dados_customizados.nome, 'Pessoa Nova');
+  assert.equal(a.db.row.dados_customizados.data_nascimento, '1990-03-12');
   assert.equal(a.db.row.dados_customizados.recuperacao_cpf_historico[0].cpf_anterior, anterior);
   assert.equal(a.db.row.dados_customizados.recuperacao_cpf_historico[0].titular_anterior.nome, 'Pessoa Anterior');
   const retry = await a.post(body()); assert.equal(retry.status, 200); assert.equal(retry.body.ja_processado, true); assert.equal(a.db.writes, 1);
@@ -58,6 +61,14 @@ test('bloqueia outra conta, mudança do BKO e CPF anterior divergente', async ()
   const alterada = api(); alterada.db.row.status_venda = 'INSTALADA'; assert.equal((await alterada.post(body())).status,409); assert.equal(alterada.db.writes,0);
   const cpfMudou = api(); cpfMudou.db.row.cpf = cpf('345678901'); assert.equal((await cpfMudou.post(body())).status,409); assert.equal(cpfMudou.db.writes,0);
   const concorrente = api({ concorrencia: true }); assert.equal((await concorrente.post(body())).status,409); assert.equal(concorrente.db.row.status_venda,'INSTALADA'); assert.equal(concorrente.db.writes,0);
+});
+test('segunda troca usa o titular atual, sem ressuscitar CPF e nome do primeiro cadastro',async()=>{
+ const a=api();a.db.row.dados_customizados.cpf=anterior;a.db.row.dados_customizados.nome='Pessoa Anterior';
+ assert.equal((await a.post(body())).status,200);
+ const vars={...a.db.row,...a.db.row.dados_customizados};assert.equal(vars.cpf,novo);assert.equal(vars.nome,'Pessoa Nova');
+ a.db.row.status_venda='CPF REPROVADO';
+ const segunda={...body(),cpf_reprovado:vars.cpf,cpf_novo:anterior,nome_novo_titular:'Outra Pessoa'};
+ assert.equal((await a.post(segunda)).status,200);assert.equal(a.db.row.dados_customizados.cpf,anterior);assert.equal(a.db.row.dados_customizados.nome,'Outra Pessoa');
 });
 test('novo CPF não volta para auditoria se os documentos estiverem pendentes',async()=>{
   const a=api({docError:true});const r=await a.post(body());assert.equal(r.status,422);assert.equal(a.db.writes,0);assert.equal(a.db.row.cpf,anterior);
