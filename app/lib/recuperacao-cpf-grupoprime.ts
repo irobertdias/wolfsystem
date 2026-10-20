@@ -118,6 +118,8 @@ export function blocosAvisosInstalacaoGrupoPrime() {
   const nos = [
     ...['AGUARDANDO INSTALAÇÃO', 'GERADA'].map((valor, i) => ({ id: `prime_aviso_gatilho_${i}`, tipo: 'gatilho_crm', x: 1500 + i * 400, y: 100, saidas: ['Disparar'], dados: { ativo: true, campo: 'status_venda', operador: 'mudou_para', valor, modo_primeiro_envio: 'texto' } })),
     { id: 'prime_aviso_origem', tipo: 'condicao', x: 1500, y: 300, saidas: ['Sim', 'Não'], dados: { variavel: 'crm_valor_anterior', operador: 'igual', valor: 'AGUARDANDO AUDITORIA' } },
+    { id: 'prime_aviso_origem_aprovada', tipo:'condicao',x:1900,y:480,saidas:['Sim','Não'],dados:{variavel:'crm_valor_anterior',operador:'igual',valor:'APROVADA'} },
+    { id: 'prime_aviso_origem_gerada', tipo:'condicao',x:1900,y:660,saidas:['Sim','Não'],dados:{variavel:'crm_valor_anterior',operador:'igual',valor:'GERADA'} },
     { id: 'prime_aviso_preparar', tipo: 'script', x: 1500, y: 480, saidas: ['Próximo'], dados: { codigo: `
 const data = String(variaveis.data_agendamento || '').trim();
 const iso = data.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
@@ -127,10 +129,20 @@ setVariable('nome', String(variaveis.nome || '').trim() || 'cliente');
 return true;` } },
     { id: 'prime_aviso_mensagem', tipo: 'texto', x: 1500, y: 660, saidas: ['Próximo'], dados: { texto: MENSAGEM_ANDAMENTO_INSTALACAO } },
     { id: 'prime_aviso_fim', tipo: 'finalizar', x: 1500, y: 840, saidas: [], dados: { mensagem: '' } },
+    { id: 'prime_aviso_aprovada_gatilho', tipo: 'gatilho_crm', x: 2300, y: 100, saidas: ['Disparar'], dados: { ativo:true,campo:'status_venda',operador:'mudou_para',valor:'APROVADA',modo_primeiro_envio:'texto' } },
+    { id: 'prime_aviso_aprovada_mensagem', tipo:'texto', x:2300,y:320,saidas:['Próximo'],dados:{texto:'Olá, {{nome}}! 😊 Seu pedido foi aprovado pelo setor responsável. A equipe seguirá com a preparação da instalação e confirmará os próximos passos e o agendamento por aqui.'} },
+    { id: 'prime_aviso_sem_rede_gatilho', tipo:'gatilho_crm',x:2700,y:100,saidas:['Disparar'],dados:{ativo:true,campo:'status_venda',operador:'mudou_para',valor:'SEM DISPONIBILIDADE',modo_primeiro_envio:'texto'} },
+    { id: 'prime_aviso_sem_rede_mensagem', tipo:'texto',x:2700,y:320,saidas:['Próximo'],dados:{texto:'No momento, não temos disponibilidade para instalar no endereço informado. Vamos encerrar este atendimento por enquanto. Seu interesse ficará registrado para retornarmos quando houver disponibilidade. Obrigado por procurar a Grupo Prime! 💚'} },
+    { id: 'prime_aviso_agenda_revisada_gatilho', tipo:'gatilho_crm',x:3100,y:100,saidas:['Disparar'],dados:{ativo:true,campo:'custom.bko_agenda_revisada',operador:'alterou',modo_primeiro_envio:'texto'} },
   ];
   return { nos, conexoes: [
     ...[0, 1].map(i => ligar(`prime_aviso_gatilho_${i}`, 0, 'prime_aviso_origem')),
-    ligar('prime_aviso_origem', 0, 'prime_aviso_preparar'), ligar('prime_aviso_origem', 1, 'prime_aviso_fim'),
+    ligar('prime_aviso_origem', 0, 'prime_aviso_preparar'), ligar('prime_aviso_origem', 1, 'prime_aviso_origem_aprovada'),
+    ligar('prime_aviso_origem_aprovada',0,'prime_aviso_preparar'),ligar('prime_aviso_origem_aprovada',1,'prime_aviso_origem_gerada'),
+    ligar('prime_aviso_origem_gerada',0,'prime_aviso_preparar'),ligar('prime_aviso_origem_gerada',1,'prime_aviso_fim'),
     ligar('prime_aviso_preparar', 0, 'prime_aviso_mensagem'), ligar('prime_aviso_mensagem', 0, 'prime_aviso_fim'),
+    ligar('prime_aviso_aprovada_gatilho',0,'prime_aviso_aprovada_mensagem'),ligar('prime_aviso_aprovada_mensagem',0,'prime_aviso_fim'),
+    ligar('prime_aviso_sem_rede_gatilho',0,'prime_aviso_sem_rede_mensagem'),ligar('prime_aviso_sem_rede_mensagem',0,'prime_aviso_fim'),
+    ligar('prime_aviso_agenda_revisada_gatilho',0,'prime_aviso_preparar'),
   ] };
 }

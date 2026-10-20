@@ -3197,14 +3197,25 @@ export default function FluxosPage() {
             : await supabase.from("proposta_campos_customizados").insert([{workspace_id:wsId,slug:regra.variavel,...payload}]);
           if(resposta.error) throw new Error(`Não foi possível criar o campo privado ${regra.nome} no CRM: ${resposta.error.message}`);
         }
-      }      const nosParaSalvar = nos.map(normalizarConfiguracaoFluxoIA);
-      const { data, error } = await supabase.from("fluxos").update({nos:nosParaSalvar,conexoes:arestas,nome:fluxoAtivo.nome,
+      }      let nosParaSalvar = nos.map(normalizarConfiguracaoFluxoIA);
+      let casBko: {indice:number;versao:string|null}|null=null;
+      if(wsId==='grupoprime'&&Number(fluxoAtivo.id)===27&&nosParaSalvar.some(n=>n.id==='prime_documentos_enviar')){
+        const {data:atual,error:erroAtual}=await supabase.from('fluxos').select('nos').eq('workspace_id',wsId).eq('id',fluxoAtivo.id).single();
+        if(erroAtual)throw erroAtual;
+        const indice=(atual.nos as No[]).findIndex(n=>n.id==='prime_documentos_enviar');
+        if(indice>=0){
+          const dados=(atual.nos as No[])[indice].dados;
+          casBko={indice,versao:dados.bko_versao||null};
+          nosParaSalvar=nosParaSalvar.map(n=>n.id==='prime_documentos_enviar'?{...n,dados:{...n.dados,bko_configuracao:dados.bko_configuracao,bko_janelas:dados.bko_janelas,bko_versao:crypto.randomUUID()}}:n);
+        }
+      }
+      let gravarFluxo = supabase.from("fluxos").update({nos:nosParaSalvar,conexoes:arestas,nome:fluxoAtivo.nome,
         descricao:fluxoAtivo.descricao,ativo:fluxoAtivo.ativo,
         trigger_tipo:fluxoAtivo.trigger_tipo,trigger_valor:fluxoAtivo.trigger_valor})
         .eq("id",fluxoAtivo.id)
-        .eq("workspace_id", wsId)
-        .select("id,nos")
-        .single();
+        .eq("workspace_id", wsId);
+      if(casBko)gravarFluxo=casBko.versao?gravarFluxo.eq(`nos->${casBko.indice}->dados->>bko_versao`,casBko.versao):gravarFluxo.is(`nos->${casBko.indice}->dados->>bko_versao`,null);
+      const {data,error}=await gravarFluxo.select('id,nos').single();
       if (error) throw error;
 
       const nosPersistidos: No[] = Array.isArray(data?.nos)

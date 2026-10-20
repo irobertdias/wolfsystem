@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('typescript');
-const { createHmac } = require('node:crypto');
+const { createHmac, randomUUID } = require('node:crypto');
 const { createClient } = require('@supabase/supabase-js');
 function carregar(arquivo) {
   const exports = {};
@@ -27,6 +27,11 @@ async function main() {
   const avisos = helper.blocosAvisosInstalacaoGrupoPrime();
   const tokenDocumentos = createHmac('sha256', segredo).update('wolf:documentos:grupoprime:v1').digest('hex');
   const documentos = anexos.blocosDocumentosGrupoPrime(origem, tokenDocumentos, principal.dados.apiKey);
+  const bkoAnterior = fluxo.nos.find(n=>n.id==='prime_documentos_enviar')?.dados;
+  const envioBko = documentos.nos.find(n=>n.id==='prime_documentos_enviar');
+  envioBko.dados.bko_configuracao = bkoAnterior?.bko_configuracao || {ativo:false,canal_id:null,contatos:[]};
+  envioBko.dados.bko_janelas = bkoAnterior?.bko_janelas || {};
+  envioBko.dados.bko_versao = randomUUID();
   const roteiroPrincipal = vendedor.criarVendedorGrupoPrime(origem, '').nos.find(n => n.id === 'prime_vendedor').dados;
   const dadosCadastrais = cadastro.blocosCadastroGrupoPrime(principal.dados.apiKey);
   const automatizado = id => /^prime_(reversao|aviso|documentos|endereco|acompanhamento|cadastro)_/.test(id);
@@ -60,7 +65,7 @@ async function main() {
   const { data: config, error: erroConfig } = await db.from('proposta_campos_padrao_config').select('id,opcoes').eq('workspace_id', 'grupoprime').eq('campo_slug', 'status_venda').maybeSingle();
   if (erroConfig) throw erroConfig;
   const atuais = Array.isArray(config?.opcoes) ? config.opcoes : config?.opcoes ? JSON.parse(config.opcoes) : ['PENDENTE','AGUARDANDO AUDITORIA','CANCELADA','INSTALADA','GERADA','REPROVADA'];
-  for (const status of ['CPF REPROVADO','AGUARDANDO INSTALAÇÃO','AGUARDANDO AUDITORIA','GERADA']) {
+  for (const status of ['CPF REPROVADO','AGUARDANDO INSTALAÇÃO','AGUARDANDO AUDITORIA','GERADA','APROVADA','SEM DISPONIBILIDADE']) {
     if (!atuais.some(s => helper.normalizarStatus(s) === status)) atuais.push(status);
   }
   const opcoes = config?.id ? db.from('proposta_campos_padrao_config').update({ opcoes: atuais }).eq('id', config.id).eq('workspace_id', 'grupoprime')
@@ -91,10 +96,14 @@ async function main() {
     const { error: erroGravacao } = await gravacao;
     if (erroGravacao) throw erroGravacao;
   }
-  const { error: erroSalvar } = await db.from('fluxos').update({ nos, conexoes, nome: vendedor.NOME_VENDEDOR_GRUPOPRIME,
+  let gravarFluxo = db.from('fluxos').update({ nos, conexoes, nome: vendedor.NOME_VENDEDOR_GRUPOPRIME,
     descricao: 'Planos por CEP; cadastro completo, correções e confirmação antes dos documentos; RG frente/verso e comprovante no CRM para auditoria; recuperação CPF e avisos BKO.',
   }).eq('workspace_id', 'grupoprime').eq('id', fluxo.id);
+  const indiceBko=fluxo.nos.findIndex(n=>n.id==='prime_documentos_enviar');
+  if(indiceBko>=0)gravarFluxo=bkoAnterior?.bko_versao?gravarFluxo.eq(`nos->${indiceBko}->dados->>bko_versao`,bkoAnterior.bko_versao):gravarFluxo.is(`nos->${indiceBko}->dados->>bko_versao`,null);
+  const {data:fluxoSalvo,error:erroSalvar}=await gravarFluxo.select('id').maybeSingle();
   if (erroSalvar) throw erroSalvar;
+  if (!fluxoSalvo) throw Error('O fluxo foi alterado durante a organização. Reexecute sem sobrescrever as alterações recentes.');
   console.log(JSON.stringify({ salvo: true, fluxo: fluxo.id, ativo_preservado: fluxo.ativo }));
 }
 main().catch(error => { console.error(error.message || 'Falha na organização'); process.exitCode = 1; });

@@ -1,0 +1,12 @@
+const fs=require('node:fs'),ts=require('typescript'),{createHash}=require('node:crypto'),{spawnSync}=require('node:child_process');
+const raiz='deploy/bko-ia';
+const fonte=fs.readFileSync('app/lib/bko-grupoprime.ts','utf8');
+fs.writeFileSync(raiz+'/src/services/bko-ia-regras.js',ts.transpileModule(fonte,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);
+const testes=fs.readFileSync('scripts/bko-grupoprime.test.cjs','utf8');
+const base=testes.slice(0,testes.indexOf('function apiConfig('));
+const agenda=testes.slice(testes.indexOf("test('BKO agenda e corrige"));
+fs.writeFileSync(raiz+'/scripts/bko-ia.test.cjs',(base+agenda).replace("require('node:path').resolve('deploy/bko-ia/src/services/bko-ia.js')","require('node:path').resolve(__dirname,'../src/services/bko-ia.js')").replace("require('../deploy/bko-ia/src/services/bko-ia-regras')","require('../src/services/bko-ia-regras')"));
+fs.writeFileSync(raiz+'/versao.json',JSON.stringify({versao:1,regras_sha256:createHash('sha256').update(fonte).digest('hex')},null,2)+'\n');
+const r=spawnSync('tar',['-czf','deploy/wolf-bko-ia-20261020.tar.gz','-C',raiz,'src','scripts','instalar.cjs','LEIA-ME.md','versao.json'],{encoding:'utf8'});
+if(r.status!==0)throw Error(r.stderr||'Falha ao empacotar BKO');
+console.log('Pacote BKO gerado sem credenciais ou dados de clientes.');

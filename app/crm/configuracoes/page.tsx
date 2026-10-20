@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useModulos } from "../../hooks/useModulos";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import BkoConfig from './BkoConfig';
 
 // ═══════════════════════════════════════════════════════════════════════
 // ⚙️ CONFIGURAÇÕES — Wolf CRM (multi-tenant, premium)
@@ -2165,6 +2166,7 @@ function AbaGeral({ workspaceId, usuarios, isAdmin, limites, limiteAtingido, pod
 
       {/* Bloqueio pós-finalização */}
       <BloqueioPosFinalizacao workspaceId={workspaceId} podeGerenciar={podeGerenciar} IS={IS} cardStyle={cardStyle} labelStyle={labelStyle} />
+      {workspaceId === 'grupoprime' && podeGerenciar && <BkoConfig workspaceId={workspaceId} />}
 
       {/* 🤳 Bater Ponto — com/sem selfie (só aparece se o módulo estiver liberado) */}
       <ConfigPontoSelfie podeGerenciar={podeGerenciar} IS={IS} cardStyle={cardStyle} />

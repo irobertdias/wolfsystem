@@ -60,6 +60,7 @@ const resposta = JSON.parse(variaveis.documentos_verificados || '{}');
 if (!resposta.success) throw new Error('Documentos não conferidos');
 for (const [campo, valor] of Object.entries(resposta.cadastro)) setVariable(campo, String(valor ?? ''));
 for (const [campo, valor] of Object.entries(resposta.documentos)) setVariable(campo, JSON.stringify(valor));
+setVariable('bko_pendente', 'SIM');
 return true;` } },
       { id: 'prime_documentos_enviar', tipo: 'enviar_venda', x: 200, y: 1640, saidas: ['Sucesso', 'Erro'], dados: {
         modo_mapeamento: 'manual', mapeamento: Object.fromEntries(['nome','cpf','data_nascimento','nome_mae','email','telefone1','telefone2','vencimento','rg','cep','cidade','estado','endereco','plano','valor_plano','operadora','forma_pagamento'].map(campo => [campo, campo])),

@@ -84,7 +84,7 @@ test('recuperação usa mensagem literal, CPF diferente e dados novos, sem reini
 });
 test('avisos exigem origem auditoria e preservam texto de biometria sem placeholders vazios', () => {
   const f=helper.blocosAvisosInstalacaoGrupoPrime();
-  assert.deepEqual(Array.from(f.nos.filter(n=>n.tipo==='gatilho_crm'),n=>n.dados.valor),['AGUARDANDO INSTALAÇÃO','GERADA']);
+  assert.deepEqual(Array.from(f.nos.filter(n=>n.tipo==='gatilho_crm'&&n.dados.campo==='status_venda'),n=>n.dados.valor),['AGUARDANDO INSTALAÇÃO','GERADA','APROVADA','SEM DISPONIBILIDADE']);
   assert.equal(f.nos.find(n=>n.tipo==='condicao').dados.valor,'AGUARDANDO AUDITORIA');
   assert.equal(f.nos.find(n=>n.tipo==='texto').dados.texto,helper.MENSAGEM_ANDAMENTO_INSTALACAO);
   const vars={data_agendamento:'2026-10-20',periodo_instalacao:'Manhã',nome:'Cliente'};
