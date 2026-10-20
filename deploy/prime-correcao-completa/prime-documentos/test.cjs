@@ -18,6 +18,16 @@ test('verso não é confundido com frente por causa da descrição negativa',()=
  assert.throws(()=>validar(regras[0],{ladoDocumento:'frente',dadosExtraidos:{nome:'Outra Pessoa'}},{nome:'Ana Silva'}),e=>e.codigo==='IDENTIDADE_INCOMPATIVEL');
  assert.throws(()=>validar(regras[1],{ladoDocumento:'frente',dadosExtraidos:{}},{}),e=>e.codigo==='LADO_DOCUMENTO_INCORRETO');
 });
+test('impressão digital sem retrato prevalece sobre rótulo frente incoerente',()=>{
+ const v=visao(fs.readFileSync(path.join(raiz,'src/services/fluxo-ia-multimidia.js'),'utf8'));
+ const a=v.indexOf('      // primeFacePorRetrato:'),b=v.indexOf('      const descricaoVisual',a);
+ const x={dados:{prime_leitura_documental:true},respostaJson:{identidade_visual:true,possui_retrato:false,lado_documento:'frente'},limitarTexto:x=>x,regraArquivoId:'prime_rg_frente'};
+ const r=vm.runInNewContext('(function(){'+v.slice(a,b)+';return {ladoDocumento,regraArquivoId};})()',x);
+ assert.equal(r.ladoDocumento,'verso');assert.equal(r.regraArquivoId,'prime_rg_verso');
+ const fn=v.slice(v.indexOf('function criarInstrucaoLeitura('),v.indexOf('\nmodule.exports'));
+ assert.ok(v.includes('primePromptVisualExclusivo'));
+ const anterior=bridge(original).replace(' prime_leitura_documental: true,','');assert.equal(bridge(anterior),codigo);
+});
 test('face visual corrige ID incorreto sem deduzir a face pela ordem de chegada',()=>{
  const trecho=codigo.slice(codigo.indexOf('    let regra = localizarRegra('),codigo.indexOf('    const nomeRecebido ='));
  c.workspaceId='grupoprime';c.configuracao={arquivos_salvar_regras:regras};
