@@ -4,6 +4,13 @@ const raiz=process.env.WOLF_BACKEND_DIR||(process.platform==='win32'?'D:/GERAL/w
 const original=fs.readFileSync(path.join(raiz,'src/services/fluxo-ia-multimidia-bridge.js'),'utf8'),codigo=bridge(original);
 const c={module:{exports:{}}};vm.createContext(c);vm.runInContext(codigo,c);
 const regras=[{id:'prime_rg_frente',nome:'RG frente',variavel:'rg_frente',descricao:'Não aceitar verso como frente',obrigatoria:true},{id:'prime_rg_verso',nome:'RG verso',variavel:'rg_verso',descricao:'Não aceitar frente como verso',obrigatoria:true},{id:'prime_comprovante',nome:'Comprovante',variavel:'comprovante_endereco',obrigatoria:true}];
+test('leitor de documentos recebe apenas extração visual, sem campos de coleta nem instrução de face pendente',()=>{
+ const a=codigo.indexOf('      // primeLeituraIsolada:'),b=codigo.indexOf('      const analise = await ctx.analisarMidiaFluxoIA(dadosLeitura',a);
+ const cfg=vm.runInNewContext('(function(){'+codigo.slice(a,b)+';return dadosLeitura;})()', {workspaceId:'grupoprime',sessaoAntes:{no_atual:'prime_reversao_documentos_ia'},configuracao:{dados:{apiKey:'teste',prompt:'PEÇA A FRENTE AGORA',variaveis:[{nome:'rg_frente_validado'}],arquivos_salvar_regras:regras}},regrasConfiguradas:()=>regras});
+ assert.ok(!cfg.prompt.includes('PEÇA A FRENTE'));assert.ok(cfg.prompt.includes('Impressão digital não é retrato'));
+ assert.deepEqual(Array.from(cfg.variaveis,x=>x.nome),['nome','endereco_comprovante','cep_comprovante']);assert.equal(cfg.apiKey,'teste');
+ assert.ok(cfg.arquivos_salvar_regras[1].descricao.includes('SEM retrato'));
+});
 test('verso não é confundido com frente por causa da descrição negativa',()=>{
  const validar=c.module.exports._test.validarIdentidadeArquivo;
  assert.equal(validar(regras[1],{ladoDocumento:'verso',dadosExtraidos:{}},{}).identidade.lado,'verso');

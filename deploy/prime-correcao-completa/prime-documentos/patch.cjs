@@ -1,6 +1,15 @@
 const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
 function troca(s,a,b){if(s.includes(b))return s;if(s.split(a).length!==2)throw Error('Encaixe incompatível');return s.replace(a,b);}
 function bridge(s){
+ s=troca(s,'      const analise = await ctx.analisarMidiaFluxoIA(configuracao?.dados || {}, entradaParaAnalise, {',`      // primeLeituraIsolada: o leitor não recebe o estado da venda nem instruções de coleta.
+      const leituraPrime = workspaceId === "grupoprime" && ["prime_documentos_ia", "prime_reversao_documentos_ia"].includes(sessaoAntes?.no_atual);
+      const dadosLeitura = leituraPrime ? {
+        ...(configuracao?.dados || {}),
+        prompt: "Leia somente o arquivo atual. Não use o cadastro, a ordem de envio ou a face pendente para preencher dados. Considere a rotação. Frente de identidade = face COM RETRATO. Verso = face SEM RETRATO, com impressão digital ou dados de registro. Impressão digital não é retrato. Na frente transcreva o nome do TITULAR, não filiação nem assinatura de autoridade. No verso basta reconhecer a face; não exija nome nem números. Comprovante: leia endereço e CEP impressos. Não complete campos ausentes.",
+        variaveis: [{nome:"nome",tipo:"texto",label:"Nome do titular impresso na face com retrato"},{nome:"endereco_comprovante",tipo:"texto",label:"Endereço impresso no comprovante"},{nome:"cep_comprovante",tipo:"texto",label:"CEP impresso no comprovante"}],
+        arquivos_salvar_regras: regrasConfiguradas(configuracao?.dados || {}).map(r => ({...r,descricao: r.variavel === "rg_frente" ? "Face COM retrato do titular; ler nome." : r.variavel === "rg_verso" ? "Face SEM retrato, com impressão digital ou dados de registro; não exigir nome ou números." : r.descricao})),
+      } : (configuracao?.dados || {});
+      const analise = await ctx.analisarMidiaFluxoIA(dadosLeitura, entradaParaAnalise, {`);
  s=troca(s,'  const identidade = identidadeDaAnalise(analise);',`  // primeIdentidadePorFace: frente confere nome; verso confere apenas a face visual.
   if (/^prime_rg_/.test(String(regra.id || ""))) {
     if (ladoLido !== ladoEsperado) throw erroDocumento("LADO_DOCUMENTO_INCORRETO", "Envie uma foto legível da face solicitada da identidade.");
