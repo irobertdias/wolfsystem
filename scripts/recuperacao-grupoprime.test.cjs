@@ -71,6 +71,9 @@ test('token de leitura da viabilidade não autoriza alteração de titular', asy
 });
 test('recuperação usa mensagem literal, CPF diferente e dados novos, sem reiniciar oferta', () => {
   const f=helper.blocosRecuperacaoGrupoPrime('https://teste','token','chave');
+  assert.equal(f.nos.find(n=>n.id==='prime_reversao_enviada').tipo,'finalizar');
+  assert.equal(f.conexoes.find(c=>c.de==='prime_reversao_atualizar'&&c.saidaIndex===1).para,'prime_reversao_pendencia');
+  assert.equal(f.nos.find(n=>n.id==='prime_reversao_pendencia').tipo,'texto');
   const ia=f.nos.find(n=>n.tipo==='fluxo_ia');
   assert.equal(ia.dados.mensagem_inicial,helper.MENSAGEM_CPF_REPROVADO); assert.equal(ia.dados.mensagem_inicial_literal,true);
   assert.equal(ia.dados.variaveis.find(v=>v.nome==='cpf_novo').diferente_de,'cpf_reprovado');

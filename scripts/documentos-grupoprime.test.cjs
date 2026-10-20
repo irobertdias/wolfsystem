@@ -35,8 +35,11 @@ test('frente exige nome correspondente e verso visual dispensa número de RG e C
 test('declaração SIM não substitui upload ou documento ausente',async()=>{
  for(const modo of ['flag','meta','storage']){const f=fixture();if(modo==='flag')delete f.vars.rg_verso_validado;if(modo==='meta')delete f.vars.rg_verso;if(modo==='storage')f.objetos.clear();await assert.rejects(validar(f.db,f.sessao.numero,f.vars.cpf),e=>e.statusCode===422);}
 });
-test('bloqueia outro workspace, outro atendimento, outro CPF e comprovante de outro CEP',async()=>{
- for(const modo of ['workspace','atendimento','cpf','cep']){const f=fixture();if(modo==='workspace')f.vars.rg_frente=f.vars.rg_frente.replace('workspaceId=grupoprime','workspaceId=outro');if(modo==='atendimento')f.vars.rg_frente=f.vars.rg_frente.replace('grupoprime%2F','grupoprime%2Foutro');if(modo==='cpf')f.vars.__identidade_documento_rg_frente=JSON.stringify({cpf:'11144477735'});if(modo==='cep')f.vars.cep_comprovante='75383126';await assert.rejects(validar(f.db,f.sessao.numero,f.vars.cpf),e=>e.statusCode===422);}
+test('bloqueia outro workspace, outro atendimento e frente sem nome do titular',async()=>{
+ for(const modo of ['workspace','atendimento','cpf']){const f=fixture();if(modo==='workspace')f.vars.rg_frente=f.vars.rg_frente.replace('workspaceId=grupoprime','workspaceId=outro');if(modo==='atendimento')f.vars.rg_frente=f.vars.rg_frente.replace('grupoprime%2F','grupoprime%2Foutro');if(modo==='cpf')f.vars.__identidade_documento_rg_frente=JSON.stringify({cpf:'11144477735'});await assert.rejects(validar(f.db,f.sessao.numero,f.vars.cpf),e=>e.statusCode===422);}
+});
+test('CEP diferente no comprovante não bloqueia CRM nem altera o CEP da instalação',async()=>{
+ const f=fixture();f.vars.cep_comprovante='75383126';await validar(f.db,f.sessao.numero,f.vars.cpf);assert.equal(f.vars.cep,'74480150');assert.equal(f.vars.cep_comprovante,'75383126');
 });
 test('não aceita a mesma foto para frente/verso ou PDF no lugar da foto do RG',async()=>{
  const repetida=fixture();for(const objeto of repetida.objetos.values())objeto.etag='mesma-foto';await assert.rejects(validar(repetida.db,repetida.sessao.numero,repetida.vars.cpf),/fotos diferentes/);

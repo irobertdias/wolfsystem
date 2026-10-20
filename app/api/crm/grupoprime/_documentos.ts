@@ -21,7 +21,7 @@ export async function documentosDaSessaoGrupoPrime(db: SupabaseClient, numeroEnt
   if (sessao.expira_em && new Date(sessao.expira_em) < new Date()) falhar('Sessão de coleta expirada.');
   cpfEsperado = cpfEsperado || normalizarCpf(vars.cpf);
   if (!cpfEsperado || normalizarCpf(vars.cpf) !== cpfEsperado) falhar('Os documentos devem ser do titular informado.');
-  if (vars.cep_comprovante && String(vars.cep_comprovante).replace(/\D/g, '').length === 8 && String(vars.cep_comprovante).replace(/\D/g, '') !== String(vars.cep || '').replace(/\D/g, '')) falhar('O comprovante é de outro CEP. Envie o comprovante da casa de instalação.');
+  // O CEP extraído do comprovante é informativo e não bloqueia a conclusão.
   const clienteHash = createHash('sha256').update(`grupoprime:${sessao.canal_id}:${sessao.numero}`).digest('hex').slice(0, 24);
   const documentos: Record<string, DocumentoPrivado[]> = {};
   const caminhos = new Set<string>();

@@ -83,7 +83,8 @@ Não diga que o novo CPF foi aprovado nem que a instalação está agendada: a a
     { id: 'prime_reversao_atualizar', tipo: 'http_request', x: 650, y: 1640, saidas: ['Sucesso', 'Erro'], dados: { metodo: 'POST', url: `${origem}/api/crm/grupoprime/recuperar-cpf`, headers: JSON.stringify({ 'x-wolf-recuperacao-token': token }), body: '{{recuperacao_payload}}', variavel_resposta: 'recuperacao_resposta' } },
     { id: 'prime_reversao_limpar_etiqueta', tipo: 'etiqueta', x: 650, y: 1860, saidas: ['Próximo'], dados: { acao: 'remover', nome: 'CPF REPROVADO' } },
     { id: 'prime_reversao_coletado', tipo: 'etiqueta', x: 650, y: 2080, saidas: ['Próximo'], dados: { acao: 'aplicar', nome: 'NOVO CPF COLETADO', cor: '#16a34a', icone: '✅' } },
-    { id: 'prime_reversao_enviada', tipo: 'transferir', x: 650, y: 2300, saidas: ['Próximo'], dados: { modo: 'equipe', fila: '', mensagem: 'Os dados do novo titular foram registrados e o pedido voltou para Aguardando Auditoria. A equipe vai confirmar a análise e a possibilidade de instalação.' } },
+    { id: 'prime_reversao_enviada', tipo: 'finalizar', x: 650, y: 2300, saidas: [], dados: { mensagem: 'Os dados e documentos do novo titular foram salvos no CRM. O pedido voltou para Aguardando Auditoria e entrou no envio automático ao BKO.' } },
+    { id: 'prime_reversao_pendencia', tipo: 'texto', x: 1080, y: 1640, saidas: ['Próximo'], dados: { texto: 'Não consegui concluir o registro no CRM. Seus dados e arquivos estão preservados; vamos corrigir a pendência neste atendimento.' } },
     { id: 'prime_reversao_humano', tipo: 'transferir', x: 1080, y: 1420, saidas: ['Próximo'], dados: { modo: 'equipe', fila: '', mensagem: 'Vou encaminhar seu atendimento à equipe Grupo Prime para ajudar com a revisão cadastral do pedido.' } },
     { id: 'prime_reversao_ignorar', tipo: 'script', x: 1080, y: 320, saidas: [], dados: { codigo: 'return true;' } },
   ];
@@ -96,7 +97,8 @@ Não diga que o novo CPF foi aprovado nem que a instalação está agendada: a a
     ligar('prime_reversao_etiqueta', 0, 'prime_reversao_ia'),
     ligar('prime_reversao_ia', 0, 'prime_reversao_payload'),
     ...[1, 2, 3].map(saida => ligar('prime_reversao_ia', saida, 'prime_reversao_humano')),
-    ligar('prime_reversao_payload', 0, 'prime_reversao_atualizar'), ligar('prime_reversao_atualizar', 0, 'prime_reversao_limpar_etiqueta'), ligar('prime_reversao_atualizar', 1, 'prime_reversao_humano'),
+    ligar('prime_reversao_payload', 0, 'prime_reversao_atualizar'), ligar('prime_reversao_atualizar', 0, 'prime_reversao_limpar_etiqueta'), ligar('prime_reversao_atualizar', 1, 'prime_reversao_pendencia'),
+    ligar('prime_reversao_pendencia', 0, 'prime_reversao_documentos_ia'),
     ligar('prime_reversao_limpar_etiqueta', 0, 'prime_reversao_coletado'), ligar('prime_reversao_coletado', 0, 'prime_reversao_enviada'),
   ] };
 }
