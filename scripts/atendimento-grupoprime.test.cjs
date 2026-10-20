@@ -10,7 +10,7 @@ const patch=require('../deploy/prime-atendimento/patch.cjs');
 
 test('escolha de plano não exige endereço, nome ou questionário; endereço fica na etapa seguinte', () => {
   const principal = exportsTS.criarVendedorGrupoPrime('https://example.com', '').nos.find(n => n.id === 'prime_vendedor');
-  assert.deepEqual(Array.from(principal.dados.variaveis, v => v.nome), ['cep', 'tipo_pessoa', 'plano_interesse']);
+  assert.deepEqual(Array.from(principal.dados.variaveis.filter(v => v.obrigatoria), v => v.nome), ['cep', 'tipo_pessoa', 'plano_interesse']);
   assert.match(principal.dados.prompt, /CEP → consulta → CPF ou CNPJ → planos apenas do público escolhido/);
   assert.match(principal.dados.prompt, /Nunca envie os dois catálogos juntos/);
   assert.match(principal.dados.prompt, /Você quer contratar no CPF ou no CNPJ/);

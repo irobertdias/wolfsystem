@@ -1,15 +1,15 @@
 export const CAMPOS_CADASTRO_GRUPOPRIME = [
   { nome: 'nome', label: 'Nome completo', tipo: 'nome', obrigatoria: true },
   { nome: 'cpf', label: 'CPF do titular', tipo: 'cpf', obrigatoria: true },
-  { nome: 'nome_mae', label: 'Nome completo da mãe', tipo: 'nome', obrigatoria: true },
   { nome: 'data_nascimento', label: 'Data de nascimento', tipo: 'data', obrigatoria: true },
-  { nome: 'email', label: 'E-mail', tipo: 'email', obrigatoria: true },
+  { nome: 'nome_mae', label: 'Nome completo da mãe', tipo: 'nome', obrigatoria: true },
   { nome: 'endereco_completo', label: 'Endereço completo da instalação', tipo: 'texto', obrigatoria: true },
   { nome: 'cep', label: 'CEP da instalação', tipo: 'cep', obrigatoria: true },
-  { nome: 'telefone1', label: 'Telefone de contato com WhatsApp (DDD e número)', tipo: 'telefone', obrigatoria: true },
-  { nome: 'telefone2', label: 'Segundo telefone para ligação normal (DDD e número)', tipo: 'telefone', obrigatoria: true },
   { nome: 'vencimento', label: 'Dia do vencimento da fatura', tipo: 'texto', obrigatoria: true },
   { nome: 'forma_pagamento', label: 'Forma de pagamento mensal', tipo: 'texto', obrigatoria: true },
+  { nome: 'email', label: 'E-mail', tipo: 'email', obrigatoria: true },
+  { nome: 'telefone1', label: 'Telefone de contato com WhatsApp (DDD e número)', tipo: 'telefone', obrigatoria: true },
+  { nome: 'telefone2', label: 'Segundo telefone para ligação normal (DDD e número)', tipo: 'telefone', obrigatoria: true },
 ];
 
 function telefone(valor: unknown) {
@@ -51,14 +51,14 @@ delete variaveis.cadastro_confirmado;
 delete variaveis.cadastro_valido;
 delete variaveis.cadastro_pendencias;
 delete variaveis.__fluxo_ia_prime_cadastro_ia;
-setVariable('endereco_proposto', variaveis.endereco_completo || '');
+setVariable('endereco_proposto', variaveis.endereco_completo || variaveis.endereco_proposto || '');
 delete variaveis.endereco_completo;
 return true;` } },
       { id: 'prime_cadastro_ia', tipo: 'fluxo_ia', x: 200, y: 1440, saidas: ['Dados confirmados', 'Erro', 'Limite de recusas atingido', 'Limite de lembretes atingido'], dados: {
         apiKey, modelo: 'gpt-4o-mini', agrupamento_ms: 3500, limite_recusas: 3,
         mensagem_inicial_literal: false,
         prompt: `Você é o assistente da Grupo Prime. O cliente já escolheu o plano. Agora complete o CADASTRO antes de pedir qualquer documento.
-Colete, nessa ordem, os dados ainda faltantes: nome completo, CPF, nome completo da mãe, nascimento, e-mail, confirmação do endereço, telefone com WhatsApp, segundo telefone para ligação normal, dia do vencimento e forma de pagamento. Uma pergunta por vez. Aproveite os dados já informados; não invente ou substitua por dados do contato.
+Colete, nessa ordem, os dados ainda faltantes: nome completo, CPF, data de nascimento, nome completo da mãe, confirmação do endereço já informado, dia do vencimento, forma de pagamento, e-mail, telefone com WhatsApp e segundo telefone para ligação normal. Uma pergunta por vez. Aproveite os dados já informados; não invente ou substitua por dados do contato.
 Para confirmar novamente o endereço, apresente o endereço proposto: {{endereco_proposto}}. Pergunte se está correto. Somente após a resposta do cliente salve endereco_completo com o endereço por extenso (nunca salve apenas “sim”). Se houver correção, grave o endereço corrigido. Mantenha o CEP coerente; divergência de cidade/CEP deve ser conferida pela equipe antes de seguir.
 Peça DOIS números diferentes, ambos com DDD: telefone1 é WhatsApp; telefone2 é para ligação normal. Não presuma que o número desta conversa seja um dos contatos sem confirmar com o cliente.
 O vencimento pode ser qualquer dia de 1 a 31. Salve só o número, sem data/mês/ano. Explique que a operadora confirma o calendário da cobrança. Pagamento: cartão de crédito, boleto ou PIX; salve CARTAO, BOLETO ou PIX. Nunca peça dados do cartão, senha ou pagamento antecipado.

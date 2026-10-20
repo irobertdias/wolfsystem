@@ -5,7 +5,7 @@ function fixture(){return {nome:'Pessoa Teste',cpf:'52998224725',nome_mae:'Mae T
 function confirmar(vars){const codigo=grafo.nos.find(n=>n.id==='prime_cadastro_confirmado').dados.codigo;new Function('variaveis','setVariable',codigo)(vars,(k,v)=>{vars[k]=v;});return vars;}
 test('cadastro contém todos os dados do resumo e não aceita documentos antes da confirmação',()=>{
  const no=grafo.nos.find(n=>n.id==='prime_cadastro_ia');
- assert.deepEqual(Array.from(no.dados.variaveis,v=>v.nome),['nome','cpf','nome_mae','data_nascimento','email','endereco_completo','cep','telefone1','telefone2','vencimento','forma_pagamento']);
+ assert.deepEqual(Array.from(no.dados.variaveis,v=>v.nome),['nome','cpf','data_nascimento','nome_mae','endereco_completo','cep','vencimento','forma_pagamento','email','telefone1','telefone2']);
  assert.ok(no.dados.variaveis.every(v=>v.obrigatoria));assert.equal(no.dados.arquivos_salvar_regras,undefined);
  assert.match(no.dados.prompt,/resumo completo novamente/);
  assert.equal(grafo.conexoes.find(c=>c.de==='prime_cadastro_ia'&&c.saidaIndex===0).para,'prime_cadastro_confirmado');
