@@ -59,8 +59,10 @@ export function blocosDocumentosGrupoPrime(origem: string, token: string, apiKey
       { id: 'prime_documentos_cadastro', tipo: 'script', x: 200, y: 1420, saidas: ['Próximo'], dados: { codigo: `
 const resposta = JSON.parse(variaveis.documentos_verificados || '{}');
 if (!resposta.success) throw new Error('Documentos não conferidos');
+if (!Number.isSafeInteger(Number(resposta.sessao_id)) || Number(resposta.sessao_id) <= 0) throw new Error('Sessão validada ausente');
 for (const [campo, valor] of Object.entries(resposta.cadastro)) setVariable(campo, String(valor ?? ''));
 for (const [campo, valor] of Object.entries(resposta.documentos)) setVariable(campo, JSON.stringify(valor));
+setVariable('sessao_origem_id', String(resposta.sessao_id));
 setVariable('bko_pendente', 'SIM');
 return true;` } },
       { id: 'prime_documentos_enviar', tipo: 'enviar_venda', x: 200, y: 1640, saidas: ['Sucesso', 'Erro'], dados: {

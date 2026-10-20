@@ -53,6 +53,8 @@ export function blocosRecuperacaoGrupoPrime(origem: string, token: string, apiKe
   const saidasIA = ['Dados confirmados', 'Erro', 'Limite de recusas atingido', 'Limite de lembretes atingido'];
   const snapshot = `setVariable('cpf_reprovado', String(variaveis.cpf || '').replace(/\\D/g, ''));
 for (const campo of ['cpf_novo','nome_novo_titular','nascimento_novo_titular','nome_mae_novo_titular','autorizacao_novo_titular','recuperacao_payload','recuperacao_resposta']) delete variaveis[campo];
+delete variaveis.__fluxo_ia_prime_reversao_ia;
+delete variaveis.__fluxo_ia_prime_reversao_documentos_ia;
 return true;`;
   const payload = `setVariable('recuperacao_payload', JSON.stringify(Object.fromEntries(['numero','proposta_id','cpf_reprovado','cpf_novo','nome_novo_titular','nascimento_novo_titular','nome_mae_novo_titular','autorizacao_novo_titular'].map(campo => [campo, variaveis[campo]])))); return true;`;
   const nos = [

@@ -51,10 +51,10 @@ export async function POST(request: NextRequest) {
       autorizacao_novo_titular: true, origem: 'recuperacao_ia_bko' };
     // Histórico e novos dados são gravados juntos; a comparação protege alterações concorrentes do BKO.
     let update = supabaseServer.from('proposta').update({ cpf: dados.cpf, nome: dados.nome,
-      data_nascimento: dados.nascimento, nome_mae: dados.mae, rg: null, email: null,
+      data_nascimento: dados.nascimento, nome_mae: dados.mae, rg: null, email: venda.email,
       status_venda: 'AGUARDANDO AUDITORIA', updated_at: agora,
       dados_customizados: { ...custom, ...Object.fromEntries(Object.entries(documentos).map(([k, v]) => [k, JSON.stringify(v)])),
-        cpf: dados.cpf, nome: dados.nome, data_nascimento: dados.nascimento, nome_mae: dados.mae, rg: '', email: '',
+        cpf: dados.cpf, nome: dados.nome, data_nascimento: dados.nascimento, nome_mae: dados.mae, rg: '', email: venda.email || '',
         bko_pendente: 'SIM', bko_envio: null, bko_ref: null, bko_reply_ids: [], bko_erro: '',
         recuperacao_cpf_historico: [...historico, {...entrada,bko_referencia_anterior:custom.bko_ref||null}] },
     }).eq('workspace_id', 'grupoprime').eq('id', venda.id).eq('status_venda', venda.status_venda).eq('cpf', venda.cpf);

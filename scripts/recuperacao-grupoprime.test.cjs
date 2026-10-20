@@ -47,6 +47,8 @@ test('altera a mesma venda, guarda histórico e limpa documentos do titular ante
   assert.equal(r.status, 200); assert.equal(a.db.writes, 1); assert.equal(a.db.row.id, 42);
   assert.equal(a.db.row.cpf, novo); assert.equal(a.db.row.status_venda, 'AGUARDANDO AUDITORIA');
   assert.equal(a.db.row.nome, 'Pessoa Nova'); assert.equal(a.db.row.data_nascimento, '1990-03-12');
+  assert.equal(a.db.row.email,'antigo@example.test');
+  assert.equal(a.db.row.dados_customizados.email,'antigo@example.test');
   assert.equal(a.db.row.plano, 'preservar'); assert.equal(a.db.row.rg, null);
   assert.equal(a.db.row.dados_customizados.manter, 'sim');
   assert.equal(a.db.row.dados_customizados.cpf, novo);
@@ -89,9 +91,10 @@ test('recuperação usa mensagem literal, CPF diferente e dados novos, sem reini
   assert.equal(ia.dados.mensagem_inicial,helper.MENSAGEM_CPF_REPROVADO); assert.equal(ia.dados.mensagem_inicial_literal,true);
   assert.equal(ia.dados.variaveis.find(v=>v.nome==='cpf_novo').diferente_de,'cpf_reprovado');
   const snapshot=f.nos.find(n=>n.id==='prime_reversao_snapshot');
-  const vars={cpf:anterior,cpf_novo:'resto de sessão anterior',nome_novo_titular:'nome antigo'};
+  const vars={cpf:anterior,cpf_novo:'resto de sessão anterior',nome_novo_titular:'nome antigo',__fluxo_ia_prime_reversao_ia:'estado antigo',__fluxo_ia_prime_reversao_documentos_ia:'documentos antigos'};
   new Function('variaveis','setVariable',snapshot.dados.codigo)(vars,(k,v)=>{vars[k]=v;});
   assert.equal(vars.cpf_reprovado,anterior); assert.equal(vars.cpf_novo,undefined); assert.equal(vars.nome_novo_titular,undefined);
+  assert.equal(vars.__fluxo_ia_prime_reversao_ia,undefined);assert.equal(vars.__fluxo_ia_prime_reversao_documentos_ia,undefined);
   Object.assign(vars,body(),{nome_novo_titular:'Pessoa "Nova"'});
   new Function('variaveis','setVariable',f.nos.find(n=>n.id==='prime_reversao_payload').dados.codigo)(vars,(k,v)=>{vars[k]=v;});
   assert.equal(JSON.parse(vars.recuperacao_payload).nome_novo_titular,'Pessoa "Nova"');

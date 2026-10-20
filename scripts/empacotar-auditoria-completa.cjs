@@ -1,0 +1,11 @@
+const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
+const root='deploy/auditoria-completa';
+fs.cpSync('deploy/qr-recuperacao',root,{recursive:true});
+fs.cpSync('deploy/prime-correcao-completa',path.join(root,'prime'),{recursive:true});
+fs.cpSync('deploy/prime-auditoria',path.join(root,'auditoria'),{recursive:true});
+let shell=fs.readFileSync('deploy/qr-recuperacao/instalar.sh','utf8').replace(/\r\n/g,'\n');
+shell=shell.replace('node "$PACOTE/patch.cjs" "$APP" --check\nnode "$PACOTE/prime/instalar.cjs" "$APP" --check','node "$PACOTE/auditoria/composicao.cjs" "$APP" --check');
+shell=shell.replace('"$PACOTE/test.cjs" "$PACOTE/ciclo.test.cjs"','"$PACOTE/test.cjs" "$PACOTE/ciclo.test.cjs" "$PACOTE/auditoria/test.cjs" "$PACOTE/prime/prime-cadastro/test.cjs" "$PACOTE/prime/prime-documentos/test.cjs" "$PACOTE/prime/prime-atendimento/test.cjs"');
+shell=shell.replace('node "$PACOTE/patch.cjs" "$APP"\nnode "$PACOTE/prime/instalar.cjs" "$APP"','node "$PACOTE/auditoria/composicao.cjs" "$APP" --apply');
+fs.writeFileSync(path.join(root,'instalar.sh'),shell);
+const r=spawnSync('tar',['-czf','deploy/wolf-auditoria-completa-20261020.tar.gz','-C',root,'.'],{encoding:'utf8'});if(r.status)throw Error(r.stderr);console.log('Pacote da auditoria completa gerado sem dados de clientes nem credenciais.');

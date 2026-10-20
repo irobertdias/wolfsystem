@@ -55,7 +55,7 @@ module.exports=function carregarBko(ctx) {
   const {supabase:db}=ctx;let rodando=false;
   const segredoMeta=()=>process.env.META_APP_SECRET||process.env.WHATSAPP_APP_SECRET||"";
   ctx.assinaturaBkoValida=req=>assinaturaValida(req.rawBody,req.get("x-hub-signature-256"),segredoMeta());
-  ctx.app.get("/bko/health",(_req,res)=>res.json({versao:4,waba_assinatura:!!segredoMeta(),waba_versao:/^v\d+\.\d+$/.test(process.env.META_GRAPH_VERSION||'')}));
+  ctx.app.get("/bko/health",(_req,res)=>res.json({versao:4,auditoria_sessoes:ctx.primeAuditoriaSessoes===true,waba_assinatura:!!segredoMeta(),waba_versao:/^v\d+\.\d+$/.test(process.env.META_GRAPH_VERSION||'')}));
   async function configuracao(){
     const {data:f,error}=await db.from("fluxos").select("id,ativo,nos").eq("workspace_id",WS).eq("id",FLUXO).maybeSingle();if(error)throw error;
     const no=f?.nos?.find(n=>n.id==="prime_documentos_enviar");if(!no?.dados?.bko_configuracao)return null;
