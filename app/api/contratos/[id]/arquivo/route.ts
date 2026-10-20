@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { autenticarContratos, exigirPermissaoContratos, respostaErroContratos } from "../../_auth";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const BACKEND =
+  process.env.WHATSAPP_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_WHATSAPP_URL ||
   "https://api.wolfgyn.com.br";
@@ -27,6 +30,7 @@ export async function GET(
       `${BACKEND}/assinaturas-wolf/admin/${encodeURIComponent(id)}/arquivo?workspaceId=${encodeURIComponent(acesso.workspaceId)}`,
       {
         cache: "no-store",
+        signal: AbortSignal.timeout(50000),
         headers: { "X-Wolf-Signature-Proxy": segredo, Accept: "application/pdf" },
       }
     );
@@ -38,12 +42,17 @@ export async function GET(
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": response.headers.get("content-disposition") || 'attachment; filename="contrato_assinado.pdf"',
+        "Content-Disposition": request.nextUrl.searchParams.get("visualizar") === "1"
+          ? 'inline; filename="contrato_assinado.pdf"'
+          : response.headers.get("content-disposition") || 'attachment; filename="contrato_assinado.pdf"',
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {
+    if (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name)) {
+      return NextResponse.json({ success: false, error: "O servidor demorou para abrir o contrato assinado. Tente novamente." }, { status: 503 });
+    }
     const falha = respostaErroContratos(error);
     return NextResponse.json({ success: false, error: falha.message }, { status: falha.status });
   }

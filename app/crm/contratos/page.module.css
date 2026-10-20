@@ -11,3 +11,13 @@
 @media(max-width:760px){.participantsHeader{align-items:flex-start;flex-direction:column}.participantsHeader button{width:100%}.participantGrid{grid-template-columns:1fr}}
 
 .copyLinkButton{border:1px solid #84adff;background:#eff6ff;color:#175cd3;border-radius:8px;padding:7px 10px;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap}.copyLinkButton:hover{background:#dbeafe;border-color:#528bff}.copyLinkButton:disabled{opacity:.55;cursor:wait}
+.viewSigned{border:1px solid #84adff!important;background:#eff6ff!important;color:#175cd3!important;font-weight:800;cursor:pointer}
+.pdfBackdrop{z-index:2200;padding:16px}
+.pdfModal{width:min(1200px,100%);height:calc(100dvh - 32px);max-height:960px;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:#fff;border-radius:16px;box-shadow:0 28px 90px #0004}
+.pdfHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 20px;border-bottom:1px solid #e4e7ec;flex-shrink:0}
+.pdfHeader>div{min-width:0}.pdfHeader span{font-size:10px;font-weight:800;letter-spacing:1px;color:#175cd3}.pdfHeader h2{font-size:18px;color:#101828;margin:4px 0;overflow-wrap:anywhere}.pdfHeader p{font-size:12px;color:#667085;margin:0}
+.pdfHeader button{width:34px;height:34px;flex-shrink:0;border:1px solid #d0d5dd;border-radius:8px;background:#fff;color:#475467;font-size:22px;cursor:pointer}
+.pdfBody{flex:1;min-height:0;display:flex;background:#e4e7ec}.pdfFrame{display:block;border:0;width:100%;height:100%;min-height:0;background:#fff}
+.pdfMessage{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:24px;text-align:center;color:#475467;font-size:14px}.pdfMessage button{border:1px solid #84adff;background:#eff6ff;color:#175cd3;padding:10px 15px;border-radius:8px;cursor:pointer}
+.pdfFooter{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-top:1px solid #e4e7ec;flex-shrink:0}.pdfFooter>span{max-width:480px;font-size:11px;color:#667085}.pdfFooter>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.pdfFooter a,.pdfFooter button{display:inline-block;padding:9px 12px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;color:#344054;text-decoration:none;font-size:12px;font-weight:700;cursor:pointer}
+@media(max-width:760px){.pdfBackdrop{padding:6px}.pdfModal{height:calc(100dvh - 12px);border-radius:10px}.pdfHeader{padding:12px}.pdfHeader h2{font-size:15px}.pdfFooter{flex-direction:column;align-items:stretch;padding:10px 12px}.pdfFooter>div{justify-content:flex-end}.modal>footer{flex-wrap:wrap}}
