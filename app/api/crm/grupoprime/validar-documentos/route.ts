@@ -4,6 +4,7 @@ import { autenticarWorkspace, exigirPermissao, respostaErroAcesso, supabaseServe
 import { documentosDaSessaoGrupoPrime } from '../_documentos';
 import { cpfValido, dataNascimentoISO } from '../../../../lib/recuperacao-cpf-grupoprime';
 import { consultarViabilidade } from '../../../../lib/viabilidade-grupoprime';
+import { conferirCadastroGrupoPrime } from '../../../../lib/cadastro-grupoprime';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
     let body;
     try { body = JSON.parse(raw); } catch { return responder({ success: false, error: 'JSON inválido.' }, 400); }
     const { documentos, sessao, variaveis: vars } = await documentosDaSessaoGrupoPrime(supabaseServer, body?.numero, '');
+    const contatosCobranca = conferirCadastroGrupoPrime(vars);
     const reprovacao = () => { throw Object.assign(new Error('Cadastro ou plano não conferem. Encaminhe ao BKO.'), { statusCode: 422 }); };
     if (!cpfValido(vars.cpf) || !dataNascimentoISO(vars.data_nascimento) || String(vars.nome || '').trim().length < 5 || String(vars.nome_mae || '').trim().length < 5 || !vars.endereco_completo || !vars.forma_pagamento) reprovacao();
     const consulta = consultarViabilidade(vars.cep);
@@ -34,13 +36,14 @@ export async function POST(request: NextRequest) {
     const plano = (publico === 'PF' ? consulta.planos!.pessoa_fisica : publico === 'PJ' ? consulta.planos!.pessoa_juridica : []).find(p => p.id === vars.plano_interesse);
     if (!plano) reprovacao();
     const forma = String(vars.forma_pagamento).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
-    if (!['CARTAO', 'OUTRA'].includes(forma)) reprovacao();
+    if (!['CARTAO', 'BOLETO', 'PIX'].includes(forma)) reprovacao();
     const cartao = forma === 'CARTAO';
     return responder({ success: true, sessao_id: sessao.id, documentos,
       cadastro: { cpf: String(vars.cpf).replace(/\D/g, ''), nome: vars.nome, data_nascimento: dataNascimentoISO(vars.data_nascimento), nome_mae: vars.nome_mae,
         rg: vars.rg || '', cep: consulta.cep, cidade: consulta.cidade, estado: consulta.uf, endereco: vars.endereco_completo,
         plano: `${plano!.nome} ${plano!.velocidade_mbps} Mega`, valor_plano: cartao && plano!.mensalidade_cartao !== null ? plano!.mensalidade_cartao : plano!.mensalidade,
-        operadora: 'Nio', forma_pagamento: vars.forma_pagamento },
+        operadora: 'Nio', ...contatosCobranca,
+        forma_pagamento: { CARTAO: 'Cartão de Crédito', BOLETO: 'Boleto Bancário', PIX: 'PIX' }[contatosCobranca.forma_pagamento] },
     });
   } catch (error) {
     const { status, message } = respostaErroAcesso(error);

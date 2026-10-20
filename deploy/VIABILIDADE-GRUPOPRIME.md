@@ -158,7 +158,8 @@ node node_modules/typescript/bin/tsc --noEmit --incremental false
 ```
 
 Sequência comercial: apresentação → CEP → consulta e planos na mesma resposta →
-escolha PF/PJ → endereço completo em etapa separada → dados do titular e documentos → auditoria.
+escolha PF/PJ → endereço completo → cadastro e nova confirmação do endereço →
+resumo de todos os dados → correções e nova confirmação → documentos → auditoria.
 Se o cliente ainda não identificou PF/PJ, apresentar os dois catálogos em grupos separados.
 Não pedir nome, endereço ou finalidade de uso antes da oferta. A saída ANALISE_HUMANA
 continua passando direto à equipe, sem obrigar o endereço.
@@ -174,3 +175,20 @@ O bloco inicial prepara o acompanhamento também para quem parar antes de respon
 Verificação opcional com duas chamadas reais à IA já configurada (sem envio de WhatsApp):
 `node --env-file=.env.local scripts/verificar-roteiro-grupoprime.cjs`.
 Usa o backend irmão para reproduzir o prompt do motor; ajuste `WOLF_BACKEND_PATH` se necessário.
+
+Cadastro obrigatório: nome, CPF, nome da mãe, nascimento, e-mail, endereço/CEP,
+dois telefones distintos (WhatsApp e ligação), vencimento de 1 a 31 e pagamento
+(cartão, boleto ou PIX). O resumo e a confirmação usam o controle de confirmação
+do motor: corrigir um campo mantém os demais e exige confirmação do resumo atualizado.
+O script posterior registra um retrato dos dados confirmados e só libera documentos
+se os campos passarem nas validações. A API recusa envio para auditoria sem esse
+registro ou se os dados foram alterados depois de confirmar. As colunas padrão do
+CRM recebem e-mail, os dois contatos, vencimento e forma de pagamento.
+
+Testes: `node --test scripts/cadastro-grupoprime.test.cjs scripts/documentos-grupoprime.test.cjs`.
+Simulação opcional com duas chamadas à IA e dados fictícios, sem enviar WhatsApp:
+`node --env-file=.env.local scripts/verificar-cadastro-grupoprime.cjs`.
+
+Em 20/10/2026, a atualização do cadastro preservou fluxo 27 inativo e canal 157
+com modo `nenhum`, após relato de banimento. Aplicar configuração não autoriza
+reativação ou reconexão do canal.

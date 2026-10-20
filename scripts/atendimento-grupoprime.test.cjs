@@ -16,8 +16,8 @@ test('escolha de plano não exige endereço, nome ou questionário; endereço fi
   assert.match(endereco.dados.mensagem_inicial, /endereço completo/);
   const variaveis = {};
   vm.runInNewContext(exportsTS.inicioAcompanhamentoGrupoPrime().dados.codigo.replace('return true;', ''), { setVariable: (k, v) => { variaveis[k] = v; } });
-  assert.equal(variaveis.__wolf_followups_v1.aguardandoRespostaCliente, true);
-  assert.equal(variaveis.__wolf_followups_v1.lembretesEnviados, 0);
+  assert.equal(JSON.parse(variaveis.__wolf_followups_v1).aguardandoRespostaCliente, true);
+  assert.equal(JSON.parse(variaveis.__wolf_followups_v1).lembretesEnviados, 0);
 });
 
 test('motor real envia aos 20/40/60 minutos, sem duplicar, e para após resposta ou encerramento', { skip: !fs.existsSync(workerPath) }, async () => {

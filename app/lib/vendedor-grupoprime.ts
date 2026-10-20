@@ -1,7 +1,7 @@
 export const NOME_VENDEDOR_GRUPOPRIME = 'Grupo Prime · Nio · Vendas e BKO';
 export function inicioAcompanhamentoGrupoPrime() {
   return { id: 'prime_acompanhamento_inicio', tipo: 'script', x: 200, y: 320, saidas: ['Próximo'], dados: {
-    codigo: "setVariable('__wolf_followups_v1', { aguardandoRespostaCliente: true, respondeuEm: new Date().toISOString(), lembretesEnviados: 0, ultimoLembreteEm: null }); return true;",
+    codigo: "setVariable('__wolf_followups_v1', JSON.stringify({ aguardandoRespostaCliente: true, respondeuEm: new Date().toISOString(), lembretesEnviados: 0, ultimoLembreteEm: null })); return true;",
   } };
 }
 export function lembretesGrupoPrime() {

@@ -1,6 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript'),crypto=require('node:crypto');
 function load(file,imports={}) {const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require:n=>{if(!(n in imports))throw Error(n);return imports[n];},URL,Buffer,process});return exports;}
 const regras=load('app/lib/documentos-grupoprime.ts');
+const cadastro=load('app/lib/cadastro-grupoprime.ts');
 const cpf=load('app/lib/recuperacao-cpf-grupoprime.ts');
 const validar=load('app/api/crm/grupoprime/_documentos.ts',{'node:crypto':crypto,'../../../lib/recuperacao-cpf-grupoprime':cpf,'../../../lib/documentos-grupoprime':regras}).documentosDaSessaoGrupoPrime;
 function fixture(){
@@ -52,20 +53,28 @@ test('coleta obrigatória tem três regras e bloqueio HTTP antes de enviar venda
  assert.equal(f.nos.find(n=>n.tipo==='enviar_venda').dados.status_inicial,'AGUARDANDO AUDITORIA');
 });
 function gate(vars={},erroDocumento=false){
- const dados={cpf:'52998224725',nome:'Pessoa Teste',nome_mae:'Mae Pessoa',data_nascimento:'1990-01-01',endereco_completo:'Rua Teste 10, Goiânia GO',cep:'74480150',tipo_pessoa:'PF',plano_interesse:'pf-fibra',forma_pagamento:'CARTAO',...vars};
+ const dados={cpf:'52998224725',nome:'Pessoa Teste',nome_mae:'Mae Pessoa',data_nascimento:'1990-01-01',email:'teste@example.com',telefone1:'62999990001',telefone2:'6233330002',vencimento:'31',endereco_completo:'Rua Teste 10, Goiânia GO',cep:'74480150',tipo_pessoa:'PF',plano_interesse:'pf-fibra',forma_pagamento:'CARTAO',...vars};
+ if(!('cadastro_confirmado' in dados))dados.cadastro_confirmado=JSON.stringify(dados);
  const mod=load('app/api/crm/grupoprime/validar-documentos/route.ts',{
   'node:crypto':crypto,'next/server':{NextResponse:{json:(body,o)=>({body,status:o?.status||200})}},
   '../../../_auth':{autenticarWorkspace:async()=>({workspaceId:'grupoprime'}),exigirPermissao(){},supabaseServer:{},respostaErroAcesso:e=>({status:e.statusCode||500,message:e.message})},
   '../_documentos':{documentosDaSessaoGrupoPrime:async()=>{if(erroDocumento)throw Object.assign(Error('RG verso pendente'),{statusCode:422});return{documentos:{rg_frente:[],rg_verso:[],comprovante_endereco:[]},sessao:{id:7},variaveis:dados};}},
   '../../../../lib/recuperacao-cpf-grupoprime':cpf,
+  '../../../../lib/cadastro-grupoprime':cadastro,
   '../../../../lib/viabilidade-grupoprime':{consultarViabilidade:()=>({status:'pre_viavel',cep:'74480150',cidade:'GOIANIA',uf:'GO',planos:{pessoa_fisica:[{id:'pf-fibra',nome:'Nio Fibra',velocidade_mbps:600,mensalidade:110,mensalidade_cartao:95}],pessoa_juridica:[{id:'pj-essencial',nome:'Nio Essencial',velocidade_mbps:700,mensalidade:110,mensalidade_cartao:95}]}})},
  });return()=>mod.POST({headers:new Headers(),text:async()=>JSON.stringify({numero:'5511999999999',valor_plano:1,documentos:'declaração não vale'})});
 }
 test('conferência usa preço do catálogo e ignora valor enviado pelo chamador',async()=>{
  const cartao=await gate()();assert.equal(cartao.status,200);assert.equal(cartao.body.cadastro.valor_plano,95);
- const outra=await gate({forma_pagamento:'OUTRA'})();assert.equal(outra.body.cadastro.valor_plano,110);
+ const outra=await gate({forma_pagamento:'BOLETO'})();assert.equal(outra.body.cadastro.valor_plano,110);assert.equal(outra.body.cadastro.forma_pagamento,'Boleto Bancário');
  const negacao=await gate({forma_pagamento:'não quero cartão'})();assert.equal(negacao.status,422);
  const mistura=await gate({tipo_pessoa:'PJ',plano_interesse:'pf-fibra'})();assert.equal(mistura.status,422);
+});
+test('CRM recebe e-mail, os dois contatos, vencimento e modalidade confirmados; sem confirmação bloqueia',async()=>{
+ const r=await gate()();assert.equal(r.body.cadastro.email,'teste@example.com');assert.equal(r.body.cadastro.telefone1,'5562999990001');assert.equal(r.body.cadastro.telefone2,'556233330002');assert.equal(r.body.cadastro.vencimento,'31');
+ assert.equal((await gate({cadastro_confirmado:''})()).status,422);
+ assert.equal((await gate({telefone2:'62999990001'})()).status,422);
+ assert.equal((await gate({vencimento:'32'})()).status,422);
 });
 test('a conferência interrompe o envio sem documento real',async()=>{
  const r=await gate({},true)();assert.equal(r.status,422);assert.equal(r.body.success,false);assert.equal(r.body.cadastro,undefined);
