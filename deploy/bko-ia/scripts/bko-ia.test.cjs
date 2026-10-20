@@ -113,6 +113,9 @@ test('regras rejeitam canal duplicado e mantêm titular atual em revisão se mud
  cfg.contatos.pop();await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);
  f.fluxo.nos[0].dados.bko_configuracao.contatos[0].numero='5562999990002';f.venda.dados_customizados.bko_pendente='SIM';await f.ctx.verificarVendasBko();assert.equal(f.venda.dados_customizados.bko_pendente,'REVISAR');assert.equal(f.envios.length,4);
 });
+test('BKO explicitamente configurado pode ser o contato do cliente em uma simulação',async()=>{
+ const f=fixture();f.venda.telefone1='5562999990001';await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);assert.equal(f.venda.dados_customizados.bko_pendente,'ENVIADO');
+});
 test('BKO agenda e corrige a agenda da venda sem perder os dados nem mudar outra venda',async()=>{
  const f=fixture();await f.ctx.verificarVendasBko();
  await f.retorno({mensagem:'GERADA\nDATA: 25/10/2026\nPERIODO: MANHÃ'});assert.equal(f.venda.status_venda,'GERADA');assert.equal(f.venda.data_agendamento,'25/10/2026');assert.equal(f.venda.periodo_instalacao,'Manhã');

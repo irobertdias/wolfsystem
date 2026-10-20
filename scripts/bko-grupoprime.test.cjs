@@ -113,6 +113,9 @@ test('regras rejeitam canal duplicado e mantêm titular atual em revisão se mud
  cfg.contatos.pop();await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);
  f.fluxo.nos[0].dados.bko_configuracao.contatos[0].numero='5562999990002';f.venda.dados_customizados.bko_pendente='SIM';await f.ctx.verificarVendasBko();assert.equal(f.venda.dados_customizados.bko_pendente,'REVISAR');assert.equal(f.envios.length,4);
 });
+test('BKO explicitamente configurado pode ser o contato do cliente em uma simulação',async()=>{
+ const f=fixture();f.venda.telefone1='5562999990001';await f.ctx.verificarVendasBko();assert.equal(f.envios.length,4);assert.equal(f.venda.dados_customizados.bko_pendente,'ENVIADO');
+});
 function apiConfig(f,permitido=true){
  const ts=require('typescript'),exp={};
  const auth={autenticarWorkspace:async()=>{if(!permitido)throw Object.assign(Error('Sem acesso'),{statusCode:403});return{workspaceId:'grupoprime',email:'admin@example.com'};},exigirPermissao(){},supabaseServer:f.ctx.supabase,segredoInternoWolf:()=>'',respostaErroAcesso:e=>({status:e.statusCode||500,message:e.message})};

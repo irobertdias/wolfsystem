@@ -4,5 +4,5 @@ for(const dir of ['prime-cadastro','prime-documentos','prime-atendimento']){
  fs.mkdirSync(path.join(raiz,dir),{recursive:true});
  for(const file of ['patch.cjs','test.cjs'])fs.copyFileSync(path.join('deploy',dir,file),path.join(raiz,dir,file));
 }
-const r=spawnSync('tar',['-czf','deploy/wolf-prime-correcao-completa-20261020.tar.gz','-C',raiz,'instalar.cjs','LEIA-ME.md','prime-cadastro','prime-documentos','prime-atendimento'],{encoding:'utf8'});if(r.status)throw Error(r.stderr);
+const r=spawnSync('tar',['-czf','deploy/wolf-prime-correcao-completa-v2-20261020.tar.gz','-C',raiz,'instalar.cjs','bko-destino.cjs','LEIA-ME.md','prime-cadastro','prime-documentos','prime-atendimento'],{encoding:'utf8'});if(r.status)throw Error(r.stderr);
 console.log('Pacote completo gerado sem dados de clientes ou credenciais.');

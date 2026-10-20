@@ -66,6 +66,30 @@ function bridge(s){
         return true;
       }
       if (!analise.entrada) return executarFluxoBase(...args);`);
+ s=troca(s,'      if (analise.regraArquivoId && !pedidoReanalise) {',`      // primeCepDuplaLeitura: conferir novamente o arquivo antes de alegar divergência de CEP.
+      if (workspaceId === "grupoprime" && analise.regraArquivoId === "prime_comprovante") {
+        const esperado = String(sessaoAntes?.variaveis?.cep || "").replace(/\\D/g, "");
+        const lido = String(analise.dadosExtraidos?.cep_comprovante || "").replace(/\\D/g, "");
+        if (esperado.length === 8 && lido.length === 8 && lido !== esperado) {
+          const revisao = await ctx.analisarMidiaFluxoIA({ ...(configuracao?.dados || {}), prompt: String(configuracao?.dados?.prompt || "") + "\\nREVISÃO DE LEITURA: releia com atenção o CEP impresso no endereço do destinatário, no cabeçalho da fatura. Não confunda CEP com código da conta, CPF ou vencimento. Transcreva os oito dígitos apenas se legíveis; nunca complete ou corrija por suposição." }, entradaParaAnalise, { workspaceId, canalId, numero, fluxoId: configuracao?.fluxo?.id || fluxoIdPreferido || null });
+          const cepRevisado = String(revisao?.dadosExtraidos?.cep_comprovante || "").replace(/\\D/g, "");
+          if (!revisao?.erro && cepRevisado.length === 8) {
+            analise.dadosExtraidos = { ...(analise.dadosExtraidos || {}), cep_comprovante: cepRevisado };
+            analise.entrada = String(revisao.entrada || analise.entrada || "");
+          }
+        }
+      }
+      if (analise.regraArquivoId && !pedidoReanalise) {`);
+ s=troca(s,'      variaveis[nomeValidacao] = "SIM";',`      variaveis[nomeValidacao] = "SIM";
+      if (workspaceId === "grupoprime" && regra.id === "prime_comprovante") {
+        const cepLido = String(analise.dadosExtraidos?.cep_comprovante || "").replace(/\\D/g, "");
+        if (cepLido.length === 8) {
+          variaveis.cep_comprovante = cepLido;
+          const k = "__fluxo_ia_" + (atual.no_atual || sessao.no_atual);
+          let e;try {e=typeof variaveis[k] === "string" ? JSON.parse(variaveis[k]) : variaveis[k] || {};} catch {e={};}
+          e.valores_coletados = { ...(e.valores_coletados || {}), cep_comprovante: cepLido };variaveis[k]=JSON.stringify(e);
+        }
+      }`);
  return s;
 }
 function visao(s){

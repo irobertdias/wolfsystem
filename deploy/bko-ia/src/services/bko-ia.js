@@ -121,7 +121,7 @@ module.exports=function carregarBko(ctx) {
       for(const [n,dest]of Object.entries(meta.destinatarios)){
         const atual=await configuracao();if(!atual?.ativo||!atual.fluxo.ativo||(atual.canal_id!==cfg.canal_id||atual.fila_nome!==cfg.fila_nome))throw Error("Encaminhamento pausado.");
         if(!atual.contatos.some(x=>x.numero===n))throw Error('BKO responsável removido; revisão necessária.');
-        if([v.telefone1,v.telefone2,v.dados_customizados.numero_origem_whatsapp,c.numero].some(x=>numeroBko(x)===n))throw Error("Destinatário BKO coincide com cliente ou canal de envio.");
+        if([c.numero].some(x=>numeroBko(x)===n))throw Error("O próprio canal de envio não pode ser destinatário BKO.");
         const janelaMs=new Date(atual.janelas[n]||0).getTime();
         if(c.tipo==="waba"&&(!Number.isFinite(janelaMs)||janelaMs>Date.now()+60000||Date.now()-janelaMs>23*3600000)){custom=clone(v.dados_customizados);custom.bko_pendente="JANELA";custom.bko_erro="O BKO precisa enviar uma mensagem ao canal da API oficial para iniciar o atendimento.";meta.lease=null;custom.bko_envio=JSON.stringify(meta);await salvar(v,custom);return;}
         for(const parte of dest.partes){

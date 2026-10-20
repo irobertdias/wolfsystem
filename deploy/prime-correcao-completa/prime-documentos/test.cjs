@@ -46,3 +46,10 @@ test('confirmação por texto não finge recebimento nem envio ao BKO sem arquiv
   assert.equal(saidas.length,1);assert.ok(saidas[0].includes('Ainda não consta'));assert.ok(!saidas[0].includes('BKO'));
  }
 });
+test('CEP divergente passa por nova leitura do arquivo, sem copiar o CEP esperado',async()=>{
+ const a=codigo.indexOf('      // primeCepDuplaLeitura:'),b=codigo.indexOf('      if (analise.regraArquivoId && !pedidoReanalise)',a),trecho=codigo.slice(a,b);
+ for(const revisado of ['74480150','75383126']){
+  let chamadas=0;const x={workspaceId:'grupoprime',canalId:158,numero:'teste',fluxoIdPreferido:27,sessaoAntes:{variaveis:{cep:'74480150'}},analise:{regraArquivoId:'prime_comprovante',dadosExtraidos:{cep_comprovante:'74840510'},entrada:'leitura anterior'},configuracao:{dados:{prompt:'Coleta'},fluxo:{id:27}},entradaParaAnalise:'imagem original',ctx:{analisarMidiaFluxoIA:async()=>{chamadas++;return{dadosExtraidos:{cep_comprovante:revisado},entrada:'nova leitura'};}}};
+  await vm.runInNewContext('(async function(){'+trecho+'})()',x);assert.equal(chamadas,1);assert.equal(x.analise.dadosExtraidos.cep_comprovante,revisado);
+ }
+});
