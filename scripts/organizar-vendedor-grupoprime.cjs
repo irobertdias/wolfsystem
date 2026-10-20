@@ -27,23 +27,32 @@ async function main() {
   const tokenDocumentos = createHmac('sha256', segredo).update('wolf:documentos:grupoprime:v1').digest('hex');
   const documentos = anexos.blocosDocumentosGrupoPrime(origem, tokenDocumentos, principal.dados.apiKey);
   const roteiroPrincipal = vendedor.criarVendedorGrupoPrime(origem, '').nos.find(n => n.id === 'prime_vendedor').dados;
-  const automatizado = id => /^prime_(reversao|aviso|documentos)_/.test(id);
+  const automatizado = id => /^prime_(reversao|aviso|documentos|endereco|acompanhamento)_/.test(id);
   const nos = fluxo.nos.filter(n => !automatizado(n.id)).map(n => n.id !== 'prime_vendedor' ? n : {
-    ...n, dados: { ...n.dados, prompt: roteiroPrincipal.prompt, variaveis: n.dados.variaveis.map(c => c.nome === 'nome' ? { ...c, label: 'Nome completo do titular' } : c), consultas: n.dados.consultas.map(c => c.id !== 'prime_viabilidade' ? c : {
+    ...n, dados: { ...n.dados, prompt: roteiroPrincipal.prompt, variaveis: roteiroPrincipal.variaveis,
+      mensagem_inicial: roteiroPrincipal.mensagem_inicial, mensagem_inicial_literal: true,
+      ...vendedor.lembretesGrupoPrime(), consultas: n.dados.consultas.map(c => c.id !== 'prime_viabilidade' ? c : {
       ...c, retorno_negativo_finalizar_atendimento: true, retorno_negativo_aplicar_etiqueta: true,
       retorno_negativo_nome_etiqueta: 'AGUARDANDO COBERTURA', retorno_negativo_mensagem: vendedor.MENSAGEM_SEM_DISPONIBILIDADE,
     }) },
   });
-  nos.push(...recuperacao.nos, ...avisos.nos, ...documentos.nos);
+  nos.push(...recuperacao.nos, ...avisos.nos, ...documentos.nos, vendedor.etapaEnderecoGrupoPrime(principal.dados.apiKey), vendedor.inicioAcompanhamentoGrupoPrime());
   for (const no of nos) {
-    if (no.id === 'prime_humano') { no.y = 2080; no.dados.mensagem = 'Vou encaminhar seu atendimento à equipe Grupo Prime para conferir as pendências e ajudar a concluir o pedido.'; }
+    if (no.tipo === 'fluxo_ia') Object.assign(no.dados, vendedor.lembretesGrupoPrime());
+    if (no.id === 'prime_vendedor') no.y = 540;
+    if (no.id === 'prime_documentos_entrada') no.y = 780;
+    else if (no.id.startsWith('prime_documentos_')) no.y += 500;
+    if (no.id === 'prime_humano') { no.y = 2580; no.dados.mensagem = 'Vou encaminhar seu atendimento à equipe Grupo Prime para conferir as pendências e ajudar a concluir o pedido.'; }
     if (['prime_reversao_payload','prime_reversao_atualizar','prime_reversao_limpar_etiqueta','prime_reversao_coletado','prime_reversao_enviada','prime_reversao_humano'].includes(no.id)) no.y += 440;
   }
-  const conexoes = fluxo.conexoes.filter(c => !automatizado(c.de) && !automatizado(c.para) && !(c.de === 'prime_vendedor' && c.saidaIndex === 0))
-    .concat([{ id: 'prime_saida_0', de: 'prime_vendedor', saidaIndex: 0, para: 'prime_documentos_entrada' }], recuperacao.conexoes, avisos.conexoes).map(c => {
+  const conexoes = fluxo.conexoes.filter(c => !automatizado(c.de) && !automatizado(c.para) && !(['prime_vendedor', 'prime_inicio'].includes(c.de) && c.saidaIndex === 0))
+    .concat([{ id: 'prime_inicio_acompanhamento', de: 'prime_inicio', saidaIndex: 0, para: 'prime_acompanhamento_inicio' },
+      { id: 'prime_inicio_ia', de: 'prime_acompanhamento_inicio', saidaIndex: 0, para: 'prime_vendedor' },
+      { id: 'prime_saida_0', de: 'prime_vendedor', saidaIndex: 0, para: 'prime_documentos_entrada' }], recuperacao.conexoes, avisos.conexoes).map(c => {
     if (c.de === 'prime_reversao_ia' && c.saidaIndex === 0) return { ...c, para: 'prime_reversao_documentos_preparar' };
     return c;
-  }).concat(documentos.conexoes);
+  }).concat(documentos.conexoes.map(c => c.de === 'prime_documentos_entrada' && c.saidaIndex === 0 ? { ...c, para: 'prime_endereco_ia' } : c),
+    [0, 1, 2, 3].map(saidaIndex => ({ id: `prime_endereco_saida_${saidaIndex}`, de: 'prime_endereco_ia', saidaIndex, para: saidaIndex === 0 ? 'prime_documentos_preparar' : 'prime_humano' })));
   console.log(JSON.stringify({ fluxo: fluxo.id, ativo: fluxo.ativo, blocos: nos.length, gatilhos: nos.filter(n => n.tipo === 'gatilho_crm').map(n => n.dados.valor), documentos_obrigatorios: anexos.REGRAS_DOCUMENTOS_GRUPOPRIME.map(r=>r.nome), encerra_sem_disponibilidade: true }));
   if (!process.argv.includes('--apply')) return;
   const { data: config, error: erroConfig } = await db.from('proposta_campos_padrao_config').select('id,opcoes').eq('workspace_id', 'grupoprime').eq('campo_slug', 'status_venda').maybeSingle();

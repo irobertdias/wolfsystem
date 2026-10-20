@@ -135,8 +135,8 @@ Aplicar/reaplicar a organização, preservando chave, estado ativo e os demais b
 node --env-file=.env.local scripts/organizar-vendedor-grupoprime.cjs --apply
 ```
 
-O script atualiza somente os ramos `prime_reversao_*` e `prime_aviso_*` do fluxo 27,
-além da configuração de encerramento da consulta. Inclui os status necessários
+O script organiza o vendedor e os ramos de endereço, documentos, recuperação e avisos do fluxo 27,
+além da configuração de encerramento da consulta. Preserva chave, ativação e vínculo do canal. Inclui os status necessários
 nas opções do CRM do Grupo Prime. Não ativa fluxo ou envia mensagens de teste.
 
 Antes de ativar: publicar o código no app, configurar a chave IA no bloco,
@@ -152,6 +152,25 @@ Testes:
 node --test scripts/viabilidade-grupoprime.test.cjs
 node --test scripts/recuperacao-grupoprime.test.cjs
 node --test scripts/documentos-grupoprime.test.cjs
+node --test scripts/atendimento-grupoprime.test.cjs
 python scripts/importar-viabilidade-vtal.test.py
 node node_modules/typescript/bin/tsc --noEmit --incremental false
 ```
+
+Sequência comercial: apresentação → CEP → consulta e planos na mesma resposta →
+escolha PF/PJ → endereço completo em etapa separada → dados do titular e documentos → auditoria.
+Se o cliente ainda não identificou PF/PJ, apresentar os dois catálogos em grupos separados.
+Não pedir nome, endereço ou finalidade de uso antes da oferta. A saída ANALISE_HUMANA
+continua passando direto à equipe, sem obrigar o endereço.
+
+Lembretes de contratação habilitados nos blocos IA: 20, 40 e 60 minutos após a
+resposta da IA sem retorno do cliente. O motor mede os intervalos desde o lembrete
+anterior, por isso a configuração é **20/20/20**, não 20/40/60 (que enviaria aos 20/60/120).
+O worker verifica a cada 30 segundos. A resposta do cliente reinicia a contagem;
+atendimento encerrado, transferência humana e saída da coleta interrompem o acompanhamento.
+Sem encerramento automático após o terceiro lembrete. Não altera os avisos de status do BKO.
+O bloco inicial prepara o acompanhamento também para quem parar antes de responder ao pedido de CEP.
+
+Verificação opcional com duas chamadas reais à IA já configurada (sem envio de WhatsApp):
+`node --env-file=.env.local scripts/verificar-roteiro-grupoprime.cjs`.
+Usa o backend irmão para reproduzir o prompt do motor; ajuste `WOLF_BACKEND_PATH` se necessário.
