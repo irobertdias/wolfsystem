@@ -22,4 +22,14 @@ function resposta(workspaceId,sessao,config,entrada){
  if(/\b(contrato|locacao|aluguel|comprovante|conta|fatura)\b/.test(t)&&/\?|\b(serve|aceita|pode ser|em nome)\b/.test(t))return'Sim, aceitamos contrato de locação e outros comprovantes, inclusive em nome de outra pessoa. Pode enviar uma foto ou o PDF por aqui.';
  return null;
 }
-module.exports={decidir,resposta};
+async function recuperar(ctx,ws,canal,numero,sessao,config){
+ const c=contexto(ws,sessao,config);if(!c||!temArquivo(c.vars,'rg_frente')||!temArquivo(c.vars,'rg_verso'))return null;
+ const datas=[sessao.created_at,...['rg_frente','rg_verso'].flatMap(k=>lista(c.vars[k]).map(a=>a.enviado_em))].map(v=>Date.parse(v||'')).filter(Number.isFinite);
+ if(!datas.length||typeof ctx.capturarArquivoPrivado!=='function')return null;
+ const n=String(numero).replace(/\D/g,'');
+ const{data,error}=await ctx.supabase.from('mensagens').select('mensagem,created_at').eq('workspace_id',ws).eq('canal_id',canal).in('numero',[n,'+'+n]).eq('de','cliente').gte('created_at',new Date(Math.max(...datas)).toISOString()).order('created_at',{ascending:false}).limit(30);
+ if(error)throw error;
+ for(const m of data||[]){const analise=decidir(ws,sessao,config,m.mensagem);if(analise){const captura=await ctx.capturarArquivoPrivado({workspaceId:ws,canalId:canal,numero,sessao,configuracao:config,analise});if(captura)return captura;}}
+ return null;
+}
+module.exports={decidir,resposta,recuperar};
