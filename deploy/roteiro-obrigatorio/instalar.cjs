@@ -1,0 +1,15 @@
+const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
+const root=path.resolve(process.argv[2]||'/root/wolf-whatsapp'),base=path.dirname(__dirname),alvo=path.join(root,'src/routes/fluxos.js');
+const executar=(args,env=process.env)=>{const r=spawnSync(process.execPath,args,{env,stdio:'inherit'});if(r.status!==0)throw Error('Verificação falhou: '+args.join(' '));};
+executar(['--test',path.join(base,'nio-oferta/oferta.test.cjs'),path.join(base,'vero/oferta.test.cjs'),path.join(__dirname,'test.cjs')],{...process.env,WOLF_BACKEND_DIR:root});
+const original=fs.readFileSync(alvo,'utf8');let codigo=original;
+for(const patch of ['vero/oferta-patch.cjs','nio-oferta/oferta-patch.cjs','roteiro-obrigatorio/patch.cjs'])codigo=require(path.join(base,patch)).corrigir(codigo);
+const arquivos=[['src/routes/fluxos.js',codigo],['src/services/nio-oferta-direta.js',fs.readFileSync(path.join(base,'nio-oferta/oferta-direta.js'),'utf8')],['src/services/vero-oferta-direta.js',fs.readFileSync(path.join(base,'vero/oferta-direta.js'),'utf8')],['src/services/roteiro-obrigatorio.js',fs.readFileSync(path.join(__dirname,'guard.js'),'utf8')]];
+for(const[,texto]of arquivos){const r=spawnSync(process.execPath,['--check'],{input:texto,encoding:'utf8'});if(r.status)throw Error(r.stderr);}
+if(process.argv.includes('--check')){console.log('ROTEIRO_CHECK_OK: Nio, Vero e confirmação de campos; nenhuma alteração feita.');process.exit(0);}
+const backup=path.join(root,'backups','roteiro-obrigatorio-'+Date.now()),anteriores=[];fs.mkdirSync(backup,{recursive:true});
+for(const[rel]of arquivos){const p=path.join(root,rel),conteudo=fs.existsSync(p)?fs.readFileSync(p):null;anteriores.push([p,conteudo]);if(conteudo){const b=path.join(backup,rel);fs.mkdirSync(path.dirname(b),{recursive:true});fs.writeFileSync(b,conteudo);}}
+try{for(const[rel,conteudo]of arquivos)fs.writeFileSync(path.join(root,rel),conteudo);}catch(e){for(const[p,antes]of anteriores){if(antes)fs.writeFileSync(p,antes);else if(fs.existsSync(p))fs.unlinkSync(p);}throw e;}
+console.log('ROTEIRO_INSTALADO; backup: '+backup);
+const restart=spawnSync('pm2',['restart','wolf-whatsapp'],{stdio:'inherit'});if(restart.status!==0)throw Error('Arquivos instalados; reinício do PM2 não confirmado.');
+console.log('ROTEIRO_REINICIADO: valide uma conversa de cada operador.');

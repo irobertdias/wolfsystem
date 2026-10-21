@@ -1,10 +1,18 @@
 const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
 function corrigir(s){
- if(s.includes('// veroOfertaDiretaV1:')){if((s.match(/decidirOfertaVero\(/g)||[]).length!==2)throw Error('Patch de oferta incompleto');return s;}
- const pre='      let resultado = await executarFluxoPorIA(d, variaveis, entrada, estado);';
+ if(s.includes('// veroOfertaDiretaV2:')){if((s.match(/decidirOfertaVero\(/g)||[]).length!==2)throw Error('Patch de oferta incompleto');return s;}
+ if(s.includes('// veroOfertaDiretaV1:')){
+  const a=s.indexOf('      // veroOfertaDiretaV1:'),b=s.indexOf('      let resultado = await executarFluxoPorIA(d, variaveis, entrada, estado);',a);
+  if(a<0||b<0||(s.match(/decidirOfertaVero\(/g)||[]).length!==2)throw Error('Patch Vero anterior incompleto');
+  const bloco=s.slice(a,b);s=s.slice(0,a)+s.slice(b);
+  const p='      if (processarInput && estado.aguardando_confirmacao === true && clienteConfirmouResumoFluxoIA(entrada)) {';
+  if(s.split(p).length!==2)throw Error('Confirmação Vero incompatível');
+  return s.replace(p,bloco+p).replaceAll('// veroOfertaDiretaV1:','// veroOfertaDiretaV2:');
+ }
+ const pre='      if (processarInput && estado.aguardando_confirmacao === true && clienteConfirmouResumoFluxoIA(entrada)) {';
  const pos='      if (consultas.executadas.length) {';
  if(s.split(pre).length!==2||s.split(pos).length!==2)throw Error('Encaixe da oferta Vero incompatível');
- const decidir=(apos)=>`      // veroOfertaDiretaV1: pergunta e catálogo completos não dependem da redação da IA.
+ const decidir=(apos)=>`      // veroOfertaDiretaV2: pergunta e catálogo completos não dependem da redação da IA.
       if(${apos?'consultas.executadas.length':'true'}){
         const decisao = require("../services/vero-oferta-direta.js").decidirOfertaVero(d,variaveis,entrada,estado,{aposConsulta:${apos}});
         if(decisao){
