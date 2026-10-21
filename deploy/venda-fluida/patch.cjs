@@ -56,4 +56,10 @@ function retentativas(s){
  s=s.replace(falha,'      custom=clone(v.dados_customizados);custom.bko_tentar_em=require("./bko-retentativa.js").falha(meta);custom.bko_envio=JSON.stringify(meta);custom.bko_pendente="SIM";custom.bko_erro="Nova tentativa automática agendada para os anexos pendentes.";custom.bko_ultimo_erro_tecnico=String(e.message||e).slice(0,500);');
  return s.replace('meta.lease=null;custom=clone(v.dados_customizados);custom.bko_envio=JSON.stringify(meta);custom.bko_pendente="ENVIADO"','meta.lease=null;meta.falhas_consecutivas=0;custom=clone(v.dados_customizados);custom.bko_envio=JSON.stringify(meta);custom.bko_pendente="ENVIADO"');
 }
-module.exports={fluxos,oferta,bridge,index,bko,captura,retentativas};
+function recibos(s){
+ if(s.includes('// bkoAckV1:'))return s;
+ const texto='return r.messageId;',midia='return r.id._serialized;';
+ if(s.split(texto).length!==2||s.split(midia).length!==2)throw Error('Recibos BKO incompatíveis');
+ return '// bkoAckV1: ID gerado sem ACK não confirma envio.\n'+s.replace(texto,'return await require("./bko-recibo.js").confirmar(ctx.sessoes[String(c.canalId)].client,r.messageId,r.ack);').replace(midia,'return await require("./bko-recibo.js").confirmar(ctx.sessoes[String(c.canalId)].client,r.id._serialized,r.ack);');
+}
+module.exports={fluxos,oferta,bridge,index,bko,captura,retentativas,recibos};
