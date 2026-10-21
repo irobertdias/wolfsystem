@@ -31,7 +31,7 @@ export async function consultarVero(entrada: unknown, rede?: RedeVero, resolver:
   const elegivel=!!cidade&&(!rede||cidade.rede===rede);
   return {success:true,operadora:'Vero',cep,status:elegivel?'pre_viavel_por_cidade':'fora_das_cidades',cidade:endereco.localidade,uf:endereco.uf,rede:elegivel?cidade.rede:null,classificacao:elegivel?cidade.classe:null,
     planos:elegivel?planosVero(cidade.classe):[],confirmacao_tecnica_necessaria:true,origem:'Município do CEP via ViaCEP; cidades e ofertas fornecidas pelo cliente. Não é consulta de portas ou cobertura física da Vero.',
-    mensagem:elegivel?'Cidade contemplada nesta campanha. Apresente as ofertas e confirme a viabilidade técnica do imóvel com o endereço completo.':'Não temos disponibilidade dessas ofertas para esse CEP nesta campanha. Não ofereça esses planos.'};
+    mensagem:elegivel?'Cidade contemplada nesta campanha. Pergunte CPF ou CNPJ se ainda não informado. Após essa escolha, envie imediatamente a lista completa de planos. Se o público já foi informado, envie a lista agora. A confirmação técnica do imóvel vem após a escolha do plano.':'Não temos disponibilidade dessas ofertas para esse CEP nesta campanha. Não ofereça esses planos.'};
 }
 export async function resolverCepVero(cep:string):Promise<EnderecoCepVero> {
   const r=await fetch(`https://viacep.com.br/ws/${cep}/json/`,{signal:AbortSignal.timeout(7000),next:{revalidate:86400}});

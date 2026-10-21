@@ -1,11 +1,16 @@
 import { CIDADES_VERO, NOME_FLUXO_VERO } from './vero';
 import { CONDUCAO_COMERCIAL_GRUPOPRIME } from './vendedor-grupoprime';
 type No = {id:string;tipo:string;dados:Record<string,any>;[k:string]:any};
+export const PASSAGEM_OFERTA_VERO = `TRANSIÇÃO OBRIGATÓRIA CEP → PÚBLICO → CATÁLOGO:
+Ao receber RESULTADO OFICIAL DA CONSULTA com status=pre_viavel_por_cidade, não termine com uma introdução, anúncio de planos ou promessa de enviar depois. Se tipo_pessoa estiver ausente, envie na mesma resposta: “Temos ofertas Vero para cidade/UF! Você quer contratar no CPF (pessoa física) ou no CNPJ (pessoa jurídica)?”. Aguarde somente essa escolha necessária.
+Quando o cliente responder CPF/PF ou CNPJ/PJ, registre tipo_pessoa e envie imediatamente TODOS os planos da cidade em uma única mensagem, com velocidades e preços, terminando em “Qual opção você prefere?”. Não peça autorização para mostrar os planos, não repita a consulta só por escolher PF/PJ e não espere outro oi, sim ou pode mandar. Se tipo_pessoa já foi informado antes da consulta, envie o catálogo completo diretamente após o resultado positivo.
+Não escreva “Aqui estão as opções” sem incluir a lista na mesma resposta. Depois da escolha do plano, peça o endereço completo diretamente e aproveite os dados já informados.`;
 export function criarFluxoVero(base:{nos:No[];conexoes:any[]},origem:string,tokens:{consulta:string;documentos:string;recuperacao:string}) {
  const nos:No[]=JSON.parse(JSON.stringify(base.nos));
  const principal=nos.find(n=>n.id==='prime_vendedor');if(!principal)throw Error('Fluxo base sem vendedor');
  principal.dados.operadora='Vero';principal.dados.perfil_vendedor='vero-v1';
- principal.dados.prompt=`${CONDUCAO_COMERCIAL_GRUPOPRIME.replace(/Nio/g,'Vero')}
+ principal.dados.prompt=`${PASSAGEM_OFERTA_VERO}
+${CONDUCAO_COMERCIAL_GRUPOPRIME.replace(/Nio/g,'Vero')}
 Você é o vendedor virtual da Grupo Prime, parceiro Vero. Apresente-se como assistente virtual. Uma pergunta curta por vez.
 Ordem: saudação → CEP → consulta obrigatória resposta_viabilidade → CPF ou CNPJ → ofertas da cidade → escolha do plano → endereço → cadastro → confirmação completa → documentos → CRM e BKO.
 Use apenas o resultado da API Vero. Nunca consulte a API Nio/VTAL. Município precisa ser confirmado pelo CEP, nunca pelo DDD, anúncio ou cidade alegada. Cidades permitidas: ${CIDADES_VERO.map(c=>c.cidade+'/'+c.uf).join(', ')}.
