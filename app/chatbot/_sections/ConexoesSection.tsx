@@ -104,6 +104,7 @@ export function ConexoesSection() {
   const [showMenuEngrenagem, setShowMenuEngrenagem] = useState<number | null>(null);
   const [qrCanalId, setQrCanalId] = useState<number | null>(null);
   const [resetando, setResetando] = useState(false);
+  const qrEmAndamentoRef = useRef(false);
   const [qrImageUrl, setQrImageUrl] = useState("");
   const [qrPolling, setQrPolling] = useState(false);
   const [qrConectado, setQrConectado] = useState(false);
@@ -711,13 +712,14 @@ export function ConexoesSection() {
   };
 
   const abrirQR = async (id: number) => {
+    if (qrEmAndamentoRef.current) return;
     const canal = conexoes.find(c => c.id === id);
     if (!canal) return;
+    qrEmAndamentoRef.current = true;
     setQrPolling(false); setQrCanalId(id); setResetando(true); setShowModalQR(true);
     setQrImageUrl(""); setQrConectado(false); setQrNumero(""); setQrTentativas(0); setQrRecuperarAusentes(false); setQrRecuperacaoHoras("24"); recuperacaoQrIniciadaRef.current = null;
     try {
-      let resposta = await wa("iniciar-qr", { canalId: id, workspaceId: canal.workspace_id });
-      if (resposta?.upstreamStatus === 404) resposta = await wa("reconectar", { canalId: id, workspaceId: canal.workspace_id });
+      const resposta = await wa("resetar", { canalId: id, workspaceId: canal.workspace_id });
       if (!resposta?.success) throw new Error(resposta?.error || "O servidor nao iniciou a geracao do QR Code.");
       if (resposta.qr) setQrImageUrl(resposta.qr);
       setQrPolling(true);
@@ -725,7 +727,7 @@ export function ConexoesSection() {
     } catch (erro) {
       setQrPolling(false);
       notify("Falha ao gerar QR Code", "erro", traduzirErro(erro));
-    } finally { setResetando(false); }
+    } finally { qrEmAndamentoRef.current = false; setResetando(false); }
   };
 
   const reconectarCanal = async (c: Conexao) => {
