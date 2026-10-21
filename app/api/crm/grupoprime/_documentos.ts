@@ -6,11 +6,13 @@ import { REGRAS_DOCUMENTOS_GRUPOPRIME } from '../../../lib/documentos-grupoprime
 function falhar(message: string, statusCode = 422): never { throw Object.assign(new Error(message), { statusCode }); }
 export type DocumentoPrivado = { url: string; nome: string; tipo: string; tamanho: number; privado: true; categoria: string; regra_id: string; enviado_em: string };
 
-export async function documentosDaSessaoGrupoPrime(db: SupabaseClient, numeroEntrada: unknown, cpfEsperado: string, propostaId?: number) {
+export async function documentosDaSessaoGrupoPrime(db: SupabaseClient, numeroEntrada: unknown, cpfEsperado: string, propostaId?: number, fluxoVero=false) {
   const numero = typeof numeroEntrada === 'string' ? numeroEntrada.replace(/\D/g, '') : '';
   if (!/^\d{10,15}$/.test(numero)) falhar('Atendimento inválido.');
+  let fluxoId=27;
+  if(fluxoVero){const {data:f,error}=await db.from('fluxos').select('id,nos').eq('workspace_id','grupoprime').eq('id',28).single();if(error||!f||!f.nos?.some((n:{id:string;dados?:{perfil_vendedor?:string}})=>n.id==='prime_vendedor'&&n.dados?.perfil_vendedor==='vero-v1'))falhar('Fluxo Vero não encontrado.',409);fluxoId=f.id;}
   let query = db.from('fluxo_sessoes').select('id,canal_id,numero,variaveis,updated_at,expira_em')
-    .eq('workspace_id', 'grupoprime').eq('fluxo_id', 27).eq('status', 'ativo').in('numero', [numero, `+${numero}`]);
+    .eq('workspace_id', 'grupoprime').eq('fluxo_id', fluxoId).eq('status', 'ativo').in('numero', [numero, `+${numero}`]);
   if (propostaId) query = query.eq('variaveis->>proposta_id', String(propostaId));
   const { data, error } = await query.order('updated_at', { ascending: false }).limit(2);
   if (error) throw error;

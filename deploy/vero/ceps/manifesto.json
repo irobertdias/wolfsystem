@@ -1,0 +1,77 @@
+{
+  "origem": "Recorte geográfico da base histórica do cliente (2024/2025). Não comprova rede Vero e não é uma lista completa de CEPs. A nova API identifica cada CEP via ViaCEP, inclusive os ausentes destes arquivos.",
+  "cidades": [
+    {
+      "cidade": "Belo Horizonte",
+      "uf": "MG",
+      "rede": "neutra",
+      "classe": "neutra",
+      "ceps": 10649,
+      "arquivo": "belo-horizonte.csv"
+    },
+    {
+      "cidade": "Nova Lima",
+      "uf": "MG",
+      "rede": "neutra",
+      "classe": "neutra",
+      "ceps": 1,
+      "arquivo": "nova-lima.csv"
+    },
+    {
+      "cidade": "Itabira",
+      "uf": "MG",
+      "rede": "neutra",
+      "classe": "neutra",
+      "ceps": 281,
+      "arquivo": "itabira.csv"
+    },
+    {
+      "cidade": "Goiânia",
+      "uf": "GO",
+      "rede": "neutra",
+      "classe": "neutra",
+      "ceps": 11253,
+      "arquivo": "goiania.csv"
+    },
+    {
+      "cidade": "Ipatinga",
+      "uf": "MG",
+      "rede": "propria",
+      "classe": "especial",
+      "ceps": 374,
+      "arquivo": "ipatinga.csv"
+    },
+    {
+      "cidade": "Sabará",
+      "uf": "MG",
+      "rede": "propria",
+      "classe": "especial",
+      "ceps": 114,
+      "arquivo": "sabara.csv"
+    },
+    {
+      "cidade": "Timóteo",
+      "uf": "MG",
+      "rede": "propria",
+      "classe": "especial",
+      "ceps": 2,
+      "arquivo": "timoteo.csv"
+    },
+    {
+      "cidade": "João Monlevade",
+      "uf": "MG",
+      "rede": "propria",
+      "classe": "prata",
+      "ceps": 298,
+      "arquivo": "joao-monlevade.csv"
+    },
+    {
+      "cidade": "Vespasiano",
+      "uf": "MG",
+      "rede": "propria",
+      "classe": "prata",
+      "ceps": 428,
+      "arquivo": "vespasiano.csv"
+    }
+  ]
+}

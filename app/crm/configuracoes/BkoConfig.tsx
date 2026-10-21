@@ -1,22 +1,25 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { ConfigBko } from '../../lib/bko-grupoprime';
 type Canal={id:number;nome:string;tipo:string;status:string};
 type Envio={id:number;status:string;estado:string;erro:string;referencia:string};
 export default function BkoConfig({workspaceId}:{workspaceId:string}) {
+  const [fluxoId,setFluxoId]=useState(27);
+  const cargaRef=useRef(0);
   const [config,setConfig]=useState<ConfigBko>({ativo:false,canal_id:null,contatos:[]});
   const [canais,setCanais]=useState<Canal[]>([]),[envios,setEnvios]=useState<Envio[]>([]);
   const [filas,setFilas]=useState<{id:number;nome:string}[]>([]);
   const [pronto,setPronto]=useState(false),[fluxoAtivo,setFluxoAtivo]=useState(false),[wabaPronto,setWabaPronto]=useState(false);
   const [erro,setErro]=useState(''),[aviso,setAviso]=useState(''),[ocupado,setOcupado]=useState(true);
-  async function requisicao(method='GET',body?:unknown){const {data:{session}}=await supabase.auth.getSession();const r=await fetch(`/api/workspace/configuracoes/bko?workspaceId=${encodeURIComponent(workspaceId)}`,{method,headers:{Authorization:`Bearer ${session?.access_token||''}`,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const j=await r.json();if(!r.ok||!j.success)throw Error(j.error||'Não foi possível carregar o BKO.');return j;}
-  async function carregar(){setOcupado(true);setErro('');try{const j=await requisicao();setConfig({...j.config,modo:"por_canal"});setCanais(j.canais);setFilas(j.filas||[]);setEnvios(j.envios);setPronto(j.servidor_pronto);setFluxoAtivo(j.fluxo_ativo);setWabaPronto(j.waba_pronto);}catch(e){setErro((e as Error).message);}finally{setOcupado(false);}}
-  useEffect(()=>{void carregar();},[workspaceId]);
+  async function requisicao(method='GET',body?:unknown){const {data:{session}}=await supabase.auth.getSession();const r=await fetch(`/api/workspace/configuracoes/bko?workspaceId=${encodeURIComponent(workspaceId)}&fluxoId=${fluxoId}`,{method,headers:{Authorization:`Bearer ${session?.access_token||''}`,'Content-Type':'application/json'},...(body?{body:JSON.stringify({...body as Record<string,unknown>,fluxoId})}:{})});const j=await r.json();if(!r.ok||!j.success)throw Error(j.error||'Não foi possível carregar o BKO.');return j;}
+  async function carregar(){const carga=++cargaRef.current;setOcupado(true);setErro('');try{const j=await requisicao();if(carga!==cargaRef.current)return;setConfig({...j.config,modo:"por_canal"});setCanais(j.canais);setFilas(j.filas||[]);setEnvios(j.envios);setPronto(j.servidor_pronto);setFluxoAtivo(j.fluxo_ativo);setWabaPronto(j.waba_pronto);}catch(e){if(carga===cargaRef.current)setErro((e as Error).message);}finally{if(carga===cargaRef.current)setOcupado(false);}}
+  useEffect(()=>{void carregar();},[workspaceId,fluxoId]);
   async function salvar(){setOcupado(true);setAviso('');setErro('');try{if(config.ativo&&!pronto)throw Error('Instale a atualização de encaminhamento por canal no servidor antes de ativar os envios.');await requisicao('PATCH',{workspaceId,config});setAviso('Configuração salva.');}catch(e){setErro((e as Error).message);}finally{setOcupado(false);}}
   async function retentar(id:number){setOcupado(true);setErro('');try{await requisicao('PATCH',{workspaceId,acao:'retentar',proposta_id:id});await carregar();setAviso('Partes pendentes liberadas para nova tentativa.');}catch(e){setErro((e as Error).message);}finally{setOcupado(false);}}
   const input={padding:10,border:'1px solid #cbd5e1',borderRadius:8,background:'#fff',color:'#0f172a',minWidth:0};
   return <section style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:14,padding:22,color:'#1e293b'}}>
+    <label style={{display:'grid',gap:6,marginBottom:16}}>Vendedor<select style={input} disabled={ocupado} value={fluxoId} onChange={e=>{setOcupado(true);setPronto(false);setEnvios([]);setConfig({ativo:false,canal_id:null,contatos:[]});setFluxoId(Number(e.target.value));}}><option value={27}>Nio</option><option value={28}>Vero</option></select></label>
     <h2 style={{margin:'0 0 8px',fontSize:17}}>Retorno de vendas pelo WhatsApp do BKO</h2>
     <p style={{fontSize:13,color:'#475569'}}>Após o cadastro confirmado e os documentos salvos, um único BKO recebe o resumo da venda, RG frente e verso e comprovante de endereço. Cada canal de entrada tem seu BKO definido abaixo: canal A envia para X, canal B envia para Y. Os dados e documentos permanecem salvos no CRM.</p>
     <p role="status" style={{fontSize:13,color:pronto?'#166534':'#92400e'}}>{pronto?'Servidor BKO disponível.':'Instale a atualização do envio automático no servidor WhatsApp.'} {!fluxoAtivo&&'O vendedor está pausado; salvar esta configuração não o reativa.'}</p>

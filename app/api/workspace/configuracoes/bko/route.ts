@@ -13,13 +13,14 @@ function erro(e: unknown) { const r=respostaErroAcesso(e);return NextResponse.js
 export async function GET(request: NextRequest) {
   try {
     const a=await acesso(request,request.nextUrl.searchParams.get('workspaceId')||'');
-    const {data:f,error}=await supabaseServer.from('fluxos').select('nos,ativo').eq('workspace_id',a.workspaceId).eq('id',27).single();if(error)throw error;
+    const fluxoId=Number(request.nextUrl.searchParams.get('fluxoId')||27);if(![27,28].includes(fluxoId))throw Object.assign(Error('Fluxo inválido.'),{statusCode:400});
+    const {data:f,error}=await supabaseServer.from('fluxos').select('nos,ativo').eq('workspace_id',a.workspaceId).eq('id',fluxoId).single();if(error)throw error;
     const config=f.nos.find((n: {id:string})=>n.id==='prime_documentos_enviar')?.dados?.bko_configuracao || {ativo:false,canal_id:null,contatos:[]};
     const {data:canais,error:ec}=await supabaseServer.from('conexoes').select('id,nome,tipo,status,modo').eq('workspace_id',a.workspaceId);if(ec)throw ec;
-    const {data:envios,error:ee}=await supabaseServer.from('proposta').select('id,status_venda,dados_customizados,updated_at').eq('workspace_id',a.workspaceId).eq('fluxo_id',27).not('dados_customizados->>bko_pendente','is',null).order('updated_at',{ascending:false}).limit(20);if(ee)throw ee;
+    const {data:envios,error:ee}=await supabaseServer.from('proposta').select('id,status_venda,dados_customizados,updated_at').eq('workspace_id',a.workspaceId).eq('fluxo_id',fluxoId).not('dados_customizados->>bko_pendente','is',null).order('updated_at',{ascending:false}).limit(20);if(ee)throw ee;
     const {data:filas,error:ef}=await supabaseServer.from('filas').select('id,nome,conexao').eq('workspace_id',a.workspaceId).order('nome');if(ef)throw ef;
     let servidor_pronto=false,waba_pronto=false;
-    try {const r=await fetch(`${process.env.WHATSAPP_URL||process.env.NEXT_PUBLIC_WHATSAPP_URL||'https://api.wolfgyn.com.br'}/bko/health`,{headers:{'x-wolf-internal-secret':segredoInternoWolf()},cache:'no-store',signal:AbortSignal.timeout(4000)});if(r.ok){const j=await r.json();servidor_pronto=j.versao>=4;waba_pronto=!!(j.waba_assinatura&&j.waba_versao);}}catch{}
+    try {const r=await fetch(`${process.env.WHATSAPP_URL||process.env.NEXT_PUBLIC_WHATSAPP_URL||'https://api.wolfgyn.com.br'}/bko/health`,{headers:{'x-wolf-internal-secret':segredoInternoWolf()},cache:'no-store',signal:AbortSignal.timeout(4000)});if(r.ok){const j=await r.json();servidor_pronto=j.versao>=4&&(fluxoId===27||j.vero_fluxo===28);waba_pronto=!!(j.waba_assinatura&&j.waba_versao);}}catch{}
     return NextResponse.json({success:true,config,canais,filas,fluxo_ativo:f.ativo,servidor_pronto,waba_pronto,envios:(envios||[]).map(p=>({id:p.id,status:p.status_venda,estado:p.dados_customizados?.bko_pendente,erro:p.dados_customizados?.bko_erro||'',referencia:p.dados_customizados?.bko_ref||''}))});
   }catch(e){return erro(e);}
 }
@@ -29,9 +30,10 @@ export async function PATCH(request: NextRequest) {
     let body;try{body=JSON.parse(texto);}catch{return NextResponse.json({success:false,error:'JSON inválido.'},{status:400});}
     if(!body||typeof body!=='object'||Array.isArray(body))return NextResponse.json({success:false,error:'Dados inválidos.'},{status:400});
     const a=await acesso(request,String(body.workspaceId||''));
+    const fluxoId=Number(body.fluxoId||27);if(![27,28].includes(fluxoId))throw Object.assign(Error('Fluxo inválido.'),{statusCode:400});
     if(body.acao==='retentar'){
       if(!Number.isSafeInteger(body.proposta_id)||body.proposta_id<=0)throw Object.assign(new Error('Venda inválida.'),{statusCode:422});
-      const {data:p,error:ep}=await supabaseServer.from('proposta').select('id,status_venda,dados_customizados,updated_at').eq('workspace_id',a.workspaceId).eq('fluxo_id',27).eq('id',body.proposta_id).maybeSingle();if(ep)throw ep;
+      const {data:p,error:ep}=await supabaseServer.from('proposta').select('id,status_venda,dados_customizados,updated_at').eq('workspace_id',a.workspaceId).eq('fluxo_id',fluxoId).eq('id',body.proposta_id).maybeSingle();if(ep)throw ep;
       if(!p||p.status_venda!=='AGUARDANDO AUDITORIA'||p.dados_customizados?.bko_pendente!=='REVISAR')throw Object.assign(new Error('Venda não está aguardando revisão do envio.'),{statusCode:409});
       const custom=JSON.parse(JSON.stringify(p.dados_customizados));let meta;
       try{meta=JSON.parse(custom.bko_envio||'{}');}catch{throw Object.assign(new Error('Registro de envio inválido. Encaminhe ao suporte.'),{statusCode:422});}
@@ -51,11 +53,11 @@ export async function PATCH(request: NextRequest) {
       if(regra.canal_trafego_id){const {data:c}=await supabaseServer.from('conexoes').select('id').eq('workspace_id',a.workspaceId).eq('id',regra.canal_trafego_id).maybeSingle();if(!c)throw Object.assign(new Error('Canal de tráfego não pertence ao workspace.'),{statusCode:422});}
       if(regra.fila_nome){const {data:fila}=await supabaseServer.from('filas').select('id').eq('workspace_id',a.workspaceId).eq('nome',regra.fila_nome).limit(1).maybeSingle();if(!fila)throw Object.assign(new Error('Fila não pertence ao workspace.'),{statusCode:422});}
     }
-    const {data:f,error}=await supabaseServer.from('fluxos').select('nos').eq('workspace_id',a.workspaceId).eq('id',27).single();if(error)throw error;
+    const {data:f,error}=await supabaseServer.from('fluxos').select('nos').eq('workspace_id',a.workspaceId).eq('id',fluxoId).single();if(error)throw error;
     const indice=f.nos.findIndex((n:{id:string})=>n.id==='prime_documentos_enviar');if(indice<0)throw Error('Vendedor ausente');
     const anterior=f.nos[indice].dados.bko_versao;
     const nos=f.nos.map((n:{id:string;dados:Record<string,unknown>})=>n.id==='prime_documentos_enviar'?{...n,dados:{...n.dados,bko_configuracao:config,bko_versao:randomUUID()}}:n);
-    let gravar=supabaseServer.from('fluxos').update({nos}).eq('workspace_id',a.workspaceId).eq('id',27);
+    let gravar=supabaseServer.from('fluxos').update({nos}).eq('workspace_id',a.workspaceId).eq('id',fluxoId);
     gravar=anterior?gravar.eq(`nos->${indice}->dados->>bko_versao`,anterior):gravar.is(`nos->${indice}->dados->>bko_versao`,null);
     const {data:salvo,error:es}=await gravar.select('id').maybeSingle();if(es)throw es;
     if(!salvo)return NextResponse.json({success:false,error:'O fluxo foi alterado. Recarregue antes de salvar.'},{status:409});

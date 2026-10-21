@@ -1,6 +1,7 @@
 const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
 function troca(s,a,b){if(s.includes(b))return s;if(s.split(a).length!==2)throw Error('Encaixe incompatível');return s.replace(a,b);}
 function bridge(s){
+ if(s.includes('// primeDocumentosSemNomeV2:'))return s;
  if (s.includes('// primeLeituraIsolada:') && !s.includes('prime_leitura_documental: true')) s=s.replace('...(configuracao?.dados || {}),\n        prompt:', '...(configuracao?.dados || {}), prime_leitura_documental: true,\n        prompt:').replace('...(configuracao?.dados || {}),\r\n        prompt:', '...(configuracao?.dados || {}), prime_leitura_documental: true,\r\n        prompt:');
  s=troca(s,'      const analise = await ctx.analisarMidiaFluxoIA(configuracao?.dados || {}, entradaParaAnalise, {',`      // primeLeituraIsolada: o leitor não recebe o estado da venda nem instruções de coleta.
       const leituraPrime = workspaceId === "grupoprime" && ["prime_documentos_ia", "prime_reversao_documentos_ia"].includes(sessaoAntes?.no_atual);
@@ -114,6 +115,7 @@ function bridge(s){
  return s;
 }
 function visao(s){
+ if(s.includes('primeVisaoSemNomeV2'))return s;
  s=troca(s,'function criarInstrucaoLeitura(ehImagem, campos, legenda, dados) {',`function criarInstrucaoLeitura(ehImagem, campos, legenda, dados) {
   // primePromptVisualExclusivo: nenhuma regra comercial ou coleta interfere na classificação.
   if (dados?.prime_leitura_documental === true) return [
