@@ -9,6 +9,12 @@ async function tratarIntencao(ctx,ws,canal,n,msg,enviar){
  const tipo=intencao(msg);if(!tipo||typeof ctx.buscarSessaoFluxo!=='function')return false;
  const s=await ctx.buscarSessaoFluxo(ws,canal,n);if(ws!=='grupoprime'||![27,28].includes(Number(s?.fluxo_id)))return false;
  if(tipo==='comentario')return true;
+ const pararExplicito=/encerrar|cancelar|pare|nao me|não me/i.test(String(msg));
+ if(s.variaveis?.venda_fluida_v1==='SIM'&&!pararExplicito&&s.variaveis?.recuperacao_comercial_tentada!=='SIM'){
+  const vars={...(s.variaveis||{}),recuperacao_comercial_tentada:'SIM'};
+  const r=await ctx.supabase.from('fluxo_sessoes').update({variaveis:vars,updated_at:new Date().toISOString()}).eq('workspace_id',ws).eq('canal_id',canal).eq('id',s.id);if(r.error)throw r.error;
+  await enviar('Entendi. O que pesou para você: o valor, o plano ou alguma dificuldade no atendimento? Posso tentar resolver isso com você.');return true;
+ }
  const agora=new Date(),vars={...(s.variaveis||{})};let followup;try{followup=typeof vars.__wolf_followups_v1==='string'?JSON.parse(vars.__wolf_followups_v1):vars.__wolf_followups_v1;}catch{}
  vars.__wolf_followups_v1={...(followup||{}),aguardandoRespostaCliente:false,agendadoPara:null,dispararEm:null,canceladoEm:agora.toISOString(),motivoCancelamento:'pedido_cliente'};
  const r=await ctx.supabase.from('fluxo_sessoes').update({status:'finalizado',aguardando_input:false,tipo_input_aguardado:null,variaveis:vars,updated_at:agora.toISOString()}).eq('workspace_id',ws).eq('canal_id',canal).eq('id',s.id);if(r.error)throw r.error;
