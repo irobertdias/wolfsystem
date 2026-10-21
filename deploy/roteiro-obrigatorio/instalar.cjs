@@ -12,6 +12,7 @@ arquivos.push(['src/services/fluxo-ia-multimidia-bridge.js',require(path.join(ba
 arquivos.push(['src/services/fluxo-ia-captura-deterministica.js',require(path.join(base,'datas-flexiveis/patch.cjs')).captura(fs.readFileSync(path.join(root,'src/services/fluxo-ia-captura-deterministica.js'),'utf8'))],['src/services/datas-flexiveis.js',fs.readFileSync(path.join(base,'datas-flexiveis/service.cjs'),'utf8')]);
 arquivos.push(['src/services/dados-contextuais.js',fs.readFileSync(path.join(base,'dados-contextuais/service.cjs'),'utf8')]);
 const fluido=require(path.join(base,'venda-fluida/patch.cjs'));
+for(const a of arquivos)if(a[0]==='src/services/fluxo-ia-captura-deterministica.js')a[1]=fluido.captura(a[1]);
 for(const a of arquivos){if(a[0]==='src/routes/fluxos.js')a[1]=fluido.fluxos(a[1]);if(a[0]==='index.js')a[1]=fluido.index(a[1]);if(a[0]==='src/services/fluxo-ia-multimidia-bridge.js')a[1]=fluido.bridge(a[1]);if(a[0]==='src/services/nio-oferta-direta.js')a[1]=fluido.oferta(a[1],'decidirOfertaNio');if(a[0]==='src/services/vero-oferta-direta.js')a[1]=fluido.oferta(a[1],'decidirOfertaVero');}
 arquivos.push(['src/services/venda-fluida-regras.js',fs.readFileSync(path.join(base,'venda-fluida/regras.js'),'utf8')],['src/services/venda-fluida.js',fs.readFileSync(path.join(base,'venda-fluida/service.js'),'utf8')]);
 for(const nome of ['bko-ia.js','bko-vero-core.js'])arquivos.push(['src/services/'+nome,fluido.bko(fs.readFileSync(path.join(root,'src/services',nome),'utf8'))]);

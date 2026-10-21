@@ -39,4 +39,12 @@ function bko(s){
  s=s.replace('versao:4,','versao:4,venda_fluida:ctx.vendaFluidaAtiva===true,');
  return s.replace(retorno,"    ...(v.dados_customizados?.venda_fluida_v1===\"SIM\"?['','*⚠️ CONFERÊNCIA DO BKO*',...(()=>{const p=parse(v.dados_customizados.pendencias_bko);return Array.isArray(p)&&p.length?p.map(x=>'• '+limpo(x)):['Conferir os dados e anexos recebidos.'];})()]:[]),\n"+retorno);
 }
-module.exports={fluxos,oferta,bridge,index,bko};
+function captura(s){
+ if(s.includes('// cepPreservadoV1:'))return s;
+ const a='function aplicarCepNoEstado(no, variaveis, cep) {';
+ const b='  const campo = camposCep[0];';
+ const c='aplicarCepNoEstado(no, { ...(sessao.variaveis || {}) }, cep)';
+ if(s.split(a).length!==2||s.split(b).length!==2||s.split(c).length!==2)throw Error('Proteção do CEP incompatível');
+ return s.replace(a,'function aplicarCepNoEstado(no, variaveis, cep, mensagem = "") {').replace(b,b+'\n  // cepPreservadoV1: telefone parcial não substitui CEP já coletado.\n  if(/^\\d{8}$/.test(String(variaveis[campo]||""))&&String(variaveis[campo])!==cep&&!/\\bcep\\b/i.test(mensagem))return{alterado:false,variaveis};').replace(c,'aplicarCepNoEstado(no, { ...(sessao.variaveis || {}) }, cep, mensagemCliente)');
+}
+module.exports={fluxos,oferta,bridge,index,bko,captura};
