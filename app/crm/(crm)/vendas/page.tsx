@@ -1512,7 +1512,7 @@ export default function Vendas() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
                 {[
                   { label: "Status", value: propostaVisualizando.status_venda || "-", cor: statusMeta(propostaVisualizando.status_venda).cor, bg: statusMeta(propostaVisualizando.status_venda).bg, border: statusMeta(propostaVisualizando.status_venda).border },
-                  { label: "Valor", value: `R$ ${Number(propostaVisualizando.valor_plano || 0).toFixed(2).replace(".", ",")}`, cor: "#16a34a", bg: "#ecfdf5", border: "#bbf7d0" },
+                  { label: "Valor", value: propostaVisualizando.valor_plano == null || String(propostaVisualizando.valor_plano).trim() === "" ? "A conferir" : `R$ ${Number(propostaVisualizando.valor_plano).toFixed(2).replace(".", ",")}`, cor: "#16a34a", bg: "#ecfdf5", border: "#bbf7d0" },
                   { label: "Data proposta", value: propostaVisualizando.data_proposta ? new Date(propostaVisualizando.data_proposta + "T00:00:00").toLocaleDateString("pt-BR") : "-", cor: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
                   { label: "Modificado", value: propostaVisualizando.updated_at ? new Date(propostaVisualizando.updated_at).toLocaleString("pt-BR") : "-", cor: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
                 ].map(card => (
@@ -1522,6 +1522,17 @@ export default function Vendas() {
                   </div>
                 ))}
               </div>
+
+              {propostaVisualizando.dados_customizados?.venda_fluida_v1 === "SIM" && (() => {
+                let itens: unknown = propostaVisualizando.dados_customizados?.pendencias_bko;
+                try { if (typeof itens === "string") itens = JSON.parse(itens); } catch { itens = []; }
+                if (!Array.isArray(itens) || !itens.length) return null;
+                return <aside style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 14 }}>
+                  <h3 style={{ color: "#92400e", fontSize: 13, margin: "0 0 8px" }}>Conferência do BKO</h3>
+                  <p style={{ color: "#78350f", fontSize: 12, margin: "0 0 8px" }}>Pedido recebido com estas informações para conferir:</p>
+                  <ul style={{ color: "#78350f", fontSize: 12, margin: 0, paddingLeft: 20 }}>{itens.map((item, i) => <li key={i}>{String(item)}</li>)}</ul>
+                </aside>;
+              })()}
 
               <ViewSection
                 titulo="Informacoes da venda"
@@ -1547,6 +1558,11 @@ export default function Vendas() {
                       const lista = normalizarAnexos(raw);
                       return lista.map((a: AnexoMeta) => ({ ...a, campo: c.label }));
                     });
+                  for (const [chave, campo] of [["rg_frente", "Identidade — frente"], ["rg_verso", "Identidade — verso"], ["comprovante_endereco", "Comprovante de endereço"]]) {
+                    for (const arquivo of normalizarAnexos(propostaVisualizando.dados_customizados?.[chave])) {
+                      if (!anexos.some(a => a.url === arquivo.url)) anexos.push({ ...arquivo, campo });
+                    }
+                  }
                   if (!anexos.length) return <p style={{ color: "#94a3b8", fontSize: 12, margin: 0, fontStyle: "italic" }}>Nenhum arquivo anexado nesta venda.</p>;
                   return (
                     <div style={{ display: "grid", gap: 8 }}>

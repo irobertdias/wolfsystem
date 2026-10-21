@@ -26,6 +26,8 @@ test('três arquivos reais da sessão liberam a etapa e preservam metadados priv
  assert.deepEqual(Object.keys(r.documentos),['rg_frente','rg_verso','comprovante_endereco']);
  assert.ok(r.documentos.rg_frente[0].privado);assert.ok(f.filtros.some(([k,v])=>k==='workspace_id'&&v==='grupoprime'));assert.ok(f.filtros.some(([k,v])=>k==='fluxo_id'&&v===27));
 });
+test('modo BKO encaminha arquivos existentes e lista CPF/documentos pendentes sem inventar validação',async()=>{const f=fixture();delete f.vars.cpf;delete f.vars.rg_verso;delete f.vars.rg_verso_validado;delete f.vars.comprovante_endereco;delete f.vars.comprovante_endereco_validado;const r=await validar(f.db,f.sessao.numero,'',undefined,false,true);assert.deepEqual(Object.keys(r.documentos),['rg_frente']);assert.ok(r.pendencias.some(p=>p.includes('CPF')));assert.ok(r.pendencias.some(p=>p.includes('verso')));assert.equal(r.documentos.comprovante_endereco,undefined);});
+test('modo BKO exclui anexo de outro atendimento e sinaliza a pendência',async()=>{const f=fixture();const d=JSON.parse(f.vars.rg_frente);d[0].url='/api/documentos-clientes/arquivo?workspaceId=outro&path=outro/segredo.jpg';f.vars.rg_frente=JSON.stringify(d);const r=await validar(f.db,f.sessao.numero,f.vars.cpf,undefined,false,true);assert.equal(r.documentos.rg_frente,undefined);assert.ok(r.pendencias.some(p=>p.includes('não pertencer')));});
 test('frente e verso dispensam comparação de nome, RG e CPF extraído',async()=>{
  const f=fixture();f.vars.__identidade_documento_rg_frente=JSON.stringify({nome:f.vars.nome,lado:'frente'});f.vars.__identidade_documento_rg_verso=JSON.stringify({lado:'verso'});
  await validar(f.db,f.sessao.numero,f.vars.cpf);
