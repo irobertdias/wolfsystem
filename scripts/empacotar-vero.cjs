@@ -3,7 +3,7 @@ function rodar(p){const r=spawnSync(process.execPath,[p],{encoding:'utf8'});if(r
 rodar('scripts/empacotar-prime-completo.cjs');rodar('scripts/empacotar-auditoria-completa.cjs');
 const root='deploy/vero-servidor';fs.cpSync('deploy/auditoria-completa',path.join(root,'base'),{recursive:true});fs.cpSync('deploy/qr-ciclo-novo',path.join(root,'qr'),{recursive:true});
 for(const p of ['patch.cjs','flexivel.cjs','flexivel.test.cjs','instalar-flexivel.cjs']){fs.mkdirSync(path.join(root,'documentos'),{recursive:true});fs.copyFileSync(path.join('deploy/prime-documentos',p),path.join(root,'documentos',p));}
-for(const p of ['instalar.cjs','ativar.cjs','bko-vero.js','bko-vero-core.js','bko-ia-regras.js','bko-vero.test.cjs','retorno.test.cjs'])fs.copyFileSync(path.join('deploy/vero',p),path.join(root,p));
+for(const p of ['instalar.cjs','ativar.cjs','isolamento.cjs','bko-vero.js','bko-vero-core.js','bko-ia-regras.js','bko-vero.test.cjs','retorno.test.cjs'])fs.copyFileSync(path.join('deploy/vero',p),path.join(root,p));
 fs.writeFileSync(path.join(root,'instalar.sh'),`#!/usr/bin/env bash
 set -euo pipefail
 PACOTE="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" && pwd)"
