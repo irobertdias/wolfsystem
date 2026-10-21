@@ -47,4 +47,13 @@ function captura(s){
  if(s.split(a).length!==2||s.split(b).length!==2||s.split(c).length!==2)throw Error('Proteção do CEP incompatível');
  return s.replace(a,'function aplicarCepNoEstado(no, variaveis, cep, mensagem = "") {').replace(b,b+'\n  // cepPreservadoV1: telefone parcial não substitui CEP já coletado.\n  if(/^\\d{8}$/.test(String(variaveis[campo]||""))&&String(variaveis[campo])!==cep&&!/\\bcep\\b/i.test(mensagem))return{alterado:false,variaveis};').replace(c,'aplicarCepNoEstado(no, { ...(sessao.variaveis || {}) }, cep, mensagemCliente)');
 }
-module.exports={fluxos,oferta,bridge,index,bko,captura};
+function retentativas(s){
+ if(s.includes('// bkoRetentativaAutomaticaV1:'))return s;
+ const trava='    if(meta.destinatarios&&Object.values(meta.destinatarios).some(d=>d.partes.some(p=>p.estado==="em_envio"))){custom.bko_pendente="REVISAR";custom.bko_erro="Entrega sem confirmação. Confira no WhatsApp antes de liberar nova tentativa.";await salvar(v,custom);return;}';
+ const falha='      custom=clone(v.dados_customizados);meta.lease=null;custom.bko_envio=JSON.stringify(meta);custom.bko_pendente="REVISAR";custom.bko_erro="Envio interrompido; retentativa automática das partes ainda não enviadas.";custom.bko_tentar_em=new Date(Date.now()+60000).toISOString();';
+ if(s.split(trava).length!==2||s.split(falha).length!==2)throw Error('Retentativa BKO incompatível');
+ s=s.replace(trava,'    // bkoRetentativaAutomaticaV1: retomar após falha sem exigir operação no CRM.\n    require("./bko-retentativa.js").retomar(meta);');
+ s=s.replace(falha,'      custom=clone(v.dados_customizados);custom.bko_tentar_em=require("./bko-retentativa.js").falha(meta);custom.bko_envio=JSON.stringify(meta);custom.bko_pendente="SIM";custom.bko_erro="Nova tentativa automática agendada para os anexos pendentes.";custom.bko_ultimo_erro_tecnico=String(e.message||e).slice(0,500);');
+ return s.replace('meta.lease=null;custom=clone(v.dados_customizados);custom.bko_envio=JSON.stringify(meta);custom.bko_pendente="ENVIADO"','meta.lease=null;meta.falhas_consecutivas=0;custom=clone(v.dados_customizados);custom.bko_envio=JSON.stringify(meta);custom.bko_pendente="ENVIADO"');
+}
+module.exports={fluxos,oferta,bridge,index,bko,captura,retentativas};

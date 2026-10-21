@@ -15,7 +15,8 @@ const fluido=require(path.join(base,'venda-fluida/patch.cjs'));
 for(const a of arquivos)if(a[0]==='src/services/fluxo-ia-captura-deterministica.js')a[1]=fluido.captura(a[1]);
 for(const a of arquivos){if(a[0]==='src/routes/fluxos.js')a[1]=fluido.fluxos(a[1]);if(a[0]==='index.js')a[1]=fluido.index(a[1]);if(a[0]==='src/services/fluxo-ia-multimidia-bridge.js')a[1]=fluido.bridge(a[1]);if(a[0]==='src/services/nio-oferta-direta.js')a[1]=fluido.oferta(a[1],'decidirOfertaNio');if(a[0]==='src/services/vero-oferta-direta.js')a[1]=fluido.oferta(a[1],'decidirOfertaVero');}
 arquivos.push(['src/services/venda-fluida-regras.js',fs.readFileSync(path.join(base,'venda-fluida/regras.js'),'utf8')],['src/services/venda-fluida.js',fs.readFileSync(path.join(base,'venda-fluida/service.js'),'utf8')]);
-for(const nome of ['bko-ia.js','bko-vero-core.js'])arquivos.push(['src/services/'+nome,fluido.bko(fs.readFileSync(path.join(root,'src/services',nome),'utf8'))]);
+arquivos.push(['src/services/bko-retentativa.js',fs.readFileSync(path.join(base,'venda-fluida/retentativa.js'),'utf8')]);
+for(const nome of ['bko-ia.js','bko-vero-core.js'])arquivos.push(['src/services/'+nome,fluido.retentativas(fluido.bko(fs.readFileSync(path.join(root,'src/services',nome),'utf8')))]);
 for(const[,texto]of arquivos){const r=spawnSync(process.execPath,['--check'],{input:texto,encoding:'utf8'});if(r.status)throw Error(r.stderr);}
 if(process.argv.includes('--check')){console.log('ROTEIRO_CHECK_OK: Nio, Vero, confirmação e bloqueio terminal; nenhuma alteração feita.');process.exit(0);}
 const backup=path.join(root,'backups','roteiro-obrigatorio-'+Date.now()),anteriores=[];fs.mkdirSync(backup,{recursive:true});
