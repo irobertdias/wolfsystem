@@ -26,17 +26,19 @@ test('três arquivos reais da sessão liberam a etapa e preservam metadados priv
  assert.deepEqual(Object.keys(r.documentos),['rg_frente','rg_verso','comprovante_endereco']);
  assert.ok(r.documentos.rg_frente[0].privado);assert.ok(f.filtros.some(([k,v])=>k==='workspace_id'&&v==='grupoprime'));assert.ok(f.filtros.some(([k,v])=>k==='fluxo_id'&&v===27));
 });
-test('frente exige nome correspondente e verso visual dispensa número de RG e CPF extraído',async()=>{
+test('frente e verso dispensam comparação de nome, RG e CPF extraído',async()=>{
  const f=fixture();f.vars.__identidade_documento_rg_frente=JSON.stringify({nome:f.vars.nome,lado:'frente'});f.vars.__identidade_documento_rg_verso=JSON.stringify({lado:'verso'});
  await validar(f.db,f.sessao.numero,f.vars.cpf);
  f.vars.__identidade_documento_rg_frente=JSON.stringify({nome:'Outra Pessoa',lado:'frente'});
- await assert.rejects(validar(f.db,f.sessao.numero,f.vars.cpf),e=>e.statusCode===422);
+ await validar(f.db,f.sessao.numero,f.vars.cpf);
+ delete f.vars.__identidade_documento_rg_frente;delete f.vars.__identidade_documento_rg_verso;
+ await validar(f.db,f.sessao.numero,f.vars.cpf);
 });
 test('declaração SIM não substitui upload ou documento ausente',async()=>{
  for(const modo of ['flag','meta','storage']){const f=fixture();if(modo==='flag')delete f.vars.rg_verso_validado;if(modo==='meta')delete f.vars.rg_verso;if(modo==='storage')f.objetos.clear();await assert.rejects(validar(f.db,f.sessao.numero,f.vars.cpf),e=>e.statusCode===422);}
 });
-test('bloqueia outro workspace, outro atendimento e frente sem nome do titular',async()=>{
- for(const modo of ['workspace','atendimento','cpf']){const f=fixture();if(modo==='workspace')f.vars.rg_frente=f.vars.rg_frente.replace('workspaceId=grupoprime','workspaceId=outro');if(modo==='atendimento')f.vars.rg_frente=f.vars.rg_frente.replace('grupoprime%2F','grupoprime%2Foutro');if(modo==='cpf')f.vars.__identidade_documento_rg_frente=JSON.stringify({cpf:'11144477735'});await assert.rejects(validar(f.db,f.sessao.numero,f.vars.cpf),e=>e.statusCode===422);}
+test('bloqueia arquivo de outro workspace ou de outro atendimento',async()=>{
+ for(const modo of ['workspace','atendimento']){const f=fixture();if(modo==='workspace')f.vars.rg_frente=f.vars.rg_frente.replace('workspaceId=grupoprime','workspaceId=outro');if(modo==='atendimento')f.vars.rg_frente=f.vars.rg_frente.replace('grupoprime%2F','grupoprime%2Foutro');await assert.rejects(validar(f.db,f.sessao.numero,f.vars.cpf),e=>e.statusCode===422);}
 });
 test('CEP diferente no comprovante não bloqueia CRM nem altera o CEP da instalação',async()=>{
  const f=fixture();f.vars.cep_comprovante='75383126';await validar(f.db,f.sessao.numero,f.vars.cpf);assert.equal(f.vars.cep,'74480150');assert.equal(f.vars.cep_comprovante,'75383126');

@@ -50,12 +50,8 @@ export async function documentosDaSessaoGrupoPrime(db: SupabaseClient, numeroEnt
       const fingerprint = String(objeto.etag || '');
       if (fingerprint && fotos.has(fingerprint)) falhar('Envie fotos diferentes da frente e do verso do RG.');
       if (fingerprint) fotos.add(fingerprint);
-      let identidade;
-      try { identidade = JSON.parse(vars[`__identidade_documento_${regra.variavel}`] || '{}'); } catch { falhar('Não foi possível conferir o titular do RG.'); }
-      const nome = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
-      if (regra.variavel === 'rg_frente' && (!identidade.nome || nome(identidade.nome) !== nome(vars.nome))) falhar('O nome na frente da identidade não corresponde ao titular.');
-      // Capturas anteriores já validadas permanecem utilizáveis; novas capturas registram a face.
-      if (regra.variavel === 'rg_verso' && identidade.lado !== 'verso' && !identidade.nome && !identidade.cpf && !identidade.rg) falhar('Envie uma foto legível do verso da identidade.');
+      // Coleta sem comparação de nome, CPF ou RG por OCR.
+      // Origem privada, existência e duas fotos continuam obrigatórias.
     }
     documentos[regra.variavel] = [{ url: `${url!.pathname}${url!.search}`, nome: String(arquivo.nome || regra.nome), tipo: mime,
       tamanho, privado: true, categoria: regra.nome, regra_id: regra.id, enviado_em: String(arquivo.enviado_em || '') }];
