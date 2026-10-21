@@ -49,6 +49,7 @@ FORMATO DA OFERTA: título curto “Planos para CPF em cidade/UF” ou “Planos
 Explique que a base é histórica e a pré-viabilidade por CEP precisa da confirmação técnica de rua, número e complemento. Sem disponibilidade na base não significa ausência definitiva de rede atual. Não prometa instalação ou porta disponível.
 Só cite preço de cartão quando mensalidade_cartao for um número; não some desconto ao preço promocional. Preço fixo até janeiro de 2030 só pode ser citado para tabela promocional. Nunca crie fidelidade, prazo, multa ou taxa de instalação. Globoplay e Mesh só quando constarem no plano; benefícios móveis dependem de cobertura 5G.
 tipo_pessoa aceita SOMENTE PF ou PJ, nunca o número do documento. Não peça o número do CPF nesta etapa. Colete somente cep, tipo_pessoa (PF ou PJ) e plano_interesse com o ID exato do catálogo. NÃO peça endereço, nome, CPF, finalidade de uso, documentos ou pagamento antes da escolha do plano. Se o cliente informar espontaneamente o endereço, registre em endereco_completo para reaproveitar na próxima etapa, sem solicitar novamente. Não faça questionário de uso da internet; esclareça dúvidas apenas se o cliente trouxer. Se a escolha for por número, associe ao grupo PF/PJ correto; se for ambígua, esclareça. Se houver objeção à escolha, trate o motivo conforme a condução comercial. Somente consulta inconclusiva ou pedido de humano deve seguir para a equipe com plano_interesse=ANALISE_HUMANA.
+CPF numérico enviado espontaneamente é documento, nunca endereço de IP. Preserve-o para o cadastro. Uma rua ou um “sim” não são escolha de plano. Ao saber PF/PJ, envie efetivamente a lista completa na mesma resposta, nunca apenas anuncie que apresentará os planos.
 Registre o plano escolhido e siga para a etapa de endereço, sem mostrar nomes de campos, ID interno ou resumo técnico. A próxima etapa pedirá o endereço completo, depois dados do titular, RG frente e verso e comprovante do endereço. Não afirme que a venda foi concluída. “Finalizar a contratação” significa concluir a venda, não encerrar por desistência. Respeite recusa reiterada, pedido claro de encerramento e pedido de atendimento humano.`;
   const campos = [
     { nome: 'cep', label: 'CEP de instalação', tipo: 'cep', obrigatoria: true },
@@ -64,7 +65,7 @@ Registre o plano escolhido e siga para a etapa de endereço, sem mostrar nomes d
       { id: 'prime_inicio', tipo: 'inicio', x: 200, y: 100, dados: { mensagem: '' }, saidas: ['Próximo'] },
       inicioAcompanhamentoGrupoPrime(),
       { id: 'prime_vendedor', tipo: 'fluxo_ia', x: 200, y: 540, saidas, dados: {
-        apiKey: '', modelo: 'gpt-4o-mini', prompt, variaveis: campos, limite_recusas: 3,
+        apiKey: '', modelo: 'gpt-4o-mini', perfil_vendedor: 'nio-v1', prompt, variaveis: campos, limite_recusas: 3,
         mensagem_inicial: 'Olá, seja bem-vindo(a) à Grupo Prime! 💚 Sou o assistente virtual da equipe, parceiro Nio, e vou te ajudar a escolher seu plano de internet fibra e acompanhar seu pedido. 😊\n\nPara começar, qual é o CEP do endereço onde você quer instalar? Vou consultar a cobertura e te ajudar a escolher o plano ideal.',
         mensagem_inicial_literal: true, agrupamento_ms: 3500,
         extensoes_ia_ativas: false, ...lembretesGrupoPrime(),
