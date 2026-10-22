@@ -62,4 +62,26 @@ function recibos(s){
  if(s.split(texto).length!==2||s.split(midia).length!==2)throw Error('Recibos BKO incompatíveis');
  return '// bkoAckV1: ID gerado sem ACK não confirma envio.\n'+s.replace(texto,'return await require("./bko-recibo.js").confirmar(ctx.sessoes[String(c.canalId)].client,r.messageId,r.ack);').replace(midia,'return await require("./bko-recibo.js").confirmar(ctx.sessoes[String(c.canalId)].client,r.id._serialized,r.ack);');
 }
-module.exports={fluxos,oferta,bridge,index,bko,captura,retentativas,recibos};
+function cepEntrada(s){
+ if(s.includes('// cepEntradaComercialV2:'))return s;
+ const a='      // roteiroObrigatorioV1:';if(s.split(a).length!==2)throw Error('Captura comercial de CEP incompatível');
+ return s.replace(a,`      // cepEntradaComercialV2: captura antecede a IA e dispara consulta na mesma interação.
+      if(processarInput&&["nio-v1","vero-v1"].includes(d.perfil_vendedor)){
+        const achado=String(entrada||"").trim().match(/^(?:cep[\\s.:]*)?(\\d{5}[ .-]?\\d{3})[.!]?$/i);
+        if(achado){const cep=achado[1].replace(/\\D/g,"");if(validarValorFluxoIA("cep",cep)&&variaveis.cep!==cep){variaveis.cep=cep;estado.valores_coletados={...(estado.valores_coletados||{}),cep};estado.consultas={};estado.contexto_consultas={};delete estado.catalogo_fluido;delete estado.plano_fluido_pendente;delete variaveis.resposta_viabilidade;delete variaveis.plano_interesse;}}
+      }
+`+a);
+}
+function encaminhamento(s){
+ if(s.includes('// bkoOperadoraV2:'))return s;
+ const re=/  function rotaVenda\(cfg,v\)\{[\s\S]*?\r?\n  \}\r?\n  async function processar/;
+ if(!re.test(s))throw Error('Roteamento por operadora incompatível');
+ s=s.replace(re,'  // bkoOperadoraV2: configuração atual atende vendas históricas da mesma operadora.\n  function rotaVenda(cfg,v){return require("./bko-roteamento.js").rota(cfg,v,FLUXO);}\n  async function processar');
+ const filtro=".in(\"canal_id\",cfg.modo==='por_canal'?cfg.contatos.map(x=>x.canal_trafego_id):[cfg.canal_trafego_id])";
+ if(s.split(filtro).length!==2)throw Error('Filtro de vendas BKO incompatível');s=s.replace(filtro,'');
+ const fila='if(cfg.fila_nome){const origem=await ctx.getConfigCanal(v.canal_id);';if(s.split(fila).length!==2)throw Error('Origem BKO incompatível');s=s.replace(fila,'if(cfg.fila_nome&&!cfg.historico_operadora){const origem=await ctx.getConfigCanal(v.canal_id);');
+ s=s.replace('const r=await ctx.enviarTextoWebjs(ctx.sessoes[String(c.canalId)].client,n,m);','const enviada=await require("./bko-roteamento.js").enviar(ctx.sessoes[String(c.canalId)].client,n,m);\n    const r={success:true,messageId:enviada?.id?._serialized,ack:enviada?.ack};');
+ s=s.replace('const r=await ctx.enviarMidiaWebjs(ctx.sessoes[String(c.canalId)].client,n,media,{caption,sendMediaAsDocument:true});','const r=await require("./bko-roteamento.js").enviar(ctx.sessoes[String(c.canalId)].client,n,media,{caption,sendMediaAsDocument:true});');
+ return s.replace('versao:4,','versao:4,encaminhamento_operadora:2,');
+}
+module.exports={fluxos,oferta,bridge,index,bko,captura,retentativas,recibos,cepEntrada,encaminhamento};
