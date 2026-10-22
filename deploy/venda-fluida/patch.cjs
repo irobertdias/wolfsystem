@@ -84,4 +84,14 @@ function encaminhamento(s){
  s=s.replace('const r=await ctx.enviarMidiaWebjs(ctx.sessoes[String(c.canalId)].client,n,media,{caption,sendMediaAsDocument:true});','const r=await require("./bko-roteamento.js").enviar(ctx.sessoes[String(c.canalId)].client,n,media,{caption,sendMediaAsDocument:true});');
  return s.replace('versao:4,','versao:4,encaminhamento_operadora:2,');
 }
-module.exports={fluxos,oferta,bridge,index,bko,captura,retentativas,recibos,cepEntrada,encaminhamento};
+function roteiro(s){
+ if(s.includes('// roteiroVendasV3:'))return s;
+ const alvo='      // vendaFluidaDadosV1:';if(s.split(alvo).length!==2)throw Error('Roteiro comercial incompatível');
+ return s.replace(alvo,`      // roteiroVendasV3: ordem e confirmação são controladas pelo motor, não pela IA.
+      if(d.roteiro_vendas_v3===true){
+        const decisaoRoteiro=await require("../services/roteiro-runtime.js").processar({fluxo,no,variaveis,entrada:processarInput?mensagemCliente:"",processarInput,fnEnviar,conversar:executarFluxoPorIA,proximoNoId:proximoNo(fluxo,no.id,0)?.id||null});
+        if(decisaoRoteiro)return decisaoRoteiro;
+      }
+`+alvo);
+}
+module.exports={fluxos,oferta,bridge,index,bko,captura,retentativas,recibos,cepEntrada,encaminhamento,roteiro};

@@ -6,7 +6,7 @@ import { prepararPedidoFluido } from '../../../../lib/pedido-fluido';
 import { consultarViabilidade } from '../../../../lib/viabilidade-grupoprime';
 import { consultarVero } from '../../../../lib/vero';
 export const runtime='nodejs';export const dynamic='force-dynamic';
-export async function GET(){return NextResponse.json({versao:'venda-fluida-v1'},{headers:{'Cache-Control':'no-store'}});}
+export async function GET(){return NextResponse.json({versao:'venda-fluida-v1',roteiro_comercial:3},{headers:{'Cache-Control':'no-store'}});}
 export async function POST(req:NextRequest){
  const responder=(body:unknown,status=200)=>NextResponse.json(body,{status,headers:{'Cache-Control':'private, no-store'}});
  try{
@@ -31,7 +31,7 @@ export async function POST(req:NextRequest){
     throw Object.assign(Error('O BKO já alterou o status deste pedido. Os documentos foram preservados.'),{statusCode:409});
    }
    if(preparado.cadastro.cpf&&preparado.cadastro.cpf===String(anterior.cpf||'').replace(/\D/g,'')){preparado.pendencias.push('O CPF informado continua sendo o CPF reprovado; confirmar novo titular.');preparado.cadastro.pendencias_bko=JSON.stringify(preparado.pendencias);}
-   const dados={...(anterior.dados_customizados||{}),venda_fluida_v1:'SIM',bko_pendente:'SIM',pendencias_bko:preparado.cadastro.pendencias_bko,cadastro_informado_json:preparado.cadastro.cadastro_informado_json};
+   const dados={...(anterior.dados_customizados||{}),venda_fluida_v1:'SIM',bko_pendente:'SIM',pendencias_bko:preparado.cadastro.pendencias_bko,cadastro_informado_json:preparado.cadastro.cadastro_informado_json,preferencia_instalacao:String(d.variaveis.periodo_instalacao||'')};
    for(const k of ['bko_envio','bko_ref','bko_reply_ids','bko_erro','bko_tentar_em'])delete dados[k];
    for(const k of ['rg_frente','rg_verso','comprovante_endereco'])dados[k]=d.documentos[k]||[];
    dados.recuperacao_bko_historico=[...(Array.isArray(dados.recuperacao_bko_historico)?dados.recuperacao_bko_historico:[]),{em:new Date().toISOString(),cpf_anterior:anterior.cpf,cpf_informado:preparado.cadastro.cpf,sessao_id:d.sessao.id}];
