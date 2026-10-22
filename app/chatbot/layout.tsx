@@ -1,23 +1,17 @@
 "use client";
 import AuthGuard from "../components/AuthGuard";
-import { SoftphoneProvider } from "../hooks/useSoftphone";
-import { Softphone } from "../components/Softphone";
 
 // ═══════════════════════════════════════════════════════════════════════
 // 🎧 Layout do Chatbot — envolve todas as páginas em /chatbot/*
 // ═══════════════════════════════════════════════════════════════════════
 // - 🔒 AuthGuard bloqueia acesso sem login (redireciona pra "/")
-// - Prove o SoftphoneContext pra que o botão "📞 Ligar" no chat funcione
-// - Renderiza o <Softphone /> flutuante no canto inferior direito
+// - O layout principal já fornece o SoftphoneContext e o discador flutuante.
 // ═══════════════════════════════════════════════════════════════════════
 
 export default function ChatbotLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
-      <SoftphoneProvider>
-        {children}
-        <Softphone />
-      </SoftphoneProvider>
+      {children}
     </AuthGuard>
   );
 }

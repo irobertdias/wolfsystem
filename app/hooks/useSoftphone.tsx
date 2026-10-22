@@ -79,39 +79,33 @@ export function useSoftphone() {
   return ctx;
 }
 
-// Cache de workspace/email
-let workspaceIdCache: string | null = null;
-let userEmailCache: string | null = null;
-
 async function getWorkspaceEusuario(): Promise<{ workspaceId: string | null; email: string | null }> {
-  if (workspaceIdCache && userEmailCache) return { workspaceId: workspaceIdCache, email: userEmailCache };
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { workspaceId: null, email: null };
-    userEmailCache = user.email || null;
 
     const { data: wsDono } = await supabase.from("workspaces").select("username").eq("owner_id", user.id).maybeSingle();
-    if (wsDono?.username) { workspaceIdCache = wsDono.username; return { workspaceId: wsDono.username, email: user.email || null }; }
+    if (wsDono?.username) return { workspaceId: wsDono.username, email: user.email || null };
 
     const { data: wsUsr } = await supabase.from("usuarios_workspace").select("workspace_id").eq("email", user.email).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (wsUsr?.workspace_id) { workspaceIdCache = wsUsr.workspace_id; return { workspaceId: wsUsr.workspace_id, email: user.email || null }; }
+    if (wsUsr?.workspace_id) return { workspaceId: wsUsr.workspace_id, email: user.email || null };
 
     return { workspaceId: null, email: user.email || null };
   } catch (e) { return { workspaceId: null, email: null }; }
 }
 
 // Busca conexão Twilio ativa pro workspace (cache 60s)
-let twilioConfigCache: { conn: any | null; ts: number } = { conn: null, ts: 0 };
+let twilioConfigCache: { workspaceId: string | null; conn: any | null; ts: number } = { workspaceId: null, conn: null, ts: 0 };
 async function buscarConfigTwilio(workspaceId: string) {
   const agora = Date.now();
-  if (twilioConfigCache.conn !== null && agora - twilioConfigCache.ts < 60000) return twilioConfigCache.conn;
+  if (twilioConfigCache.workspaceId===workspaceId && agora - twilioConfigCache.ts < 60000) return twilioConfigCache.conn;
 
   const { data } = await supabase.from("conexoes_voip")
     .select("id, provider, twilio_api_key_sid, twilio_twiml_app_sid, twilio_numero_did, status")
     .eq("workspace_id", workspaceId).eq("provider", "twilio").eq("status", "conectado")
     .limit(1).maybeSingle();
 
-  twilioConfigCache = { conn: data || null, ts: agora };
+  twilioConfigCache = { workspaceId, conn: data || null, ts: agora };
   return data || null;
 }
 
@@ -121,6 +115,8 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   const [segundosConectado, setSegundosConectado] = useState(0);
   const [canais, setCanais] = useState<CanalVoip[]>([]);
   const [canalSelecionadoId, setCanalSelecionadoId] = useState<number | null>(null);
+  const [versaoAuth,setVersaoAuth]=useState(0);
+  const voipPermitidoRef=useRef<boolean|null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const deviceRef = useRef<any>(null);
@@ -130,23 +126,31 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   const chamadaRef = useRef<ChamadaAtiva | null>(null);  // snapshot pra callbacks
 
   useEffect(() => { chamadaRef.current = chamada; }, [chamada]);
+  useEffect(()=>{const{data}=supabase.auth.onAuthStateChange(event=>{if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='USER_UPDATED'){voipPermitidoRef.current=null;setVersaoAuth(v=>v+1);}});return()=>data.subscription.unsubscribe();},[]);
 
   useEffect(() => {
     let ativo = true;
+    const controller=new AbortController();
+    setCanais([]);setCanalSelecionadoId(null);voipPermitidoRef.current=null;
     (async () => {
       const { workspaceId } = await getWorkspaceEusuario();
       if (!workspaceId) return;
       try {
-        const resp = await fetch(`/api/whatsapp?rota=voip/conexoes/listar&workspaceId=${encodeURIComponent(workspaceId)}`);
+        const acesso=await fetch(`/api/voip/acesso?workspaceId=${encodeURIComponent(workspaceId)}`,{signal:controller.signal});
+        const capacidade=await acesso.json();
+        if(!ativo)return;
+        voipPermitidoRef.current=acesso.ok&&capacidade.permitido===true;
+        if(!voipPermitidoRef.current)return;
+        const resp = await fetch(`/api/whatsapp?rota=voip/conexoes/listar&workspaceId=${encodeURIComponent(workspaceId)}`,{signal:controller.signal});
         const json = await resp.json();
         if (!ativo || !resp.ok || !json.success) return;
         const disponiveis = (json.conexoes || []).filter((c: CanalVoip) => c.status === "conectado");
         setCanais(disponiveis);
         setCanalSelecionadoId(atual => atual && disponiveis.some((c: CanalVoip) => c.id === atual) ? atual : (disponiveis[0]?.id || null));
-      } catch (error) { console.error("Softphone: falha ao listar canais", error); }
+      } catch (error) { if(ativo)console.error("Softphone: falha ao listar canais", error); }
     })();
-    return () => { ativo = false; };
-  }, []);
+    return () => { ativo = false;controller.abort(); };
+  }, [versaoAuth]);
 
   useEffect(() => {
     if (chamada?.status === "conectado" && chamada.atendidoEm) {
@@ -322,6 +326,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   };
 
   const iniciarChamada = useCallback(async (numero: string, nome?: string) => {
+    if(voipPermitidoRef.current!==true){alert(voipPermitidoRef.current===false?'Telefonia indisponível para este usuário ou workspace.':'Aguarde a verificação de acesso à telefonia.');return;}
     if (chamada && chamada.status !== "ocioso") {
       alert("Já existe uma chamada em andamento. Encerre a atual primeiro.");
       return;
