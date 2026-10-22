@@ -42,7 +42,7 @@ export function consultarViabilidade(entrada: unknown, cidade = '', uf = '') {
     origem: base.fonte, candidatos: candidatos.length ? candidatos : locais,
     cidade: local?.cidade || null, uf: local?.uf || null,
     planos: status === 'pre_viavel' && local ? planosDaCidade(local.uf, local.cidade) : null,
-    mensagem: status === 'pre_viavel' ? 'CEP com endereços comercializáveis na base histórica. Pergunte CPF ou CNPJ e apresente imediatamente o catálogo correspondente após a resposta. Solicite o endereço completo somente depois da escolha do plano; a confirmação técnica do imóvel continua necessária.'
+    mensagem: status === 'pre_viavel' ? 'CEP com endereços comercializáveis na base histórica. Apresente os planos disponíveis imediatamente. Depois da escolha do plano, pergunte se a contratação será no CPF ou CNPJ e confirme a oferta correspondente antes da coleta do endereço; a confirmação técnica do imóvel continua necessária.'
       : status === 'sem_disponibilidade_na_base' ? 'Sem disponibilidade comercial registrada nesta base histórica. Encaminhe para atualização técnica, sem afirmar indisponibilidade atual definitiva.'
       : status === 'nao_localizado' ? 'No momento, não temos disponibilidade registrada para esse CEP na base fornecida.'
       : 'Consulta inconclusiva. Confirme CEP, cidade e UF; se necessário encaminhe para a equipe. Não apresente preços antes de identificar a cidade.',

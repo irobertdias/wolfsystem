@@ -1,4 +1,5 @@
-const fs=require('node:fs'),path=require('node:path'),{configurar}=require('./config.cjs');
+const fs=require('node:fs'),path=require('node:path'),{configurar:configurarBase}=require('./config.cjs'),{configurarComercial}=require('./config-comercial.cjs');
+const configurar=f=>configurarComercial(configurarBase(f));
 const root=path.resolve(process.argv[2]||'/root/wolf-whatsapp');require(require.resolve('dotenv',{paths:[root]})).config({path:path.join(root,'.env'),quiet:true});
 const{createClient}=require(require.resolve('@supabase/supabase-js',{paths:[root]}));
 (async()=>{

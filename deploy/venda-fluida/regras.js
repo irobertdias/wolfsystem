@@ -10,6 +10,15 @@ function oferta(d,vars,entrada,e,{aposConsulta=false}={}){
  if(!lista.length||lista.some(p=>!p.id||!Number.isFinite(p.mensalidade)))return null;
  const novoCep=String(entrada||'').match(/(?:^|\D)(\d{5}-?\d{3})(?:\D|$)/)?.[1]?.replace(/\D/g,'');if(!aposConsulta&&novoCep&&novoCep!==String(c.cep))return null;
  const exibidos=e.catalogo_fluido||[];
+ if(d.publico_apos_plano_v1===true&&e.plano_fluido_pendente){
+  const pend=e.plano_fluido_pendente,pub=/^(?:cpf|pf|pessoa fisica)$/.test(texto)?'PF':/^(?:cnpj|pj|pessoa juridica)$/.test(texto)?'PJ':'';
+  if(pend.cep!==String(c.cep)){delete e.plano_fluido_pendente;}
+  else if(pub){
+   if(vero||pend.publico===pub){delete e.plano_fluido_pendente;return{avancar:true,dados:{plano_interesse:pend.id,tipo_pessoa:pub,venda_fluida_v1:'SIM'}};}
+   delete e.plano_fluido_pendente;vars.tipo_pessoa=pub;e.catalogo_fluido=[];
+   return oferta(d,vars,'',e,{aposConsulta:true});
+  }else if(!/^(?:quero |escolho |prefiro |plano |opcao )?[1-9][.!]*$/.test(texto))return null;
+ }
  if(!aposConsulta&&exibidos.length){
   const n=/^(?:(?:eu )?(?:quero|escolho|prefiro) )?(?:(?:o|a) )?(?:(?:plano|opcao|numero)\s*)?([1-9])(?:\s*(?:no |para |em )?(cpf|cnpj|pf|pj))?[.!]*$/.exec(texto);
   const nomeTexto=texto.replace(/^(?:eu )?(?:quero|escolho|prefiro)\s+(?:o plano |o |a opcao )?/,'');
@@ -17,7 +26,10 @@ function oferta(d,vars,entrada,e,{aposConsulta=false}={}){
   const velocidade=/^(\d{3,4})\s*(?:mega|mbps|mb)$/.exec(texto),velocidades=velocidade?lista.filter(p=>p.velocidade_mbps===Number(velocidade[1])):[];
   let escolhido=n?lista.find(p=>p.id===exibidos[Number(n[1])-1]):nomes.length===1?nomes[0]:velocidades.length===1?velocidades[0]:null;
   if(n?.[2]&&!vero){const pub=/^(cpf|pf)$/.test(n[2])?'PF':'PJ';if(escolhido?.publico!==pub)escolhido=lista.filter(p=>p.publico===pub)[Number(n[1])-1];}
-  if(escolhido)return{avancar:true,dados:{plano_interesse:escolhido.id,...(!vero?{tipo_pessoa:escolhido.publico}:{}),venda_fluida_v1:'SIM'}};
+  if(escolhido){
+   if(d.publico_apos_plano_v1===true){e.plano_fluido_pendente={id:escolhido.id,publico:escolhido.publico,cep:String(c.cep)};e[vero?'vero_etapa_oferta':'nio_etapa_oferta']='publico';return{dados:{venda_fluida_v1:'SIM'},mensagem:`Você escolheu ${escolhido.nome}, ${escolhido.velocidade_mbps} Mbps. A contratação será no CPF ou no CNPJ?`};}
+   return{avancar:true,dados:{plano_interesse:escolhido.id,...(!vero?{tipo_pessoa:escolhido.publico}:{}),venda_fluida_v1:'SIM'}};
+  }
   if(!/plan|preco|valor|oferta|enrolad/.test(texto)&&!['CPF','CNPJ','PF','PJ'].includes(String(entrada).toUpperCase()))return null;
  }
  e.catalogo_fluido=lista.map(p=>p.id);e[vero?'vero_etapa_oferta':'nio_etapa_oferta']='plano';
