@@ -39,6 +39,7 @@ function carregar(ctx){
   const chave=JSON.stringify([ws,String(canal),String(n).replace(/\D/g,'')]),anterior=filas.get(chave)||Promise.resolve();
   const atual=anterior.catch(()=>undefined).then(async()=>{
    if(await buscarBloqueio(ctx.supabase,ws,canal,n))return true;
+   if(typeof ctx.interceptarObjecaoComercial==='function'&&await ctx.interceptarObjecaoComercial(ws,canal,n,msg,enviar))return true;
    if(await tratarIntencao(ctx,ws,canal,n,msg,enviar))return true;
    const protegido=async(...mensagem)=>{
     if(await buscarBloqueio(ctx.supabase,ws,canal,n)){const e=Error('Envio automático cancelado: atendimento encerrado e bloqueado');e.code='BOT_BLOQUEADO';throw e;}

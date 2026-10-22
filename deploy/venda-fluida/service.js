@@ -14,6 +14,7 @@ module.exports=ctx=>{
    return executar(ws,canal,numero,mensagem,enviar,preferido,opts);
   }
   let snapshot=s;const vars={...(s.variaveis||{}),venda_fluida_v1:'SIM'},recebidos=parse(vars.documentos_solicitados_bko),pend=parse(vars.pendencias_coleta_bko),tipos=['rg_frente','rg_verso','comprovante_endereco'];
+  if(vars.__retomar_apos_objecao==='SIM'){delete vars.__retomar_apos_objecao;const u=await ctx.supabase.from('fluxo_sessoes').update({variaveis:vars,updated_at:new Date().toISOString()}).eq('workspace_id',ws).eq('canal_id',canal).eq('id',s.id);if(u.error)throw u.error;const proximo=tipos.find(k=>!parse(vars[k])?.some?.(a=>a?.url)&&!recebidos[k]);if(proximo){await enviar('Vamos continuar de onde paramos. Pode enviar '+({rg_frente:'a frente da identidade, o lado com a foto',rg_verso:'o verso da identidade',comprovante_endereco:'o comprovante de endereço; se não tiver, pode avisar'}[proximo])+'?');return true;}return executar(ws,canal,numero,'',enviar,preferido,opts);}
   const tem=k=>Array.isArray(parse(vars[k]))&&parse(vars[k]).some(a=>a?.url);
   const falta=tipos.find(k=>!tem(k)&&!recebidos[k]);const arquivo=/^\[(?:img|file):([^\]\r\n]+)\]/i.exec(String(mensagem||''));const texto=String(mensagem||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   if(/^(?:esquece|desisto|quero encerrar|nao quero mais)/.test(texto))return executar(ws,canal,numero,mensagem,enviar,preferido,opts);

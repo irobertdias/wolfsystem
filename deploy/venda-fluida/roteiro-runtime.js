@@ -5,6 +5,7 @@ const{normalizarData}=require('./datas-flexiveis.js');
 async function processar({fluxo,no,variaveis,entrada,processarInput,fnEnviar,conversar,proximoNoId}){
  if(fluxo.workspace_id!=='grupoprime'||![27,28].includes(Number(fluxo.id))||!no.dados.roteiro_vendas_v3||!['prime_vendedor','prime_endereco_ia','prime_cadastro_ia'].includes(no.id))return null;
  const chave='__roteiro_vendas_v3_'+no.id,e=regras.parse(variaveis[chave]);
+ if(variaveis.__retomar_apos_objecao==='SIM'){delete variaveis.__retomar_apos_objecao;processarInput=false;entrada='';}
  const executar=()=>regras.decidir({no:{...no,fluxo_id:fluxo.id},vars:variaveis,estado:e,mensagem:entrada,entrada:processarInput,cpfValido,normalizarData});
  let r=executar();
  if(r.consultar){
