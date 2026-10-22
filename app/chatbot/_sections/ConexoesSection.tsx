@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useToast } from "../../hooks/useToast";
 import { traduzirErro } from "../../lib/traduzir_erro";
+import { somenteConfirmacoes, definirSomenteConfirmacoes } from "../../lib/uso-canal";
 import { montarCamposUnificados, type CampoUnificado, type ConfigCampoPadrao, type CampoCustom } from "../../lib/campos_proposta_definicao";
 
 // 🆕 Tipagem do Facebook SDK (carregado dinamicamente)
@@ -644,6 +645,11 @@ export function ConexoesSection() {
 
     setSalvandoCanal(true);
     try {
+      const usoMudou = somenteConfirmacoes(form.modulos) !== somenteConfirmacoes(conexoes.find(c=>c.id===editandoId)?.modulos);
+      if (usoMudou || somenteConfirmacoes(form.modulos)) {
+        const recursos = await wa("bko/health&workspaceId="+encodeURIComponent(wsId));
+        if (recursos.canal_compartilhado !== true) throw new Error("Instale o pacote V16 no servidor para alternar entre atendimento e somente confirmações.");
+      }
       const fluxoSel = fluxos.find(f => f.id.toString() === form.fluxoId);
       const fluxoIdSelecionado = form.modo === "fluxo" && form.fluxoId ? Number(form.fluxoId) : null;
       if (form.modo === "fluxo" && !Number.isFinite(fluxoIdSelecionado)) throw new Error("Fluxo selecionado inválido");
@@ -666,19 +672,19 @@ export function ConexoesSection() {
           if (form.webhookToken) payload.webhook_token = form.webhookToken;
           if (tokenTocado && form.token) payload.token_waba = form.token;
         }
-        const runtime = await wa("configurar-ia", { canalId: editandoId, workspaceId: conexaoEditada.workspace_id, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo, fluxoId: fluxoIdSelecionado, iaCrmAtivo: form.iaCrmAtivo, iaCrmMapeamento: form.iaCrmMapeamento, iaCrmCamposObrigatorios: form.iaCrmCamposObrigatorios, iaAgrupamentoMs: form.iaAgrupamentoMs });
+        const runtime = await wa("configurar-ia", { canalId: editandoId, workspaceId: conexaoEditada.workspace_id, ia: form.ia, apiKey: form.apiKey, prompt: form.prompt, fila: form.fila, modo: form.modo, fluxoId: fluxoIdSelecionado, modulos: form.modulos, iaCrmAtivo: form.iaCrmAtivo, iaCrmMapeamento: form.iaCrmMapeamento, iaCrmCamposObrigatorios: form.iaCrmCamposObrigatorios, iaAgrupamentoMs: form.iaAgrupamentoMs });
         if (!runtime?.success) throw new Error(runtime?.error || "O servidor não confirmou a troca de fluxo");
         if (String(runtime?.canal?.fluxo_id || "") !== String(fluxoIdSelecionado || "")) throw new Error("O servidor não gravou o fluxo selecionado");
+        if (usoMudou && somenteConfirmacoes(runtime?.canal?.modulos) !== somenteConfirmacoes(form.modulos)) throw new Error("O servidor não confirmou a opção de uso do canal");
 
         const payloadComplementar = { ...payload };
         delete payloadComplementar.fluxo_id;
         delete payloadComplementar.fluxo_nome;
-        void supabase.from("conexoes").update(payloadComplementar)
+        if(Array.isArray(runtime.canal.modulos))delete payloadComplementar.modulos;
+        const {error:erroComplementar}=await supabase.from("conexoes").update(payloadComplementar)
           .eq("id", editandoId)
-          .eq("workspace_id", conexaoEditada.workspace_id)
-          .then(({ error }) => {
-            if (error) notify("Fluxo salvo; outros campos não foram atualizados", "aviso", traduzirErro(error));
-          });
+          .eq("workspace_id", conexaoEditada.workspace_id);
+        if(erroComplementar)throw new Error("Automação salva; não foi possível atualizar os demais campos: "+traduzirErro(erroComplementar));
         setEditandoId(null);
         notify("Canal atualizado", "sucesso", "Fluxo: " + (runtime.canal.fluxo_nome || "nenhum"));
       } else {
@@ -1243,6 +1249,10 @@ export function ConexoesSection() {
               )}
               <div>
                 <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>{editandoId ? "2" : form.tipo === "waba" ? "4" : "3"}. Automação</p>
+                {['webjs','waba'].includes(form.tipo)&&<label style={{display:'flex',gap:10,alignItems:'flex-start',padding:12,marginBottom:14,border:'1px solid #bfdbfe',borderRadius:10,background:'#eff6ff'}}>
+                  <input type="checkbox" checked={somenteConfirmacoes(form.modulos)} onChange={e=>setForm(p=>({...p,modulos:definirSomenteConfirmacoes(p.modulos,e.target.checked)}))} style={{marginTop:3}} />
+                  <span><strong style={{fontSize:13}}>Somente confirmações e BKO</strong><span style={{display:'block',fontSize:12,color:'#475569',marginTop:4}}>Marcado: envia vendas e trata os retornos do BKO, sem iniciar atendimento com IA. Desmarcado: também atende leads com a automação selecionada abaixo. O fluxo e os destinatários são preservados.</span></span>
+                </label>}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
                   {[
                     { key: "nenhum", icon: "🚫", label: "Sem automação", desc: "Só humano", cor: "#6b7280" },
@@ -1525,7 +1535,7 @@ export function ConexoesSection() {
                 }}>{c.status === "conectado" ? "🟢 Conectado" : "🔴 Desconectado"}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: 700 }}>{c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxo_nome}` : c.modo === "typebot" ? `🎯 Typebot` : "🚫 Sem automação"}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#6b7280", fontSize: 12, fontWeight: 700 }}>{somenteConfirmacoes(c.modulos)?'📋 Somente confirmações/BKO':c.modo === "ia" ? `🤖 IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `🔀 ${c.fluxo_nome}` : c.modo === "typebot" ? `🎯 Typebot` : "🚫 Sem automação"}</span></div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7280", fontSize: 12 }}>Fila:</span><span style={{ color: "#3b82f6", fontSize: 12, fontWeight: 600 }}>{c.fila || "—"}</span></div>
                 {/* 👥 Equipe — derivada da fila do canal (a fila carrega o equipe_id) */}
                 {(() => {

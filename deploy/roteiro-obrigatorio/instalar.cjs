@@ -3,6 +3,7 @@ const root=path.resolve(process.argv[2]||'/root/wolf-whatsapp'),base=path.dirnam
 const executar=(args,env=process.env)=>{const r=spawnSync(process.execPath,args,{env,stdio:'inherit'});if(r.status!==0)throw Error('Verificação falhou: '+args.join(' '));};
 executar(['--test',path.join(base,'nio-oferta/oferta.test.cjs'),path.join(base,'vero/oferta.test.cjs'),path.join(__dirname,'test.cjs'),path.join(base,'bloqueio-terminal/test.cjs'),path.join(base,'comprovante-direto/test.cjs'),path.join(base,'datas-flexiveis/test.cjs'),path.join(base,'dados-contextuais/test.cjs'),path.join(base,'venda-fluida/test.cjs'),path.join(base,'venda-fluida/roteiro.test.cjs'),path.join(base,'venda-fluida/objecoes.test.cjs')],{...process.env,WOLF_BACKEND_DIR:root});
 const original=fs.readFileSync(alvo,'utf8');let codigo=original;
+executar(['--test',path.join(base,'canal-compartilhado/test.cjs')],{...process.env,WOLF_BACKEND_DIR:root});
 for(const patch of ['vero/oferta-patch.cjs','nio-oferta/oferta-patch.cjs','roteiro-obrigatorio/patch.cjs'])codigo=require(path.join(base,patch)).corrigir(codigo);
 codigo=require(path.join(base,'datas-flexiveis/patch.cjs')).fluxos(codigo);
 codigo=require(path.join(base,'dados-contextuais/patch.cjs')).corrigir(codigo);
@@ -30,6 +31,9 @@ arquivos.push(['src/services/bko-roteamento.js',fs.readFileSync(path.join(base,'
 for(const nome of ['bko-ia.js','bko-vero-core.js'])arquivos.push(['src/services/'+nome,fluido.encaminhamento(fluido.recibos(fluido.retentativas(fluido.bko(fs.readFileSync(path.join(root,'src/services',nome),'utf8')))))]);
 for(const a of arquivos)if(/bko-(?:ia|vero-core)\.js$/.test(a[0])&&!a[1].includes('roteiro_comercial:'))a[1]=a[1].replace('versao:4,','versao:4,roteiro_comercial:ctx.roteiroComercialV3||0,');
 for(const a of arquivos)if(/bko-(?:ia|vero-core)\.js$/.test(a[0])&&!a[1].includes('objecoes_comerciais:'))a[1]=a[1].replace('versao:4,','versao:4,objecoes_comerciais:typeof ctx.interceptarObjecaoComercial==="function",');
+const usoCanal=require(path.join(base,'canal-compartilhado/patch.cjs'));
+for(const a of arquivos){if(a[0]==='index.js')a[1]=usoCanal.index(a[1]);if(/bko-(?:ia|vero-core)\.js$/.test(a[0])&&!a[1].includes('canal_compartilhado:'))a[1]=a[1].replace('versao:4,','versao:4,canal_compartilhado:ctx.canalCompartilhadoAtivo===true,');}
+arquivos.push(['src/routes/canais.js',usoCanal.canais(fs.readFileSync(path.join(root,'src/routes/canais.js'),'utf8'))],['src/services/canal-compartilhado.js',fs.readFileSync(path.join(base,'canal-compartilhado/service.js'),'utf8')]);
 for(const[,texto]of arquivos){const r=spawnSync(process.execPath,['--check'],{input:texto,encoding:'utf8'});if(r.status)throw Error(r.stderr);}
 if(process.argv.includes('--check')){console.log('ROTEIRO_CHECK_OK: Nio, Vero, confirmação e bloqueio terminal; nenhuma alteração feita.');process.exit(0);}
 const backup=path.join(root,'backups','roteiro-obrigatorio-'+Date.now()),anteriores=[];fs.mkdirSync(backup,{recursive:true});
