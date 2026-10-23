@@ -46,12 +46,12 @@ export async function documentosDaSessaoGrupoPrime(db: SupabaseClient, numeroEnt
     if (erroObjeto || !objeto) {if(!permitirPendencias)falhar(`O arquivo ${regra.nome} não está salvo. Envie novamente.`);pendencias.push(`Arquivo não disponível no armazenamento: ${regra.nome}.`);continue;}
     const meta = (objeto.metadata || {}) as Record<string, unknown>;
     const mime = String(objeto.contentType || meta.mimetype || '');
-    if (!/^image\/(jpeg|png|webp|gif)$/.test(mime) && !((regra.variavel === 'comprovante_endereco'||permitirPendencias) && mime === 'application/pdf')) {if(!permitirPendencias)falhar(`Formato inválido para ${regra.nome}.`);pendencias.push(`Formato não encaminhável: ${regra.nome}.`);continue;}
+    if (!permitirPendencias && !/^image\/(jpeg|png|webp|gif)$/.test(mime) && !(regra.variavel === 'comprovante_endereco' && mime === 'application/pdf')) falhar(`Formato inválido para ${regra.nome}.`);
     const tamanho = Number(objeto.size || meta.size || 0);
     if (!tamanho || tamanho > 15 * 1024 * 1024) {if(!permitirPendencias)falhar(`Arquivo vazio ou muito grande: ${regra.nome}.`);pendencias.push(`Arquivo vazio ou acima do limite: ${regra.nome}.`);continue;}
     if (regra.variavel.startsWith('rg_')) {
       const fingerprint = String(objeto.etag || '');
-      if (fingerprint && fotos.has(fingerprint)) {if(!permitirPendencias)falhar('Envie fotos diferentes da frente e do verso do RG.');pendencias.push(`Mesmo arquivo recebido nas duas faces: ${regra.nome}.`);continue;}
+      if (fingerprint && fotos.has(fingerprint) && !permitirPendencias) falhar('Envie fotos diferentes da frente e do verso do RG.');
       if (fingerprint) fotos.add(fingerprint);
       // Coleta sem comparação de nome, CPF ou RG por OCR.
       // Origem privada, existência e duas fotos continuam obrigatórias.
