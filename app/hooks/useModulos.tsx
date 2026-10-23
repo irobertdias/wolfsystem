@@ -27,7 +27,7 @@ export type Modulos = {
   instagram: boolean;
   cobranca: boolean;
   meta_ads: boolean;
-  vendedor_ia: boolean;
+
   contratos_assinaturas: boolean;
   rh: boolean;            // 🆕 Recursos Humanos
   bater_ponto: boolean;   // 🆕 Bater Ponto
@@ -48,7 +48,7 @@ const FIN_TODAS: Record<string, boolean> = Object.fromEntries(FIN_OPCOES.map((k)
 const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
   roleta: false, disparos_web: false, validacao_numeros: false, disparos_api: false,
   voip: false, api_integracao: false, instagram: false,
-  cobranca: false, meta_ads: false, vendedor_ia: false, contratos_assinaturas: false, rh: false, bater_ponto: false,
+  cobranca: false, meta_ads: false,  contratos_assinaturas: false, rh: false, bater_ponto: false,
   financeiro: false, financeiro_opcoes: {},
   plano: "basico",
 };
@@ -98,7 +98,7 @@ export function useModulos() {
         // isso os módulos voltariam todos false pro time interno da casa.
         if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true, vendedor_ia: true, contratos_assinaturas: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
+            setModulos({ roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true,  contratos_assinaturas: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -106,7 +106,7 @@ export function useModulos() {
 
         // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
-          .select("modulo_roleta, modulo_disparos_web, modulo_validacao_numeros, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_meta_ads, modulo_vendedor_ia, modulo_contratos_assinaturas, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
+          .select("modulo_roleta, modulo_disparos_web, modulo_validacao_numeros, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_meta_ads, modulo_contratos_assinaturas, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
           .eq("email", ownerEmail)
           .maybeSingle();
 
@@ -121,7 +121,7 @@ export function useModulos() {
             instagram: !!cad?.modulo_instagram,
             cobranca: !!cad?.modulo_cobranca,
             meta_ads: !!cad?.modulo_meta_ads,
-            vendedor_ia: !!cad?.modulo_vendedor_ia,
+
             contratos_assinaturas: !!cad?.modulo_contratos_assinaturas,
             rh: !!cad?.modulo_rh,                 // 🆕
             bater_ponto: !!cad?.modulo_bater_ponto, // 🆕
@@ -151,7 +151,7 @@ export function useModulos() {
 //   if (!modulos.voip) return <ModuloBloqueado modulo="voip" />;
 // ═══════════════════════════════════════════════════════════════════════
 
-type ModuloKey = "roleta" | "disparos_web" | "validacao_numeros" | "disparos_api" | "voip" | "api_integracao" | "instagram" | "cobranca" | "meta_ads" | "vendedor_ia" | "rh" | "bater_ponto";
+type ModuloKey = "roleta" | "disparos_web" | "validacao_numeros" | "disparos_api" | "voip" | "api_integracao" | "instagram" | "cobranca" | "meta_ads"  | "rh" | "bater_ponto";
 
 const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: string; planoNecessario: string; cor: string }> = {
   roleta: {
@@ -217,13 +217,7 @@ const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: strin
     planoNecessario: "Liberação comercial",
     cor: "#7e22ce",
   },
-  vendedor_ia: {
-    icone: "🤖",
-    nome: "Vendedor IA",
-    desc: "Vendedor autônomo com IA: conversa de forma natural, valida dados, executa consultas e cadastra ou atualiza vendas no CRM.",
-    planoNecessario: "Módulo avulso — R$ 2.500,00",
-    cor: "#7c3aed",
-  },
+
   rh: {
     icone: "🧑‍💼",
     nome: "Recursos Humanos",

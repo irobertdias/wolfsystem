@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useModulos } from "../../hooks/useModulos";
 import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
-import ExtensoesFluxoIA from "./ExtensoesFluxoIA";
 
 type TipoNo =
   | "texto" | "imagem" | "video" | "audio" | "embed"
@@ -14,7 +13,7 @@ type TipoNo =
   | "input_arquivo" | "input_cards"
   | "condicao" | "variavel" | "redirecionar" | "script" | "espera"
   | "teste_ab" | "webhook" | "pular" | "retornar"
-  | "google_sheets" | "http_request" | "openai" | "fluxo_ia" | "biblioteca_ia" | "claude_ai" | "gmail"
+  | "google_sheets" | "http_request" | "openai"   | "claude_ai" | "gmail"
   | "gerar_documento" | "validar_assinatura" | "assinatura_wolf"
   | "meta_capi"  // 🆕 v20: dispara evento de conversão pra Meta (Pixel + Conversions API)
   | "inicio" | "comando" | "reply" | "invalido" | "transferir" | "finalizar"
@@ -37,40 +36,6 @@ function booleanoConfiguracao(valor: any, padrao = false): boolean {
   if (["true", "1", "on", "sim", "yes"].includes(texto)) return true;
   if (["false", "0", "off", "nao", "não", "no"].includes(texto)) return false;
   return padrao;
-}
-
-function normalizarConfiguracaoFluxoIA(no: No): No {
-  if (no.tipo !== "fluxo_ia") return no;
-  return {
-    ...no,
-    dados: {
-      ...(no.dados || {}),
-      extensoes_ia_ativas: booleanoConfiguracao(no.dados?.extensoes_ia_ativas, false),
-      ext_normalizadores_ativa: booleanoConfiguracao(no.dados?.ext_normalizadores_ativa, false),
-      ext_crm_ativa: booleanoConfiguracao(no.dados?.ext_crm_ativa, false),
-      ext_retomada_ativa: booleanoConfiguracao(no.dados?.ext_retomada_ativa, false),
-      ext_followups_ativa: booleanoConfiguracao(
-        no.dados?.followups_extensao_ativa,
-        booleanoConfiguracao(no.dados?.ext_followups_ativa, false)
-      ),
-      ext_consulta_negativa_ativa: booleanoConfiguracao(no.dados?.ext_consulta_negativa_ativa, false),
-      ext_fila_ativa: booleanoConfiguracao(no.dados?.ext_fila_ativa, false),
-      ext_multimidia_ativa: booleanoConfiguracao(
-        no.dados?.midia_ia_extensao_ativa,
-        booleanoConfiguracao(no.dados?.ext_multimidia_ativa, false)
-      ),
-      followups_extensao_ativa: booleanoConfiguracao(
-        no.dados?.followups_extensao_ativa,
-        booleanoConfiguracao(no.dados?.ext_followups_ativa, false)
-      ),
-      midia_ia_extensao_ativa: booleanoConfiguracao(
-        no.dados?.midia_ia_extensao_ativa,
-        booleanoConfiguracao(no.dados?.ext_multimidia_ativa, false)
-      ),
-      midia_ia_imagens_ativa: booleanoConfiguracao(no.dados?.midia_ia_imagens_ativa, true),
-      midia_ia_arquivos_ativa: booleanoConfiguracao(no.dados?.midia_ia_arquivos_ativa, true),
-    },
-  };
 }
 
 const B: Record<TipoNo, BC> = {
@@ -104,9 +69,9 @@ const B: Record<TipoNo, BC> = {
   google_sheets:        {label:"Google Sheets",   icone:"📊", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   http_request:         {label:"HTTP Request",    icone:"🌐", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   openai:               {label:"OpenAI",          icone:"🤖", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
-  fluxo_ia:             {label:"Fluxo por IA",    icone:"✨", cor:"#7c3aed", saidas:["Dados confirmados","Erro","Limite de recusas atingido","Limite de lembretes atingido"], grupo:"Integrações"},
+
   claude_ai:            {label:"Claude AI",       icone:"🧠", cor:"#10b981", saidas:["Próximo"],                     grupo:"Integrações"},
-  biblioteca_ia:        {label:"Biblioteca IA",   icone:"\uD83D\uDCDA", cor:"#0f766e", saidas:[], grupo:"Integra\u00e7\u00f5es"},
+
   gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
   gerar_documento:      {label:"Gerar Documento", icone:"📄", cor:"#0f766e", saidas:["Enviado","Erro"],              grupo:"Documentos"},
   validar_assinatura:   {label:"Validar Assinatura",icone:"✍️",cor:"#7c3aed", saidas:["Assinado","Não assinado","Erro"],grupo:"Documentos"},
@@ -200,10 +165,10 @@ function defaultD(tipo: TipoNo): Record<string,any> {
     http_request:{url:"",metodo:"GET",headers:"",body:"",variavel:""},
     openai:{apiKey:"",modelo:"gpt-4o-mini",prompt:"",variavel:"resposta_ia"},
     gerar_documento:{titulo:"CONTRATO",nome_arquivo:"contrato_{{numero}}.pdf",modelo:"CONTRATANTE: {{nome}}\nCPF: {{cpf}}\n\nEscreva aqui as cláusulas do contrato.",rodape:"",legenda:"Segue o contrato para leitura e assinatura. Depois, envie o arquivo assinado por aqui.",incluir_area_assinatura:true,rotulo_assinatura:"Assinatura do cliente",nome_signatario:"{{nome}}",permitir_variaveis_vazias:false,variavel_arquivo:"contrato_arquivo",variavel_enviado:"contrato_enviado",mensagem_erro:"Não consegui gerar o contrato agora. Vou encaminhar para nossa equipe."},
-    biblioteca_ia:{ativo:true,ia_alvo_id:"",confianca_minima:0.72,reenvio_minutos:30,materiais:[]},
+
     validar_assinatura:{pergunta:"Agora envie por aqui o contrato assinado em PDF ou foto legível.",nome_signatario:"{{nome}}",criterios:"",confianca_minima:0.8,modelo_ia:"gpt-4o-mini",variavel_resultado:"assinatura_confirmada",mensagem_aguardando:"Preciso que você anexe o contrato assinado em PDF ou foto legível para continuar.",mensagem_assinado:"Recebi o contrato e confirmei a assinatura. Vou dar continuidade ao seu atendimento.",mensagem_nao_assinado:"Não consegui confirmar a assinatura nesse arquivo. Confira a área de assinatura e envie novamente, por favor.",mensagem_erro:"Não consegui analisar a assinatura agora. Vou encaminhar para nossa equipe."},
     assinatura_wolf:{assinatura_bilateral:true,representante_id:"",nome_signatario:"{{nome}}",variavel_cpf:"cpf",variavel_email:"email",variavel_arquivo:"contrato_arquivo",titulo_documento:"Contrato de prestação de serviços",nome_documento:"contrato_{{cpf}}.pdf",url_publica:"https://wolfgyn.com.br",expira_horas:48,exigir_otp:true,exigir_selfie:true,exigir_localizacao:false,variavel_sessao:"assinatura_wolf_id",variavel_resultado:"assinatura_confirmada",mensagem_aguardando_empresa:"Seu contrato foi gerado e enviado primeiro ao representante da empresa. Assim que ele assinar, você receberá automaticamente o seu link por WhatsApp e e-mail.",mensagem_aguardando_cliente:"O contrato já foi assinado pela empresa e agora aguarda a sua assinatura no link enviado por WhatsApp e e-mail.",mensagem_link:"Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",mensagem_assinado:"As duas assinaturas foram confirmadas e o contrato final foi enviado por WhatsApp e e-mail. Vou continuar seu atendimento.",mensagem_erro:"Não consegui iniciar a assinatura agora. Vou encaminhar para nossa equipe."},
-    fluxo_ia:{extensoes_ia_ativas:false,ext_normalizadores_ativa:false,ext_crm_ativa:false,ext_retomada_ativa:false,ext_followups_ativa:false,ext_consulta_negativa_ativa:false,ext_fila_ativa:false,ext_multimidia_ativa:false,apiKey:"",modelo:"gpt-4o-mini",prompt:"Você é um assistente comercial. Colete os dados com naturalidade.",mensagem_inicial:"Olá! Vou confirmar alguns dados com você.",mensagem_inicial_literal:true,agrupamento_ms:3500,limite_recusas:3,followups_extensao_ativa:false,reengajamento_ativo:false,reengajamento_lembretes:[{minutos:10,mensagem:"Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"}],reengajamento_finalizar_automatico:true,reengajamento_finalizar_apos_minutos:120,reengajamento_inteligente_ativo:true,reengajamento_inteligente_antecedencia_minutos:10,reengajamento_inteligente_maximo_dias:30,midia_ia_extensao_ativa:false,arquivos_salvar_regras:[],midia_ia_imagens_ativa:true,midia_ia_arquivos_ativa:true,midia_ia_tamanho_max_mb:15,midia_ia_mensagem_falha:"Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?",variaveis:[{nome:"nome",label:"Nome completo",tipo:"nome",obrigatoria:true}],consultas:[]},
+
     claude_ai:{apiKey:"",modelo:"claude-sonnet-4-20250514",prompt:"",variavel:"resposta_ia"},
     gmail:{smtp_host:"smtp.gmail.com",smtp_port:587,smtp_secure:false,smtp_user:"",smtp_pass:"",from_name:"",para:"",assunto:"",corpo:""},
     // 🆕 v20: Meta Pixel / Conversions API
@@ -289,9 +254,9 @@ function getPreview(no: No): string {
     case "google_sheets": return d.webhook_url ? `Sheets ${d.acao}` : "⚠️ Webhook não configurado";
     case "http_request": return `${d.metodo} ${d.url||""}`;
     case "openai": return `GPT: ${d.modelo}`;
-    case "fluxo_ia": return "IA coleta " + (Array.isArray(d.variaveis) ? d.variaveis.length : 0) + " variável(is)" + (d.followups_extensao_ativa === true ? " • Agenda e lembretes ativos" : "");
+
     case "claude_ai": return `Claude: ${d.modelo}`;
-    case "biblioteca_ia": return "Biblioteca IA com " + (Array.isArray(d.materiais) ? d.materiais.filter((m:{ativo?:boolean}) => m?.ativo !== false).length : 0) + " material(is) ativo(s)";
+
     case "gmail": return d.smtp_user ? `📨 ${d.para||"?"}` : "⚠️ SMTP não configurado";
     // 🆕 v20: preview do bloco Meta Pixel/CAPI
     case "meta_capi": {
@@ -548,7 +513,7 @@ function TVarComponent({
   );
 }
 
-function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, representantesAssinatura, nos, statusVendaOpcoes, camposPropostaUnif, vendedorIALiberado, salvarConfiguracaoMidia, salvandoMidiaId, workspaceId }: {
+function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendentesBanco, representantesAssinatura, nos, statusVendaOpcoes, camposPropostaUnif,    workspaceId }: {
   noSel: No;
   updateNo: (id: string, d: Record<string,any>) => void;
   excluirNo: (id: string) => void;
@@ -559,27 +524,12 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   nos: No[]; // 🆕 lista completa de nós pra detectar variáveis criadas
   statusVendaOpcoes: {value:string;label:string}[]; // 📋 status disponíveis no workspace
   camposPropostaUnif: CampoUnificado[]; // 📋 campos da proposta (fixos + customs) do workspace
-  vendedorIALiberado: boolean;
-  salvarConfiguracaoMidia: (id: string, dados: Record<string, boolean>) => Promise<void>;
-  salvandoMidiaId: string | null;
+
   workspaceId: string | null;
 }) {
   const d = noSel.dados;
   const id = noSel.id;
   const u = (o: Record<string,any>) => updateNo(id, o);
-
-  const [uploadandoBibliotecaId, setUploadandoBibliotecaId] = useState<string | null>(null);
-  if (noSel.tipo === "fluxo_ia" && !vendedorIALiberado) {
-    return (
-      <div style={{border:"1px solid #ddd6fe",background:"linear-gradient(145deg,#faf5ff,#fff)",borderRadius:14,padding:22,textAlign:"center"}}>
-        <div style={{fontSize:42,marginBottom:10}}>🤖</div>
-        <h3 style={{margin:"0 0 8px",color:"#5b21b6"}}>Vendedor IA bloqueado</h3>
-        <p style={{fontSize:12,lineHeight:1.6,color:"#6b7280",margin:"0 0 14px"}}>Este é um módulo premium avulso e não faz parte dos planos padrão da Wolf.</p>
-        <div style={{display:"inline-block",padding:"8px 14px",borderRadius:999,background:"#7c3aed",color:"#fff",fontWeight:800,fontSize:12}}>Contratação: R$ 2.500,00</div>
-        <p style={{fontSize:11,color:"#9ca3af",margin:"14px 0 0"}}>Solicite a liberação ao administrador da Wolf System.</p>
-      </div>
-    );
-  }
 
   // 🆕 Coleta TODAS as variáveis criadas no fluxo (em qualquer bloco que seta variável).
   // Usado pro autocomplete/dropdown nos blocos que usam variáveis.
@@ -599,7 +549,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       adicionar(dn.variavel_arquivo);
       adicionar(dn.variavel_enviado);
       adicionar(dn.variavel_sessao);
-      // Fluxo por IA guarda várias variáveis dentro de dados.variaveis.
+      // Nós podem declarar variáveis adicionais em dados.variaveis.
       if (Array.isArray(dn.variaveis)) {
         dn.variaveis.forEach((campo: any) => {
           adicionar(campo?.nome);
@@ -1526,7 +1476,7 @@ function saida(obj) {
         {TVar("Critérios adicionais","criterios","Ex.: deve haver assinatura na última página...",90)}
         <div><label style={LS}>Confiança mínima</label><input type="number" min={0.5} max={0.99} step={0.01} value={d.confianca_minima ?? 0.8} onChange={e=>u({confianca_minima:Math.max(.5,Math.min(.99,Number(e.target.value)||.8))})} style={IS}/></div>
         {S("Modelo de análise","modelo_ia",[{value:"gpt-4o-mini",label:"GPT-4o Mini"},{value:"gpt-4o",label:"GPT-4o"}])}
-        {F("API Key opcional","apiKey","password","Usa a chave do bloco Fluxo por IA se ficar vazio")}
+        {F("API Key opcional","apiKey","password","Informe a chave usada para analisar a assinatura")}
         {VarPill("Salvar resultado em","variavel_resultado","ex: assinatura_confirmada")}
         {TVar("Mensagem se ainda não enviou arquivo","mensagem_aguardando","Anexe o contrato assinado...",60)}
         {TVar("Mensagem quando assinado","mensagem_assinado","Assinatura confirmada...",60)}
@@ -1534,507 +1484,6 @@ function saida(obj) {
         {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui analisar agora...",60)}
         <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize:10,lineHeight:1.45}}>Conecte somente <b>Assinado</b> ao bloco <b>Enviar Venda</b>. A análise é uma triagem operacional e não substitui validação jurídica ou pericial.</div>
       </>;
-    case "biblioteca_ia": {
-      type MaterialBiblioteca = {
-        id: string;
-        ativo: boolean;
-        tipo: "video" | "imagem" | "arquivo" | "link";
-        titulo: string;
-        descricao: string;
-        palavras_chave: string;
-        url: string;
-        nome_arquivo: string;
-        legenda: string;
-      };
-      const materiais: MaterialBiblioteca[] = Array.isArray(d.materiais) ? d.materiais : [];
-      const blocosIA = nos.filter(n => n.tipo === "fluxo_ia");
-      const salvarMateriais = (lista: MaterialBiblioteca[]) => u({ materiais: lista });
-      const atualizarMaterial = (indice: number, patch: Partial<MaterialBiblioteca>) =>
-        salvarMateriais(materiais.map((item, i) => i === indice ? { ...item, ...patch } : item));
-      const adicionarMaterial = () => salvarMateriais([...materiais, {
-        id: "material_" + uid(),
-        ativo: true,
-        tipo: "video",
-        titulo: "",
-        descricao: "",
-        palavras_chave: "",
-        url: "",
-        nome_arquivo: "",
-        legenda: "",
-      }]);
-      return <>
-        <div style={{background:"#ecfdf5",border:"1px solid #a7f3d0",borderRadius:9,padding:10,marginBottom:10}}>
-          <p style={{color:"#047857",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>{"Biblioteca de materiais da IA"}</p>
-          <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.5}}>
-            {"Cadastre videos, imagens, arquivos ou links. Durante a conversa, a IA escolhe no maximo um material relacionado a duvida, envia ao cliente e continua a coleta normalmente."}
-          </p>
-        </div>
-        <label style={{display:"flex",alignItems:"center",gap:7,color:"#1f2937",fontSize:11,marginBottom:10}}>
-          <input type="checkbox" checked={d.ativo !== false} onChange={e => u({ativo:e.target.checked})}/>
-          {"Biblioteca ativa"}
-        </label>
-        <div style={{marginBottom:10}}>
-          <label style={LS}>{"Bloco IA atendido"}</label>
-          <select value={d.ia_alvo_id || ""} onChange={e=>u({ia_alvo_id:e.target.value})} style={IS}>
-            <option value="">{"Todos os blocos Fluxo por IA"}</option>
-            {blocosIA.map((bloco:No) => (
-              <option key={bloco.id} value={bloco.id}>
-                {String(bloco.dados?.titulo || bloco.dados?.nome || getPreview(bloco)).slice(0,80)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-          <div>
-            <label style={LS}>{"Confianca minima"}</label>
-            <input type="number" min={0.5} max={0.99} step={0.01} value={d.confianca_minima ?? 0.72}
-              onChange={e=>u({confianca_minima:Math.max(.5,Math.min(.99,Number(e.target.value)||.72))})} style={IS}/>
-          </div>
-          <div>
-            <label style={LS}>{"Reenvio apos (minutos)"}</label>
-            <input type="number" min={0} max={10080} value={d.reenvio_minutos ?? 30}
-              onChange={e=>u({reenvio_minutos:Math.max(0,Math.min(10080,Number(e.target.value)||0))})} style={IS}/>
-          </div>
-        </div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <strong style={{fontSize:11,color:"#0f172a"}}>{"Materiais (" + materiais.length + ")"}</strong>
-          <button type="button" onClick={adicionarMaterial}
-            style={{border:"1px solid #10b981",background:"#ecfdf5",color:"#047857",borderRadius:7,padding:"6px 9px",fontSize:10,fontWeight:800,cursor:"pointer"}}>
-            {"+ Adicionar material"}
-          </button>
-        </div>
-        {materiais.length === 0 && (
-          <div style={{border:"1px dashed #cbd5e1",borderRadius:8,padding:14,textAlign:"center",color:"#64748b",fontSize:10}}>
-            {"Adicione pelo menos um material para a IA poder orientar o cliente."}
-          </div>
-        )}
-        {materiais.map((material, indice) => (
-          <div key={material.id || indice} style={{border:"1px solid #d1fae5",background:"#f8fffc",borderRadius:10,padding:10,marginBottom:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
-              <input type="checkbox" checked={material.ativo !== false} onChange={e=>atualizarMaterial(indice,{ativo:e.target.checked})}/>
-              <select value={material.tipo || "video"} onChange={e=>atualizarMaterial(indice,{tipo:e.target.value as MaterialBiblioteca["tipo"]})}
-                style={{...IS,width:105,padding:"6px 7px"}}>
-                <option value="video">{"Video"}</option>
-                <option value="imagem">{"Imagem"}</option>
-                <option value="arquivo">{"Arquivo"}</option>
-                <option value="link">{"Link"}</option>
-              </select>
-              <input value={material.titulo || ""} onChange={e=>atualizarMaterial(indice,{titulo:e.target.value})}
-                style={{...IS,flex:1,padding:"6px 8px"}} placeholder="Ex.: Como baixar contrato na Caixa"/>
-              <button type="button" onClick={()=>salvarMateriais(materiais.filter((_,i)=>i!==indice))}
-                style={{border:"1px solid #fecaca",background:"#fff1f2",color:"#dc2626",borderRadius:7,padding:"6px 8px",cursor:"pointer"}}>{"Excluir"}</button>
-            </div>
-            <label style={LS}>{"Quando a IA deve usar este material"}</label>
-            <textarea value={material.descricao || ""} onChange={e=>atualizarMaterial(indice,{descricao:e.target.value})}
-              style={{...IS,height:62,resize:"vertical",marginBottom:7}} placeholder="Ex.: quando o cliente perguntar onde encontrar ou baixar o contrato do emprestimo na Caixa."/>
-            <label style={LS}>{"Palavras-chave (separe por virgula)"}</label>
-            <input value={material.palavras_chave || ""} onChange={e=>atualizarMaterial(indice,{palavras_chave:e.target.value})}
-              style={{...IS,marginBottom:7}} placeholder="caixa, contrato, ccb, onde encontrar, baixar"/>
-            {material.tipo !== "link" && (
-              <div style={{marginBottom:7}}>
-                <label style={LS}>{"Enviar arquivo do computador"}</label>
-                <input
-                  type="file"
-                  accept={material.tipo === "video" ? "video/*" : material.tipo === "imagem" ? "image/*" : ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"}
-                  disabled={!workspaceId || uploadandoBibliotecaId === material.id}
-                  onChange={async e => {
-                    const arquivo = e.target.files?.[0];
-                    e.target.value = "";
-                    if (!arquivo || !workspaceId) return;
-                    const limite = material.tipo === "imagem" ? 5 * 1024 * 1024 : material.tipo === "video" ? 16 * 1024 * 1024 : 25 * 1024 * 1024;
-                    if (arquivo.size > limite) {
-                      alert("Arquivo acima do limite permitido para este tipo de material.");
-                      return;
-                    }
-                    const nomeSeguro = arquivo.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-                    const caminho = `${workspaceId}/biblioteca-ia/${Date.now()}_${nomeSeguro}`;
-                    setUploadandoBibliotecaId(material.id);
-                    try {
-                      const { error } = await supabase.storage.from("respostas-rapidas-midia")
-                        .upload(caminho, arquivo, { upsert:false, contentType:arquivo.type || undefined });
-                      if (error) throw error;
-                      const { data:urlData } = supabase.storage.from("respostas-rapidas-midia").getPublicUrl(caminho);
-                      atualizarMaterial(indice, { url:urlData.publicUrl, nome_arquivo:arquivo.name });
-                    } catch (erro:unknown) {
-                      const mensagemErro = erro instanceof Error ? erro.message : "erro desconhecido";
-                      alert("Nao foi possivel enviar o material: " + mensagemErro);
-                    } finally {
-                      setUploadandoBibliotecaId(null);
-                    }
-                  }}
-                  style={{...IS,padding:"7px 8px",fontSize:10}}
-                />
-                {uploadandoBibliotecaId === material.id && <span style={{fontSize:10,color:"#047857"}}>{"Enviando material..."}</span>}
-              </div>
-            )}
-            <label style={LS}>{"URL publica direta"}</label>
-            <input type="url" value={material.url || ""} onChange={e=>atualizarMaterial(indice,{url:e.target.value})}
-              style={{...IS,marginBottom:7}} placeholder="https://cdn.exemplo.com/tutorial-caixa.mp4"/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
-              <div>
-                <label style={LS}>{"Nome do arquivo (opcional)"}</label>
-                <input value={material.nome_arquivo || ""} onChange={e=>atualizarMaterial(indice,{nome_arquivo:e.target.value})}
-                  style={IS} placeholder="tutorial-caixa.mp4"/>
-              </div>
-              <div>
-                <label style={LS}>{"Legenda enviada"}</label>
-                <input value={material.legenda || ""} onChange={e=>atualizarMaterial(indice,{legenda:e.target.value})}
-                  style={IS} placeholder="Veja onde encontrar seu contrato."/>
-              </div>
-            </div>
-          </div>
-        ))}
-        <p style={{color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:8}}>
-          {"Use URL HTTPS publica e direta. Limites: imagem 5 MB, video 16 MB e arquivo 25 MB. Links de paginas, como YouTube, devem usar o tipo Link."}
-        </p>
-      </>;
-    }
-
-    case "fluxo_ia": {
-
-      const camposIA: Array<{nome:string;label:string;tipo:string;obrigatoria:boolean;diferente_de?:string}> =
-        Array.isArray(d.variaveis) ? d.variaveis : [];
-      const atualizarCampoIA = (indice: number, patch: Record<string, any>) => {
-        const novos = camposIA.map((campo, i) => i === indice ? { ...campo, ...patch } : campo);
-        u({ variaveis: novos });
-      };
-      const removerCampoIA = (indice: number) => u({ variaveis: camposIA.filter((_, i) => i !== indice) });
-      type ConsultaIA = {
-        id:string; nome:string; descricao:string; tipo:"http"|"script";
-        variavel_gatilho:string; variavel_resultado:string; obrigatoria:boolean;
-
-        resultado_disponivel?:string; resultado_indisponivel?:string;
-        acao_indisponibilidade?:"aguardar"|"finalizar"; mensagem_indisponibilidade?:string;
-        retorno_negativo_aplicar_etiqueta?:boolean; retorno_negativo_nome_etiqueta?:string;
-        retorno_negativo_finalizar_atendimento?:boolean; retorno_negativo_mensagem?:string;
-        url?:string; metodo?:string; headers?:string|Record<string,string>; body?:string; codigo?:string;
-      };
-      const consultasIA: ConsultaIA[] = Array.isArray(d.consultas) ? d.consultas : [];
-      const serializarHeadersConsulta = (headers: ConsultaIA["headers"]) => {
-        if (!headers) return "";
-        if (typeof headers === "string") return headers;
-        try { return JSON.stringify(headers, null, 2); } catch { return ""; }
-      };
-      const atualizarConsultaIA = (indice: number, patch: Partial<ConsultaIA>) => {
-        u({ consultas: consultasIA.map((consulta, i) => i === indice ? { ...consulta, ...patch } : consulta) });
-      };
-      const removerConsultaIA = (indice: number) => u({ consultas: consultasIA.filter((_, i) => i !== indice) });
-      type LembreteReengajamento = { minutos:number; mensagem:string };
-      const lembretesReengajamento: LembreteReengajamento[] =
-        Array.isArray(d.reengajamento_lembretes) && d.reengajamento_lembretes.length
-          ? d.reengajamento_lembretes
-          : [{
-              minutos:Math.max(1,Number(d.reengajamento_minutos || 10)),
-              mensagem:d.reengajamento_mensagem || "Oi, {{nome}}! Ainda está por aí? Posso continuar seu atendimento? 😊"
-            }];
-      const atualizarLembrete = (indice:number, patch:Partial<LembreteReengajamento>) =>
-        u({reengajamento_lembretes:lembretesReengajamento.map((item,i)=>i===indice?{...item,...patch}:item)});
-      const removerLembrete = (indice:number) =>
-        u({reengajamento_lembretes:lembretesReengajamento.filter((_,i)=>i!==indice)});
-      type RegraArquivoPrivado = { id:string; nome:string; descricao:string; variavel:string; obrigatoria:boolean; multiplos:boolean };
-      const regrasArquivos: RegraArquivoPrivado[] = Array.isArray(d.arquivos_salvar_regras) ? d.arquivos_salvar_regras : [];
-      const salvarRegrasArquivos = (regras:RegraArquivoPrivado[]) => {
-        let variaveisAtualizadas=[...camposIA];
-        for(const regra of regras.filter(item=>item.obrigatoria && item.variavel)){
-          const validacao=`${regra.variavel}_validado`;
-          if(!variaveisAtualizadas.some(c=>c.nome===validacao)) variaveisAtualizadas.push({nome:validacao,label:`Arquivo obrigatório: ${regra.nome} (validação automática; não perguntar)`,tipo:"texto",obrigatoria:true});
-        }
-        u({arquivos_salvar_regras:regras,variaveis:variaveisAtualizadas});
-      };
-      const atualizarRegraArquivo=(indice:number,patch:Partial<RegraArquivoPrivado>)=>salvarRegrasArquivos(regrasArquivos.map((regra,i)=>i===indice?{...regra,...patch}:regra));
-      const slugArquivo=(valor:string)=>valor.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,60);
-      return <>
-        <div style={{background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:8,padding:10,marginBottom:10}}>
-          <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>✨ Fluxo por IA com variáveis validadas</p>
-          <p style={{color:"#6b7280",fontSize:10,margin:0,lineHeight:1.4}}>
-            A IA conversa, salva apenas valores válidos, mostra um resumo e só libera a saída depois da confirmação do cliente.
-            Conecte a saída <b>Dados confirmados</b> ao bloco <b>Enviar Venda</b>.
-          </p>
-        </div>
-        <ExtensoesFluxoIA dados={d} onChange={u}/>
-        {F("API Key","apiKey","password","sk-...")}
-        {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"}])}
-        {T("Prompt de comportamento","prompt","Explique como a IA deve conduzir o atendimento...",100)}
-        {T("Mensagem para iniciar a coleta","mensagem_inicial","Olá! Vou confirmar alguns dados com você.",70)}
-        <label style={{display:"flex",alignItems:"flex-start",gap:7,margin:"6px 0 10px",padding:"9px",background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,color:"#374151",fontSize:10,lineHeight:1.4}}>
-          <input type="checkbox" checked={d.mensagem_inicial_literal === true} onChange={e=>u({mensagem_inicial_literal:e.target.checked})} style={{marginTop:2}}/>
-          <span><b>Enviar exatamente esta mensagem</b><br/>A IA só assume depois que o cliente responder. Desmarque se o texto acima for apenas uma instrução para a IA criar a abertura.</span>
-        </label>
-        {S("Tempo para juntar mensagens","agrupamento_ms",[
-          {value:"2000",label:"2 segundos"},{value:"3500",label:"3,5 segundos"},{value:"5000",label:"5 segundos"},{value:"7000",label:"7 segundos"}
-        ])}
-        <div style={{marginTop:12,background:d.midia_ia_extensao_ativa === true?"linear-gradient(135deg,#f0fdfa,#eff6ff)":"#f8fafc",border:d.midia_ia_extensao_ativa === true?"1px solid #5eead4":"1px solid #cbd5e1",borderRadius:11,padding:11,boxShadow:d.midia_ia_extensao_ativa === true?"0 8px 24px rgba(13,148,136,.10)":"none"}}>
-          <label style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,cursor:"pointer"}}>
-            <span style={{display:"flex",alignItems:"flex-start",gap:9}}>
-              <span style={{display:"grid",placeItems:"center",width:32,height:32,borderRadius:9,background:d.midia_ia_extensao_ativa === true?"#0f766e":"#e2e8f0",color:d.midia_ia_extensao_ativa === true?"#fff":"#475569",fontSize:16,flexShrink:0}}>📎</span>
-              <span><b style={{display:"block",color:"#0f172a",fontSize:12}}>Leitura de fotos e arquivos</b><span style={{display:"block",color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:2}}>Extensão isolada do vendedor IA. Ao ligar, a leitura vale em todos os blocos Fluxo por IA deste fluxo.</span></span>
-            </span>
-            <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
-              <span style={{fontSize:8,fontWeight:900,color:salvandoMidiaId===id?"#92400e":"#0f766e",background:salvandoMidiaId===id?"#fef3c7":"#ccfbf1",borderRadius:999,padding:"4px 7px"}}>
-                {salvandoMidiaId===id ? "SALVANDO..." : d.midia_ia_extensao_ativa === true ? "ATIVA E SALVA" : "DESLIGADA"}
-              </span>
-              <input
-                type="checkbox"
-                disabled={salvandoMidiaId===id}
-                checked={d.midia_ia_extensao_ativa === true}
-                onChange={e=>{
-                  const ativa=e.target.checked;
-                  void salvarConfiguracaoMidia(id,{
-                    midia_ia_extensao_ativa:ativa,
-                    ext_multimidia_ativa:ativa
-                  });
-                }}
-              />
-            </span>
-          </label>
-          {d.midia_ia_extensao_ativa === true && <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #99f6e4"}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#134e4a",fontSize:10,lineHeight:1.4,cursor:"pointer",background:"#fff",border:"1px solid #ccfbf1",borderRadius:8,padding:8}}><input type="checkbox" disabled={salvandoMidiaId===id} checked={d.midia_ia_imagens_ativa !== false} onChange={e=>void salvarConfiguracaoMidia(id,{midia_ia_imagens_ativa:e.target.checked})}/><span><b>Interpretar fotos</b><br/>Lê JPG, PNG, WEBP e GIF.</span></label>
-              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#134e4a",fontSize:10,lineHeight:1.4,cursor:"pointer",background:"#fff",border:"1px solid #ccfbf1",borderRadius:8,padding:8}}><input type="checkbox" disabled={salvandoMidiaId===id} checked={d.midia_ia_arquivos_ativa !== false} onChange={e=>void salvarConfiguracaoMidia(id,{midia_ia_arquivos_ativa:e.target.checked})}/><span><b>Interpretar arquivos</b><br/>Lê PDF, texto e documentos compatíveis.</span></label>
-            </div>
-            <div style={{marginTop:8}}><label style={LS}>Tamanho máximo por mídia (MB)</label><input type="number" min={1} max={25} value={d.midia_ia_tamanho_max_mb ?? 15} onChange={e=>u({midia_ia_tamanho_max_mb:Math.max(1,Math.min(25,Number(e.target.value)||15))})} style={IS}/></div>
-            <div style={{marginTop:8}}><label style={LS}>Mensagem se não conseguir ler</label><textarea value={d.midia_ia_mensagem_falha || "Recebi a foto ou o arquivo, mas não consegui ler com segurança. Pode enviar novamente ou digitar as informações, por favor?"} onChange={e=>u({midia_ia_mensagem_falha:e.target.value})} style={{...IS,minHeight:64,resize:"vertical"}}/></div>
-            <p style={{fontSize:9,color:"#115e59",margin:"7px 0 0"}}>Usa a mesma API Key e o mesmo modelo deste bloco. O conteúdo extraído vira apenas contexto interno da conversa.</p>
-          </div>}
-        </div>
-        <div style={{marginTop:10,background:regrasArquivos.length?"#eefbf5":"#f8fafc",border:regrasArquivos.length?"1px solid #86efac":"1px solid #cbd5e1",borderRadius:10,padding:10,opacity:d.midia_ia_extensao_ativa === true?1:.6}}>
-          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10}}>
-            <span><b style={{display:"block",color:"#14532d",fontSize:11}}>🔐 Arquivos privados para salvar no CRM</b><span style={{display:"block",color:"#64748b",fontSize:9,lineHeight:1.45,marginTop:3}}>Cadastre qualquer documento que a IA deve reconhecer e preservar: contracheque, RG, contrato bancário, comprovante ou outro.</span></span>
-            <span style={{fontSize:8,fontWeight:900,color:"#166534",background:"#dcfce7",borderRadius:999,padding:"4px 7px",whiteSpace:"nowrap"}}>{regrasArquivos.length} REGRA(S)</span>
-          </div>
-          {regrasArquivos.map((regra,indice)=><div key={regra.id} style={{marginTop:9,background:"#fff",border:"1px solid #bbf7d0",borderRadius:9,padding:9}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:7}}><b style={{fontSize:10,color:"#166534"}}>Arquivo {indice+1}</b><button type="button" onClick={()=>salvarRegrasArquivos(regrasArquivos.filter((_,i)=>i!==indice))} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"4px 7px",fontSize:9,cursor:"pointer"}}>Remover</button></div>
-            <label style={LS}>Nome do documento</label><input value={regra.nome} onChange={e=>{const nome=e.target.value;atualizarRegraArquivo(indice,{nome,variavel:regra.variavel||`${slugArquivo(nome)}_arquivo`})}} placeholder="Ex.: Contracheque" style={IS}/>
-            <label style={{...LS,marginTop:7}}>Como a IA deve reconhecer</label><textarea value={regra.descricao} onChange={e=>atualizarRegraArquivo(indice,{descricao:e.target.value})} placeholder="Ex.: holerite ou demonstrativo mensal com vencimentos e descontos do servidor" style={{...IS,minHeight:58,resize:"vertical"}}/>
-            <label style={{...LS,marginTop:7}}>Variável do arquivo no CRM</label><input value={regra.variavel} onChange={e=>atualizarRegraArquivo(indice,{variavel:slugArquivo(e.target.value)})} placeholder="contracheque_arquivo" style={IS}/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginTop:8}}>
-              <label style={{display:"flex",gap:6,alignItems:"flex-start",fontSize:9,color:"#374151"}}><input type="checkbox" checked={regra.obrigatoria} onChange={e=>atualizarRegraArquivo(indice,{obrigatoria:e.target.checked})}/><span><b>Obrigatório</b><br/>A etapa aguarda o arquivo.</span></label>
-              <label style={{display:"flex",gap:6,alignItems:"flex-start",fontSize:9,color:"#374151"}}><input type="checkbox" checked={regra.multiplos} onChange={e=>atualizarRegraArquivo(indice,{multiplos:e.target.checked})}/><span><b>Vários arquivos</b><br/>Acumula até 10 anexos.</span></label>
-            </div>
-            {regra.variavel && <p style={{fontSize:8,color:"#166534",margin:"7px 0 0"}}>Arquivo: <code>{regra.variavel}</code> · Validação automática: <code>{regra.variavel}_validado</code></p>}
-          </div>)}
-          <button type="button" disabled={d.midia_ia_extensao_ativa !== true} onClick={()=>salvarRegrasArquivos([...regrasArquivos,{id:`arquivo_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,nome:"",descricao:"",variavel:"",obrigatoria:true,multiplos:false}])} style={{display:"block",width:"100%",marginTop:9,background:"#dcfce7",border:"1px dashed #22c55e",color:"#166534",borderRadius:7,padding:"9px 10px",fontSize:10,fontWeight:800,cursor:d.midia_ia_extensao_ativa === true?"pointer":"not-allowed"}}>+ Adicionar arquivo para salvar</button>
-        </div>        <div><label style={LS}>Limite de recusas antes de desistir</label><input type="number" min={0} max={20} value={d.limite_recusas ?? 3} onChange={e=>u({limite_recusas:Number(e.target.value)})} style={IS}/><p style={{fontSize:9,color:"#6b7280",margin:"4px 0 0"}}>0 = sem limite. Conecte a saída “Limite atingido” a Atualizar Venda (ex.: CANCELADA/DESISTÊNCIA) e depois a Finalizar.</p></div>
-        <div style={{marginTop:12,background:d.followups_extensao_ativa === true?"linear-gradient(135deg,#ecfeff,#eff6ff)":"#f8fafc",border:d.followups_extensao_ativa === true?"1px solid #67e8f9":"1px solid #cbd5e1",borderRadius:11,padding:11,boxShadow:d.followups_extensao_ativa === true?"0 8px 24px rgba(8,145,178,.10)":"none"}}>
-          <label style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,cursor:"pointer"}}>
-            <span style={{display:"flex",alignItems:"flex-start",gap:9}}>
-              <span style={{display:"grid",placeItems:"center",width:32,height:32,borderRadius:9,background:d.followups_extensao_ativa === true?"#0891b2":"#e2e8f0",color:d.followups_extensao_ativa === true?"#fff":"#475569",fontSize:16,flexShrink:0}}>⏰</span>
-              <span>
-                <b style={{display:"block",color:"#0f172a",fontSize:12}}>Agenda inteligente e lembretes</b>
-                <span style={{display:"block",color:"#64748b",fontSize:10,lineHeight:1.45,marginTop:2}}>Extensão isolada do vendedor IA. Desligada, não intercepta nenhuma mensagem nem altera o fluxo principal.</span>
-              </span>
-            </span>
-            <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
-              <span style={{fontSize:9,fontWeight:900,color:d.followups_extensao_ativa === true?"#0e7490":"#64748b",background:d.followups_extensao_ativa === true?"#cffafe":"#e2e8f0",borderRadius:999,padding:"4px 7px"}}>{d.followups_extensao_ativa === true?"ATIVA":"DESLIGADA"}</span>
-              <input
-                type="checkbox"
-                checked={d.followups_extensao_ativa === true}
-                onChange={e=>{
-                  const ativa=e.target.checked;
-                  u({
-                    followups_extensao_ativa:ativa,
-                    ext_followups_ativa:ativa
-                  });
-                }}
-              />
-            </span>
-          </label>
-        </div>
-        {d.followups_extensao_ativa === true && <>
-        <div style={{marginTop:12,background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:9,padding:10}}>
-          <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#9a3412",fontSize:11,lineHeight:1.4,cursor:"pointer"}}>
-            <input type="checkbox" checked={d.reengajamento_ativo === true} onChange={e=>u({reengajamento_ativo:e.target.checked})} style={{marginTop:2}}/>
-            <span><b>Lembrar cliente que parou de responder</b><br/>O sistema retoma esta mesma conversa automaticamente, sem reiniciar o fluxo.</span>
-          </label>
-          {d.reengajamento_ativo === true && <div style={{marginTop:9}}>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {lembretesReengajamento.map((lembrete,indice)=>(
-                <div key={indice} style={{background:"#fff",border:"1px solid #fed7aa",borderRadius:8,padding:9}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:6}}><b style={{fontSize:10,color:"#9a3412"}}>Lembrete {indice+1}</b>{lembretesReengajamento.length>1 && <button type="button" onClick={()=>removerLembrete(indice)} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"4px 7px",fontSize:9,cursor:"pointer"}}>Remover</button>}</div>
-                  <label style={LS}>{indice===0?"Enviar após quantos minutos sem resposta":"Aguardar quantos minutos após o lembrete anterior"}</label>
-                  <input type="number" min={1} max={1440} value={lembrete.minutos ?? 10} onChange={e=>atualizarLembrete(indice,{minutos:Math.max(1,Number(e.target.value)||10)})} style={IS}/>
-                  <label style={{...LS,marginTop:7}}>Mensagem deste lembrete</label>
-                  <textarea value={lembrete.mensagem || ""} onChange={e=>atualizarLembrete(indice,{mensagem:e.target.value})} placeholder="Mensagem que será enviada ao cliente" style={{...IS,minHeight:70,resize:"vertical"}}/>
-                </div>
-              ))}
-            </div>
-            {lembretesReengajamento.length<20 && <button type="button" onClick={()=>u({reengajamento_lembretes:[...lembretesReengajamento,{minutos:10,mensagem:"Oi, {{nome}}! Se ainda quiser continuar, é só me responder por aqui. 😊"}]})} style={{display:"block",width:"100%",marginTop:8,background:"#ffedd5",border:"1px dashed #fb923c",color:"#9a3412",borderRadius:7,padding:"9px 10px",fontSize:10,fontWeight:800,cursor:"pointer"}}>+ Adicionar lembrete</button>}
-            <div style={{marginTop:10,padding:9,background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8}}>
-              <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#991b1b",fontSize:10,lineHeight:1.4,cursor:"pointer"}}>
-                <input type="checkbox" checked={d.reengajamento_finalizar_automatico === true} onChange={e=>u({reengajamento_finalizar_automatico:e.target.checked})} style={{marginTop:2}}/>
-                <span><b>Finalizar automaticamente se continuar sem resposta</b><br/>Encerra o atendimento e move de Abertos para Finalizados, sem precisar conectar outro bloco.</span>
-              </label>
-              {d.reengajamento_finalizar_automatico === true && <div style={{marginTop:7}}><label style={LS}>Finalizar quantos minutos após o último lembrete</label><input type="number" min={1} max={10080} value={d.reengajamento_finalizar_apos_minutos ?? 120} onChange={e=>u({reengajamento_finalizar_apos_minutos:Math.max(1,Number(e.target.value)||120)})} style={IS}/><p style={{fontSize:9,color:"#991b1b",margin:"4px 0 0"}}>Exemplo: 120 minutos depois da última mensagem da IA.</p></div>}
-            </div>
-            <p style={{fontSize:9,color:"#9a3412",margin:"6px 0 0"}}>Cada mensagem é enviada apenas uma vez. Aceita variáveis como {"{{nome}}"}.</p>
-          </div>}
-        </div>
-        <div style={{marginTop:10,background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:9,padding:10}}>
-          <label style={{display:"flex",alignItems:"flex-start",gap:7,color:"#1d4ed8",fontSize:11,lineHeight:1.4,cursor:"pointer"}}>
-            <input type="checkbox" checked={d.reengajamento_inteligente_ativo !== false} onChange={e=>u({reengajamento_inteligente_ativo:e.target.checked})} style={{marginTop:2}}/>
-            <span><b>Lembretes inteligentes por data e horario</b><br/>Funcionam junto dos lembretes insistentes. Se o cliente pedir 'fala comigo amanha', a IA pergunta o horario, pausa os lembretes comuns e agenda o retorno automaticamente.</span>
-          </label>
-          {d.reengajamento_inteligente_ativo !== false && <div style={{marginTop:9,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <div><label style={LS}>Enviar quantos minutos antes</label><input type="number" min={0} max={1440} value={d.reengajamento_inteligente_antecedencia_minutos ?? 10} onChange={e=>u({reengajamento_inteligente_antecedencia_minutos:Math.max(0,Number(e.target.value)||0)})} style={IS}/><p style={{fontSize:9,color:"#1e40af",margin:"4px 0 0"}}>Ex.: compromisso as 8h e antecedencia 10 = envio as 7h50.</p></div>
-            <div><label style={LS}>Agendar no maximo por quantos dias</label><input type="number" min={1} max={365} value={d.reengajamento_inteligente_maximo_dias ?? 30} onChange={e=>u({reengajamento_inteligente_maximo_dias:Math.max(1,Number(e.target.value)||30)})} style={IS}/><p style={{fontSize:9,color:"#1e40af",margin:"4px 0 0"}}>Evita datas muito distantes informadas por engano.</p></div>
-          </div>}
-          {d.reengajamento_inteligente_ativo !== false && <div style={{marginTop:8}}>
-            <label style={LS}>Mensagem do retorno programado</label>
-            <textarea value={d.reengajamento_inteligente_mensagem || "Oi, {{nome}}! 😊 Estou passando conforme combinamos. Podemos continuar exatamente de onde paramos?"} onChange={e=>u({reengajamento_inteligente_mensagem:e.target.value})} style={{...IS,minHeight:64,resize:"vertical"}}/>
-            <p style={{fontSize:9,color:"#1e40af",margin:"4px 0 0"}}>Aceita variáveis do fluxo, como {"{{nome}}"}. A mensagem é enviada uma única vez.</p>
-          </div>}
-          <p style={{fontSize:9,color:"#1e3a8a",margin:"8px 0 0"}}>Se o cliente responder antes do horario combinado, o retorno agendado e cancelado e a conversa continua normalmente.</p>
-        </div>
-        </>}
-        <div style={{marginTop:10}}>
-          <label style={LS}>Variáveis que a IA precisa salvar</label>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {camposIA.map((campo, indice) => (
-              <div key={indice} style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:9}}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1.2fr",gap:6,marginBottom:6}}>
-                  <input value={campo.nome || ""} placeholder="variavel: nome" onChange={e=>atualizarCampoIA(indice,{nome:e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_")})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
-                  <input value={campo.label || ""} placeholder="Pergunta/campo: Nome completo" onChange={e=>atualizarCampoIA(indice,{label:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:7}}>
-                  <select value={campo.tipo || "texto"} onChange={e=>atualizarCampoIA(indice,{tipo:e.target.value})} style={{...IS,flex:1,fontSize:10,padding:"6px 8px"}}>
-                    <option value="nome">Nome</option>
-                    <option value="texto">Texto</option>
-                    <option value="email">E-mail</option>
-                    <option value="cpf">CPF</option>
-                    <option value="cep">CEP</option>
-                    <option value="telefone">Telefone</option>
-                    <option value="numero">Número</option>
-                    <option value="data">Data</option>
-                  </select>
-                  <label style={{display:"flex",alignItems:"center",gap:5,color:"#374151",fontSize:10}}>
-                    <input type="checkbox" checked={campo.obrigatoria !== false} onChange={e=>atualizarCampoIA(indice,{obrigatoria:e.target.checked})}/>
-                    Obrigatória
-                  </label>
-                  <button type="button" onClick={()=>removerCampoIA(indice)} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"5px 8px",cursor:"pointer",fontSize:10}}>Remover</button>
-                </div>
-                <div style={{marginTop:7}}>
-                  <label style={{...LS,fontSize:9}}>Deve ser diferente da variável (opcional)</label>
-                  <select value={campo.diferente_de || ""} onChange={e=>atualizarCampoIA(indice,{diferente_de:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}>
-                    <option value="">-- nao comparar com outra variavel --</option>
-                    {variaveisDoFluxo.filter(nome=>nome !== campo.nome).map(nome=>(
-                      <option key={nome} value={nome}>{`{{${nome}}}`}</option>
-                    ))}
-                  </select>
-                  <p style={{fontSize:9,color:"#6b7280",margin:"3px 0 0"}}>Comparação exata feita pelo backend. Para um novo CPF, informe a variável que guarda o CPF anterior.</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button type="button" onClick={()=>u({variaveis:[...camposIA,{nome:"",label:"",tipo:"texto",obrigatoria:true}]})}
-            style={{marginTop:8,background:"#ede9fe",border:"1px solid #c4b5fd",color:"#6d28d9",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
-            + Adicionar variável
-          </button>
-        </div>
-
-        <div style={{marginTop:14,borderTop:"1px solid #e5e7eb",paddingTop:12}}>
-          <label style={LS}>Consultas automaticas (link, API ou JavaScript)</label>
-          <p style={{color:"#6b7280",fontSize:10,lineHeight:1.45,margin:"4px 0 9px"}}>
-            A consulta dispara assim que a IA salvar uma variavel valida. O retorno entra no contexto da conversa,
-            mas URL, codigo, cabecalhos e chaves nunca aparecem para o cliente.
-          </p>
-          <div style={{display:"flex",flexDirection:"column",gap:9}}>
-            {consultasIA.map((consulta, indice) => (
-              <div key={consulta.id || indice} style={{background:"#f0fdfa",border:"1px solid #99f6e4",borderRadius:9,padding:10}}>
-                <div style={{display:"grid",gridTemplateColumns:"1.2fr .8fr",gap:6,marginBottom:6}}>
-                  <input value={consulta.nome || ""} placeholder="Ex: Consultar cobertura do CEP" onChange={e=>atualizarConsultaIA(indice,{nome:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
-                  <select value={consulta.tipo || "http"} onChange={e=>atualizarConsultaIA(indice,{tipo:e.target.value as "http"|"script"})} style={{...IS,fontSize:10,padding:"6px 8px"}}>
-                    <option value="http">Link / API HTTP</option>
-                    <option value="script">JavaScript</option>
-                  </select>
-                </div>
-                <textarea value={consulta.descricao || ""} placeholder="Explique para a IA como interpretar o retorno. Ex: Se retornar Temos disponibilidade, continue; caso contrario, peca outro CEP." onChange={e=>atualizarConsultaIA(indice,{descricao:e.target.value})} style={{...IS,minHeight:58,fontSize:10,padding:"7px 8px",resize:"vertical",marginBottom:6}}/>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
-                  <input value={consulta.variavel_gatilho || ""} placeholder="Disparar quando salvar: cep" onChange={e=>atualizarConsultaIA(indice,{variavel_gatilho:e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_")})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
-                  <input value={consulta.variavel_resultado || ""} placeholder="Salvar retorno em: resposta_cep" onChange={e=>atualizarConsultaIA(indice,{variavel_resultado:e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_")})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
-                </div>
-                {consulta.tipo === "script" ? (
-                  <textarea value={consulta.codigo || ""} placeholder={"const resposta = await fetch(\"https://.../{{cep}}\")\nsetVariable(\"resposta_cep\", await resposta.text())"} onChange={e=>atualizarConsultaIA(indice,{codigo:e.target.value})} style={{...IS,minHeight:110,fontFamily:"monospace",fontSize:9,padding:"7px 8px",resize:"vertical"}}/>
-                ) : (
-                  <>
-                    <div style={{display:"grid",gridTemplateColumns:"82px 1fr",gap:6,marginBottom:6}}>
-                      <select value={consulta.metodo || "GET"} onChange={e=>atualizarConsultaIA(indice,{metodo:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}>
-                        <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option>
-                      </select>
-                      <input value={consulta.url || ""} placeholder="https://api.exemplo.com/consulta?cep={{cep}}" onChange={e=>atualizarConsultaIA(indice,{url:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px"}}/>
-                    </div>
-                    <textarea value={serializarHeadersConsulta(consulta.headers)} placeholder={'Headers JSON opcional: {"Authorization":"Bearer ..."}'} onChange={e=>atualizarConsultaIA(indice,{headers:e.target.value})} style={{...IS,minHeight:48,fontFamily:"monospace",fontSize:9,padding:"7px 8px",resize:"vertical",marginBottom:6}}/>
-                    {(consulta.metodo || "GET") !== "GET" && (
-                      <textarea value={consulta.body || ""} placeholder={'Body: {"cep":"{{cep}}"}'} onChange={e=>atualizarConsultaIA(indice,{body:e.target.value})} style={{...IS,minHeight:55,fontFamily:"monospace",fontSize:9,padding:"7px 8px",resize:"vertical"}}/>
-                    )}
-                  </>
-                )}
-                <div style={{marginTop:8,padding:9,background:"#fff",border:"1px solid #a7f3d0",borderRadius:8}}>
-                  <label style={{...LS,fontSize:9,color:"#047857"}}>Decisão após a consulta</label>
-                  <p style={{fontSize:9,color:"#6b7280",margin:"3px 0 7px",lineHeight:1.4}}>
-                    O backend compara o retorno da consulta. Separe respostas alternativas com ponto e vírgula.
-                  </p>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
-                    <input value={consulta.resultado_disponivel || ""} placeholder="Disponível: Temos disponibilidade" onChange={e=>atualizarConsultaIA(indice,{resultado_disponivel:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px",borderColor:"#86efac"}}/>
-                    <input value={consulta.resultado_indisponivel || ""} placeholder="Indisponível: Não temos disponibilidade" onChange={e=>atualizarConsultaIA(indice,{resultado_indisponivel:e.target.value})} style={{...IS,fontSize:10,padding:"6px 8px",borderColor:"#fca5a5"}}/>
-                  </div>
-                  <div style={{marginTop:8,padding:9,background:"#f8fafc",border:"1px solid #cbd5e1",borderRadius:8}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:7}}>
-                      <div>
-                        <div style={{fontSize:10,fontWeight:800,color:"#0f172a"}}>Ações isoladas para retorno negativo</div>
-                        <div style={{fontSize:9,color:"#64748b",marginTop:2}}>Com as duas opções desligadas, nada muda no atendimento atual.</div>
-                      </div>
-                      <span style={{fontSize:8,fontWeight:800,color:"#475569",background:"#e2e8f0",borderRadius:999,padding:"3px 6px"}}>ISOLADO</span>
-                    </div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
-                      <div style={{border:"1px solid #fecaca",background:"#fff",borderRadius:8,padding:8}}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:7}}>
-                          <div style={{fontSize:9,fontWeight:700,color:"#7f1d1d"}}>Marcar conversa como inviável</div>
-                          <button type="button" onClick={()=>atualizarConsultaIA(indice,{retorno_negativo_aplicar_etiqueta:consulta.retorno_negativo_aplicar_etiqueta !== true})}
-                            style={{border:0,borderRadius:999,padding:"4px 9px",cursor:"pointer",fontSize:8,fontWeight:900,color:"#fff",background:consulta.retorno_negativo_aplicar_etiqueta === true ? "#16a34a" : "#94a3b8"}}>
-                            {consulta.retorno_negativo_aplicar_etiqueta === true ? "ON" : "OFF"}
-                          </button>
-                        </div>
-                        {consulta.retorno_negativo_aplicar_etiqueta === true && (
-                          <input value={consulta.retorno_negativo_nome_etiqueta || "SEM VIABILIDADE"} placeholder="Nome da etiqueta" onChange={e=>atualizarConsultaIA(indice,{retorno_negativo_nome_etiqueta:e.target.value})} style={{...IS,fontSize:9,padding:"6px 7px",marginTop:7}}/>
-                        )}
-                      </div>
-                      <div style={{border:"1px solid #fecaca",background:"#fff",borderRadius:8,padding:8}}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:7}}>
-                          <div style={{fontSize:9,fontWeight:700,color:"#7f1d1d"}}>Finalizar atendimento</div>
-                          <button type="button" onClick={()=>atualizarConsultaIA(indice,{retorno_negativo_finalizar_atendimento:consulta.retorno_negativo_finalizar_atendimento !== true})}
-                            style={{border:0,borderRadius:999,padding:"4px 9px",cursor:"pointer",fontSize:8,fontWeight:900,color:"#fff",background:consulta.retorno_negativo_finalizar_atendimento === true ? "#16a34a" : "#94a3b8"}}>
-                            {consulta.retorno_negativo_finalizar_atendimento === true ? "ON" : "OFF"}
-                          </button>
-                        </div>
-                        <div style={{fontSize:8,color:"#64748b",marginTop:6}}>Move a conversa para Finalizados depois de enviar a mensagem.</div>
-                      </div>
-                    </div>
-                    {(consulta.retorno_negativo_aplicar_etiqueta === true || consulta.retorno_negativo_finalizar_atendimento === true) && (
-                      <textarea value={consulta.retorno_negativo_mensagem || ""} placeholder="Mensagem opcional para o cliente. Vazio usa a mensagem atual de indisponibilidade." onChange={e=>atualizarConsultaIA(indice,{retorno_negativo_mensagem:e.target.value})} style={{...IS,minHeight:62,fontSize:10,padding:"7px 8px",resize:"vertical",marginTop:7}}/>
-                    )}
-                  </div>                </div>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:7}}>
-                  <label style={{display:"flex",alignItems:"center",gap:5,color:"#374151",fontSize:10}}>
-                    <input type="checkbox" checked={consulta.obrigatoria !== false} onChange={e=>atualizarConsultaIA(indice,{obrigatoria:e.target.checked})}/>
-                    A consulta precisa concluir antes de confirmar os dados
-                  </label>
-                  <button type="button" onClick={()=>removerConsultaIA(indice)} style={{background:"#fee2e2",border:"1px solid #fecaca",color:"#dc2626",borderRadius:6,padding:"5px 8px",cursor:"pointer",fontSize:10}}>Remover</button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button type="button" onClick={()=>u({consultas:[...consultasIA,{
-              id:"consulta_"+Date.now(),nome:"",descricao:"",tipo:"http",variavel_gatilho:"cep",
-              variavel_resultado:"resposta_cep",obrigatoria:true,resultado_disponivel:"",resultado_indisponivel:"",
-              acao_indisponibilidade:"aguardar",mensagem_indisponibilidade:"",retorno_negativo_aplicar_etiqueta:false,
-              retorno_negativo_nome_etiqueta:"SEM VIABILIDADE",retorno_negativo_finalizar_atendimento:false,retorno_negativo_mensagem:"",metodo:"GET",url:"",headers:"",body:"",codigo:""
-            }]})}
-            style={{marginTop:8,background:"#ccfbf1",border:"1px solid #5eead4",color:"#0f766e",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
-            + Adicionar consulta automatica
-          </button>
-        </div>
-      </>;
-    }
 
     case "claude_ai":
       return <>
@@ -2462,7 +1911,6 @@ function saida(obj) {
           )}
         </div>
 
-
         {/* Toggle modo automático / manual */}
         <div>
           <label style={LS}>Mapeamento das variáveis</label>
@@ -2848,7 +2296,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
 export default function FluxosPage() {
   const router = useRouter();
   const { modulos, carregado: modulosCarregados } = useModulos();
-  const vendedorIALiberado = modulosCarregados && modulos.vendedor_ia;
+
   const contratosLiberados = modulosCarregados && modulos.contratos_assinaturas;
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -2877,7 +2325,7 @@ export default function FluxosPage() {
   //    drag/seleção sem abrir modal automaticamente. Modal só abre em DOUBLE click.
   const [noEditando, setNoEditando] = useState<No|null>(null);
   const [salvando,setSalvando]     = useState(false);
-  const [salvandoMidiaId,setSalvandoMidiaId] = useState<string|null>(null);
+
   const [grupoAberto,setGrupoAberto] = useState("Bubbles");
   const [conectando,setConectando]   = useState<{noId:string;saidaIndex:number}|null>(null);
   const [mousePos,setMousePos]       = useState({x:0,y:0});
@@ -2992,7 +2440,7 @@ export default function FluxosPage() {
     const u = username || wsId;
     if (!u) return;
     const {data} = await supabase.from("fluxos").select("*").eq("workspace_id", u).order("created_at",{ascending:false});
-    setFluxos((data||[]).map(f=>({...f,nos:(f.nos||[]).map(normalizarConfiguracaoFluxoIA),conexoes:f.conexoes||[]})));
+    setFluxos((data||[]).map(f=>({...f,nos:(f.nos||[]),conexoes:f.conexoes||[]})));
   }
 
   // 🆕 Busca filas cadastradas em Configurações → Filas do CRM
@@ -3083,7 +2531,7 @@ export default function FluxosPage() {
   }
 
   function abrirEditor(f:Fluxo) {
-    const nosNormalizados = (f.nos||[]).map(normalizarConfiguracaoFluxoIA).map(n=>n.tipo==="fluxo_ia"?{...n,saidas:[...B.fluxo_ia.saidas]}:n);
+    const nosNormalizados = (f.nos||[]);
     setFluxoAtivo({...f, nos:nosNormalizados}); setNos(nosNormalizados); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
     fetchFilas(); // 🆕 recarrega filas ao abrir o editor
     fetchAtendentes(); // 🆕 recarrega atendentes ao abrir o editor
@@ -3096,10 +2544,7 @@ export default function FluxosPage() {
       alert("🔒 Este workspace não possui o módulo Contratos e Assinaturas. Planos a partir de R$ 49,90/mês com CRM Wolf.");
       return false;
     }
-    if (nos.some(n => n.tipo === "fluxo_ia") && !vendedorIALiberado) {
-      alert("🔒 Este workspace não possui o módulo Vendedor IA. Contratação avulsa: R$ 2.500,00.");
-      return false;
-    }
+
     if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return false; }
 
     // 🆕 Validações por bloco — avisa antes de salvar bloco mal configurado
@@ -3114,36 +2559,8 @@ export default function FluxosPage() {
           problemas.push("📤 Transferir → modo Atendente humano sem atendente selecionado");
         }
       }
-      if (n.tipo === "fluxo_ia" && Array.isArray(n.dados?.arquivos_salvar_regras)) {
-        const vistosArquivos = new Set<string>();
-        for (const regra of n.dados.arquivos_salvar_regras) {
-          const nome = String(regra?.nome || "").trim();
-          const descricao = String(regra?.descricao || "").trim();
-          const variavel = String(regra?.variavel || "").trim();
-          if (!nome || !descricao || !variavel) problemas.push("🔐 Arquivo privado → preencha nome, reconhecimento e variável no CRM");
-          if (variavel && !/^[a-zA-Z0-9_-]+$/.test(variavel)) problemas.push(`🔐 Arquivo privado ${nome || variavel} → variável inválida`);
-          if (vistosArquivos.has(variavel)) problemas.push(`🔐 Arquivo privado → variável duplicada: ${variavel}`);
-          if (variavel) vistosArquivos.add(variavel);
-        }
-      }      if (n.tipo === "gatilho_crm" && !n.dados?.campo) problemas.push("⚡ Alteração no CRM → selecione o campo observado");
+            if (n.tipo === "gatilho_crm" && !n.dados?.campo) problemas.push("⚡ Alteração no CRM → selecione o campo observado");
       if (n.tipo === "atualizar_venda" && (!Array.isArray(n.dados?.atualizacoes) || !n.dados.atualizacoes.some((x:any)=>x.campo))) problemas.push("📝 Atualizar Venda → adicione pelo menos um campo");
-      if (n.tipo === "biblioteca_ia" && n.dados?.ativo !== false) {
-        const materiais = Array.isArray(n.dados?.materiais) ? n.dados.materiais.filter((item:any)=>item?.ativo !== false) : [];
-        if (!materiais.length) problemas.push("Biblioteca IA: adicione pelo menos um material ativo");
-        const ids = new Set<string>();
-        for (const material of materiais) {
-          const idMaterial = String(material?.id || "").trim();
-          const titulo = String(material?.titulo || "").trim();
-          const descricao = String(material?.descricao || "").trim();
-          const url = String(material?.url || "").trim();
-          if (!idMaterial || !titulo || !descricao || !url) problemas.push("Biblioteca IA: preencha titulo, quando usar e URL de cada material");
-          if (idMaterial && ids.has(idMaterial)) problemas.push("Biblioteca IA: existe material com identificador duplicado");
-          if (idMaterial) ids.add(idMaterial);
-          if (url && !/^https:\/\//i.test(url)) problemas.push("Biblioteca IA: a URL precisa comecar com https://");
-        }
-        const alvo = String(n.dados?.ia_alvo_id || "").trim();
-        if (alvo && !nos.some(item=>item.id===alvo && item.tipo==="fluxo_ia")) problemas.push("Biblioteca IA: o bloco IA selecionado nao existe mais");
-      }
 
       if (n.tipo === "assinatura_wolf" && n.dados?.assinatura_bilateral === true) {
         const faltam: string[] = [];
@@ -3178,12 +2595,7 @@ export default function FluxosPage() {
     setSalvando(true);
     try {
       const regrasArquivosCRM = new Map<string,{nome:string;variavel:string;obrigatoria:boolean}>();
-      for (const bloco of nos.filter(n=>n.tipo==="fluxo_ia")) {
-        for (const regra of (Array.isArray(bloco.dados?.arquivos_salvar_regras) ? bloco.dados.arquivos_salvar_regras : [])) {
-          const variavel=String(regra?.variavel||"").trim();
-          if (variavel && /^[a-zA-Z0-9_-]+$/.test(variavel)) regrasArquivosCRM.set(variavel,{nome:String(regra?.nome||variavel).trim(),variavel,obrigatoria:regra?.obrigatoria===true});
-        }
-      }
+
       if (regrasArquivosCRM.size) {
         const {data:camposExistentes,error:erroCampos}=await supabase.from("proposta_campos_customizados").select("id,slug").eq("workspace_id",wsId);
         if(erroCampos) throw erroCampos;
@@ -3197,7 +2609,7 @@ export default function FluxosPage() {
             : await supabase.from("proposta_campos_customizados").insert([{workspace_id:wsId,slug:regra.variavel,...payload}]);
           if(resposta.error) throw new Error(`Não foi possível criar o campo privado ${regra.nome} no CRM: ${resposta.error.message}`);
         }
-      }      let nosParaSalvar = nos.map(normalizarConfiguracaoFluxoIA);
+      }      let nosParaSalvar = nos;
       let casBko: {indice:number;versao:string|null}|null=null;
       if(wsId==='grupoprime'&&Number(fluxoAtivo.id)===27&&nosParaSalvar.some(n=>n.id==='prime_documentos_enviar')){
         const {data:atual,error:erroAtual}=await supabase.from('fluxos').select('nos').eq('workspace_id',wsId).eq('id',fluxoAtivo.id).single();
@@ -3219,14 +2631,8 @@ export default function FluxosPage() {
       if (error) throw error;
 
       const nosPersistidos: No[] = Array.isArray(data?.nos)
-        ? data.nos.map(normalizarConfiguracaoFluxoIA)
+        ? data.nos
         : [];
-      for (const noLocal of nosParaSalvar.filter(n => n.tipo === "fluxo_ia")) {
-        const noBanco = nosPersistidos.find(n => n.id === noLocal.id);
-        if (!noBanco || noBanco.dados?.midia_ia_extensao_ativa !== noLocal.dados?.midia_ia_extensao_ativa) {
-          throw new Error("O banco não confirmou a configuração de multimídia do bloco " + noLocal.id + ".");
-        }
-      }
 
       setNos(nosPersistidos);
       setFluxoAtivo(atual => atual ? {...atual, nos:nosPersistidos} : atual);
@@ -3251,10 +2657,7 @@ export default function FluxosPage() {
       alert("🔒 Não é possível ativar este fluxo sem o módulo Contratos e Assinaturas.");
       return;
     }
-    if (!fluxoAtivo.ativo && nos.some(n => n.tipo === "fluxo_ia") && !vendedorIALiberado) {
-      alert("🔒 Não é possível ativar este fluxo sem o módulo Vendedor IA.");
-      return;
-    }
+
     if(!wsId) { alert("Workspace não carregado. Recarregue a página."); return; }
     const v = !fluxoAtivo.ativo;
     // 🔒 MULTI-TENANT: defesa em profundidade — só togglea se fluxo for deste workspace
@@ -3301,10 +2704,7 @@ export default function FluxosPage() {
       alert("🔒 Contratos e Assinaturas possui planos Essencial, Profissional e Empresarial a partir de R$ 49,90/mês com CRM Wolf. Solicite a liberação ao administrador.");
       return;
     }
-    if (tipo === "fluxo_ia" && !vendedorIALiberado) {
-      alert("🔒 Vendedor IA é um módulo avulso de R$ 2.500,00. Solicite a liberação ao administrador da Wolf System.");
-      return;
-    }
+
     const cfg = B[tipo];
     const rect = canvasRef.current?.getBoundingClientRect();
     const cw = rect?.width||800, ch = rect?.height||600;
@@ -3329,10 +2729,7 @@ export default function FluxosPage() {
       alert("🔒 Este workspace não possui o módulo Contratos e Assinaturas.");
       return;
     }
-    if (origem?.tipo === "fluxo_ia" && !vendedorIALiberado) {
-      alert("🔒 Este workspace não possui o módulo Vendedor IA.");
-      return;
-    }
+
     if (!origem || origem.tipo === "inicio") return;
     const copia: No = {
       ...origem,
@@ -3351,78 +2748,6 @@ export default function FluxosPage() {
     setNos(p => p.map(n => n.id===id ? {...n,dados:{...n.dados,...d}} : n));
     setNoSel(p => p?.id===id ? {...p,dados:{...p.dados,...d}} : p);
     setNoEditando(p => p?.id===id ? {...p,dados:{...p.dados,...d}} : p);
-  }
-
-  async function salvarConfiguracaoMidia(id:string, patch:Record<string,boolean>): Promise<void> {
-    if (!fluxoAtivo?.id || !wsId || salvandoMidiaId) return;
-    setSalvandoMidiaId(id);
-
-    try {
-      const { data: fluxoBanco, error: erroLeitura } = await supabase
-        .from("fluxos")
-        .select("id,nos")
-        .eq("id", fluxoAtivo.id)
-        .eq("workspace_id", wsId)
-        .single();
-      if (erroLeitura) throw erroLeitura;
-
-      const nosBanco: No[] = Array.isArray(fluxoBanco?.nos)
-        ? fluxoBanco.nos.map(normalizarConfiguracaoFluxoIA)
-        : [];
-      const idsBlocosIa = nosBanco.filter(n => n.tipo === "fluxo_ia").map(n => n.id);
-      if (!idsBlocosIa.includes(id)) {
-        throw new Error("O bloco de IA aberto não existe mais no fluxo salvo.");
-      }
-
-      // A leitura de mídia é uma extensão do fluxo, não de uma única etapa.
-      // Assim, uma conversa que avançar para outro bloco fluxo_ia mantém a
-      // mesma configuração sem alterar qualquer outra lógica do vendedor.
-      const nosAtualizados = nosBanco.map(n => n.tipo === "fluxo_ia"
-        ? normalizarConfiguracaoFluxoIA({...n, dados:{...(n.dados || {}), ...patch}})
-        : n
-      );
-
-      const { data: confirmado, error: erroGravacao } = await supabase
-        .from("fluxos")
-        .update({nos:nosAtualizados})
-        .eq("id", fluxoAtivo.id)
-        .eq("workspace_id", wsId)
-        .select("id,nos")
-        .single();
-      if (erroGravacao) throw erroGravacao;
-
-      const nosConfirmados: No[] = Array.isArray(confirmado?.nos)
-        ? confirmado.nos.map(normalizarConfiguracaoFluxoIA)
-        : [];
-      for (const idBloco of idsBlocosIa) {
-        const bloco = nosConfirmados.find(n => n.id === idBloco);
-        if (!bloco) throw new Error("O banco não devolveu todos os blocos de IA atualizados.");
-        for (const [chave, valor] of Object.entries(patch)) {
-          if (booleanoConfiguracao(bloco.dados?.[chave], false) !== valor) {
-            throw new Error(`O banco não confirmou a opção ${chave} no bloco ${idBloco}.`);
-          }
-        }
-      }
-
-      const aplicarConfirmacao = (lista:No[]) => lista.map(n => {
-        if (n.tipo !== "fluxo_ia" || !idsBlocosIa.includes(n.id)) return n;
-        const confirmadoDoBloco = nosConfirmados.find(item => item.id === n.id);
-        const valores = Object.fromEntries(
-          Object.keys(patch).map(chave => [chave, confirmadoDoBloco?.dados?.[chave]])
-        );
-        return normalizarConfiguracaoFluxoIA({...n, dados:{...(n.dados || {}), ...valores}});
-      });
-
-      setNos(atual => aplicarConfirmacao(atual));
-      setFluxoAtivo(atual => atual ? {...atual, nos:aplicarConfirmacao(atual.nos || [])} : atual);
-      setNoSel(atual => atual ? aplicarConfirmacao([atual])[0] : atual);
-      setNoEditando(atual => atual ? aplicarConfirmacao([atual])[0] : atual);
-    } catch (erro:any) {
-      console.error("Erro ao salvar configuração de mídia:", erro);
-      alert("Não foi possível salvar a leitura de fotos e arquivos. Nada foi alterado.\n\n" + (erro?.message || erro));
-    } finally {
-      setSalvandoMidiaId(null);
-    }
   }
 
   function onCanvasPointerDown(e:React.PointerEvent) {
@@ -3764,7 +3089,7 @@ export default function FluxosPage() {
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"12px 0"}}>
           {GRUPOS.map(grupo => {
-            const tipos = (Object.entries(B) as [TipoNo,BC][]).filter(([tipo,c])=>c.grupo===grupo && (tipo!=="fluxo_ia" || vendedorIALiberado) && (c.grupo!=="Documentos" || contratosLiberados));
+            const tipos = (Object.entries(B) as [TipoNo,BC][]).filter(([tipo,c])=>c.grupo===grupo && (c.grupo!=="Documentos" || contratosLiberados));
             const ab = grupoAberto===grupo;
             return (
               <div key={grupo} style={{marginBottom:6}}>
@@ -4015,9 +3340,7 @@ export default function FluxosPage() {
                 nos={nos}
                 statusVendaOpcoes={statusVendaOpcoes}
                 camposPropostaUnif={camposPropostaUnif}
-                vendedorIALiberado={vendedorIALiberado}
-                salvarConfiguracaoMidia={salvarConfiguracaoMidia}
-                salvandoMidiaId={salvandoMidiaId}
+
                 workspaceId={wsId}
               />
             </div>

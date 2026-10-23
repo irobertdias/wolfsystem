@@ -82,36 +82,6 @@ test('token de leitura da viabilidade não autoriza alteração de titular', asy
     assert.equal(r.status,401); assert.equal(a.db.writes,0);
   } finally { if (old === undefined) delete process.env.WOLF_VIABILIDADE_SECRET; else process.env.WOLF_VIABILIDADE_SECRET=old; }
 });
-test('recuperação usa mensagem literal, CPF diferente e dados novos, sem reiniciar oferta', () => {
-  const f=helper.blocosRecuperacaoGrupoPrime('https://teste','token','chave');
-  assert.equal(f.nos.find(n=>n.id==='prime_reversao_enviada').tipo,'finalizar');
-  assert.equal(f.conexoes.find(c=>c.de==='prime_reversao_atualizar'&&c.saidaIndex===1).para,'prime_reversao_pendencia');
-  assert.equal(f.nos.find(n=>n.id==='prime_reversao_pendencia').tipo,'texto');
-  const ia=f.nos.find(n=>n.tipo==='fluxo_ia');
-  assert.equal(ia.dados.mensagem_inicial,helper.MENSAGEM_CPF_REPROVADO); assert.equal(ia.dados.mensagem_inicial_literal,true);
-  assert.equal(ia.dados.variaveis.find(v=>v.nome==='cpf_novo').diferente_de,'cpf_reprovado');
-  const snapshot=f.nos.find(n=>n.id==='prime_reversao_snapshot');
-  const vars={cpf:anterior,cpf_novo:'resto de sessão anterior',nome_novo_titular:'nome antigo',__fluxo_ia_prime_reversao_ia:'estado antigo',__fluxo_ia_prime_reversao_documentos_ia:'documentos antigos'};
-  new Function('variaveis','setVariable',snapshot.dados.codigo)(vars,(k,v)=>{vars[k]=v;});
-  assert.equal(vars.cpf_reprovado,anterior); assert.equal(vars.cpf_novo,undefined); assert.equal(vars.nome_novo_titular,undefined);
-  assert.equal(vars.__fluxo_ia_prime_reversao_ia,undefined);assert.equal(vars.__fluxo_ia_prime_reversao_documentos_ia,undefined);
-  Object.assign(vars,body(),{nome_novo_titular:'Pessoa "Nova"'});
-  new Function('variaveis','setVariable',f.nos.find(n=>n.id==='prime_reversao_payload').dados.codigo)(vars,(k,v)=>{vars[k]=v;});
-  assert.equal(JSON.parse(vars.recuperacao_payload).nome_novo_titular,'Pessoa "Nova"');
-});
-test('avisos exigem origem auditoria e preservam texto de biometria sem placeholders vazios', () => {
-  const f=helper.blocosAvisosInstalacaoGrupoPrime();
-  assert.deepEqual(Array.from(f.nos.filter(n=>n.tipo==='gatilho_crm'&&n.dados.campo==='status_venda'),n=>n.dados.valor),['AGUARDANDO INSTALAÇÃO','GERADA','APROVADA','SEM DISPONIBILIDADE']);
-  assert.equal(f.nos.find(n=>n.tipo==='condicao').dados.valor,'AGUARDANDO AUDITORIA');
-  assert.equal(f.nos.find(n=>n.tipo==='texto').dados.texto,helper.MENSAGEM_ANDAMENTO_INSTALACAO);
-  const vars={data_agendamento:'2026-10-20',periodo_instalacao:'Manhã',nome:'Cliente'};
-  const script=f.nos.find(n=>n.tipo==='script').dados.codigo;
-  new Function('variaveis','setVariable',script)(vars,(k,v)=>{vars[k]=v;}); assert.equal(vars.data_agendamento,'20/10/2026');
-  const vazio={}; new Function('variaveis','setVariable',script)(vazio,(k,v)=>{vazio[k]=v;}); assert.equal(vazio.data_agendamento,'A confirmar'); assert.equal(vazio.periodo_instalacao,'A confirmar');
-});
-test('falta de disponibilidade tem aviso e encerramento automático com etiqueta de retorno', () => {
-  const f=load('app/lib/vendedor-grupoprime.ts').criarVendedorGrupoPrime('https://teste','token');
-  const c=f.nos.find(n=>n.tipo==='fluxo_ia').dados.consultas[0];
-  assert.equal(c.retorno_negativo_finalizar_atendimento,true); assert.equal(c.retorno_negativo_aplicar_etiqueta,true);
-  assert.equal(c.retorno_negativo_nome_etiqueta,'AGUARDANDO COBERTURA'); assert.match(c.retorno_negativo_mensagem,/retornaremos o contato/);
-});
+
+
+

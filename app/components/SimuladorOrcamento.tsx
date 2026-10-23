@@ -51,7 +51,7 @@ const PLANOS: Plano[] = [
 ];
 
 const MODULOS: Modulo[] = [
-  { id: "vendedor-ia", nome: "Vendedor IA", descricao: "Atende, qualifica, coleta dados e envia vendas ao CRM.", mensalidade: 0, implantacao: 2500 },
+
   { id: "central-ads", nome: "Central Ads", descricao: "Indicadores e relatórios das campanhas em um só lugar.", mensalidade: 297, implantacao: 0 },
   { id: "contratos-essencial", nome: "Wolf Contratos Essencial", descricao: "Até 20 contratos/mês. Preço especial para quem já contrata o CRM Wolf.", mensalidade: 49.90, implantacao: 0 },
   { id: "contratos-profissional", nome: "Wolf Contratos Profissional", descricao: "Até 100 contratos/mês. Preço especial para quem já contrata o CRM Wolf.", mensalidade: 69.90, implantacao: 0 },

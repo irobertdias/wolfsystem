@@ -87,31 +87,5 @@ test('credencial da base só autoriza leitura e bloqueia token malformado', asyn
     await assert.rejects(auth.autenticarConsulta({ headers: new Headers() }), e => e.statusCode === 403);
   } finally { if (anterior === undefined) delete process.env.WOLF_VIABILIDADE_SECRET; else process.env.WOLF_VIABILIDADE_SECRET = anterior; }
 });
-test('vendedor é rascunho isolado, consulta obrigatória e todas as saídas vão à equipe', () => {
-  const { criarVendedorGrupoPrime } = load('app/lib/vendedor-grupoprime.ts');
-  const f = criarVendedorGrupoPrime('https://app.wolfgyn.com.br', 'token-teste');
-  assert.equal(f.workspace_id, 'grupoprime'); assert.equal(f.ativo, false);
-  const ia = f.nos.find(n => n.tipo === 'fluxo_ia');
-  assert.equal(ia.dados.consultas[0].obrigatoria, true);
-  assert.equal(ia.dados.consultas[0].variavel_gatilho, 'cep');
-  assert.equal(f.conexoes.filter(c => c.de === ia.id && c.para === 'prime_humano').length, 4);
-});
-test('preparar vendedor rejeita outro workspace e módulo desativado antes de gravar', async () => {
-  let gravacoes = 0;
-  for (const tipo of ['workspace', 'modulo']) {
-    const erro = () => { throw Object.assign(Error('Acesso negado'), { statusCode: 403 }); };
-    const api = load('app/api/viabilidade/grupoprime/vendedor/route.ts', {
-      'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
-      '../../../_auth': {
-        autenticarWorkspace: tipo === 'workspace' ? erro : async () => ({ workspaceId: 'grupoprime' }),
-        exigirPermissao() {}, exigirModulo: tipo === 'modulo' ? erro : async () => {},
-        respostaErroAcesso: e => ({ status: e.statusCode || 500, message: e.message }),
-        supabaseServer: { from() { gravacoes++; throw Error('Banco não deveria ser acessado'); } },
-      },
-      '../../../../lib/vendedor-grupoprime': load('app/lib/vendedor-grupoprime.ts'),
-      '../_auth': { tokenConsultaGrupoPrime: () => 'token' },
-    });
-    assert.equal((await api.POST({ nextUrl: new URL('https://teste') })).status, 403);
-  }
-  assert.equal(gravacoes, 0);
-});
+
+

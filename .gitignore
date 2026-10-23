@@ -42,3 +42,8 @@ next-env.d.ts
 
 .vercel
 .env*.local
+
+# Local configuration backups created during removal and recovery.
+/deploy/backup-remocao-motor-*/
+/deploy/backups-roteiro-20261023/
+/deploy/backups-limite-lembretes/

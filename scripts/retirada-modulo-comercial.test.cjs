@@ -1,0 +1,5 @@
+const{test}=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+function arquivos(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?arquivos(path.join(dir,e.name)):/\.tsx?$/.test(e.name)?[path.join(dir,e.name)]:[]);}
+test('aplicação não contém o módulo retirado nem blocos do motor antigo',()=>{for(const p of arquivos('app'))a.doesNotMatch(fs.readFileSync(p,'utf8'),/vendedor[ _-]?ia|modulo_vendedor_ia|fluxo_ia|biblioteca_ia/i,p);});
+test('rota que criava o motor e extensões antigas foram removidas',()=>{for(const p of ['app/api/viabilidade/grupoprime/vendedor/route.ts','app/chatbot/fluxos/ExtensoesFluxoIA.tsx','app/lib/vendedor-grupoprime.ts','app/lib/vendedor-vero.ts'])a.equal(fs.existsSync(p),false,p);});
+test('contratos, CRM e integrações comuns continuam disponíveis',()=>{a.match(fs.readFileSync('app/page.tsx','utf8'),/id="contratos-assinaturas"/);const editor=fs.readFileSync('app/chatbot/fluxos/page.tsx','utf8');for(const tipo of ['enviar_venda','assinatura_wolf','http_request','openai'])a.match(editor,new RegExp('case "'+tipo+'"'));});

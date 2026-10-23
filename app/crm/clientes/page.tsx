@@ -23,7 +23,7 @@ type Cadastro = {
   modulo_voip?: boolean; modulo_api_integracao?: boolean; modulo_instagram?: boolean;
   modulo_cobranca?: boolean;
   modulo_meta_ads?: boolean;
-  modulo_vendedor_ia?: boolean;
+
   modulo_contratos_assinaturas?: boolean;
   modulo_contratos_plano?: PlanoContratos;
   modulo_contratos_com_crm?: boolean;
@@ -111,7 +111,7 @@ const planoPresets: Record<string, {
   modulo_voip: boolean; modulo_api_integracao: boolean; modulo_instagram: boolean;
   modulo_cobranca: boolean; modulo_equipes: boolean; modulo_funil_avancado: boolean;
   modulo_meta_ads: boolean;
-  modulo_vendedor_ia: boolean;
+
   modulo_rh: boolean; modulo_bater_ponto: boolean;
   modulo_financeiro: boolean;
 }> = {
@@ -120,7 +120,7 @@ const planoPresets: Record<string, {
     webjs: true, waba: false, instagram: false,
     modulo_roleta: false, modulo_disparos_web: false, modulo_validacao_numeros: false, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
-    modulo_meta_ads: false, modulo_vendedor_ia: false,
+    modulo_meta_ads: false,
     modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
     modulo_rh: false, modulo_bater_ponto: false,
     modulo_financeiro: false,
@@ -129,7 +129,7 @@ const planoPresets: Record<string, {
     usuarios: 15, conexoes: 3,
     webjs: true, waba: true, instagram: false,
     modulo_roleta: true, modulo_disparos_web: true, modulo_validacao_numeros: false, modulo_disparos_api: false,
-    modulo_meta_ads: false, modulo_vendedor_ia: false,
+    modulo_meta_ads: false,
     modulo_voip: false, modulo_api_integracao: true, modulo_instagram: false,
     modulo_cobranca: false, modulo_equipes: true, modulo_funil_avancado: true,
     modulo_rh: false, modulo_bater_ponto: false,
@@ -138,7 +138,7 @@ const planoPresets: Record<string, {
   ultra: {
     usuarios: 50, conexoes: 10,
     webjs: true, waba: true, instagram: true,
-    modulo_meta_ads: false, modulo_vendedor_ia: false,
+    modulo_meta_ads: false,
     modulo_roleta: true, modulo_disparos_web: true, modulo_validacao_numeros: false, modulo_disparos_api: true,
     modulo_voip: true, modulo_api_integracao: true, modulo_instagram: true,
     modulo_cobranca: true, modulo_equipes: true, modulo_funil_avancado: true,
@@ -291,7 +291,7 @@ export default function Clientes() {
     nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
     username: "",
     usuarios_liberados: 5, conexoes_liberadas: 1,
-    modulo_meta_ads: false, modulo_vendedor_ia: false, modulo_contratos_assinaturas: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
+    modulo_meta_ads: false,  modulo_contratos_assinaturas: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
     permite_webjs: true, permite_waba: false, permite_instagram: false,
     modulo_roleta: false, modulo_disparos_web: false, modulo_validacao_numeros: false, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
@@ -562,7 +562,7 @@ export default function Clientes() {
     setFormCadastro({
       nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
       username: "",
-      modulo_meta_ads: false, modulo_vendedor_ia: false, modulo_contratos_assinaturas: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
+      modulo_meta_ads: false,  modulo_contratos_assinaturas: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
       usuarios_liberados: 5, conexoes_liberadas: 1,
       permite_webjs: true, permite_waba: false, permite_instagram: false,
       modulo_roleta: false, modulo_disparos_web: false, modulo_validacao_numeros: false, modulo_disparos_api: false,
@@ -611,7 +611,7 @@ export default function Clientes() {
         modulo_disparos_api: preset.modulo_disparos_api,
         modulo_voip: preset.modulo_voip,
         modulo_meta_ads: preset.modulo_meta_ads,
-        modulo_vendedor_ia: false, // módulo avulso: nunca é liberado automaticamente pelo plano
+         // módulo avulso: nunca é liberado automaticamente pelo plano
         modulo_contratos_assinaturas: false, // liberação exclusiva do superadmin
         modulo_contratos_plano: 'essencial',
         modulo_contratos_com_crm: true,
@@ -695,7 +695,7 @@ export default function Clientes() {
           modulo_validacao_numeros: !!formCadastro.modulo_validacao_numeros,
           modulo_disparos_api: !!formCadastro.modulo_disparos_api,
           modulo_meta_ads: !!formCadastro.modulo_meta_ads,
-          modulo_vendedor_ia: !!formCadastro.modulo_vendedor_ia,
+
           modulo_voip: !!formCadastro.modulo_voip,
           modulo_api_integracao: !!formCadastro.modulo_api_integracao,
           modulo_instagram: !!formCadastro.modulo_instagram,
@@ -1133,7 +1133,7 @@ export default function Clientes() {
                     <div style={{ borderRadius: 10, background: "#155eef", color: "white", padding: "10px 14px", minWidth: 150 }}><small style={{ opacity: .8 }}>mensalidade</small><strong style={{ display: "block", fontSize: 20 }}>R$ {preco.toFixed(2).replace(".", ",")}</strong></div>
                   </div>;
                 })()}
-                <Toggle value={!!formCadastro.modulo_vendedor_ia} onChange={() => setFormCadastro({ ...formCadastro, modulo_vendedor_ia: !formCadastro.modulo_vendedor_ia })} label="🤖 Vendedor IA" desc="Módulo avulso — R$ 2.500,00 (fora dos planos)" color="#7c3aed" />
+
                 <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="📊 Central Ads" desc="Central de campanhas e resultados de mídia paga" color="#7e22ce" />
                 <Toggle value={!!formCadastro.modulo_disparos_api} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_api: !formCadastro.modulo_disparos_api })} label="📨 Disparos API" desc="Apenas Ultra" color="#8b5cf6" />
                 <Toggle value={!!formCadastro.modulo_voip} onChange={() => setFormCadastro({ ...formCadastro, modulo_voip: !formCadastro.modulo_voip })} label="📞 Ligações VOIP" desc="Apenas Ultra" color="#8b5cf6" />
@@ -1330,7 +1330,6 @@ export default function Clientes() {
         </div>
       )}
 
-
       {/* ═══════════════════════════════════════════════════════════════
           MODAL DETALHE
       ═══════════════════════════════════════════════════════════════ */}
@@ -1482,7 +1481,7 @@ export default function Clientes() {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_roleta} icone="🎯" label="Roleta" cor="#3b82f6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_contratos_assinaturas} icone="📄" label={`Contratos — ${CONTRATOS_PLANOS[cadastroSelecionado.modulo_contratos_plano || "essencial"].nome}`} cor="#155eef" />
-                <BadgeModulo ativo={!!cadastroSelecionado.modulo_vendedor_ia} icone="🤖" label="Vendedor IA" cor="#7c3aed" />
+
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_meta_ads} icone="📊" label="Central Ads" cor="#7e22ce" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_disparos_web} icone="📤" label="Disparos Web" cor="#3b82f6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_validacao_numeros} icone={"\u2705"} label={"Valida\u00e7\u00e3o de n\u00fameros"} cor="#0891b2" />
@@ -1703,7 +1702,7 @@ export default function Clientes() {
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                           {c.modulo_contratos_assinaturas && <span style={{ fontSize: 14 }} title={`Contratos — ${CONTRATOS_PLANOS[c.modulo_contratos_plano || "essencial"].nome} (${CONTRATOS_PLANOS[c.modulo_contratos_plano || "essencial"].limite})`}>📄</span>}
-                          {c.modulo_vendedor_ia && <span style={{ fontSize: 14 }} title="Vendedor IA — módulo avulso">🤖</span>}
+
                           {c.modulo_meta_ads && <span style={{ fontSize: 14 }} title="Central Ads">📊</span>}
                           {c.modulo_roleta && <span style={{ fontSize: 14 }} title="Roleta">🎯</span>}
                           {c.modulo_disparos_web && <span style={{ fontSize: 14 }} title="Disparos Web">📤</span>}
@@ -1718,7 +1717,7 @@ export default function Clientes() {
                           {c.modulo_rh && <span style={{ fontSize: 14 }} title="RH">🧑‍💼</span>}
                           {c.modulo_bater_ponto && <span style={{ fontSize: 14 }} title="Bater Ponto">🕐</span>}
                           {c.modulo_financeiro && <span style={{ fontSize: 14 }} title="Financeiro">💰</span>}
-                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_validacao_numeros && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && !c.modulo_financeiro && !c.modulo_meta_ads && !c.modulo_vendedor_ia && !c.modulo_contratos_assinaturas && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
+                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_validacao_numeros && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && !c.modulo_financeiro && !c.modulo_meta_ads && !c.modulo_contratos_assinaturas && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
                         </div>
                       </td>
 

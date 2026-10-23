@@ -49,22 +49,8 @@ test('não aceita a mesma foto para frente/verso ou PDF no lugar da foto do RG',
  const repetida=fixture();for(const objeto of repetida.objetos.values())objeto.etag='mesma-foto';await assert.rejects(validar(repetida.db,repetida.sessao.numero,repetida.vars.cpf),/fotos diferentes/);
  const pdf=fixture();pdf.objetos.values().next().value.contentType='application/pdf';await assert.rejects(validar(pdf.db,pdf.sessao.numero,pdf.vars.cpf),/Formato/);
 });
-test('troca de titular limpa imagens antigas e prepara a conferência com o novo CPF',()=>{
- const f=regras.blocosDocumentosGrupoPrime('https://teste','token','chave');
- const script=f.nos.find(n=>n.id==='prime_reversao_documentos_preparar').dados.codigo;
- const vars={cpf:'52998224725',cpf_novo:'11144477735',nome:'Antigo',nome_novo_titular:'Novo Titular',nascimento_novo_titular:'01/01/1990',nome_mae_novo_titular:'Mae Nova',rg_frente:'arquivo antigo',rg_frente_validado:'SIM',__identidade_documento_rg_frente:'antiga'};
- new Function('variaveis','setVariable',script)(vars,(k,v)=>{vars[k]=v;});
- assert.equal(vars.cpf,'11144477735');assert.equal(vars.nome,'Novo Titular');assert.equal(vars.rg_frente,undefined);assert.equal(vars.rg_frente_validado,undefined);assert.equal(vars.__identidade_documento_rg_frente,undefined);
-});
-test('coleta obrigatória tem três regras e bloqueio HTTP antes de enviar venda',()=>{
- const f=regras.blocosDocumentosGrupoPrime('https://teste','token','chave');
- for(const no of f.nos.filter(n=>n.tipo==='fluxo_ia')){
-  assert.equal(no.dados.arquivos_salvar_regras.length,3);assert.equal(no.dados.midia_ia_extensao_ativa,true);
-  assert.equal(no.dados.variaveis.filter(v=>v.nome.endsWith('_validado')&&v.obrigatoria).length,3);
- }
- assert.equal(f.conexoes.find(c=>c.de==='prime_documentos_conferir'&&c.saidaIndex===0).para,'prime_documentos_cadastro');
- assert.equal(f.nos.find(n=>n.tipo==='enviar_venda').dados.status_inicial,'AGUARDANDO AUDITORIA');
-});
+
+
 function gate(vars={},erroDocumento=false){
  const dados={cpf:'52998224725',nome:'Pessoa Teste',nome_mae:'Mae Pessoa',data_nascimento:'1990-01-01',email:'teste@example.com',telefone1:'62999990001',telefone2:'6233330002',vencimento:'31',endereco_completo:'Rua Teste 10, Goiânia GO',cep:'74480150',tipo_pessoa:'PF',plano_interesse:'pf-fibra',forma_pagamento:'CARTAO',...vars};
  if(!('cadastro_confirmado' in dados))dados.cadastro_confirmado=JSON.stringify(dados);
