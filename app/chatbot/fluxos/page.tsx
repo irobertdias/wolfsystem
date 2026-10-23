@@ -3,9 +3,12 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useModulos } from "../../hooks/useModulos";
+import ConfiguracaoUniversal from './ConfiguracaoUniversal';
+import { assistenteUniversalInicial, nichoUniversalInicial, validarEstruturaUniversal } from '../../lib/atendimento-universal';
 import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
 
 type TipoNo =
+  | "assistente_universal" | "nicho_atendimento"
   | "texto" | "imagem" | "video" | "audio" | "embed"
   | "input_texto" | "input_numero" | "input_email" | "input_website"
   | "input_data" | "input_hora" | "input_telefone" | "input_botao"
@@ -39,6 +42,8 @@ function booleanoConfiguracao(valor: any, padrao = false): boolean {
 }
 
 const B: Record<TipoNo, BC> = {
+  assistente_universal: {label:"Vendedor IA · Universal",icone:"✨",cor:"#2563eb",saidas:["Configurar nicho"],grupo:"Integrações"},
+  nicho_atendimento: {label:"Nicho de atendimento",icone:"🧩",cor:"#0f766e",saidas:["Atendimento configurado"],grupo:"Integrações"},
   texto:                {label:"Texto",           icone:"💬", cor:"#3b82f6", saidas:["Próximo"],                     grupo:"Bubbles"},
   imagem:               {label:"Imagem",          icone:"🖼️", cor:"#06b6d4", saidas:["Próximo"],                     grupo:"Bubbles"},
   video:                {label:"Vídeo",           icone:"🎥", cor:"#8b5cf6", saidas:["Próximo"],                     grupo:"Bubbles"},
@@ -139,6 +144,8 @@ async function getWsUsername(): Promise<string|null> {
 }
 
 function defaultD(tipo: TipoNo): Record<string,any> {
+  if(tipo==='assistente_universal')return assistenteUniversalInicial();
+  if(tipo==='nicho_atendimento')return nichoUniversalInicial();
   const m: Partial<Record<TipoNo,Record<string,any>>> = {
     texto:{texto:"Digite sua mensagem aqui..."},
     imagem:{url:"",legenda:""},video:{url:"",legenda:""},audio:{url:""},embed:{url:""},
@@ -847,6 +854,9 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   );
 
   switch (noSel.tipo) {
+    case 'assistente_universal':
+    case 'nicho_atendimento':
+      return <ConfiguracaoUniversal tipo={noSel.tipo} dados={d} onChange={u}/>;
     case "texto": return <>{TVar("Mensagem","texto","Digite sua mensagem aqui...",120)}</>;
     case "imagem": return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
     case "video":  return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
@@ -2540,6 +2550,7 @@ export default function FluxosPage() {
 
   async function salvar(opcoes?: { fecharEditor?: boolean; avisarSucesso?: boolean }): Promise<boolean> {
     if(!fluxoAtivo?.id) return false;
+    if(fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))){alert('Os novos blocos universais estão em configuração. Desative o fluxo para salvar este rascunho.');return false;}
     if (nos.some(n => ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(n.tipo)) && !contratosLiberados) {
       alert("🔒 Este workspace não possui o módulo Contratos e Assinaturas. Planos a partir de R$ 49,90/mês com CRM Wolf.");
       return false;
@@ -2549,6 +2560,7 @@ export default function FluxosPage() {
 
     // 🆕 Validações por bloco — avisa antes de salvar bloco mal configurado
     const problemas: string[] = [];
+    problemas.push(...validarEstruturaUniversal(nos,arestas));
     for (const n of nos) {
       if (n.tipo === "transferir") {
         const modo = n.dados?.modo || "equipe";
@@ -2653,6 +2665,7 @@ export default function FluxosPage() {
 
   async function toggleAtivo() {
     if(!fluxoAtivo?.id) return;
+    if(!fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))){alert('Este fluxo usa a nova base universal, disponível por enquanto para configuração em rascunho. A execução será liberada após implementação e testes.');return;}
     if (!fluxoAtivo.ativo && nos.some(n => ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(n.tipo)) && !contratosLiberados) {
       alert("🔒 Não é possível ativar este fluxo sem o módulo Contratos e Assinaturas.");
       return;
