@@ -43,3 +43,14 @@ test('CEP ausente da base encerra sem repetir pedido de endereço', async () => 
     a.equal(r.acao, 'encerrar');
     a.equal(r.estado.etapa, 'encerrado');
 });
+
+test('nome da mãe avulso pertence ao campo pendente e não substitui o nome do titular', async () => {
+    const s = inicial();
+    s.apresentou = true;
+    s.dados = { cidade: 'Goiânia', estado: 'GO', cep: '74480150', tipo_pessoa: 'PF', endereco: 'Rua A 12', bairro: 'Centro', nome: 'Maria Exemplo', cpf: '52998224725', data_nascimento: '23/01/2002' };
+    s.plano = planosDaCidade('GO', 'Goiânia').pessoa_fisica[0]; s.ofertas = [s.plano.id]; s.etapa = 'nome_mae';
+    const r = await passo(s, 'Ana Exemplo', { nome: 'Ana Exemplo' });
+    a.equal(r.estado.dados.nome, 'Maria Exemplo');
+    a.equal(r.estado.dados.nome_mae, 'Ana Exemplo');
+    a.equal(r.estado.etapa, 'email');
+});

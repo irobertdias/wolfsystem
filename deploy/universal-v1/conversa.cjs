@@ -78,6 +78,14 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     let aviso = '';
     const analise = await extrair({ estado: s, texto, numero, anexos, config });
     const novos = analise.dados || {};
+    if (['nome', 'nome_mae'].includes(s.etapa) && !analise.pergunta && !analise.objecao && !analise.encerrar) {
+        const candidato = texto.trim();
+        if (/^[\p{L}][\p{L} .'-]{3,150}$/u.test(candidato) && candidato.split(/\s+/).length >= 2 && !/\b(?:NAO|SIM|QUERO|TENHO|SEI|CANCELAR|DESISTIR|CARO|CERTO|CORRETO|OK|BELEZA)\b/.test(normalizar(candidato))) {
+            novos[s.etapa] = candidato;
+            const outro = s.etapa === 'nome' ? 'nome_mae' : 'nome';
+            if (normalizar(novos[outro]) === normalizar(candidato)) delete novos[outro];
+        }
+    }
     // Respostas curtas pertencem ao dado pendente. A normalização não depende
     // de o modelo repetir um campo trivial na saída estruturada.
     const t = normalizar(texto), digits = texto.replace(/\D/g, '');
