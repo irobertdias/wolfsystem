@@ -1,5 +1,6 @@
 export type ContatoBko = { nome: string; numero: string; canal_trafego_id?: number | null; fila_nome?: string };
-export type ConfigBko = { ativo: boolean; canal_id: number | null; contatos: ContatoBko[]; canal_trafego_id?: number | null; fila_nome?: string; modo?: 'por_canal' };
+export type RegraRetorno = { resposta: string; status: string; mensagem_cliente: string; solicitar_agenda?: boolean };
+export type ConfigBko = { ativo: boolean; canal_id: number | null; contatos: ContatoBko[]; canal_trafego_id?: number | null; fila_nome?: string; modo?: 'por_canal'; mensagem_venda?: string; modo_retorno?: 'automatico'|'fluxos'; retornos?: RegraRetorno[] };
 export function numeroBko(valor: unknown) {
   const n = String(valor ?? '').trim().replace(/[\s()+.-]/g, '');
   const local = /^55\d{10,11}$/.test(n) ? n.slice(2) : n;
@@ -35,7 +36,10 @@ export function validarConfigBko(raw: unknown): ConfigBko {
   if (canal_trafego_id !== null && (!Number.isSafeInteger(canal_trafego_id) || canal_trafego_id <= 0)) falhar('Canal de tráfego inválido.');
   const fila_nome = String(r.fila_nome ?? '').trim();
   if (fila_nome.length > 150) falhar('Fila inválida.');
-  return { ativo: r.ativo as boolean, canal_id, contatos, canal_trafego_id, fila_nome, ...(r.modo==='por_canal'?{modo:'por_canal' as const}:{}) };
+  const mensagem_venda=String(r.mensagem_venda||'');if(mensagem_venda.length>16000)falhar('Mensagem de venda excede o limite.');
+  const retornos=Array.isArray(r.retornos)?r.retornos.map((v:any)=>({resposta:String(v.resposta||'').trim(),status:String(v.status||'').trim(),mensagem_cliente:String(v.mensagem_cliente||''),solicitar_agenda:v.solicitar_agenda===true})):undefined;
+  if(retornos&&(retornos.length>30||retornos.some(v=>!v.resposta||!v.status||v.resposta.length>100||v.status.length>100||v.mensagem_cliente.length>3000)))falhar('Confira as regras de retorno: resposta, status e mensagem.');
+  return { ativo: r.ativo as boolean, canal_id, contatos, canal_trafego_id, fila_nome, ...(r.modo==='por_canal'?{modo:'por_canal' as const}:{}),mensagem_venda,modo_retorno:r.modo_retorno==='fluxos'?'fluxos':'automatico',...(retornos?{retornos}:{}) };
 }
 export const STATUS_BKO = ['CPF REPROVADO', 'APROVADA', 'GERADA', 'AGUARDANDO INSTALAÇÃO', 'INSTALADA', 'SEM DISPONIBILIDADE', 'CANCELADA'];
 export function interpretarRetornoBko(texto: string) {

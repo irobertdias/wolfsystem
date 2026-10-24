@@ -33,7 +33,12 @@ DÚVIDAS E OBJEÇÕES
 Em qualquer etapa, responda à dúvida ou objeção com informações reais das ofertas e retome a coleta pendente. Para preço alto, explique a opção mais econômica e seus benefícios reais. Não repita todo o catálogo como resposta automática. Respeite um pedido claro de parar ou encerrar. Nunca mostre IDs, nomes de variáveis ou mensagens técnicas ao cliente.`;
 
 export function conclusaoUniversalInicial() {
-  return { crm: true, whatsapp: true, status_inicial: 'AGUARDANDO AUDITORIA' };
+  return { crm: true, whatsapp: true, status_inicial: 'AGUARDANDO AUDITORIA', modo_mapeamento:'automatico', mapeamento: [] as {campo:string;variavel:string;valor?:string;origem?:string}[], mensagem_sucesso:'✅ Pedido #{{proposta_id}} registrado! Seus dados e arquivos foram salvos. A equipe acompanhará os próximos passos.', mensagem_bko:'', continuar_fluxo:true };
+}
+export type CampoColeta = { variavel:string; rotulo:string; pergunta:string; obrigatorio:boolean; etapa:'antes_oferta'|'apos_oferta'; tipo:string };
+export function coletaInicial(nicho:string):CampoColeta[] {
+ const base=nicho==='telecom'?[['nome','Nome completo'],['cpf','CPF'],['data_nascimento','Data de nascimento'],['nome_mae','Nome da mãe'],['email','E-mail'],['endereco_confirmado','Confirmação do endereço'],['telefone1','Telefone de contato'],['vencimento','Vencimento da fatura'],['forma_pagamento','Forma de pagamento']]:nicho==='barbearia'?[['servico','Serviço desejado'],['profissional','Profissional'],['data_agendamento','Data desejada'],['periodo_instalacao','Horário desejado'],['nome','Nome'],['telefone1','Contato']]:nicho==='roupas'?[['produto','Produto'],['tamanho','Tamanho'],['cor','Cor'],['quantidade','Quantidade'],['nome','Nome'],['endereco','Endereço de entrega'],['telefone1','Contato']]:nicho==='prestamista'?[['instituicao','Instituição'],['apolice','Número da apólice'],['nome','Nome do titular'],['cpf','CPF'],['telefone1','Contato']]:nicho==='servicos'?[['servico','Serviço desejado'],['local','Local'],['prazo','Prazo desejado'],['nome','Nome'],['telefone1','Contato']]:[['produto','Produto desejado'],['nome','Nome'],['cpf','CPF'],['telefone1','Contato']];
+ return base.map(([variavel,rotulo])=>({variavel,rotulo,pergunta:variavel==='endereco_confirmado'?'📍 Confere o endereço de instalação: {{endereco}}, {{bairro}} · {{cidade}}/{{estado}} · CEP {{cep}}?':`Pode me informar ${rotulo.toLowerCase()}?`,obrigatorio:true,etapa:'apos_oferta',tipo:variavel==='endereco_confirmado'?'confirmacao':variavel==='cpf'?'cpf':variavel==='data_nascimento'?'data':variavel==='email'?'email':variavel==='telefone1'?'telefone':'texto'}));
 }
 
 export const PERFIS_UNIVERSAIS = {
@@ -50,12 +55,12 @@ export function perfilUniversal(valor: unknown) {
   return typeof valor === 'string' && Object.hasOwn(PERFIS_UNIVERSAIS, valor) ? PERFIS_UNIVERSAIS[valor as NichoUniversal] : null;
 }
 export function assistenteUniversalInicial() {
-  return { versao: 1, nome: '', empresa: '', papel: 'vendas', tom: 'acolhedor', apresentacao: '', regras: '', documentos: { receber: true, leitura: 'extrair_sem_rejeitar', inconclusivo: 'conferencia_humana' }, confirmarAntesDeExecutar: true };
+  return { versao: 2, runtime:'universal-v2', nome: '', empresa: '', papel: 'vendas', tom: 'acolhedor', apresentacao: '', regras: '', apiKey:'', modelo:'gpt-4o-mini', autorizar_leitura_documentos:false, documentos: { receber: true, leitura: 'extrair_sem_rejeitar', inconclusivo: 'conferencia_humana' }, confirmarAntesDeExecutar: true };
 }
 export function nichoUniversalInicial() { return { versao: 1, nicho: '', objetivo: '', campos: [], fontes: '', regras: '', prompt: '' }; }
 export function configurarNicho(valor: string) {
   const perfil = perfilUniversal(valor);
-  return { ...nichoUniversalInicial(), nicho: perfil ? valor : '', objetivo: perfil?.objetivo || '', campos: perfil ? [...perfil.campos] : [], prompt: valor==='telecom'?PROMPT_TELECOM_NIO:'' };
+  return { ...nichoUniversalInicial(), nicho: perfil ? valor : '', objetivo: perfil?.objetivo || '', campos: perfil ? [...perfil.campos] : [], prompt: valor==='telecom'?PROMPT_TELECOM_NIO:`Atenda como assistente virtual da empresa configurada. ${perfil?.objetivo||''} Responda à mensagem atual, aproveite os dados anteriores e use somente o catálogo e as integrações configuradas. Nunca invente preços, estoque, horários ou aprovação financeira. Confirme os dados antes de concluir.`, coleta:coletaInicial(valor), catalogo:[], catalogo_variavel:'', exigir_oferta:valor==='roupas', documentos_config:valor==='telecom'?[{variavel:'rg_frente',rotulo:'RG frente',descricao:'Face da identidade com foto',obrigatorio:true},{variavel:'rg_verso',rotulo:'RG verso',descricao:'Outra face da identidade. RG aberto pode satisfazer ambos.',obrigatorio:true},{variavel:'comprovante_endereco',rotulo:'Comprovante de endereço',descricao:'Qualquer arquivo com o endereço; se não tiver, registrar observação.',obrigatorio:false}]:[], integracao:valor==='telecom'?'vtal_nio':'configuravel',resumo_template:'' };
 }
 export function validarEstruturaUniversal(nos: {id:string;tipo:string;dados:Record<string,any>}[], arestas:{de:string;para:string;saidaIndex:number}[]) {
   const problemas:string[]=[];
@@ -63,7 +68,7 @@ export function validarEstruturaUniversal(nos: {id:string;tipo:string;dados:Reco
     const destinos=arestas.filter(a=>a.de===no.id&&a.saidaIndex===0).map(a=>nos.find(n=>n.id===a.para));
     if(destinos.length!==1||destinos[0]?.tipo!=='nicho_atendimento')problemas.push('Conecte o assistente a um único bloco Nicho de atendimento.');
     else if(!perfilUniversal(destinos[0].dados.nicho))problemas.push('Escolha um nicho válido para o assistente.');
-    if(no.dados.runtime==='universal-v1'&&destinos.length===1&&destinos[0]?.tipo==='nicho_atendimento'){
+    if(destinos.length===1&&destinos[0]?.tipo==='nicho_atendimento'){
       const finais=arestas.filter(a=>a.de===destinos[0]!.id&&a.saidaIndex===0).map(a=>nos.find(n=>n.id===a.para));
       if(finais.length!==1||finais[0]?.tipo!=='concluir_venda_universal')problemas.push('Conecte o nicho ao bloco Concluir venda · CRM + WhatsApp.');
     }
@@ -79,8 +84,7 @@ export function validarEstruturaUniversal(nos: {id:string;tipo:string;dados:Reco
 
 export function universalExecutavel(nos: {id:string;tipo:string;dados:Record<string,any>}[], arestas:{de:string;para:string;saidaIndex:number}[], workspace: string | null) {
   const assistentes=nos.filter(n=>n.tipo==='assistente_universal');
-  return workspace==='grupoprime' && assistentes.length===1 && assistentes[0].dados.runtime==='universal-v1'
+  return !!workspace && assistentes.length>=1
     && validarEstruturaUniversal(nos,arestas).length===0
-    && nos.filter(n=>n.tipo==='nicho_atendimento').length===1
-    && nos.find(n=>n.tipo==='nicho_atendimento')?.dados.nicho==='telecom';
+    && assistentes.every(a=>['universal-v1','universal-v2'].includes(a.dados.runtime));
 }

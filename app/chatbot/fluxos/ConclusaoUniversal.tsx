@@ -1,32 +1,20 @@
-"use client";
-import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
-
-type Rota = { ativo: boolean; remetente: string; contatos: { nome: string; numero: string; fila_nome?: string }[] };
-const caixa = { padding: 12, background: '#f8fafc', borderRadius: 8, fontSize: 12, lineHeight: 1.7 };
-export default function ConclusaoUniversal({ dados: d, onChange: u, workspaceId }: { dados: Record<string, any>; onChange: (v: Record<string, any>) => void; workspaceId?: string | null }) {
-  const [rota, setRota] = useState<Rota | null>(null);
-  const [erro, setErro] = useState('');
-  useEffect(() => {
-    if (workspaceId !== 'grupoprime') return;
-    let cancelado = false;
-    (async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const r = await fetch('/api/workspace/configuracoes/bko?workspaceId=grupoprime&fluxoId=27', { headers: { Authorization: `Bearer ${session?.access_token || ''}` }, signal: AbortSignal.timeout(10000), cache: 'no-store' });
-        const j = await r.json();
-        if (!r.ok || !j.success) throw Error(j.error || 'Não foi possível consultar a configuração BKO.');
-        const canal = j.canais?.find((c: { id: number }) => Number(c.id) === Number(j.config.canal_id));
-        if (!cancelado) setRota({ ativo: j.config.ativo, remetente: canal?.nome || 'Canal não encontrado', contatos: j.config.contatos || [] });
-      } catch (e) { if (!cancelado) setErro(e instanceof Error ? e.message : 'Não foi possível consultar o BKO.'); }
-    })();
-    return () => { cancelado = true; };
-  }, [workspaceId]);
-  return <div style={{ display: 'grid', gap: 14 }}>
-    <div style={{ ...caixa, background: '#f0fdf4', border: '1px solid #bbf7d0' }}><strong>Conclusão automática da venda</strong><br />Após a escolha do plano, cadastro confirmado e documentos, o motor executa as ações marcadas. Não é necessário finalizar a venda manualmente.</div>
-    <label style={{ display: 'flex', gap: 8, fontSize: 13, alignItems: 'flex-start' }}><input type="checkbox" checked={d.crm !== false} onChange={e => u({ crm: e.target.checked, ...(!e.target.checked ? { whatsapp: false } : {}) })} /><span><strong>Cadastrar a venda no CRM</strong><br /><small>Salvar plano, preço, dados, documentos e observações. Retomadas reutilizam o mesmo pedido.</small></span></label>
-    <label style={{ display: 'flex', gap: 8, fontSize: 13, alignItems: 'flex-start' }}><input type="checkbox" disabled={d.crm === false} checked={d.crm !== false && d.whatsapp !== false} onChange={e => u({ whatsapp: e.target.checked })} /><span><strong>Enviar pelo WhatsApp após cadastrar no CRM</strong><br /><small>Encaminhar a venda e seus arquivos pelo BKO configurado, com controle de recibos e retomada.</small></span></label>
-    <div style={caixa}><strong>Status inicial no CRM</strong><br />AGUARDANDO AUDITORIA<br /><small>As opções deste bloco são aplicadas às próximas vendas.</small></div>
-    <div style={caixa}><strong>WhatsApp configurado · Nio</strong>{rota ? <><p>BKO: <strong>{rota.ativo ? 'Ativado' : 'Desativado nas configurações'}</strong><br />Remetente: {rota.remetente}</p>{rota.contatos.map((c, i) => <p key={i}>📱 {c.nome}: <strong>{c.numero}</strong>{c.fila_nome ? ` · ${c.fila_nome}` : ''}</p>)}</> : <p>{erro || (workspaceId === 'grupoprime' ? 'Consultando configuração BKO…' : 'Encaminhamento disponível no piloto @grupoprime.')}</p>}<a href="/chatbot/vendas" target="_blank" rel="noreferrer">Abrir painel de vendas e canais BKO</a></div>
-  </div>;
+'use client';
+import AjudaCampo from '../../components/AjudaCampo';
+const input={width:'100%',padding:9,border:'1px solid #dbe3ee',borderRadius:8,background:'#fff',color:'#24344d',fontSize:12,boxSizing:'border-box' as const};
+export default function ConclusaoUniversal({dados:d,onChange:u,campos=[],variaveis=[],status=[]}:{dados:Record<string,any>;onChange:(v:Record<string,any>)=>void;campos?:{slug:string;label:string;origem?:string}[];variaveis?:string[];status?:{value:string;label:string}[];workspaceId?:string|null}) {
+ const map=Array.isArray(d.mapeamento)?d.mapeamento:[];
+ return <div style={{display:'grid',gap:16,fontSize:12,color:'#334155'}}>
+ <p>Configure o que salvar e as ações ao terminar. As variáveis vêm da coleta da IA ou de qualquer bloco anterior do fluxo. <AjudaCampo texto="A conclusão disponibiliza proposta_id e todas as variáveis aos blocos seguintes. Você pode conectar Atualizar venda, Aplicar etiqueta ou mensagens após esta caixa." exemplo="Coleta cliente_nome → campo Nome no CRM → aplicar etiqueta Pedido recebido."/></p>
+ <label><input type="checkbox" checked={d.crm!==false} onChange={e=>u({crm:e.target.checked,...(!e.target.checked?{whatsapp:false}:{})})}/> Cadastrar no CRM <AjudaCampo texto="Cria um pedido usando o mapeamento abaixo. Retomadas reutilizam o mesmo pedido para evitar duplicatas."/></label>
+ <label>Modo de gravação <AjudaCampo texto="Automático aproveita variáveis com o mesmo nome dos campos do CRM. Manual salva apenas os campos que você associar abaixo, além dos identificadores internos do pedido." exemplo="cliente_nome → nome; total_pedido → valor_plano; tamanho → custom.tamanho."/><select style={input} value={d.modo_mapeamento||'automatico'} onChange={e=>u({modo_mapeamento:e.target.value})}><option value="automatico">Automático com substituições abaixo</option><option value="manual">Somente os campos mapeados abaixo</option></select></label>
+ <label>Status inicial <AjudaCampo texto="Status gravado quando a IA registra o pedido. Pode usar os status do workspace ou informar um nome." exemplo="AGUARDANDO AUDITORIA"/><input style={input} list="universal-status" value={d.status_inicial||''} onChange={e=>u({status_inicial:e.target.value})}/><datalist id="universal-status">{status.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</datalist></label>
+ <strong>Variáveis → campos do CRM <AjudaCampo texto="Selecione um campo real do seu CRM e diga de onde vem o conteúdo. Campos personalizados são salvos em dados_customizados." exemplo="Campo: nome | Variável: nome_cliente"/></strong>
+ {map.map((m:any,i:number)=><div key={i} style={{display:'grid',gap:8,padding:12,background:'#f4f7fb',borderRadius:9}}><label>Campo do CRM<select style={input} value={m.campo||''} onChange={e=>u({mapeamento:map.map((x:any,k:number)=>k===i?{...x,campo:e.target.value}:x)})}><option value="">Selecione</option>{campos.map(c=><option key={c.slug} value={c.origem==='custom'?'custom.'+c.slug:c.slug}>{c.label}</option>)}</select></label><label>Origem<select style={input} value={m.origem||'variavel'} onChange={e=>u({mapeamento:map.map((x:any,k:number)=>k===i?{...x,origem:e.target.value}:x)})}><option value="variavel">Variável do fluxo</option><option value="valor">Valor fixo ou modelo de texto</option></select></label><label>{m.origem==='valor'?'Valor ou texto com {{variavel}}':'Nome da variável'}<input style={input} list="universal-variaveis" value={m.origem==='valor'?m.valor||'':m.variavel||''} onChange={e=>u({mapeamento:map.map((x:any,k:number)=>k===i?{...x,[m.origem==='valor'?'valor':'variavel']:e.target.value}:x)})}/></label><button onClick={()=>u({mapeamento:map.filter((_:unknown,k:number)=>k!==i)})}>Remover campo</button></div>)}
+ <datalist id="universal-variaveis">{variaveis.map(v=><option key={v} value={v}/>)}</datalist><button onClick={()=>u({mapeamento:[...map,{campo:'',variavel:'',origem:'variavel'}]})}>+ Mapear campo</button>
+ <label><input type="checkbox" checked={d.whatsapp!==false&&d.crm!==false} disabled={d.crm===false} onChange={e=>u({whatsapp:e.target.checked})}/> Encaminhar pelo WhatsApp configurado <AjudaCampo texto="Usa somente a regra do canal de entrada deste workspace, definida em Vendas → Configurações. Não envia para outro cliente ou workspace."/></label>
+ <label>Mensagem para o BKO <AjudaCampo texto="Deixe em branco para usar a configuração de Vendas. Inclua {{resumo}} para apresentar os dados que foram salvos." exemplo="📋 Pedido #{{proposta_id}}\n{{resumo}}"/><textarea rows={5} style={input} value={d.mensagem_bko||''} onChange={e=>u({mensagem_bko:e.target.value})}/></label>
+ <label>Mensagem ao cliente após registrar <AjudaCampo texto="Enviada após o CRM confirmar a gravação. Enfileirar o envio não significa que o WhatsApp já entregou a mensagem." exemplo="✅ Pedido #{{proposta_id}} registrado. Obrigado, {{nome}}!"/><textarea rows={4} style={input} value={d.mensagem_sucesso||''} onChange={e=>u({mensagem_sucesso:e.target.value})}/></label>
+ <label><input type="checkbox" checked={d.continuar_fluxo!==false} onChange={e=>u({continuar_fluxo:e.target.checked})}/> Executar blocos conectados após concluir <AjudaCampo texto="Libera os blocos seguintes com proposta_id e as variáveis da coleta. Não conecte outro Enviar venda se já marcou Cadastrar no CRM, pois esse bloco cria um novo pedido." exemplo="Conclusão → Aplicar etiqueta → mensagem de acompanhamento."/></label>
+ <a href="/chatbot/vendas?aba=configuracoes" target="_blank" rel="noreferrer">Abrir configuração de canais e retornos do BKO ↗</a>
+ </div>;
 }

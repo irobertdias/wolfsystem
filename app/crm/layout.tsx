@@ -228,7 +228,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     { path: "/crm/visao", label: "Visão", icon: "📊", visivel: true },
     { path: crmItems[0]?.path || "/crm/dashboard", label: "CRM", icon: "🎯", visivel: podeVerCRM },
     { path: "/chatbot", label: "Atendimento", icon: "💬", visivel: podeVerChatbot },
-    { path: "/chatbot/vendas", label: "Vendas", icon: "💰", visivel: workspaceIdAtual === 'grupoprime' && podeVerConfig },
+    { path: "/chatbot/vendas", label: "Vendas", icon: "💰", visivel: modulosCarregados && modulos.vendedor_ia && (podeVerConfig || permissoes.vendas_proprio || permissoes.vendas_equipe) },
     { path: "/crm/contratos", label: "Contratos", icon: "📄", visivel: podeVerContratos },
     { path: "/crm/meta-ads", label: "Central Ads", icon: "📣", visivel: podeVerMetaAds },
     { path: "/crm/telefonia", label: "Telefonia", icon: "📞", visivel: modulosCarregados && podeVerTelefonia },

@@ -18,6 +18,7 @@ import { useWorkspace } from "./useWorkspace";
 // ═══════════════════════════════════════════════════════════════════════
 
 export type Modulos = {
+  vendedor_ia: boolean;
   roleta: boolean;
   disparos_web: boolean;
   validacao_numeros: boolean;
@@ -46,6 +47,7 @@ export const FIN_OPCOES = [
 const FIN_TODAS: Record<string, boolean> = Object.fromEntries(FIN_OPCOES.map((k) => [k, true]));
 
 const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
+  vendedor_ia: false,
   roleta: false, disparos_web: false, validacao_numeros: false, disparos_api: false,
   voip: false, api_integracao: false, instagram: false,
   cobranca: false, meta_ads: false,  contratos_assinaturas: false, rh: false, bater_ponto: false,
@@ -98,7 +100,7 @@ export function useModulos() {
         // isso os módulos voltariam todos false pro time interno da casa.
         if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           if (!cancelado) {
-            setModulos({ roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true,  contratos_assinaturas: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
+            setModulos({ vendedor_ia: true, roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true,  contratos_assinaturas: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -106,12 +108,13 @@ export function useModulos() {
 
         // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
-          .select("modulo_roleta, modulo_disparos_web, modulo_validacao_numeros, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_meta_ads, modulo_contratos_assinaturas, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
+          .select("ia, modulo_roleta, modulo_disparos_web, modulo_validacao_numeros, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_meta_ads, modulo_contratos_assinaturas, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
           .eq("email", ownerEmail)
           .maybeSingle();
 
         if (!cancelado) {
           setModulos({
+            vendedor_ia: !!cad?.ia && !['nao','não','false','0'].includes(String(cad.ia).toLowerCase()),
             roleta: !!cad?.modulo_roleta,
             disparos_web: !!cad?.modulo_disparos_web,
             validacao_numeros: !!cad?.modulo_validacao_numeros,

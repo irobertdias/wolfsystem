@@ -2165,7 +2165,6 @@ function AbaGeral({ workspaceId, usuarios, isAdmin, limites, limiteAtingido, pod
 
       {/* Bloqueio pós-finalização */}
       <BloqueioPosFinalizacao workspaceId={workspaceId} podeGerenciar={podeGerenciar} IS={IS} cardStyle={cardStyle} labelStyle={labelStyle} />
-      {workspaceId === 'grupoprime' && podeGerenciar && <a href="/chatbot/vendas" style={{display:'block',padding:20,background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:12,color:'#166534'}}>💰 Vendas — mensagens enviadas, retornos e configuração dos canais BKO →</a>}
 
       {/* 🤳 Bater Ponto — com/sem selfie (só aparece se o módulo estiver liberado) */}
       <ConfigPontoSelfie podeGerenciar={podeGerenciar} IS={IS} cardStyle={cardStyle} />

@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { autenticarWorkspace, exigirPermissao, respostaErroAcesso, segredoInternoWolf, supabaseServer } from '../../../_auth';
+import { exigirVendas, lerConfiguracaoVendas, NOME_CONFIG_VENDAS } from '../../_vendas';
 import { validarConfigBko } from '../../../../lib/bko-grupoprime';
 export const dynamic = 'force-dynamic';
 async function acesso(request: NextRequest, ws: string) {
   const a = await autenticarWorkspace(request, ws);
-  exigirPermissao(a, 'configuracoes_workspace');
-  if (a.workspaceId !== 'grupoprime') throw Object.assign(new Error('Integração disponível no Grupo Prime.'), { statusCode: 403 });
+  await exigirVendas(a,true);
   return a;
 }
 function erro(e: unknown) { const r=respostaErroAcesso(e);return NextResponse.json({success:false,error:r.status===500?'Não foi possível atualizar o BKO.':r.message},{status:r.status}); }
+async function servidorUniversalPronto(){try{const r=await fetch((process.env.WHATSAPP_URL||process.env.NEXT_PUBLIC_WHATSAPP_URL||'https://api.wolfgyn.com.br')+'/universal/health',{headers:{'x-wolf-internal-secret':segredoInternoWolf()},cache:'no-store',signal:AbortSignal.timeout(4000)});const j=await r.json();return r.ok&&j.configuracao_multitenant===true;}catch{return false;}}
 export async function GET(request: NextRequest) {
   try {
     const a=await acesso(request,request.nextUrl.searchParams.get('workspaceId')||'');
+    if(request.nextUrl.searchParams.get('perfil')==='workspace'||a.workspaceId!=='grupoprime') {
+      const salvo=await lerConfiguracaoVendas(a.workspaceId);
+      let config=salvo?.nos?.[0]?.dados?.bko_configuracao;
+      if(!config&&a.workspaceId==='grupoprime') { const legado=await supabaseServer.from('fluxos').select('nos').eq('workspace_id',a.workspaceId).eq('id',27).single();if(legado.error)throw legado.error;config=legado.data.nos.find((n:{id:string})=>n.id==='prime_documentos_enviar')?.dados?.bko_configuracao; }
+      const [canais,filas]=await Promise.all([supabaseServer.from('conexoes').select('id,nome,tipo,status,modo').eq('workspace_id',a.workspaceId),supabaseServer.from('filas').select('id,nome,conexao').eq('workspace_id',a.workspaceId)]);if(canais.error)throw canais.error;if(filas.error)throw filas.error;
+      return NextResponse.json({success:true,config:config||{ativo:false,canal_id:null,contatos:[],modo:'por_canal'},canais:canais.data,filas:filas.data,envios:[],fluxo_ativo:true,servidor_pronto:await servidorUniversalPronto(),waba_pronto:false,versao:salvo?.nos?.[0]?.dados?.versao||''});
+    }
     const fluxoId=Number(request.nextUrl.searchParams.get('fluxoId')||27);if(![27,28].includes(fluxoId))throw Object.assign(Error('Fluxo inválido.'),{statusCode:400});
     const {data:f,error}=await supabaseServer.from('fluxos').select('nos,ativo').eq('workspace_id',a.workspaceId).eq('id',fluxoId).single();if(error)throw error;
     const config=f.nos.find((n: {id:string})=>n.id==='prime_documentos_enviar')?.dados?.bko_configuracao || {ativo:false,canal_id:null,contatos:[]};
@@ -29,10 +37,22 @@ export async function GET(request: NextRequest) {
 }
 export async function PATCH(request: NextRequest) {
   try {
-    const texto=await request.text();if(texto.length>5000)return NextResponse.json({success:false,error:'Dados excedem o limite.'},{status:400});
+    const texto=await request.text();if(texto.length>128000)return NextResponse.json({success:false,error:'Dados excedem o limite.'},{status:400});
     let body;try{body=JSON.parse(texto);}catch{return NextResponse.json({success:false,error:'JSON inválido.'},{status:400});}
     if(!body||typeof body!=='object'||Array.isArray(body))return NextResponse.json({success:false,error:'Dados inválidos.'},{status:400});
     const a=await acesso(request,String(body.workspaceId||''));
+    if(body.perfil==='workspace'||a.workspaceId!=='grupoprime') {
+      const config=validarConfigBko(body.config);
+      if(config.canal_id){const r=await supabaseServer.from('conexoes').select('numero').eq('workspace_id',a.workspaceId).eq('id',config.canal_id).single();if(r.error)throw r.error;if(config.contatos.some(x=>x.numero===String(r.data.numero||'').replace(/\D/g,'')))throw Object.assign(Error('O próprio canal não pode ser o destinatário BKO.'),{statusCode:422});}
+      for(const id of [config.canal_id,...config.contatos.map(x=>x.canal_trafego_id)].filter(Boolean)) { const r=await supabaseServer.from('conexoes').select('id').eq('workspace_id',a.workspaceId).eq('id',id).maybeSingle();if(r.error)throw r.error;if(!r.data)throw Object.assign(Error('Canal não pertence ao workspace.'),{statusCode:422}); }
+      for(const regra of config.contatos) if(regra.fila_nome) { const r=await supabaseServer.from('filas').select('id').eq('workspace_id',a.workspaceId).eq('nome',regra.fila_nome).limit(1).maybeSingle();if(!r.data)throw Object.assign(Error('Fila não pertence ao workspace.'),{statusCode:422}); }
+      const antigo=await lerConfiguracaoVendas(a.workspaceId),versao=randomUUID();
+      if(antigo&&body.versao!==antigo.nos?.[0]?.dados?.versao)throw Object.assign(Error('A configuração foi alterada. Atualize a tela antes de salvar.'),{statusCode:409});
+      const nos=[{id:'bko_workspace',tipo:'configuracao_vendas',dados:{bko_configuracao:config,versao}}];
+      const gravacao=antigo?await supabaseServer.from('fluxos').update({nos}).eq('workspace_id',a.workspaceId).eq('id',antigo.id).eq('nos',JSON.stringify(antigo.nos)).select('id').maybeSingle():await supabaseServer.from('fluxos').insert({workspace_id:a.workspaceId,nome:NOME_CONFIG_VENDAS,ativo:false,trigger_tipo:'configuracao_vendas',nos,conexoes:[]}).select('id').single();
+      if(gravacao.error)throw gravacao.error;if(!gravacao.data)throw Object.assign(Error('Configuração mudou. Atualize a tela.'),{statusCode:409});
+      return NextResponse.json({success:true,config,versao});
+    }
     const fluxoId=Number(body.fluxoId||27);if(![27,28].includes(fluxoId))throw Object.assign(Error('Fluxo inválido.'),{statusCode:400});
     if(body.acao==='retentar'){
       if(!Number.isSafeInteger(body.proposta_id)||body.proposta_id<=0)throw Object.assign(new Error('Venda inválida.'),{statusCode:422});

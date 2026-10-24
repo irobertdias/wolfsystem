@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { autenticarWorkspace, exigirPermissao, respostaErroAcesso, supabaseServer } from '../../_auth';
+import { exigirVendas } from '../_vendas';
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const acesso = await autenticarWorkspace(request, request.nextUrl.searchParams.get('workspaceId') || '');
-    exigirPermissao(acesso, 'configuracoes_workspace');
-    if (acesso.workspaceId !== 'grupoprime') return NextResponse.json({ error: 'Painel disponível no piloto Grupo Prime.' }, { status: 403 });
+    await exigirVendas(acesso);
     const pagina = Math.max(1, Math.min(10000, Number(request.nextUrl.searchParams.get('pagina')) || 1));
-    const { data, error, count } = await supabaseServer.from('proposta')
+    let consulta = supabaseServer.from('proposta')
       .select('id,nome,plano,valor_plano,operadora,status_venda,data_agendamento,periodo_instalacao,created_at,updated_at,dados_customizados', { count: 'exact' })
       .eq('workspace_id', acesso.workspaceId).not('dados_customizados->>bko_pendente', 'is', null)
       .order('id', { ascending: false }).range((pagina-1)*25, pagina*25-1);
+    if(!acesso.isSuperAdmin&&!acesso.isDono&&!acesso.isAdministrador) {
+      const {data:usuario}=await supabaseServer.from('usuarios_workspace').select('equipe_id').eq('workspace_id',acesso.workspaceId).ilike('email',acesso.email).limit(1).maybeSingle();
+      consulta=acesso.permissoes.vendas_equipe&&usuario?.equipe_id?consulta.eq('equipe_id',usuario.equipe_id):consulta.eq('vendedor',acesso.email);
+    }
+    const {data,error,count}=await consulta;
     if (error) throw error;
     const ler = (v: unknown): Record<string, any> => { try { return typeof v === 'string' ? JSON.parse(v) : v || {}; } catch { return {}; } };
     const vendas = (data || []).map(p => {

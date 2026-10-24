@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useModulos } from "../../hooks/useModulos";
+import AjudaCampo from '../../components/AjudaCampo';
 import ConfiguracaoUniversal from './ConfiguracaoUniversal';
 import { assistenteUniversalInicial, nichoUniversalInicial, conclusaoUniversalInicial, validarEstruturaUniversal, universalExecutavel } from '../../lib/atendimento-universal';
 import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
@@ -44,7 +45,7 @@ function booleanoConfiguracao(valor: any, padrao = false): boolean {
 const B: Record<TipoNo, BC> = {
   assistente_universal: {label:"Vendedor IA · Universal",icone:"✨",cor:"#2563eb",saidas:["Configurar nicho"],grupo:"Integrações"},
   nicho_atendimento: {label:"Nicho de atendimento",icone:"🧩",cor:"#0f766e",saidas:["Atendimento configurado"],grupo:"Integrações"},
-  concluir_venda_universal: {label:"Concluir venda · CRM + WhatsApp",icone:"✅",cor:"#15803d",saidas:[],grupo:"Integrações"},
+  concluir_venda_universal: {label:"Concluir venda · CRM + WhatsApp",icone:"✅",cor:"#15803d",saidas:["Concluído","Erro"],grupo:"Integrações"},
   texto:                {label:"Texto",           icone:"💬", cor:"#3b82f6", saidas:["Próximo"],                     grupo:"Bubbles"},
   imagem:               {label:"Imagem",          icone:"🖼️", cor:"#06b6d4", saidas:["Próximo"],                     grupo:"Bubbles"},
   video:                {label:"Vídeo",           icone:"🎥", cor:"#8b5cf6", saidas:["Próximo"],                     grupo:"Bubbles"},
@@ -391,7 +392,7 @@ function TVarComponent({
 
   return (
     <div key={`tvar-${idSuffix}`}>
-      <label style={LS}>{label}</label>
+      <label style={LS}>{label}<AjudaCampo texto="Selecione uma variável produzida por uma coleta, consulta ou outro bloco. Não precisa copiar o dado manualmente." exemplo="cliente_nome"/></label>
       <div style={{ position: "relative" }}>
         <textarea
           ref={taRef}
@@ -550,6 +551,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     };
     nos.forEach(n => {
       const dn = n.dados || {};
+      if(Array.isArray(dn.coleta))dn.coleta.forEach((c:any)=>adicionar(c.variavel));
+      if(Array.isArray(dn.documentos_config))dn.documentos_config.forEach((c:any)=>adicionar(c.variavel));
       // Blocos que CAPTURAM variáveis
       adicionar(dn.variavel);
       adicionar(dn.variavel_resposta);
@@ -615,7 +618,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
 
   const F = (lbl: string, key: string, type = "text", ph = "") => (
     <div key={`${id}-${key}`}>
-      <label style={LS}>{lbl}</label>
+      <label style={LS}>{lbl}<AjudaCampo texto={"Configure "+lbl.toLowerCase()+" para este bloco. Variáveis podem vir da IA ou de outros blocos do fluxo."} exemplo={ph||undefined}/></label>
       <input type={type} value={d[key]||""} onChange={e => u({[key]: e.target.value})} style={IS} placeholder={ph} />
     </div>
   );
@@ -859,7 +862,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     case 'assistente_universal':
     case 'nicho_atendimento':
     case 'concluir_venda_universal':
-      return <ConfiguracaoUniversal tipo={noSel.tipo} dados={d} onChange={u} workspaceId={workspaceId}/>;
+      return <ConfiguracaoUniversal tipo={noSel.tipo} dados={d} onChange={u} workspaceId={workspaceId} campos={camposPropostaUnif.map(c=>({slug:c.slug,label:c.label,origem:c.origem}))} variaveis={variaveisDoFluxo} status={statusVendaOpcoes}/>;
     case "texto": return <>{TVar("Mensagem","texto","Digite sua mensagem aqui...",120)}</>;
     case "imagem": return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
     case "video":  return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
@@ -1839,6 +1842,7 @@ function saida(obj) {
         </div>
 
         {/* Roleta de vendas por vendedores selecionados */}
+        <label style={{display:'block',fontSize:12,marginBottom:12}}><input type="checkbox" checked={d.encaminhar_bko===true} onChange={e=>u({encaminhar_bko:e.target.checked})}/> Encaminhar esta venda ao WhatsApp do BKO <AjudaCampo texto="Após salvar no CRM, coloca a venda na fila de envio do BKO deste workspace. Configure remetente e destinatário em Vendas → Configurações. A saída Sucesso continua para os próximos blocos."/></label>
         <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:8,padding:12,marginBottom:10}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:8}}>
             <div>
@@ -2452,7 +2456,7 @@ export default function FluxosPage() {
   async function load(username?: string) {
     const u = username || wsId;
     if (!u) return;
-    const {data} = await supabase.from("fluxos").select("*").eq("workspace_id", u).order("created_at",{ascending:false});
+    const {data} = await supabase.from("fluxos").select("*").eq("workspace_id", u).neq("nome","__wolf_configuracao_vendas__").order("created_at",{ascending:false});
     setFluxos((data||[]).map(f=>({...f,nos:(f.nos||[]),conexoes:f.conexoes||[]})));
   }
 
@@ -2669,8 +2673,8 @@ export default function FluxosPage() {
   async function toggleAtivo() {
     if(!fluxoAtivo?.id) return;
     if(!fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))){
-      if(!universalExecutavel(nos,arestas,wsId)){alert('Execução disponível somente no piloto telecom Nio configurado para @grupoprime. Os demais perfis continuam em rascunho.');return;}
-      try{const {data:{session}}=await supabase.auth.getSession();const r=await fetch('/api/viabilidade/grupoprime/vtal?health=1',{cache:'no-store',headers:session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{}});const j=await r.json();if(!r.ok||j.versao!==1||!j.pronto)throw Error();}catch{alert('O serviço universal não está pronto. A ativação foi interrompida.');return;}
+      if(!universalExecutavel(nos,arestas,wsId)){alert('Confira o assistente, o nicho e o bloco de conclusão antes de ativar.');return;}
+      try{const {data:{session}}=await supabase.auth.getSession();const r=await fetch('/api/workspace/vendas/health?workspaceId='+encodeURIComponent(wsId||''),{cache:'no-store',headers:session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{}});const j=await r.json();if(!r.ok||j.versao<2||!j.pronto)throw Error();}catch{alert('O serviço universal não está pronto. A ativação foi interrompida.');return;}
     }
     if (!fluxoAtivo.ativo && nos.some(n => ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(n.tipo)) && !contratosLiberados) {
       alert("🔒 Não é possível ativar este fluxo sem o módulo Contratos e Assinaturas.");

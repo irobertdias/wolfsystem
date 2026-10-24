@@ -51,8 +51,8 @@ export async function GET(request: NextRequest) {
     }
 
     await autenticarDocumentoCRM(request, workspaceId);
-    if (workspaceId === 'grupoprime') {
-      if (!storagePath.startsWith('grupoprime/') || storagePath.includes('\\')) {
+    if (workspaceId === 'grupoprime' || storagePath.includes('/arquivos/universal/')) {
+      if (!storagePath.startsWith(workspaceId + '/') || storagePath.includes('\\')) {
         return NextResponse.json({ success: false, error: 'Documento não pertence a este workspace' }, { status: 403 });
       }
       const { data: arquivo, error } = await supabaseAdmin.storage.from('documentos-clientes').download(storagePath);

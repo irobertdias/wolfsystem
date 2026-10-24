@@ -20,12 +20,20 @@ function lerRetorno(texto, atual) {
     if (!status && (data_agendamento || periodo_instalacao) && ['APROVADA','GERADA','AGUARDANDO INSTALAÇÃO'].includes(atual)) status=atual;
     return { status, data_agendamento, periodo_instalacao };
 }
-function prepararAcoes(p, c) {
+function prepararAcoes(p, c, config = {}) {
+    if(config.modo_retorno==='fluxos')return c.universal_acoes||[];
     const lista = c.universal_acoes ||= [];
     for(const acao of lista) if(!['enviado','cancelado'].includes(acao.estado)) {
         if((acao.chave.startsWith('cpf:')&&p.status_venda!=='CPF REPROVADO')||(acao.chave.startsWith('biometria:')&&p.status_venda!=='APROVADA')||(acao.chave==='solicitar_agenda'&&(!['GERADA','AGUARDANDO INSTALAÇÃO'].includes(p.status_venda)||(p.data_agendamento&&p.periodo_instalacao))))acao.estado='cancelado';
     }
     const adicionar = (chave, alvo, texto) => { if (!lista.some(a=>a.chave===chave)) lista.push({ chave, alvo, texto: alvo==='cliente' ? texto+`\nPedido #${p.id}` : texto, estado:'pendente', criado_em:new Date().toISOString() }); };
+    const personalizada=(config.retornos||[]).find(r=>r.status===p.status_venda);
+    if(personalizada){
+        if(personalizada.mensagem_cliente)adicionar('regra:'+p.status_venda+':'+p.cpf,'cliente',require('./modelo-vendas.cjs').modelo(personalizada.mensagem_cliente,{...p,...c.universal_variaveis,proposta_id:p.id}));
+        if(personalizada.solicitar_agenda&&(!p.data_agendamento||!p.periodo_instalacao))adicionar('solicitar_agenda','bko',`📅 Pedido #${p.id}: informe o dia e o período da instalação.\nDATA: DD/MM/AAAA\nPERIODO: MANHÃ ou TARDE\n#${c.bko_ref}`);
+        if(p.status_venda==='CPF REPROVADO')c.universal_novo_cpf=true;
+        return lista;
+    }
     if (p.status_venda==='CPF REPROVADO') {
         c.universal_novo_cpf = true;
         adicionar('cpf:'+p.cpf, 'cliente', 'Precisamos de outro CPF para continuar o pedido, pois foi identificada uma inconsistência cadastral na análise da operadora. Você tem outro titular autorizado para a contratação? Pode me informar o CPF dele? Se houver troca de titular, vamos atualizar os dados do pedido.');
@@ -41,10 +49,10 @@ function prepararAcoes(p, c) {
     if (p.status_venda==='INSTALADA') adicionar('instalada', 'cliente', 'Sua instalação foi registrada como concluída! ✅ Obrigado por escolher a Grupo Prime. Se precisar de alguma orientação, estamos por aqui. 💚');
     return lista;
 }
-module.exports = function criarPosVenda({ctx,db,salvarEntrega,enviarBko,confirmarBko,telefoneBko,configBko}) {
+module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEntrega,enviarBko,confirmarBko,telefoneBko,configBko}) {
     const locks = new Map(); let rodando=false;
     async function serial(id, fn) { const anterior=locks.get(id)||Promise.resolve(); const tarefa=anterior.catch(()=>{}).then(fn); locks.set(id,tarefa); try { return await tarefa; } finally { if(locks.get(id)===tarefa)locks.delete(id); } }
-    async function obter(id) { const r=await db.from('proposta').select('*').eq('workspace_id','grupoprime').eq('id',id).single();if(r.error)throw r.error;return r.data; }
+    async function obter(id) { const r=await db.from('proposta').select('*').eq('workspace_id',workspace).eq('id',id).single();if(r.error)throw r.error;return r.data; }
     async function executar(id) { return serial(id, async()=>{
         let p=await obter(id), c=structuredClone(p.dados_customizados);
         for (const acao of c.universal_acoes || []) {
@@ -54,7 +62,7 @@ module.exports = function criarPosVenda({ctx,db,salvarEntrega,enviarBko,confirma
                 const numero=acao.alvo==='bko'?meta.numero:c.numero_origem_whatsapp;
                 const sessao=ctx.sessoes[String(canalId)];
                 const config=await ctx.getConfigCanal(canalId);
-                if(config?.workspaceId!=='grupoprime'||config.tipo!=='webjs'||!sessao?.client||sessao.status!=='conectado')throw Error('Canal de acompanhamento desconectado');
+                if(config?.workspaceId!==workspace||config.tipo!=='webjs'||!sessao?.client||sessao.status!=='conectado')throw Error('Canal de acompanhamento desconectado');
                 acao.numero=numero;acao.canal_id=canalId;
                 if(acao.id) {
                     const m=await sessao.client.getMessageById(acao.id).catch(()=>null);
@@ -77,15 +85,15 @@ module.exports = function criarPosVenda({ctx,db,salvarEntrega,enviarBko,confirma
                 await confirmarBko(sessao.client,acao.id,r.ack);
                 acao.estado='enviado';acao.enviado_em=new Date().toISOString();delete acao.erro;
                 p=await salvarEntrega(p,c);
-                if(acao.alvo==='cliente'&&ctx.salvarMensagem)await ctx.salvarMensagem('grupoprime',canalId,config.fila||null,numero,acao.texto,'bot',p.nome,acao.id);
+                if(acao.alvo==='cliente'&&ctx.salvarMensagem)await ctx.salvarMensagem(workspace,canalId,config.fila||null,numero,acao.texto,'bot',p.nome,acao.id);
             } catch(e) { acao.erro=String(e.message).slice(0,250);acao.tentarEm=Date.now()+60000;await salvarEntrega(p,c);break; }
         }
     }); }
     async function tratar(entrada) {
-        if(entrada.workspaceId!=='grupoprime'||!entrada.verificado||!entrada.messageId)return false;
+        if(entrada.workspaceId!==workspace||!entrada.verificado||!entrada.messageId)return false;
         const refs=[...String(entrada.mensagem||'').matchAll(/#?BKO-\d+-[a-f0-9]{16}\b/gi)].map(m=>m[0].replace(/^#/,'').toUpperCase());
         if(new Set(refs).size>1)return true;
-        let q=db.from('proposta').select('*').eq('workspace_id','grupoprime').eq('dados_customizados->>universal_v1','SIM');
+        let q=db.from('proposta').select('*').eq('workspace_id',workspace).eq('dados_customizados->>universal_v1','SIM');
         if(refs[0])q=q.eq('dados_customizados->>bko_ref',refs[0]);
         else if(entrada.quotedId)q=q.contains('dados_customizados',{bko_reply_ids:[entrada.quotedId]});
         else {
@@ -96,7 +104,7 @@ module.exports = function criarPosVenda({ctx,db,salvarEntrega,enviarBko,confirma
             const candidatas=await q.limit(100);if(candidatas.error)throw candidatas.error;
             const unicas=(candidatas.data||[]).filter(p=>!['INSTALADA','CANCELADA','SEM DISPONIBILIDADE'].includes(p.status_venda)&&p.dados_customizados.universal_entrega?.concluido&&Number(p.dados_customizados.universal_entrega.canal_id)===Number(entrada.canalId)&&telefoneBko(p.dados_customizados.universal_entrega.numero)===telefoneBko(entrada.numero));
             if(unicas.length!==1)return false;
-            q=db.from('proposta').select('*').eq('workspace_id','grupoprime').eq('id',unicas[0].id);
+            q=db.from('proposta').select('*').eq('workspace_id',workspace).eq('id',unicas[0].id);
         }
         const {data,error}=await q.limit(2);if(error)throw error;if(data?.length!==1)return false;
         const cfg=await configBko();
@@ -107,6 +115,7 @@ module.exports = function criarPosVenda({ctx,db,salvarEntrega,enviarBko,confirma
             let p=await obter(data[0].id),c=structuredClone(p.dados_customizados);
             if(c.bko_retornos?.some(e=>e.message_id===entrada.messageId))return;
             const r=lerRetorno(entrada.mensagem||'',p.status_venda);
+            const regra=(cfg.retornos||[]).find(x=>normalizar(x.resposta)===normalizar(String(entrada.mensagem||'').replace(/#?BKO-\d+-[a-f0-9]{16}\b/gi,'').split(/\r?\n/)[0].trim()));if(regra)r.status=regra.status;
             // Não retroceder pedidos concluídos por mensagem atrasada.
             const terminal=['INSTALADA','CANCELADA','SEM DISPONIBILIDADE'].includes(p.status_venda);
             const patch={};
@@ -116,11 +125,13 @@ module.exports = function criarPosVenda({ctx,db,salvarEntrega,enviarBko,confirma
                 if(r.periodo_instalacao)patch.periodo_instalacao=r.periodo_instalacao;
             }
             c.bko_retornos=[...(c.bko_retornos||[]),{message_id:entrada.messageId,numero:entrada.numero,texto:String(entrada.mensagem||'').slice(0,6000),status:patch.status_venda||p.status_venda,em:new Date().toISOString()}].slice(-100);
-            prepararAcoes({...p,...patch},c);
+            prepararAcoes({...p,...patch},c,cfg);
             // O pós-venda deste motor é próprio; baseline atualizado evita disparar
             // também um fluxo CRM antigo para o mesmo retorno.
+            const antes=p;
             p=await salvarEntrega(p,c,patch);
-            const b=await db.from('crm_automacao_estado').upsert({workspace_id:'grupoprime',proposta_id:p.id,snapshot:p,proposta_updated_at:p.updated_at},{onConflict:'proposta_id'});if(b.error)throw b.error;
+            const snapshot=cfg.modo_retorno==='fluxos'?antes:p;
+            const b=await db.from('crm_automacao_estado').upsert({workspace_id:workspace,proposta_id:p.id,snapshot,proposta_updated_at:snapshot.updated_at},{onConflict:'proposta_id'});if(b.error)throw b.error;
         });
         await executar(data[0].id);return true;
     }
@@ -144,7 +155,7 @@ module.exports = function criarPosVenda({ctx,db,salvarEntrega,enviarBko,confirma
     }
     async function pendentes() {
         if(rodando)return;rodando=true;
-        try { const r=await db.from('proposta').select('id').eq('workspace_id','grupoprime').eq('dados_customizados->>universal_v1','SIM').eq('dados_customizados->>universal_pos_pendente','SIM').order('updated_at',{ascending:true}).limit(100);if(r.error)throw r.error;for(const p of r.data||[])await executar(p.id); }
+        try { const r=await db.from('proposta').select('id').eq('workspace_id',workspace).eq('dados_customizados->>universal_v1','SIM').eq('dados_customizados->>universal_pos_pendente','SIM').order('updated_at',{ascending:true}).limit(100);if(r.error)throw r.error;for(const p of r.data||[])await executar(p.id); }
         finally {rodando=false;}
     }
     return {tratar,cliente,pendentes,executar};

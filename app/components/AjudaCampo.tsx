@@ -1,0 +1,4 @@
+'use client';
+export default function AjudaCampo({ texto, exemplo }: { texto: string; exemplo?: string }) {
+  return <details style={{display:'inline-block',position:'relative',verticalAlign:'middle',marginLeft:6,fontWeight:400}}><summary title={texto+(exemplo?' Exemplo: '+exemplo:'')} aria-label="Ajuda e exemplos" style={{display:'inline-grid',placeItems:'center',listStyle:'none',cursor:'help',width:19,height:19,borderRadius:'50%',background:'#eaf0fb',color:'#395e9e',fontSize:12,fontWeight:700}}>?</summary><div style={{position:'absolute',right:0,top:24,zIndex:80,width:260,maxWidth:'75vw',padding:13,border:'1px solid #dbe3ee',borderRadius:10,background:'#fff',boxShadow:'0 8px 30px #18315322',fontSize:12,lineHeight:1.6,color:'#334155'}}>{texto}{exemplo&&<><br/><strong>Exemplo</strong><pre style={{whiteSpace:'pre-wrap',font: 'inherit',margin:'6px 0 0',padding:8,background:'#f3f6fb',borderRadius:6}}>{exemplo}</pre></>}</div></details>;
+}

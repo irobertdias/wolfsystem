@@ -3,6 +3,15 @@ const { interpretarEndereco, corresponde, criarConsulta } = require('./vtal.cjs'
 const { inicial, avancar, dataBR, positivo, escolherPlano, hashResumo } = require('./conversa.cjs');
 const { planosDaCidade } = require('./planos-grupoprime.cjs');
 const linha = (id, logradouro, numero, c1 = '', c2 = '', c3 = '') => ({ id, uf: 'GO', cidade: 'GOIANIA', logradouro, numero, complemento1: c1, complemento2: c2, complemento3: c3, bairro: 'CENTRO', situacao: 'Viável', comercial: 'Sim' });
+test('dúvida de preço antes da consulta não antecipa CPF/PJ nem inventa cobertura',async()=>{
+ const s=inicial();s.apresentou=true;s.dados={cidade:'Rio de Janeiro',estado:'RJ'};
+ const r=await avancar({estado:s,entrada:'Qual o valor',numero:'5500000000000',extrair:async()=>({dados:{},pergunta:true,resposta_contextual:'Prefere pessoa física ou jurídica? Temos planos por R$ 110.'}),consultar:async()=>{throw Error('Não consultar sem CEP');},catalogo:planosDaCidade});
+ a.equal(r.estado.etapa,'cep');a.match(r.mensagem,/CEP/);a.doesNotMatch(r.mensagem,/física|jurídica|R\$/i);
+});
+test('pergunta atual por valor descarta texto antigo sobre TV e não repete o parágrafo',async()=>{
+ let s=inicial();s.apresentou=true;s.dados={cidade:'Sorocaba',estado:'SP',cep:'18000000',numero:'1'};
+ const mensagens=[];for(let i=0;i<3;i++){const r=await avancar({estado:s,entrada:'Passa.o.valo',numero:'5500000000000',extrair:async()=>({dados:{},pergunta:true,resposta_contextual:'Não temos informações sobre planos que incluam TV.'}),consultar:async()=>({status:'disponivel_na_base',cep:'18000000',resultados:[{logradouro:'Rua Exemplo',numero:'1'}]}),catalogo:planosDaCidade});s=r.estado;mensagens.push(r.mensagem);a.doesNotMatch(r.mensagem,/TV/);a.equal(s.etapa,'tipo_pessoa');}a.equal(new Set(mensagens).size,3);
+});
 function mockVtal(rows) { return async (url) => { const p = new URL(url).searchParams, keys = ['logradouro', 'numero', 'complemento1', 'complemento2', 'complemento3']; const selecionadas = rows.filter(r => keys.every(k => !p.get(k) || p.get(k) === r[k])); return { ok: true, json: async () => ({ cep: p.get('cep'), cepTotal: rows.length, total: selecionadas.length, pageSize: 30, results: selecionadas.slice((Number(p.get('page')) - 1) * 30, Number(p.get('page')) * 30), locations: ['GOIANIA / GO'], facets: Object.fromEntries(keys.map(k => [k, [...new Set(rows.map(r => r[k]))]])) }) }; }; }
 
 test('quadra alfabética QU G e fachada 52 localizam unidades; nome parecido exige confirmação', async()=>{

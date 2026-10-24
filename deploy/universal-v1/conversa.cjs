@@ -164,9 +164,9 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         }
         d.tipo_pessoa = novos.tipo_pessoa;
     }
-    if (/^(CPF|PESSOA FISICA|PF)[.!\s]*$/.test(normalizar(texto)))
+    if (/^(CPF|PESSOA FISICA|FISICA|PF)[.!\s]*$/.test(normalizar(texto)))
         d.tipo_pessoa = 'PF';
-    if (/^(CNPJ|PESSOA JURIDICA|PJ)[.!\s]*$/.test(normalizar(texto)))
+    if (/^(CNPJ|PESSOA JURIDICA|JURIDICA|PJ)[.!\s]*$/.test(normalizar(texto)))
         d.tipo_pessoa = 'PJ';
     if (d.cep)
         d.cep = d.cep.replace(/\D/g, '');
@@ -197,7 +197,17 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         s.semComprovante = true;
         s.pendencias.push('Cliente não tem comprovante de endereço.');
     }
-    const responder = (mensagem, acao) => { s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao }; };
+    const responder = (mensagem, acao) => {
+        if(!acao && s.historico.some(h=>h.role==='assistant'&&normalizar(h.content)===normalizar(mensagem))) {
+            const falta=rotulos[s.etapa]||({cep:'o CEP com oito dígitos',localidade:'a cidade e o estado da instalação',tipo_pessoa:'se a contratação será no CPF ou no CNPJ',complemento:'o dado que diferencia seu imóvel: número, quadra/lote ou casa',documentos:!s.documentos.rg_frente.length?'o arquivo da frente do RG':!s.documentos.rg_verso.length?'o verso do RG':'o comprovante ou a informação de que você não possui um',confirmar_endereco:'a confirmação ou correção do endereço apresentado',confirmacao:'a confirmação do resumo ou o dado que precisa corrigir',plano:'qual das ofertas você prefere',endereco:'a rua, o número ou complemento e o bairro'})[s.etapa];
+            if(falta) {
+                const formas=[`Vamos continuar de onde paramos. Só falta confirmar ${falta}?`,`Para eu não interpretar errado, pode esclarecer ${falta}?`,`Já aproveitei o que você informou. Pode me dizer ${falta}?`,`O próximo passo é confirmar ${falta}. Pode me ajudar com essa informação?`];
+                mensagem=formas.find(m=>!s.historico.some(h=>h.role==='assistant'&&normalizar(h.content)===normalizar(m)))||formas[(s.tentativas['resposta_'+s.etapa]||0)%formas.length];
+            }
+            s.tentativas['resposta_'+s.etapa]=(s.tentativas['resposta_'+s.etapa]||0)+1;
+        }
+        s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao };
+    };
     if (analise.encerrar === true) {
         s.etapa = 'encerrado';
         return responder('Entendido. Vou encerrar o atendimento por aqui. Se precisar, estamos à disposição.', 'encerrar');
@@ -206,6 +216,11 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         return responder('Seu pedido já está registrado. A equipe vai acompanhar a análise e a confirmação da instalação.');
     if (analise.objecao || analise.pergunta) {
         aviso = String(analise.resposta_contextual || '').slice(0, 1000);
+        // A resposta consultiva não pode fazer perguntas de outra etapa ou
+        // oferecer catálogo antes da consulta. O motor decide a próxima ação.
+        if (/\?|\b(?:CPF|CNPJ)\b/i.test(aviso) || (!s.plano && s.consulta?.status !== 'disponivel_na_base' && /R\$|\b\d+\s*(?:MBPS|MEGA|GIGA)\b/i.test(aviso))) aviso = '';
+        const atual=normalizar(texto).replace(/[^A-Z0-9 ]/g,' ');
+        if (/\b(?:VALOR|VALORES|VALO|PRECO|PRECOS|CUSTA)\b/.test(atual)) aviso='';
     }
     const finalizarMensagem = msg => responder([aviso, msg].filter(Boolean).join('\n\n'));
     if (!s.apresentou) {
@@ -267,6 +282,11 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     if (!d.tipo_pessoa) {
         s.etapa = 'tipo_pessoa';
+        if (/\b(?:VALOR|VALORES|VALO|PRECO|PRECOS|CUSTA)\b/.test(normalizar(texto).replace(/[^A-Z0-9 ]/g,' '))) {
+            const valores=catalogo(d.estado,d.cidade);
+            const pf=Math.min(...valores.pessoa_fisica.map(p=>p.mensalidade)),pj=Math.min(...valores.pessoa_juridica.map(p=>p.mensalidade));
+            return responder(`Para esse endereço, temos opções no CPF a partir de *R$ ${pf.toFixed(2).replace('.',',')}/mês* e no CNPJ a partir de *R$ ${pj.toFixed(2).replace('.',',')}/mês*.\n\nVocê vai contratar no CPF ou no CNPJ? Assim te mostro as ofertas correspondentes. 😊`);
+        }
         return finalizarMensagem('Maravilha! Temos disponibilidade para esse endereço. ✅\n\nA contratação será no *CPF ou CNPJ*? Pergunto para te enviar os preços corretos, pois as ofertas para pessoa física e jurídica são diferentes.');
     }
     const planos = listaPlanos(s, catalogo);

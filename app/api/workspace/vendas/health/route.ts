@@ -1,0 +1,4 @@
+import { NextRequest,NextResponse } from 'next/server';
+import { autenticarWorkspace,segredoInternoWolf,respostaErroAcesso } from '../../../_auth';
+import { exigirVendas } from '../../_vendas';
+export async function GET(request:NextRequest) {try{const a=await autenticarWorkspace(request,request.nextUrl.searchParams.get('workspaceId')||'');await exigirVendas(a,true);const r=await fetch((process.env.WHATSAPP_URL||process.env.NEXT_PUBLIC_WHATSAPP_URL||'https://api.wolfgyn.com.br')+'/universal/health',{headers:{'x-wolf-internal-secret':segredoInternoWolf()},cache:'no-store',signal:AbortSignal.timeout(5000)});const j=await r.json();return NextResponse.json({...j,pronto:r.ok&&j.configuracao_multitenant===true});}catch(e){const r=respostaErroAcesso(e);return NextResponse.json({pronto:false,error:r.status===500?'Serviço indisponível':r.message},{status:r.status});}}
