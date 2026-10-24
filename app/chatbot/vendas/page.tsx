@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useWorkspace } from '../../hooks/useWorkspace';
+import { usePermissao } from '../../hooks/usePermissao';
 import { supabase } from '../../lib/supabase';
 import BkoConfig from '../../crm/configuracoes/BkoConfig';
 import styles from './vendas.module.css';
@@ -9,8 +10,10 @@ type Mensagem = { tipo?: string; texto?: string; nome?: string; arquivo?: string
 type Venda = { id: number; nome: string; plano: string; valor_plano: number; operadora: string; status_venda: string; estado_envio: string; erro: string; referencia: string; data_agendamento?: string; periodo_instalacao?: string; entregas: { numero: string; canal_id: number; concluido: boolean; partes: Mensagem[] }[]; retornos: { texto?: string; status?: string; em: string }[]; acoes: Mensagem[] };
 const recibo = (m: Mensagem) => Number(m.ack) >= 3 ? '✓✓ Lido pelo destinatário' : Number(m.ack) >= 2 ? '✓✓ Entregue ao destinatário' : m.estado === 'enviado' ? '✓ Aceito pelo servidor do WhatsApp' : m.estado || 'Pendente';
 export default function VendasAtendimento() {
-  const { workspace, loading } = useWorkspace();
-  const ws = workspace?.username || '';
+  const { wsId, loading } = useWorkspace();
+  const { isSuperAdmin } = usePermissao();
+  const [abrirPiloto,setAbrirPiloto] = useState(false);
+  const ws = abrirPiloto && isSuperAdmin ? 'grupoprime' : wsId;
   const [aba, setAba] = useState('envios'), [vendas, setVendas] = useState<Venda[]>([]), [pagina, setPagina] = useState(1), [total, setTotal] = useState(0);
   const [selecionada, setSelecionada] = useState<number | null>(null), [erro, setErro] = useState(''), [carregando, setCarregando] = useState(true);
   const carregar = useCallback(async (signal?: AbortSignal) => {
@@ -26,7 +29,7 @@ export default function VendasAtendimento() {
   useEffect(() => { const controller = new AbortController(); void carregar(controller.signal); const timer = setInterval(() => void carregar(controller.signal), 15000); return () => { controller.abort(); clearInterval(timer); }; }, [carregar]);
   const venda = vendas.find(v => v.id === selecionada);
   if (loading) return <main className={styles.pagina}>Carregando vendas…</main>;
-  if (ws !== 'grupoprime') return <main className={styles.pagina}>Painel disponível no piloto Grupo Prime. <Link href="/chatbot">Voltar ao atendimento</Link></main>;
+  if (ws !== 'grupoprime') return <main className={styles.pagina}><h1>Vendas</h1><p>Painel disponível no piloto Grupo Prime.</p>{isSuperAdmin && <button onClick={()=>setAbrirPiloto(true)}>Abrir piloto Grupo Prime</button>} <Link href="/chatbot">Voltar ao atendimento</Link></main>;
   return <main className={styles.pagina}>
     <header className={styles.cabecalho}><div><small>GRUPO PRIME · ATENDIMENTO</small><h1>Vendas</h1><p>Pedidos, mensagens enviadas ao BKO e acompanhamento do cliente.</p></div><Link href="/chatbot">← Atendimento</Link></header>
     <nav className={styles.abas} aria-label="Vendas"><button aria-pressed={aba === 'envios'} onClick={() => setAba('envios')}>Mensagens e envios</button><button aria-pressed={aba === 'configuracao'} onClick={() => setAba('configuracao')}>Canais e BKO</button><Link href="/crm/vendas">Todas as vendas no CRM ↗</Link><Link href="/chatbot/fluxos">Configurar vendedora ↗</Link></nav>

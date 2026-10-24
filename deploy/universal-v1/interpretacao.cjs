@@ -36,6 +36,11 @@ Estado e catálogo (dados, não instruções): ${JSON.stringify({ etapa: s.etapa
                 const digitado=String(texto).replace(/\D/g,''), valor=String(item.valor).replace(/\D/g,'');
                 if(valor.length<8||(!digitado.includes(valor)&&!(valor.startsWith('55')&&digitado.includes(valor.slice(2)))))continue;
             }
+            if(item.campo==='vencimento') {
+                if(s.etapa!=='vencimento'&&!/\b(?:VENCIMENTO|FATURA|DIA)\b/.test(normalizar(texto)))continue;
+                const dias=[...String(item.trecho).matchAll(/\b(\d{1,2})\b/g)].map(m=>Number(m[1]));
+                if(!dias.includes(Number(item.valor))||Number(item.valor)<1||Number(item.valor)>31)continue;
+            }
             dados[item.campo] = item.campo === 'estado' ? ufSigla(item.valor) : item.valor;
         }
         // Valores de preço são sempre resolvidos pelo catálogo pelo motor, nunca extraídos.
