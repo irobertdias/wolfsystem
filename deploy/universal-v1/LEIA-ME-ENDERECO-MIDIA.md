@@ -4,7 +4,7 @@ Fotos e PDFs passam a fornecer dados de endereço à consulta, respeitando a aut
 
 Localizações do WhatsApp são preservadas com coordenadas e descrição, sem interpretar a miniatura como texto base64. Corpos contendo arquivos base64 válidos são armazenados como mídia somente após validação de tamanho e assinatura. Coordenadas, isoladamente, não confirmam viabilidade nem fornecem um CEP presumido.
 
-Ausência do índice local de uma cidade solicita o CEP, em vez de produzir uma indisponibilidade temporária com tentativas infinitas. Divergências de cidade mantêm a explicação correta. A retomada de uma consulta não reinterpreta nem acrescenta novamente uma mensagem já processada, e não reenvia a mesma pergunta sem entrada ou avanço de etapa. Pedidos para aguardar mantêm a etapa.
+Ausência do índice local não produz uma indisponibilidade temporária com tentativas infinitas. A correção complementar V2 pesquisa o CEP por cidade/UF/rua e cruza o resultado com a VTAL, sem exigir que o cliente descubra o CEP. Divergências de cidade mantêm a explicação correta. A retomada de uma consulta não reinterpreta nem acrescenta novamente uma mensagem já processada, e não reenvia a mesma pergunta sem entrada ou avanço de etapa. Pedidos para aguardar mantêm a etapa.
 
 Arquivos antecipados sem categoria identificada permanecem salvos, sem ocupar indevidamente o lugar da frente do RG. A aceitação flexível durante a coleta de documentos e o cadastro/encaminhamento da venda continuam funcionando.
 

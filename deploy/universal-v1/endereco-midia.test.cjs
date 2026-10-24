@@ -21,11 +21,9 @@ test('leitor de imagem e PDF retorna endereço extraído com evidência',async()
  for(const mime of ['image/jpeg','application/pdf']){const r=await i.lerDocumento({buffer:Buffer.from('fixture'),mime,nome:'arquivo',pendente:'cep'});a.equal(r.enderecos[0].dados.cep,'74480150');}
  a.ok(requests.every(r=>r.store===false));
 });
-test('Petrolina sem índice solicita CEP e não entra no retry de indisponibilidade',async()=>{
- let calls=0;const q=criarConsulta({diretorio:require('node:path').join(__dirname,'indice-vtal'),fetcher:async()=>{calls++;throw Error('Não deve consultar sem CEP');}});
- const c=await q({cidade:'Petrolina',uf:'PE',logradouro:'Rua Mar Cáspio',numero:'441'});a.equal(c.status,'cep_necessario');a.equal(calls,0);
- const s=inicial();s.apresentou=true;s.dados={cidade:'Petrolina',estado:'PE',logradouro:'Rua Mar Cáspio',numero:'441',bairro:'Antônio Cassimiro'};
- const r=await avancar({estado:s,entrada:'',numero:'5500000000000',extrair:async()=>{throw Error('Retry vazio não reinterpreta');},consultar:q,catalogo:planosDaCidade});a.equal(r.estado.etapa,'cep');a.equal(r.estado.dados.numero,'441');a.match(r.mensagem,/CEP completo/);a.equal(r.estado.historico.length,0);
+test('Petrolina sem índice pesquisa o endereço postal e cruza o CEP com a VTAL',async()=>{
+ const chamadas=[];const q=criarConsulta({diretorio:require('node:path').join(__dirname,'indice-vtal'),fetcher:async url=>{chamadas.push(url);if(url.startsWith('https://viacep.com.br/'))return {ok:true,json:async()=>[{localidade:'Petrolina',uf:'PE',logradouro:'Rua Mar Cáspio',bairro:'Antônio Cassimiro',cep:'56321-470'}]};return {ok:true,json:async()=>({total:0,cepTotal:0,pageSize:30,results:[],locations:[],facets:{logradouro:[],numero:[],complemento1:[],complemento2:[],complemento3:[]}})};}});
+ const c=await q({cidade:'Petrolina',uf:'PE',logradouro:'Rua Mar Cáspio',numero:'441'});a.equal(c.status,'sem_disponibilidade_na_base');a.equal(c.cep,'56321470');a.equal(chamadas.length,2);a.match(chamadas[0],/viacep/);a.match(chamadas[1],/cep=56321470/);
 });
 test('conflito Fortaleza/Juazeiro nunca vira pergunta genérica de complemento',async()=>{
  let s=inicial();s.apresentou=true;s.etapa='complemento';s.dados={cidade:'Juazeiro do Norte',estado:'CE',cep:'60135040',quadra:'E',logradouro:'Rua P 5'};s.enderecosMidia=[{papel:'emitente',dados:{cep:'60135040'}}];

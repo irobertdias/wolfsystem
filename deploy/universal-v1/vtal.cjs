@@ -11,9 +11,9 @@ function parte(texto, tipo) {
     return m ? numero(m[1]) : '';
 }
 function interpretarEndereco(texto) {
-    const t = normalizar(texto), cep = t.match(/\b\d{5}[- ]?\d{3}\b/);
+    const t = normalizar(texto), cep = t.match(/\b\d{5}[- .]?\d{3}\b/);
     const r = { cep: cep ? cep[0].replace(/\D/g, '') : '', quadra: parte(t, 'quadra'), lote: parte(t, 'lote'), casa: parte(t, 'casa'), apartamento: parte(t, 'apartamento'), bloco: parte(t, 'bloco'), numero: '', logradouro: '' };
-    const resto = t.replace(/\b\d{5}[- ]?\d{3}\b/g, '').replace(/(?:CEP)\s*:?/g, '').trim();
+    const resto = t.replace(/\b\d{5}[- .]?\d{3}\b/g, '').replace(/(?:CEP)\s*:?/g, '').trim();
     const n = resto.match(/(?:NUMERO|N[º°.]?|FACHADA)\s*:?\s*(\d+[A-Z]?)/) || (!r.quadra && !r.lote && resto.match(/^\s*(\d+[A-Z]?)\s*$/));
     if (n)
         r.numero = numero(n[1]);
@@ -60,39 +60,41 @@ function corresponde(r, e) {
 }
 function viavel(r) { return normalizar(r.situacao) === 'VIAVEL' && normalizar(r.comercial) === 'SIM'; }
 function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indice-vtal') } = {}) {
+    const descoberta=require('./descoberta-vtal.cjs').criarDescoberta({diretorio,fetcher});
+    const cachePaginas=new Map();
     async function pagina(cep, filtros = {}, page = 1) {
         const p = new URLSearchParams({ cep, page: String(page), ...filtros });
+        const cached=cachePaginas.get(p.toString());if(cached&&Date.now()-cached.em<60000)return cached.dados;
         const r = await fetcher('https://vtal.wolfgyn.com.br/api/cep?' + p, { signal: AbortSignal.timeout(20000) });
         if (!r.ok)
             throw Error('VTAL indisponível: ' + r.status);
         const j = await r.json();
         if (!Array.isArray(j.results) || !j.facets || !Number.isSafeInteger(j.total))
             throw Error('Resposta VTAL incompleta');
+        if(cachePaginas.size>=100)cachePaginas.delete(cachePaginas.keys().next().value);cachePaginas.set(p.toString(),{em:Date.now(),dados:j});
         return j;
     }
-    function descobrir(cidade, uf, rua) {
-        if (!cidade || !/^\w{2}$/.test(uf) || !rua)
-            return [];
-        const nome = normalizar(cidade).replace(/[^A-Z0-9]+/g, '_');
-        const file = path.join(diretorio, normalizar(uf) + '-' + nome + '.json.gz');
-        if (!fs.existsSync(file))
-            return null; // No local street index: ask for CEP, never retry as an outage.
-        return [...new Set(JSON.parse(zlib.gunzipSync(fs.readFileSync(file))).filter(([l]) => ruaCompativel(l, rua)).map(([, c]) => c))];
-    }
-    async function porCep(e) {
+    async function porCepExato(e) {
         const inicial = await pagina(e.cep);
         const locais = inicial.locations || [];
         if (e.cidade || e.uf) {
             const certos = locais.filter(l => { const [c, u] = l.split(' / '); return (!e.cidade || normalizar(c) === normalizar(e.cidade)) && (!e.uf || normalizar(u) === normalizar(e.uf)); });
-            if (!certos.length && inicial.cepTotal)
-                return { status: 'localidade_divergente', cep: e.cep, localidades: locais, resultados: [] };
+            if (!certos.length && inicial.cepTotal) {
+                const municipio=locais.length===1?locais[0].split(' / '):null;
+                const bairroInformado=inicial.results.some(r=>normalizar(r.bairro)===normalizar(e.cidade));
+                if(municipio&&bairroInformado&&(!e.uf||normalizar(municipio[1])===normalizar(e.uf)))e={...e,bairro:e.cidade,cidade:municipio[0],uf:municipio[1]};
+                else return { status: 'localidade_divergente', cep: e.cep, localidades: locais, resultados: [] };
+            }
         }
         if (!inicial.cepTotal)
             return { status: 'nao_localizado', cep: e.cep, resultados: [] };
+        const bairros=[...new Set(inicial.results.map(r=>r.bairro).filter(Boolean))];
+        if(e.logradouro&&bairros.some(b=>normalizar(b)===normalizar(e.logradouro))&&(inicial.facets.logradouro||[]).length===1)e={...e,bairro:e.logradouro,logradouro:inicial.facets.logradouro[0]};
         if (!e.numero && !e.lote && !e.casa && !e.apartamento)
-            return { status: 'complemento_necessario', cep: e.cep, localidades: locais, resultados: [], logradouros: inicial.facets.logradouro };
+            return { status: 'complemento_necessario', cep: e.cep, localidades: locais, cidade:e.cidade,uf:e.uf,resultados: [], logradouros: inicial.facets.logradouro, bairro:bairros.length===1?bairros[0]:'' };
         const consultas = [];
         const ruas = (inicial.facets.logradouro || []).filter(l => ruaCompativel(l, e.logradouro));
+        if(!ruas.length&&e.logradouro&&(inicial.facets.logradouro||[]).length>=500)ruas.push(e.logradouro);
         if (!ruas.length && e.logradouro) {
             const sugestoes = (inicial.facets.logradouro || []).map(logradouro => ({ logradouro, similaridade: similaridade(logradouro, e.logradouro) })).filter(s => s.similaridade >= 0.6).sort((a,b) => b.similaridade-a.similaridade).slice(0,3);
             if (sugestoes.length) return { status: 'confirmar_logradouro', cep: e.cep, resultados: [], sugestoes };
@@ -103,6 +105,7 @@ function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indi
                 for (const n of inicial.facets.numero || [])
                     if (numero(n) === numero(e.numero))
                         consultas.push({ ...base, numero: n });
+                if(!consultas.some(c=>c.logradouro===l&&numero(c.numero)===numero(e.numero)))consultas.push({...base,numero:numero(e.numero)});
                 continue;
             }
             const qs = [];
@@ -143,42 +146,61 @@ function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indi
         if (incompleto)
             return { status: 'consulta_inconclusiva', cep: e.cep, resultados: [] };
         if (!encontrados.length)
-            return { status: Object.values(inicial.facets).some(v => v.length >= 500) ? 'consulta_inconclusiva' : 'endereco_nao_localizado', cep: e.cep, resultados: [] };
+            return { status: !unicas.length&&Object.values(inicial.facets).some(v => v.length >= 500) ? 'consulta_inconclusiva' : 'endereco_nao_localizado', cep: e.cep, resultados: [],logradouros:inicial.facets.logradouro,bairro:bairros.length===1?bairros[0]:'',numero:e.numero||e.casa||'' };
         if (encontrados.length > 1)
             return { status: 'endereco_ambiguo', cep: e.cep, resultados: encontrados.slice(0, 15) };
         return { status: viavel(encontrados[0]) ? 'disponivel_na_base' : 'sem_disponibilidade_na_base', cep: e.cep, resultados: encontrados, origem: 'VTAL · planilhas fornecidas (2024/2025)', confirmacao_tecnica_necessaria: true };
     }
-    return async (entrada) => {
+    async function porCep(entrada){
+        const e={...entrada};for(const k of ['casa','apartamento','lote','quadra','bloco'])if(e[k]&&!/^(?:\d+[A-Z]?|[A-Z])$/.test(normalizar(e[k])))delete e[k];
+        const r=await porCepExato(e);
+        if(r.status!=='endereco_nao_localizado')return r;
+        const variantes=[];
+        if(e.casa&&e.numero&&numero(e.casa)===numero(e.numero))variantes.push({...e,casa:''});
+        if(e.casa&&!e.numero&&!e.lote)variantes.push({...e,casa:'',numero:e.casa});
+        if(e.numero&&!e.casa&&!e.lote&&!e.quadra)variantes.push({...e,numero:'',casa:e.numero});
+        for(const v of variantes){const outro=await porCepExato(v);if(['disponivel_na_base','sem_disponibilidade_na_base','endereco_ambiguo'].includes(outro.status))return {...outro,enderecoInterpretado:v};}
+        return r;
+    }
+    return async function consultarEndereco(entrada) {
+
         const e = { ...interpretarEndereco(entrada.texto || ''), ...Object.fromEntries(Object.entries(entrada).filter(([, v]) => v !== '' && v !== undefined && v !== null)) };
         e.cep = String(e.cep || '').replace(/\D/g, '');
         e.uf = ufSigla(e.uf || '');
         try {
-            if (e.cep && !/^\d{8}$/.test(e.cep))
-                return { status: 'cep_incompleto', resultados: [] };
+            if(e.cep&&!/^\d{8}$/.test(e.cep)){if(e.logradouro&&e.cidade&&e.uf)e.cep='';else return {status:'cep_incompleto',resultados:[]};}
             if (!e.cep) {
-                const ceps = descobrir(e.cidade, e.uf, e.logradouro);
-                if (ceps === null)
-                    return { status: 'cep_necessario', motivo:'indice_local_ausente', resultados: [] };
-                if (!ceps.length)
-                    return { status: 'nao_localizado', resultados: [] };
-                if (ceps.length > 8)
-                    return { status: 'cep_necessario', resultados: [] };
-                let resultados = [];
-                for (const cep of ceps) {
-                    const r = await porCep({ ...e, cep });
+                const encontrado = await descoberta.buscar(e);
+                const ceps=encontrado.ceps;
+                if(encontrado.sugestoes?.length)return {status:'confirmar_logradouro',resultados:[],sugestoes:encontrado.sugestoes};
+                if(!ceps.length)return {status:'logradouro_nao_localizado',resultados:[],logradouro:e.logradouro};
+                if(encontrado.fonte==='indice_local'&&!e.numero&&!e.lote&&!e.casa&&!e.apartamento)return {status:'complemento_necessario',resultados:[],ceps,logradouros:encontrado.logradouros};
+                if(ceps.length>50)return {status:'endereco_ambiguo',resultados:[],pedir:'bairro',logradouros:encontrado.logradouros};
+                let resultados = [],pendente,negativo,foraDaBase=0;
+                const respostas=[];
+                for(let i=0;i<ceps.length;i+=4)respostas.push(...await Promise.all(ceps.slice(i,i+4).map(async cep=>({cep,r:await porCep({...e,cep})}))));
+                for (const {cep,r} of respostas) {
                     if (['consulta_inconclusiva', 'localidade_divergente'].includes(r.status))
                         return r;
+                    if(r.status==='complemento_necessario')pendente=r;
+                    if(r.status==='endereco_nao_localizado')negativo=r;
+                    if(r.status==='nao_localizado')foraDaBase++;
                     resultados.push(...r.resultados.map(l => ({ ...l, cep })));
                 }
+                if(!resultados.length&&pendente)return pendente;
+                if(foraDaBase===ceps.length)return {status:'sem_disponibilidade_na_base',resultados:[],ceps,cep:ceps.length===1?ceps[0]:''};
+                if(!resultados.length&&negativo)return {...negativo,ceps};
                 if (resultados.length !== 1)
                     return { status: resultados.length ? 'endereco_ambiguo' : 'endereco_nao_localizado', resultados: resultados.slice(0, 15) };
                 return { status: viavel(resultados[0]) ? 'disponivel_na_base' : 'sem_disponibilidade_na_base', cep: resultados[0].cep, resultados, confirmacao_tecnica_necessaria: true };
             }
-            return await porCep(e);
+            const r=await porCep(e);
+            if(r.status==='localidade_divergente'&&e.logradouro){const alternativo=await consultarEndereco({...e,cep:''});if(alternativo.status!=='consulta_inconclusiva')return {...alternativo,cepCorrigido:e.cep};}
+            return r;
         }
         catch (error) {
             return { status: 'consulta_inconclusiva', resultados: [], erro: error.message };
         }
     };
 }
-module.exports = { normalizar, ufSigla, numero, parte, interpretarEndereco, corresponde, viavel, criarConsulta, similaridade };
+module.exports = { normalizar, ufSigla, numero, parte, interpretarEndereco, corresponde, viavel, criarConsulta, similaridade, ruaBase };

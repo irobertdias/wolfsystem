@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('no
 const root=fs.realpathSync(process.argv[2]||'/root/wolf-whatsapp');
 if(root!=='/root/wolf-whatsapp')throw Error('Raiz inesperada');
 const dir=path.join(root,'src/services/universal-v1'),manager=path.join(root,'src/services/webjs-manager.js');
-const arquivos=['endereco-midia.cjs','interpretacao.cjs','ia-configuravel.cjs','documentos.cjs','conversa.cjs','vtal.cjs','runtime.cjs','nativo.cjs'];
+const arquivos=['configuracao-universal.cjs','descoberta-vtal.cjs','endereco-midia.cjs','interpretacao.cjs','ia-configuravel.cjs','documentos.cjs','conversa.cjs','vtal.cjs','runtime.cjs','nativo.cjs','vero.cjs'];
 for(const f of [...arquivos,'midia-corpo.cjs'])execFileSync(process.execPath,['--check',path.join(__dirname,f)]);
 let fonte=fs.readFileSync(manager,'utf8');
 const ancora='if (msg.hasMedia && (msg.type === "ptt" || msg.type === "audio")) {';

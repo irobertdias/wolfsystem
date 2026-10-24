@@ -19,7 +19,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     let entregando = false;
     const secreto = opcoes.credencial || JSON.parse(fs.readFileSync(path.join(__dirname, 'credencial.json'), 'utf8'));
     const interprete = opcoes.interprete || criarInterpretador({ ...secreto, catalogo: planosDaCidade });
-    if(!opcoes.semRotas)ctx.app.get('/universal/health', (_q, r) => r.json({ versao: ctx.universalConfiguravel?2:1, workspace: WS, nicho: 'telecom', pronto: !!secreto.apiKey, leitura_documentos: secreto.documentosOpenai === true, prompt_configuravel: true, conclusao_configuravel: true, documentos_em_lote: true, pos_venda: true, configuracao_multitenant: ctx.universalConfiguravel===true }));
+    if(!opcoes.semRotas)ctx.app.get('/universal/health', (_q, r) => r.json({ versao: ctx.universalConfiguravel?2:1, workspace: WS, nicho: 'telecom', pronto: !!secreto.apiKey, leitura_documentos: secreto.documentosOpenai === true, enderecos_versao:'20261024-v2', consulta_endereco_sem_cep:true, prompt_configuravel: true, conclusao_configuravel: true, documentos_em_lote: true, pos_venda: true, configuracao_multitenant: ctx.universalConfiguravel===true }));
     if(!opcoes.semRotas)ctx.app.get('/universal/vtal', async (q, r) => { if (q.query.workspaceId !== WS)
         return r.status(403).json({ success: false }); const entrada = {}; for (const k of ['cep', 'cidade', 'uf', 'logradouro', 'quadra', 'lote', 'numero', 'casa', 'apartamento', 'bloco', 'texto']) {
         if (q.query[k] && String(q.query[k]).length > 500)

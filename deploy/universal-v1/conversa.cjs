@@ -3,6 +3,7 @@ const { normalizar, ufSigla, interpretarEndereco, parte } = require('./vtal.cjs'
 const { createHash } = require('node:crypto');
 const { incorporar } = require('./documentos.cjs');
 const {dadosDaMidia}=require('./endereco-midia.cjs');
+const {localidadeDaBase}=require('./descoberta-vtal.cjs');
 const CAMPOS = ['nome', 'cpf', 'data_nascimento', 'nome_mae', 'email', 'telefone1', 'vencimento', 'forma_pagamento'];
 const rotulos = { nome: 'seu nome completo', cpf: 'o CPF do titular', data_nascimento: 'sua data de nascimento', nome_mae: 'o nome completo da sua mãe', email: 'seu e-mail', telefone1: 'um telefone para contato. Pode ser este mesmo WhatsApp', vencimento: 'o dia de vencimento que prefere para a fatura', forma_pagamento: 'a forma de pagamento: boleto ou débito em conta' };
 const positivo = t => /^(SIM|S|OK|TUDO OK|TUDO CERTO|TUDO CORRETO|ESTA CERTO|TA CERTO|CERTO|CORRETO|BELEZA|BLZ|CONFIRMO|CONFIRMADO|PODE SEGUIR|PODE CONTINUAR|PODE MANDAR|PODE ENVIAR|ISSO|ISSO MESMO|PERFEITO|NAO,? (?:ESTA |TA )?TUDO CERTO)[.!\s]*$/.test(normalizar(t));
@@ -146,6 +147,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         if (typeof novos[k] !== 'string' || !novos[k].trim() || novos[k].length > 500)
             continue;
         const valor = novos[k].trim();
+        if(k==='cep'&&!/^\d{8}$/.test(valor.replace(/\D/g,'')))continue;
         if (['cidade', 'estado', 'cep', 'logradouro', 'quadra', 'lote', 'casa', 'apartamento', 'bloco', 'numero'].includes(k) && valor !== d[k]) {
             delete s.consulta;
             delete s.consultaChave;
@@ -178,8 +180,12 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         d.tipo_pessoa = 'PF';
     if (/^(CNPJ|PESSOA JURIDICA|JURIDICA|PJ)[.!\s]*$/.test(normalizar(texto)))
         d.tipo_pessoa = 'PJ';
-    if (d.cep)
-        d.cep = d.cep.replace(/\D/g, '');
+    if (d.cep) {
+        d.cep=d.cep.replace(/\D/g,'');
+        if(!/^\d{8}$/.test(d.cep)&&d.logradouro){s.cepInvalidoInformado=d.cep;delete d.cep;}
+    }
+    for(const k of ['casa','apartamento','lote','quadra','bloco'])if(d[k]&&!/^(?:\d+[A-Z]?|[A-Z])$/.test(normalizar(d[k])))delete d[k];
+    if(d.cidade&&!d.estado){const l=localidadeDaBase(d.cidade);if(l)d.estado=l.estado;}
     if (d.estado)
         d.estado = ufSigla(d.estado);
     if (d.cpf)
@@ -208,7 +214,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         s.pendencias.push('Cliente não tem comprovante de endereço.');
     }
     const responder = (mensagem, acao) => {
-        if(!acao && !['localidade_divergente','cep_necessario','consulta_inconclusiva','confirmar_logradouro','endereco_ambiguo'].includes(s.consulta?.status) && s.historico.some(h=>h.role==='assistant'&&normalizar(h.content)===normalizar(mensagem))) {
+        if(!acao && !['localidade_divergente','cep_necessario','consulta_inconclusiva','confirmar_logradouro','endereco_ambiguo','logradouro_nao_localizado','endereco_nao_localizado','complemento_necessario'].includes(s.consulta?.status) && s.historico.some(h=>h.role==='assistant'&&normalizar(h.content)===normalizar(mensagem))) {
             const falta=rotulos[s.etapa]||({cep:'o CEP com oito dígitos',localidade:'a cidade e o estado da instalação',tipo_pessoa:'se a contratação será no CPF ou no CNPJ',complemento:'o dado que diferencia seu imóvel: número, quadra/lote ou casa',documentos:!s.documentos.rg_frente.length?'o arquivo da frente do RG':!s.documentos.rg_verso.length?'o verso do RG':'o comprovante ou a informação de que você não possui um',confirmar_endereco:'a confirmação ou correção do endereço apresentado',confirmacao:'a confirmação do resumo ou o dado que precisa corrigir',plano:'qual das ofertas você prefere',endereco:'a rua, o número ou complemento e o bairro'})[s.etapa];
             if(falta) {
                 const formas=[`Vamos continuar de onde paramos. Só falta confirmar ${falta}?`,`Para eu não interpretar errado, pode esclarecer ${falta}?`,`Já aproveitei o que você informou. Pode me dizer ${falta}?`,`O próximo passo é confirmar ${falta}. Pode me ajudar com essa informação?`];
@@ -239,7 +245,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     if (!d.cidade || !d.estado) {
         s.etapa = 'localidade';
-        return finalizarMensagem('Para começar, em qual cidade e estado será a instalação?');
+        return finalizarMensagem(d.cidade?`Em qual estado fica ${limpo(d.cidade)}?`:d.estado?`Em qual cidade de ${limpo(d.estado)} será a instalação?`:'Para começar, em qual cidade e estado será a instalação?');
     }
     if (!d.cep && !d.logradouro) {
         s.etapa = 'cep';
@@ -253,9 +259,17 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         s.consultaChave = chave;
     }
     const c = s.consulta;
+    if(c.cepCorrigido&&c.cepCorrigido===d.cep&&c.status!=='localidade_divergente'){s.cepDescartadoPorLocalidade=d.cep;delete d.cep;}
     if (c.status === 'complemento_necessario') {
         s.etapa = 'complemento';
-        return finalizarMensagem('Maravilha! Seu CEP está na nossa área de atendimento. 😊 Para confirmar a disponibilidade no imóvel, qual é o número ou a quadra e o lote? Se houver casa, bloco ou apartamento, pode enviar junto.');
+        if(c.cep)d.cep=c.cep;
+        if(c.cidade)d.cidade=c.cidade;
+        if(c.uf)d.estado=c.uf;
+        if((c.logradouros||[]).length===1&&!d.logradouro)d.logradouro=c.logradouros[0];
+        if(c.bairro&&!d.bairro)d.bairro=c.bairro;
+        const falta=d.quadra&&!d.lote?'qual é o lote da quadra '+limpo(d.quadra):'qual é o número do imóvel ou a quadra e o lote';
+        const encontrado=d.logradouro?limpo(d.logradouro)+' em '+limpo(d.cidade)+'/'+limpo(d.estado):d.cep?'o CEP '+limpo(d.cep):'a rua na base';
+        return finalizarMensagem(`Localizei ${encontrado}. 😊 Para consultar o imóvel, ${falta}? Se houver casa ou apartamento, pode enviar junto.`);
     }
     if (c.status === 'sem_disponibilidade_na_base' || (c.status === 'nao_localizado' && c.cep)) {
         s.etapa = 'encerrado';
@@ -275,26 +289,44 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             const salvo=[d.logradouro,d.numero,d.quadra?'quadra '+d.quadra:'',d.bairro].filter(Boolean).map(limpo).join(', ');
             return finalizarMensagem(`${ponto?'Recebi e salvei sua localização. ':''}${emitente?'Li a foto: esse CEP aparece no endereço da empresa que emitiu a conta. ':''}O CEP ${limpo(d.cep)} corresponde a ${(c.localidades||[]).map(limpo).join(', ')||'outra cidade'}, mas a instalação foi informada em ${limpo(d.cidade)}/${limpo(d.estado)}.${salvo?' Já guardei: '+salvo+'.':''} Pode enviar a parte da conta com o endereço da unidade consumidora, ou confirmar o CEP da instalação?`);
         }
-        if (c.status === 'confirmar_logradouro') return finalizarMensagem('Encontrei nomes de rua parecidos nesse CEP. Seria este endereço?\n' + c.sugestoes.map((r,i) => `${i+1}. ${r.logradouro}`).join('\n') + '\nPode confirmar ou me dizer qual é o correto.');
+        if(c.status==='logradouro_nao_localizado')return finalizarMensagem(`Não encontrei o nome “${limpo(d.logradouro)}” em ${limpo(d.cidade)}/${limpo(d.estado)}. Pode conferir somente o nome da rua? O número e os outros dados que já enviou estão salvos.`);
+        if(c.status==='endereco_nao_localizado'){
+            const rua=(c.logradouros||[]).length===1?c.logradouros[0]:d.logradouro;
+            if(c.bairro&&normalizar(d.logradouro)===normalizar(c.bairro)&&rua){d.bairro=d.bairro||d.logradouro;d.logradouro=rua;}
+            const chaveAusente=JSON.stringify(Object.fromEntries(['cidade','estado','cep','logradouro','quadra','lote','numero','casa','apartamento','bloco'].map(k=>[k,d[k]||''])));
+            const endereco=[rua,d.numero?'nº '+d.numero:d.casa?'casa '+d.casa:'',d.quadra?'quadra '+d.quadra:'',d.lote?'lote '+d.lote:'',c.bairro||d.bairro].filter(Boolean).map(limpo).join(', ');
+            if(s.enderecoAusenteConfirmacao===chaveAusente&&(positivo(texto)||analise.confirmacao===true)){
+                s.etapa='encerrado';return responder(`Obrigado por confirmar. Consultei ${endereco}, mas não há disponibilidade cadastrada para esse imóvel na base atual. Agradeço seu interesse! 💚`,'encerrar');
+            }
+            s.enderecoAusenteConfirmacao=chaveAusente;
+            return finalizarMensagem(`Já conferi ${endereco||'os dados enviados'}. Esse imóvel não foi localizado na base de disponibilidade.${c.cep?' O CEP '+limpo(c.cep)+' corresponde a '+limpo(rua||'essa região')+'.':''} Confirma esse endereço ou deseja corrigir algum desses dados?`);
+        }
+        if (c.status === 'confirmar_logradouro') {
+            const recebidos=[d.numero?'nº '+d.numero:'',d.quadra?'quadra '+d.quadra:'',d.lote?'lote '+d.lote:'',d.casa?'casa '+d.casa:''].filter(Boolean).map(limpo).join(', ');
+            return finalizarMensagem('Encontrei um nome de rua parecido em '+limpo(d.cidade)+'/'+limpo(d.estado)+'. Seria este endereço?\n'+c.sugestoes.map((r,i)=>(c.sugestoes.length>1?`${i+1}. `:'')+r.logradouro).join('\n')+(recebidos?'\nJá guardei '+recebidos+'.':'')+'\nPode confirmar ou me dizer qual é o correto.');
+        }
         const opcoes = c.status === 'endereco_ambiguo' ? (c.resultados || []).map(r => [r.logradouro, r.numero, r.complemento1, r.complemento2, r.complemento3].filter(Boolean).join(' ')).slice(0, 15) : [];
         return finalizarMensagem(opcoes.length ? 'Encontrei mais de uma unidade. Qual destas corresponde ao imóvel?\n' + opcoes.map((o, i) => `${i + 1}. ${o}`).join('\n') : 'Ainda não localizei esse imóvel com segurança. Pode confirmar a rua e o número ou a quadra/lote? Vou aproveitar os outros dados que você já enviou.');
     }
     if (c.cep)
         d.cep = c.cep;
     const local = c.resultados[0];
+    if(local.cidade)d.cidade=local.cidade;
+    if(local.uf)d.estado=local.uf;
     if(c.operadora){d.operadora=c.operadora;d.rede=c.rede||'';d.classificacao=c.classificacao||'';}
     if(c.alternativa_vero&&c.operadora==='Nio'&&!s.alternativaVeroAvisada){aviso='Não localizei uma oferta VERO para esse endereço, mas encontrei disponibilidade da *Nio* pela rede VTAL. Posso apresentar as opções da Nio para você. 😊';s.alternativaVeroAvisada=true;}
     s.enderecoBase = local;
     if (!d.bairro && local.bairro)
         d.bairro = local.bairro;
-    if (!d.logradouro)
-        d.logradouro = local.logradouro;
-    if (!d.endereco && s.enderecoInformado && local.logradouro) {
+    if(local.logradouro)d.logradouro=local.logradouro;
+    if(c.enderecoInterpretado){for(const k of ['numero','casa']){if(c.enderecoInterpretado[k])d[k]=c.enderecoInterpretado[k];else if(k==='casa')delete d[k];}}
+    if (local.logradouro && (d.numero||d.lote||d.casa||(local.numero&&local.numero!=='SN'))) {
         const complementos = [local.complemento1, local.complemento2, local.complemento3].filter(Boolean);
         if (d.quadra && !parte(local.logradouro, 'quadra') && !complementos.some(v => parte(v, 'quadra')))
             complementos.unshift('Quadra ' + d.quadra);
         if (d.lote && !complementos.some(v => parte(v, 'lote')))
             complementos.push('Lote ' + d.lote);
+        for(const [k,rotulo]of [['casa','Casa'],['apartamento','Apartamento'],['bloco','Bloco']])if(d[k]&&!complementos.some(v=>parte(v,k)))complementos.push(rotulo+' '+d[k]);
         d.endereco = [local.logradouro, local.numero && local.numero !== 'SN' ? local.numero : '', ...complementos].filter(Boolean).join(', ');
     }
     if (!d.tipo_pessoa) {
@@ -337,7 +369,8 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     if (!d.endereco || !d.bairro) {
         s.etapa = 'endereco';
-        return finalizarMensagem(`Você escolheu *${s.plano.nome}*, por *R$ ${s.plano.mensalidade.toFixed(2).replace('.', ',')}/mês*. 😊\nAgora confirme a rua, número ou quadra/lote e bairro. Já tenho ${d.cidade}/${d.estado} e o CEP ${d.cep}.`);
+        const faltas=[];if(!d.logradouro)faltas.push('o nome da rua');if(!d.numero&&!d.lote&&!d.casa)faltas.push(d.quadra?'o lote':'o número do imóvel ou quadra/lote');if(!d.bairro)faltas.push('o bairro');
+        return finalizarMensagem(`Você escolheu *${s.plano.nome}*, por *R$ ${s.plano.mensalidade.toFixed(2).replace('.', ',')}/mês*. 😊\nJá tenho ${[d.logradouro,d.numero,d.quadra?'quadra '+d.quadra:'',d.lote?'lote '+d.lote:'',d.cidade+'/'+d.estado,d.cep?'CEP '+d.cep:''].filter(Boolean).map(limpo).join(', ')}. Pode informar somente ${faltas.length?faltas.join(' e '):'o complemento que falta no endereço'}?`);
     }
     if (d.tipo_pessoa === 'PJ' && !d.cnpj) {
         s.etapa = 'cnpj';
