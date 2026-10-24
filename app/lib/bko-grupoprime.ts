@@ -1,4 +1,4 @@
-export type ContatoBko = { nome: string; numero: string; canal_trafego_id?: number | null; fila_nome?: string };
+export type ContatoBko = { nome: string; numero: string; canal_trafego_id?: number | null; fila_nome?: string; operadora?: string; canal_envio_id?: number | null };
 export type RegraRetorno = { resposta: string; status: string; mensagem_cliente: string; solicitar_agenda?: boolean };
 export type ConfigBko = { ativo: boolean; canal_id: number | null; contatos: ContatoBko[]; canal_trafego_id?: number | null; fila_nome?: string; modo?: 'por_canal'; mensagem_venda?: string; modo_retorno?: 'automatico'|'fluxos'; retornos?: RegraRetorno[] };
 export function numeroBko(valor: unknown) {
@@ -21,13 +21,15 @@ export function validarConfigBko(raw: unknown): ConfigBko {
       if(canal_trafego_id!==null&&(!Number.isSafeInteger(canal_trafego_id)||canal_trafego_id<=0))falhar('Canal de entrada inválido na regra BKO.');
       if(fila_nome.length>150)falhar('Fila inválida na regra BKO.');
       if(r.ativo&&(!canal_trafego_id||!fila_nome))falhar('Selecione o canal e a fila de entrada de cada BKO.');
-      return {nome,numero,canal_trafego_id,fila_nome};
+      const operadora=String(c.operadora||'').trim();if(operadora.length>80)falhar('Operadora inválida.');
+      const canal_envio_id=c.canal_envio_id==null||c.canal_envio_id===''?null:Number(c.canal_envio_id);if(canal_envio_id!==null&&(!Number.isSafeInteger(canal_envio_id)||canal_envio_id<=0))falhar('Canal de envio inválido.');
+      return {nome,numero,canal_trafego_id,fila_nome,...(operadora?{operadora}:{}),...(canal_envio_id?{canal_envio_id}:{})};
     }
     return { nome, numero };
   });
   if(r.modo==='por_canal'){
-    const origens=contatos.map(c=>c.canal_trafego_id).filter(Boolean);
-    if(new Set(origens).size!==origens.length)falhar('Cada canal de entrada deve ter uma única regra BKO.');
+    const origens=contatos.filter(c=>c.canal_trafego_id).map(c=>`${c.canal_trafego_id}:${(c.operadora||'*').toUpperCase()}`);
+    if(new Set(origens).size!==origens.length)falhar('Cada canal e operadora deve ter uma única regra BKO.');
   }else if (new Set(contatos.map(c => c.numero)).size !== contatos.length) falhar('Não repita o mesmo número BKO.');
   const canal_id = r.canal_id == null || r.canal_id === '' ? null : Number(r.canal_id);
   if (canal_id !== null && (!Number.isSafeInteger(canal_id) || canal_id <= 0)) falhar('Canal inválido.');

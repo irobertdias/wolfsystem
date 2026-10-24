@@ -100,7 +100,7 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
             // Sem citação, associar apenas quando existe um único pedido em
             // andamento para esse destinatário. Nunca escolher "o mais recente".
             const cfg=await configBko();
-            if(Number(cfg.canal_id)!==Number(entrada.canalId)||!cfg.contatos.some(x=>telefoneBko(x.numero)===telefoneBko(entrada.numero)))return false;
+            if(![cfg.canal_id,...cfg.contatos.map(r=>r.canal_envio_id)].some(id=>Number(id)===Number(entrada.canalId))||!cfg.contatos.some(x=>telefoneBko(x.numero)===telefoneBko(entrada.numero)))return false;
             const candidatas=await q.limit(100);if(candidatas.error)throw candidatas.error;
             const unicas=(candidatas.data||[]).filter(p=>!['INSTALADA','CANCELADA','SEM DISPONIBILIDADE'].includes(p.status_venda)&&p.dados_customizados.universal_entrega?.concluido&&Number(p.dados_customizados.universal_entrega.canal_id)===Number(entrada.canalId)&&telefoneBko(p.dados_customizados.universal_entrega.numero)===telefoneBko(entrada.numero));
             if(unicas.length!==1)return false;

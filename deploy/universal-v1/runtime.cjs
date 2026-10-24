@@ -206,22 +206,26 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     async function entregar(p) {
         let c = structuredClone(p.dados_customizados), meta = c.universal_entrega || { partes: [], tentativas: 0 };
         if (c.envio_whatsapp_ativo === false || c.bko_pendente === 'DESATIVADO') return;
-        const cfg = await configBko(), exatos = cfg.contatos.filter(r => Number(r.canal_trafego_id) === Number(p.canal_id));
+        const cfg = await configBko(), porCanal = cfg.contatos.filter(r => Number(r.canal_trafego_id) === Number(p.canal_id));
+        const porOperadora=porCanal.filter(r=>r.operadora&&String(r.operadora).trim().toUpperCase()===String(p.operadora||'').trim().toUpperCase());
+        const exatos=porOperadora.length?porOperadora:porCanal.filter(r=>!r.operadora);
         const destinos = cfg.modo==='por_canal'?exatos:(exatos.length?exatos:cfg.contatos);
         if (destinos.length !== 1)
             throw Error('BKO sem destino único para o canal');
         const destino = destinos[0].numero;
+        const canalEnvio=destinos[0].canal_envio_id||cfg.canal_id;
+        if(meta.canal_id&&Number(meta.canal_id)!==Number(canalEnvio))throw Error('Remetente do BKO mudou durante a entrega; conferir o pedido.');
         if (meta.numero && meta.numero !== destino)
             throw Error('Destino do BKO mudou durante a entrega; conferir o pedido');
-        const canal = await ctx.getConfigCanal(cfg.canal_id);
+        const canal = await ctx.getConfigCanal(canalEnvio);
         if (canal?.workspaceId !== WS || canal.tipo !== 'webjs')
             throw Error('Conecte o canal WebJS configurado no BKO');
-        const client = ctx.sessoes[String(cfg.canal_id)]?.client;
-        if (!client || ctx.sessoes[String(cfg.canal_id)].status !== 'conectado')
+        const client = ctx.sessoes[String(canalEnvio)]?.client;
+        if (!client || ctx.sessoes[String(canalEnvio)].status !== 'conectado')
             throw Error('Canal BKO desconectado; venda permanece na fila');
         c.bko_ref = c.bko_ref || `BKO-${p.id}-${randomBytes(8).toString('hex')}`.toUpperCase();
         meta.numero = destino;
-        meta.canal_id = cfg.canal_id;
+        meta.canal_id = canalEnvio;
         if (!meta.partes.length) {
             const textoPadrao = `✅ *NOVA VENDA*\n📋 *Pedido #${p.id}*\n\n${resumo({ dados: { ...p, cnpj: c.cnpj, endereco: [p.endereco, c.bairro].filter(Boolean).join(', ') }, plano: { nome: p.plano, mensalidade: Number(p.valor_plano), velocidade_mbps: c.velocidade_mbps || '' } }).split('\nEstá tudo certo?')[0]}\n\n⚠️ *Conferência:* ${parse(c.pendencias_bko).join?.('; ') || 'Conferir os originais recebidos.'}\n\nResponda com APROVADO, CPF REPROVADO, GERADA, AGUARDANDO INSTALAÇÃO, INSTALADA, SEM DISPONIBILIDADE ou CANCELADA.\n🔖 #${c.bko_ref}`;
             const texto=modelo(c.universal_conclusao?.mensagem_bko||cfg.mensagem_venda||textoPadrao,{...p,...c.universal_variaveis,proposta_id:p.id,resumo:c.universal_resumo||resumo({dados:p,plano:{nome:p.plano||'',mensalidade:Number(p.valor_plano)||0,velocidade_mbps:c.velocidade_mbps||''}}).split('Está tudo certo?')[0]});

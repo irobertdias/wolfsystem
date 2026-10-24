@@ -1,0 +1,60 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.normalizarCidadeVero = exports.CIDADES_VERO = exports.NOME_FLUXO_VERO = void 0;
+exports.planosVero = planosVero;
+exports.consultarVero = consultarVero;
+exports.resolverCepVero = resolverCepVero;
+exports.NOME_FLUXO_VERO = 'Grupo Prime · Vero · Vendas e BKO';
+exports.CIDADES_VERO = [
+    { cidade: 'Belo Horizonte', uf: 'MG', rede: 'neutra', classe: 'neutra' },
+    { cidade: 'Nova Lima', uf: 'MG', rede: 'neutra', classe: 'neutra' },
+    { cidade: 'Itabira', uf: 'MG', rede: 'neutra', classe: 'neutra' },
+    { cidade: 'Goiânia', uf: 'GO', rede: 'neutra', classe: 'neutra' },
+    { cidade: 'Aparecida de Goiânia', uf: 'GO', rede: 'neutra', classe: 'neutra' },
+    { cidade: 'Anápolis', uf: 'GO', rede: 'neutra', classe: 'neutra' },
+    { cidade: 'Ipatinga', uf: 'MG', rede: 'propria', classe: 'especial' },
+    { cidade: 'Sabará', uf: 'MG', rede: 'propria', classe: 'especial' },
+    { cidade: 'Timóteo', uf: 'MG', rede: 'propria', classe: 'especial' },
+    { cidade: 'João Monlevade', uf: 'MG', rede: 'propria', classe: 'prata' },
+    { cidade: 'Vespasiano', uf: 'MG', rede: 'propria', classe: 'prata' },
+    { cidade: 'Coronel Fabriciano', uf: 'MG', rede: 'propria', classe: 'essencial' },
+    { cidade: 'Governador Valadares', uf: 'MG', rede: 'propria', classe: 'essencial' },
+    { cidade: 'Santa Luzia', uf: 'MG', rede: 'propria', classe: 'essencial' },
+];
+const normalizarCidadeVero = (v) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+exports.normalizarCidadeVero = normalizarCidadeVero;
+function planosVero(classe) {
+    const itens = classe === 'neutra' ? [[550, 114.99, 0], [700, 124.99, 0], [850, 129.99, null]]
+        : classe === 'essencial' ? [[550, 113.99, 0], [700, 123.99, 0], [850, 129.99, 30]]
+            : [...(classe === 'prata' ? [[420, 69.99, 0]] : []), [550, 109.99, 0], [700, 118.99, 0], [850, 129.99, 30]];
+    return itens.map(([velocidade, preco, gb]) => ({ id: `vero-${classe}-${velocidade}`, nome: `Vero ${velocidade} Mega${gb !== 0 ? ' + Móvel' + (gb ? ' ' + gb + ' GB' : '') : ''}`, velocidade_mbps: velocidade, mensalidade: preco, mensalidade_cartao: null, movel_incluso: gb !== 0, gb_movel: gb, operadora: 'Vero' }));
+}
+async function consultarVero(entrada, rede, resolver = resolverCepVero) {
+    if (typeof entrada !== 'string' || !/^\d{5}-?\d{3}$/.test(entrada.trim()))
+        throw Object.assign(Error('Informe um CEP de oito dígitos.'), { statusCode: 400 });
+    const cep = entrada.trim().replace('-', '');
+    if (/^(00000000|99999999)$/.test(cep))
+        throw Object.assign(Error('CEP inválido.'), { statusCode: 400 });
+    let endereco;
+    try {
+        endereco = await resolver(cep);
+    }
+    catch {
+        throw Object.assign(Error('A consulta de CEP está indisponível. Tente novamente; não confirme ausência de cobertura.'), { statusCode: 503 });
+    }
+    if (endereco.erro === true || endereco.erro === 'true')
+        return { success: true, operadora: 'Vero', cep, status: 'cep_nao_localizado', cidade: null, uf: null, rede: null, classificacao: null, planos: [], confirmacao_tecnica_necessaria: true };
+    if (!endereco.localidade || !/^[A-Z]{2}$/.test(endereco.uf || '') || String(endereco.cep || '').replace(/\D/g, '') !== cep)
+        throw Object.assign(Error('O serviço de CEP não confirmou o município deste CEP.'), { statusCode: 503 });
+    const cidade = exports.CIDADES_VERO.find(c => c.uf === endereco.uf && (0, exports.normalizarCidadeVero)(c.cidade) === (0, exports.normalizarCidadeVero)(endereco.localidade));
+    const elegivel = !!cidade && (!rede || cidade.rede === rede);
+    return { success: true, operadora: 'Vero', cep, status: elegivel ? 'pre_viavel_por_cidade' : 'fora_das_cidades', cidade: endereco.localidade, uf: endereco.uf, rede: elegivel ? cidade.rede : null, classificacao: elegivel ? cidade.classe : null,
+        planos: elegivel ? planosVero(cidade.classe) : [], confirmacao_tecnica_necessaria: true, origem: 'Município do CEP via ViaCEP; cidades e ofertas fornecidas pelo cliente. Não é consulta de portas ou cobertura física da Vero.',
+        mensagem: elegivel ? 'Cidade contemplada nesta campanha. Pergunte CPF ou CNPJ se ainda não informado. Após essa escolha, envie imediatamente a lista completa de planos. Se o público já foi informado, envie a lista agora. A confirmação técnica do imóvel vem após a escolha do plano.' : 'Não temos disponibilidade dessas ofertas para esse CEP nesta campanha. Não ofereça esses planos.' };
+}
+async function resolverCepVero(cep) {
+    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: AbortSignal.timeout(7000), next: { revalidate: 86400 } });
+    if (!r.ok)
+        throw Error('Consulta postal indisponível');
+    return r.json();
+}

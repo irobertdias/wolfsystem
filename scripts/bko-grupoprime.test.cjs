@@ -33,6 +33,7 @@ function fixture({ativo=true,contatos=1,waba=false}={}){
  function query(t){const q={filtros:[],payload:null,tipo:'read',max:Infinity,
   select(){return this;},eq(k,v){this.filtros.push(r=>{const x=valor(r,k);return (typeof x==='object'?JSON.stringify(x):x)===v;});return this;},
   in(k,v){this.filtros.push(r=>v.includes(valor(r,k)));return this;},contains(k,v){this.filtros.push(r=>Object.entries(v).every(([key,arr])=>arr.every(x=>r[k]?.[key]?.includes(x))));return this;},
+  or(expr){this.filtros.push(r=>expr.split(',').some(x=>{const [k,v]=x.split('.eq.');return String(valor(r,k))===v;}));return this;},
   not(k,_op,v){this.filtros.push(r=>valor(r,k)!=v);return this;},single(){return this.maybeSingle();},
   is(k,v){this.filtros.push(r=>valor(r,k)==v);return this;},
   order(){return this;},limit(n){this.max=n;return this;},update(p){this.payload=p;this.tipo='update';return this;},upsert(p){this.payload=p;this.tipo='upsert';return this;},
@@ -139,7 +140,7 @@ test('venda pronta em REVISAR retoma automaticamente sem botão e preserva parte
 function apiConfig(f,permitido=true){
  const ts=require('typescript'),exp={};
  const auth={autenticarWorkspace:async()=>{if(!permitido)throw Object.assign(Error('Sem acesso'),{statusCode:403});return{workspaceId:'grupoprime',email:'admin@example.com'};},exigirPermissao(){},supabaseServer:f.ctx.supabase,segredoInternoWolf:()=>'',respostaErroAcesso:e=>({status:e.statusCode||500,message:e.message})};
- const imports={'node:crypto':require('node:crypto'),'next/server':{NextResponse:{json:(body,o)=>({body,status:o?.status||200})}},'../../../_auth':auth,'../../../../lib/bko-grupoprime':regras};
+ const imports={'node:crypto':require('node:crypto'),'next/server':{NextResponse:{json:(body,o)=>({body,status:o?.status||200})}},'../../../_auth':auth,'../../_vendas':{exigirVendas:async()=>{},lerConfiguracaoVendas:async()=>null,NOME_CONFIG_VENDAS:'__wolf_configuracao_vendas__'},'../../../../lib/bko-grupoprime':regras};
  vm.runInNewContext(ts.transpileModule(fs.readFileSync('app/api/workspace/configuracoes/bko/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:exp,require:n=>{assert.ok(n in imports,n);return imports[n];},process:{env:{}},AbortSignal,fetch:async()=>({ok:true,json:async()=>({versao:1,waba_assinatura:true,waba_versao:true})})});
  return {api:exp,req:body=>({text:async()=>JSON.stringify(body),nextUrl:new URL('https://teste?workspaceId=grupoprime')})};
 }

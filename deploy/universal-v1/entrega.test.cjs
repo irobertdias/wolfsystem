@@ -42,6 +42,16 @@ test('arquivos recebidos juntos são lidos com a próxima pendência e persistid
     }finally{ctx.universalTeste.parar();if(path.dirname(dir)===fs.realpathSync(os.tmpdir())&&path.basename(dir).startsWith('wolf-doc-batch-'))fs.rmSync(dir,{recursive:true});}
 });
 function estado() { return { inicio: '2026-10-24T00:00:00Z', dados: { nome: 'Cliente Exemplo', cpf: '52998224725', data_nascimento: '23/01/2002', nome_mae: 'Mãe Exemplo', email: 'teste@example.com', telefone1: '5562999998888', endereco: 'Rua Exemplo 12', cidade: 'Goiânia', estado: 'GO', cep: '74480150', bairro: 'Centro', vencimento: '20', forma_pagamento: 'Boleto', tipo_pessoa: 'PF' }, plano: { id: 'pf-fibra-padrao', nome: 'Nio Fibra', mensalidade: 110, velocidade_mbps: 600 }, consulta: { status: 'disponivel_na_base' }, pendencias: [], documentos: { rg_frente: [{ path: 'grupoprime/cliente/rg', nome: 'rg.jpg', tipo: 'image/jpeg' }], rg_verso: [{ path: 'grupoprime/cliente/rg', nome: 'rg.jpg', tipo: 'image/jpeg' }], comprovante_endereco: [{ path: 'grupoprime/cliente/conta', nome: 'conta.pdf', tipo: 'application/pdf' }] } }; }
+test('mesmo canal de leads encaminha Vero e alternativa Nio aos respectivos BKOs e remetentes',async()=>{
+ const {ctx,db,envios}=preparar();try{
+  const cfg=db.tabelas.fluxos[0].nos[0].dados.bko_configuracao;
+  cfg.contatos.push({canal_trafego_id:165,operadora:'Vero',numero:'5562998000082',canal_envio_id:165},{canal_trafego_id:165,operadora:'Nio',numero:'5562981072373',canal_envio_id:164});ctx.sessoes['165']=ctx.sessoes['164'];
+  for(const [i,operadora]of ['Vero','Nio'].entries()){
+   const s=estado();s.dados.operadora=operadora;const id=await ctx.universalTeste.registrar({id:30},165,'556299999880'+i,s);await ctx.universalTeste.entregar(structuredClone(db.tabelas.proposta.find(p=>p.id===id)));
+   const p=db.tabelas.proposta.find(p=>p.id===id);a.equal(p.operadora,operadora);a.equal(p.dados_customizados.universal_entrega.numero,operadora==='Vero'?'5562998000082':'5562981072373');a.equal(p.dados_customizados.universal_entrega.canal_id,operadora==='Vero'?165:164);
+  }a.equal(envios.length,6);
+ }finally{ctx.universalTeste.parar();}
+});
 
 test('desmarcar WhatsApp mantém a venda no CRM e impede a entrega', async () => {
     const { ctx, db, envios } = preparar();

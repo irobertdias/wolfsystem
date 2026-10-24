@@ -1,22 +1,28 @@
 export type RedeVero = 'neutra' | 'propria';
-export type ClasseVero = 'neutra' | 'especial' | 'prata';
+export type ClasseVero = 'neutra' | 'especial' | 'prata' | 'essencial';
 export const NOME_FLUXO_VERO = 'Grupo Prime · Vero · Vendas e BKO';
 export const CIDADES_VERO = [
   { cidade: 'Belo Horizonte', uf: 'MG', rede: 'neutra', classe: 'neutra' },
   { cidade: 'Nova Lima', uf: 'MG', rede: 'neutra', classe: 'neutra' },
   { cidade: 'Itabira', uf: 'MG', rede: 'neutra', classe: 'neutra' },
   { cidade: 'Goiânia', uf: 'GO', rede: 'neutra', classe: 'neutra' },
+  { cidade: 'Aparecida de Goiânia', uf: 'GO', rede: 'neutra', classe: 'neutra' },
+  { cidade: 'Anápolis', uf: 'GO', rede: 'neutra', classe: 'neutra' },
   { cidade: 'Ipatinga', uf: 'MG', rede: 'propria', classe: 'especial' },
   { cidade: 'Sabará', uf: 'MG', rede: 'propria', classe: 'especial' },
   { cidade: 'Timóteo', uf: 'MG', rede: 'propria', classe: 'especial' },
   { cidade: 'João Monlevade', uf: 'MG', rede: 'propria', classe: 'prata' },
   { cidade: 'Vespasiano', uf: 'MG', rede: 'propria', classe: 'prata' },
+  { cidade: 'Coronel Fabriciano', uf: 'MG', rede: 'propria', classe: 'essencial' },
+  { cidade: 'Governador Valadares', uf: 'MG', rede: 'propria', classe: 'essencial' },
+  { cidade: 'Santa Luzia', uf: 'MG', rede: 'propria', classe: 'essencial' },
 ] as const;
 export const normalizarCidadeVero = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
 export function planosVero(classe: ClasseVero) {
   const itens = classe === 'neutra' ? [[550,114.99,0],[700,124.99,0],[850,129.99,null]]
+    : classe === 'essencial' ? [[550,113.99,0],[700,123.99,0],[850,129.99,30]]
     : [...(classe === 'prata' ? [[420,69.99,0]] : []),[550,109.99,0],[700,118.99,0],[850,129.99,30]];
-  return itens.map(([velocidade,preco,gb]) => ({ id: `vero-${classe}-${velocidade}`, nome: `Vero ${velocidade} Mega${gb !== 0 ? ' + Móvel' : ''}`, velocidade_mbps: velocidade!, mensalidade: preco!, mensalidade_cartao: null, movel_incluso: gb !== 0, gb_movel: gb, operadora: 'Vero' }));
+  return itens.map(([velocidade,preco,gb]) => ({ id: `vero-${classe}-${velocidade}`, nome: `Vero ${velocidade} Mega${gb !== 0 ? ' + Móvel'+(gb?' '+gb+' GB':'') : ''}`, velocidade_mbps: velocidade!, mensalidade: preco!, mensalidade_cartao: null, movel_incluso: gb !== 0, gb_movel: gb, operadora: 'Vero' }));
 }
 export type EnderecoCepVero = { cep?: string; localidade?: string; uf?: string; ibge?: string; erro?: boolean | string };
 export async function consultarVero(entrada: unknown, rede?: RedeVero, resolver: (cep: string) => Promise<EnderecoCepVero> = resolverCepVero) {

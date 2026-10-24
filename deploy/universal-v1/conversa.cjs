@@ -267,6 +267,8 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     if (c.cep)
         d.cep = c.cep;
     const local = c.resultados[0];
+    if(c.operadora){d.operadora=c.operadora;d.rede=c.rede||'';d.classificacao=c.classificacao||'';}
+    if(c.alternativa_vero&&c.operadora==='Nio'&&!s.alternativaVeroAvisada){aviso='Não localizei uma oferta VERO para esse endereço, mas encontrei disponibilidade da *Nio* pela rede VTAL. Posso apresentar as opções da Nio para você. 😊';s.alternativaVeroAvisada=true;}
     s.enderecoBase = local;
     if (!d.bairro && local.bairro)
         d.bairro = local.bairro;
@@ -288,7 +290,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             const precos=[Number.isFinite(pf)?`no CPF a partir de *R$ ${pf.toFixed(2).replace('.',',')}/mês*`:'',Number.isFinite(pj)?`no CNPJ a partir de *R$ ${pj.toFixed(2).replace('.',',')}/mês*`:''].filter(Boolean);
             return responder(precos.length?`Para esse endereço, temos opções ${precos.join(' e ')}.\n\nVocê vai contratar no CPF ou no CNPJ? Assim te mostro as ofertas correspondentes. 😊`:'Preciso confirmar as ofertas cadastradas para essa localidade com a equipe.');
         }
-        return finalizarMensagem('Maravilha! Temos disponibilidade para esse endereço. ✅\n\nA contratação será no *CPF ou CNPJ*? Pergunto para te enviar os preços corretos, pois as ofertas para pessoa física e jurídica são diferentes.');
+        return finalizarMensagem(config.pergunta_tipo_pessoa||'Maravilha! Temos disponibilidade para esse endereço. ✅\n\nA contratação será no *CPF ou CNPJ*? Pergunto para te enviar os preços corretos, pois as ofertas para pessoa física e jurídica são diferentes.');
     }
     const planos = listaPlanos(s, catalogo);
     if(!planos.length){s.etapa='tipo_pessoa';return finalizarMensagem('Não há ofertas configuradas para essa modalidade na localidade informada. Você gostaria de conferir a outra modalidade?');}
