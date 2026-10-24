@@ -6,6 +6,7 @@ const { conclusaoUniversalInicial } = require('./configuracao-universal.cjs');
 const { incorporar, pendente } = require('./documentos.cjs');
 const {prepararEntrega,confirmarEntrega}=require('./entrega-resposta.cjs');
 const etiquetasVendas=require('./etiquetas-vendas.cjs');
+const {finalizarConversa}=require('./finalizar-conversa.cjs');
 const KEY = '__universal_v1';
 const parse = v => { try {
     return typeof v === 'string' ? JSON.parse(v) : v || {};
@@ -141,15 +142,13 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             await salvar(fluxo, no, canal, n, s);
             // Se uma nova mensagem chegou durante a interpretação, processe o conjunto
             // antes de perguntar algo que o cliente pode já ter respondido.
-            if (filas.get(item.chave)?.mensagens.length && r.acao !== 'registrar')
+            if (filas.get(item.chave)?.mensagens.length && !['registrar','encerrar'].includes(r.acao))
                 return true;
             if(novaEntrada||r.acao||s.ultimaEtapaEnviada!==s.etapa){await enviar(r.mensagem);confirmarEntrega(s,r);}
             s.ultimaEtapaEnviada=s.etapa;
             await salvar(fluxo, no, canal, n, s);
             if (r.acao === 'encerrar') {
-                const { error } = await db.from('atendimentos').update({ status: 'finalizado', bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true }).eq('workspace_id', WS).eq('canal_id', canal).eq('numero', n);
-                if (error)
-                    throw error;
+                await finalizarConversa(db,WS,canal,n);
             }
             if (r.acao === 'registrar')
                 setTimeout(() => entregarPendentes().catch(e => console.error('[Universal entrega]', e.message)), 100);
