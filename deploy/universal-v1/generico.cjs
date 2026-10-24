@@ -29,7 +29,7 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
  if(pendente&&pendente.tipo==='cpf'&&/^\d{11}$/.test(texto.replace(/\D/g,'')))s.dados[pendente.variavel]=texto.replace(/\D/g,'');
  const registrarResposta=(mensagem,concluido=false)=>{
    if(s.historico.at(-1)?.content===mensagem&&!concluido)mensagem=r.resposta&&!/[?]/.test(r.resposta)?r.resposta+'\n\n'+(pendente?.pergunta||'Como prefere continuar?'):'Vamos continuar de onde paramos. '+mensagem;
-   s.historico=[...s.historico,{role:'user',content:texto},{role:'assistant',content:mensagem}].slice(-30);return {estado:s,mensagem,concluido};
+   s.historico=[...s.historico,{role:'user',content:texto},{role:'assistant',content:mensagem}].slice(-30);return {estado:s,mensagem,concluido,historicoProposto:true,tipo:s.pendente==='__oferta'&&mensagem.includes('R$')?'ofertas':undefined};
  };
  if(r.encerrar){s.encerrado=true;return registrarResposta('Entendido. Vou encerrar o atendimento por aqui. Se precisar, estamos à disposição.');}
  let inicio='';if(!s.apresentou){s.apresentou=true;inicio=(assistente.apresentacao||`Olá! Sou ${assistente.nome}, assistente virtual da ${assistente.empresa}. Vou ajudar você por aqui. 😊`)+'\n\n';}
@@ -39,7 +39,7 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
  if(nicho.exigir_oferta&&!s.oferta){
    const escolhido=s.ofertasMostradas?ofertas.find(p=>p.id===r.plano_id):null;
    if(escolhido){s.oferta=escolhido;s.dados.plano=escolhido.nome;s.dados.valor_plano=escolhido.preco;s.dados.plano_id=escolhido.id;s.confirmado=false;}
-   else {s.pendente='__oferta';if(s.ofertasMostradas&&r.resposta)return registrarResposta(r.resposta+'\n\nQual das opções apresentadas você prefere?');s.ofertasMostradas=true;return responder(ofertas.length?ofertas.map((p,i)=>`${i+1}️⃣ *${p.nome}* · R$ ${p.preco.toFixed(2).replace('.',',')}${p.descricao?'\n'+p.descricao:''}`).join('\n\n')+'\n\nQual opção combina com o que você precisa?':'Vou precisar confirmar as ofertas com a equipe. Não há um catálogo disponível nesta configuração.');}
+   else {s.pendente='__oferta';if(s.ofertasMostradas&&r.resposta&&!/OFERTA|PLANO|PRECO|VALOR|OPCOES/.test(normalizar(texto)))return registrarResposta(r.resposta+'\n\nQual das opções apresentadas você prefere?');s.ofertasMostradas=true;return responder(ofertas.length?ofertas.map((p,i)=>`${i+1}️⃣ *${p.nome}* · R$ ${p.preco.toFixed(2).replace('.',',')}${p.descricao?'\n'+p.descricao:''}`).join('\n\n')+'\n\nQual opção combina com o que você precisa?':'Vou precisar confirmar as ofertas com a equipe. Não há um catálogo disponível nesta configuração.');}
  }
  for(const c of campos){if(c.obrigatorio!==false&&!s.dados[c.variavel])return perguntar(c);if(c.tipo==='cpf'&&s.dados[c.variavel]&&!cpfValido(s.dados[c.variavel])){s.pendencias=[...new Set([...s.pendencias,'Conferir CPF informado no cadastro.'])];}}
  if(!s.confirmado){if(s.resumoHash===chaveResumo(s)&&(r.confirmacao||positivo(texto)))s.confirmado=true;else{s.pendente='__confirmacao';s.resumoHash=chaveResumo(s);return responder(resumo(s,nicho));}}

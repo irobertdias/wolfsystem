@@ -214,7 +214,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         s.pendencias.push('Cliente não tem comprovante de endereço.');
     }
     const responder = (mensagem, acao) => {
-        if(!acao && !['localidade_divergente','cep_necessario','consulta_inconclusiva','confirmar_logradouro','endereco_ambiguo','logradouro_nao_localizado','endereco_nao_localizado','complemento_necessario'].includes(s.consulta?.status) && s.historico.some(h=>h.role==='assistant'&&normalizar(h.content)===normalizar(mensagem))) {
+        if(!acao && s.etapa!=='plano' && !['localidade_divergente','cep_necessario','consulta_inconclusiva','confirmar_logradouro','endereco_ambiguo','logradouro_nao_localizado','endereco_nao_localizado','complemento_necessario'].includes(s.consulta?.status) && s.historico.some(h=>h.role==='assistant'&&normalizar(h.content)===normalizar(mensagem))) {
             const falta=rotulos[s.etapa]||({cep:'o CEP com oito dígitos',localidade:'a cidade e o estado da instalação',tipo_pessoa:'se a contratação será no CPF ou no CNPJ',complemento:'o dado que diferencia seu imóvel: número, quadra/lote ou casa',documentos:!s.documentos.rg_frente.length?'o arquivo da frente do RG':!s.documentos.rg_verso.length?'o verso do RG':'o comprovante ou a informação de que você não possui um',confirmar_endereco:'a confirmação ou correção do endereço apresentado',confirmacao:'a confirmação do resumo ou o dado que precisa corrigir',plano:'qual das ofertas você prefere',endereco:'a rua, o número ou complemento e o bairro'})[s.etapa];
             if(falta) {
                 const formas=[`Vamos continuar de onde paramos. Só falta confirmar ${falta}?`,`Para eu não interpretar errado, pode esclarecer ${falta}?`,`Já aproveitei o que você informou. Pode me dizer ${falta}?`,`O próximo passo é confirmar ${falta}. Pode me ajudar com essa informação?`];
@@ -222,7 +222,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             }
             s.tentativas['resposta_'+s.etapa]=(s.tentativas['resposta_'+s.etapa]||0)+1;
         }
-        if(texto.trim())s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao };
+        if(texto.trim())s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao, historicoProposto:!!texto.trim(), tipo: s.etapa==='plano' && mensagem.includes('💰 R$')?'ofertas':undefined };
     };
     if (analise.encerrar === true) {
         s.etapa = 'encerrado';
@@ -345,8 +345,11 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         delete s.plano;
         s.confirmado = false;
     }
-    if (!s.ofertas || !s.ofertas.every(id => planos.some(p => p.id === id)))
+    if (s.catalogoPendente || !s.ofertas?.length || !s.ofertas.every(id => planos.some(p => p.id === id)))
         return finalizarMensagem(ofertas(s, catalogo));
+    // Pedidos explícitos de catálogo sempre recebem os planos disponíveis.
+    if (!s.plano && /\b(?:OFERTA|OFERTAS|PLANO|PLANOS|VALOR|VALORES|PRECO|PRECOS)\b/.test(normalizar(texto)) && (analise.pergunta || /[?]|QUAIS|MOSTR|MANDA|PASSA|VER/.test(normalizar(texto))))
+        return responder(ofertas(s,catalogo));
     const mudanca = planos.find(p => p.id === analise.plano_id && s.ofertas.includes(p.id));
     if (s.plano && mudanca && s.plano.id !== mudanca.id) {
         s.plano = mudanca;

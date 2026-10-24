@@ -4,6 +4,7 @@ const { criarConsulta } = require('./vtal.cjs'), { criarInterpretador } = requir
 const { inicial, avancar, resumo } = require('./conversa.cjs'), { planosDaCidade } = require('./planos-grupoprime.cjs');
 const { conclusaoUniversalInicial } = require('./configuracao-universal.cjs');
 const { incorporar, pendente } = require('./documentos.cjs');
+const {prepararEntrega,confirmarEntrega}=require('./entrega-resposta.cjs');
 const KEY = '__universal_v1';
 const parse = v => { try {
     return typeof v === 'string' ? JSON.parse(v) : v || {};
@@ -107,6 +108,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             const r = await avancar({ estado: s, entrada: retomadaInterpretada?'':texto, numero: n, extrair: ia.extrair, consultar: consulta, catalogo: planosDaCidade, anexos, config: no.dados });
             const lotePendente = s.pendentes;
             s = r.estado;
+            prepararEntrega(s,r);
             s.entradaInterpretadaChave=entradaChave;
             s.pendentes = [];
             delete s.erro;
@@ -138,7 +140,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             // antes de perguntar algo que o cliente pode já ter respondido.
             if (filas.get(item.chave)?.mensagens.length && r.acao !== 'registrar')
                 return true;
-            if(novaEntrada||r.acao||s.ultimaEtapaEnviada!==s.etapa)await enviar(r.mensagem);
+            if(novaEntrada||r.acao||s.ultimaEtapaEnviada!==s.etapa){await enviar(r.mensagem);confirmarEntrega(s,r);}
             s.ultimaEtapaEnviada=s.etapa;
             await salvar(fluxo, no, canal, n, s);
             if (r.acao === 'encerrar') {

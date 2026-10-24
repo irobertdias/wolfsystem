@@ -1,4 +1,5 @@
 'use strict';
+const {prepararEntrega,confirmarEntrega}=require('./entrega-resposta.cjs');
 const fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto');
 const {criarIA}=require('./ia-configuravel.cjs'),generico=require('./generico.cjs');
 const {modelo}=require('./modelo-vendas.cjs');
@@ -80,11 +81,12 @@ module.exports=function instalar(ctx){
    const entradaChave=createHash('sha256').update(texto).digest('hex'),retomadaInterpretada=!novaEntrada&&s.entradaInterpretadaChave===entradaChave;
    const antigo=await avancar({estado:abertura,entrada:retomadaInterpretada?'':texto,numero:meta.numero,extrair:criarInterpretador({apiKey,model:assistente.modelo||'gpt-4o-mini',catalogo}).extrair,consultar:vero?.consultar||criarConsulta(),catalogo,config:{...assistente,promptNicho:nicho.prompt,regrasNicho:nicho.regras}});
    s.entradaInterpretadaChave=entradaChave;
-   s.nio=antigo.estado;s.dados={...s.dados,...s.nio.dados};s.apresentou=s.nio.apresentou;
+   s.nio=antigo.estado;prepararEntrega(s.nio,antigo);s.dados={...s.dados,...s.nio.dados};s.apresentou=s.nio.apresentou;
    if(s.nio.plano&&s.dados.endereco&&s.dados.bairro){s.aberturaConcluida=true;s.plano=s.nio.plano;s.oferta={...s.plano,preco:s.plano.mensalidade};s.dados.plano=s.plano.nome;s.dados.valor_plano=s.plano.mensalidade;s.consulta=s.nio.consulta;s.historico=s.nio.historico;r=await generico.avancar({estado:s,texto:'',numero:meta.numero,nicho,assistente,vars,extrair:async()=>({dados:[],resposta:''})});}
-   else r={estado:s,mensagem:antigo.mensagem,concluido:false,encerrar:antigo.acao==='encerrar'};
+   else r={estado:s,mensagem:antigo.mensagem,tipo:antigo.tipo,abertura:true,concluido:false,encerrar:antigo.acao==='encerrar'};
   }else r=await generico.avancar({estado:s,texto:String(texto||''),numero:meta.numero,nicho,assistente,vars,extrair:ia.extrair});
   s=r.estado;
+  if(!r.abertura)prepararEntrega(s,r);
   if(!s.aberturaConcluida&&s.nio?.consulta?.status==='consulta_inconclusiva'){
    s.retryEm=Date.now()+60000;const avisou=s.instabilidadeAvisada;s.instabilidadeAvisada=true;await salvar();if(!avisou&&r.mensagem)await enviar(r.mensagem);return {aguardarInput:true};
   }
@@ -92,7 +94,7 @@ module.exports=function instalar(ctx){
   if(s.encerrado||r.encerrar){await enviar(r.mensagem);await db.from('atendimentos').update({status:'finalizado',bloqueado_ia:true,bloqueado_fluxo:true}).eq('workspace_id',meta.workspaceId).eq('canal_id',meta.canalId).eq('numero',meta.numero);return {parar:true};}
   if(r.concluido){s.pronto=true;await salvar();return {proximoNoId:proximo(f,no.id)};}
   const filaAtual=filas.get(`${meta.workspaceId}:${meta.canalId}:${meta.numero}`);
-  if(r.mensagem&&!filaAtual?.mensagens.length)await enviar(r.mensagem);return {aguardarInput:true};
+  if(r.mensagem&&!filaAtual?.mensagens.length){await enviar(r.mensagem);confirmarEntrega(r.abertura?s.nio:s,r);await salvar();}return {aguardarInput:true};
  }
  ctx.processarUniversalNativo=async(...args)=>{
   try{return await processar(...args);}catch(e){
