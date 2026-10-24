@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useModulos } from "../../hooks/useModulos";
 import ConfiguracaoUniversal from './ConfiguracaoUniversal';
-import { assistenteUniversalInicial, nichoUniversalInicial, validarEstruturaUniversal } from '../../lib/atendimento-universal';
+import { assistenteUniversalInicial, nichoUniversalInicial, validarEstruturaUniversal, universalExecutavel } from '../../lib/atendimento-universal';
 import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
 
 type TipoNo =
@@ -2550,7 +2550,7 @@ export default function FluxosPage() {
 
   async function salvar(opcoes?: { fecharEditor?: boolean; avisarSucesso?: boolean }): Promise<boolean> {
     if(!fluxoAtivo?.id) return false;
-    if(fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))){alert('Os novos blocos universais estão em configuração. Desative o fluxo para salvar este rascunho.');return false;}
+    if(fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))&&!universalExecutavel(nos,arestas,wsId)){alert('Esta configuração universal ainda não possui execução liberada. Desative o fluxo para salvar o rascunho.');return false;}
     if (nos.some(n => ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(n.tipo)) && !contratosLiberados) {
       alert("🔒 Este workspace não possui o módulo Contratos e Assinaturas. Planos a partir de R$ 49,90/mês com CRM Wolf.");
       return false;
@@ -2665,7 +2665,10 @@ export default function FluxosPage() {
 
   async function toggleAtivo() {
     if(!fluxoAtivo?.id) return;
-    if(!fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))){alert('Este fluxo usa a nova base universal, disponível por enquanto para configuração em rascunho. A execução será liberada após implementação e testes.');return;}
+    if(!fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))){
+      if(!universalExecutavel(nos,arestas,wsId)){alert('Execução disponível somente no piloto telecom Nio configurado para @grupoprime. Os demais perfis continuam em rascunho.');return;}
+      try{const {data:{session}}=await supabase.auth.getSession();const r=await fetch('/api/viabilidade/grupoprime/vtal?health=1',{cache:'no-store',headers:session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{}});const j=await r.json();if(!r.ok||j.versao!==1||!j.pronto)throw Error();}catch{alert('O serviço universal não está pronto. A ativação foi interrompida.');return;}
+    }
     if (!fluxoAtivo.ativo && nos.some(n => ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(n.tipo)) && !contratosLiberados) {
       alert("🔒 Não é possível ativar este fluxo sem o módulo Contratos e Assinaturas.");
       return;

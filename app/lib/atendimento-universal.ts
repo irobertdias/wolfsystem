@@ -30,3 +30,11 @@ export function validarEstruturaUniversal(nos: {id:string;tipo:string;dados:Reco
   for(const no of nos.filter(n=>n.tipo==='nicho_atendimento'))if(!arestas.some(a=>a.para===no.id&&nos.some(n=>n.id===a.de&&n.tipo==='assistente_universal')))problemas.push('O bloco Nicho de atendimento precisa receber a conexão de um assistente.');
   return [...new Set(problemas)];
 }
+
+export function universalExecutavel(nos: {id:string;tipo:string;dados:Record<string,any>}[], arestas:{de:string;para:string;saidaIndex:number}[], workspace: string | null) {
+  const assistentes=nos.filter(n=>n.tipo==='assistente_universal');
+  return workspace==='grupoprime' && assistentes.length===1 && assistentes[0].dados.runtime==='universal-v1'
+    && validarEstruturaUniversal(nos,arestas).length===0
+    && nos.filter(n=>n.tipo==='nicho_atendimento').length===1
+    && nos.find(n=>n.tipo==='nicho_atendimento')?.dados.nicho==='telecom';
+}

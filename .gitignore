@@ -47,3 +47,5 @@ next-env.d.ts
 /deploy/backup-remocao-motor-*/
 /deploy/backups-roteiro-20261023/
 /deploy/backups-limite-lembretes/
+/deploy/universal-v1/credencial.json
+/deploy/universal-v1/piloto.json

@@ -1,0 +1,33 @@
+# Piloto universal V1 — Grupo Prime / Nio
+
+O piloto usa um assistente universal conectado a um nicho telecom. Os demais nichos continuam em rascunho. O processamento fica no serviço WhatsApp; o editor e a API Next não executam conversas em segundo plano.
+
+## Consulta
+
+- `/api/viabilidade/grupoprime/vtal` usa a autenticação do workspace ou o token de leitura já existente.
+- O serviço interno `/universal/vtal` consulta a mesma API do site Vtal. Número avulso filtra `numero` (fachada); quadra procura o logradouro e, quando necessário, complementos; lote procura os três complementos com igualdade numérica, sem confundir 1 com 10.
+- O índice `indice-vtal` contém somente rua/CEP por cidade/UF e permite descobrir o CEP a partir da rua. Não determina disponibilidade: a linha completa é consultada na API.
+- Base fornecida: snapshots de 2024/2025. Encontrar uma linha comercializável não garante instalação atual. Falha de API é inconclusiva e não significa falta de cobertura.
+- Mais de uma unidade exige identificar casa, apartamento ou bloco. O motor preserva o restante do cadastro.
+
+## Conversa e dados
+
+As mensagens próximas são agrupadas por atendimento. A entrada é persistida antes da chamada à IA, com retomada automática após falha. A IA interpreta os dados e a intenção; o código controla catálogo, preço, confirmação e registro. Preços vêm de `app/lib/planos-grupoprime.ts`, compilado neste pacote, incluindo a tabela promocional por cidade/UF.
+
+Sequência: apresentação → cidade/UF → consulta de CEP/endereço → CPF ou CNPJ com explicação → ofertas → escolha do plano → endereço → nome, CPF, nascimento, mãe, e-mail → confirmação de endereço → contato → vencimento/pagamento → resumo confirmado → documentos → CRM/WhatsApp. Dados enviados antecipadamente são aproveitados. Correção depois do resumo exige nova confirmação.
+
+Os originais são salvos no bucket privado antes da leitura. A chave fica somente em `credencial.json` no servidor, com permissão 0600. `documentosOpenai: true` habilita a leitura de fotos/PDFs pela OpenAI, autorizada pelo responsável pelo piloto. RG aberto pode atender frente e verso. Leitura inconclusiva mantém o arquivo e uma pendência para o BKO, sem afirmar documento inválido ou identidade aprovada.
+
+## CRM e WhatsApp
+
+O registro usa uma chave estável por sessão e consulta cadastro anterior antes de repetir uma inserção. O CRM recebe os arquivos e a fila de entrega. O destino e o remetente vêm da configuração BKO Nio existente, sem substituir os números na instalação.
+
+Cada parte da entrega guarda seu recibo. Recibo pendente não vira envio confirmado. Mensagens com resultado incerto são reconciliadas pela referência, sem reenvio cego. O BKO pode responder à referência da venda com os estados já suportados no sistema. Falha de conexão conserva a venda na fila.
+
+## Instalação e validação
+
+`node instalar.cjs /root/wolf-whatsapp` faz backup, instala os módulos e cria um fluxo inativo. A chave da configuração Nio anterior é reutilizada apenas no servidor. `node ativar.cjs /root/wolf-whatsapp` exige serviço pronto, canal conectado e BKO configurado; ativa somente o canal 164 e o novo fluxo. Não altera Vero nem outros workspaces.
+
+Testes: `node --test *.test.cjs`. `avaliar-ia.cjs` e `ensaio.cjs` usam a API real com dados fictícios, em memória, sem criar vendas nem enviar mensagens. O índice pode ser regenerado com `importar-logradouros.py ORIGEM DESTINO`.
+
+O backup indicado na instalação contém o inicializador, configurações e versão anterior. Para desativar imediatamente, mude o canal do piloto para modo `nenhum` e desative o fluxo novo; dados históricos e vendas permanecem preservados.
