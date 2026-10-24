@@ -79,7 +79,11 @@ module.exports=function instalar(ctx){
    if(s.nio.plano&&s.dados.endereco&&s.dados.bairro){s.aberturaConcluida=true;s.plano=s.nio.plano;s.oferta={...s.plano,preco:s.plano.mensalidade};s.dados.plano=s.plano.nome;s.dados.valor_plano=s.plano.mensalidade;s.consulta=s.nio.consulta;s.historico=s.nio.historico;r=await generico.avancar({estado:s,texto:'',numero:meta.numero,nicho,assistente,vars,extrair:async()=>({dados:[],resposta:''})});}
    else r={estado:s,mensagem:antigo.mensagem,concluido:false,encerrar:antigo.acao==='encerrar'};
   }else r=await generico.avancar({estado:s,texto:String(texto||''),numero:meta.numero,nicho,assistente,vars,extrair:ia.extrair});
-  s=r.estado;s.pendentes=[];s.erroAvisado=false;delete s.retryEm;await salvar();
+  s=r.estado;
+  if(!s.aberturaConcluida&&s.nio?.consulta?.status==='consulta_inconclusiva'){
+   s.retryEm=Date.now()+60000;const avisou=s.instabilidadeAvisada;s.instabilidadeAvisada=true;await salvar();if(!avisou&&r.mensagem)await enviar(r.mensagem);return {aguardarInput:true};
+  }
+  s.pendentes=[];s.erroAvisado=false;delete s.retryEm;delete s.instabilidadeAvisada;await salvar();
   if(s.encerrado||r.encerrar){await enviar(r.mensagem);await db.from('atendimentos').update({status:'finalizado',bloqueado_ia:true,bloqueado_fluxo:true}).eq('workspace_id',meta.workspaceId).eq('canal_id',meta.canalId).eq('numero',meta.numero);return {parar:true};}
   if(r.concluido){s.pronto=true;await salvar();return {proximoNoId:proximo(f,no.id)};}
   const filaAtual=filas.get(`${meta.workspaceId}:${meta.canalId}:${meta.numero}`);
