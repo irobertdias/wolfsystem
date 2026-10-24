@@ -285,11 +285,13 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         if (/\b(?:VALOR|VALORES|VALO|PRECO|PRECOS|CUSTA)\b/.test(normalizar(texto).replace(/[^A-Z0-9 ]/g,' '))) {
             const valores=catalogo(d.estado,d.cidade);
             const pf=Math.min(...valores.pessoa_fisica.map(p=>p.mensalidade)),pj=Math.min(...valores.pessoa_juridica.map(p=>p.mensalidade));
-            return responder(`Para esse endereço, temos opções no CPF a partir de *R$ ${pf.toFixed(2).replace('.',',')}/mês* e no CNPJ a partir de *R$ ${pj.toFixed(2).replace('.',',')}/mês*.\n\nVocê vai contratar no CPF ou no CNPJ? Assim te mostro as ofertas correspondentes. 😊`);
+            const precos=[Number.isFinite(pf)?`no CPF a partir de *R$ ${pf.toFixed(2).replace('.',',')}/mês*`:'',Number.isFinite(pj)?`no CNPJ a partir de *R$ ${pj.toFixed(2).replace('.',',')}/mês*`:''].filter(Boolean);
+            return responder(precos.length?`Para esse endereço, temos opções ${precos.join(' e ')}.\n\nVocê vai contratar no CPF ou no CNPJ? Assim te mostro as ofertas correspondentes. 😊`:'Preciso confirmar as ofertas cadastradas para essa localidade com a equipe.');
         }
         return finalizarMensagem('Maravilha! Temos disponibilidade para esse endereço. ✅\n\nA contratação será no *CPF ou CNPJ*? Pergunto para te enviar os preços corretos, pois as ofertas para pessoa física e jurídica são diferentes.');
     }
     const planos = listaPlanos(s, catalogo);
+    if(!planos.length){s.etapa='tipo_pessoa';return finalizarMensagem('Não há ofertas configuradas para essa modalidade na localidade informada. Você gostaria de conferir a outra modalidade?');}
     if (s.plano && !planos.some(p => p.id === s.plano.id)) {
         delete s.plano;
         s.confirmado = false;

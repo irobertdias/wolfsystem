@@ -70,7 +70,9 @@ module.exports=function instalar(ctx){
   let r;
   if(nicho.integracao==='vtal_nio'&&!s.aberturaConcluida){
    const {inicial,avancar}=require('./conversa.cjs'),{criarConsulta}=require('./vtal.cjs'),{criarInterpretador}=require('./interpretacao.cjs'),{planosDaCidade}=require('./planos-grupoprime.cjs');
-   const antigo=await avancar({estado:s.nio||inicial(),entrada:texto,numero:meta.numero,extrair:criarInterpretador({apiKey,model:assistente.modelo||'gpt-4o-mini',catalogo:planosDaCidade}).extrair,consultar:criarConsulta(),catalogo:planosDaCidade,config:{...assistente,promptNicho:nicho.prompt,regrasNicho:nicho.regras}});
+   const configuradas=generico.catalogo(nicho,vars);
+   const catalogo=configuradas.length?()=>({pessoa_fisica:configuradas.filter(p=>p.tipo_pessoa!=='PJ').map(p=>({...p,mensalidade:p.preco,velocidade_mbps:Number(p.velocidade_mbps)||0})),pessoa_juridica:configuradas.filter(p=>p.tipo_pessoa==='PJ').map(p=>({...p,mensalidade:p.preco,velocidade_mbps:Number(p.velocidade_mbps)||0}))}):planosDaCidade;
+   const antigo=await avancar({estado:s.nio||inicial(),entrada:texto,numero:meta.numero,extrair:criarInterpretador({apiKey,model:assistente.modelo||'gpt-4o-mini',catalogo}).extrair,consultar:criarConsulta(),catalogo,config:{...assistente,promptNicho:nicho.prompt,regrasNicho:nicho.regras}});
    s.nio=antigo.estado;s.dados={...s.dados,...s.nio.dados};s.apresentou=s.nio.apresentou;
    if(s.nio.plano&&s.dados.endereco&&s.dados.bairro){s.aberturaConcluida=true;s.plano=s.nio.plano;s.dados.plano=s.plano.nome;s.dados.valor_plano=s.plano.mensalidade;s.consulta=s.nio.consulta;s.historico=s.nio.historico;r=await generico.avancar({estado:s,texto:'',numero:meta.numero,nicho,assistente,vars,extrair:async()=>({dados:[],resposta:''})});}
    else r={estado:s,mensagem:antigo.mensagem,concluido:false,encerrar:antigo.acao==='encerrar'};

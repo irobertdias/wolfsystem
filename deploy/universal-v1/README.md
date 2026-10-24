@@ -45,3 +45,15 @@ O painel `/chatbot/vendas` reúne os envios antigos e do motor universal, seus d
 `pos-venda.cjs` associa respostas pelo recibo citado ou referência BKO; sem citação exige um único pedido ativo do destinatário autorizado. Atualiza o CRM e persiste ações de acompanhamento antes de enviar. CPF exige outro titular autorizado, aprovação informa a etapa de biometria e pedidos gerados/aguardando instalação solicitam dia e período ao BKO antes de informar a agenda ao cliente. A troca de CPF reaproveita o pedido, exige conferência dos dados do titular no BKO e renova a referência para impedir aprovação por retorno antigo. Falhas de envio retomam ações pendentes; envios sem resultado confirmado são reconciliados antes de qualquer nova tentativa.
 
 ACK 1 significa aceitação pelo servidor WhatsApp, ACK 2 entrega ao destinatário e ACK 3 leitura. O painel distingue essas situações. Não se deve simular retorno real do BKO em produção para testar: use `node --test pos-venda.test.cjs entrega.test.cjs universal.test.cjs`.
+# Configuração editável por workspace
+
+Os blocos Assistente → Nicho → Concluir venda executam no motor nativo de fluxos. Os blocos de CRM, etiquetas e mensagens seguintes continuam usando `proposta_id` e as variáveis coletadas. A integração Nio já instalada continua com seu atendimento e sessões preservados.
+
+- No Assistente: configure apresentação, empresa, regras, modelo e credencial. A leitura de fotos/PDFs exige a autorização explícita do administrador neste bloco. Sem aceite, os originais ficam privados para conferência.
+- No Nicho: edite perguntas, ordem, variáveis, obrigatoriedade, catálogo e documentos. O catálogo pode vir de uma variável JSON produzida por um bloco HTTP anterior. Formato: `[{"id":"corte","nome":"Corte","preco":50,"descricao":"40 minutos"}]`.
+- Na Conclusão: selecione os campos reais do CRM, associe variáveis ou textos fixos e escolha status inicial, mensagem e continuidade. Campos personalizados usam `custom.slug`.
+- Em **Vendas → Configurações**: defina o remetente, o BKO de cada canal e os modelos de mensagens. Retornos podem gerar mensagens automáticas ou ficar sob controle dos fluxos CRM existentes.
+- O bloco nativo **Enviar venda** possui encaminhamento opcional ao BKO. Ele cria uma nova proposta; não o conecte depois de outra conclusão que já cadastrou a mesma venda.
+
+O instalador `instalar-configuravel.cjs /root/wolf-whatsapp` faz backup dos arquivos e instala os hooks, sem ativar fluxos ou canais. Liberação do módulo e permissões continuam específicas de cada workspace. Integrações de agenda, estoque e instituições externas devem ser configuradas com fontes reais; o motor não simula reserva nem aprovação.
+
