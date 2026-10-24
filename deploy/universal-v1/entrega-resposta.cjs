@@ -3,9 +3,13 @@
 function prepararEntrega(s,r){
  if(r.historicoProposto!==false&&s.historico?.at(-1)?.role==='assistant'&&s.historico.at(-1).content===r.mensagem)s.historico.pop();
  if(r.tipo==='ofertas'){s.catalogoPendente=true;delete s.ofertasMostradas;}
+ if(r.tipo==='contorno_documentos')delete s.contornoDocumentosExplicado;
+ if(r.tipo==='retencao_venda')delete s.retencaoVendaApresentada;
 }
 function confirmarEntrega(s,r){
  if(!r.mensagem)return;
+ if(r.tipo==='contorno_documentos')s.contornoDocumentosExplicado=true;
+ if(r.tipo==='retencao_venda')s.retencaoVendaApresentada=true;
  s.historico=[...(s.historico||[]),{role:'assistant',content:r.mensagem}].slice(-40);
  if(r.tipo==='ofertas'){
   delete s.catalogoPendente;

@@ -212,12 +212,12 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     s.pendencias = [...new Set(s.pendencias)];
     for (const a of anexos) incorporar(s, a);
-    if (analise.sem_comprovante) {
+    if (analise.sem_comprovante && !require('./objecao-documentos.cjs').recusaDocumento(texto)) {
         s.semComprovante = true;
         s.pendencias.push('Cliente não tem comprovante de endereço.');
     }
-    const responder = (mensagem, acao) => {
-        if(!acao && s.etapa!=='plano' && !['localidade_divergente','cep_necessario','consulta_inconclusiva','confirmar_logradouro','endereco_ambiguo','logradouro_nao_localizado','endereco_nao_localizado','complemento_necessario'].includes(s.consulta?.status) && s.historico.some(h=>h.role==='assistant'&&normalizar(h.content)===normalizar(mensagem))) {
+    const responder = (mensagem, acao, tipo) => {
+        if(!tipo && !acao && s.etapa!=='plano' && !['localidade_divergente','cep_necessario','consulta_inconclusiva','confirmar_logradouro','endereco_ambiguo','logradouro_nao_localizado','endereco_nao_localizado','complemento_necessario'].includes(s.consulta?.status) && s.historico.some(h=>h.role==='assistant'&&normalizar(h.content)===normalizar(mensagem))) {
             const falta=rotulos[s.etapa]||({cep:'o CEP com oito dígitos',localidade:'a cidade e o estado da instalação',tipo_pessoa:'se a contratação será no CPF ou no CNPJ',complemento:'o dado que diferencia seu imóvel: número, quadra/lote ou casa',documentos:!s.documentos.rg_frente.length?'o arquivo da frente do RG':!s.documentos.rg_verso.length?'o verso do RG':'o comprovante ou a informação de que você não possui um',confirmar_endereco:'a confirmação ou correção do endereço apresentado',confirmacao:'a confirmação do resumo ou o dado que precisa corrigir',plano:'qual das ofertas você prefere',endereco:'a rua, o número ou complemento e o bairro'})[s.etapa];
             if(falta) {
                 const formas=[`Vamos continuar de onde paramos. Só falta confirmar ${falta}?`,`Para eu não interpretar errado, pode esclarecer ${falta}?`,`Já aproveitei o que você informou. Pode me dizer ${falta}?`,`O próximo passo é confirmar ${falta}. Pode me ajudar com essa informação?`];
@@ -225,11 +225,23 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             }
             s.tentativas['resposta_'+s.etapa]=(s.tentativas['resposta_'+s.etapa]||0)+1;
         }
-        if(texto.trim())s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao, inviavel:s.etapa==='outro_endereco'||s.encerramentoInviavel===true, historicoProposto:!!texto.trim(), tipo: s.etapa==='plano' && mensagem.includes('💰 R$')?'ofertas':undefined };
+        if(texto.trim())s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao, inviavel:s.etapa==='outro_endereco'||s.encerramentoInviavel===true, historicoProposto:!!texto.trim(), tipo: tipo || (s.etapa==='plano' && mensagem.includes('💰 R$')?'ofertas':undefined) };
     };
+    // Recusar o envio de documento não significa cancelar a contratação.
+    let documentosEncaminhar=false;
+    if(s.etapa==='documentos'){
+        const contorno=require('./objecao-documentos.cjs').tratar(s,texto,[{variavel:'rg_frente',rotulo:'RG frente'},{variavel:'rg_verso',rotulo:'RG verso'},{variavel:'comprovante_endereco',rotulo:'comprovante de endereço'}]);
+        if(contorno?.mensagem)return responder(contorno.mensagem,undefined,contorno.tipo);
+        if(contorno?.seguir){documentosEncaminhar=true;analise.encerrar=false;analise.resposta_contextual='';aviso='';}
+    }
     if(aguardavaOutro&&!recebeuOutro){
         if(analise.encerrar===true||/^(?:NAO|NAO TENHO|NAO POSSUO|SO ESSE|SOMENTE ESSE|PODE (?:ENCERRAR|FINALIZAR))[.! ]*$/.test(normalizar(texto))){s.etapa='encerrado';s.encerramentoInviavel=true;return responder('Tudo bem. Como não há disponibilidade nesse endereço, vou finalizar o atendimento. Obrigado pelo interesse! 💚','encerrar');}
         return responder('Para verificar outra possibilidade, pode enviar um endereço diferente: o CEP ou a rua com número, cidade e estado. Se não tiver outro endereço, pode me avisar.');
+    }
+    if(!documentosEncaminhar){
+        const retencao=require('./retencao-venda.cjs').tratar(s,texto,analise.encerrar===true);
+        if(retencao?.mensagem)return responder(retencao.mensagem,undefined,retencao.tipo);
+        if(retencao?.encerrar)analise.encerrar=true;
     }
     if (analise.encerrar === true) {
         s.etapa = 'encerrado';
@@ -428,13 +440,13 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         }
     }
     s.etapa = 'documentos';
-    if (!s.documentos.rg_frente.length)
+    if (!s.documentos.rg_frente.length && !s.documentosDispensados?.includes('rg_frente'))
         return finalizarMensagem('Dados confirmados! ✅ Agora envie a foto da frente do RG. Se estiver com o RG aberto mostrando os dois lados, pode mandar uma foto só.');
-    if (!s.documentos.rg_verso.length)
+    if (!s.documentos.rg_verso.length && !s.documentosDispensados?.includes('rg_verso'))
         return finalizarMensagem('Recebi o arquivo. Agora pode enviar o verso do RG?');
-    if (!s.documentos.comprovante_endereco.length && !s.semComprovante)
+    if (!s.documentos.comprovante_endereco.length && !s.semComprovante && !s.documentosDispensados?.includes('comprovante_endereco'))
         return finalizarMensagem('Agora envie o comprovante de endereço. Pode ser conta, contrato, correspondência, foto ou PDF com o endereço. Se não tiver, me avise que seguimos com essa observação.');
     s.etapa = 'registrar';
-    return responder('Recebi seus dados e documentos. Vou registrar o pedido para análise e confirmação da instalação. ✅', 'registrar');
+    return responder(s.documentosDispensados?.length?'Vou encaminhar seu pedido para análise com a documentação pendente. A equipe continuará a conferência com você. ✅':'Recebi seus dados e documentos. Vou registrar o pedido para análise e confirmação da instalação. ✅', 'registrar');
 }
 module.exports = { CAMPOS, inicial, avancar, cpfValido, dataBR, positivo, escolherPlano, resumo, hashResumo };

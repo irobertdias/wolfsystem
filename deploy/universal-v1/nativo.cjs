@@ -56,7 +56,7 @@ module.exports=function instalar(ctx){
     s.proposta_id=await ops.registrar(f,meta.canalId,meta.numero,venda,d);vars.proposta_id=String(s.proposta_id);
    }
    s.concluido=true;vars[KEY]=JSON.stringify(s);await persistir();
-   const mensagem=modelo(d.mensagem_sucesso||'✅ Pedido #{{proposta_id}} registrado. Seus dados e arquivos foram salvos.',{...vars,...s.dados,proposta_id:s.proposta_id||''});
+   const mensagem=modelo(d.mensagem_sucesso||(s.documentosDispensados?.length?'✅ Pedido #{{proposta_id}} registrado com documentação pendente para conferência pela equipe.':'✅ Pedido #{{proposta_id}} registrado. Seus dados e arquivos foram salvos.'),{...vars,...s.dados,proposta_id:s.proposta_id||''});
    if(!s.avisouConclusao&&mensagem){await enviar(mensagem);s.avisouConclusao=true;vars[KEY]=JSON.stringify(s);await persistir();}
    if(d.whatsapp!==false&&s.proposta_id)setTimeout(()=>ops.entregarPendentes().catch(e=>console.error('[Universal entrega]',e.message)),100);
    return d.continuar_fluxo===false?{parar:true}:{proximoNoId:proximo(f,no.id)};

@@ -5,7 +5,7 @@ if(root!=='/root/wolf-whatsapp')throw Error('Raiz de instalação inesperada.');
 const destino=path.join(root,'src/services/universal-v1'),rota=path.join(root,'src/routes/fluxos.js'),index=path.join(root,'index.js');
 const backup=path.join(root,'backups','universal-configuravel-'+Date.now());fs.mkdirSync(backup,{mode:0o700});
 fs.cpSync(destino,path.join(backup,'universal-v1'),{recursive:true});fs.copyFileSync(rota,path.join(backup,'fluxos.js'));fs.copyFileSync(index,path.join(backup,'index.js'));
-const arquivos=['descoberta-vtal.cjs','endereco-midia.cjs','documentos.cjs','interpretacao.cjs','vtal.cjs','conversa.cjs','runtime.cjs','entrega-resposta.cjs','etiquetas-vendas.cjs','disponibilidade-retentativa.cjs','finalizar-conversa.cjs','pos-venda.cjs','generico.cjs','modelo-vendas.cjs','ia-configuravel.cjs','nativo.cjs','vero.cjs','vero-tabelas.cjs'];
+const arquivos=['descoberta-vtal.cjs','endereco-midia.cjs','documentos.cjs','interpretacao.cjs','vtal.cjs','conversa.cjs','runtime.cjs','entrega-resposta.cjs','etiquetas-vendas.cjs','disponibilidade-retentativa.cjs','finalizar-conversa.cjs','objecao-documentos.cjs','retencao-venda.cjs','pos-venda.cjs','generico.cjs','modelo-vendas.cjs','ia-configuravel.cjs','nativo.cjs','vero.cjs','vero-tabelas.cjs'];
 for(const f of arquivos)execFileSync(process.execPath,['--check',path.join(__dirname,f)]);
 let s=fs.readFileSync(rota,'utf8');
 if(!s.includes('const motorUniversalCompartilhado = ctx;'))s=s.replace('module.exports = function carregar_fluxos(ctx) {','module.exports = function carregar_fluxos(ctx) {\n  const motorUniversalCompartilhado = ctx;');

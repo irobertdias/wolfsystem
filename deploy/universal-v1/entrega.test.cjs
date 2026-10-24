@@ -42,6 +42,13 @@ test('arquivos recebidos juntos são lidos com a próxima pendência e persistid
     }finally{ctx.universalTeste.parar();if(path.dirname(dir)===fs.realpathSync(os.tmpdir())&&path.basename(dir).startsWith('wolf-doc-batch-'))fs.rmSync(dir,{recursive:true});}
 });
 function estado() { return { inicio: '2026-10-24T00:00:00Z', dados: { nome: 'Cliente Exemplo', cpf: '52998224725', data_nascimento: '23/01/2002', nome_mae: 'Mãe Exemplo', email: 'teste@example.com', telefone1: '5562999998888', endereco: 'Rua Exemplo 12', cidade: 'Goiânia', estado: 'GO', cep: '74480150', bairro: 'Centro', vencimento: '20', forma_pagamento: 'Boleto', tipo_pessoa: 'PF' }, plano: { id: 'pf-fibra-padrao', nome: 'Nio Fibra', mensalidade: 110, velocidade_mbps: 600 }, consulta: { status: 'disponivel_na_base' }, pendencias: [], documentos: { rg_frente: [{ path: 'grupoprime/cliente/rg', nome: 'rg.jpg', tipo: 'image/jpeg' }], rg_verso: [{ path: 'grupoprime/cliente/rg', nome: 'rg.jpg', tipo: 'image/jpeg' }], comprovante_endereco: [{ path: 'grupoprime/cliente/conta', nome: 'conta.pdf', tipo: 'application/pdf' }] } }; }
+test('recusa persistente registra no CRM e envia ao WhatsApp do BKO sem anexos, com pendência visível no template editado',async()=>{
+ const {ctx,db,envios}=preparar();
+ try{const s=estado();s.documentos={rg_frente:[],rg_verso:[],comprovante_endereco:[]};s.anexos=[];s.documentosDispensados=['rg_frente','rg_verso','comprovante_endereco'];s.pendencias=['Documentação pendente: cliente manteve a recusa de enviar após explicação de segurança. BKO deve continuar a conferência: RG frente, RG verso, comprovante de endereço.'];
+ const id=await ctx.universalTeste.registrar({id:29},164,'5562999998888',s,{crm:true,whatsapp:true,mensagem_bko:'Pedido {{proposta_id}} para conferência'});
+ await ctx.universalTeste.entregar(db.tabelas.proposta.find(p=>p.id===id));a.equal(envios.length,1);a.match(envios[0].conteudo,/Pedido .* para conferência/);a.match(envios[0].conteudo,/cliente manteve a recusa/);a.match(envios[0].conteudo,/BKO deve continuar/);a.equal(db.tabelas.proposta[0].dados_customizados.bko_pendente,'ENVIADO');a.equal(db.tabelas.proposta[0].dados_customizados.documentos_dispensados.length,3);
+ }finally{ctx.universalTeste.parar()}
+});
 test('cadastro real do motor aplica etiqueta com pedido retornado pelo CRM sem duplicar em retry',async()=>{
  const {ctx,db}=preparar();db.tabelas.atendimentos.push({id:70,workspace_id:'grupoprime',canal_id:164,numero:'5562999998888'});
  try{const id=await ctx.universalTeste.registrar({id:29},164,'5562999998888',estado());
