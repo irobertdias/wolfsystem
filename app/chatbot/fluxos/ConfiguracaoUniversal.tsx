@@ -1,12 +1,14 @@
 "use client";
-import { PERFIS_UNIVERSAIS, configurarNicho, perfilUniversal } from '../../lib/atendimento-universal';
-type Props={tipo:'assistente_universal'|'nicho_atendimento';dados:Record<string,any>;onChange:(dados:Record<string,any>)=>void};
+import { PERFIS_UNIVERSAIS, PROMPT_TELECOM_NIO, configurarNicho, perfilUniversal } from '../../lib/atendimento-universal';
+import ConclusaoUniversal from './ConclusaoUniversal';
+type Props={tipo:'assistente_universal'|'nicho_atendimento'|'concluir_venda_universal';dados:Record<string,any>;onChange:(dados:Record<string,any>)=>void;workspaceId?:string|null};
 const input={width:'100%',padding:10,border:'1px solid #cbd5e1',borderRadius:8,fontSize:12,boxSizing:'border-box' as const};
-export default function ConfiguracaoUniversal({tipo,dados:d,onChange:u}:Props){
+export default function ConfiguracaoUniversal({tipo,dados:d,onChange:u,workspaceId}:Props){
+ if(tipo==='concluir_venda_universal')return <ConclusaoUniversal dados={d} onChange={u} workspaceId={workspaceId}/>;
  const campo=(label:string,chave:string,multilinha=false)=><label style={{display:'grid',gap:5,fontSize:12,color:'#334155'}}>{label}{multilinha?<textarea style={input} rows={4} value={d[chave]||''} onChange={e=>u({[chave]:e.target.value})}/>:<input style={input} value={d[chave]||''} onChange={e=>u({[chave]:e.target.value})}/>}</label>;
  const perfil=perfilUniversal(d.nicho);
  return <div style={{display:'grid',gap:14}}>
-  <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:10,padding:12,fontSize:12,lineHeight:1.6}}><strong>{d.runtime==='universal-v1'?'Piloto telecom Nio · Grupo Prime':'Nova base universal · Configuração inicial'}</strong><br/>{d.runtime==='universal-v1'?'Consulta Vtal por endereço, cadastro no CRM e encaminhamento ao BKO configurado. A conexão e o estado do fluxo controlam a execução.':'Prepare e salve este fluxo como rascunho. Os perfis sem integração liberada permanecem disponíveis para configuração.'}</div>
+  <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:10,padding:12,fontSize:12,lineHeight:1.6}}><strong>{d.runtime==='universal-v1'?'Piloto telecom Nio · Grupo Prime':'Motor universal · Configuração'}</strong><br/>{tipo==='nicho_atendimento'?'O prompt completo da vendedora está abaixo. Conecte este nicho ao bloco Concluir venda · CRM + WhatsApp.':'A identidade e a apresentação ficam neste bloco. O prompt fica no nicho; cadastro e encaminhamento ficam na conclusão da venda.'}</div>
   {tipo==='assistente_universal'?<>
    {campo('Nome do assistente','nome')}{campo('Empresa ou estabelecimento','empresa')}
    <label style={{display:'grid',gap:5,fontSize:12}}>Papel no atendimento<select style={input} value={d.papel||'vendas'} onChange={e=>u({papel:e.target.value})}><option value="vendas">Vendas e orientação</option><option value="atendimento">Atendimento e suporte</option><option value="agendamento">Agendamento</option></select></label>
@@ -18,8 +20,9 @@ export default function ConfiguracaoUniversal({tipo,dados:d,onChange:u}:Props){
   </>:<>
    <label style={{display:'grid',gap:5,fontSize:12}}>Nicho deste atendimento<select style={input} value={d.nicho||''} onChange={e=>u(configurarNicho(e.target.value))}><option value="">Selecione um nicho</option>{Object.entries(PERFIS_UNIVERSAIS).map(([id,p])=><option key={id} value={id}>{p.nome}</option>)}</select></label>
    {perfil&&<>
+    <label style={{display:'grid',gap:6,fontSize:12,color:'#334155'}}><strong>Prompt da vendedora · usado no atendimento</strong><textarea style={{...input,minHeight:360,lineHeight:1.6}} rows={20} value={d.prompt||(d.nicho==='telecom'?PROMPT_TELECOM_NIO:'')} onChange={e=>u({prompt:e.target.value})}/><small>Salve o fluxo para aplicar as alterações. Consulta, catálogo, confirmação e ações de conclusão continuam conferidos pelo motor.</small></label>
     {campo('Objetivo específico','objetivo',true)}
-    <label style={{display:'grid',gap:5,fontSize:12}}>Dados a coletar, na ordem desejada<textarea rows={6} style={input} value={(Array.isArray(d.campos)?d.campos:[]).join('\n')} onChange={e=>u({campos:e.target.value.split('\n').map(v=>v.trim()).filter(Boolean)})}/><small>Um campo por linha. Esta é a configuração inicial; a validação de cada campo virá na próxima etapa.</small></label>
+    {d.nicho==='telecom'?<div style={{padding:12,background:'#f8fafc',borderRadius:8,fontSize:12,lineHeight:1.7}}><strong>Cadastro após a escolha do plano</strong><p>Nome → CPF → nascimento → nome da mãe → e-mail → confirmar endereço → telefone → vencimento → pagamento → resumo → confirmação → documentos → conclusão.</p></div>:<label style={{display:'grid',gap:5,fontSize:12}}>Dados a coletar<textarea rows={6} style={input} value={(Array.isArray(d.campos)?d.campos:[]).join('\n')} onChange={e=>u({campos:e.target.value.split('\n').map(v=>v.trim()).filter(Boolean)})}/><small>Configuração em rascunho para perfis ainda sem execução liberada.</small></label>}
     {campo('Fontes de informação: catálogo, agenda, APIs ou sistema integrado','fontes',true)}{campo('Regras específicas deste nicho','regras',true)}
     <div style={{padding:12,background:'#f8fafc',borderRadius:8,fontSize:12,lineHeight:1.7}}><strong>Capacidades previstas</strong><p>{perfil.acoes.join(' · ')}</p><strong>Documentos sugeridos, quando necessários</strong><p>{perfil.documentos.length?perfil.documentos.join(' · '):'Este perfil não exige documentos por padrão.'}</p><p style={{marginBottom:0}}>Somente este perfil será associado ao assistente conectado. Trocar o nicho restaura os campos sugeridos do novo perfil; os dados não são misturados.</p></div>
    </>}

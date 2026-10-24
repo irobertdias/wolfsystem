@@ -1,5 +1,6 @@
 'use strict';
 const fs = require('node:fs'), path = require('node:path'), { execFileSync } = require('node:child_process');
+const { PROMPT_TELECOM_NIO, conclusaoUniversalInicial } = require('./configuracao-universal.cjs');
 async function main() {
     const root = fs.realpathSync(process.argv[2] || '/root/wolf-whatsapp');
     if (root !== '/root/wolf-whatsapp')
@@ -22,7 +23,7 @@ async function main() {
     if (fs.existsSync(destino))
         fs.cpSync(destino, path.join(backup, 'universal-v1'), { recursive: true });
     fs.mkdirSync(destino, { recursive: true, mode: 0o700 });
-    for (const f of ['vtal.cjs', 'conversa.cjs', 'interpretacao.cjs', 'runtime.cjs', 'planos-grupoprime.cjs', 'universal.test.cjs', 'entrega.test.cjs', 'avaliar-ia.cjs', 'ensaio.cjs']) {
+    for (const f of ['vtal.cjs', 'conversa.cjs', 'interpretacao.cjs', 'runtime.cjs', 'planos-grupoprime.cjs', 'configuracao-universal.cjs', 'universal.test.cjs', 'entrega.test.cjs', 'configuracao.test.cjs', 'avaliar-ia.cjs', 'ensaio.cjs']) {
         execFileSync(process.execPath, ['--check', path.join(__dirname, f)]);
         fs.copyFileSync(path.join(__dirname, f), path.join(destino, f));
     }
@@ -57,6 +58,9 @@ async function main() {
     let fluxo = fluxos.find(f => f.nos?.some(n => n.tipo === 'assistente_universal' && n.dados?.runtime === 'universal-v1'));
     if (!fluxo) {
         const payload = { workspace_id: 'grupoprime', nome: 'Grupo Prime · Nio · Universal V1', descricao: 'Piloto: cidade/UF, consulta exata VTAL, ofertas PF/PJ, cadastro, confirmação, documentos e envio automático ao BKO.', ativo: false, trigger_tipo: 'primeiro_contato', trigger_valor: '', nos: [{ id: 'universal_inicio', tipo: 'inicio', x: 150, y: 100, dados: { mensagem: '' }, saidas: ['Próximo'] }, { id: 'universal_assistente', tipo: 'assistente_universal', x: 150, y: 270, dados: { versao: 1, runtime: 'universal-v1', nome: 'a assistente virtual de vendas', empresa: 'Grupo Prime', papel: 'vendas', tom: 'acolhedor', confirmarAntesDeExecutar: true }, saidas: ['Configurar nicho'] }, { id: 'universal_nicho', tipo: 'nicho_atendimento', x: 150, y: 480, dados: { versao: 1, nicho: 'telecom', integracao: 'vtal', objetivo: 'Vender planos Nio por endereço confirmado na base VTAL', campos: ['cidade', 'estado', 'cep', 'endereco', 'tipo_pessoa', 'plano', 'nome', 'cpf', 'data_nascimento', 'nome_mae', 'email', 'telefone1', 'vencimento', 'forma_pagamento'], fontes: 'VTAL: https://vtal.wolfgyn.com.br/api/cep · Índice local de ruas · Tabela Nio por cidade/UF · BKO configurado no sistema' }, saidas: ['Atendimento configurado'] }], conexoes: [{ id: 'u1', de: 'universal_inicio', para: 'universal_assistente', saidaIndex: 0 }, { id: 'u2', de: 'universal_assistente', para: 'universal_nicho', saidaIndex: 0 }] };
+        payload.nos.find(n => n.tipo === 'nicho_atendimento').dados.prompt = PROMPT_TELECOM_NIO;
+        payload.nos.push({ id: 'universal_conclusao', tipo: 'concluir_venda_universal', x: 150, y: 690, dados: conclusaoUniversalInicial(), saidas: [] });
+        payload.conexoes.push({ id: 'universal_nicho_conclusao', de: 'universal_nicho', para: 'universal_conclusao', saidaIndex: 0 });
         const r = await db.from('fluxos').insert(payload).select('*').single();
         if (r.error)
             throw r.error;

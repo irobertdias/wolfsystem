@@ -2,6 +2,10 @@
 
 O piloto usa um assistente universal conectado a um nicho telecom. Os demais nichos continuam em rascunho. O processamento fica no serviço WhatsApp; o editor e a API Next não executam conversas em segundo plano.
 
+O fluxo visível é **Vendedor IA → Nicho de atendimento → Concluir venda · CRM + WhatsApp**. O campo `prompt` do nicho é editável e usado pelo interpretador. O último bloco controla as opções reais `crm` e `whatsapp`; ambas ficam ligadas no piloto. Ele mostra a configuração BKO Nio já existente. Desmarcar WhatsApp conserva o pedido no CRM sem colocá-lo na fila de envio; desmarcar CRM impede o cadastro automático e também desmarca WhatsApp.
+
+`configuracao-universal.cjs` é compilado de `app/lib/atendimento-universal.ts`, mantendo o prompt padrão e as opções de conclusão iguais no editor e no servidor. `migrar-configuracao.cjs` acrescenta o prompt e o bloco final ao fluxo 29 com backup e comparação do conteúdo anterior, preservando o estado de ativação e os atendimentos.
+
 ## Consulta
 
 - `/api/viabilidade/grupoprime/vtal` usa a autenticação do workspace ou o token de leitura já existente.

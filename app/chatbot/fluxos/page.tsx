@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useModulos } from "../../hooks/useModulos";
 import ConfiguracaoUniversal from './ConfiguracaoUniversal';
-import { assistenteUniversalInicial, nichoUniversalInicial, validarEstruturaUniversal, universalExecutavel } from '../../lib/atendimento-universal';
+import { assistenteUniversalInicial, nichoUniversalInicial, conclusaoUniversalInicial, validarEstruturaUniversal, universalExecutavel } from '../../lib/atendimento-universal';
 import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
 
 type TipoNo =
-  | "assistente_universal" | "nicho_atendimento"
+  | "assistente_universal" | "nicho_atendimento" | "concluir_venda_universal"
   | "texto" | "imagem" | "video" | "audio" | "embed"
   | "input_texto" | "input_numero" | "input_email" | "input_website"
   | "input_data" | "input_hora" | "input_telefone" | "input_botao"
@@ -44,6 +44,7 @@ function booleanoConfiguracao(valor: any, padrao = false): boolean {
 const B: Record<TipoNo, BC> = {
   assistente_universal: {label:"Vendedor IA · Universal",icone:"✨",cor:"#2563eb",saidas:["Configurar nicho"],grupo:"Integrações"},
   nicho_atendimento: {label:"Nicho de atendimento",icone:"🧩",cor:"#0f766e",saidas:["Atendimento configurado"],grupo:"Integrações"},
+  concluir_venda_universal: {label:"Concluir venda · CRM + WhatsApp",icone:"✅",cor:"#15803d",saidas:[],grupo:"Integrações"},
   texto:                {label:"Texto",           icone:"💬", cor:"#3b82f6", saidas:["Próximo"],                     grupo:"Bubbles"},
   imagem:               {label:"Imagem",          icone:"🖼️", cor:"#06b6d4", saidas:["Próximo"],                     grupo:"Bubbles"},
   video:                {label:"Vídeo",           icone:"🎥", cor:"#8b5cf6", saidas:["Próximo"],                     grupo:"Bubbles"},
@@ -146,6 +147,7 @@ async function getWsUsername(): Promise<string|null> {
 function defaultD(tipo: TipoNo): Record<string,any> {
   if(tipo==='assistente_universal')return assistenteUniversalInicial();
   if(tipo==='nicho_atendimento')return nichoUniversalInicial();
+  if(tipo==='concluir_venda_universal')return conclusaoUniversalInicial();
   const m: Partial<Record<TipoNo,Record<string,any>>> = {
     texto:{texto:"Digite sua mensagem aqui..."},
     imagem:{url:"",legenda:""},video:{url:"",legenda:""},audio:{url:""},embed:{url:""},
@@ -856,7 +858,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
   switch (noSel.tipo) {
     case 'assistente_universal':
     case 'nicho_atendimento':
-      return <ConfiguracaoUniversal tipo={noSel.tipo} dados={d} onChange={u}/>;
+    case 'concluir_venda_universal':
+      return <ConfiguracaoUniversal tipo={noSel.tipo} dados={d} onChange={u} workspaceId={workspaceId}/>;
     case "texto": return <>{TVar("Mensagem","texto","Digite sua mensagem aqui...",120)}</>;
     case "imagem": return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;
     case "video":  return <>{F("URL","url","url","https://...")}{F("Legenda","legenda")}</>;

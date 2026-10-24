@@ -26,6 +26,25 @@ function preparar({ falharRecibo = false } = {}) {
     return { ctx, db, envios, recibos };
 }
 function estado() { return { inicio: '2026-10-24T00:00:00Z', dados: { nome: 'Cliente Exemplo', cpf: '52998224725', data_nascimento: '23/01/2002', nome_mae: 'Mãe Exemplo', email: 'teste@example.com', telefone1: '5562999998888', endereco: 'Rua Exemplo 12', cidade: 'Goiânia', estado: 'GO', cep: '74480150', bairro: 'Centro', vencimento: '20', forma_pagamento: 'Boleto', tipo_pessoa: 'PF' }, plano: { id: 'pf-fibra-padrao', nome: 'Nio Fibra', mensalidade: 110, velocidade_mbps: 600 }, consulta: { status: 'disponivel_na_base' }, pendencias: [], documentos: { rg_frente: [{ path: 'grupoprime/cliente/rg', nome: 'rg.jpg', tipo: 'image/jpeg' }], rg_verso: [{ path: 'grupoprime/cliente/rg', nome: 'rg.jpg', tipo: 'image/jpeg' }], comprovante_endereco: [{ path: 'grupoprime/cliente/conta', nome: 'conta.pdf', tipo: 'application/pdf' }] } }; }
+
+test('desmarcar WhatsApp mantém a venda no CRM e impede a entrega', async () => {
+    const { ctx, db, envios } = preparar();
+    try {
+        await ctx.universalTeste.registrar({ id: 29 }, 164, '5562999998888', estado(), { crm: true, whatsapp: false });
+        a.equal(db.tabelas.proposta.length, 1);
+        a.equal(db.tabelas.proposta[0].dados_customizados.bko_pendente, 'DESATIVADO');
+        await ctx.universalTeste.entregar(structuredClone(db.tabelas.proposta[0]));
+        a.equal(envios.length, 0);
+    } finally { ctx.universalTeste.parar(); }
+});
+
+test('desmarcar CRM impede uma inserção acidental', async () => {
+    const { ctx, db } = preparar();
+    try {
+        await a.rejects(() => ctx.universalTeste.registrar({ id: 29 }, 164, '5562999998888', estado(), { crm: false, whatsapp: false }), /desativado/);
+        a.equal(db.tabelas.proposta.length, 0);
+    } finally { ctx.universalTeste.parar(); }
+});
 test('cadastro repetido usa a mesma venda; RG aberto não duplica anexo no WhatsApp', async () => { const { ctx, db, envios } = preparar(); try {
     const s = estado(), id = await ctx.universalTeste.registrar({ id: 29 }, 164, '5562999998888', s);
     a.equal(await ctx.universalTeste.registrar({ id: 29 }, 164, '5562999998888', s), id);

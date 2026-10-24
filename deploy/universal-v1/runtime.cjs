@@ -2,6 +2,7 @@
 const fs = require('node:fs'), path = require('node:path'), { createHash, randomBytes } = require('node:crypto');
 const { criarConsulta } = require('./vtal.cjs'), { criarInterpretador } = require('./interpretacao.cjs');
 const { inicial, avancar, resumo } = require('./conversa.cjs'), { planosDaCidade } = require('./planos-grupoprime.cjs');
+const { conclusaoUniversalInicial } = require('./configuracao-universal.cjs');
 const WS = 'grupoprime', KEY = '__universal_v1';
 const parse = v => { try {
     return typeof v === 'string' ? JSON.parse(v) : v || {};
@@ -15,7 +16,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     let entregando = false;
     const secreto = opcoes.credencial || JSON.parse(fs.readFileSync(path.join(__dirname, 'credencial.json'), 'utf8'));
     const interprete = opcoes.interprete || criarInterpretador({ ...secreto, catalogo: planosDaCidade });
-    ctx.app.get('/universal/health', (_q, r) => r.json({ versao: 1, workspace: WS, nicho: 'telecom', pronto: !!secreto.apiKey, leitura_documentos: secreto.documentosOpenai === true }));
+    ctx.app.get('/universal/health', (_q, r) => r.json({ versao: 1, workspace: WS, nicho: 'telecom', pronto: !!secreto.apiKey, leitura_documentos: secreto.documentosOpenai === true, prompt_configuravel: true, conclusao_configuravel: true }));
     ctx.app.get('/universal/vtal', async (q, r) => { if (q.query.workspaceId !== WS)
         return r.status(403).json({ success: false }); const entrada = {}; for (const k of ['cep', 'cidade', 'uf', 'logradouro', 'quadra', 'lote', 'numero', 'casa', 'apartamento', 'bloco', 'texto']) {
         if (q.query[k] && String(q.query[k]).length > 500)
@@ -48,7 +49,8 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         }
         return anexos;
     }
-    async function registrar(fluxo, canal, n, s) {
+    async function registrar(fluxo, canal, n, s, conclusao = conclusaoUniversalInicial()) {
+        if (conclusao.crm === false) throw Error('Cadastro automático no CRM está desativado neste bloco.');
         const chave = createHash('sha256').update(`${WS}:${fluxo.id}:${canal}:${n}:${s.inicio}`).digest('hex');
         const anterior = await db.from('proposta').select('id').eq('workspace_id', WS).eq('dados_customizados->>universal_chave', chave).limit(2);
         if (anterior.error)
@@ -57,7 +59,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             throw Error('Pedido exige reconciliação, sem novo cadastro');
         if (anterior.data.length === 1)
             return anterior.data[0].id;
-        const d = s.dados, custom = { universal_v1: 'SIM', universal_chave: chave, numero_origem_whatsapp: String(n), plano_id: s.plano.id, velocidade_mbps: s.plano.velocidade_mbps, tipo_pessoa: d.tipo_pessoa, cnpj: d.cnpj || '', bairro: d.bairro, vtal: s.consulta, pendencias_bko: JSON.stringify([...new Set(s.pendencias)]), bko_pendente: 'SIM', universal_entrega: { partes: [], tentativas: 0 }, ...s.documentos };
+        const d = s.dados, custom = { universal_v1: 'SIM', universal_chave: chave, numero_origem_whatsapp: String(n), plano_id: s.plano.id, velocidade_mbps: s.plano.velocidade_mbps, tipo_pessoa: d.tipo_pessoa, cnpj: d.cnpj || '', bairro: d.bairro, vtal: s.consulta, pendencias_bko: JSON.stringify([...new Set(s.pendencias)]), bko_pendente: conclusao.whatsapp === false ? 'DESATIVADO' : 'SIM', envio_whatsapp_ativo: conclusao.whatsapp !== false, universal_entrega: { partes: [], tentativas: 0 }, ...s.documentos };
         const p = { workspace_id: WS, canal_id: Number(canal), fluxo_id: fluxo.id, data_proposta: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()), status_venda: 'AGUARDANDO AUDITORIA', operadora: 'Nio', plano: s.plano.nome, valor_plano: s.plano.mensalidade, dados_customizados: custom };
         for (const k of ['nome', 'cpf', 'data_nascimento', 'nome_mae', 'email', 'telefone1', 'vencimento', 'forma_pagamento', 'endereco', 'cidade', 'estado', 'cep'])
             p[k] = d[k] || '';
@@ -99,9 +101,14 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             }
             delete s.instabilidadeAvisada;
             if (r.acao === 'registrar') {
-                s.proposta_id = await registrar(fluxo, canal, n, s);
+                const conclusao = { ...conclusaoUniversalInicial(), ...no.dados.conclusao };
+                if (conclusao.crm === false) {
+                    r.mensagem = 'Recebi seus dados e arquivos. Eles ficaram preservados neste atendimento para a equipe continuar o pedido.';
+                } else {
+                    s.proposta_id = await registrar(fluxo, canal, n, s, conclusao);
+                    r.mensagem = `✅ *Pedido #${s.proposta_id} registrado no CRM!*\nSeus dados e arquivos foram salvos. ${conclusao.whatsapp === false ? 'A equipe vai acompanhar o pedido no sistema.' : 'O encaminhamento à equipe pelo WhatsApp está na fila automática.'} A análise e a instalação ainda serão confirmadas. Obrigado por escolher a Grupo Prime! 💚`;
+                }
                 s.etapa = 'concluido';
-                r.mensagem = `✅ *Pedido #${s.proposta_id} registrado!*\nSeus dados e arquivos foram salvos. O encaminhamento à equipe pelo WhatsApp está na fila automática. A análise e a instalação ainda serão confirmadas. Obrigado por escolher a Grupo Prime! 💚`;
             }
             await salvar(fluxo, no, canal, n, s);
             // Se uma nova mensagem chegou durante a interpretação, processe o conjunto
@@ -156,7 +163,11 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         const destinos = (fluxo.conexoes || []).filter(a => a.de === no.id).map(a => fluxo.nos.find(n => n.id === a.para));
         if (destinos.length !== 1 || destinos[0]?.dados?.nicho !== 'telecom')
             throw Error('Configure um único nicho telecom');
-        const configurado = { ...no, dados: { ...no.dados, regrasNicho: destinos[0].dados.regras || '' } };
+        const finais = (fluxo.conexoes || []).filter(a => a.de === destinos[0].id && Number(a.saidaIndex) === 0).map(a => fluxo.nos.find(n => n.id === a.para));
+        if (finais.length > 1 || (finais.length === 1 && finais[0]?.tipo !== 'concluir_venda_universal')) throw Error('Conecte o nicho a uma única conclusão de venda.');
+        const conclusao = { ...conclusaoUniversalInicial(), ...(finais[0]?.dados || {}) };
+        if (conclusao.crm === false && conclusao.whatsapp === true) throw Error('O WhatsApp depende do cadastro no CRM.');
+        const configurado = { ...no, dados: { ...no.dados, regrasNicho: destinos[0].dados.regras || '', promptNicho: destinos[0].dados.prompt || '', conclusao } };
         const chave = `${ws}:${canal}:${n}`, f = filas.get(chave) || { fluxo, no: configurado, canal, n, enviar, mensagens: [], esperas: [], rodando: false };
         filas.set(chave, f);
         f.mensagens.push(String(mensagem || ''));
@@ -173,6 +184,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         throw Error('Venda foi atualizada durante o envio'); return data; }
     async function entregar(p) {
         let c = structuredClone(p.dados_customizados), meta = c.universal_entrega || { partes: [], tentativas: 0 };
+        if (c.envio_whatsapp_ativo === false || c.bko_pendente === 'DESATIVADO') return;
         const cfg = await configBko(), exatos = cfg.contatos.filter(r => Number(r.canal_trafego_id) === Number(p.canal_id));
         const destinos = exatos.length ? exatos : cfg.contatos;
         if (destinos.length !== 1)
