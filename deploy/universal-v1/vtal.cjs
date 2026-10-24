@@ -25,7 +25,7 @@ function interpretarEndereco(texto) {
         if (fachada) r.logradouro = r.logradouro.replace(/\s+\d+[A-Z]?$/, '').trim();
         if (!r.quadra && !r.lote) {
             const fim = r.logradouro.match(/\s+(\d+)$/);
-            if (fim && (/[,;]/.test(resto) || r.logradouro.split(/\s+/).length >= 3)) {
+            if (fim && !/^(?:RUA|R)\.?\s+[A-Z]\s+\d+$/.test(r.logradouro) && (/[,;]/.test(resto) || r.logradouro.split(/\s+/).length >= 3)) {
                 r.numero = r.numero || numero(fim[1]);
                 r.logradouro = r.logradouro.slice(0, fim.index).trim();
             }
@@ -76,7 +76,7 @@ function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indi
         const nome = normalizar(cidade).replace(/[^A-Z0-9]+/g, '_');
         const file = path.join(diretorio, normalizar(uf) + '-' + nome + '.json.gz');
         if (!fs.existsSync(file))
-            throw Error('Índice da cidade indisponível');
+            return null; // No local street index: ask for CEP, never retry as an outage.
         return [...new Set(JSON.parse(zlib.gunzipSync(fs.readFileSync(file))).filter(([l]) => ruaCompativel(l, rua)).map(([, c]) => c))];
     }
     async function porCep(e) {
@@ -157,6 +157,8 @@ function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indi
                 return { status: 'cep_incompleto', resultados: [] };
             if (!e.cep) {
                 const ceps = descobrir(e.cidade, e.uf, e.logradouro);
+                if (ceps === null)
+                    return { status: 'cep_necessario', motivo:'indice_local_ausente', resultados: [] };
                 if (!ceps.length)
                     return { status: 'nao_localizado', resultados: [] };
                 if (ceps.length > 8)

@@ -2,6 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto');
 const {criarIA}=require('./ia-configuravel.cjs'),generico=require('./generico.cjs');
 const {modelo}=require('./modelo-vendas.cjs');
+const {dadosDaMidia}=require('./endereco-midia.cjs');
 const KEY='__universal_v2';
 const parse=v=>{try{return typeof v==='string'?JSON.parse(v):v||{};}catch{return {};}};
 module.exports=function instalar(ctx){
@@ -33,7 +34,7 @@ module.exports=function instalar(ctx){
    if(!existente)s.anexos.push(a);await persistir();
    let leitura;try{leitura=await ia.lerDocumento({buffer,mime:tipo,nome,documentos:nicho.documentos_config||[],endereco:s.dados.endereco,autorizado});}catch{leitura={categorias:[],leitura:'inconclusiva'};}
    Object.assign(a,leitura);let categorias=a.categorias||[];
-   if(!categorias.length||categorias.every(k=>s.documentos[k]?.length)){const falta=(nicho.documentos_config||[]).find(d=>!s.documentos[d.variavel]?.length);if(falta)categorias=[falta.variavel];s.pendencias.push('Conferir original recebido: '+nome);}
+   if(s.confirmado&&(!categorias.length||categorias.every(k=>s.documentos[k]?.length))){const falta=(nicho.documentos_config||[]).find(d=>!s.documentos[d.variavel]?.length);if(falta)categorias=[falta.variavel];s.pendencias.push('Conferir original recebido: '+nome);}
    for(const k of categorias){s.documentos[k]||=[];if(!s.documentos[k].some(x=>x.path===a.path))s.documentos[k].push(a);}
    a.classificado=true;await persistir();
   }
@@ -66,7 +67,8 @@ module.exports=function instalar(ctx){
   let s=parse(vars[KEY]);if(s.versao!==2){const legado=parse(vars.__universal_v1);s={versao:2,inicio:legado.inicio||new Date().toISOString(),dados:legado.dados||{},historico:legado.historico||[],documentos:legado.documentos||{},anexos:legado.anexos||[],pendencias:legado.pendencias||[],apresentou:!!legado.apresentou,confirmado:!!legado.confirmado,...(legado.versao===1?{nio:legado,aberturaConcluida:!!(legado.plano&&legado.dados.endereco&&legado.dados.bairro),plano:legado.plano,consulta:legado.consulta}:{})};}
   if(s.plano&&!s.oferta)s.oferta={...s.plano,preco:s.plano.mensalidade};
   const salvar=async()=>{Object.assign(vars,s.dados);for(const [k,v]of Object.entries(s.documentos))vars[k]=JSON.stringify(v);vars[KEY]=JSON.stringify(s);await persistir();await ctx.salvarSessaoFluxo(meta.workspaceId,meta.canalId,meta.numero,f.id,no.id,vars,true,'nicho_atendimento');};
-  s.pendentes=[...(s.pendentes||[]),...(texto?[String(texto)]:[])].slice(-20);texto=s.pendentes.join('\n');await salvar();
+  const novaEntrada=!!String(texto||'').trim();
+  s.pendentes=[...(s.pendentes||[]),...(novaEntrada?[String(texto)]:[])].filter(m=>String(m).trim()).slice(-20);texto=s.pendentes.join('\n');await salvar();
   await arquivos(String(texto||''),s,meta,nicho,ia,assistente.autorizar_leitura_documentos===true,salvar);
   let r;
   if(['vtal_nio','vero_vtal'].includes(nicho.integracao)&&!s.aberturaConcluida){
@@ -74,7 +76,10 @@ module.exports=function instalar(ctx){
    const configuradas=generico.catalogo(nicho,vars);
    const vero=nicho.integracao==='vero_vtal'?require('./vero.cjs').criarVero({consultaVtal:criarConsulta(),estado:s.nio||{},politica:nicho.vero_config}):null;
    const catalogo=vero?.catalogo||(configuradas.length?()=>({pessoa_fisica:configuradas.filter(p=>p.tipo_pessoa!=='PJ').map(p=>({...p,mensalidade:p.preco,velocidade_mbps:Number(p.velocidade_mbps)||0})),pessoa_juridica:configuradas.filter(p=>p.tipo_pessoa==='PJ').map(p=>({...p,mensalidade:p.preco,velocidade_mbps:Number(p.velocidade_mbps)||0}))}):planosDaCidade);
-   const antigo=await avancar({estado:s.nio||inicial(),entrada:texto,numero:meta.numero,extrair:criarInterpretador({apiKey,model:assistente.modelo||'gpt-4o-mini',catalogo}).extrair,consultar:vero?.consultar||criarConsulta(),catalogo,config:{...assistente,promptNicho:nicho.prompt,regrasNicho:nicho.regras}});
+   const abertura=s.nio||inicial();Object.assign(abertura.dados,dadosDaMidia(s.anexos,abertura.dados).dados);abertura.enderecosMidia=s.anexos.flatMap(a=>a.enderecos||[]);
+   const entradaChave=createHash('sha256').update(texto).digest('hex'),retomadaInterpretada=!novaEntrada&&s.entradaInterpretadaChave===entradaChave;
+   const antigo=await avancar({estado:abertura,entrada:retomadaInterpretada?'':texto,numero:meta.numero,extrair:criarInterpretador({apiKey,model:assistente.modelo||'gpt-4o-mini',catalogo}).extrair,consultar:vero?.consultar||criarConsulta(),catalogo,config:{...assistente,promptNicho:nicho.prompt,regrasNicho:nicho.regras}});
+   s.entradaInterpretadaChave=entradaChave;
    s.nio=antigo.estado;s.dados={...s.dados,...s.nio.dados};s.apresentou=s.nio.apresentou;
    if(s.nio.plano&&s.dados.endereco&&s.dados.bairro){s.aberturaConcluida=true;s.plano=s.nio.plano;s.oferta={...s.plano,preco:s.plano.mensalidade};s.dados.plano=s.plano.nome;s.dados.valor_plano=s.plano.mensalidade;s.consulta=s.nio.consulta;s.historico=s.nio.historico;r=await generico.avancar({estado:s,texto:'',numero:meta.numero,nicho,assistente,vars,extrair:async()=>({dados:[],resposta:''})});}
    else r={estado:s,mensagem:antigo.mensagem,concluido:false,encerrar:antigo.acao==='encerrar'};

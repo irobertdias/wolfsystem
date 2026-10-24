@@ -35,7 +35,7 @@ test('arquivos recebidos juntos são lidos com a próxima pendência e persistid
     for(const nome of ['frente.jpg','verso.jpg','conta.pdf'])fs.writeFileSync(path.join(dir,nome),'fixture');
     carregar(ctx,{teste:true,credencial:{apiKey:'TESTE',documentosOpenai:true},interprete:{lerDocumento:async({pendente})=>{pendencias.push(pendente);return {categorias:[],leitura:'inconclusiva'}}}});
     try {
-        const s=require('./conversa.cjs').inicial();
+        const s=require('./conversa.cjs').inicial();s.etapa='documentos';
         await ctx.universalTeste.anexar('[img:frente.jpg]\n[img:verso.jpg]\n[file:conta.pdf]',s,164,'5562999998888',async()=>salvos.push(s.anexos.length));
         a.deepEqual(pendencias,['rg_frente','rg_verso','comprovante_endereco']);a.deepEqual(salvos,[1,2,3]);
         await ctx.universalTeste.anexar('[img:frente.jpg]',s,164,'5562999998888');a.equal(s.anexos.length,3);a.equal(pendencias.length,3);

@@ -7,7 +7,7 @@ function incorporar(s, arquivo) {
     let categorias = (arquivo.categorias || []).filter(k => TIPOS.includes(k));
     // Duas faces separadas podem ser classificadas como a mesma face. Preservar
     // ambas e encaminhar a conferência ao BKO, em vez de pedir o mesmo arquivo.
-    if (!categorias.length) categorias = [pendente(s)];
+    if (!categorias.length && (s.etapa==='documentos'||s.confirmado===true)) categorias = [pendente(s)];
     else if (categorias.length === 1 && categorias[0].startsWith('rg_') && s.documentos[categorias[0]].length) {
         const outra = categorias[0] === 'rg_frente' ? 'rg_verso' : 'rg_frente';
         if (!s.documentos[outra].length) {

@@ -15,7 +15,7 @@ const telefoneBko = v => { const n = String(v || '').replace(/\D/g, ''); return 
 module.exports = function carregarUniversal(ctx, opcoes = {}) {
     const WS=opcoes.workspace||'grupoprime';
     const {registro,modelo,configuracao}=require('./modelo-vendas.cjs');
-    const db = ctx.supabase, base = ctx.executarFluxo, consulta = criarConsulta(), filas = new Map();
+    const db = ctx.supabase, base = ctx.executarFluxo, consulta = opcoes.consulta||criarConsulta(), filas = new Map();
     let entregando = false;
     const secreto = opcoes.credencial || JSON.parse(fs.readFileSync(path.join(__dirname, 'credencial.json'), 'utf8'));
     const interprete = opcoes.interprete || criarInterpretador({ ...secreto, catalogo: planosDaCidade });
@@ -34,8 +34,11 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             if (nome !== m[1] || !nome || nome.includes('..'))
                 throw Error('Arquivo fora do diretório de mídia');
             const fingerprint = createHash('sha256').update(nome).digest('hex');
-            if (s.anexos.some(a => a.origem === fingerprint))
+            const existente=s.anexos.find(a => a.origem === fingerprint);
+            if (existente) {
+                anexos.push(existente);
                 continue;
+            }
             const origem = path.join(ctx.AUDIOS_DIR, nome), buffer = fs.readFileSync(origem);
             if (!buffer.length || buffer.length > 25 * 1024 * 1024)
                 throw Error('Não foi possível armazenar o arquivo recebido');
@@ -93,14 +96,18 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             if(resposta) { await enviar(resposta.mensagem);return true; }
         }
         // Entrada é persistida antes da API. Se houver falha, a próxima tentativa retoma o lote.
-        s.pendentes = [...(s.pendentes || []), ...mensagens].slice(-30);
+        const novaEntrada=mensagens.some(m=>String(m||'').trim());
+        s.pendentes = [...(s.pendentes || []), ...mensagens].filter(m=>String(m||'').trim()).slice(-30);
         await salvar(fluxo, no, canal, n, s);
         try {
             const texto = s.pendentes.join('\n'), anexos = await anexar(texto, s, canal, n, () => salvar(fluxo, no, canal, n, s),no.dados);
+            const entradaChave=createHash('sha256').update(texto).digest('hex');
+            const retomadaInterpretada=!novaEntrada&&s.entradaInterpretadaChave===entradaChave;
             const ia=no.dados.apiKey||no.dados.modelo?criarInterpretador({...secreto,apiKey:no.dados.apiKey||secreto.apiKey,model:no.dados.modelo||secreto.model,catalogo:planosDaCidade}):interprete;
-            const r = await avancar({ estado: s, entrada: texto, numero: n, extrair: ia.extrair, consultar: consulta, catalogo: planosDaCidade, anexos, config: no.dados });
+            const r = await avancar({ estado: s, entrada: retomadaInterpretada?'':texto, numero: n, extrair: ia.extrair, consultar: consulta, catalogo: planosDaCidade, anexos, config: no.dados });
             const lotePendente = s.pendentes;
             s = r.estado;
+            s.entradaInterpretadaChave=entradaChave;
             s.pendentes = [];
             delete s.erro;
             s.repeticoesErro = 0;
@@ -131,7 +138,9 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             // antes de perguntar algo que o cliente pode já ter respondido.
             if (filas.get(item.chave)?.mensagens.length && r.acao !== 'registrar')
                 return true;
-            await enviar(r.mensagem);
+            if(novaEntrada||r.acao||s.ultimaEtapaEnviada!==s.etapa)await enviar(r.mensagem);
+            s.ultimaEtapaEnviada=s.etapa;
+            await salvar(fluxo, no, canal, n, s);
             if (r.acao === 'encerrar') {
                 const { error } = await db.from('atendimentos').update({ status: 'finalizado', bloqueado_ia: true, bloqueado_fluxo: true, bloqueado_typebot: true }).eq('workspace_id', WS).eq('canal_id', canal).eq('numero', n);
                 if (error)
@@ -378,6 +387,6 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     ctx.universalOperacoes={registrar,entregar,entregarPendentes,posVenda,configBko,salvarEntrega};
     ctx.universalV1 = true;
     if (opcoes.teste)
-        ctx.universalTeste = { registrar, entregar, anexar, posVenda, filas, parar: () => clearInterval(timer) };
+        ctx.universalTeste = { registrar, entregar, anexar, processar, posVenda, filas, parar: () => clearInterval(timer) };
     return ctx;
 };

@@ -2,6 +2,7 @@
 const { normalizar, ufSigla, interpretarEndereco, parte } = require('./vtal.cjs');
 const { createHash } = require('node:crypto');
 const { incorporar } = require('./documentos.cjs');
+const {dadosDaMidia}=require('./endereco-midia.cjs');
 const CAMPOS = ['nome', 'cpf', 'data_nascimento', 'nome_mae', 'email', 'telefone1', 'vencimento', 'forma_pagamento'];
 const rotulos = { nome: 'seu nome completo', cpf: 'o CPF do titular', data_nascimento: 'sua data de nascimento', nome_mae: 'o nome completo da sua mãe', email: 'seu e-mail', telefone1: 'um telefone para contato. Pode ser este mesmo WhatsApp', vencimento: 'o dia de vencimento que prefere para a fatura', forma_pagamento: 'a forma de pagamento: boleto ou débito em conta' };
 const positivo = t => /^(SIM|S|OK|TUDO OK|TUDO CERTO|TUDO CORRETO|ESTA CERTO|TA CERTO|CERTO|CORRETO|BELEZA|BLZ|CONFIRMO|CONFIRMADO|PODE SEGUIR|PODE CONTINUAR|PODE MANDAR|PODE ENVIAR|ISSO|ISSO MESMO|PERFEITO|NAO,? (?:ESTA |TA )?TUDO CERTO)[.!\s]*$/.test(normalizar(t));
@@ -76,9 +77,18 @@ function ofertas(s, catalogo) { const planos = listaPlanos(s, catalogo); s.ofert
 function resumo(s) { const d = s.dados; return ['📋 *Confira seu pedido*', '', `📦 *Plano:* ${limpo(s.plano.nome)} · ${s.plano.velocidade_mbps} Mega`, `💰 *Mensalidade:* R$ ${s.plano.mensalidade.toFixed(2).replace('.', ',')}`, `👤 *Nome:* ${limpo(d.nome)}`, `🪪 *CPF:* ${limpo(d.cpf)}`, d.cnpj ? `🏢 *CNPJ:* ${limpo(d.cnpj)}` : '', `🎂 *Nascimento:* ${limpo(d.data_nascimento)}`, `👩 *Nome da mãe:* ${limpo(d.nome_mae)}`, `✉️ *E-mail:* ${limpo(d.email)}`, `📍 *Endereço:* ${limpo(d.endereco)} · ${limpo(d.cidade)}/${limpo(d.estado)} · CEP ${limpo(d.cep)}`, `📱 *Contato:* ${limpo(d.telefone1)}`, `📅 *Vencimento:* dia ${limpo(d.vencimento)}`, `💳 *Pagamento:* ${limpo(d.forma_pagamento)}`, '', 'Está tudo certo? Pode confirmar com suas palavras ou me dizer o que deseja corrigir. 😊'].filter(Boolean).join('\n'); }
 async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, anexos = [], config = {} }) {
     const s = structuredClone(estado || inicial()), d = s.dados, texto = String(entrada || '').slice(0, 12000);
+    const ponto=/\[Localização enviada: latitude (-?[\d.]+), longitude (-?[\d.]+)\]/.exec(texto);
+    if(ponto)s.localizacao={latitude:Number(ponto[1]),longitude:Number(ponto[2])};
+    if(/^(?:ESPERA|ESPELA|ESPERE|AGUARDA|AGUARDE|SO UM (?:MINUTO|MOMENTO)|PERA(?: AI)?)[.!\s]*$/.test(normalizar(texto))){
+        const mensagem='Claro, vou aguardar você enviar. As informações que já passou estão salvas. 😊';
+        s.historico=[...s.historico,{role:'user',content:texto},{role:'assistant',content:mensagem}].slice(-40);
+        return {estado:s,mensagem};
+    }
     let aviso = '';
-    const analise = await extrair({ estado: s, texto, numero, anexos, config });
-    const novos = analise.dados || {};
+    const midia=dadosDaMidia(anexos,d);
+    if(midia.enderecos.length)s.enderecosMidia=midia.enderecos;
+    const analise = texto.trim() ? await extrair({ estado: s, texto, numero, anexos, config }) : {};
+    const novos = {...midia.dados,...analise.dados};
     if (s.etapa === 'complemento' && s.consulta?.status === 'confirmar_logradouro') {
         const sugestoes = s.consulta.sugestoes || [];
         const opcao = /^\s*([1-3])\s*$/.exec(texto);
@@ -198,7 +208,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         s.pendencias.push('Cliente não tem comprovante de endereço.');
     }
     const responder = (mensagem, acao) => {
-        if(!acao && s.historico.some(h=>h.role==='assistant'&&normalizar(h.content)===normalizar(mensagem))) {
+        if(!acao && !['localidade_divergente','cep_necessario','consulta_inconclusiva','confirmar_logradouro','endereco_ambiguo'].includes(s.consulta?.status) && s.historico.some(h=>h.role==='assistant'&&normalizar(h.content)===normalizar(mensagem))) {
             const falta=rotulos[s.etapa]||({cep:'o CEP com oito dígitos',localidade:'a cidade e o estado da instalação',tipo_pessoa:'se a contratação será no CPF ou no CNPJ',complemento:'o dado que diferencia seu imóvel: número, quadra/lote ou casa',documentos:!s.documentos.rg_frente.length?'o arquivo da frente do RG':!s.documentos.rg_verso.length?'o verso do RG':'o comprovante ou a informação de que você não possui um',confirmar_endereco:'a confirmação ou correção do endereço apresentado',confirmacao:'a confirmação do resumo ou o dado que precisa corrigir',plano:'qual das ofertas você prefere',endereco:'a rua, o número ou complemento e o bairro'})[s.etapa];
             if(falta) {
                 const formas=[`Vamos continuar de onde paramos. Só falta confirmar ${falta}?`,`Para eu não interpretar errado, pode esclarecer ${falta}?`,`Já aproveitei o que você informou. Pode me dizer ${falta}?`,`O próximo passo é confirmar ${falta}. Pode me ajudar com essa informação?`];
@@ -206,7 +216,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             }
             s.tentativas['resposta_'+s.etapa]=(s.tentativas['resposta_'+s.etapa]||0)+1;
         }
-        s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao };
+        if(texto.trim())s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao };
     };
     if (analise.encerrar === true) {
         s.etapa = 'encerrado';
@@ -233,6 +243,8 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     if (!d.cep && !d.logradouro) {
         s.etapa = 'cep';
+        if(midia.enderecos.some(e=>e.papel==='emitente'&&e.dados?.cep))return finalizarMensagem('Li a imagem, mas o CEP visível está no endereço da empresa que emitiu o documento. Pode enviar a parte com o endereço do cliente ou da unidade consumidora? Assim consulto o local certo para a instalação.');
+        if(anexos.length)return finalizarMensagem('Recebi e salvei o arquivo. Não consegui ler nele o CEP do endereço de instalação. Pode enviar uma foto mais próxima dessa parte ou escrever só o CEP?');
         return finalizarMensagem('Qual é o CEP do endereço de instalação?');
     }
     const chave = JSON.stringify(Object.fromEntries(['cidade', 'estado', 'cep', 'logradouro', 'quadra', 'lote', 'numero', 'casa', 'apartamento', 'bloco'].map(k => [k, d[k] || ''])));
@@ -258,8 +270,11 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             s.etapa = 'cep';
             return finalizarMensagem('Pode me informar o CEP completo, com oito dígitos, para localizar esse endereço?');
         }
-        if (c.status === 'localidade_divergente')
-            return finalizarMensagem(`O CEP retornou uma localidade diferente de ${limpo(d.cidade)}/${limpo(d.estado)}. Pode confirmar qual dado deseja corrigir: CEP ou cidade/estado?`);
+        if (c.status === 'localidade_divergente') {
+            const emitente=(s.enderecosMidia||[]).some(e=>e.papel==='emitente'&&e.dados?.cep===d.cep);
+            const salvo=[d.logradouro,d.numero,d.quadra?'quadra '+d.quadra:'',d.bairro].filter(Boolean).map(limpo).join(', ');
+            return finalizarMensagem(`${ponto?'Recebi e salvei sua localização. ':''}${emitente?'Li a foto: esse CEP aparece no endereço da empresa que emitiu a conta. ':''}O CEP ${limpo(d.cep)} corresponde a ${(c.localidades||[]).map(limpo).join(', ')||'outra cidade'}, mas a instalação foi informada em ${limpo(d.cidade)}/${limpo(d.estado)}.${salvo?' Já guardei: '+salvo+'.':''} Pode enviar a parte da conta com o endereço da unidade consumidora, ou confirmar o CEP da instalação?`);
+        }
         if (c.status === 'confirmar_logradouro') return finalizarMensagem('Encontrei nomes de rua parecidos nesse CEP. Seria este endereço?\n' + c.sugestoes.map((r,i) => `${i+1}. ${r.logradouro}`).join('\n') + '\nPode confirmar ou me dizer qual é o correto.');
         const opcoes = c.status === 'endereco_ambiguo' ? (c.resultados || []).map(r => [r.logradouro, r.numero, r.complemento1, r.complemento2, r.complemento3].filter(Boolean).join(' ')).slice(0, 15) : [];
         return finalizarMensagem(opcoes.length ? 'Encontrei mais de uma unidade. Qual destas corresponde ao imóvel?\n' + opcoes.map((o, i) => `${i + 1}. ${o}`).join('\n') : 'Ainda não localizei esse imóvel com segurança. Pode confirmar a rua e o número ou a quadra/lote? Vou aproveitar os outros dados que você já enviou.');
