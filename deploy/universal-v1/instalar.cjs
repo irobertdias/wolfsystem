@@ -23,7 +23,7 @@ async function main() {
     if (fs.existsSync(destino))
         fs.cpSync(destino, path.join(backup, 'universal-v1'), { recursive: true });
     fs.mkdirSync(destino, { recursive: true, mode: 0o700 });
-    for (const f of ['vtal.cjs', 'conversa.cjs', 'documentos.cjs', 'pos-venda.cjs', 'interpretacao.cjs', 'runtime.cjs','entrega-resposta.cjs','etiquetas-vendas.cjs','disponibilidade-retentativa.cjs','finalizar-conversa.cjs','objecao-documentos.cjs','retencao-venda.cjs', 'planos-grupoprime.cjs', 'configuracao-universal.cjs', 'universal.test.cjs', 'entrega.test.cjs', 'configuracao.test.cjs', 'avaliar-ia.cjs', 'ensaio.cjs', 'pos-venda.test.cjs']) {
+    for (const f of ['vtal.cjs', 'conversa.cjs', 'documentos.cjs', 'pos-venda.cjs', 'interpretacao.cjs', 'runtime.cjs','entrega-resposta.cjs','etiquetas-vendas.cjs','disponibilidade-retentativa.cjs','finalizar-conversa.cjs','objecao-documentos.cjs','retencao-venda.cjs','inviaveis-inativos.cjs', 'planos-grupoprime.cjs', 'configuracao-universal.cjs', 'universal.test.cjs', 'entrega.test.cjs', 'configuracao.test.cjs', 'avaliar-ia.cjs', 'ensaio.cjs', 'pos-venda.test.cjs']) {
         execFileSync(process.execPath, ['--check', path.join(__dirname, f)]);
         fs.copyFileSync(path.join(__dirname, f), path.join(destino, f));
     }

@@ -387,7 +387,14 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     } }
     const enviarBko = opcoes.enviarBko || ((...args) => require('../bko-roteamento.js').enviar(...args));
     const confirmarBko = opcoes.confirmarBko || ((...args) => require('../bko-recibo.js').confirmar(...args));
-    const timer = setInterval(() => { entregarPendentes().catch(console.error); retomarPendentes().catch(console.error); posVenda.pendentes().catch(console.error); atualizarRecibos().catch(console.error); }, 20000);
+    const encerrarInviaveis=require('./inviaveis-inativos.cjs').criar({db,workspace:WS,ocupado:(c,n)=>filas.has(`${WS}:${c}:${n}`),enviar:async(row,mensagem)=>{
+        const c=await ctx.getConfigCanal(row.canal_id),sessao=ctx.sessoes[String(row.canal_id)];
+        if(c?.workspaceId!==WS||c.tipo!=='webjs'||sessao?.status!=='conectado')throw Error('Canal indisponível para aviso de encerramento');
+        const enviada=await require('../bko-roteamento.js').enviar(sessao.client,row.numero,mensagem);
+        const r=await db.from('mensagens').insert({workspace_id:WS,canal_id:row.canal_id,numero:row.numero,mensagem,de:'bot',provider_message_id:enviada?.id?._serialized||null,status_entrega:Number(enviada?.ack)>=2?'delivered':'enviado'});if(r.error)throw r.error;
+        await db.from('atendimentos').update({mensagem}).eq('workspace_id',WS).eq('canal_id',row.canal_id).eq('numero',row.numero).eq('status','resolvido');
+    }});
+    const timer = setInterval(() => { encerrarInviaveis().catch(e=>console.error('[Universal encerramento inviáveis]',e.message)); entregarPendentes().catch(console.error); retomarPendentes().catch(console.error); posVenda.pendentes().catch(console.error); atualizarRecibos().catch(console.error); }, 20000);
     timer.unref();
     ctx.universalOperacoes={registrar,entregar,entregarPendentes,posVenda,configBko,salvarEntrega};
     ctx.universalV1 = true;

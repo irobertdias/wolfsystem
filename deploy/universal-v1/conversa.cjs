@@ -236,7 +236,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     if(aguardavaOutro&&!recebeuOutro){
         if(analise.encerrar===true||/^(?:NAO|NAO TENHO|NAO POSSUO|SO ESSE|SOMENTE ESSE|PODE (?:ENCERRAR|FINALIZAR))[.! ]*$/.test(normalizar(texto))){s.etapa='encerrado';s.encerramentoInviavel=true;return responder('Tudo bem. Como não há disponibilidade nesse endereço, vou finalizar o atendimento. Obrigado pelo interesse! 💚','encerrar');}
-        return responder('Para verificar outra possibilidade, pode enviar um endereço diferente: o CEP ou a rua com número, cidade e estado. Se não tiver outro endereço, pode me avisar.');
+        return require('./disponibilidade-retentativa.cjs').esclarecerOuEncerrar(s,texto,responder);
     }
     if(!documentosEncaminhar){
         const retencao=require('./retencao-venda.cjs').tratar(s,texto,analise.encerrar===true);
