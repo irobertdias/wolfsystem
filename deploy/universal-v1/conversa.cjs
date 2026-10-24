@@ -181,7 +181,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         else
             s.pendencias.push('Conferir nascimento informado: ' + d.data_nascimento);
     }
-    if ((s.etapa === 'telefone1' && (/\b(?:ESSE|ESTE|MESMO|AQUI)\b/.test(normalizar(texto)) || positivo(texto))) || analise.usar_whatsapp === true)
+    if ((s.etapa === 'telefone1' && (/\b(?:ESSE|ESTE|MESMO|AQUI)\b/.test(normalizar(texto)) || positivo(texto) || analise.usar_whatsapp === true)) || (analise.usar_whatsapp === true && /\b(?:TELEFONE|CONTATO|WHATSAPP|NUMERO)\b/.test(normalizar(texto))))
         d.telefone1 = String(numero).replace(/\D/g, '');
     if (d.telefone1) {
         d.telefone1 = d.telefone1.replace(/\D/g, '');
