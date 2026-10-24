@@ -90,6 +90,8 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     if(midia.enderecos.length)s.enderecosMidia=midia.enderecos;
     const analise = texto.trim() ? await extrair({ estado: s, texto, numero, anexos, config }) : {};
     const novos = {...midia.dados,...analise.dados};
+    // Uma correção explícita da fachada vale também depois da pergunta CPF/CNPJ.
+    if(d.cep&&/^(?:CASA\s+)?NUMERO\s+\d{1,6}[A-Z]?[.! ]*$/.test(normalizar(texto))){const n=interpretarEndereco(texto).numero;if(n){novos.numero=n;if(novos.casa===n)delete novos.casa;if(d.numero!==n){delete d.endereco;s.enderecoConfirmado=false;}}}
     const {novoEndereco,semDisponibilidade}=require('./disponibilidade-retentativa.cjs');
     const aguardavaOutro=s.etapa==='outro_endereco';
     const recebeuOutro=novoEndereco(s,novos,interpretarEndereco(texto));

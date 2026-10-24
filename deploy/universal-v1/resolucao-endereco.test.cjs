@@ -2,6 +2,11 @@
 const {test}=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),zlib=require('node:zlib');
 const {criarConsulta}=require('./vtal.cjs'),{inicial,avancar}=require('./conversa.cjs'),{planosDaCidade}=require('./planos-grupoprime.cjs');
 const linha=(id,numero,casa='')=>({id,numero,logradouro:'RUA TESTE',uf:'GO',cidade:'GOIANIA',bairro:'CENTRO',complemento1:casa,complemento2:'',complemento3:'',situacao:'Viável',comercial:'Sim'});
+test('correção Casa número 36 após CPF/CNPJ reconsulta a fachada e substitui o endereço antigo',async()=>{
+ const s=inicial();s.apresentou=true;s.etapa='tipo_pessoa';s.dados={cidade:'Goiânia',estado:'GO',cep:'74480150',logradouro:'RUA TESTE',numero:'35',endereco:'RUA TESTE 35'};s.enderecoConfirmado=true;s.consulta={status:'disponivel_na_base',resultados:[linha('35','35')]};let consultado;
+ const r=await avancar({estado:s,entrada:'Casa número 36',extrair:async()=>({dados:{casa:'36'}}),consultar:async d=>{consultado=d;return {status:'disponivel_na_base',cep:'74480150',resultados:[linha('36','36')]};},catalogo:planosDaCidade});
+ a.equal(consultado.numero,'36');a.equal(consultado.casa,undefined);a.equal(r.estado.dados.numero,'36');a.match(r.estado.dados.endereco,/36/);a.doesNotMatch(r.estado.dados.endereco,/35/);a.equal(r.estado.etapa,'tipo_pessoa');a.match(r.mensagem,/CPF ou CNPJ/);
+});
 function api(rows){return async url=>{const p=new URL(url).searchParams,cols=['logradouro','numero','complemento1','complemento2','complemento3'];const base=rows.filter(r=>r.cep===p.get('cep')||!r.cep),filtrados=base.filter(r=>cols.every(k=>!p.get(k)||p.get(k)===r[k]));return {ok:true,json:async()=>({cepTotal:base.length,total:filtrados.length,pageSize:30,locations:base.length?['GOIANIA / GO']:[],results:filtrados.slice((+(p.get('page')||1)-1)*30,+(p.get('page')||1)*30),facets:Object.fromEntries(cols.map(k=>[k,[...new Set(base.map(r=>r[k]))]]))})};};}
 function indice(rows){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'wolf-endereco-index-'));fs.writeFileSync(path.join(dir,'GO-GOIANIA.json.gz'),zlib.gzipSync(JSON.stringify(rows)));return {dir,limpar:()=>fs.rmSync(dir,{recursive:true})};}
 test('rua sem CEP localiza no índice e pede somente número, sem exigir CEP',async()=>{

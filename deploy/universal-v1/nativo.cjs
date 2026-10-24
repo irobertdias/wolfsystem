@@ -145,7 +145,7 @@ module.exports=function instalar(ctx){
  let retomando=false;
  async function retomar(){if(retomando)return;retomando=true;try{for(const ws of operacoes.keys()){
   const r=await db.from('fluxo_sessoes').select('*').eq('workspace_id',ws).eq('status','ativo').eq('tipo_input_aguardado','nicho_atendimento').limit(100);if(r.error)throw r.error;
-  for(const row of r.data||[]){const s=parse(row.variaveis?.[KEY]);if(!s.retryEm||s.retryEm>Date.now()||filas.has(`${ws}:${row.canal_id}:${row.numero}`))continue;const c=await ctx.getConfigCanal(row.canal_id),sessao=ctx.sessoes[String(row.canal_id)];if(c?.workspaceId!==ws||c.tipo!=='webjs'||sessao?.status!=='conectado')continue;
+  for(const row of r.data||[]){const s=parse(row.variaveis?.[KEY]);if((!s.retryEm&&!s.pendentes?.length)||s.retryEm>Date.now()||(!s.retryEm&&Date.now()-Date.parse(row.updated_at)<120000)||filas.has(`${ws}:${row.canal_id}:${row.numero}`))continue;const c=await ctx.getConfigCanal(row.canal_id),sessao=ctx.sessoes[String(row.canal_id)];if(c?.workspaceId!==ws||c.tipo!=='webjs'||sessao?.status!=='conectado')continue;
    await ctx.executarFluxo(ws,row.canal_id,row.numero,'',async m=>{await require('../bko-roteamento.js').enviar(sessao.client,row.numero,m);await ctx.salvarMensagem(ws,row.canal_id,c.fila,row.numero,m,'bot','BOT',null);},row.fluxo_id);
   }
  }}finally{retomando=false;}}
