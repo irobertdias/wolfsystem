@@ -1,4 +1,5 @@
 'use strict';
+const etiquetasVendas=require('./etiquetas-vendas.cjs');
 const {prepararEntrega,confirmarEntrega}=require('./entrega-resposta.cjs');
 const fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto');
 const {criarIA}=require('./ia-configuravel.cjs'),generico=require('./generico.cjs');
@@ -81,7 +82,11 @@ module.exports=function instalar(ctx){
    const entradaChave=createHash('sha256').update(texto).digest('hex'),retomadaInterpretada=!novaEntrada&&s.entradaInterpretadaChave===entradaChave;
    const antigo=await avancar({estado:abertura,entrada:retomadaInterpretada?'':texto,numero:meta.numero,extrair:criarInterpretador({apiKey,model:assistente.modelo||'gpt-4o-mini',catalogo}).extrair,consultar:vero?.consultar||criarConsulta(),catalogo,config:{...assistente,promptNicho:nicho.prompt,regrasNicho:nicho.regras}});
    s.entradaInterpretadaChave=entradaChave;
-   s.nio=antigo.estado;prepararEntrega(s.nio,antigo);s.dados={...s.dados,...s.nio.dados};s.apresentou=s.nio.apresentou;
+   s.nio=antigo.estado;prepararEntrega(s.nio,antigo);
+   if(antigo.inviavel)await etiquetasVendas.inviavel(db,meta.workspaceId,meta.canalId,meta.numero);
+   else if(s.nio.enderecosInviaveis?.length&&s.nio.consulta?.status==='disponivel_na_base')await etiquetasVendas.limparInviavel(db,meta.workspaceId,meta.canalId,meta.numero);
+   if(s.nio.enderecosInviaveis?.length)for(const k of ['cep','logradouro','quadra','lote','numero','casa','apartamento','bloco','bairro','endereco'])if(!s.nio.dados[k]){delete s.dados[k];delete vars[k];}
+   s.dados={...s.dados,...s.nio.dados};s.apresentou=s.nio.apresentou;
    if(s.nio.plano&&s.dados.endereco&&s.dados.bairro){s.aberturaConcluida=true;s.plano=s.nio.plano;s.oferta={...s.plano,preco:s.plano.mensalidade};s.dados.plano=s.plano.nome;s.dados.valor_plano=s.plano.mensalidade;s.consulta=s.nio.consulta;s.historico=s.nio.historico;r=await generico.avancar({estado:s,texto:'',numero:meta.numero,nicho,assistente,vars,extrair:async()=>({dados:[],resposta:''})});}
    else r={estado:s,mensagem:antigo.mensagem,tipo:antigo.tipo,abertura:true,concluido:false,encerrar:antigo.acao==='encerrar'};
   }else r=await generico.avancar({estado:s,texto:String(texto||''),numero:meta.numero,nicho,assistente,vars,extrair:ia.extrair});

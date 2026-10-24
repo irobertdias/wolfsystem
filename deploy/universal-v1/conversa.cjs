@@ -90,6 +90,9 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     if(midia.enderecos.length)s.enderecosMidia=midia.enderecos;
     const analise = texto.trim() ? await extrair({ estado: s, texto, numero, anexos, config }) : {};
     const novos = {...midia.dados,...analise.dados};
+    const {novoEndereco,semDisponibilidade}=require('./disponibilidade-retentativa.cjs');
+    const aguardavaOutro=s.etapa==='outro_endereco';
+    const recebeuOutro=novoEndereco(s,novos,interpretarEndereco(texto));
     if (s.etapa === 'complemento' && s.consulta?.status === 'confirmar_logradouro') {
         const sugestoes = s.consulta.sugestoes || [];
         const opcao = /^\s*([1-3])\s*$/.exec(texto);
@@ -222,8 +225,12 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             }
             s.tentativas['resposta_'+s.etapa]=(s.tentativas['resposta_'+s.etapa]||0)+1;
         }
-        if(texto.trim())s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao, historicoProposto:!!texto.trim(), tipo: s.etapa==='plano' && mensagem.includes('💰 R$')?'ofertas':undefined };
+        if(texto.trim())s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao, inviavel:s.etapa==='outro_endereco'||s.encerramentoInviavel===true, historicoProposto:!!texto.trim(), tipo: s.etapa==='plano' && mensagem.includes('💰 R$')?'ofertas':undefined };
     };
+    if(aguardavaOutro&&!recebeuOutro){
+        if(analise.encerrar===true||/^(?:NAO|NAO TENHO|NAO POSSUO|SO ESSE|SOMENTE ESSE|PODE (?:ENCERRAR|FINALIZAR))[.! ]*$/.test(normalizar(texto))){s.etapa='encerrado';s.encerramentoInviavel=true;return responder('Tudo bem. Como não há disponibilidade nesse endereço, vou finalizar o atendimento. Obrigado pelo interesse! 💚','encerrar');}
+        return responder('Para verificar outra possibilidade, pode enviar um endereço diferente: o CEP ou a rua com número, cidade e estado. Se não tiver outro endereço, pode me avisar.');
+    }
     if (analise.encerrar === true) {
         s.etapa = 'encerrado';
         return responder('Entendido. Vou encerrar o atendimento por aqui. Se precisar, estamos à disposição.', 'encerrar');
@@ -272,8 +279,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         return finalizarMensagem(`Localizei ${encontrado}. 😊 Para consultar o imóvel, ${falta}? Se houver casa ou apartamento, pode enviar junto.`);
     }
     if (c.status === 'sem_disponibilidade_na_base' || (c.status === 'nao_localizado' && c.cep)) {
-        s.etapa = 'encerrado';
-        return responder('Consultei o endereço e, no momento, não há disponibilidade registrada na base fornecida. Obrigado pelo interesse! 💚', 'encerrar');
+        return semDisponibilidade(s,responder);
     }
     if (c.status !== 'disponivel_na_base') {
         s.etapa = 'complemento';
@@ -296,7 +302,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             const chaveAusente=JSON.stringify(Object.fromEntries(['cidade','estado','cep','logradouro','quadra','lote','numero','casa','apartamento','bloco'].map(k=>[k,d[k]||''])));
             const endereco=[rua,d.numero?'nº '+d.numero:d.casa?'casa '+d.casa:'',d.quadra?'quadra '+d.quadra:'',d.lote?'lote '+d.lote:'',c.bairro||d.bairro].filter(Boolean).map(limpo).join(', ');
             if(s.enderecoAusenteConfirmacao===chaveAusente&&(positivo(texto)||analise.confirmacao===true)){
-                s.etapa='encerrado';return responder(`Obrigado por confirmar. Consultei ${endereco}, mas não há disponibilidade cadastrada para esse imóvel na base atual. Agradeço seu interesse! 💚`,'encerrar');
+                return semDisponibilidade(s,responder);
             }
             s.enderecoAusenteConfirmacao=chaveAusente;
             return finalizarMensagem(`Já conferi ${endereco||'os dados enviados'}. Esse imóvel não foi localizado na base de disponibilidade.${c.cep?' O CEP '+limpo(c.cep)+' corresponde a '+limpo(rua||'essa região')+'.':''} Confirma esse endereço ou deseja corrigir algum desses dados?`);

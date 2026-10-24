@@ -33,7 +33,7 @@ test('cidade conhecida resolve UF e não volta a pedir a cidade inteira',async()
  const r=await avancar({estado:inicial(),entrada:'Maricá',extrair:async()=>({dados:{cidade:'Maricá'}}),consultar:async()=>{throw Error('Sem endereço ainda');},catalogo:planosDaCidade});a.equal(r.estado.dados.estado,'RJ');a.equal(r.estado.etapa,'cep');a.doesNotMatch(r.mensagem,/qual cidade e estado/);
 });
 test('número ausente na base pede confirmação específica uma vez e não fica em ciclo de complemento',async()=>{
- let s=inicial();s.apresentou=true;s.dados={cidade:'Goiânia',estado:'GO',cep:'74480150',numero:'12'};const q=criarConsulta({fetcher:api([linha('1','20')])});const p=async texto=>{const r=await avancar({estado:s,entrada:texto,extrair:async()=>({dados:{}}),consultar:q,catalogo:planosDaCidade});s=r.estado;return r;};let r=await p('12');a.match(r.mensagem,/RUA TESTE/);a.match(r.mensagem,/Confirma esse endereço/);a.doesNotMatch(r.mensagem,/dado que diferencia/);r=await p('sim');a.equal(r.acao,'encerrar');
+ let s=inicial();s.apresentou=true;s.dados={cidade:'Goiânia',estado:'GO',cep:'74480150',numero:'12'};const q=criarConsulta({fetcher:api([linha('1','20')])});const p=async texto=>{const r=await avancar({estado:s,entrada:texto,extrair:async()=>({dados:{}}),consultar:q,catalogo:planosDaCidade});s=r.estado;return r;};let r=await p('12');a.match(r.mensagem,/RUA TESTE/);a.match(r.mensagem,/Confirma esse endereço/);a.doesNotMatch(r.mensagem,/dado que diferencia/);r=await p('sim');a.equal(r.estado.etapa,'outro_endereco');a.equal(r.inviavel,true);
 });
 test('bairro Campo Grande com UF RJ é reconhecido pela linha do CEP sem virar outra cidade',async()=>{
  const row={...linha('1','12'),cidade:'RIO DE JANEIRO',uf:'RJ',bairro:'CAMPO GRANDE'};

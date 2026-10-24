@@ -5,6 +5,7 @@ const { inicial, avancar, resumo } = require('./conversa.cjs'), { planosDaCidade
 const { conclusaoUniversalInicial } = require('./configuracao-universal.cjs');
 const { incorporar, pendente } = require('./documentos.cjs');
 const {prepararEntrega,confirmarEntrega}=require('./entrega-resposta.cjs');
+const etiquetasVendas=require('./etiquetas-vendas.cjs');
 const KEY = '__universal_v1';
 const parse = v => { try {
     return typeof v === 'string' ? JSON.parse(v) : v || {};
@@ -69,8 +70,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             throw anterior.error;
         if (anterior.data.length > 1)
             throw Error('Pedido exige reconciliação, sem novo cadastro');
-        if (anterior.data.length === 1)
-            return anterior.data[0].id;
+        if (anterior.data.length === 1){await etiquetasVendas.venda(db,WS,canal,n,anterior.data[0].id);return anterior.data[0].id;}
         const d = s.dados, custom = { universal_v1: 'SIM', universal_chave: chave, numero_origem_whatsapp: String(n), plano_id: s.plano?.id||'', velocidade_mbps: s.plano?.velocidade_mbps||'', tipo_pessoa: d.tipo_pessoa, cnpj: d.cnpj || '', bairro: d.bairro, vtal: s.consulta, pendencias_bko: JSON.stringify([...new Set(s.pendencias||[])]), bko_pendente: conclusao.whatsapp === false ? 'DESATIVADO' : 'SIM', envio_whatsapp_ativo: conclusao.whatsapp !== false, universal_entrega: { partes: [], tentativas: 0 }, ...s.documentos,universal_documentos:s.anexos||[],universal_conclusao:conclusao,universal_resumo:s.resumoPersonalizado||'',universal_variaveis:s.variaveisPublicas||{} };
         const mapeado=registro({...s.variaveisPublicas,...d,plano:s.plano?.nome||d.plano||'',valor_plano:s.plano?.mensalidade??d.valor_plano??'',operadora:d.operadora||(s.consulta?'Nio':'')},conclusao);Object.assign(custom,mapeado.custom);
         const p = { workspace_id: WS, canal_id: Number(canal), fluxo_id: fluxo.id, data_proposta: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()), status_venda: conclusao.status_inicial||'AGUARDANDO AUDITORIA', dados_customizados: custom };
@@ -78,6 +78,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         const r = await db.from('proposta').insert(p).select('id').single();
         if (r.error)
             throw r.error;
+        await etiquetasVendas.venda(db,WS,canal,n,r.data.id);
         return r.data.id;
     }
     async function processar(item) {
@@ -109,6 +110,8 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             const lotePendente = s.pendentes;
             s = r.estado;
             prepararEntrega(s,r);
+            if(r.inviavel)await etiquetasVendas.inviavel(db,WS,canal,n);
+            else if(s.enderecosInviaveis?.length&&s.consulta?.status==='disponivel_na_base')await etiquetasVendas.limparInviavel(db,WS,canal,n);
             s.entradaInterpretadaChave=entradaChave;
             s.pendentes = [];
             delete s.erro;

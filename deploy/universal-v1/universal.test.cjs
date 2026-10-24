@@ -71,13 +71,15 @@ finally {
     fs.rmSync(dir, { recursive: true });
 } });
 
-test('CEP ausente da base encerra sem repetir pedido de endereço', async () => {
+test('CEP ausente da base informa indisponibilidade e oferece outro endereço', async () => {
     const s = inicial();
     s.apresentou = true;
     s.dados = { cidade: 'Goiânia', estado: 'GO', cep: '74480150' };
     const r = await avancar({ estado: s, entrada: '74480150', numero: '5562999998888', extrair: async () => ({ dados: {} }), consultar: async () => ({ status: 'nao_localizado', cep: '74480150', resultados: [] }), catalogo: planosDaCidade });
-    a.equal(r.acao, 'encerrar');
-    a.equal(r.estado.etapa, 'encerrado');
+    a.equal(r.acao, undefined);
+    a.equal(r.estado.etapa, 'outro_endereco');
+    a.equal(r.inviavel,true);
+    a.match(r.mensagem,/outro endereço/);
 });
 
 test('nome da mãe avulso pertence ao campo pendente e não substitui o nome do titular', async () => {

@@ -2,10 +2,10 @@ const { test } = require('node:test'), a = require('node:assert/strict');
 const carregar = require('./runtime.cjs');
 function banco() {
     let seq = 0;
-    const tabelas = { fluxos: [{ id: 27, workspace_id: 'grupoprime', nos: [{ id: 'prime_documentos_enviar', dados: { bko_configuracao: { ativo: true, canal_id: 164, modo: 'por_canal', contatos: [{ canal_trafego_id: 164, numero: '5562981072373' }] } } }] }], proposta: [] };
+    const tabelas = { atendimentos:[],etiquetas:[],atendimento_etiquetas:[], fluxos: [{ id: 27, workspace_id: 'grupoprime', nos: [{ id: 'prime_documentos_enviar', dados: { bko_configuracao: { ativo: true, canal_id: 164, modo: 'por_canal', contatos: [{ canal_trafego_id: 164, numero: '5562981072373' }] } } }] }], proposta: [] };
     return { tabelas, storage: { from: () => ({ download: async () => ({ data: new Blob(['arquivo']) }) }) }, from(nome) {
             let filtros = [], modo = 'select', payload;
-            const q = { select() { return q; }, eq(k, v) { filtros.push([k, v]); return q; }, limit() { return q; }, insert(p) { modo = 'insert'; payload = p; return q; }, update(p) { modo = 'update'; payload = p; return q; }, single() { return executar(true); }, maybeSingle() { return executar(true); }, then(r, j) { return executar(false).then(r, j); } };
+            const q = { select() { return q; }, order(){return q;}, eq(k, v) { filtros.push([k, v]); return q; }, limit() { return q; }, insert(p) { modo = 'insert'; payload = p; return q; }, update(p) { modo = 'update'; payload = p; return q; }, single() { return executar(true); }, maybeSingle() { return executar(true); }, then(r, j) { return executar(false).then(r, j); } };
             async function executar(single) { let rows = (tabelas[nome] || []).filter(r => filtros.every(([k, v]) => k.includes('->>') ? r[k.split('->>')[0]]?.[k.split('->>')[1]] === v : r[k] === v)); if (modo === 'insert') {
                 const r = { ...structuredClone(payload), id: ++seq, updated_at: 'v' + seq };
                 tabelas[nome].push(r);
@@ -42,6 +42,13 @@ test('arquivos recebidos juntos são lidos com a próxima pendência e persistid
     }finally{ctx.universalTeste.parar();if(path.dirname(dir)===fs.realpathSync(os.tmpdir())&&path.basename(dir).startsWith('wolf-doc-batch-'))fs.rmSync(dir,{recursive:true});}
 });
 function estado() { return { inicio: '2026-10-24T00:00:00Z', dados: { nome: 'Cliente Exemplo', cpf: '52998224725', data_nascimento: '23/01/2002', nome_mae: 'Mãe Exemplo', email: 'teste@example.com', telefone1: '5562999998888', endereco: 'Rua Exemplo 12', cidade: 'Goiânia', estado: 'GO', cep: '74480150', bairro: 'Centro', vencimento: '20', forma_pagamento: 'Boleto', tipo_pessoa: 'PF' }, plano: { id: 'pf-fibra-padrao', nome: 'Nio Fibra', mensalidade: 110, velocidade_mbps: 600 }, consulta: { status: 'disponivel_na_base' }, pendencias: [], documentos: { rg_frente: [{ path: 'grupoprime/cliente/rg', nome: 'rg.jpg', tipo: 'image/jpeg' }], rg_verso: [{ path: 'grupoprime/cliente/rg', nome: 'rg.jpg', tipo: 'image/jpeg' }], comprovante_endereco: [{ path: 'grupoprime/cliente/conta', nome: 'conta.pdf', tipo: 'application/pdf' }] } }; }
+test('cadastro real do motor aplica etiqueta com pedido retornado pelo CRM sem duplicar em retry',async()=>{
+ const {ctx,db}=preparar();db.tabelas.atendimentos.push({id:70,workspace_id:'grupoprime',canal_id:164,numero:'5562999998888'});
+ try{const id=await ctx.universalTeste.registrar({id:29},164,'5562999998888',estado());
+ a.equal(db.tabelas.etiquetas[0].nome,'VENDA REALIZADA '+id);a.equal(db.tabelas.atendimento_etiquetas[0].atendimento_id,70);
+ const repetido=await ctx.universalTeste.registrar({id:29},164,'5562999998888',estado());a.equal(repetido,id);a.equal(db.tabelas.proposta.length,1);a.equal(db.tabelas.atendimento_etiquetas.length,1);
+ }finally{ctx.universalTeste.parar()}
+});
 test('mesmo canal de leads encaminha Vero e alternativa Nio aos respectivos BKOs e remetentes',async()=>{
  const {ctx,db,envios}=preparar();try{
   const cfg=db.tabelas.fluxos[0].nos[0].dados.bko_configuracao;
