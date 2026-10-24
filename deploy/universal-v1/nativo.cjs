@@ -64,6 +64,7 @@ module.exports=function instalar(ctx){
   if(!apiKey&&meta.workspaceId==='grupoprime'){try{apiKey=JSON.parse(fs.readFileSync(path.join(__dirname,'credencial.json'),'utf8')).apiKey;}catch{}}
   const ia=criarIA({apiKey,modelo:assistente.modelo||'gpt-4o-mini'});
   let s=parse(vars[KEY]);if(s.versao!==2){const legado=parse(vars.__universal_v1);s={versao:2,inicio:legado.inicio||new Date().toISOString(),dados:legado.dados||{},historico:legado.historico||[],documentos:legado.documentos||{},anexos:legado.anexos||[],pendencias:legado.pendencias||[],apresentou:!!legado.apresentou,confirmado:!!legado.confirmado,...(legado.versao===1?{nio:legado,aberturaConcluida:!!(legado.plano&&legado.dados.endereco&&legado.dados.bairro),plano:legado.plano,consulta:legado.consulta}:{})};}
+  if(s.plano&&!s.oferta)s.oferta={...s.plano,preco:s.plano.mensalidade};
   const salvar=async()=>{Object.assign(vars,s.dados);for(const [k,v]of Object.entries(s.documentos))vars[k]=JSON.stringify(v);vars[KEY]=JSON.stringify(s);await persistir();await ctx.salvarSessaoFluxo(meta.workspaceId,meta.canalId,meta.numero,f.id,no.id,vars,true,'nicho_atendimento');};
   s.pendentes=[...(s.pendentes||[]),...(texto?[String(texto)]:[])].slice(-20);texto=s.pendentes.join('\n');await salvar();
   await arquivos(String(texto||''),s,meta,nicho,ia,assistente.autorizar_leitura_documentos===true,salvar);
@@ -74,7 +75,7 @@ module.exports=function instalar(ctx){
    const catalogo=configuradas.length?()=>({pessoa_fisica:configuradas.filter(p=>p.tipo_pessoa!=='PJ').map(p=>({...p,mensalidade:p.preco,velocidade_mbps:Number(p.velocidade_mbps)||0})),pessoa_juridica:configuradas.filter(p=>p.tipo_pessoa==='PJ').map(p=>({...p,mensalidade:p.preco,velocidade_mbps:Number(p.velocidade_mbps)||0}))}):planosDaCidade;
    const antigo=await avancar({estado:s.nio||inicial(),entrada:texto,numero:meta.numero,extrair:criarInterpretador({apiKey,model:assistente.modelo||'gpt-4o-mini',catalogo}).extrair,consultar:criarConsulta(),catalogo,config:{...assistente,promptNicho:nicho.prompt,regrasNicho:nicho.regras}});
    s.nio=antigo.estado;s.dados={...s.dados,...s.nio.dados};s.apresentou=s.nio.apresentou;
-   if(s.nio.plano&&s.dados.endereco&&s.dados.bairro){s.aberturaConcluida=true;s.plano=s.nio.plano;s.dados.plano=s.plano.nome;s.dados.valor_plano=s.plano.mensalidade;s.consulta=s.nio.consulta;s.historico=s.nio.historico;r=await generico.avancar({estado:s,texto:'',numero:meta.numero,nicho,assistente,vars,extrair:async()=>({dados:[],resposta:''})});}
+   if(s.nio.plano&&s.dados.endereco&&s.dados.bairro){s.aberturaConcluida=true;s.plano=s.nio.plano;s.oferta={...s.plano,preco:s.plano.mensalidade};s.dados.plano=s.plano.nome;s.dados.valor_plano=s.plano.mensalidade;s.consulta=s.nio.consulta;s.historico=s.nio.historico;r=await generico.avancar({estado:s,texto:'',numero:meta.numero,nicho,assistente,vars,extrair:async()=>({dados:[],resposta:''})});}
    else r={estado:s,mensagem:antigo.mensagem,concluido:false,encerrar:antigo.acao==='encerrar'};
   }else r=await generico.avancar({estado:s,texto:String(texto||''),numero:meta.numero,nicho,assistente,vars,extrair:ia.extrair});
   s=r.estado;s.pendentes=[];s.erroAvisado=false;delete s.retryEm;await salvar();
