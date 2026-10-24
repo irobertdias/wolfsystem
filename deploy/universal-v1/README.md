@@ -35,3 +35,13 @@ Cada parte da entrega guarda seu recibo. Recibo pendente não vira envio confirm
 Testes: `node --test *.test.cjs`. `avaliar-ia.cjs` e `ensaio.cjs` usam a API real com dados fictícios, em memória, sem criar vendas nem enviar mensagens. O índice pode ser regenerado com `importar-logradouros.py ORIGEM DESTINO`.
 
 O backup indicado na instalação contém o inicializador, configurações e versão anterior. Para desativar imediatamente, mude o canal do piloto para modo `nenhum` e desative o fluxo novo; dados históricos e vendas permanecem preservados.
+
+## Documentos em lote, painel e pós-venda
+
+`documentos.cjs` incorpora cada original antes de ler o próximo arquivo. A etapa de leitura avança dentro do lote e originais repetidos não duplicam o cadastro. Faces classificadas de forma repetida seguem com observação para conferência no BKO.
+
+O painel `/chatbot/vendas` reúne os envios antigos e do motor universal, seus destinatários, textos, arquivos, recibos e respostas. O acesso exige autenticação, workspace Grupo Prime e permissão de configurações. O chat de atendimento permanece separado.
+
+`pos-venda.cjs` associa respostas pelo recibo citado ou referência BKO; sem citação exige um único pedido ativo do destinatário autorizado. Atualiza o CRM e persiste ações de acompanhamento antes de enviar. CPF exige outro titular autorizado, aprovação informa a etapa de biometria e pedidos gerados/aguardando instalação solicitam dia e período ao BKO antes de informar a agenda ao cliente. A troca de CPF reaproveita o pedido, exige conferência dos dados do titular no BKO e renova a referência para impedir aprovação por retorno antigo. Falhas de envio retomam ações pendentes; envios sem resultado confirmado são reconciliados antes de qualquer nova tentativa.
+
+ACK 1 significa aceitação pelo servidor WhatsApp, ACK 2 entrega ao destinatário e ACK 3 leitura. O painel distingue essas situações. Não se deve simular retorno real do BKO em produção para testar: use `node --test pos-venda.test.cjs entrega.test.cjs universal.test.cjs`.

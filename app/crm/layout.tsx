@@ -19,6 +19,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const [userNome, setUserNome] = useState("");
   const [userFotoUrl, setUserFotoUrl] = useState("");
   const [workspaceNome, setWorkspaceNome] = useState("");
+  const [workspaceIdAtual, setWorkspaceIdAtual] = useState('');
   const [cadastrosCount, setCadastrosCount] = useState(0);
   const [usuariosCount, setUsuariosCount] = useState(0);
   const [limiteUsuarios, setLimiteUsuarios] = useState(9999);
@@ -122,6 +123,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
       }
 
       if (workspaceNomeLocal) setWorkspaceNome(workspaceNomeLocal);
+      setWorkspaceIdAtual(wsId || '');
 
       if (wsId) {
         const { count } = await supabase
@@ -226,6 +228,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     { path: "/crm/visao", label: "Visão", icon: "📊", visivel: true },
     { path: crmItems[0]?.path || "/crm/dashboard", label: "CRM", icon: "🎯", visivel: podeVerCRM },
     { path: "/chatbot", label: "Atendimento", icon: "💬", visivel: podeVerChatbot },
+    { path: "/chatbot/vendas", label: "Vendas", icon: "💰", visivel: workspaceIdAtual === 'grupoprime' && podeVerConfig },
     { path: "/crm/contratos", label: "Contratos", icon: "📄", visivel: podeVerContratos },
     { path: "/crm/meta-ads", label: "Central Ads", icon: "📣", visivel: podeVerMetaAds },
     { path: "/crm/telefonia", label: "Telefonia", icon: "📞", visivel: modulosCarregados && podeVerTelefonia },

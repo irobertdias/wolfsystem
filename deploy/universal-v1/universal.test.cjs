@@ -4,6 +4,33 @@ const { inicial, avancar, dataBR, positivo, escolherPlano, hashResumo } = requir
 const { planosDaCidade } = require('./planos-grupoprime.cjs');
 const linha = (id, logradouro, numero, c1 = '', c2 = '', c3 = '') => ({ id, uf: 'GO', cidade: 'GOIANIA', logradouro, numero, complemento1: c1, complemento2: c2, complemento3: c3, bairro: 'CENTRO', situacao: 'Viável', comercial: 'Sim' });
 function mockVtal(rows) { return async (url) => { const p = new URL(url).searchParams, keys = ['logradouro', 'numero', 'complemento1', 'complemento2', 'complemento3']; const selecionadas = rows.filter(r => keys.every(k => !p.get(k) || p.get(k) === r[k])); return { ok: true, json: async () => ({ cep: p.get('cep'), cepTotal: rows.length, total: selecionadas.length, pageSize: 30, results: selecionadas.slice((Number(p.get('page')) - 1) * 30, Number(p.get('page')) * 30), locations: ['GOIANIA / GO'], facets: Object.fromEntries(keys.map(k => [k, [...new Set(rows.map(r => r[k]))]])) }) }; }; }
+
+test('quadra alfabética QU G e fachada 52 localizam unidades; nome parecido exige confirmação', async()=>{
+ for(const marca of ['Q','QU','QD','QA','QUADRA']) a.equal(interpretarEndereco(`Número 52 ${marca} G`).quadra,'G');
+ const e=interpretarEndereco('Rua conde Aljezur 52 QD G');a.equal(e.logradouro,'RUA CONDE ALJEZUR');a.equal(e.numero,'52');
+ const consulta=criarConsulta({fetcher:mockVtal([linha('a','RUA CONDE ALJEZUR','52','QU G','CA 2'),linha('b','RUA CONDE ALJEZUR','52','QU G','CA 3')])});
+ const r=await consulta({...e,cep:'26381408'});a.equal(r.status,'endereco_ambiguo');a.equal(r.resultados.length,2);
+ const casa=await consulta({...e,cep:'26381408',casa:'2'});a.equal(casa.status,'disponivel_na_base');a.equal(casa.resultados[0].id,'a');
+ const parecido=await consulta({cep:'26381408',numero:'52',logradouro:'Rua conde augesur'});a.equal(parecido.status,'confirmar_logradouro');a.equal(parecido.sugestoes[0].logradouro,'RUA CONDE ALJEZUR');
+});
+
+test('lote de três arquivos preserva as duas faces e comprovante mesmo com classificação repetida',()=>{
+ const {incorporar,pendente}=require('./documentos.cjs'),s=inicial();
+ incorporar(s,{path:'frente',nome:'1.jpg',categorias:['rg_frente']});a.equal(pendente(s),'rg_verso');
+ incorporar(s,{path:'verso',nome:'2.jpg',categorias:['rg_frente']});a.equal(pendente(s),'comprovante_endereco');
+ incorporar(s,{path:'conta',nome:'3.pdf',categorias:['comprovante_endereco']});
+ incorporar(s,{path:'verso',nome:'2.jpg',categorias:['rg_frente']});
+ a.equal(s.anexos.length,3);for(const k of ['rg_frente','rg_verso','comprovante_endereco'])a.equal(s.documentos[k].length,1);
+});
+
+test('confirmação de rua sugerida mantém número e quadra; casa informada resolve ambiguidade',async()=>{
+ const consulta=criarConsulta({fetcher:mockVtal([linha('a','RUA CONDE ALJEZUR','52','QU G','CA 2'),linha('b','RUA CONDE ALJEZUR','52','QU G','CA 3')])});
+ let s=inicial();s.apresentou=true;s.etapa='complemento';s.dados={cidade:'Goiânia',estado:'GO',cep:'26381408',numero:'52',quadra:'G',logradouro:'RUA CONDE AUGESUR'};
+ const run=async texto=>{const r=await avancar({estado:s,entrada:texto,numero:'5562999998888',extrair:async()=>({dados:{}}),consultar:consulta,catalogo:planosDaCidade});s=r.estado;return r;};
+ let r=await run('já mandei a rua');a.match(r.mensagem,/Seria este endereço/);
+ r=await run('sim');a.match(r.mensagem,/mais de uma unidade/);a.equal(s.dados.numero,'52');a.equal(s.dados.quadra,'G');
+ r=await run('casa 2');a.equal(s.etapa,'tipo_pessoa');a.equal(s.consulta.resultados[0].id,'a');a.doesNotMatch(r.mensagem,/confirmar a rua/);
+});
 test('q2 lt01 vira quadra 2 lote 1; zeros e delimitadores não confundem 1 com 10', () => { const e = interpretarEndereco('q2 lt01'); a.equal(e.quadra, '2'); a.equal(e.lote, '1'); a.ok(corresponde(linha('1', 'QUADRA 2', 'SN', 'LT 01'), e)); a.ok(!corresponde(linha('2', 'QUADRA 20', 'SN', 'LT 1'), e)); a.ok(!corresponde(linha('3', 'QUADRA 2', 'SN', 'LT 10'), e)); });
 test('quadra pode estar no logradouro ou em complemento, lote em qualquer coluna', async () => { const consulta = criarConsulta({ fetcher: mockVtal([linha('1', 'RUA VM B Q 2', 'SN', '', 'LT 01'), linha('2', 'RUA VM B', 'SN', 'QU 3', 'LT 1')]) }); const r = await consulta({ cep: '74480150', cidade: 'Goiânia', uf: 'GO', texto: 'q2 lt01' }); a.equal(r.status, 'disponivel_na_base'); a.equal(r.resultados[0].id, '1'); const outro = await consulta({ cep: '74480150', texto: 'qd3 lote01' }); a.equal(outro.resultados[0].id, '2'); });
 test('número avulso filtra fachada, não lote', async () => { const consulta = criarConsulta({ fetcher: mockVtal([linha('1', 'RUA A', '12'), linha('2', 'RUA A', 'SN', 'LT 12')]) }); const r = await consulta({ cep: '74480150', texto: '12' }); a.equal(r.resultados[0].id, '1'); });

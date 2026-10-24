@@ -41,6 +41,10 @@ function ChatbotInner() {
   const podeVerRoleta = isDono || permissoes.roleta_gerenciar;
 
   const menus = [
+    ...((workspace?.username === 'grupoprime' && (isDono || permissoes.configuracoes_workspace || permissoes.administrador)) ? [{
+      key: 'vendas', icon: '💰', label: 'Vendas', cor: '#15803d',
+      subitens: [{ key: 'envios_vendas', label: 'Mensagens e envios BKO', path: '/chatbot/vendas' }]
+    }] : []),
     ...((permissoes.chat_proprio || permissoes.chat_todos || permissoes.dashboard) ? [{
       key: "atendimentos", icon: "💬", label: "Atendimentos", cor: "#3b82f6",
       subitens: [

@@ -1,6 +1,7 @@
 'use strict';
 const { normalizar, ufSigla, interpretarEndereco, parte } = require('./vtal.cjs');
 const { createHash } = require('node:crypto');
+const { incorporar } = require('./documentos.cjs');
 const CAMPOS = ['nome', 'cpf', 'data_nascimento', 'nome_mae', 'email', 'telefone1', 'vencimento', 'forma_pagamento'];
 const rotulos = { nome: 'seu nome completo', cpf: 'o CPF do titular', data_nascimento: 'sua data de nascimento', nome_mae: 'o nome completo da sua mãe', email: 'seu e-mail', telefone1: 'um telefone para contato. Pode ser este mesmo WhatsApp', vencimento: 'o dia de vencimento que prefere para a fatura', forma_pagamento: 'a forma de pagamento: boleto ou débito em conta' };
 const positivo = t => /^(SIM|S|OK|TUDO OK|TUDO CERTO|TUDO CORRETO|ESTA CERTO|TA CERTO|CERTO|CORRETO|BELEZA|BLZ|CONFIRMO|CONFIRMADO|PODE SEGUIR|PODE CONTINUAR|PODE MANDAR|PODE ENVIAR|ISSO|ISSO MESMO|PERFEITO|NAO,? (?:ESTA |TA )?TUDO CERTO)[.!\s]*$/.test(normalizar(t));
@@ -71,13 +72,31 @@ function escolherPlano(texto, planos) {
     }
     return null;
 }
-function ofertas(s, catalogo) { const planos = listaPlanos(s, catalogo); s.ofertas = planos.map(p => p.id); s.etapa = 'plano'; return `✅ Encontrei disponibilidade na base para o seu endereço. A instalação será confirmada tecnicamente pela operadora.\n\n${planos.map((p, i) => `${i + 1}️⃣ *${p.nome} · ${p.velocidade_mbps === 1000 ? '1 Giga' : p.velocidade_mbps + ' Mega'}*\n💰 R$ ${p.mensalidade.toFixed(2).replace('.', ',')}/mês${p.mensalidade_cartao ? '\n💳 R$ ' + p.mensalidade_cartao.toFixed(2).replace('.', ',') + ' no cartão' : ''}`).join('\n\n')}\n\nQual combina mais com você? Pode me dizer pelo nome, velocidade, valor ou número. 😊`; }
+function ofertas(s, catalogo) { const planos = listaPlanos(s, catalogo); s.ofertas = planos.map(p => p.id); s.etapa = 'plano'; return `Maravilha! Temos disponibilidade para esse endereço. ✅ A instalação será confirmada tecnicamente pela operadora.\n\n${planos.map((p, i) => `${i + 1}️⃣ *${p.nome} · ${p.velocidade_mbps === 1000 ? '1 Giga' : p.velocidade_mbps + ' Mega'}*\n💰 R$ ${p.mensalidade.toFixed(2).replace('.', ',')}/mês${p.mensalidade_cartao ? '\n💳 R$ ' + p.mensalidade_cartao.toFixed(2).replace('.', ',') + ' no cartão' : ''}`).join('\n\n')}\n\nQual combina mais com você? Pode me dizer pelo nome, velocidade, valor ou número. 😊`; }
 function resumo(s) { const d = s.dados; return ['📋 *Confira seu pedido*', '', `📦 *Plano:* ${limpo(s.plano.nome)} · ${s.plano.velocidade_mbps} Mega`, `💰 *Mensalidade:* R$ ${s.plano.mensalidade.toFixed(2).replace('.', ',')}`, `👤 *Nome:* ${limpo(d.nome)}`, `🪪 *CPF:* ${limpo(d.cpf)}`, d.cnpj ? `🏢 *CNPJ:* ${limpo(d.cnpj)}` : '', `🎂 *Nascimento:* ${limpo(d.data_nascimento)}`, `👩 *Nome da mãe:* ${limpo(d.nome_mae)}`, `✉️ *E-mail:* ${limpo(d.email)}`, `📍 *Endereço:* ${limpo(d.endereco)} · ${limpo(d.cidade)}/${limpo(d.estado)} · CEP ${limpo(d.cep)}`, `📱 *Contato:* ${limpo(d.telefone1)}`, `📅 *Vencimento:* dia ${limpo(d.vencimento)}`, `💳 *Pagamento:* ${limpo(d.forma_pagamento)}`, '', 'Está tudo certo? Pode confirmar com suas palavras ou me dizer o que deseja corrigir. 😊'].filter(Boolean).join('\n'); }
 async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, anexos = [], config = {} }) {
     const s = structuredClone(estado || inicial()), d = s.dados, texto = String(entrada || '').slice(0, 12000);
     let aviso = '';
     const analise = await extrair({ estado: s, texto, numero, anexos, config });
     const novos = analise.dados || {};
+    if (s.etapa === 'complemento' && s.consulta?.status === 'confirmar_logradouro') {
+        const sugestoes = s.consulta.sugestoes || [];
+        const opcao = /^\s*([1-3])\s*$/.exec(texto);
+        const escolhida = opcao ? sugestoes[+opcao[1]-1] : (positivo(texto) || analise.confirmacao === true) && sugestoes.length === 1 ? sugestoes[0] : null;
+        if (escolhida) novos.logradouro = escolhida.logradouro;
+    }
+    if (s.etapa === 'complemento' && s.consulta?.status === 'endereco_ambiguo') {
+        const opcao = /^\s*(?:op[cç][aã]o\s*)?(\d{1,2})\s*$/i.exec(texto);
+        const unidade = opcao && s.consulta.resultados?.[+opcao[1]-1];
+        if (unidade) {
+            novos.logradouro = unidade.logradouro;
+            novos.numero = unidade.numero;
+            for (const k of ['quadra','lote','casa','apartamento','bloco']) {
+                const valor = parte([unidade.logradouro, unidade.complemento1, unidade.complemento2, unidade.complemento3].join(' '), k);
+                if (valor) novos[k] = valor;
+            }
+        }
+    }
     if (['nome', 'nome_mae'].includes(s.etapa) && !analise.pergunta && !analise.objecao && !analise.encerrar) {
         const candidato = texto.trim();
         if (/^[\p{L}][\p{L} .'-]{3,150}$/u.test(candidato) && candidato.split(/\s+/).length >= 2 && !/\b(?:NAO|SIM|QUERO|TENHO|SEI|CANCELAR|DESISTIR|CARO|CERTO|CORRETO|OK|BELEZA)\b/.test(normalizar(candidato))) {
@@ -121,16 +140,20 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             delete s.consulta;
             delete s.consultaChave;
         }
-        if (d[k] !== valor) {
+        if (normalizar(d[k]) !== normalizar(valor)) {
             d[k] = valor;
             s.confirmado = false;
+            if (['endereco', 'bairro', 'cidade', 'estado', 'cep'].includes(k)) s.enderecoConfirmado = false;
         }
     }
     if (['localidade', 'cep', 'complemento', 'endereco'].includes(s.etapa)) {
-        const parsed = interpretarEndereco(texto);
+        const parsed = {};
+        for (const linha of texto.split(/\r?\n/)) for (const [k,v] of Object.entries(interpretarEndereco(linha))) if (v) parsed[k]=v;
         for (const [k, v] of Object.entries(parsed))
-            if (v && !d[k])
+            if (v && (!d[k] || s.etapa === 'complemento') && !novos[k]) {
                 d[k] = v;
+                delete s.consultaChave;
+            }
         if (parsed.logradouro)
             s.enderecoInformado = true;
     }
@@ -169,18 +192,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             d.telefone1 = '55' + d.telefone1;
     }
     s.pendencias = [...new Set(s.pendencias)];
-    for (const a of anexos) {
-        if (s.anexos.some(x => x.path === a.path))
-            continue;
-        s.anexos.push(a);
-        const categorias = Array.isArray(a.categorias) ? a.categorias : [];
-        const destino = categorias.length ? categorias : [!s.documentos.rg_frente.length ? 'rg_frente' : !s.documentos.rg_verso.length ? 'rg_verso' : 'comprovante_endereco'];
-        for (const k of destino)
-            if (s.documentos[k] && !s.documentos[k].some(x => x.path === a.path))
-                s.documentos[k].push(a);
-        if (a.leitura === 'inconclusiva')
-            s.pendencias.push('Leitura inconclusiva: ' + a.nome + '; conferir original.');
-    }
+    for (const a of anexos) incorporar(s, a);
     if (analise.sem_comprovante) {
         s.semComprovante = true;
         s.pendencias.push('Cliente não tem comprovante de endereço.');
@@ -216,7 +228,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     const c = s.consulta;
     if (c.status === 'complemento_necessario') {
         s.etapa = 'complemento';
-        return finalizarMensagem('Localizei o CEP na base. Qual é o número do imóvel ou a quadra e o lote? Se houver casa, bloco ou apartamento, pode enviar junto.');
+        return finalizarMensagem('Maravilha! Seu CEP está na nossa área de atendimento. 😊 Para confirmar a disponibilidade no imóvel, qual é o número ou a quadra e o lote? Se houver casa, bloco ou apartamento, pode enviar junto.');
     }
     if (c.status === 'sem_disponibilidade_na_base' || (c.status === 'nao_localizado' && c.cep)) {
         s.etapa = 'encerrado';
@@ -233,7 +245,8 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         }
         if (c.status === 'localidade_divergente')
             return finalizarMensagem(`O CEP retornou uma localidade diferente de ${limpo(d.cidade)}/${limpo(d.estado)}. Pode confirmar qual dado deseja corrigir: CEP ou cidade/estado?`);
-        const opcoes = c.status === 'endereco_ambiguo' ? (c.resultados || []).map(r => [r.logradouro, r.numero, r.complemento1, r.complemento2, r.complemento3].filter(Boolean).join(' ')).slice(0, 5) : [];
+        if (c.status === 'confirmar_logradouro') return finalizarMensagem('Encontrei nomes de rua parecidos nesse CEP. Seria este endereço?\n' + c.sugestoes.map((r,i) => `${i+1}. ${r.logradouro}`).join('\n') + '\nPode confirmar ou me dizer qual é o correto.');
+        const opcoes = c.status === 'endereco_ambiguo' ? (c.resultados || []).map(r => [r.logradouro, r.numero, r.complemento1, r.complemento2, r.complemento3].filter(Boolean).join(' ')).slice(0, 15) : [];
         return finalizarMensagem(opcoes.length ? 'Encontrei mais de uma unidade. Qual destas corresponde ao imóvel?\n' + opcoes.map((o, i) => `${i + 1}. ${o}`).join('\n') : 'Ainda não localizei esse imóvel com segurança. Pode confirmar a rua e o número ou a quadra/lote? Vou aproveitar os outros dados que você já enviou.');
     }
     if (c.cep)
@@ -254,7 +267,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     if (!d.tipo_pessoa) {
         s.etapa = 'tipo_pessoa';
-        return finalizarMensagem('✅ Encontrei disponibilidade na base para seu endereço.\n\nA contratação será no *CPF ou CNPJ*? Pergunto para te enviar os preços corretos, pois as ofertas para pessoa física e jurídica são diferentes.');
+        return finalizarMensagem('Maravilha! Temos disponibilidade para esse endereço. ✅\n\nA contratação será no *CPF ou CNPJ*? Pergunto para te enviar os preços corretos, pois as ofertas para pessoa física e jurídica são diferentes.');
     }
     const planos = listaPlanos(s, catalogo);
     if (s.plano && !planos.some(p => p.id === s.plano.id)) {
@@ -293,7 +306,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     for (const campo of CAMPOS) {
         if (campo === 'telefone1' && !s.enderecoConfirmado) {
-            if (s.etapa === 'confirmar_endereco' && (positivo(texto) || analise.confirmacao === true) && !novos.endereco)
+            if (s.etapa === 'confirmar_endereco' && (positivo(texto) || analise.confirmacao === true) && (!novos.endereco || normalizar(novos.endereco) === normalizar(estado?.dados?.endereco)))
                 s.enderecoConfirmado = true;
             else {
                 s.etapa = 'confirmar_endereco';

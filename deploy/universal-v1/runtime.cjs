@@ -3,6 +3,7 @@ const fs = require('node:fs'), path = require('node:path'), { createHash, random
 const { criarConsulta } = require('./vtal.cjs'), { criarInterpretador } = require('./interpretacao.cjs');
 const { inicial, avancar, resumo } = require('./conversa.cjs'), { planosDaCidade } = require('./planos-grupoprime.cjs');
 const { conclusaoUniversalInicial } = require('./configuracao-universal.cjs');
+const { incorporar, pendente } = require('./documentos.cjs');
 const WS = 'grupoprime', KEY = '__universal_v1';
 const parse = v => { try {
     return typeof v === 'string' ? JSON.parse(v) : v || {};
@@ -16,7 +17,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     let entregando = false;
     const secreto = opcoes.credencial || JSON.parse(fs.readFileSync(path.join(__dirname, 'credencial.json'), 'utf8'));
     const interprete = opcoes.interprete || criarInterpretador({ ...secreto, catalogo: planosDaCidade });
-    ctx.app.get('/universal/health', (_q, r) => r.json({ versao: 1, workspace: WS, nicho: 'telecom', pronto: !!secreto.apiKey, leitura_documentos: secreto.documentosOpenai === true, prompt_configuravel: true, conclusao_configuravel: true }));
+    ctx.app.get('/universal/health', (_q, r) => r.json({ versao: 2, workspace: WS, nicho: 'telecom', pronto: !!secreto.apiKey, leitura_documentos: secreto.documentosOpenai === true, prompt_configuravel: true, conclusao_configuravel: true, documentos_em_lote: true, pos_venda: true }));
     ctx.app.get('/universal/vtal', async (q, r) => { if (q.query.workspaceId !== WS)
         return r.status(403).json({ success: false }); const entrada = {}; for (const k of ['cep', 'cidade', 'uf', 'logradouro', 'quadra', 'lote', 'numero', 'casa', 'apartamento', 'bloco', 'texto']) {
         if (q.query[k] && String(q.query[k]).length > 500)
@@ -24,7 +25,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         entrada[k] = String(q.query[k] || '');
     } r.json({ success: true, ...await consulta(entrada) }); });
     async function salvar(fluxo, no, canal, n, s) { const vars = { ...s.dados, plano: s.plano?.nome || '', valor_plano: s.plano?.mensalidade || '', plano_id: s.plano?.id || '', operadora: 'Nio', [KEY]: JSON.stringify(s) }; await ctx.salvarSessaoFluxo(WS, canal, n, fluxo.id, no.id, vars, true, 'assistente_universal'); }
-    async function anexar(mensagem, s, canal, n) {
+    async function anexar(mensagem, s, canal, n, persistir = async () => {}) {
         const anexos = [];
         for (const m of mensagem.matchAll(/\[(?:img|image|file|document):([^\]\r\n]+)\]/gi)) {
             const nome = path.basename(m[1]);
@@ -44,8 +45,11 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
                 throw upload.error;
             const q = new URLSearchParams({ workspaceId: WS, path: storagePath, nome });
             const meta = { path: storagePath, url: '/api/documentos-clientes/arquivo?' + q, nome, tipo: mime, tamanho: buffer.length, privado: true, origem: fingerprint, enviado_em: new Date().toISOString() };
-            const leitura = secreto.documentosOpenai === true ? await interprete.lerDocumento({ buffer, mime, nome, endereco: [s.dados.endereco, s.dados.cidade, s.dados.estado, s.dados.cep].filter(Boolean).join(' '), pendente: !s.documentos.rg_frente.length ? 'rg_frente' : !s.documentos.rg_verso.length ? 'rg_verso' : 'comprovante_endereco' }) : { categorias: [], leitura: 'inconclusiva' };
-            anexos.push({ ...meta, ...leitura });
+            const leitura = secreto.documentosOpenai === true ? await interprete.lerDocumento({ buffer, mime, nome, endereco: [s.dados.endereco, s.dados.cidade, s.dados.estado, s.dados.cep].filter(Boolean).join(' '), pendente: pendente(s) }) : { categorias: [], leitura: 'inconclusiva' };
+            const arquivo = { ...meta, ...leitura };
+            incorporar(s, arquivo);
+            await persistir();
+            anexos.push(arquivo);
         }
         return anexos;
     }
@@ -78,11 +82,17 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             s = { ...inicial(), inicio: new Date().toISOString() };
         if (s.etapa === 'encerrado')
             return true;
+        if (s.proposta_id && s.etapa === 'concluido') {
+            const {data:pedido,error} = await db.from('proposta').select('*').eq('workspace_id',WS).eq('id',s.proposta_id).single();
+            if(error)throw error;
+            const resposta = await posVenda.cliente(pedido,mensagens.join('\n'));
+            if(resposta) { await enviar(resposta.mensagem);return true; }
+        }
         // Entrada é persistida antes da API. Se houver falha, a próxima tentativa retoma o lote.
         s.pendentes = [...(s.pendentes || []), ...mensagens].slice(-30);
         await salvar(fluxo, no, canal, n, s);
         try {
-            const texto = s.pendentes.join('\n'), anexos = await anexar(texto, s, canal, n);
+            const texto = s.pendentes.join('\n'), anexos = await anexar(texto, s, canal, n, () => salvar(fluxo, no, canal, n, s));
             const r = await avancar({ estado: s, entrada: texto, numero: n, extrair: interprete.extrair, consultar: consulta, catalogo: planosDaCidade, anexos, config: no.dados });
             const lotePendente = s.pendentes;
             s = r.estado;
@@ -179,7 +189,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     async function configBko() { const { data, error } = await db.from('fluxos').select('nos').eq('workspace_id', WS).eq('id', 27).single(); if (error)
         throw error; const cfg = data.nos.find(n => n.id === 'prime_documentos_enviar')?.dados?.bko_configuracao; if (!cfg?.ativo || !cfg.canal_id)
         throw Error('BKO Nio desativado'); return cfg; }
-    async function salvarEntrega(p, c, patch = {}) { const { data, error } = await db.from('proposta').update({ dados_customizados: c, updated_at: new Date().toISOString(), ...patch }).eq('workspace_id', WS).eq('id', p.id).eq('updated_at', p.updated_at).select('*').maybeSingle(); if (error)
+    async function salvarEntrega(p, c, patch = {}) { if(Array.isArray(c.universal_acoes)) c.universal_pos_pendente=c.universal_acoes.some(a=>!['enviado','cancelado'].includes(a.estado))?'SIM':'NAO'; const { data, error } = await db.from('proposta').update({ dados_customizados: c, updated_at: new Date().toISOString(), ...patch }).eq('workspace_id', WS).eq('id', p.id).eq('updated_at', p.updated_at).select('*').maybeSingle(); if (error)
         throw error; if (!data)
         throw Error('Venda foi atualizada durante o envio'); return data; }
     async function entregar(p) {
@@ -264,6 +274,8 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             p = await salvarEntrega(p, c);
             await confirmarBko(client, parte.id, enviada.ack);
             parte.estado = 'enviado';
+            parte.ack = Math.max(1,Number(enviada.ack)||1);
+            parte.enviado_em = new Date().toISOString();
             c.universal_entrega = meta;
             p = await salvarEntrega(p, c);
         }
@@ -304,37 +316,32 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             entregando = false;
         }
     }
+    let conferindoRecibos = false;
+    async function atualizarRecibos() {
+        if(conferindoRecibos)return;conferindoRecibos=true;
+        try {
+            const r=await db.from('proposta').select('*').eq('workspace_id',WS).eq('dados_customizados->>universal_v1','SIM').eq('dados_customizados->>bko_pendente','ENVIADO').order('id',{ascending:false}).limit(20);
+            if(r.error)throw r.error;
+            for(const p of r.data||[]) {
+                const c=structuredClone(p.dados_customizados),meta=c.universal_entrega;
+                if(!meta?.concluido||meta.partes?.every(m=>Number(m.ack)>=3)||Date.now()-Number(meta.recibosVerificadosEm||0)<300000)continue;
+                const client=ctx.sessoes[String(meta.canal_id)]?.client;if(!client)continue;
+                let mudou=false;
+                for(const parte of meta.partes||[]) {
+                    if(!parte.id)continue;
+                    const m=await client.getMessageById(parte.id).catch(()=>null);
+                    if(Number(m?.ack)>Number(parte.ack||0)){parte.ack=Number(m.ack);mudou=true;}
+                }
+                if(mudou){meta.recibosVerificadosEm=Date.now();await salvarEntrega(p,c);}
+            }
+        } finally {conferindoRecibos=false;}
+    }
     const retornoAnterior = ctx.tratarRetornoBko;
-    ctx.tratarRetornoBko = async (entrada) => {
-        if (entrada.workspaceId !== WS || !entrada.verificado)
-            return retornoAnterior?.(entrada) || false;
-        const { interpretarRetornoBko, transicaoBkoPermitida } = require('../bko-ia-regras.js');
-        const r = interpretarRetornoBko(entrada.mensagem || '');
-        if (!r)
-            return retornoAnterior?.(entrada) || false;
-        let q = db.from('proposta').select('*').eq('workspace_id', WS).eq('dados_customizados->>universal_v1', 'SIM');
-        q = r.referencia ? q.eq('dados_customizados->>bko_ref', r.referencia) : q.contains('dados_customizados', { bko_reply_ids: [entrada.quotedId || ''] });
-        const { data, error } = await q.limit(2);
-        if (error)
-            throw error;
-        if (data?.length !== 1)
-            return retornoAnterior?.(entrada) || false;
-        const p = data[0], c = p.dados_customizados, meta = c.universal_entrega;
-        const n = String(entrada.numero || '').replace(/\D/g, '');
-        if (!meta?.concluido || telefoneBko(n) !== telefoneBko(meta.numero) || Number(entrada.canalId) !== Number(meta.canal_id) || !entrada.messageId)
-            return true;
-        if (entrada.quotedId && !c.bko_reply_ids?.includes(entrada.quotedId))
-            return true;
-        if (!transicaoBkoPermitida(p.status_venda, r.status))
-            return true;
-        if (c.bko_retornos?.some(e => e.message_id === entrada.messageId))
-            return true;
-        c.bko_retornos = [...(c.bko_retornos || []), { message_id: entrada.messageId, status: r.status, em: new Date().toISOString() }];
-        const baseline = await db.from('crm_automacao_estado').upsert({ workspace_id: WS, proposta_id: p.id, snapshot: p, proposta_updated_at: p.updated_at }, { onConflict: 'proposta_id', ignoreDuplicates: true });
-        if (baseline.error)
-            throw baseline.error;
-        await salvarEntrega(p, c, { status_venda: r.status, ...(r.data_agendamento ? { data_agendamento: r.data_agendamento } : {}), ...(r.periodo_instalacao ? { periodo_instalacao: r.periodo_instalacao } : {}) });
-        return true;
+    const posVenda = require('./pos-venda.cjs')({ ctx, db, salvarEntrega, configBko, telefoneBko, enviarBko: (...args) => enviarBko(...args), confirmarBko: (...args) => confirmarBko(...args) });
+    ctx.tratarRetornoBko = async entrada => {
+        try { if (await posVenda.tratar(entrada)) return true; }
+        catch (e) { console.error('[Universal retorno BKO]', e.message); return true; }
+        return retornoAnterior?.(entrada) || false;
     };
     // Tentativas pendentes sobrevivem a reinício. Usa o canal e o contato persistidos.
     async function retomarPendentes() { const { data } = await db.from('fluxo_sessoes').select('*').eq('workspace_id', WS).eq('status', 'ativo').eq('tipo_input_aguardado', 'assistente_universal').limit(100); for (const row of data || []) {
@@ -350,10 +357,10 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     } }
     const enviarBko = opcoes.enviarBko || ((...args) => require('../bko-roteamento.js').enviar(...args));
     const confirmarBko = opcoes.confirmarBko || ((...args) => require('../bko-recibo.js').confirmar(...args));
-    const timer = setInterval(() => { entregarPendentes().catch(console.error); retomarPendentes().catch(console.error); }, 20000);
+    const timer = setInterval(() => { entregarPendentes().catch(console.error); retomarPendentes().catch(console.error); posVenda.pendentes().catch(console.error); atualizarRecibos().catch(console.error); }, 20000);
     timer.unref();
     ctx.universalV1 = true;
     if (opcoes.teste)
-        ctx.universalTeste = { registrar, entregar, filas, parar: () => clearInterval(timer) };
+        ctx.universalTeste = { registrar, entregar, anexar, posVenda, filas, parar: () => clearInterval(timer) };
     return ctx;
 };

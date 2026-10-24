@@ -25,6 +25,22 @@ function preparar({ falharRecibo = false } = {}) {
             throw Error('Recibo pendente'); } });
     return { ctx, db, envios, recibos };
 }
+
+test('arquivos recebidos juntos são lidos com a próxima pendência e persistidos individualmente',async()=>{
+    const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+    const dir=fs.mkdtempSync(path.join(os.tmpdir(),'wolf-doc-batch-'));
+    const {ctx,db}=preparar();ctx.universalTeste.parar();
+    const pendencias=[],salvos=[];
+    ctx.AUDIOS_DIR=dir;db.storage.from=()=>({upload:async()=>({error:null})});
+    for(const nome of ['frente.jpg','verso.jpg','conta.pdf'])fs.writeFileSync(path.join(dir,nome),'fixture');
+    carregar(ctx,{teste:true,credencial:{apiKey:'TESTE',documentosOpenai:true},interprete:{lerDocumento:async({pendente})=>{pendencias.push(pendente);return {categorias:[],leitura:'inconclusiva'}}}});
+    try {
+        const s=require('./conversa.cjs').inicial();
+        await ctx.universalTeste.anexar('[img:frente.jpg]\n[img:verso.jpg]\n[file:conta.pdf]',s,164,'5562999998888',async()=>salvos.push(s.anexos.length));
+        a.deepEqual(pendencias,['rg_frente','rg_verso','comprovante_endereco']);a.deepEqual(salvos,[1,2,3]);
+        await ctx.universalTeste.anexar('[img:frente.jpg]',s,164,'5562999998888');a.equal(s.anexos.length,3);a.equal(pendencias.length,3);
+    }finally{ctx.universalTeste.parar();if(path.dirname(dir)===fs.realpathSync(os.tmpdir())&&path.basename(dir).startsWith('wolf-doc-batch-'))fs.rmSync(dir,{recursive:true});}
+});
 function estado() { return { inicio: '2026-10-24T00:00:00Z', dados: { nome: 'Cliente Exemplo', cpf: '52998224725', data_nascimento: '23/01/2002', nome_mae: 'Mãe Exemplo', email: 'teste@example.com', telefone1: '5562999998888', endereco: 'Rua Exemplo 12', cidade: 'Goiânia', estado: 'GO', cep: '74480150', bairro: 'Centro', vencimento: '20', forma_pagamento: 'Boleto', tipo_pessoa: 'PF' }, plano: { id: 'pf-fibra-padrao', nome: 'Nio Fibra', mensalidade: 110, velocidade_mbps: 600 }, consulta: { status: 'disponivel_na_base' }, pendencias: [], documentos: { rg_frente: [{ path: 'grupoprime/cliente/rg', nome: 'rg.jpg', tipo: 'image/jpeg' }], rg_verso: [{ path: 'grupoprime/cliente/rg', nome: 'rg.jpg', tipo: 'image/jpeg' }], comprovante_endereco: [{ path: 'grupoprime/cliente/conta', nome: 'conta.pdf', tipo: 'application/pdf' }] } }; }
 
 test('desmarcar WhatsApp mantém a venda no CRM e impede a entrega', async () => {

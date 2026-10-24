@@ -5,8 +5,9 @@ const estados = { AC: 'ACRE', AL: 'ALAGOAS', AP: 'AMAPA', AM: 'AMAZONAS', BA: 'B
 const ufSigla = v => { const n = normalizar(v); return estados[n] ? n : Object.entries(estados).find(([, nome]) => nome === n)?.[0] || n; };
 const numero = v => /^\d+$/.test(String(v).trim()) ? String(Number(v)) : normalizar(v);
 function parte(texto, tipo) {
-    const marcas = { quadra: '(?:QUADRA|QU|QD|Q)', lote: '(?:LOTE|LT|L)', casa: '(?:CASA|CA)', apartamento: '(?:APARTAMENTO|APTO|APT|AP)', bloco: '(?:BLOCO|BL)' };
-    const m = normalizar(texto).match(new RegExp('(?:^|[ ,;/])' + marcas[tipo] + '\\s*[-.:]?\\s*(\\d+[A-Z]?)(?=$|[^A-Z0-9])'));
+    const marcas = { quadra: '(?:QUADRA|QU|QD|QA|Q[A-Z]{0,7}(?=\\s)|Q)', lote: '(?:LOTE|LT|L)', casa: '(?:CASA|CA)', apartamento: '(?:APARTAMENTO|APTO|APT|AP)', bloco: '(?:BLOCO|BL)' };
+    const valor = tipo === 'quadra' || tipo === 'bloco' ? '([0-9]+[A-Z]?|[A-Z])' : '(\\d+[A-Z]?)';
+    const m = normalizar(texto).match(new RegExp('(?:^|[ ,;/])' + (tipo==='quadra'?'(?!QUERO\\b|QUAL\\b|QUANDO\\b|QUANTO\\b|QUEM\\b|QUE\\b)':'') + marcas[tipo] + '\\s*[-.:]?\\s*' + valor + '(?=$|[^A-Z0-9])'));
     return m ? numero(m[1]) : '';
 }
 function interpretarEndereco(texto) {
@@ -18,6 +19,10 @@ function interpretarEndereco(texto) {
         r.numero = numero(n[1]);
     if (/\b(?:RUA|R|AVENIDA|AV|TRAVESSA|ALAMEDA|ESTRADA|RODOVIA|PRACA)\.?\s/.test(resto)) {
         r.logradouro = resto.split(/[,;]|\b(?:CEP|BAIRRO|NUMERO|N[º°])\b/)[0].trim();
+        const fachada = r.logradouro.match(/\s+(\d+[A-Z]?)\s+(?:QUADRA|QU|QD|QA|Q)\s*[-.:]?\s*(?:\d+[A-Z]?|[A-Z])\b/);
+        if (fachada) r.numero = r.numero || numero(fachada[1]);
+        r.logradouro = r.logradouro.replace(/\s+(?:QUADRA|QU|QD|QA|Q|LOTE|LT|CASA|CA|BLOCO|BL)\s*[-.:]?\s*(?:\d+[A-Z]?|[A-Z])\b.*$/, '').trim();
+        if (fachada) r.logradouro = r.logradouro.replace(/\s+\d+[A-Z]?$/, '').trim();
         if (!r.quadra && !r.lote) {
             const fim = r.logradouro.match(/\s+(\d+)$/);
             if (fim && (/[,;]/.test(resto) || r.logradouro.split(/\s+/).length >= 3)) {
@@ -33,7 +38,14 @@ function interpretarEndereco(texto) {
     }
     return r;
 }
-function ruaBase(v) { return normalizar(v).replace(/^(?:RUA|R|AVENIDA|AV|TRAVESSA|ALAMEDA)\.?\s+/, '').replace(/(?:^|\s)(?:QUADRA|QU|QD|Q|LOTE|LT|L|CASA|CA|APARTAMENTO|APTO|AP|BLOCO|BL)\s*\d+[A-Z]?\b/g, '').replace(/\s+/g, ' ').trim(); }
+function ruaBase(v) { return normalizar(v).replace(/^(?:RUA|R|AVENIDA|AV|TRAVESSA|ALAMEDA)\.?\s+/, '').replace(/(?:^|\s)(?:QUADRA|QU|QD|QA|Q|LOTE|LT|L|CASA|CA|APARTAMENTO|APTO|AP|BLOCO|BL)\s*(?:\d+[A-Z]?|[A-Z])\b/g, '').replace(/\s+/g, ' ').trim(); }
+function similaridade(a, b) {
+    a = ruaBase(a); b = ruaBase(b);
+    if(b.length>=5&&!b.includes(' ')&&a.includes(' '))return Math.max(...a.split(' ').filter(t=>t.length>=4).map(t=>similaridade(t,b)))*0.95;
+    const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) { let prev = row[0]; row[0] = i; for (let j = 1; j <= b.length; j++) { const old = row[j]; row[j] = Math.min(row[j] + 1, row[j-1] + 1, prev + (a[i-1] === b[j-1] ? 0 : 1)); prev = old; } }
+    return 1 - row[b.length] / Math.max(a.length, b.length, 1);
+}
 function ruaCompativel(real, pedido) { const a = ruaBase(real), b = ruaBase(pedido); return !b || a === b; }
 function corresponde(r, e) {
     const comps = [r.complemento1, r.complemento2, r.complemento3].join(' ');
@@ -81,6 +93,10 @@ function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indi
             return { status: 'complemento_necessario', cep: e.cep, localidades: locais, resultados: [], logradouros: inicial.facets.logradouro };
         const consultas = [];
         const ruas = (inicial.facets.logradouro || []).filter(l => ruaCompativel(l, e.logradouro));
+        if (!ruas.length && e.logradouro) {
+            const sugestoes = (inicial.facets.logradouro || []).map(logradouro => ({ logradouro, similaridade: similaridade(logradouro, e.logradouro) })).filter(s => s.similaridade >= 0.6).sort((a,b) => b.similaridade-a.similaridade).slice(0,3);
+            if (sugestoes.length) return { status: 'confirmar_logradouro', cep: e.cep, resultados: [], sugestoes };
+        }
         for (const l of ruas) {
             const base = { logradouro: l };
             if (e.numero) {
@@ -163,4 +179,4 @@ function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indi
         }
     };
 }
-module.exports = { normalizar, ufSigla, numero, parte, interpretarEndereco, corresponde, viavel, criarConsulta };
+module.exports = { normalizar, ufSigla, numero, parte, interpretarEndereco, corresponde, viavel, criarConsulta, similaridade };
