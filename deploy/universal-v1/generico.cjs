@@ -33,7 +33,7 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
  };
  let documentosEncaminhar=false;
  if(docs.some(d=>d.variavel===s.pendente)){
-  const contorno=require('./objecao-documentos.cjs').tratar(s,texto,docs);
+  const contorno=require('./objecao-documentos.cjs').tratar(s,texto,docs,r.recusa_documentos===true);
   if(contorno?.mensagem)return registrarResposta(contorno.mensagem,false,contorno.tipo);
   if(contorno?.seguir){documentosEncaminhar=true;r.encerrar=false;r.resposta='';r.sem_documento=[];}
  }
@@ -51,7 +51,7 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
  for(const c of campos){if(c.obrigatorio!==false&&!s.dados[c.variavel])return perguntar(c);if(c.tipo==='cpf'&&s.dados[c.variavel]&&!cpfValido(s.dados[c.variavel])){s.pendencias=[...new Set([...s.pendencias,'Conferir CPF informado no cadastro.'])];}}
  if(!s.confirmado){if(s.resumoHash===chaveResumo(s)&&(r.confirmacao||positivo(texto)))s.confirmado=true;else{s.pendente='__confirmacao';s.resumoHash=chaveResumo(s);return responder(resumo(s,nicho));}}
  for(const nome of r.sem_documento||[])if(docs.some(d=>d.variavel===nome)){s.semDocumento||=[];s.semDocumento=[...new Set([...s.semDocumento,nome])];s.pendencias.push('Cliente informou não possuir '+(docs.find(d=>d.variavel===nome).rotulo));}
- for(const doc of docs)if(!s.documentos[doc.variavel]?.length&&!s.semDocumento?.includes(doc.variavel)&&!s.documentosDispensados?.includes(doc.variavel)){s.pendente=doc.variavel;return responder(`Agora pode enviar *${doc.rotulo}*? ${doc.descricao||''}${doc.obrigatorio===false?' Se não tiver esse documento, pode me avisar que seguimos com uma observação.':''}`);}
+ for(const doc of docs)if(!s.documentos[doc.variavel]?.length&&!s.semDocumento?.includes(doc.variavel)&&!s.documentosDispensados?.includes(doc.variavel)){s.pendente=doc.variavel;return responder(modelo(doc.pergunta||`Por favor, envie uma foto ou arquivo de *${doc.rotulo}*.${doc.obrigatorio===false?' Se não tiver, pode me avisar que seguimos com uma observação.':''}`,s.dados));}
  s.resumo=resumo(s,nicho);s.pendente='__concluir';return registrarResposta(s.documentosDispensados?.length?'Vou encaminhar o pedido para análise com a documentação pendente. A equipe continuará a conferência com você. ✅':'Recebi as informações e os arquivos. Vou registrar o pedido. ✅',true);
 }
 module.exports={avancar,validar,catalogo,resumo,nomeValido};

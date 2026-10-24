@@ -212,7 +212,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     s.pendencias = [...new Set(s.pendencias)];
     for (const a of anexos) incorporar(s, a);
-    if (analise.sem_comprovante && !require('./objecao-documentos.cjs').recusaDocumento(texto)) {
+    if (analise.sem_comprovante && !analise.recusa_documentos && !require('./objecao-documentos.cjs').recusaDocumento(texto)) {
         s.semComprovante = true;
         s.pendencias.push('Cliente não tem comprovante de endereço.');
     }
@@ -230,7 +230,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     // Recusar o envio de documento não significa cancelar a contratação.
     let documentosEncaminhar=false;
     if(s.etapa==='documentos'){
-        const contorno=require('./objecao-documentos.cjs').tratar(s,texto,[{variavel:'rg_frente',rotulo:'RG frente'},{variavel:'rg_verso',rotulo:'RG verso'},{variavel:'comprovante_endereco',rotulo:'comprovante de endereço'}]);
+        const contorno=require('./objecao-documentos.cjs').tratar(s,texto,[{variavel:'rg_frente',rotulo:'RG frente'},{variavel:'rg_verso',rotulo:'RG verso'},{variavel:'comprovante_endereco',rotulo:'comprovante de endereço'}],analise.recusa_documentos===true);
         if(contorno?.mensagem)return responder(contorno.mensagem,undefined,contorno.tipo);
         if(contorno?.seguir){documentosEncaminhar=true;analise.encerrar=false;analise.resposta_contextual='';aviso='';}
     }
