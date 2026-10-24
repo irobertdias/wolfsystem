@@ -8,6 +8,17 @@ test('correção Casa número 36 após CPF/CNPJ reconsulta a fachada e substitui
  a.equal(consultado.numero,'36');a.equal(consultado.casa,undefined);a.equal(r.estado.dados.numero,'36');a.match(r.estado.dados.endereco,/36/);a.doesNotMatch(r.estado.dados.endereco,/35/);a.equal(r.estado.etapa,'tipo_pessoa');a.match(r.mensagem,/CPF ou CNPJ/);
 });
 function api(rows){return async url=>{const p=new URL(url).searchParams,cols=['logradouro','numero','complemento1','complemento2','complemento3'];const base=rows.filter(r=>r.cep===p.get('cep')||!r.cep),filtrados=base.filter(r=>cols.every(k=>!p.get(k)||p.get(k)===r[k]));return {ok:true,json:async()=>({cepTotal:base.length,total:filtrados.length,pageSize:30,locations:base.length?['GOIANIA / GO']:[],results:filtrados.slice((+(p.get('page')||1)-1)*30,+(p.get('page')||1)*30),facets:Object.fromEntries(cols.map(k=>[k,[...new Set(base.map(r=>r[k]))]]))})};};}
+test('linhas idênticas com IDs diferentes não pedem escolha; unidades ou situações diferentes continuam distintas',async()=>{
+ const q=rows=>criarConsulta({fetcher:api(rows)})({cep:'74480150',numero:'36'});
+ a.equal((await q([linha('1','36'),linha('2','36')])).status,'disponivel_na_base');
+ a.equal((await q([linha('1','36','CA 1'),linha('2','36','CA 2')])).status,'endereco_ambiguo');
+ a.equal((await q([linha('1','36'),{...linha('2','36'),situacao:'Inviável'}])).status,'endereco_ambiguo');
+});
+test('escolha de opção em atendimento antigo invalida consulta ambígua e avança sem repetir opções iguais',async()=>{
+ const s=inicial();s.apresentou=true;s.etapa='complemento';s.dados={cidade:'Goiânia',estado:'GO',cep:'74480150',logradouro:'RUA TESTE',numero:'36'};
+ s.consulta={status:'endereco_ambiguo',cep:'74480150',resultados:[linha('1','36'),linha('2','36')]};s.consultaChave=JSON.stringify(Object.fromEntries(['cidade','estado','cep','logradouro','quadra','lote','numero','casa','apartamento','bloco'].map(k=>[k,s.dados[k]||''])));
+ let chamadas=0;const q=criarConsulta({fetcher:api(s.consulta.resultados)});const r=await avancar({estado:s,entrada:'2',extrair:async()=>({dados:{}}),consultar:async d=>{chamadas++;return q(d)},catalogo:planosDaCidade});a.equal(chamadas,1);a.equal(r.estado.etapa,'tipo_pessoa');a.doesNotMatch(r.mensagem,/mais de uma unidade/);
+});
 function indice(rows){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'wolf-endereco-index-'));fs.writeFileSync(path.join(dir,'GO-GOIANIA.json.gz'),zlib.gzipSync(JSON.stringify(rows)));return {dir,limpar:()=>fs.rmSync(dir,{recursive:true})};}
 test('rua sem CEP localiza no índice e pede somente número, sem exigir CEP',async()=>{
  const f=indice([['RUA TESTE','74480150']]);let calls=0;try{const q=criarConsulta({diretorio:f.dir,fetcher:async()=>{calls++;throw Error('Não precisa API até obter número');}});const r=await q({cidade:'Goiânia',uf:'GO',logradouro:'Rua Teste'});a.equal(r.status,'complemento_necessario');a.equal(calls,0);

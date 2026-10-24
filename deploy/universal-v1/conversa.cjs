@@ -105,6 +105,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         const opcao = /^\s*(?:op[cç][aã]o\s*)?(\d{1,2})\s*$/i.exec(texto);
         const unidade = opcao && s.consulta.resultados?.[+opcao[1]-1];
         if (unidade) {
+            delete s.consultaChave;
             novos.logradouro = unidade.logradouro;
             novos.numero = unidade.numero;
             for (const k of ['quadra','lote','casa','apartamento','bloco']) {

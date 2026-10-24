@@ -145,6 +145,9 @@ function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indi
         encontrados = [...new Map(encontrados.filter(r => corresponde(r, e) && (!e.cidade || normalizar(r.cidade) === normalizar(e.cidade)) && (!e.uf || normalizar(r.uf) === normalizar(e.uf))).map(r => [r.id, r])).values()];
         if (incompleto)
             return { status: 'consulta_inconclusiva', cep: e.cep, resultados: [] };
+        // Linhas repetidas da planilha não representam unidades diferentes.
+        // Inclui a situação na chave para não ocultar divergências de viabilidade.
+        encontrados = [...new Map(encontrados.map(r => [JSON.stringify(['uf','cidade','bairro','logradouro','numero','complemento1','complemento2','complemento3','situacao','comercial'].map(k=>normalizar(r[k]))),r])).values()];
         if (!encontrados.length)
             return { status: !unicas.length&&Object.values(inicial.facets).some(v => v.length >= 500) ? 'consulta_inconclusiva' : 'endereco_nao_localizado', cep: e.cep, resultados: [],logradouros:inicial.facets.logradouro,bairro:bairros.length===1?bairros[0]:'',numero:e.numero||e.casa||'' };
         if (encontrados.length > 1)
