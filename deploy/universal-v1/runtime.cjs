@@ -72,7 +72,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         if (anterior.data.length > 1)
             throw Error('Pedido exige reconciliação, sem novo cadastro');
         if (anterior.data.length === 1){await etiquetasVendas.venda(db,WS,canal,n,anterior.data[0].id);return anterior.data[0].id;}
-        const d = s.dados, custom = { universal_v1: 'SIM', universal_chave: chave, numero_origem_whatsapp: String(n), plano_id: s.plano?.id||'', velocidade_mbps: s.plano?.velocidade_mbps||'', tipo_pessoa: d.tipo_pessoa, cnpj: d.cnpj || '', bairro: d.bairro, vtal: s.consulta, pendencias_bko: JSON.stringify([...new Set([...(s.pendencias||[]),...(s.documentosDispensados?.length?['FALTA PEGAR DOCUMENTO']:[])])]), bko_pendente: conclusao.whatsapp === false ? 'DESATIVADO' : 'SIM', envio_whatsapp_ativo: conclusao.whatsapp !== false, universal_entrega: { partes: [], tentativas: 0 }, ...s.documentos,universal_documentos:s.anexos||[],documentos_dispensados:s.documentosDispensados||[],observacao_documentos:s.documentosDispensados?.length?'FALTA PEGAR DOCUMENTO':'',observacao_bko_documentos:s.documentosDispensados?.length?'CLIENTE NÃO ACEITOU ENVIAR DOCUMENTAÇÃO':'',universal_conclusao:conclusao,universal_resumo:s.resumoPersonalizado||'',universal_variaveis:s.variaveisPublicas||{} };
+        const d = s.dados, custom = { universal_v1: 'SIM', universal_chave: chave, numero_origem_whatsapp: String(n), plano_id: s.plano?.id||'', velocidade_mbps: s.plano?.velocidade_mbps||'', tipo_pessoa: d.tipo_pessoa, cnpj: d.cnpj || '', bairro: d.bairro, vtal: s.consulta, pendencias_bko: JSON.stringify([...new Set([...(s.pendencias||[]),...(s.documentosDispensados?.length?['FALTA PEGAR DOCUMENTO']:[])])]), bko_pendente: conclusao.whatsapp === false ? 'DESATIVADO' : 'SIM', envio_whatsapp_ativo: conclusao.whatsapp !== false, universal_entrega: { partes: [], tentativas: 0 }, ...s.documentos,universal_documentos:s.anexos||[],documentos_dispensados:s.documentosDispensados||[],observacao_documentos:s.documentosDispensados?.length?'FALTA PEGAR DOCUMENTO':'',observacao_bko_documentos:s.documentosDispensados?.length?(s.observacaoBkoDocumentos||'CLIENTE NÃO ACEITOU ENVIAR DOCUMENTAÇÃO'):'',universal_conclusao:conclusao,universal_resumo:s.resumoPersonalizado||'',universal_variaveis:s.variaveisPublicas||{} };
         const mapeado=registro({...s.variaveisPublicas,...d,plano:s.plano?.nome||d.plano||'',valor_plano:s.plano?.mensalidade??d.valor_plano??'',operadora:d.operadora||(s.consulta?'Nio':'')},conclusao);Object.assign(custom,mapeado.custom);
         const p = { workspace_id: WS, canal_id: Number(canal), fluxo_id: fluxo.id, data_proposta: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()), status_venda: conclusao.status_inicial||'AGUARDANDO AUDITORIA', dados_customizados: custom };
         Object.assign(p,mapeado.campos);p.status_venda=conclusao.status_inicial||p.status_venda||'AGUARDANDO AUDITORIA';
@@ -141,6 +141,10 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             }
             await salvar(fluxo, no, canal, n, s);
             // Se uma nova mensagem chegou durante a interpretação, processe o conjunto
+            if(r.inviavel&&r.acao==='encerrar'){
+                try{await enviar(r.mensagem);}catch(e){console.error('[Universal aviso inviável]',e.message);}finally{await finalizarConversa(db,WS,canal,n);}
+                return true;
+            }
             // antes de perguntar algo que o cliente pode já ter respondido.
             if (filas.get(item.chave)?.mensagens.length && !['registrar','encerrar'].includes(r.acao))
                 return true;

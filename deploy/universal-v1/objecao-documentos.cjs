@@ -13,6 +13,14 @@ function tratar(s,texto,docs,recusaInterpretada=false){
  if(!s.confirmado||pararPedido(texto))return null;
  const faltantes=docs.filter(d=>!(d.variavel==='comprovante_endereco'&&s.semComprovante)&&!s.documentos?.[d.variavel]?.length&&!s.documentosDispensados?.includes(d.variavel));
  if(!faltantes.length)return null;
+ const t=normalizar(texto),perdido=/\b(?:PERDI|EXTRAVIEI|PERDEU|EXTRAVIADO|ROUBADO|FURTADO|NAO (?:TENHO|ESTOU COM) (?:O |MEU )?(?:RG|DOCUMENTO|IDENTIDADE))\b/.test(t);
+ if(perdido){
+  s.documentosDispensados=[...new Set([...(s.documentosDispensados||[]),...faltantes.map(d=>d.variavel)])];
+  s.observacaoDocumentos='FALTA PEGAR DOCUMENTO';s.observacaoBkoDocumentos='CLIENTE INFORMOU NÃO POSSUIR O DOCUMENTO ORIGINAL. DOCUMENTAÇÃO PENDENTE PARA CONFERÊNCIA PELO BKO';
+  s.pendencias=[...new Set([...(s.pendencias||[]),s.observacaoDocumentos,'Cliente informou: '+String(texto).slice(0,400)+'. BKO deve continuar a conferência dos documentos faltantes: '+faltantes.map(d=>d.rotulo||d.variavel).join(', ')+'.'])];
+  return {seguir:true};
+ }
+ if(!recusaDocumento(texto)&&/\b(?:XEROX|COPIA|FOTOCOPIA|DIGITALIZAD[OA])\b/.test(t)&&!/\bNAO (?:TENHO|POSSUO)\b/.test(t))return {tipo:'documento_alternativo',mensagem:'Pode enviar uma foto legível da cópia ou o arquivo que você tem. Vou salvar e encaminhar para a equipe conferir. Se não conseguir enviar, me avise que encaminho com essa pendência.'};
  const recusa=recusaInterpretada||recusaDocumento(texto),duvida=/\b(?:POR QUE|PORQUE|PRA QUE|PARA QUE|SEGURO|SEGURANCA|MEDO)\b/.test(normalizar(texto));
  if(!recusa&&!duvida)return null;
  if(!s.contornoDocumentosExplicado||!recusa){s.contornoDocumentosExplicado=true;return {tipo:'contorno_documentos',mensagem:EXPLICACAO};}

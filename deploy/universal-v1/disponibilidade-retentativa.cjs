@@ -12,9 +12,8 @@ function semDisponibilidade(s,responder){
  const chave=JSON.stringify(Object.fromEntries(['cidade','estado',...campos].map(k=>[k,s.dados[k]||''])));
  s.enderecosInviaveis||=[];
  if(!s.enderecosInviaveis.includes(chave))s.enderecosInviaveis.push(chave);
- if(s.enderecosInviaveis.length>=2){s.etapa='encerrado';s.encerramentoInviavel=true;return responder('Consultei esse outro endereço e também não há disponibilidade no momento. Vou finalizar o atendimento por aqui. Obrigado pelo interesse! 💚','encerrar');}
- s.etapa='outro_endereco';
- return responder('No momento, não temos disponibilidade para esse endereço. Você tem outro endereço para consultar? Pode enviar o CEP ou a rua com número, cidade e estado. Se não tiver, me avise que finalizo por aqui. 💚');
+ s.etapa='encerrado';s.encerramentoInviavel=true;
+ return responder('No momento, não temos disponibilidade para esse endereço. Vou finalizar este atendimento. Se quiser consultar outro endereço depois, é só chamar. Obrigado pelo interesse! 💚','encerrar');
 }
 function esclarecerOuEncerrar(s,texto,responder){
  if((s.esclarecimentosOutroEnderecoEnviados||0)>=1){s.etapa='encerrado';s.encerramentoInviavel=true;return responder('Como não há disponibilidade confirmada para esse imóvel e não recebemos outro endereço para consultar, vou finalizar o atendimento por enquanto. Se tiver outro endereço futuramente, é só chamar. 💚','encerrar');}

@@ -97,7 +97,7 @@ module.exports=function instalar(ctx){
    s.retryEm=Date.now()+60000;const avisou=s.instabilidadeAvisada;s.instabilidadeAvisada=true;await salvar();if(!avisou&&r.mensagem)await enviar(r.mensagem);return {aguardarInput:true};
   }
   s.pendentes=[];s.erroAvisado=false;delete s.retryEm;delete s.instabilidadeAvisada;await salvar();
-  if(s.encerrado||r.encerrar){await enviar(r.mensagem);await finalizarConversa(db,meta.workspaceId,meta.canalId,meta.numero);return {parar:true};}
+  if(s.encerrado||r.encerrar){try{await enviar(r.mensagem);}catch(e){if(!s.nio?.encerramentoInviavel)throw e;console.error('[Universal aviso inviável]',e.message);}finally{await finalizarConversa(db,meta.workspaceId,meta.canalId,meta.numero);}return {parar:true};}
   if(r.concluido){s.pronto=true;await salvar();return {proximoNoId:proximo(f,no.id)};}
   const filaAtual=filas.get(`${meta.workspaceId}:${meta.canalId}:${meta.numero}`);
   if(r.mensagem&&!filaAtual?.mensagens.length){await enviar(r.mensagem);confirmarEntrega(r.abertura?s.nio:s,r);await salvar();}return {aguardarInput:true};

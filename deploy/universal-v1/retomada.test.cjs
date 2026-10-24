@@ -1,5 +1,12 @@
 const {test}=require('node:test'),a=require('node:assert/strict');
 const carregar=require('./runtime.cjs');
+test('inviável encerra o atendimento mesmo se o envio do aviso falhar',async()=>{
+ let sessao;const mudancas=[];
+ const db={from(t){let patch;const q={select(){return q},eq(){return q},order(){return q},limit(){return q},update(v){patch=v;return q},then(ok,erro){if(patch)mudancas.push({t,...patch});return Promise.resolve({data:[],error:null}).then(ok,erro)}};return q}};
+ const ctx={supabase:db,executarFluxo:async()=>false,app:{get(){}},verificarBloqueioManualBot:async()=>({bloqueado:false}),buscarSessaoFluxo:async()=>sessao,salvarSessaoFluxo:async(w,c,n,f,no,vars)=>{sessao={variaveis:vars}},sessoes:{}};
+ carregar(ctx,{teste:true,credencial:{apiKey:'teste'},interprete:{extrair:async()=>({dados:{cidade:'Goiânia',estado:'GO',cep:'74480150'}})},consulta:async()=>({status:'sem_disponibilidade_na_base'})});
+ try{await ctx.universalTeste.processar({chave:'x',fluxo:{id:29},no:{id:'a',dados:{}},canal:164,n:'5500000000000',mensagens:['74480150'],enviar:async()=>{throw Error('Canal indisponível')}});a.ok(mudancas.some(m=>m.t==='atendimentos'&&m.status==='resolvido'));a.ok(mudancas.some(m=>m.t==='fluxo_sessoes'&&m.status==='finalizado'));a.equal(JSON.parse(sessao.variaveis.__universal_v1).pendentes.length,0);}finally{ctx.universalTeste.parar()}
+});
 test('encerrar resolve o atendimento e finaliza sessão mesmo com nova mensagem na fila',async()=>{
  let sessao;const mudancas=[],envios=[];
  const db={from(t){let patch;const q={select(){return q},eq(){return q},limit(){return q},update(v){patch=v;return q},then(ok,erro){if(patch)mudancas.push({t,...patch});return Promise.resolve({data:[],error:null}).then(ok,erro)}};return q}};
