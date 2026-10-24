@@ -18,3 +18,6 @@ test('conclusão publica proposta_id e permite executar os blocos nativos seguin
 test('assistente apenas entra no nicho, sem executar ou substituir blocos CRM',async()=>{
  const h=contexto();try{const f={conexoes:[{de:'a',para:'n',saidaIndex:0}]};const r=await h.ctx.processarUniversalNativo(f,{id:'a',tipo:'assistente_universal'}, {},'',false,()=>{}, {workspaceId:'grupoprime'});a.equal(r.proximoNoId,'n');a.equal(h.inserts.length,0);}finally{h.parar();}
 });
+test('retornos CRM com proposta e início explícito não entram no agrupamento de mensagens da IA',async()=>{
+ const h=contexto();try{a.equal(await h.ctx.executarFluxo('grupoprime',164,'5500000000000','',()=>{},99,{proposta:{id:123},iniciarNoId:'gatilho'}),true);a.equal(h.inserts.length,0);}finally{h.parar();}
+});

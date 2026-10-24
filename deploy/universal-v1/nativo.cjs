@@ -80,7 +80,8 @@ module.exports=function instalar(ctx){
   s=r.estado;s.pendentes=[];s.erroAvisado=false;delete s.retryEm;await salvar();
   if(s.encerrado||r.encerrar){await enviar(r.mensagem);await db.from('atendimentos').update({status:'finalizado',bloqueado_ia:true,bloqueado_fluxo:true}).eq('workspace_id',meta.workspaceId).eq('canal_id',meta.canalId).eq('numero',meta.numero);return {parar:true};}
   if(r.concluido){s.pronto=true;await salvar();return {proximoNoId:proximo(f,no.id)};}
-  if(r.mensagem)await enviar(r.mensagem);return {aguardarInput:true};
+  const filaAtual=filas.get(`${meta.workspaceId}:${meta.canalId}:${meta.numero}`);
+  if(r.mensagem&&!filaAtual?.mensagens.length)await enviar(r.mensagem);return {aguardarInput:true};
  }
  ctx.processarUniversalNativo=async(...args)=>{
   try{return await processar(...args);}catch(e){
@@ -95,6 +96,7 @@ module.exports=function instalar(ctx){
  // Generic flows retain the native execution loop (including CRM triggers and tags).
  const executar=ctx.executarFluxo;
  ctx.executarFluxo=async function(ws,canal,numero,texto,enviar,fluxoId,opts={}){
+  if(opts.proposta||opts.iniciarNoId)return executar(ws,canal,numero,texto,enviar,fluxoId,opts);
   const {data:f}=await db.from('fluxos').select('nos').eq('workspace_id',ws).eq('id',fluxoId||0).maybeSingle();
   if(!f?.nos?.some(n=>n.tipo==='nicho_atendimento'&&Array.isArray(n.dados?.coleta)))return executar(ws,canal,numero,texto,enviar,fluxoId,opts);
   const key=`${ws}:${canal}:${numero}`,fila=filas.get(key)||{mensagens:[],esperas:[],rodando:false};filas.set(key,fila);
