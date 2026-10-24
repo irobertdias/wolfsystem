@@ -22,6 +22,7 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
    if(normalizar(s.dados[c.variavel])!==normalizar(valor)){s.dados[c.variavel]=valor;s.confirmado=false;}
  }
  const pendente=campos.find(c=>c.variavel===s.pendente);
+ if(pendente&&(!pendente.tipo||pendente.tipo==='texto')&&!r.dados?.some(d=>d.campo===pendente.variavel)&&!r.pergunta&&!r.objecao&&!r.encerrar&&!positivo(texto)&&texto.trim()&&!/[?]|\[(?:img|file|document):/i.test(texto)&&!/^\s*(?:NÃO|NAO|N|CANCELAR|DESISTIR|PARE|OK|SIM)\b/i.test(texto))s.dados[pendente.variavel]=texto.trim().slice(0,1000);
  if(pendente?.tipo==='confirmacao'&&(r.confirmacao||positivo(texto)))s.dados[pendente.variavel]='Confirmado';
  if(pendente?.tipo==='telefone'&&(/\b(?:ESSE|ESTE|MESMO|AQUI)\b/.test(normalizar(texto))||positivo(texto)))s.dados[pendente.variavel]=String(numero).replace(/\D/g,'');
  if(pendente&&pendente.tipo==='data'&&dataBR(texto))s.dados[pendente.variavel]=dataBR(texto);

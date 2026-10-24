@@ -27,7 +27,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         entrada[k] = String(q.query[k] || '');
     } r.json({ success: true, ...await consulta(entrada) }); });
     async function salvar(fluxo, no, canal, n, s) { const vars = { ...s.dados, plano: s.plano?.nome || '', valor_plano: s.plano?.mensalidade || '', plano_id: s.plano?.id || '', operadora: 'Nio', proposta_id:s.proposta_id?String(s.proposta_id):'', [KEY]: JSON.stringify(s) }; await ctx.salvarSessaoFluxo(WS, canal, n, fluxo.id, no.id, vars, true, 'assistente_universal'); }
-    async function anexar(mensagem, s, canal, n, persistir = async () => {}) {
+    async function anexar(mensagem, s, canal, n, persistir = async () => {}, config = {}) {
         const anexos = [];
         for (const m of mensagem.matchAll(/\[(?:img|image|file|document):([^\]\r\n]+)\]/gi)) {
             const nome = path.basename(m[1]);
@@ -47,7 +47,9 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
                 throw upload.error;
             const q = new URLSearchParams({ workspaceId: WS, path: storagePath, nome });
             const meta = { path: storagePath, url: '/api/documentos-clientes/arquivo?' + q, nome, tipo: mime, tamanho: buffer.length, privado: true, origem: fingerprint, enviado_em: new Date().toISOString() };
-            const leitura = secreto.documentosOpenai === true ? await interprete.lerDocumento({ buffer, mime, nome, endereco: [s.dados.endereco, s.dados.cidade, s.dados.estado, s.dados.cep].filter(Boolean).join(' '), pendente: pendente(s) }) : { categorias: [], leitura: 'inconclusiva' };
+            const leitor=config.apiKey||config.modelo?criarInterpretador({...secreto,apiKey:config.apiKey||secreto.apiKey,model:config.modelo||secreto.model,catalogo:planosDaCidade}):interprete;
+            const autorizado=config.autorizar_leitura_documentos===undefined?secreto.documentosOpenai===true:config.autorizar_leitura_documentos===true;
+            const leitura = autorizado ? await leitor.lerDocumento({ buffer, mime, nome, endereco: [s.dados.endereco, s.dados.cidade, s.dados.estado, s.dados.cep].filter(Boolean).join(' '), pendente: pendente(s) }) : { categorias: [], leitura: 'inconclusiva' };
             const arquivo = { ...meta, ...leitura };
             incorporar(s, arquivo);
             await persistir();
@@ -94,8 +96,9 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         s.pendentes = [...(s.pendentes || []), ...mensagens].slice(-30);
         await salvar(fluxo, no, canal, n, s);
         try {
-            const texto = s.pendentes.join('\n'), anexos = await anexar(texto, s, canal, n, () => salvar(fluxo, no, canal, n, s));
-            const r = await avancar({ estado: s, entrada: texto, numero: n, extrair: interprete.extrair, consultar: consulta, catalogo: planosDaCidade, anexos, config: no.dados });
+            const texto = s.pendentes.join('\n'), anexos = await anexar(texto, s, canal, n, () => salvar(fluxo, no, canal, n, s),no.dados);
+            const ia=no.dados.apiKey||no.dados.modelo?criarInterpretador({...secreto,apiKey:no.dados.apiKey||secreto.apiKey,model:no.dados.modelo||secreto.model,catalogo:planosDaCidade}):interprete;
+            const r = await avancar({ estado: s, entrada: texto, numero: n, extrair: ia.extrair, consultar: consulta, catalogo: planosDaCidade, anexos, config: no.dados });
             const lotePendente = s.pendentes;
             s = r.estado;
             s.pendentes = [];
