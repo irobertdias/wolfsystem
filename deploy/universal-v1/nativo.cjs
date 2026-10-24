@@ -89,6 +89,8 @@ module.exports=function instalar(ctx){
    const [f,no,vars,, ,enviar,meta]=args;
    if(!['nicho_atendimento','concluir_venda_universal'].includes(no.tipo))throw e;
    const s=parse(vars[KEY]);s.retryEm=Date.now()+60000;s.erro=String(e.message).slice(0,200);
+   const erroNo=no.tipo==='concluir_venda_universal'?proximo(f,no.id,1):null;
+   if(erroNo){delete s.retryEm;vars.universal_erro=s.erro;vars[KEY]=JSON.stringify(s);await ctx.persistirVariaveis(meta.workspaceId,meta.canalId,meta.numero,vars);return {proximoNoId:erroNo};}
    if(!s.erroAvisado){await enviar('Tive uma instabilidade, mas preservei as informações que você enviou. Vou retomar daqui sem começar de novo.');s.erroAvisado=true;}
    vars[KEY]=JSON.stringify(s);await ctx.salvarSessaoFluxo(meta.workspaceId,meta.canalId,meta.numero,f.id,no.id,vars,true,'nicho_atendimento');
    console.error('[Universal configuração]',e.message);return {aguardarInput:true};

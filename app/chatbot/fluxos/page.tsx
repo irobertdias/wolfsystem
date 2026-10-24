@@ -2548,7 +2548,7 @@ export default function FluxosPage() {
   }
 
   function abrirEditor(f:Fluxo) {
-    const nosNormalizados = (f.nos||[]);
+    const nosNormalizados = (f.nos||[]).map(n=>n.tipo==='concluir_venda_universal'?{...n,saidas:[...B.concluir_venda_universal.saidas]}:n);
     setFluxoAtivo({...f, nos:nosNormalizados}); setNos(nosNormalizados); setArestas(f.conexoes||[]); setNoSel(null); setNoEditando(null); setView("editor");
     fetchFilas(); // 🆕 recarrega filas ao abrir o editor
     fetchAtendentes(); // 🆕 recarrega atendentes ao abrir o editor
