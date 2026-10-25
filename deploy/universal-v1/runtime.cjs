@@ -19,7 +19,11 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     const WS=opcoes.workspace||'grupoprime';
     const {registro,modelo,configuracao}=require('./modelo-vendas.cjs');
     const db = ctx.supabase, base = ctx.executarFluxo, consulta = opcoes.consulta||criarConsulta(), filas = new Map();
-    const enviarCliente=(client,numero,mensagem)=>typeof ctx.enviarTextoWebjs==='function'?ctx.enviarTextoWebjs(client,numero,mensagem):require('../bko-roteamento.js').enviar(client,numero,mensagem);
+    const enviarCliente=async(client,numero,mensagem)=>{
+        const r=await (typeof ctx.enviarTextoWebjs==='function'?ctx.enviarTextoWebjs(client,numero,mensagem):require('../bko-roteamento.js').enviar(client,numero,mensagem));
+        if(r?.success===false)throw Error(r.error||'Envio ao cliente não confirmado');
+        return r?.messageId?{...r,id:{_serialized:r.messageId}}:r;
+    };
     let entregando = false;
     const secreto = opcoes.credencial || JSON.parse(fs.readFileSync(path.join(__dirname, 'credencial.json'), 'utf8'));
     const interprete = opcoes.interprete || criarInterpretador({ ...secreto, catalogo: planosDaCidade });
