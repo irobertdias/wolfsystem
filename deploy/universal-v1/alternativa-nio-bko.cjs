@@ -1,5 +1,5 @@
 'use strict';
-const {normalizar,interpretarEndereco,parte,criarConsulta}=require('./vtal.cjs');
+const {normalizar,interpretarEndereco,parte,criarConsulta,corresponde,viavel}=require('./vtal.cjs');
 const {planosDaCidade}=require('./planos-grupoprime.cjs');
 const {escolherPlano,resumo}=require('./conversa.cjs');
 const {randomBytes}=require('node:crypto');
@@ -25,11 +25,14 @@ function criar({db,workspace,consultar=criarConsulta(),catalogo=planosDaCidade,a
    if(!e.cidade||!e.uf||(!e.cep&&!e.logradouro))throw Error('Endereço salvo incompleto para a consulta');
    const r=await consultar(e);a.consulta=r;a.consultado_em=new Date(agora()).toISOString();
    if(r.status==='consulta_inconclusiva')throw Error(r.erro||'Consulta VTAL temporariamente indisponível');
-   if(r.status!=='disponivel_na_base'){
+   // Várias casas no mesmo número não impedem a oferta quando todas são viáveis.
+   // A unidade técnica continua pendente, sem escolher uma casa pelo cliente.
+   const unidadesViaveis=r.status==='endereco_ambiguo'&&e.logradouro&&e.numero&&r.resultados?.length>1&&r.resultados.every(x=>corresponde(x,e)&&viavel(x)&&normalizar(x.cidade)===normalizar(e.cidade)&&normalizar(x.uf)===normalizar(e.uf));
+   if(r.status!=='disponivel_na_base'&&!unidadesViaveis){
     a.estado=['sem_disponibilidade_na_base','nao_localizado'].includes(r.status)?'sem_disponibilidade':'conferencia_endereco';
-    if(a.estado==='conferencia_endereco')c.universal_acoes.push({chave:'alternativa_nio_conferencia:'+p.id,alvo:'bko',estado:'pendente',texto:`Pedido #${p.id}: a consulta alternativa Nio não identificou uma unidade exata com os dados já salvos. Confira o endereço e os documentos existentes antes de oferecer outro plano.\n#${c.bko_ref}`,criado_em:new Date(agora()).toISOString()});
     return true;
    }
+   if(unidadesViaveis)a.observacao_unidade='VTAL: todas as unidades retornadas no endereço são viáveis. Conferir a unidade técnica com os dados e documentos já salvos; nenhuma casa foi escolhida automaticamente.';
    const tabela=catalogo(p.estado,p.cidade),pj=c.tipo_pessoa==='PJ'||!!c.cnpj,cartao=/CARTAO|CREDITO/.test(normalizar(p.forma_pagamento));a.ofertas=(pj?tabela.pessoa_juridica:tabela.pessoa_fisica)?.map(o=>({...o,mensalidade:cartao&&o.mensalidade_cartao?o.mensalidade_cartao:o.mensalidade,mensalidade_cartao:null}));
    if(!a.ofertas?.length)throw Error('Nenhuma oferta Nio configurada para a modalidade e cidade');
    a.estado='aguardando_cliente';c.universal_migracao_nio_pendente='SIM';a.chave_oferta='alternativa_nio_ofertas:'+p.id;
@@ -47,6 +50,7 @@ function criar({db,workspace,consultar=criarConsulta(),catalogo=planosDaCidade,a
   c.universal_migracao_nio_pendente='NAO';c.universal_entregas_anteriores=[...(c.universal_entregas_anteriores||[]),{operadora:p.operadora,status_venda:p.status_venda,bko_ref:c.bko_ref,bko_reply_ids:c.bko_reply_ids,entrega:c.universal_entrega,conclusao:c.universal_conclusao,em:new Date(agora()).toISOString()}];
   c.universal_referencias_anteriores=[...(c.universal_referencias_anteriores||[]),c.bko_ref];c.bko_ref=`BKO-${p.id}-${randomBytes(8).toString('hex')}`.toUpperCase();c.bko_reply_ids=[];
   c.universal_entrega={partes:[],tentativas:0};c.bko_pendente='SIM';c.envio_whatsapp_ativo=true;c.bko_erro='';c.plano_id=escolhido.id;c.velocidade_mbps=escolhido.velocidade_mbps;c.vtal=a.consulta;c.universal_novo_cpf=false;
+  if(a.observacao_unidade){const pendencias=typeof c.pendencias_bko==='string'?JSON.parse(c.pendencias_bko||'[]'):c.pendencias_bko||[];c.pendencias_bko=JSON.stringify([...new Set([...pendencias,a.observacao_unidade])]);}
   if(c.universal_conclusao)c.universal_conclusao={...c.universal_conclusao,mensagem_bko:''};
   const patch={operadora:'Nio',plano:escolhido.nome,valor_plano:escolhido.mensalidade,status_venda:'AGUARDANDO AUDITORIA'};
   c.universal_variaveis={...c.universal_variaveis,...patch,plano_id:escolhido.id,valor_plano:escolhido.mensalidade};
