@@ -116,7 +116,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         if (unidade) {
             delete s.consultaChave;
             novos.logradouro = unidade.logradouro;
-            novos.numero = unidade.numero;
+            novos.numero = /^(?:|SN|S\/N|SEM NUMERO)$/.test(normalizar(unidade.numero)) ? parte([unidade.complemento1,unidade.complemento2,unidade.complemento3].join(' '),'numero')||d.numero||'' : unidade.numero;
             for (const k of ['quadra','lote','casa','apartamento','bloco']) {
                 const valor = parte([unidade.logradouro, unidade.complemento1, unidade.complemento2, unidade.complemento3].join(' '), k);
                 if (valor) novos[k] = valor;
