@@ -49,7 +49,7 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
  const perguntar=c=>{s.pendente=c.variavel;return responder(modelo(c.pergunta||`Pode me informar ${c.rotulo}?`,s.dados));};
  const antes=campos.find(c=>c.etapa==='antes_oferta'&&c.obrigatorio!==false&&!s.dados[c.variavel]);if(antes)return perguntar(antes);
  if(nicho.exigir_oferta&&!s.oferta){
-   const pediuPrecos=/\b(?:QUAL|QUAIS|QUANTO|QTO|QNT|CUSTA|PASSA|PASA|MANDA|PRECOS|VALORES)\b/.test(normalizar(texto));const escolhido=s.ofertasMostradas&&!r.pergunta&&!pediuPrecos?ofertas.find(p=>p.id===r.plano_id):null;
+   const pediuPrecos=require('./normalizacao-entrada.cjs').pedidoDeOfertas(texto)||/\b(?:QUAL|QUAIS|QUANTO|QTO|QNT|CUSTA|PASSA|PASA|MANDA|PRECOS|VALORES)\b/.test(normalizar(texto));const escolhido=s.ofertasMostradas&&!r.pergunta&&!pediuPrecos?ofertas.find(p=>p.id===r.plano_id):null;
    if(escolhido){s.oferta=escolhido;s.dados.plano=escolhido.nome;s.dados.valor_plano=escolhido.preco;s.dados.plano_id=escolhido.id;s.confirmado=false;}
    else {s.pendente='__oferta';if(s.ofertasMostradas&&r.resposta&&!/OFERTA|PLANO|PRECO|VALOR|OPCOES/.test(normalizar(texto)))return registrarResposta(r.resposta+'\n\nQual das opções apresentadas você prefere?');s.ofertasMostradas=true;return responder(ofertas.length?ofertas.map((p,i)=>`${i+1}️⃣ *${p.nome}* · R$ ${p.preco.toFixed(2).replace('.',',')}${p.descricao?'\n'+p.descricao:''}`).join('\n\n')+'\n\nQual opção combina com o que você precisa?':'Vou precisar confirmar as ofertas com a equipe. Não há um catálogo disponível nesta configuração.');}
  }

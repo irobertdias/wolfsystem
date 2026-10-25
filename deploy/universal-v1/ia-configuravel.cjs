@@ -4,7 +4,9 @@ const {schemaEnderecos,promptEndereco,normalizarEnderecos}=require('./endereco-m
 function criarIA({apiKey,modelo='gpt-4o-mini',fetcher=fetch}) {
  async function chamar(instructions,input,schema) {
   if(!apiKey)throw Error('Configure a credencial de IA deste fluxo.');
-  const resp=await fetcher('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},signal:AbortSignal.timeout(45000),body:JSON.stringify({model:modelo,store:false,instructions,input,text:{format:{type:'json_schema',name:'atendimento',strict:true,schema}}})});
+  // O histórico interno também guarda tipo/em dos lembretes; a API recebe só mensagens.
+  const mensagens=Array.isArray(input)?input.filter(m=>['user','assistant','system','developer'].includes(m?.role)&&m.content!=null).map(m=>({role:m.role,content:m.content})):input;
+  const resp=await fetcher('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},signal:AbortSignal.timeout(45000),body:JSON.stringify({model:modelo,store:false,instructions,input:mensagens,text:{format:{type:'json_schema',name:'atendimento',strict:true,schema}}})});
   const j=await resp.json();if(!resp.ok)throw Error('Interpretação indisponível ('+resp.status+')');
   return JSON.parse(j.output?.flatMap(o=>o.content||[]).filter(c=>c.type==='output_text').map(c=>c.text).join('')||'null');
  }

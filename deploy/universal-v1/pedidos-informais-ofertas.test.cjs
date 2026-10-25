@@ -1,0 +1,13 @@
+'use strict';
+const {test}=require('node:test'),a=require('node:assert/strict');
+const gen=require('./generico.cjs'),{inicial,avancar}=require('./conversa.cjs'),{planosDaCidade}=require('./planos-grupoprime.cjs');
+const frases=['quantos mg','qntos mg','qtos mgs','qunatos mega','quais os plnaos','qauis os planos','qais as ofretas','quaiz as ofertas','pasa os plamos','mosta os plnaos','qual o valo','qual o valro','qto o vlaor','quantu custa','qunto custa','qnt custa','prco','prceos','precu','preso','qual o prec','quais os valoris','manda as ofretas','mostra os plamos','passa o prceco','quais os megas','qto de mb','qnt de mbps','qntos mega','quantos mgs','qual o plnao','qual a ofreta','qais os plamos','mosta as ofretas','pasa os valores','quais planos e preco','quantos mg e valo','qauis megas','qntos mbps','manda os plnaos'];
+const formas=[t=>t,t=>t+'?',t=>t.toUpperCase(),t=>t[0].toUpperCase()+t.slice(1)+' ?',t=>t.replace(/ /g,'  ')+'!',t=>t.replace(/ /g,'.')];
+const vistos=new Set();
+for(const frase of frases)for(const formato of formas){const texto=formato(frase);if(vistos.has(texto))continue;vistos.add(texto);test('pedido informal mostra velocidades/preços e nunca escolhe sozinho: '+JSON.stringify(texto),async()=>{
+ const s=inicial();s.apresentou=true;s.etapa='plano';s.dados={cidade:'Goiânia',estado:'GO',cep:'74480150',numero:'12',tipo_pessoa:'PF'};s.ofertas=planosDaCidade('GO','Goiânia').pessoa_fisica.map(p=>p.id);
+ const r=await avancar({estado:s,entrada:texto,numero:'5500000000000',extrair:async()=>({dados:{},pergunta:false,plano_id:s.ofertas[0]}),consultar:async()=>({status:'disponivel_na_base',cep:'74480150',resultados:[{logradouro:'RUA A',numero:'12',bairro:'CENTRO'}]}),catalogo:planosDaCidade});
+ a.equal(r.estado.plano,undefined);a.match(r.mensagem,/600 Mega/);a.match(r.mensagem,/110,00/);a.doesNotMatch(r.mensagem,/esclarecer|Só falta confirmar/);
+ const g=await gen.avancar({estado:{dados:{},historico:[],documentos:{},anexos:[],pendencias:[],apresentou:true,ofertasMostradas:true},texto,numero:'5500000000000',nicho:{coleta:[],exigir_oferta:true,catalogo:[{id:'basico',nome:'Oferta configurada',preco:50}],documentos_config:[]},assistente:{},vars:{},extrair:async()=>({dados:[],pergunta:false,plano_id:'basico'})});a.equal(g.estado.oferta,undefined);a.match(g.mensagem,/Oferta configurada/);
+ });}
+for(const texto of ['quero 600 mega','quero esse plano','pode ser o de 110','1','52998224725','número 110'])test('não confunde escolha/endereço/documento com pedido de catálogo: '+texto,()=>a.equal(require('./normalizacao-entrada.cjs').pedidoDeOfertas(texto),false));

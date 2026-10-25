@@ -90,6 +90,15 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     if(midia.enderecos.length)s.enderecosMidia=midia.enderecos;
     const analise = texto.trim() ? await extrair({ estado: s, texto, numero, anexos, config }) : {};
     const novos = {...midia.dados,...analise.dados};
+    const {documentoDoTexto,modalidadeDoTexto}=require('./normalizacao-entrada.cjs');
+    const documento=documentoDoTexto(texto),modalidade=modalidadeDoTexto(texto);
+    if(documento&&(['tipo_pessoa','cpf','cnpj'].includes(s.etapa)||/^\s*(?:(?:meu|o)\s+)?c[.\s]*[pn]/i.test(texto))){
+        novos[documento.campo]=documento.valor;
+        if(s.etapa==='tipo_pessoa'||!d.tipo_pessoa||documento.campo==='cnpj')novos.tipo_pessoa=documento.tipo_pessoa;
+    }
+    if(!d.tipo_pessoa&&novos.cpf&&!novos.cnpj)novos.tipo_pessoa='PF';
+    if(!d.tipo_pessoa&&novos.cnpj)novos.tipo_pessoa='PJ';
+    if(modalidade)novos.tipo_pessoa=modalidade;
     const cepDigitado=interpretarEndereco(texto).cep;
     if(cepDigitado)s.cepConfirmadoPeloCliente=cepDigitado;
     if(s.consulta?.status==='localidade_divergente'&&s.consulta.localidades?.length===1){
@@ -381,6 +390,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     if (s.catalogoPendente || !s.ofertas?.length || !s.ofertas.every(id => planos.some(p => p.id === id)))
         return finalizarMensagem(ofertas(s, catalogo));
     // Pedidos explícitos de catálogo sempre recebem os planos disponíveis.
+    if(!s.plano&&require('./normalizacao-entrada.cjs').pedidoDeOfertas(texto))return responder(ofertas(s,catalogo));
     if (!s.plano && /\b(?:OFERTA|OFERTAS|PLANO|PLANOS|VALOR|VALORES|PRECO|PRECOS)\b/.test(normalizar(texto)) && (analise.pergunta || /[?]|QUAIS|MOSTR|MANDA|PASSA|VER/.test(normalizar(texto))))
         return responder(ofertas(s,catalogo));
     const mudanca = planos.find(p => p.id === analise.plano_id && s.ofertas.includes(p.id));
