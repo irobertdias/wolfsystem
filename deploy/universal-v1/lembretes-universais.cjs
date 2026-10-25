@@ -5,6 +5,7 @@ const parse=v=>{try{return typeof v==='string'?JSON.parse(v):v||{};}catch{return
 function receber(s,texto,d,agora=Date.now()){
  const cfg=configurar(d);if(!cfg.ativo||!String(texto||'').trim())return null;
  const anterior=s.lembretes||{},agenda=interpretar(texto,{agora,fuso:cfg.fuso,aguardandoHorario:anterior.aguardandoHorario||!!anterior.agendadoPara});
+ if(anterior.ultimoEnvio?.recibo)for(const estado of new Set([s,s.nio].filter(Boolean)))if(estado.historico?.at(-1)?.content!==anterior.ultimoEnvio.texto)estado.historico=[...(estado.historico||[]),{role:'assistant',content:anterior.ultimoEnvio.texto,tipo:'lembrete',em:anterior.ultimoEnvio.em}].slice(-40);
  s.lembretes={clienteEm:new Date(agora).toISOString(),enviados:0,agendadoPara:null,aguardandoHorario:false};
  if(!agenda)return null;
  if(agenda.cancelar)return 'Tudo bem, cancelei o retorno agendado.';
@@ -56,6 +57,7 @@ function criar({db,ctx,agora=Date.now,enviar,reconciliar=async()=>null,ocupado=(
    }
    if(!recibo)continue;
    const envio=l.envio;if(envio.tipo==='agendado'){l.agendadoPara=null;l.retornoEnviadoEm=new Date(agora()).toISOString();l.baseSilencio=l.retornoEnviadoEm;l.enviados=0;}else l.enviados=envio.numero;
+   for(const estado of new Set([s,s.nio].filter(Boolean)))estado.historico=[...(estado.historico||[]),{role:'assistant',content:envio.texto,tipo:'lembrete',em:envio.em}].slice(-40);
    l.ultimoEnvio={...envio,recibo:recibo.id||recibo.provider_message_id||null};delete l.envio;if(!await persistir())continue;
    if(l.enviados>=5){const fim=await db.from('mensagens').select('id,de,created_at').eq('workspace_id',ws).eq('canal_id',row.canal_id).eq('numero',row.numero).order('created_at',{ascending:false}).limit(1);if(fim.error)throw fim.error;if(fim.data?.[0]?.de==='bot')await require('./finalizar-conversa.cjs').finalizarConversa(db,ws,row.canal_id,row.numero);}
    feitos.push({sessao:row.id,tipo:envio.tipo,numero:envio.numero});

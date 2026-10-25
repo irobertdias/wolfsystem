@@ -41,6 +41,7 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
   if(contorno?.mensagem)return registrarResposta(contorno.mensagem,false,contorno.tipo);
   if(contorno?.seguir){documentosEncaminhar=true;r.encerrar=false;r.resposta='';r.sem_documento=[];}
  }
+ if(positivo(texto))r.encerrar=false;
  if(!documentosEncaminhar){const retencao=require('./retencao-venda.cjs').tratar(s,texto,r.encerrar===true);if(retencao?.mensagem)return registrarResposta(retencao.mensagem,false,retencao.tipo);if(retencao?.encerrar)r.encerrar=true;}
  if(r.encerrar){s.encerrado=true;return registrarResposta('Entendido. Vou encerrar o atendimento por aqui. Se precisar, estamos à disposição.');}
  let inicio='';if(!s.apresentou){s.apresentou=true;inicio=(assistente.apresentacao||`Olá! Sou ${assistente.nome}, assistente virtual da ${assistente.empresa}. Vou ajudar você por aqui. 😊`)+'\n\n';}

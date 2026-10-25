@@ -5,7 +5,7 @@ const estados = { AC: 'ACRE', AL: 'ALAGOAS', AP: 'AMAPA', AM: 'AMAZONAS', BA: 'B
 const ufSigla = v => { const n = normalizar(v); return estados[n] ? n : Object.entries(estados).find(([, nome]) => nome === n)?.[0] || n; };
 const numero = v => /^\d+$/.test(String(v).trim()) ? String(Number(v)) : normalizar(v);
 function parte(texto, tipo) {
-    const marcas = { quadra: '(?:QUADRA|QU|QD|QA|Q[A-Z]{0,7}(?=\\s)|Q)', lote: '(?:LOTE|LT|L)', casa: '(?:CASA|CA)', apartamento: '(?:APARTAMENTO|APTO|APT|AP)', bloco: '(?:BLOCO|BL)' };
+    const marcas = { quadra: '(?:QUADRA|QU|QD|QA|Q[A-Z]{0,7}(?=\\s)|Q)', lote: '(?:LOTE|LT|L)', casa: '(?:CASA|CA)', apartamento: '(?:APARTAMENTO|APTO|APT|AP)', bloco: '(?:BLOCO|BL)', numero: '(?:NUMERO|FACHADA|NR|N[º°.]?)' };
     const valor = tipo === 'quadra' || tipo === 'bloco' ? '([0-9]+[A-Z]?|[A-Z])' : '(\\d+[A-Z]?)';
     const m = normalizar(texto).replace(/\bQUDRA\b/g,'QUADRA').match(new RegExp('(?:^|[ ,;/])' + (tipo==='quadra'?'(?!QUERO\\b|QUAL\\b|QUANDO\\b|QUANTO\\b|QUEM\\b|QUE\\b)':'') + marcas[tipo] + '\\s*[-.:]?\\s*' + valor + '(?=$|[^A-Z0-9])'));
     return m ? numero(m[1]) : '';
@@ -38,7 +38,7 @@ function interpretarEndereco(texto) {
     }
     return r;
 }
-function ruaBase(v) { return normalizar(v).replace(/^(?:RUA|R|AVENIDA|AV|TRAVESSA|ALAMEDA)\.?\s+/, '').replace(/(?:^|\s)(?:QUADRA|QU|QD|QA|Q|LOTE|LT|L|CASA|CA|APARTAMENTO|APTO|AP|BLOCO|BL)\s*(?:\d+[A-Z]?|[A-Z])\b/g, '').replace(/\s+/g, ' ').trim(); }
+function ruaBase(v) { return normalizar(v).replace(/[-–—]/g,' ').replace(/^(?:RUA|R|AVENIDA|AV|TRAVESSA|ALAMEDA)\.?\s+/, '').replace(/(?:^|\s)(?:QUADRA|QU|QD|QA|Q|LOTE|LT|L|CASA|CA|APARTAMENTO|APTO|AP|BLOCO|BL)\s*(?:\d+[A-Z]?|[A-Z])\b/g, '').replace(/\s+/g, ' ').trim(); }
 function similaridade(a, b) {
     a = ruaBase(a); b = ruaBase(b);
     if(b.length>=5&&!b.includes(' ')&&a.includes(' '))return Math.max(...a.split(' ').filter(t=>t.length>=4).map(t=>similaridade(t,b)))*0.95;
@@ -51,7 +51,7 @@ function corresponde(r, e) {
     const comps = [r.complemento1, r.complemento2, r.complemento3].join(' ');
     if (e.logradouro && !ruaCompativel(r.logradouro, e.logradouro))
         return false;
-    if (e.numero && numero(r.numero) !== numero(e.numero))
+    if (e.numero && numero(r.numero) !== numero(e.numero) && !(/^(?:|SN|S\/N|SEM NUMERO)$/.test(numero(r.numero))&&parte(comps,'numero')===numero(e.numero)))
         return false;
     for (const k of ['quadra', 'lote', 'casa', 'apartamento', 'bloco'])
         if (e[k] && parte(k === 'quadra' ? r.logradouro + ' ' + comps : comps, k) !== numero(e[k]))
@@ -101,11 +101,13 @@ function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indi
         }
         for (const l of ruas) {
             const base = { logradouro: l };
+            if(e.quadra&&parte(l,'quadra')&&parte(l,'quadra')!==numero(e.quadra))continue;
             if (e.numero) {
                 for (const n of inicial.facets.numero || [])
                     if (numero(n) === numero(e.numero))
                         consultas.push({ ...base, numero: n });
-                if(!consultas.some(c=>c.logradouro===l&&numero(c.numero)===numero(e.numero)))consultas.push({...base,numero:numero(e.numero)});
+                if((inicial.facets.numero||[]).some(n=>/^(?:|SN|S\/N|SEM NUMERO)$/.test(numero(n))))for(const k of ['complemento1','complemento2','complemento3'])for(const v of inicial.facets[k]||[])if(parte(v,'numero')===numero(e.numero))consultas.push({...base,[k]:v});
+                if(!consultas.some(c=>c.logradouro===l))consultas.push({...base,numero:numero(e.numero)});
                 continue;
             }
             const qs = [];

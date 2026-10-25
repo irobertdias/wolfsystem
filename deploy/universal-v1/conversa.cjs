@@ -239,6 +239,8 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         }
         if(texto.trim())s.historico = [...s.historico, { role: 'user', content: texto }, { role: 'assistant', content: mensagem }].slice(-40); return { estado: s, mensagem, acao, inviavel:s.etapa==='outro_endereco'||s.encerramentoInviavel===true, historicoProposto:!!texto.trim(), tipo: tipo || (s.etapa==='plano' && mensagem.includes('💰 R$')?'ofertas':undefined) };
     };
+    // Concordância ou dúvida sobre cobertura não são pedidos de cancelamento.
+    if(positivo(texto)||(/DISPONIBILIDADE|COBERTURA|VIABILIDADE/.test(normalizar(texto))&&!/CANCEL|DESIST|NAO QUERO|ENCERR|FINALIZ|PARE DE|NAO ME/.test(normalizar(texto))))analise.encerrar=false;
     // Recusar o envio de documento não significa cancelar a contratação.
     let documentosEncaminhar=false;
     if(s.etapa==='documentos'){
@@ -263,6 +265,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         return responder('Seu pedido já está registrado. A equipe vai acompanhar a análise e a confirmação da instalação.');
     if (analise.objecao || analise.pergunta) {
         aviso = String(analise.resposta_contextual || '').slice(0, 1000);
+        if(!['disponivel_na_base','sem_disponibilidade_na_base'].includes(s.consulta?.status)&&/DISPONIBIL|COBERTURA|VIABIL|IMOVEL.*LOCALIZ/.test(normalizar(aviso)))aviso='';
         // A resposta consultiva não pode fazer perguntas de outra etapa ou
         // oferecer catálogo antes da consulta. O motor decide a próxima ação.
         if (/\?|\b(?:CPF|CNPJ)\b/i.test(aviso) || (!s.plano && s.consulta?.status !== 'disponivel_na_base' && /R\$|\b\d+\s*(?:MBPS|MEGA|GIGA)\b/i.test(aviso))) aviso = '';
