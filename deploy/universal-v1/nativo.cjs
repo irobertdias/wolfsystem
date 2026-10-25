@@ -71,6 +71,7 @@ module.exports=function instalar(ctx){
   if(s.plano&&!s.oferta)s.oferta={...s.plano,preco:s.plano.mensalidade};
   const salvar=async()=>{Object.assign(vars,s.dados);for(const [k,v]of Object.entries(s.documentos))vars[k]=JSON.stringify(v);vars[KEY]=JSON.stringify(s);await persistir();await ctx.salvarSessaoFluxo(meta.workspaceId,meta.canalId,meta.numero,f.id,no.id,vars,true,'nicho_atendimento');};
   const novaEntrada=!!String(texto||'').trim();
+  if(novaEntrada&&!s.proposta_id&&!s.concluido){const agenda=ctx.lembretesUniversal?.receber(s,texto,assistente);if(agenda){await salvar();await enviar(agenda);s.historico=[...(s.historico||[]),{role:'user',content:texto},{role:'assistant',content:agenda}].slice(-40);await salvar();return {aguardarInput:true};}}
   s.pendentes=[...(s.pendentes||[]),...(novaEntrada?[String(texto)]:[])].filter(m=>String(m).trim()).slice(-20);texto=s.pendentes.join('\n');await salvar();
   await arquivos(String(texto||''),s,meta,nicho,ia,assistente.autorizar_leitura_documentos===true,salvar);
   let r;

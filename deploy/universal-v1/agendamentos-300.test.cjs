@@ -1,0 +1,16 @@
+'use strict';
+const {test,after}=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {interpretar}=require('./agendamento-contato.cjs'),agora=Date.parse('2026-10-24T13:00:00Z');
+const casos=[],res=[];const add=(texto,esperado,fuso='America/Sao_Paulo')=>casos.push({id:casos.length+1,texto,agora:new Date(agora).toISOString(),fuso,esperado});
+const verbos=['me chama','me chame','pode me ligar','me retorna','pode retornar'];
+for(let i=1;i<=20;i++)for(const v of verbos)add(`${v} daqui a ${i} minutos`,new Date(agora+i*60000).toISOString());
+for(const [fuso,offset]of [['America/Sao_Paulo',3],['America/Manaus',4],['America/Rio_Branco',5],['America/Noronha',2]])for(let h=1;h<=20;h++)add(`me chame segunda-feira às ${h}:30`,new Date(Date.UTC(2026,9,26,h+offset,30)).toISOString(),fuso);
+for(let h=1;h<=20;h++)for(const v of verbos.slice(0,3))add(`${v} amanhã às ${h}h`,new Date(Date.UTC(2026,9,25,h+3)).toISOString());
+for(let d=1;d<=20;d++)add(`me chama dia ${d}/11/2026 às 14:15`,new Date(Date.UTC(2026,10,d,17,15)).toISOString());
+for(let h=1;h<=20;h++)add(`me chama dia 31/02/2027 às ${h}:30`,'esclarecer');
+for(const t of ['me chama depois','me liga mais tarde','pode retornar outro dia','me chama amanhã','volte amanhã','me chama às 25h','me liga às 14:90','me chama daqui a zero minutos','me chama hoje às 8h','me chama dia 01/01/2020 às 10h'])add(t,'esclarecer');
+for(const t of ['não me chame','não me liga','cancele o retorno','pare de me chamar','cancele o agendamento'])add(t,'cancelar');
+for(const t of ['quero marcar corte amanhã às 10h','minha instalação será amanhã às 14h','meu nascimento foi 03/01/1990','CEP 81935-476','quero o plano de 50 reais'])add(t,null);
+a.equal(casos.length,300);a.equal(new Set(casos.map(c=>c.texto+c.fuso)).size,300);
+for(const c of casos)test(`agendamento ${c.id}: ${c.texto} (${c.fuso})`,()=>{const r=interpretar(c.texto,{agora,fuso:c.fuso,aguardandoHorario:c.esperado==='cancelar'}),obtido=r?.em||(r?.cancelar?'cancelar':r?.esclarecer?'esclarecer':null),ok=obtido===c.esperado;res.push({...c,obtido,ok});a.equal(obtido,c.esperado);});
+after(()=>{fs.writeFileSync(path.join(__dirname,'../../deploy/agendamentos-300-resultado.json'),JSON.stringify({total:300,aprovados:res.filter(r=>r.ok).length,casos:res},null,2));});

@@ -3,6 +3,7 @@ import { PERFIS_UNIVERSAIS, PROMPT_TELECOM_NIO, configurarNicho, perfilUniversal
 import ConclusaoUniversal from './ConclusaoUniversal';
 import AjudaCampo from '../../components/AjudaCampo';
 import VeroConfiguracao from './VeroConfiguracao';
+import LembretesUniversais from './LembretesUniversais';
 type Props={tipo:'assistente_universal'|'nicho_atendimento'|'concluir_venda_universal';dados:Record<string,any>;onChange:(dados:Record<string,any>)=>void;workspaceId?:string|null;campos?:{slug:string;label:string;origem?:string}[];variaveis?:string[];status?:{value:string;label:string}[]};
 const input={width:'100%',padding:10,border:'1px solid #cbd5e1',borderRadius:8,fontSize:12,boxSizing:'border-box' as const};
 export default function ConfiguracaoUniversal({tipo,dados:d,onChange:u,workspaceId,campos,variaveis,status}:Props){
@@ -19,6 +20,7 @@ export default function ConfiguracaoUniversal({tipo,dados:d,onChange:u,workspace
    <label style={{display:'grid',gap:5,fontSize:12}}>Papel no atendimento<select style={input} value={d.papel||'vendas'} onChange={e=>u({papel:e.target.value})}><option value="vendas">Vendas e orientação</option><option value="atendimento">Atendimento e suporte</option><option value="agendamento">Agendamento</option></select></label>
    <label style={{display:'grid',gap:5,fontSize:12}}>Tom da conversa<select style={input} value={d.tom||'acolhedor'} onChange={e=>u({tom:e.target.value})}><option value="acolhedor">Acolhedor e objetivo</option><option value="consultivo">Consultivo</option><option value="formal">Formal</option></select></label>
    {campo('Apresentação personalizada','apresentacao',true)}{campo('Regras gerais da empresa','regras',true)}
+   <LembretesUniversais dados={d} onChange={u}/>
    <div style={{padding:12,background:'#f8fafc',borderRadius:8,fontSize:12,lineHeight:1.7}}><strong>Comportamento comum a todos os nichos</strong><ul style={{paddingLeft:18,marginBottom:0}}><li>Aproveitar os dados já enviados e retomar do ponto pendente.</li><li>Responder a dúvidas sem reiniciar o atendimento.</li><li>Usar preços, estoque, cobertura e agenda de fontes configuradas.</li><li>Confirmar o resumo antes de registrar ou reservar.</li><li>Tratar objeções com informações reais e respeitar o encerramento.</li></ul></div>
    <div style={{padding:12,background:'#f0fdf4',borderRadius:8,fontSize:12,lineHeight:1.7}}><strong>Documentos: receber, extrair e conferir</strong><p>O original deve ser salvo antes da leitura. Falha de OCR ou baixa confiança significa leitura inconclusiva, nunca documento inválido. Sem inventar dados ou afirmar identidade validada.</p><p style={{marginBottom:0}}>Os arquivos e as pendências seguem para a equipe responsável. A leitura não aprova identidade, crédito, cobertura ou contrato.</p></div>
    <div style={{borderTop:'1px solid #e2e8f0',paddingTop:12,fontSize:12,lineHeight:1.7}}><strong>Prévia da abertura</strong><p>{d.apresentacao||`Olá! Sou ${d.nome||'[nome do assistente]'}, assistente virtual da ${d.empresa||'[empresa]'}. Vou ajudar você por aqui. Como posso te ajudar hoje?`}</p></div>

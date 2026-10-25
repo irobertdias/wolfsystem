@@ -92,6 +92,8 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             s = { ...inicial(), inicio: new Date().toISOString() };
         if (s.etapa === 'encerrado')
             return true;
+        const agenda=!s.proposta_id&&ctx.lembretesUniversal?.receber(s,mensagens.join('\n'),no.dados);
+        if(agenda){await salvar(fluxo,no,canal,n,s);await enviar(agenda);s.historico=[...(s.historico||[]),{role:'user',content:mensagens.join('\n')},{role:'assistant',content:agenda}].slice(-40);await salvar(fluxo,no,canal,n,s);return true;}
         if (s.proposta_id && s.etapa === 'concluido') {
             const {data:pedido,error} = await db.from('proposta').select('*').eq('workspace_id',WS).eq('id',s.proposta_id).single();
             if(error)throw error;
@@ -403,6 +405,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     timer.unref();
     ctx.universalOperacoes={registrar,entregar,entregarPendentes,posVenda,configBko,salvarEntrega};
     ctx.universalV1 = true;
+    if(!opcoes.teste)require('./lembretes-universais.cjs').instalar(ctx);
     if (opcoes.teste)
         ctx.universalTeste = { registrar, entregar, anexar, processar, posVenda, filas, parar: () => clearInterval(timer) };
     return ctx;

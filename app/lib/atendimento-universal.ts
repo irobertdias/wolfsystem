@@ -65,6 +65,8 @@ export function configurarNicho(valor: string) {
 export function validarEstruturaUniversal(nos: {id:string;tipo:string;dados:Record<string,any>}[], arestas:{de:string;para:string;saidaIndex:number}[]) {
   const problemas:string[]=[];
   for (const no of nos.filter(n=>n.tipo==='assistente_universal')) {
+    const lembretes=no.dados.lembretes_inteligentes;
+    if(lembretes?.ativo===true&&(!Array.isArray(lembretes.minutos)||lembretes.minutos.length!==5||!lembretes.minutos.every((v:any,i:number)=>Number.isFinite(Number(v))&&Number(v)>0&&(!i||Number(v)>Number(lembretes.minutos[i-1])))))problemas.push('Configure os cinco horários crescentes dos lembretes inteligentes.');
     const destinos=arestas.filter(a=>a.de===no.id&&a.saidaIndex===0).map(a=>nos.find(n=>n.id===a.para));
     if(destinos.length!==1||destinos[0]?.tipo!=='nicho_atendimento')problemas.push('Conecte o assistente a um único bloco Nicho de atendimento.');
     else if(!perfilUniversal(destinos[0].dados.nicho))problemas.push('Escolha um nicho válido para o assistente.');
