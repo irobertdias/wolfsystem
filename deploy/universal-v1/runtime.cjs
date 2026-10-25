@@ -19,6 +19,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     const WS=opcoes.workspace||'grupoprime';
     const {registro,modelo,configuracao}=require('./modelo-vendas.cjs');
     const db = ctx.supabase, base = ctx.executarFluxo, consulta = opcoes.consulta||criarConsulta(), filas = new Map();
+    const enviarCliente=(client,numero,mensagem)=>typeof ctx.enviarTextoWebjs==='function'?ctx.enviarTextoWebjs(client,numero,mensagem):require('../bko-roteamento.js').enviar(client,numero,mensagem);
     let entregando = false;
     const secreto = opcoes.credencial || JSON.parse(fs.readFileSync(path.join(__dirname, 'credencial.json'), 'utf8'));
     const interprete = opcoes.interprete || criarInterpretador({ ...secreto, catalogo: planosDaCidade });
@@ -88,6 +89,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             return true;
         const sessao = await ctx.buscarSessaoFluxo(WS, canal, n);
         let s = parse(sessao?.variaveis?.[KEY]);
+        const retentativaDestino=s.erro==='WhatsApp não confirmou o destinatário configurado';
         if (s.versao !== 1)
             s = { ...inicial(), inicio: new Date().toISOString() };
         if (s.etapa === 'encerrado')
@@ -150,8 +152,9 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             // antes de perguntar algo que o cliente pode já ter respondido.
             if (filas.get(item.chave)?.mensagens.length && !['registrar','encerrar'].includes(r.acao))
                 return true;
-            if(novaEntrada||r.acao||s.ultimaEtapaEnviada!==s.etapa){await enviar(r.mensagem);confirmarEntrega(s,r);}
+            if(novaEntrada||r.acao||retentativaDestino||s.ultimaEtapaEnviada!==s.etapa){await enviar(r.mensagem);confirmarEntrega(s,r);}
             s.ultimaEtapaEnviada=s.etapa;
+            delete s.retryEm;
             await salvar(fluxo, no, canal, n, s);
             if (r.acao === 'encerrar') {
                 await finalizarConversa(db,WS,canal,n);
@@ -384,31 +387,31 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     // Tentativas pendentes sobrevivem a reinício. Usa o canal e o contato persistidos.
     async function retomarPendentes() { const { data } = await db.from('fluxo_sessoes').select('*').eq('workspace_id', WS).eq('status', 'ativo').eq('tipo_input_aguardado', 'assistente_universal').limit(100); for (const row of data || []) {
         const s = parse(row.variaveis?.[KEY]);
-        if (!s.pendentes?.length || Number(s.retryEm) > Date.now())
+        if ((!s.pendentes?.length&&!(s.retryEm&&s.erro==='WhatsApp não confirmou o destinatário configurado')) || Number(s.retryEm) > Date.now())
             continue;
         const chave = `${WS}:${row.canal_id}:${row.numero}`;
         if (filas.has(chave))
             continue;
         await ctx.executarFluxo(WS, row.canal_id, row.numero, '', async (m) => { const c = await ctx.getConfigCanal(row.canal_id); if (c?.tipo !== 'webjs')
             throw Error('Canal indisponível'); const client = ctx.sessoes[String(row.canal_id)]?.client; if (!client)
-            throw Error('Canal desconectado'); await require('../bko-roteamento.js').enviar(client, row.numero, m); await ctx.salvarMensagem(WS, row.canal_id, c.fila, row.numero, m, 'bot', 'BOT', null); }, row.fluxo_id).catch(e => console.error('[Universal retomada]', e.message));
+            throw Error('Canal desconectado'); const enviada=await enviarCliente(client,row.numero,m); await ctx.salvarMensagem(WS,row.canal_id,c.fila,row.numero,m,'bot','BOT',enviada?.id?._serialized||null); }, row.fluxo_id).catch(e => console.error('[Universal retomada]', e.message));
     } }
     const enviarBko = opcoes.enviarBko || ((...args) => require('../bko-roteamento.js').enviar(...args));
     const confirmarBko = opcoes.confirmarBko || ((...args) => require('../bko-recibo.js').confirmar(...args));
     const encerrarInviaveis=require('./inviaveis-inativos.cjs').criar({db,workspace:WS,ocupado:(c,n)=>filas.has(`${WS}:${c}:${n}`),enviar:async(row,mensagem)=>{
         const c=await ctx.getConfigCanal(row.canal_id),sessao=ctx.sessoes[String(row.canal_id)];
         if(c?.workspaceId!==WS||c.tipo!=='webjs'||sessao?.status!=='conectado')throw Error('Canal indisponível para aviso de encerramento');
-        const enviada=await require('../bko-roteamento.js').enviar(sessao.client,row.numero,mensagem);
+        const enviada=await enviarCliente(sessao.client,row.numero,mensagem);
         const r=await db.from('mensagens').insert({workspace_id:WS,canal_id:row.canal_id,numero:row.numero,mensagem,de:'bot',provider_message_id:enviada?.id?._serialized||null,status_entrega:Number(enviada?.ack)>=2?'delivered':'enviado'});if(r.error)throw r.error;
         await db.from('atendimentos').update({mensagem}).eq('workspace_id',WS).eq('canal_id',row.canal_id).eq('numero',row.numero).eq('status','resolvido');
     }});
-    const recuperarEntradas=require('./entradas-sem-resposta.cjs').criar({db,workspace:WS,ocupado:(c,n)=>filas.has(`${WS}:${c}:${n}`),disponivel:async row=>{const c=await ctx.getConfigCanal(row.canal_id);return c?.workspaceId===WS&&c.modo==='fluxo'&&Number(c.fluxoId)===Number(row.fluxo_id)&&ctx.sessoes[String(row.canal_id)]?.status==='conectado';},processar:async(row,texto)=>{await ctx.executarFluxo(WS,row.canal_id,row.numero,texto,async mensagem=>{const c=await ctx.getConfigCanal(row.canal_id),client=ctx.sessoes[String(row.canal_id)]?.client;if(!client)throw Error('Canal desconectado');const enviada=await require('../bko-roteamento.js').enviar(client,row.numero,mensagem);await ctx.salvarMensagem(WS,row.canal_id,c.fila,row.numero,mensagem,'bot','BOT',enviada?.id?._serialized||null);},row.fluxo_id);}});
+    const recuperarEntradas=require('./entradas-sem-resposta.cjs').criar({db,workspace:WS,ocupado:(c,n)=>filas.has(`${WS}:${c}:${n}`),disponivel:async row=>{const c=await ctx.getConfigCanal(row.canal_id);return c?.workspaceId===WS&&c.modo==='fluxo'&&Number(c.fluxoId)===Number(row.fluxo_id)&&ctx.sessoes[String(row.canal_id)]?.status==='conectado';},processar:async(row,texto)=>{await ctx.executarFluxo(WS,row.canal_id,row.numero,texto,async mensagem=>{const c=await ctx.getConfigCanal(row.canal_id),client=ctx.sessoes[String(row.canal_id)]?.client;if(!client)throw Error('Canal desconectado');const enviada=await enviarCliente(client,row.numero,mensagem);await ctx.salvarMensagem(WS,row.canal_id,c.fila,row.numero,mensagem,'bot','BOT',enviada?.id?._serialized||null);},row.fluxo_id);}});
     const timer = setInterval(() => { recuperarEntradas().catch(e=>console.error('[Universal entrada recuperada]',e.message)); encerrarInviaveis().catch(e=>console.error('[Universal encerramento inviáveis]',e.message)); entregarPendentes().catch(console.error); retomarPendentes().catch(console.error); posVenda.pendentes().catch(console.error); atualizarRecibos().catch(console.error); }, 20000);
     timer.unref();
     ctx.universalOperacoes={registrar,entregar,entregarPendentes,posVenda,configBko,salvarEntrega};
     ctx.universalV1 = true;
     if(!opcoes.teste)require('./lembretes-universais.cjs').instalar(ctx);
     if (opcoes.teste)
-        ctx.universalTeste = { registrar, entregar, anexar, processar, posVenda, filas, parar: () => clearInterval(timer) };
+        ctx.universalTeste = { registrar, entregar, anexar, processar, posVenda, filas, enviarCliente, retomarPendentes, parar: () => clearInterval(timer) };
     return ctx;
 };
