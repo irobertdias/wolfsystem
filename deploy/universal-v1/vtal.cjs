@@ -7,11 +7,11 @@ const numero = v => /^\d+$/.test(String(v).trim()) ? String(Number(v)) : normali
 function parte(texto, tipo) {
     const marcas = { quadra: '(?:QUADRA|QU|QD|QA|Q[A-Z]{0,7}(?=\\s)|Q)', lote: '(?:LOTE|LT|L)', casa: '(?:CASA|CA)', apartamento: '(?:APARTAMENTO|APTO|APT|AP)', bloco: '(?:BLOCO|BL)' };
     const valor = tipo === 'quadra' || tipo === 'bloco' ? '([0-9]+[A-Z]?|[A-Z])' : '(\\d+[A-Z]?)';
-    const m = normalizar(texto).match(new RegExp('(?:^|[ ,;/])' + (tipo==='quadra'?'(?!QUERO\\b|QUAL\\b|QUANDO\\b|QUANTO\\b|QUEM\\b|QUE\\b)':'') + marcas[tipo] + '\\s*[-.:]?\\s*' + valor + '(?=$|[^A-Z0-9])'));
+    const m = normalizar(texto).replace(/\bQUDRA\b/g,'QUADRA').match(new RegExp('(?:^|[ ,;/])' + (tipo==='quadra'?'(?!QUERO\\b|QUAL\\b|QUANDO\\b|QUANTO\\b|QUEM\\b|QUE\\b)':'') + marcas[tipo] + '\\s*[-.:]?\\s*' + valor + '(?=$|[^A-Z0-9])'));
     return m ? numero(m[1]) : '';
 }
 function interpretarEndereco(texto) {
-    const t = normalizar(texto), cep = t.match(/\b\d{5}[- .]?\d{3}\b/);
+    const t = normalizar(texto), cepLido=require('./normalizacao-entrada.cjs').cepDoTexto(texto),cep=cepLido?[cepLido]:null;
     const r = { cep: cep ? cep[0].replace(/\D/g, '') : '', quadra: parte(t, 'quadra'), lote: parte(t, 'lote'), casa: parte(t, 'casa'), apartamento: parte(t, 'apartamento'), bloco: parte(t, 'bloco'), numero: '', logradouro: '' };
     const resto = t.replace(/\b\d{5}[- .]?\d{3}\b/g, '').replace(/(?:CEP)\s*:?/g, '').trim();
     const n = resto.match(/(?:NUMERO|N[º°.]?|FACHADA)\s*:?\s*(\d+[A-Z]?)/) || (!r.quadra && !r.lote && resto.match(/^\s*(\d+[A-Z]?)\s*$/));

@@ -22,11 +22,15 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
    if(normalizar(s.dados[c.variavel])!==normalizar(valor)){s.dados[c.variavel]=valor;s.confirmado=false;}
  }
  const pendente=campos.find(c=>c.variavel===s.pendente);
- if(pendente&&(!pendente.tipo||pendente.tipo==='texto')&&!r.dados?.some(d=>d.campo===pendente.variavel)&&!r.pergunta&&!r.objecao&&!r.encerrar&&!positivo(texto)&&texto.trim()&&!/[?]|\[(?:img|file|document):/i.test(texto)&&!/^\s*(?:NÃO|NAO|N|CANCELAR|DESISTIR|PARE|OK|SIM)\b/i.test(texto))s.dados[pendente.variavel]=texto.trim().slice(0,1000);
+ const contextuais=require('./normalizacao-entrada.cjs').dadosContextuais(campos,s.pendente,texto);
+ const {cepDoTexto,campoCep}=require('./normalizacao-entrada.cjs');
+ if(pendente&&campoCep(pendente)){const cep=cepDoTexto(texto);if(cep)s.dados[pendente.variavel]=cep;else if(s.dados[pendente.variavel]&&!/^\d{8}$/.test(String(s.dados[pendente.variavel])))delete s.dados[pendente.variavel];}
+ if(pendente&&!campoCep(pendente)&&(!pendente.tipo||pendente.tipo==='texto')&&!r.dados?.some(d=>d.campo===pendente.variavel)&&!r.pergunta&&!r.objecao&&!r.encerrar&&!positivo(texto)&&texto.trim()&&!/[?]|\[(?:img|file|document):/i.test(texto)&&!/^\s*(?:NÃO|NAO|N|CANCELAR|DESISTIR|PARE|OK|SIM)\b/i.test(texto))s.dados[pendente.variavel]=texto.trim().slice(0,1000);
  if(pendente?.tipo==='confirmacao'&&(r.confirmacao||positivo(texto)))s.dados[pendente.variavel]='Confirmado';
- if(pendente?.tipo==='telefone'&&(/\b(?:ESSE|ESTE|MESMO|AQUI)\b/.test(normalizar(texto))||positivo(texto)))s.dados[pendente.variavel]=String(numero).replace(/\D/g,'');
+ if(pendente?.tipo==='telefone'&&(/\b(?:ESSE|ESTE|MESMO|MSM|AQUI|AKI)\b/.test(normalizar(texto))||positivo(texto)))s.dados[pendente.variavel]=String(numero).replace(/\D/g,'');
  if(pendente&&pendente.tipo==='data'&&dataBR(texto))s.dados[pendente.variavel]=dataBR(texto);
  if(pendente&&pendente.tipo==='cpf'&&/^\d{11}$/.test(texto.replace(/\D/g,'')))s.dados[pendente.variavel]=texto.replace(/\D/g,'');
+ for(const [k,v]of Object.entries(contextuais)){if(normalizar(s.dados[k])!==normalizar(v))s.confirmado=false;s.dados[k]=v;}
  const registrarResposta=(mensagem,concluido=false,tipo)=>{
    if(!tipo&&s.historico.at(-1)?.content===mensagem&&!concluido)mensagem=r.resposta&&!/[?]/.test(r.resposta)?r.resposta+'\n\n'+(pendente?.pergunta||'Como prefere continuar?'):'Vamos continuar de onde paramos. '+mensagem;
    s.historico=[...s.historico,{role:'user',content:texto},{role:'assistant',content:mensagem}].slice(-30);return {estado:s,mensagem,concluido,historicoProposto:true,tipo:tipo||(s.pendente==='__oferta'&&mensagem.includes('R$')?'ofertas':undefined)};
@@ -44,7 +48,7 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
  const perguntar=c=>{s.pendente=c.variavel;return responder(modelo(c.pergunta||`Pode me informar ${c.rotulo}?`,s.dados));};
  const antes=campos.find(c=>c.etapa==='antes_oferta'&&c.obrigatorio!==false&&!s.dados[c.variavel]);if(antes)return perguntar(antes);
  if(nicho.exigir_oferta&&!s.oferta){
-   const escolhido=s.ofertasMostradas?ofertas.find(p=>p.id===r.plano_id):null;
+   const pediuPrecos=/\b(?:QUAL|QUAIS|QUANTO|QTO|QNT|CUSTA|PASSA|PASA|MANDA|PRECOS|VALORES)\b/.test(normalizar(texto));const escolhido=s.ofertasMostradas&&!r.pergunta&&!pediuPrecos?ofertas.find(p=>p.id===r.plano_id):null;
    if(escolhido){s.oferta=escolhido;s.dados.plano=escolhido.nome;s.dados.valor_plano=escolhido.preco;s.dados.plano_id=escolhido.id;s.confirmado=false;}
    else {s.pendente='__oferta';if(s.ofertasMostradas&&r.resposta&&!/OFERTA|PLANO|PRECO|VALOR|OPCOES/.test(normalizar(texto)))return registrarResposta(r.resposta+'\n\nQual das opções apresentadas você prefere?');s.ofertasMostradas=true;return responder(ofertas.length?ofertas.map((p,i)=>`${i+1}️⃣ *${p.nome}* · R$ ${p.preco.toFixed(2).replace('.',',')}${p.descricao?'\n'+p.descricao:''}`).join('\n\n')+'\n\nQual opção combina com o que você precisa?':'Vou precisar confirmar as ofertas com a equipe. Não há um catálogo disponível nesta configuração.');}
  }
