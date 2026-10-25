@@ -11,7 +11,7 @@ function lerRetorno(texto, atual) {
     else if (/^(?:AGUARDANDO|PENDENTE DE|PENDENTE)\s+INSTALACAO\b/.test(t)) status = 'AGUARDANDO INSTALAÇÃO';
     else if (/^GERADA\b/.test(t)) status = 'GERADA';
     else if (/^INSTALAD[OA]\b/.test(t)) status = 'INSTALADA';
-    else if (/^SEM DISPONIBILIDADE\b/.test(t)) status = 'SEM DISPONIBILIDADE';
+    else if (/^SEM (?:DISPONIBILIDADE|VIABILIDADE|COBERTURA)\b/.test(t)) status = 'SEM DISPONIBILIDADE';
     else if (/^CANCELAD[OA]\b/.test(t)) status = 'CANCELADA';
     const m = t.match(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/);
     let data_agendamento;
@@ -49,12 +49,13 @@ function prepararAcoes(p, c, config = {}) {
     if (p.status_venda==='INSTALADA') adicionar('instalada', 'cliente', 'Sua instalação foi registrada como concluída! ✅ Obrigado por escolher a Grupo Prime. Se precisar de alguma orientação, estamos por aqui. 💚');
     return lista;
 }
-module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEntrega,enviarBko,confirmarBko,telefoneBko,configBko}) {
+module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEntrega,enviarBko,confirmarBko,telefoneBko,configBko,alternativaNio,enfileirarNio=()=>{}}) {
     const locks = new Map(); let rodando=false;
     async function serial(id, fn) { const anterior=locks.get(id)||Promise.resolve(); const tarefa=anterior.catch(()=>{}).then(fn); locks.set(id,tarefa); try { return await tarefa; } finally { if(locks.get(id)===tarefa)locks.delete(id); } }
     async function obter(id) { const r=await db.from('proposta').select('*').eq('workspace_id',workspace).eq('id',id).single();if(r.error)throw r.error;return r.data; }
     async function executar(id) { return serial(id, async()=>{
         let p=await obter(id), c=structuredClone(p.dados_customizados);
+        if(alternativaNio&&await alternativaNio.conferir(p,c))p=await salvarEntrega(p,c);
         for (const acao of c.universal_acoes || []) {
             if (['enviado','cancelado'].includes(acao.estado) || Number(acao.tentarEm)>Date.now())continue;
             try {
@@ -62,6 +63,7 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
                 const numero=acao.alvo==='bko'?meta.numero:c.numero_origem_whatsapp;
                 const sessao=ctx.sessoes[String(canalId)];
                 const config=await ctx.getConfigCanal(canalId);
+                if(acao.chave.startsWith('alternativa_nio_ofertas:')&&(await ctx.verificarBloqueioManualBot?.(workspace,canalId,numero))?.bloqueado)throw Error('Oferta alternativa aguarda liberação do atendimento');
                 if(config?.workspaceId!==workspace||config.tipo!=='webjs'||!sessao?.client||sessao.status!=='conectado')throw Error('Canal de acompanhamento desconectado');
                 acao.numero=numero;acao.canal_id=canalId;
                 if(acao.id) {
@@ -126,6 +128,7 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
             }
             c.bko_retornos=[...(c.bko_retornos||[]),{message_id:entrada.messageId,numero:entrada.numero,texto:String(entrada.mensagem||'').slice(0,6000),status:patch.status_venda||p.status_venda,em:new Date().toISOString()}].slice(-100);
             prepararAcoes({...p,...patch},c,cfg);
+            if(alternativaNio&&patch.status_venda==='SEM DISPONIBILIDADE')alternativaNio.preparar({...p,...patch},c);
             // O pós-venda deste motor é próprio; baseline atualizado evita disparar
             // também um fluxo CRM antigo para o mesmo retorno.
             const antes=p;
@@ -136,6 +139,7 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
         await executar(data[0].id);return true;
     }
     async function cliente(p, texto) {
+        if(alternativaNio&&p.dados_customizados?.universal_migracao_nio_pendente==='SIM')return serial(p.id,async()=>{const atual=await obter(p.id),r=alternativaNio.cliente(atual,texto);if(!r)return false;if(r.c)await salvarEntrega(atual,r.c,r.patch||{});if(r.migrada)enfileirarNio();return {mensagem:r.mensagem};});
         if(!p.dados_customizados?.universal_novo_cpf)return false;
         const cpf=String(texto).replace(/\D/g,'');
         if(!/^\d{11}$/.test(cpf)||!cpfValido(cpf))return {mensagem:'Pode conferir os 11 números do CPF do titular autorizado? Vou atualizar o pedido existente e continuar por aqui.'};
@@ -158,7 +162,14 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
         try { const r=await db.from('proposta').select('id').eq('workspace_id',workspace).eq('dados_customizados->>universal_v1','SIM').eq('dados_customizados->>universal_pos_pendente','SIM').order('updated_at',{ascending:true}).limit(100);if(r.error)throw r.error;for(const p of r.data||[])await executar(p.id); }
         finally {rodando=false;}
     }
-    return {tratar,cliente,pendentes,executar};
+    async function interceptarAlternativa(canal,numero,texto,enviar){
+        if(!alternativaNio||!String(texto||'').trim())return false;
+        const q=await db.from('proposta').select('*').eq('workspace_id',workspace).eq('canal_id',Number(canal)).eq('dados_customizados->>numero_origem_whatsapp',String(numero)).eq('dados_customizados->>universal_migracao_nio_pendente','SIM').limit(2);if(q.error)throw q.error;if(q.data?.length!==1)return false;
+        if((await ctx.verificarBloqueioManualBot?.(workspace,canal,numero))?.bloqueado)return true;
+        const at=await db.from('atendimentos').select('status,atendente,bloqueado_ia,bloqueado_fluxo').eq('workspace_id',workspace).eq('canal_id',canal).eq('numero',numero).order('updated_at',{ascending:false}).limit(1);if(at.error)throw at.error;const a=at.data?.[0];if(!a||a.status==='resolvido'||a.atendente!=='BOT'||a.bloqueado_ia||a.bloqueado_fluxo)return true;
+        const r=await cliente(q.data[0],texto);if(!r)return false;await enviar(r.mensagem);return true;
+    }
+    return {tratar,cliente,pendentes,executar,interceptarAlternativa};
 };
 module.exports.lerRetorno=lerRetorno;
 module.exports.prepararAcoes=prepararAcoes;

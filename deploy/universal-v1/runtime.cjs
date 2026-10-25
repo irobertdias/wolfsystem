@@ -195,6 +195,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     if(!opcoes.semEnvolver)ctx.executarFluxo = async function (ws, canal, n, mensagem, enviar, fluxoId, opts = {}) {
         if (ws !== WS || opts.proposta || opts.iniciarNoId)
             return base(ws, canal, n, mensagem, enviar, fluxoId, opts);
+        if(await posVenda.interceptarAlternativa(canal,n,mensagem,enviar))return true;
         const { data: fluxo, error } = await db.from('fluxos').select('*').eq('workspace_id', WS).eq('id', fluxoId || 0).maybeSingle();
         if (error)
             throw error;
@@ -219,7 +220,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         } });
     };
     async function configBko(){const cfg=await configuracao(db,WS);if(!cfg?.ativo||!cfg.canal_id)throw Error('Configure e ative o BKO deste workspace.');return cfg;}
-    async function salvarEntrega(p, c, patch = {}) { if(Array.isArray(c.universal_acoes)) c.universal_pos_pendente=c.universal_acoes.some(a=>!['enviado','cancelado'].includes(a.estado))?'SIM':'NAO'; const { data, error } = await db.from('proposta').update({ dados_customizados: c, updated_at: new Date().toISOString(), ...patch }).eq('workspace_id', WS).eq('id', p.id).eq('updated_at', p.updated_at).select('*').maybeSingle(); if (error)
+    async function salvarEntrega(p, c, patch = {}) { if(Array.isArray(c.universal_acoes)) c.universal_pos_pendente=c.universal_acoes.some(a=>!['enviado','cancelado'].includes(a.estado))||require('./alternativa-nio-bko.cjs').pendente(c)?'SIM':'NAO'; const { data, error } = await db.from('proposta').update({ dados_customizados: c, updated_at: new Date().toISOString(), ...patch }).eq('workspace_id', WS).eq('id', p.id).eq('updated_at', p.updated_at).select('*').maybeSingle(); if (error)
         throw error; if (!data)
         throw Error('Venda foi atualizada durante o envio'); return data; }
     async function entregar(p) {
@@ -373,7 +374,8 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         } finally {conferindoRecibos=false;}
     }
     const retornoAnterior = ctx.tratarRetornoBko;
-    const posVenda = require('./pos-venda.cjs')({ workspace:WS, ctx, db, salvarEntrega, configBko, telefoneBko, enviarBko: (...args) => enviarBko(...args), confirmarBko: (...args) => confirmarBko(...args) });
+    const alternativaNio=require('./alternativa-nio-bko.cjs').criar({workspace:WS,db,consultar:consulta,catalogo:planosDaCidade});
+    const posVenda = require('./pos-venda.cjs')({ workspace:WS, ctx, db, salvarEntrega, configBko, telefoneBko,alternativaNio,enfileirarNio:()=>setTimeout(()=>entregarPendentes().catch(e=>console.error('[Alternativa Nio]',e.message)),100), enviarBko: (...args) => enviarBko(...args), confirmarBko: (...args) => confirmarBko(...args) });
     if(!opcoes.semEnvolver)ctx.tratarRetornoBko = async entrada => {
         try { if (await posVenda.tratar(entrada)) return true; }
         catch (e) { console.error('[Universal retorno BKO]', e.message); return true; }
