@@ -82,7 +82,7 @@ function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indi
             if (!certos.length && inicial.cepTotal) {
                 const municipio=locais.length===1?locais[0].split(' / '):null;
                 const bairroInformado=inicial.results.some(r=>normalizar(r.bairro)===normalizar(e.cidade));
-                if(municipio&&bairroInformado&&(!e.uf||normalizar(municipio[1])===normalizar(e.uf)))e={...e,bairro:e.cidade,cidade:municipio[0],uf:municipio[1]};
+                if(municipio&&!e.cepDoEmitente)e={...e,...(bairroInformado?{bairro:e.cidade}:{}),cidade:municipio[0],uf:municipio[1]};
                 else return { status: 'localidade_divergente', cep: e.cep, localidades: locais, resultados: [] };
             }
         }

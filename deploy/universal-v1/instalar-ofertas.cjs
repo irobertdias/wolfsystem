@@ -4,7 +4,7 @@ const root=fs.realpathSync(process.argv[2]||'/root/wolf-whatsapp');
 if(root!=='/root/wolf-whatsapp')throw Error('Raiz inesperada');
 const dir=path.join(root,'src/services/universal-v1');
 const arquivos=['conversa.cjs','runtime.cjs','nativo.cjs','generico.cjs','entrega-resposta.cjs','etiquetas-vendas.cjs','disponibilidade-retentativa.cjs','finalizar-conversa.cjs','objecao-documentos.cjs','retencao-venda.cjs','inviaveis-inativos.cjs','entradas-sem-resposta.cjs','interpretacao.cjs','ia-configuravel.cjs'];
-arquivos.push('vtal.cjs');
+arquivos.push('vtal.cjs','vero.cjs');
 for(const f of arquivos)execFileSync(process.execPath,['--check',path.join(__dirname,f)]);
 const backup=path.join(root,'backups','ofertas-entrega-'+Date.now());fs.mkdirSync(backup,{mode:0o700});
 for(const f of arquivos)if(fs.existsSync(path.join(dir,f)))fs.copyFileSync(path.join(dir,f),path.join(backup,f));

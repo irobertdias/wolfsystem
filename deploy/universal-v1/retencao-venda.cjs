@@ -1,6 +1,6 @@
 'use strict';
 const {normalizar}=require('./vtal.cjs');
-function pararContato(texto){return /\b(?:PARE DE (?:MANDAR|ENVIAR|ME (?:MANDAR|ENVIAR))|NAO ME (?:MANDE|ENVIE)|NAO ENTRE EM CONTATO|NAO (?:QUERO|DESEJO) (?:MAIS )?RECEBER MENSAGE|REMOVA MEU (?:NUMERO|CONTATO)|ENCERRE O (?:CHAT|ATENDIMENTO)|FINALIZE O ATENDIMENTO)\b/.test(normalizar(texto));}
+function pararContato(texto){return /\b(?:PARE DE (?:MANDAR|ENVIAR|ME (?:MANDAR|ENVIAR))|NAO ME (?:MANDE|ENVIE)|NAO ENTRE EM CONTATO|NAO (?:QUERO|DESEJO) (?:MAIS )?RECEBER MENSAGE(?:M|NS)|REMOVA MEU (?:NUMERO|CONTATO)|ENCERRE O (?:CHAT|ATENDIMENTO)|FINALIZE O ATENDIMENTO)\b/.test(normalizar(texto));}
 function tratar(s,texto,desistiu){
  if(pararContato(texto))return {encerrar:true};
  const t=normalizar(texto).replace(/NAO QUERO CANCELAR/g,'');

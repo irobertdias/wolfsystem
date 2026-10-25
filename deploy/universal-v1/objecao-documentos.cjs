@@ -13,7 +13,7 @@ function tratar(s,texto,docs,recusaInterpretada=false){
  if(!s.confirmado||pararPedido(texto))return null;
  const faltantes=docs.filter(d=>!(d.variavel==='comprovante_endereco'&&s.semComprovante)&&!s.documentos?.[d.variavel]?.length&&!s.documentosDispensados?.includes(d.variavel));
  if(!faltantes.length)return null;
- const t=normalizar(texto),perdido=/\b(?:PERDI|EXTRAVIEI|PERDEU|EXTRAVIADO|ROUBADO|FURTADO|NAO (?:TENHO|ESTOU COM) (?:O |MEU )?(?:RG|DOCUMENTO|IDENTIDADE))\b/.test(t);
+ const t=normalizar(texto),perdido=/\b(?:PERDI|EXTRAVIEI|PERDEU|PERDID[OA]|EXTRAVIAD[OA]|ROUBAD[OA]|FURTAD[OA]|NAO (?:TENHO|ESTOU COM) (?:O |MEU )?(?:RG|DOCUMENTO|IDENTIDADE))\b/.test(t);
  if(perdido){
   s.documentosDispensados=[...new Set([...(s.documentosDispensados||[]),...faltantes.map(d=>d.variavel)])];
   s.observacaoDocumentos='FALTA PEGAR DOCUMENTO';s.observacaoBkoDocumentos='CLIENTE INFORMOU NÃO POSSUIR O DOCUMENTO ORIGINAL. DOCUMENTAÇÃO PENDENTE PARA CONFERÊNCIA PELO BKO';

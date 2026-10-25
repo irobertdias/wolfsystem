@@ -90,6 +90,15 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     if(midia.enderecos.length)s.enderecosMidia=midia.enderecos;
     const analise = texto.trim() ? await extrair({ estado: s, texto, numero, anexos, config }) : {};
     const novos = {...midia.dados,...analise.dados};
+    const cepDigitado=interpretarEndereco(texto).cep;
+    if(cepDigitado)s.cepConfirmadoPeloCliente=cepDigitado;
+    if(s.consulta?.status==='localidade_divergente'&&s.consulta.localidades?.length===1){
+        const emitente=(s.enderecosMidia||[]).some(e=>e.papel==='emitente'&&e.dados?.cep===d.cep);
+        if(!emitente||cepDigitado===d.cep||positivo(texto)||analise.confirmacao===true){
+            const [cidade,uf]=s.consulta.localidades[0].split(' / ');
+            if(cidade&&/^[A-Z]{2}$/.test(uf||'')&&!novos.cidade&&!novos.estado){novos.cidade=cidade;novos.estado=uf;delete s.consultaChave;if(emitente)s.cepConfirmadoPeloCliente=d.cep;}
+        }
+    }
     // Uma correção explícita da fachada vale também depois da pergunta CPF/CNPJ.
     if(d.cep&&/^(?:CASA\s+)?NUMERO\s+\d{1,6}[A-Z]?[.! ]*$/.test(normalizar(texto))){const n=interpretarEndereco(texto).numero;if(n){novos.numero=n;if(novos.casa===n)delete novos.casa;if(d.numero!==n){delete d.endereco;s.enderecoConfirmado=false;}}}
     const {novoEndereco,semDisponibilidade}=require('./disponibilidade-retentativa.cjs');
@@ -277,7 +286,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     const chave = JSON.stringify(Object.fromEntries(['cidade', 'estado', 'cep', 'logradouro', 'quadra', 'lote', 'numero', 'casa', 'apartamento', 'bloco'].map(k => [k, d[k] || ''])));
     if (s.consultaChave !== chave) {
-        s.consulta = await consultar({ ...d, uf: d.estado });
+        s.consulta = await consultar({ ...d, uf: d.estado,cepDoEmitente:s.cepConfirmadoPeloCliente!==d.cep&&(s.enderecosMidia||[]).some(e=>e.papel==='emitente'&&e.dados?.cep===d.cep) });
         s.consultaChave = chave;
     }
     const c = s.consulta;

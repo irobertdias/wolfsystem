@@ -16,6 +16,7 @@ function criarVero({consultaVtal,resolverCep=resolverCepVero,estado={},politica}
    if(!postal?.erro&&(!postal?.localidade||!postal?.uf||String(postal.cep||'').replace(/\D/g,'')!==String(e.cep).replace(/\D/g,'')))return {status:'consulta_inconclusiva',origem:'postal'};
    if(!postal.erro&&(normalizar(postal.localidade)!==normalizar(e.cidade)||ufSigla(postal.uf)!==ufSigla(e.uf||e.estado))){
     if(normalizar(postal.bairro)===normalizar(e.cidade)&&ufSigla(postal.uf)===ufSigla(e.uf||e.estado))e={...e,bairro:e.cidade,cidade:postal.localidade};
+    else if(!e.cepDoEmitente)e={...e,cidade:postal.localidade,uf:postal.uf,estado:postal.uf};
     else return {status:'localidade_divergente',cep:e.cep,cidade:postal.localidade,uf:postal.uf,localidades:[postal.localidade+' / '+postal.uf]};
    }
   }

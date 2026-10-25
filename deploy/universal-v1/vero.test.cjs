@@ -16,7 +16,7 @@ test('fora das cidades VERO oferece Nio apenas após confirmação VTAL, com pre
 });
 test('falha técnica, imóvel ausente e divergência postal não confirmam cobertura nem selecionam oferta',async()=>{
  for(const status of ['consulta_inconclusiva','sem_disponibilidade_na_base','endereco_ambiguo']){const v=criarVero({resolverCep:postal('Itabira'),consultaVtal:async()=>({status,resultados:[]})});a.equal((await v.consultar(entrada('Itabira'))).status,status);}
- const v=criarVero({resolverCep:postal('Outro município'),consultaVtal:async()=>{throw Error('Não consultar localidade divergente');}});a.equal((await v.consultar(entrada('Ipatinga'))).status,'localidade_divergente');
+ const v=criarVero({resolverCep:postal('Outro município'),consultaVtal:async()=>{throw Error('Não consultar CEP do emitente sem confirmação');}});a.equal((await v.consultar({...entrada('Ipatinga'),cepDoEmitente:true})).status,'localidade_divergente');
  const f=criarVero({resolverCep:async()=>{throw Error('offline');},consultaVtal:async()=>({status:'disponivel_na_base'})});a.equal((await f.consultar(entrada('Ipatinga'))).status,'consulta_inconclusiva');
 });
 test('móvel de 30GB só nas ofertas próprias informadas; neutra não inventa franquia',()=>{a.equal(planosVero('prata').at(-1).gb_movel,30);a.equal(planosVero('neutra').at(-1).gb_movel,null);});
