@@ -24,6 +24,7 @@ if(!boot.includes(linha)){
  const marco='require("./src/services/universal-v1/runtime.cjs")(ctx);';if(!boot.includes(marco))throw Error('Inicializador universal não encontrado.');boot=boot.replace(marco,marco+'\n'+linha);
 }
 // No database flows, connections or channels are activated by this installer.
+s=require('./patch-encerramento-nativo.cjs').corrigir(s);
 for(const f of arquivos)fs.copyFileSync(path.join(__dirname,f),path.join(destino,f));
 fs.writeFileSync(rota,s);fs.writeFileSync(index,boot);
 try{execFileSync(process.execPath,['--check',rota]);execFileSync(process.execPath,['--check',index]);}

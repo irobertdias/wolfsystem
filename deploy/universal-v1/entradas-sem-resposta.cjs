@@ -16,11 +16,13 @@ function criar({db,workspace,processar,disponivel=async()=>true,ocupado=()=>fals
  let rodando=false;
  return async function executar(){if(rodando)return [];rodando=true;const feitos=[];
  try{
-  const q=await db.from('fluxo_sessoes').select('*').eq('workspace_id',workspace).eq('status','ativo').in('tipo_input_aguardado',['assistente_universal','nicho_atendimento']).limit(200);if(q.error)throw q.error;
+  const q=await db.from('fluxo_sessoes').select('*').eq('workspace_id',workspace).eq('status','ativo').limit(200);if(q.error)throw q.error;
   for(const row of q.data||[]){
    if(feitos.length>=5)break;
    const key=row.variaveis?.__universal_v2?'__universal_v2':'__universal_v1',ext=parse(row.variaveis?.[key]),s=ext.nio||ext;
-   if(s.proposta_id||ext.proposta_id||ext.concluido||ext.pronto||s.etapa==='encerrado'||ext.encerrado||ext.pendentes?.length||s.pendentes?.length||ocupado(row.canal_id,row.numero)||agora()-Date.parse(row.updated_at)<120000)continue;
+   const possuiPedido=!!(s.proposta_id||ext.proposta_id);
+   if(!possuiPedido&&!['assistente_universal','nicho_atendimento'].includes(row.tipo_input_aguardado))continue;
+   if((!possuiPedido&&(ext.concluido||ext.pronto))||s.etapa==='encerrado'||ext.encerrado||ext.pendentes?.length||s.pendentes?.length||ocupado(row.canal_id,row.numero)||agora()-Date.parse(row.updated_at)<120000)continue;
    const at=await db.from('atendimentos').select('status,atendente,bloqueado_ia,bloqueado_fluxo').eq('workspace_id',workspace).eq('canal_id',row.canal_id).eq('numero',row.numero).order('updated_at',{ascending:false}).limit(1);if(at.error)throw at.error;const a=at.data?.[0];if(!a||a.status==='resolvido'||a.atendente!=='BOT'||a.bloqueado_ia||a.bloqueado_fluxo)continue;
    const m=await db.from('mensagens').select('id,de,mensagem,created_at').eq('workspace_id',workspace).eq('canal_id',row.canal_id).eq('numero',row.numero).order('created_at',{ascending:false}).limit(30);if(m.error)throw m.error;
    const mensagens=m.data.filter(m=>m.de!=='sistema');if(!mensagens.length||agora()-Date.parse(mensagens[0].created_at)<120000)continue;

@@ -3,7 +3,7 @@ const {normalizar,interpretarEndereco,parte,criarConsulta,corresponde,viavel}=re
 const {planosDaCidade}=require('./planos-grupoprime.cjs');
 const {escolherPlano,resumo}=require('./conversa.cjs');
 const {randomBytes}=require('node:crypto');
-const VERSAO_CONSULTA=2;
+const VERSAO_CONSULTA=3;
 const pendente=c=>['verificar_configuracao','consultar','consulta_inconclusiva'].includes(c.universal_alternativa_nio?.estado);
 const precisaConferir=(p,c)=>normalizar(p.operadora)==='VERO'&&p.status_venda==='SEM DISPONIBILIDADE'&&(!c.universal_alternativa_nio||(['sem_disponibilidade','conferencia_endereco'].includes(c.universal_alternativa_nio.estado)&&Number(c.universal_alternativa_nio.versao_consulta||0)<VERSAO_CONSULTA));
 function endereco(p,c){
@@ -44,6 +44,10 @@ function criar({db,workspace,consultar=criarConsulta(),catalogo=planosDaCidade,a
    const unidadesViaveis=r.status==='endereco_ambiguo'&&e.logradouro&&e.numero&&r.resultados?.length>1&&r.resultados.every(x=>corresponde(x,e)&&viavel(x)&&normalizar(x.cidade)===normalizar(e.cidade)&&normalizar(x.uf)===normalizar(e.uf));
    if(r.status!=='disponivel_na_base'&&!unidadesViaveis){
     a.estado=['sem_disponibilidade_na_base','nao_localizado'].includes(r.status)?'sem_disponibilidade':'conferencia_endereco';
+    if(a.estado==='sem_disponibilidade'){
+     const chave='alternativa_nio_indisponivel:'+p.id;
+     if(!c.universal_acoes.some(x=>x.chave===chave))c.universal_acoes.push({chave,alvo:'cliente',estado:'pendente',encerrar_apos_envio:true,texto:`O BKO informou indisponibilidade no pedido #${p.id} pela Vero. Também consultei a alternativa Nio e não encontrei disponibilidade confirmada para esse endereço. Vou finalizar este atendimento. Obrigado pelo interesse!`,criado_em:new Date(agora()).toISOString()});
+    }
     return true;
    }
    if(unidadesViaveis)a.observacao_unidade='VTAL: todas as unidades retornadas no endereço são viáveis. Conferir a unidade técnica com os dados e documentos já salvos; nenhuma casa foi escolhida automaticamente.';

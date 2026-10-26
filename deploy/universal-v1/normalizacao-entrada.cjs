@@ -26,6 +26,14 @@ function pedidoDeOfertas(texto){
  const t=String(texto||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').split(/\s+/).map(p=>aliases[p]||p).join(' ');
  return /\b(?:PRECO|PRECOS|VALOR|VALORES|CUSTA)\b/.test(t)&&!/^\s*(?:QUERO|ESCOLHO|PODE SER|VOU FICAR)\b/.test(t)||/\b(?:QUAL|QUAIS|QUANTO|QUANTOS|MOSTRA|MOSTRE|MANDA|PASSA|VER)\b/.test(t)&&/\b(?:PLANO|PLANOS|OFERTA|OFERTAS|MEGA|MB|MBPS|GIGA)\b/.test(t);
 }
+function campoValido(c,valor,oferta){
+ const v=String(valor||'').trim();if(!v)return false;
+ if(c.tipo==='email')return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v);
+ const rotulo=String(c.rotulo||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ const pessoal=(/^(?:nome|nome_mae)$/.test(c.variavel)||/nome (?:completo|da mae|do titular|do responsavel)/i.test(rotulo))&&!/empresa|produto|plano|negocio/i.test(rotulo);
+ if(pessoal)return /^[\p{L}][\p{L} .'-]{1,149}$/u.test(v)&&(!oferta?.nome||v.toLocaleLowerCase('pt-BR')!==String(oferta.nome).toLocaleLowerCase('pt-BR'));
+ return true;
+}
 function numeroPorExtenso(t){
  const valores={ZERO:0,UM:1,UMA:1,DOIS:2,DUAS:2,TRES:3,QUATRO:4,CINCO:5,SEIS:6,SETE:7,OITO:8,NOVE:9,DEZ:10,ONZE:11,DOZE:12,TREZE:13,QUATORZE:14,QUINZE:15,DEZESSEIS:16,DEZESSETE:17,DEZOITO:18,DEZENOVE:19,VINTE:20,TRINTA:30,QUARENTA:40,CINQUENTA:50,SESSENTA:60,SETENTA:70,OITENTA:80,NOVENTA:90,CEM:100,CENTO:100,DUZENTOS:200,TREZENTOS:300,QUATROCENTOS:400,QUINHENTOS:500,SEISCENTOS:600,SETECENTOS:700,OITOCENTOS:800,NOVECENTOS:900};
  const tokens=t.replace(/^OLA[, ]*/,'').replace(/^(?:NUMERO|FACHADA|CASA)\s*(?:E\s+)?/,'').replace(/[!?.]/g,'').trim().split(/\s+/).filter(p=>p!=='E');
@@ -54,4 +62,4 @@ function dadosContextuais(campos,pendente,texto){
  }
  return r;
 }
-module.exports={cepDoTexto,campoCep,dadosContextuais,documentoDoTexto,modalidadeDoTexto,pedidoDeOfertas};
+module.exports={cepDoTexto,campoCep,dadosContextuais,documentoDoTexto,modalidadeDoTexto,pedidoDeOfertas,campoValido};

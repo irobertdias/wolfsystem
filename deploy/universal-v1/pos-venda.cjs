@@ -60,14 +60,26 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
         let p=await obter(id), c=structuredClone(p.dados_customizados);
         alternativaNio?.preparar(p,c);
         if(alternativaNio&&await alternativaNio.conferir(p,c))p=await salvarEntrega(p,c);
+        async function concluirAtendimento(acao){
+            if(!acao.encerrar_apos_envio||acao.conversa_encerrada||acao.estado!=='enviado')return;
+            const canal=p.canal_id,numero=c.numero_origem_whatsapp;
+            const r=await db.from('atendimentos').select('status,atendente,bloqueado_ia,bloqueado_fluxo,bloqueado_contato').eq('workspace_id',workspace).eq('canal_id',canal).eq('numero',numero).order('updated_at',{ascending:false}).limit(1);if(r.error)throw r.error;
+            const at=r.data?.[0];if(!at)throw Error('Atendimento não encontrado para finalizar');
+            if(at.status!=='resolvido'){
+                if(at.atendente!=='BOT'||at.bloqueado_ia||at.bloqueado_fluxo||at.bloqueado_contato||(await ctx.verificarBloqueioManualBot?.(workspace,canal,numero))?.bloqueado)throw Error('Encerramento aguarda liberação do atendimento');
+                await require('./finalizar-conversa.cjs').finalizarConversa(db,workspace,canal,numero);
+            }
+            acao.conversa_encerrada=true;p=await salvarEntrega(p,c);
+        }
         for (const acao of c.universal_acoes || []) {
+            if(acao.estado==='enviado'&&acao.encerrar_apos_envio&&!acao.conversa_encerrada){try{await concluirAtendimento(acao);}catch(e){acao.erro=String(e.message).slice(0,250);await salvarEntrega(p,c);}continue;}
             if (['enviado','cancelado'].includes(acao.estado) || Number(acao.tentarEm)>Date.now())continue;
             try {
                 const meta=c.universal_entrega, canalId=acao.alvo==='bko'?meta.canal_id:p.canal_id;
                 const numero=acao.alvo==='bko'?meta.numero:c.numero_origem_whatsapp;
                 const sessao=ctx.sessoes[String(canalId)];
                 const config=await ctx.getConfigCanal(canalId);
-                if(acao.chave.startsWith('alternativa_nio_ofertas:')&&(await ctx.verificarBloqueioManualBot?.(workspace,canalId,numero))?.bloqueado)throw Error('Oferta alternativa aguarda liberação do atendimento');
+                if(acao.alvo==='cliente'&&(await ctx.verificarBloqueioManualBot?.(workspace,canalId,numero))?.bloqueado)throw Error(acao.chave.startsWith('alternativa_nio_ofertas:')?'Oferta alternativa aguarda liberação do atendimento':'Acompanhamento aguarda liberação do atendimento');
                 if(config?.workspaceId!==workspace||config.tipo!=='webjs'||!sessao?.client||sessao.status!=='conectado')throw Error('Canal de acompanhamento desconectado');
                 acao.numero=numero;acao.canal_id=canalId;
                 if(acao.alvo==='cliente'&&typeof ctx.registrarDestinoConversaWebjs==='function'){
@@ -77,7 +89,7 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
                 }
                 if(acao.id) {
                     const m=await sessao.client.getMessageById(acao.id).catch(()=>null);
-                    if(Number(m?.ack)>=1) { acao.estado='enviado';acao.ack=m.ack;acao.enviado_em=new Date().toISOString();delete acao.erro; p=await salvarEntrega(p,c);continue; }
+                    if(Number(m?.ack)>=1) { acao.estado='enviado';acao.ack=m.ack;acao.enviado_em=new Date().toISOString();delete acao.erro; p=await salvarEntrega(p,c);await concluirAtendimento(acao);continue; }
                     if(m?.ack===-1) { delete acao.id;acao.estado='pendente'; } else throw Error('Aguardando confirmação do WhatsApp');
                 }
                 if(acao.estado==='em_envio') {
@@ -102,6 +114,7 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
                 acao.estado='enviado';acao.enviado_em=new Date().toISOString();delete acao.erro;
                 p=await salvarEntrega(p,c);
                 if(acao.alvo==='cliente'&&ctx.salvarMensagem)await ctx.salvarMensagem(workspace,canalId,config.fila||null,numero,acao.texto,'bot',p.nome,acao.id);
+                await concluirAtendimento(acao);
             } catch(e) { acao.erro=String(e.message).slice(0,250);acao.tentarEm=Date.now()+60000;await salvarEntrega(p,c);break; }
         }
     }); }
@@ -156,6 +169,7 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
         if(alternativaNio&&p.dados_customizados?.universal_migracao_nio_pendente==='SIM')return serial(p.id,async()=>{const atual=await obter(p.id),r=alternativaNio.cliente(atual,texto);if(!r)return false;if(r.c)await salvarEntrega(atual,r.c,r.patch||{});if(r.migrada)enfileirarNio();return {mensagem:r.mensagem};});
         if(!p.dados_customizados?.universal_novo_cpf)return false;
         const cpf=String(texto).replace(/\D/g,'');
+        if(!cpf){if(/\b(?:POR QUE|PORQUE|PQ|MOTIVO)\b/.test(normalizar(texto)))return {mensagem:'A operadora não aprovou esse CPF, mas não informou um motivo detalhado no retorno. Para tentar continuar, precisamos de outro titular que autorize a contratação.'};return {mensagem:'Entendi. Quando tiver a autorização de outro titular, pode enviar o CPF dele para continuarmos a análise. Os dados do pedido atual continuam salvos.'};}
         if(!/^\d{11}$/.test(cpf)||!cpfValido(cpf))return {mensagem:'Pode conferir os 11 números do CPF do titular autorizado? Vou atualizar o pedido existente e continuar por aqui.'};
         if(cpf===p.cpf)return {mensagem:'Esse é o CPF que já está no pedido. Você pode informar o CPF de outro titular autorizado para a contratação?'};
         await serial(p.id,async()=>{
@@ -189,7 +203,31 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
         const at=await db.from('atendimentos').select('status,atendente,bloqueado_ia,bloqueado_fluxo').eq('workspace_id',workspace).eq('canal_id',canal).eq('numero',numero).order('updated_at',{ascending:false}).limit(1);if(at.error)throw at.error;const a=at.data?.[0];if(!a||a.status==='resolvido'||a.atendente!=='BOT'||a.bloqueado_ia||a.bloqueado_fluxo)return true;
         const r=await cliente(q.data[0],texto);if(!r)return false;await enviar(r.mensagem);return true;
     }
-    return {tratar,cliente,pendentes,executar,interceptarAlternativa};
+    async function interceptarCliente(canal,numero,texto,enviar){
+        if(!String(texto||'').trim())return false;
+        const q=await db.from('proposta').select('*').eq('workspace_id',workspace).eq('canal_id',Number(canal)).eq('dados_customizados->>numero_origem_whatsapp',String(numero)).limit(10);if(q.error)throw q.error;if(!q.data?.length)return false;
+        if((await ctx.verificarBloqueioManualBot?.(workspace,canal,numero))?.bloqueado)return true;
+        const at=await db.from('atendimentos').select('status,atendente,bloqueado_ia,bloqueado_fluxo,bloqueado_contato').eq('workspace_id',workspace).eq('canal_id',canal).eq('numero',numero).order('updated_at',{ascending:false}).limit(1);if(at.error)throw at.error;const a=at.data?.[0];if(!a||a.status==='resolvido'||a.atendente!=='BOT'||a.bloqueado_ia||a.bloqueado_fluxo||a.bloqueado_contato)return true;
+        let p=q.data[0];if(q.data.length>1){const ids=[...String(texto).matchAll(/\b\d+\b/g)].map(m=>Number(m[0])),escolhidos=q.data.filter(v=>ids.includes(v.id));if(escolhidos.length!==1){await enviar('Encontrei mais de um pedido neste atendimento. Sobre qual deles você quer falar? '+q.data.map(v=>'#'+v.id).join(', '));return true;}p=escolhidos[0];}
+        const c=p.dados_customizados||{},t=normalizar(texto);
+        if(require('./retencao-venda.cjs').pararContato(texto)||/^(?:PARE|PARAR|STOP)[.! ]*$/.test(t)){await require('./finalizar-conversa.cjs').finalizarConversa(db,workspace,canal,numero);return true;}
+        if(p.status_venda==='CPF REPROVADO'&&/\b(?:NAO TENHO|NAO POSSUO|SEM OUTRO TITULAR|NINGUEM|NAO TEM OUTRO)\b/.test(t)){
+            await serial(p.id,async()=>{const atual=await obter(p.id),dados=structuredClone(atual.dados_customizados);dados.universal_novo_cpf=false;dados.universal_sem_outro_titular={texto:String(texto).slice(0,1000),em:new Date().toISOString()};await salvarEntrega(atual,dados);});
+            await enviar(`Entendi. Sem outro titular autorizado, não consigo continuar a análise do pedido #${p.id}. Vou finalizar o atendimento por aqui. Obrigado pelo interesse!`);await require('./finalizar-conversa.cjs').finalizarConversa(db,workspace,canal,numero);return true;
+        }
+        const r=await cliente(p,texto);if(r){await enviar(r.mensagem);return true;}
+        let mensagem;
+        if(p.status_venda==='CPF REPROVADO')mensagem=`O pedido #${p.id} precisa de outro titular autorizado para uma nova análise. Se tiver outro titular, pode informar o CPF dele; os demais dados do pedido continuam salvos.`;
+        else if(p.status_venda==='SEM DISPONIBILIDADE')mensagem=c.universal_alternativa_nio?.estado==='consulta_inconclusiva'?`O BKO informou indisponibilidade na Vero para o pedido #${p.id}. A consulta da alternativa Nio ainda está em andamento; seus dados e documentos continuam salvos.`:`O BKO informou indisponibilidade para o pedido #${p.id}. Até agora não encontrei outra disponibilidade confirmada para esse endereço. Você tem outro endereço onde gostaria de consultar?`;
+        else if(/\b(?:PAGAR|COBRA|COBRANCA|TAXA|CUSTO)\b/.test(t)&&/INSTAL|LIGACAO/.test(t))mensagem=`Não há uma confirmação de taxa de instalação registrada no pedido #${p.id}. Essa condição precisa ser conferida pela equipe antes de orientar qualquer pagamento. O pedido continua salvo.`;
+        else if(p.data_agendamento&&p.periodo_instalacao)mensagem=`A instalação do pedido #${p.id} está agendada para ${p.data_agendamento}, no período da ${String(p.periodo_instalacao).toLowerCase()}.`;
+        else if(p.status_venda==='INSTALADA')mensagem=`O pedido #${p.id} consta como instalado. Sobre o que você precisa de ajuda?`;
+        else if(p.status_venda==='CANCELADA')mensagem=`O pedido #${p.id} consta como cancelado. Se quiser iniciar uma nova contratação, me avise.`;
+        else if(p.status_venda==='APROVADA')mensagem=`O cadastro do pedido #${p.id} foi aprovado. Ainda não há data de instalação confirmada; a equipe dará continuidade às etapas de validação e agendamento.`;
+        else mensagem=`O pedido #${p.id} está ${p.status_venda==='AGUARDANDO INSTALAÇÃO'?'aguardando instalação':'em análise pela equipe'}. Ainda não há dia e período de instalação confirmados. Seus dados continuam salvos; não é preciso reenviá-los.`;
+        await enviar(mensagem);return true;
+    }
+    return {tratar,cliente,pendentes,executar,interceptarAlternativa,interceptarCliente};
 };
 module.exports.lerRetorno=lerRetorno;
 module.exports.prepararAcoes=prepararAcoes;

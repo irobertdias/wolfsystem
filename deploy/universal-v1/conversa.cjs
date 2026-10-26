@@ -341,7 +341,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
                 return semDisponibilidade(s,responder);
             }
             s.enderecoAusenteConfirmacao=chaveAusente;
-            return finalizarMensagem(`Já conferi ${endereco||'os dados enviados'}. Esse imóvel não foi localizado na base de disponibilidade.${c.cep?' O CEP '+limpo(c.cep)+' corresponde a '+limpo(rua||'essa região')+'.':''} Confirma esse endereço ou deseja corrigir algum desses dados?`);
+            return finalizarMensagem(`Já conferi ${endereco||'os dados enviados'}. Esse imóvel não foi localizado na base de disponibilidade.${c.cep?(c.logradouros?.length===1?' O CEP '+limpo(c.cep)+' corresponde a '+limpo(c.logradouros[0])+'.':' Consultei o CEP '+limpo(c.cep)+'.'):''} Confirma esse endereço ou deseja corrigir algum desses dados?`);
         }
         if (c.status === 'confirmar_logradouro') {
             const recebidos=[d.numero?'nº '+d.numero:'',d.quadra?'quadra '+d.quadra:'',d.lote?'lote '+d.lote:'',d.casa?'casa '+d.casa:''].filter(Boolean).map(limpo).join(', ');
@@ -422,6 +422,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         s.etapa = 'cnpj';
         return finalizarMensagem('Vamos iniciar o cadastro. Qual é o CNPJ da contratação? Depois vamos preencher os dados do responsável.');
     }
+    for(const variavel of ['nome','nome_mae','email'])if(d[variavel]&&!require('./normalizacao-entrada.cjs').campoValido({variavel,tipo:variavel==='email'?'email':'texto'},d[variavel],s.plano)){s.dadosInvalidos||={};s.dadosInvalidos[variavel]=d[variavel];delete d[variavel];s.confirmado=false;}
     for (const campo of CAMPOS) {
         if (campo === 'telefone1' && !s.enderecoConfirmado) {
             if (s.etapa === 'confirmar_endereco' && (positivo(texto) || analise.confirmacao === true) && (!novos.endereco || normalizar(novos.endereco) === normalizar(estado?.dados?.endereco)))

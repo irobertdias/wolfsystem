@@ -94,6 +94,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         const sessao = await ctx.buscarSessaoFluxo(WS, canal, n);
         let s = parse(sessao?.variaveis?.[KEY]);
         const retentativaDestino=s.erro==='WhatsApp não confirmou o destinatário configurado';
+        const consultaEstavaIndisponivel=s.consulta?.status==='consulta_inconclusiva';
         if (s.versao !== 1)
             s = { ...inicial(), inicio: new Date().toISOString() };
         if (s.etapa === 'encerrado')
@@ -156,7 +157,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
             // antes de perguntar algo que o cliente pode já ter respondido.
             if (filas.get(item.chave)?.mensagens.length && !['registrar','encerrar'].includes(r.acao))
                 return true;
-            if(novaEntrada||r.acao||retentativaDestino||s.ultimaEtapaEnviada!==s.etapa){await enviar(r.mensagem);confirmarEntrega(s,r);}
+            if(novaEntrada||r.acao||retentativaDestino||(consultaEstavaIndisponivel&&s.consulta?.status!=='consulta_inconclusiva')||s.ultimaEtapaEnviada!==s.etapa){await enviar(r.mensagem);confirmarEntrega(s,r);}
             s.ultimaEtapaEnviada=s.etapa;
             delete s.retryEm;
             await salvar(fluxo, no, canal, n, s);
@@ -202,7 +203,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
     if(!opcoes.semEnvolver)ctx.executarFluxo = async function (ws, canal, n, mensagem, enviar, fluxoId, opts = {}) {
         if (ws !== WS || opts.proposta || opts.iniciarNoId)
             return base(ws, canal, n, mensagem, enviar, fluxoId, opts);
-        if(await posVenda.interceptarAlternativa(canal,n,mensagem,enviar))return true;
+        if(await posVenda.interceptarCliente(canal,n,mensagem,enviar))return true;
         const { data: fluxo, error } = await db.from('fluxos').select('*').eq('workspace_id', WS).eq('id', fluxoId || 0).maybeSingle();
         if (error)
             throw error;
@@ -227,7 +228,7 @@ module.exports = function carregarUniversal(ctx, opcoes = {}) {
         } });
     };
     async function configBko(){const cfg=await configuracao(db,WS);if(!cfg?.ativo||!cfg.canal_id)throw Error('Configure e ative o BKO deste workspace.');return cfg;}
-    async function salvarEntrega(p, c, patch = {}) { if(Array.isArray(c.universal_acoes)) c.universal_pos_pendente=c.universal_acoes.some(a=>!['enviado','cancelado'].includes(a.estado))||require('./alternativa-nio-bko.cjs').pendente(c)?'SIM':'NAO'; const { data, error } = await db.from('proposta').update({ dados_customizados: c, updated_at: new Date().toISOString(), ...patch }).eq('workspace_id', WS).eq('id', p.id).eq('updated_at', p.updated_at).select('*').maybeSingle(); if (error)
+    async function salvarEntrega(p, c, patch = {}) { if(Array.isArray(c.universal_acoes)) c.universal_pos_pendente=c.universal_acoes.some(a=>!['enviado','cancelado'].includes(a.estado)||(a.estado==='enviado'&&a.encerrar_apos_envio&&!a.conversa_encerrada))||require('./alternativa-nio-bko.cjs').pendente(c)?'SIM':'NAO'; const { data, error } = await db.from('proposta').update({ dados_customizados: c, updated_at: new Date().toISOString(), ...patch }).eq('workspace_id', WS).eq('id', p.id).eq('updated_at', p.updated_at).select('*').maybeSingle(); if (error)
         throw error; if (!data)
         throw Error('Venda foi atualizada durante o envio'); return data; }
     async function entregar(p) {

@@ -3,7 +3,7 @@ const fs = require('node:fs'), path = require('node:path'), zlib = require('node
 const normalizar = v => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
 const estados = { AC: 'ACRE', AL: 'ALAGOAS', AP: 'AMAPA', AM: 'AMAZONAS', BA: 'BAHIA', CE: 'CEARA', DF: 'DISTRITO FEDERAL', ES: 'ESPIRITO SANTO', GO: 'GOIAS', MA: 'MARANHAO', MT: 'MATO GROSSO', MS: 'MATO GROSSO DO SUL', MG: 'MINAS GERAIS', PA: 'PARA', PB: 'PARAIBA', PR: 'PARANA', PE: 'PERNAMBUCO', PI: 'PIAUI', RJ: 'RIO DE JANEIRO', RN: 'RIO GRANDE DO NORTE', RS: 'RIO GRANDE DO SUL', RO: 'RONDONIA', RR: 'RORAIMA', SC: 'SANTA CATARINA', SP: 'SAO PAULO', SE: 'SERGIPE', TO: 'TOCANTINS' };
 const ufSigla = v => { const n = normalizar(v); return estados[n] ? n : Object.entries(estados).find(([, nome]) => nome === n)?.[0] || n; };
-const numero = v => /^\d+$/.test(String(v).trim()) ? String(Number(v)) : normalizar(v);
+const numero = v => /^(?:S\s*\/?\s*N|SEM NUMERO|NAO TEM NUMERO)$/i.test(normalizar(v))?'SN':/^\d+$/.test(String(v).trim()) ? String(Number(v)) : normalizar(v);
 function parte(texto, tipo) {
     const marcas = { quadra: '(?:QUADRA|QU|QD|QA|Q[A-Z]{0,7}(?=\\s)|Q)', lote: '(?:LOTE|LT|L)', casa: '(?:CASA|CA)', apartamento: '(?:APARTAMENTO|APTO|APT|AP)', bloco: '(?:BLOCO|BL)', numero: '(?:NUMERO|FACHADA|NR|N[º°.]?)' };
     const valor = tipo === 'quadra' || tipo === 'bloco' ? '([0-9]+[A-Z]?|[A-Z])' : '(\\d+[A-Z]?)';
@@ -151,7 +151,7 @@ function criarConsulta({ fetcher = fetch, diretorio = path.join(__dirname, 'indi
         // Inclui a situação na chave para não ocultar divergências de viabilidade.
         encontrados = [...new Map(encontrados.map(r => [JSON.stringify(['uf','cidade','bairro','logradouro','numero','complemento1','complemento2','complemento3','situacao','comercial'].map(k=>normalizar(r[k]))),r])).values()];
         if (!encontrados.length)
-            return { status: !unicas.length&&Object.values(inicial.facets).some(v => v.length >= 500) ? 'consulta_inconclusiva' : 'endereco_nao_localizado', cep: e.cep, resultados: [],logradouros:inicial.facets.logradouro,bairro:bairros.length===1?bairros[0]:'',numero:e.numero||e.casa||'' };
+            return { status: !unicas.length&&(!e.logradouro||(inicial.facets.logradouro||[]).length>=500)&&Object.values(inicial.facets).some(v => v.length >= 500) ? 'consulta_inconclusiva' : 'endereco_nao_localizado', cep: e.cep, resultados: [],logradouros:inicial.facets.logradouro,bairro:bairros.length===1?bairros[0]:'',numero:e.numero||e.casa||'' };
         if (encontrados.length > 1)
             return { status: 'endereco_ambiguo', cep: e.cep, resultados: encontrados.slice(0, 15) };
         return { status: viavel(encontrados[0]) ? 'disponivel_na_base' : 'sem_disponibilidade_na_base', cep: e.cep, resultados: encontrados, origem: 'VTAL · planilhas fornecidas (2024/2025)', confirmacao_tecnica_necessaria: true };

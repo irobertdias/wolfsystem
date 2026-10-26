@@ -15,10 +15,13 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
  validar(nicho);const s=structuredClone(estado||{versao:2,dados:{},historico:[],documentos:{},anexos:[],pendencias:[],apresentou:false,confirmado:false});
  const campos=nicho.coleta||[],docs=nicho.documentos_config||[],ofertas=catalogo(nicho,vars);
  const r=await extrair({estado:s,texto,numero,nicho,assistente,ofertas});
+ const {campoValido}=require('./normalizacao-entrada.cjs');
+ if((!r.pergunta&&!r.objecao)||/^CLIENTE (?:ENVIOU|INFORMOU|CONFIRMOU|RESPONDEU)/.test(normalizar(r.resposta)))r.resposta='';
  for(const item of r.dados||[]){const c=campos.find(c=>c.variavel===item.campo);if(!c||!item.trecho||!normalizar(texto).includes(normalizar(item.trecho)))continue;let valor=String(item.valor||'').trim();if(!valor)continue;
    if(c.tipo==='data')valor=dataBR(valor)||valor;
    if(c.tipo==='cpf')valor=valor.replace(/\D/g,'');
    if(c.tipo==='telefone')valor=valor.replace(/\D/g,'');
+   if(!campoValido(c,valor,s.oferta)){s.dadosInvalidos||={};s.dadosInvalidos[c.variavel]=valor;continue;}
    if(normalizar(s.dados[c.variavel])!==normalizar(valor)){s.dados[c.variavel]=valor;s.confirmado=false;}
  }
  const pendente=campos.find(c=>c.variavel===s.pendente);
@@ -31,6 +34,7 @@ async function avancar({estado,texto,numero,nicho,assistente,vars,extrair}) {
  if(pendente&&pendente.tipo==='data'&&dataBR(texto))s.dados[pendente.variavel]=dataBR(texto);
  if(pendente&&pendente.tipo==='cpf'&&/^\d{11}$/.test(texto.replace(/\D/g,'')))s.dados[pendente.variavel]=texto.replace(/\D/g,'');
  for(const [k,v]of Object.entries(contextuais)){if(normalizar(s.dados[k])!==normalizar(v))s.confirmado=false;s.dados[k]=v;}
+ for(const c of campos)if(s.dados[c.variavel]&&!campoValido(c,s.dados[c.variavel],s.oferta)){s.dadosInvalidos||={};s.dadosInvalidos[c.variavel]=s.dados[c.variavel];delete s.dados[c.variavel];s.confirmado=false;}
  const registrarResposta=(mensagem,concluido=false,tipo)=>{
    if(!tipo&&s.historico.at(-1)?.content===mensagem&&!concluido)mensagem=r.resposta&&!/[?]/.test(r.resposta)?r.resposta+'\n\n'+(pendente?.pergunta||'Como prefere continuar?'):'Vamos continuar de onde paramos. '+mensagem;
    s.historico=[...s.historico,{role:'user',content:texto},{role:'assistant',content:mensagem}].slice(-30);return {estado:s,mensagem,concluido,historicoProposto:true,tipo:tipo||(s.pendente==='__oferta'&&mensagem.includes('R$')?'ofertas':undefined)};

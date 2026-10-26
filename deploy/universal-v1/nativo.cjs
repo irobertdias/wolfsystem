@@ -121,7 +121,7 @@ module.exports=function instalar(ctx){
   if(opts.proposta||opts.iniciarNoId)return executar(ws,canal,numero,texto,enviar,fluxoId,opts);
   const {data:f}=await db.from('fluxos').select('id,nos').eq('workspace_id',ws).eq('id',fluxoId||0).maybeSingle();
   if(!f?.nos?.some(n=>n.tipo==='nicho_atendimento'&&Array.isArray(n.dados?.coleta)))return executar(ws,canal,numero,texto,enviar,fluxoId,opts);
-  if(ws!=='grupoprime'&&await obter(ws).posVenda.interceptarAlternativa(canal,numero,texto,enviar))return true;
+  if(ws!=='grupoprime'&&await obter(ws).posVenda.interceptarCliente(canal,numero,texto,enviar))return true;
   await require('./ponto-retomada.cjs').restaurar({db,ctx,workspace:ws,canal,numero,fluxo:f});
   const key=`${ws}:${canal}:${numero}`,fila=filas.get(key)||{mensagens:[],esperas:[],rodando:false};filas.set(key,fila);
   fila.mensagens.push(String(texto||''));
