@@ -9,3 +9,7 @@ O cliente escolhe o novo plano antes da alteração. O mesmo registro de propost
 Respostas repetidas não duplicam oferta, venda ou encaminhamento. Retornos atrasados do BKO VERO não alteram a fase Nio. Encerramento, bloqueio e atendimento humano continuam respeitados. O pós-venda Nio segue o tratamento existente.
 
 Validação: `node --test deploy/universal-v1/alternativa-nio-bko.test.cjs`. A suíte executa os handlers de retorno, persistência, escolha e encaminhamento reais com banco, VTAL e transporte simulados; não envia mensagens a clientes nem altera pedidos de produção.
+
+A reconciliação periódica percorre todas as páginas dos pedidos VERO sem disponibilidade, no workspace correto. Inicializa consultas ausentes e refaz negativos da versão anterior uma única vez. Não reoferece para quem aguarda escolha, recusou ou já migrou. Assim também recupera alterações de status que não passaram pelo handler de retorno. O cliente permanece protegido por bloqueios e controle humano existentes.
+
+Quando a rua informada difere do único logradouro retornado para o CEP, a busca usa esse logradouro canônico com o mesmo número e bairro. Só aproveita resultados que correspondem ao número/complementos, cidade, UF e bairro salvos. A equivalência é preservada para conferência no BKO Nio após o aceite, mantendo o endereço original do pedido. Se o CEP não consta na base, pesquisa pela rua, cidade e UF antes de concluir.

@@ -55,6 +55,7 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
     async function obter(id) { const r=await db.from('proposta').select('*').eq('workspace_id',workspace).eq('id',id).single();if(r.error)throw r.error;return r.data; }
     async function executar(id) { return serial(id, async()=>{
         let p=await obter(id), c=structuredClone(p.dados_customizados);
+        alternativaNio?.preparar(p,c);
         if(alternativaNio&&await alternativaNio.conferir(p,c))p=await salvarEntrega(p,c);
         for (const acao of c.universal_acoes || []) {
             if (['enviado','cancelado'].includes(acao.estado) || Number(acao.tentarEm)>Date.now())continue;
@@ -159,7 +160,13 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
     }
     async function pendentes() {
         if(rodando)return;rodando=true;
-        try { const r=await db.from('proposta').select('id').eq('workspace_id',workspace).eq('dados_customizados->>universal_v1','SIM').eq('dados_customizados->>universal_pos_pendente','SIM').order('updated_at',{ascending:true}).limit(100);if(r.error)throw r.error;for(const p of r.data||[])await executar(p.id); }
+        try {
+            const r=await db.from('proposta').select('id').eq('workspace_id',workspace).eq('dados_customizados->>universal_v1','SIM').eq('dados_customizados->>universal_pos_pendente','SIM').order('updated_at',{ascending:true}).limit(100);if(r.error)throw r.error;
+            const ids=new Set((r.data||[]).map(p=>p.id));
+            // Reconcilia também retornos antigos e alterações de status que chegaram fora do handler.
+            if(alternativaNio)for(let inicio=0;;inicio+=100){const antigas=await db.from('proposta').select('id,operadora,status_venda,dados_customizados').eq('workspace_id',workspace).eq('dados_customizados->>universal_v1','SIM').eq('status_venda','SEM DISPONIBILIDADE').in('operadora',['Vero','VERO','vero']).order('id',{ascending:true}).range(inicio,inicio+99);if(antigas.error)throw antigas.error;for(const p of antigas.data||[])if(alternativaNio.precisaConferir(p,p.dados_customizados))ids.add(p.id);if((antigas.data||[]).length<100)break;}
+            for(const id of ids)await executar(id);
+        }
         finally {rodando=false;}
     }
     async function interceptarAlternativa(canal,numero,texto,enviar){
