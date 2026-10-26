@@ -90,6 +90,13 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     if(midia.enderecos.length)s.enderecosMidia=midia.enderecos;
     const analise = texto.trim() ? await extrair({ estado: s, texto, numero, anexos, config }) : {};
     const novos = {...midia.dados,...analise.dados};
+    const localidadeExplicita=require('./descoberta-vtal.cjs').localidadeNoEndereco(texto,novos.estado||d.estado);
+    if(localidadeExplicita){novos.cidade=localidadeExplicita.cidade;novos.estado=localidadeExplicita.estado;}
+    const mudouMunicipio=novos.cidade&&normalizar(novos.cidade)!==normalizar(d.cidade)||novos.estado&&ufSigla(novos.estado)!==ufSigla(d.estado);
+    if(mudouMunicipio&&(localidadeExplicita||!s.cepConfirmadoPeloCliente)&&!novos.cep&&!interpretarEndereco(texto).cep){
+        delete d.cep;delete s.cepConfirmadoPeloCliente;
+        if(!novos.bairro)delete d.bairro;
+    }
     const {documentoDoTexto,modalidadeDoTexto}=require('./normalizacao-entrada.cjs');
     const documento=documentoDoTexto(texto),modalidade=modalidadeDoTexto(texto);
     if(documento&&(['tipo_pessoa','cpf','cnpj'].includes(s.etapa)||/^\s*(?:(?:meu|o)\s+)?c[.\s]*[pn]/i.test(texto))){
@@ -121,7 +128,12 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
     }
     if (s.etapa === 'complemento' && s.consulta?.status === 'endereco_ambiguo') {
         const opcao = /^\s*(?:op[cç][aã]o\s*)?(\d{1,2})\s*$/i.exec(texto);
-        const unidade = opcao && s.consulta.resultados?.[+opcao[1]-1];
+        let unidade = opcao && s.consulta.resultados?.[+opcao[1]-1];
+        if(!unidade){
+            const casa=normalizar(texto).match(/^(?:(?:CASA|CA)\s*)?([A-Z])[.! ]*$/)?.[1];
+            const candidatas=casa?(s.consulta.resultados||[]).filter(r=>parte([r.complemento1,r.complemento2,r.complemento3].join(' '),'casa')===casa):[];
+            if(candidatas.length===1)unidade=candidatas[0];
+        }
         if (unidade) {
             delete s.consultaChave;
             novos.logradouro = unidade.logradouro;
@@ -172,7 +184,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
             continue;
         const valor = novos[k].trim();
         if(k==='cep'&&!/^\d{8}$/.test(valor.replace(/\D/g,'')))continue;
-        if (['cidade', 'estado', 'cep', 'logradouro', 'quadra', 'lote', 'casa', 'apartamento', 'bloco', 'numero'].includes(k) && valor !== d[k]) {
+        if (['cidade', 'estado', 'cep', 'logradouro', 'quadra', 'lote', 'casa', 'apartamento', 'bloco', 'numero', 'bairro'].includes(k) && valor !== d[k]) {
             delete s.consulta;
             delete s.consultaChave;
         }
@@ -296,7 +308,7 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         if(anexos.length)return finalizarMensagem('Recebi e salvei o arquivo. Não consegui ler nele o CEP do endereço de instalação. Pode enviar uma foto mais próxima dessa parte ou escrever só o CEP?');
         return finalizarMensagem('Qual é o CEP do endereço de instalação?');
     }
-    const chave = JSON.stringify(Object.fromEntries(['cidade', 'estado', 'cep', 'logradouro', 'quadra', 'lote', 'numero', 'casa', 'apartamento', 'bloco'].map(k => [k, d[k] || ''])));
+    const chave = JSON.stringify(Object.fromEntries(['cidade', 'estado', 'cep', 'logradouro', 'quadra', 'lote', 'numero', 'casa', 'apartamento', 'bloco', 'bairro'].map(k => [k, d[k] || ''])));
     if (s.consultaChave !== chave) {
         s.consulta = await consultar({ ...d, uf: d.estado,cepDoEmitente:s.cepConfirmadoPeloCliente!==d.cep&&(s.enderecosMidia||[]).some(e=>e.papel==='emitente'&&e.dados?.cep===d.cep) });
         s.consultaChave = chave;
@@ -335,8 +347,8 @@ async function avancar({ estado, entrada, numero, extrair, consultar, catalogo, 
         if(c.status==='endereco_nao_localizado'){
             const rua=(c.logradouros||[]).length===1?c.logradouros[0]:d.logradouro;
             if(c.bairro&&normalizar(d.logradouro)===normalizar(c.bairro)&&rua){d.bairro=d.bairro||d.logradouro;d.logradouro=rua;}
-            const chaveAusente=JSON.stringify(Object.fromEntries(['cidade','estado','cep','logradouro','quadra','lote','numero','casa','apartamento','bloco'].map(k=>[k,d[k]||''])));
-            const endereco=[rua,d.numero?'nº '+d.numero:d.casa?'casa '+d.casa:'',d.quadra?'quadra '+d.quadra:'',d.lote?'lote '+d.lote:'',c.bairro||d.bairro].filter(Boolean).map(limpo).join(', ');
+            const chaveAusente=JSON.stringify(Object.fromEntries(['cidade','estado','cep','logradouro','quadra','lote','numero','casa','apartamento','bloco','bairro'].map(k=>[k,d[k]||''])));
+            const endereco=[rua,d.numero?'nº '+d.numero:d.casa?'casa '+d.casa:'',d.quadra?'quadra '+d.quadra:'',d.lote?'lote '+d.lote:'',d.bairro||c.bairro].filter(Boolean).map(limpo).join(', ');
             if(s.enderecoAusenteConfirmacao===chaveAusente&&(positivo(texto)||analise.confirmacao===true)){
                 return semDisponibilidade(s,responder);
             }

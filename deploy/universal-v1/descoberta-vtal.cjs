@@ -44,4 +44,15 @@ function localidadeDaBase(cidade,diretorio=path.join(__dirname,'indice-vtal')){
  const alvo=normalizar(cidade).replace(/[^A-Z0-9]+/g,'_');const arquivos=fs.readdirSync(diretorio).filter(f=>/^[A-Z]{2}-.+\.json\.gz$/.test(f)&&f.slice(3,-8)===alvo);
  return arquivos.length===1?{cidade:alvo.replace(/_/g,' '),estado:arquivos[0].slice(0,2)}:null;
 }
-module.exports={criarDescoberta,localidadeDaBase};
+let localidadesEndereco;
+function localidadeNoEndereco(texto,uf,diretorio=path.join(__dirname,'indice-vtal')){
+ const t=normalizar(texto).replace(/[^A-Z0-9]+/g,' ').trim();
+ // Município no fim de um endereço com fachada/bairro; não confundir nome da rua com cidade.
+ if(!/\b(?:RUA|R|AVENIDA|AV|TRAVESSA|ESTRADA|ALAMEDA)\b/.test(t)||! /\b\d+[A-Z]?\b/.test(t))return null;
+ if(!fs.existsSync(diretorio))return null;
+ if(!localidadesEndereco||localidadesEndereco.diretorio!==diretorio)localidadesEndereco={diretorio,lista:fs.readdirSync(diretorio).filter(f=>/^[A-Z]{2}-.+\.json\.gz$/.test(f)).map(f=>({cidade:f.slice(3,-8).replace(/_/g,' '),estado:f.slice(0,2)})).sort((a,b)=>b.cidade.length-a.cidade.length)};
+ const explicita=t.match(/\b([A-Z]{2})$/)?.[1],sigla=ufSigla(explicita||uf);
+ const candidatas=localidadesEndereco.lista.filter(l=>(!sigla||l.estado===sigla)&&(t.endsWith(' '+l.cidade)||t.endsWith(' '+l.cidade+' '+l.estado)));
+ return candidatas.length&&(!candidatas[1]||candidatas[0].cidade.length>candidatas[1].cidade.length)?candidatas[0]:null;
+}
+module.exports={criarDescoberta,localidadeDaBase,localidadeNoEndereco};

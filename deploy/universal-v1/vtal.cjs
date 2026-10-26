@@ -6,7 +6,7 @@ const ufSigla = v => { const n = normalizar(v); return estados[n] ? n : Object.e
 const numero = v => /^(?:S\s*\/?\s*N|SEM NUMERO|NAO TEM NUMERO)$/i.test(normalizar(v))?'SN':/^\d+$/.test(String(v).trim()) ? String(Number(v)) : normalizar(v);
 function parte(texto, tipo) {
     const marcas = { quadra: '(?:QUADRA|QU|QD|QA|Q[A-Z]{0,7}(?=\\s)|Q)', lote: '(?:LOTE|LT|L)', casa: '(?:CASA|CA)', apartamento: '(?:APARTAMENTO|APTO|APT|AP)', bloco: '(?:BLOCO|BL)', numero: '(?:NUMERO|FACHADA|NR|N[º°.]?)' };
-    const valor = tipo === 'quadra' || tipo === 'bloco' ? '([0-9]+[A-Z]?|[A-Z])' : '(\\d+[A-Z]?)';
+    const valor = ['quadra','bloco','casa'].includes(tipo) ? '([0-9]+[A-Z]?|[A-Z])' : '(\\d+[A-Z]?)';
     const m = normalizar(texto).replace(/\bQUDRA\b/g,'QUADRA').match(new RegExp('(?:^|[ ,;/])' + (tipo==='quadra'?'(?!QUERO\\b|QUAL\\b|QUANDO\\b|QUANTO\\b|QUEM\\b|QUE\\b)':'') + marcas[tipo] + '\\s*[-.:]?\\s*' + valor + '(?=$|[^A-Z0-9])'));
     return m ? numero(m[1]) : '';
 }
