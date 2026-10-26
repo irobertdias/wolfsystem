@@ -70,6 +70,11 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
                 if(acao.chave.startsWith('alternativa_nio_ofertas:')&&(await ctx.verificarBloqueioManualBot?.(workspace,canalId,numero))?.bloqueado)throw Error('Oferta alternativa aguarda liberação do atendimento');
                 if(config?.workspaceId!==workspace||config.tipo!=='webjs'||!sessao?.client||sessao.status!=='conectado')throw Error('Canal de acompanhamento desconectado');
                 acao.numero=numero;acao.canal_id=canalId;
+                if(acao.alvo==='cliente'&&typeof ctx.registrarDestinoConversaWebjs==='function'){
+                    const recebidas=await db.from('mensagens').select('provider_message_id').eq('workspace_id',workspace).eq('canal_id',canalId).eq('numero',numero).eq('de','cliente').order('created_at',{ascending:false}).limit(20);if(recebidas.error)throw recebidas.error;
+                    const jid=(recebidas.data||[]).map(m=>String(m.provider_message_id||'').match(/^false_([0-9]{8,20}@(?:c\.us|lid))_/)?.[1]).find(Boolean);
+                    if(jid)ctx.registrarDestinoConversaWebjs(sessao.client,numero,jid);
+                }
                 if(acao.id) {
                     const m=await sessao.client.getMessageById(acao.id).catch(()=>null);
                     if(Number(m?.ack)>=1) { acao.estado='enviado';acao.ack=m.ack;acao.enviado_em=new Date().toISOString();delete acao.erro; p=await salvarEntrega(p,c);continue; }

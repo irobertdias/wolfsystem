@@ -13,4 +13,4 @@ Os nomes armazenados no CRM são preservados. Aceita variações de caixa, acent
 
 Cada ação conserva sua chave única e o recibo. Retornos repetidos não duplicam mensagens. A entrega ao cliente usa o resolvedor WebJS existente e reconhece seu `messageId`; a conferência de envios antigos usa o JID resolvido, sem reenviar cegamente. Canal, workspace, remetente autorizado, vínculo com o pedido e bloqueios existentes continuam verificados. Regras personalizadas e o modo de retorno por fluxos permanecem disponíveis para quem os configurar.
 
-Testes: `node --test deploy/universal-v1/pos-venda.test.cjs deploy/universal-v1/alternativa-nio-bko.test.cjs`. A suíte completa do diretório passou em 3.295 testes sintéticos, incluindo reconhecimento das grafias, efeitos no CRM, despacho imediato, agenda, alternativa Nio e confirmação sem mensagens duplicadas.
+Testes: `node --test deploy/universal-v1/pos-venda.test.cjs deploy/universal-v1/alternativa-nio-bko.test.cjs`. A suíte completa do diretório passou em 3.296 testes sintéticos, incluindo reconhecimento das grafias, efeitos no CRM, despacho imediato, agenda, alternativa Nio e confirmação sem mensagens duplicadas.
