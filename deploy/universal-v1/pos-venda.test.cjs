@@ -32,3 +32,18 @@ test('outro CPF atualiza o mesmo pedido e solicita reanálise sem cadastrar vend
  const x=ambiente();await x.pos.tratar({workspaceId:'grupoprime',verificado:true,canalId:164,numero:'5562981072373',messageId:'r1',quotedId:'origem',mensagem:'CPF REPROVADO'});
  const r=await x.pos.cliente(x.p(),'111.444.777-35');a.match(r.mensagem,/reanálise/);a.equal(x.p().id,541);a.equal(x.p().cpf,'11144477735');a.equal(x.p().dados_customizados.universal_cpf_anterior,'52998224725');a.equal(x.p().status_venda,'AGUARDANDO AUDITORIA');a.match(x.envios.at(-1).texto,/Conferir e atualizar/);
 });
+
+const retornosPadrao={
+ 'SEM DISPONIBILIDADE':['sem disponibilidade','SEM_DISPONIBILIDADE','Sem Disponibilidae','status: sem disponiblidade','SEM VIABILIDADE','sem cobertura'],
+ 'CPF REPROVADO':['cpf reprovado','c pf reprovado','c p f reprovado','c.p.f reprovado','CPF: REPROVADO','CPF_REPROVADO','retorno: cpf reprvado'],
+ 'APROVADA':['cpf aprovado','c pf aprovado','c p f aprovado','c.p.f aprovado','CPF: APROVADO','cpf_aprovado','status: cpf aprovdo'],
+ 'AGUARDANDO INSTALAÇÃO':['aguardando instalação','AGUARDANDO_INSTALACAO','aguardando instalçação','aguardando instalcao','aguarando instalacao','status: aguardando instalação','pendente de instalação']
+};
+for(const [status,textos]of Object.entries(retornosPadrao))for(const texto of textos)for(const forma of [t=>t,t=>'✅ '+t,t=>'  '+t.toUpperCase()+'  '])test('retorno padrão '+status+' reconhece '+JSON.stringify(forma(texto)),()=>a.equal(lerRetorno(forma(texto),'AGUARDANDO AUDITORIA').status,status));
+for(const texto of ['CPF aprovado?','CPF não aprovado','CPF aprovado ou reprovado','Ainda não tem resposta','aguardando cliente','não sei se tem disponibilidade'])test('não converte dúvida ou resposta incompleta em retorno: '+texto,()=>a.equal(lerRetorno(texto,'AGUARDANDO AUDITORIA').status,undefined));
+for(const [mensagem,status,acao]of [['c pf reprovado','CPF REPROVADO',/outro CPF/],['c pf aprovado','APROVADA',/aprovado/],['aguardando instalçação','AGUARDANDO INSTALAÇÃO',/aguardando instalação/]])test('retorno aciona automaticamente CRM e cliente sem intervenção: '+mensagem,async()=>{
+ const x=ambiente(),e={workspaceId:'grupoprime',verificado:true,canalId:164,numero:'5562981072373',messageId:'padrao-1',quotedId:'origem',mensagem};await x.pos.tratar(e);a.equal(x.p().status_venda,status);a.ok(x.envios.some(v=>v.numero==='5562999998888'&&acao.test(v.texto)));const n=x.envios.length;await x.pos.tratar({...e,messageId:'padrao-2'});a.equal(x.envios.length,n);
+});
+test('instalação com data e período informa agenda completa sem aviso genérico duplicado',async()=>{
+ const x=ambiente();await x.pos.tratar({workspaceId:'grupoprime',verificado:true,canalId:164,numero:'5562981072373',messageId:'agenda',quotedId:'origem',mensagem:'AGUARDANDO INSTALAÇÃO\nDATA: 28/10/2026\nPERIODO: MANHÃ'});a.equal(x.envios.length,1);a.match(x.envios[0].texto,/28\/10\/2026/);a.match(x.envios[0].texto,/manhã/);
+});

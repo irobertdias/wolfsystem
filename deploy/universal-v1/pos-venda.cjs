@@ -4,7 +4,8 @@ const { cpfValido } = require('./conversa.cjs');
 const { randomBytes } = require('node:crypto');
 const ESTADOS = ['CPF REPROVADO','APROVADA','GERADA','AGUARDANDO INSTALAÇÃO','INSTALADA','SEM DISPONIBILIDADE','CANCELADA'];
 function lerRetorno(texto, atual) {
-    const t = normalizar(texto.replace(/#?BKO-\d+-[A-F0-9]{16}(?:\/\d+)?/gi, ''));
+    const aliases={DISPONIBILIADE:'DISPONIBILIDADE',DISPONIBILIDAE:'DISPONIBILIDADE',DISPONIBLIDADE:'DISPONIBILIDADE',VIABILDADE:'VIABILIDADE',REPROVDO:'REPROVADO',REPRVADO:'REPROVADO',APROVDO:'APROVADO',APRVADO:'APROVADO',AGUARANDO:'AGUARDANDO',AGUARDNADO:'AGUARDANDO',INSTALCACAO:'INSTALACAO',INSTALCAO:'INSTALACAO',INSTALASAO:'INSTALACAO'};
+    const t = normalizar(String(texto||'').replace(/#?BKO-\d+-[A-F0-9]{16}(?:\/\d+)?/gi, '')).replace(/\bC[.\s]*P[.\s]*F\b/g,'CPF').replace(/\bCPF\s*[:=\-]\s*/g,'CPF ').replace(/^[^A-Z0-9]+/,'').replace(/^(?:STATUS|RETORNO|SITUACAO)\s*[:=\-]\s*/,'').replace(/[^A-Z0-9\s:./-]/g,' ').split(/(\s+)/).map(p=>aliases[p]||p).join('').trim();
     let status;
     if (/^(?:CPF\s+)?REPROVAD[OA]\b/.test(t)) status = 'CPF REPROVADO';
     else if (/^(?:CPF\s+)?APROVAD[OA]\b/.test(t)) status = 'APROVADA';
@@ -13,6 +14,7 @@ function lerRetorno(texto, atual) {
     else if (/^INSTALAD[OA]\b/.test(t)) status = 'INSTALADA';
     else if (/^SEM (?:DISPONIBILIDADE|VIABILIDADE|COBERTURA)\b/.test(t)) status = 'SEM DISPONIBILIDADE';
     else if (/^CANCELAD[OA]\b/.test(t)) status = 'CANCELADA';
+    if(/[?]/.test(String(texto).split(/\r?\n/)[0])||/\bAPROVAD[OA]\b.*\bREPROVAD[OA]\b|\bREPROVAD[OA]\b.*\bAPROVAD[OA]\b/.test(t))status=undefined;
     const m = t.match(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b/);
     let data_agendamento;
     if (m) { const dt = new Date(Date.UTC(+m[3],+m[2]-1,+m[1])); if (+m[3]>=2000 && +m[3]<=2100 && dt.getUTCDate()===+m[1] && dt.getUTCMonth()===+m[2]-1) data_agendamento=`${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}`; }
@@ -24,7 +26,7 @@ function prepararAcoes(p, c, config = {}) {
     if(config.modo_retorno==='fluxos')return c.universal_acoes||[];
     const lista = c.universal_acoes ||= [];
     for(const acao of lista) if(!['enviado','cancelado'].includes(acao.estado)) {
-        if((acao.chave.startsWith('cpf:')&&p.status_venda!=='CPF REPROVADO')||(acao.chave.startsWith('biometria:')&&p.status_venda!=='APROVADA')||(acao.chave==='solicitar_agenda'&&(!['GERADA','AGUARDANDO INSTALAÇÃO'].includes(p.status_venda)||(p.data_agendamento&&p.periodo_instalacao))))acao.estado='cancelado';
+        if((acao.chave.startsWith('cpf:')&&p.status_venda!=='CPF REPROVADO')||(acao.chave.startsWith('biometria:')&&p.status_venda!=='APROVADA')||(acao.chave==='aguardando_instalacao'&&p.status_venda!=='AGUARDANDO INSTALAÇÃO')||(acao.chave==='solicitar_agenda'&&(!['GERADA','AGUARDANDO INSTALAÇÃO'].includes(p.status_venda)||(p.data_agendamento&&p.periodo_instalacao))))acao.estado='cancelado';
     }
     const adicionar = (chave, alvo, texto) => { if (!lista.some(a=>a.chave===chave)) lista.push({ chave, alvo, texto: alvo==='cliente' ? texto+`\nPedido #${p.id}` : texto, estado:'pendente', criado_em:new Date().toISOString() }); };
     const personalizada=(config.retornos||[]).find(r=>r.status===p.status_venda);
@@ -43,6 +45,7 @@ function prepararAcoes(p, c, config = {}) {
         adicionar('biometria:'+p.cpf, 'cliente', 'Seu cadastro foi aprovado! ✅ Agora vamos seguir para a etapa de biometria. A equipe vai orientar você pelo canal oficial. Assim que tivermos a confirmação, continuamos com a instalação.');
     }
     if (['GERADA','AGUARDANDO INSTALAÇÃO'].includes(p.status_venda)) {
+        if(p.status_venda==='AGUARDANDO INSTALAÇÃO'&&(!p.data_agendamento||!p.periodo_instalacao))adicionar('aguardando_instalacao','cliente','Seu pedido está aguardando instalação. ✅ Assim que o dia e o período forem confirmados pela equipe, aviso você por aqui.');
         if (!p.data_agendamento || !p.periodo_instalacao) adicionar('solicitar_agenda', 'bko', `📅 Pedido #${p.id}: por favor, informe o dia e o período da instalação para avisarmos o cliente.\nDATA: DD/MM/AAAA\nPERIODO: MANHÃ ou TARDE\n🔖 #${c.bko_ref}`);
         else adicionar('agenda:'+p.data_agendamento+':'+p.periodo_instalacao, 'cliente', `📅 A instalação do seu pedido #${p.id} está agendada para *${p.data_agendamento}*, no período da *${p.periodo_instalacao.toLowerCase()}*. A equipe da operadora fará a instalação. Se precisar ajustar alguma informação, pode falar por aqui. 😊`);
     }
@@ -73,14 +76,19 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
                     if(m?.ack===-1) { delete acao.id;acao.estado='pendente'; } else throw Error('Aguardando confirmação do WhatsApp');
                 }
                 if(acao.estado==='em_envio') {
-                    const id=await sessao.client.getNumberId(numero),chat=id&&await sessao.client.getChatById(id._serialized);
+                    const id=typeof ctx.resolverDestinoWebjs==='function'?await ctx.resolverDestinoWebjs(sessao.client,numero):await sessao.client.getNumberId(numero),jid=id?.jid||id?._serialized,chat=jid&&await sessao.client.getChatById(jid);
                     const recentes=chat?await chat.fetchMessages({limit:50}):[];
                     const encontrada=recentes.find(m=>m.fromMe&&m.body===acao.texto&&Number(m.timestamp)*1000>=Date.parse(acao.criado_em)-5000);
                     if(encontrada) { acao.id=encontrada.id._serialized;acao.estado='aguardando';p=await salvarEntrega(p,c); }
                     throw Error('Acompanhamento em reconciliação; aguardando recibo');
                 }
                 acao.estado='em_envio';p=await salvarEntrega(p,c);
-                const r=await enviarBko(sessao.client,numero,acao.texto,{});
+                let r;
+                if(acao.alvo==='cliente'&&typeof ctx.enviarTextoWebjs==='function'){
+                    const envio=await ctx.enviarTextoWebjs(sessao.client,numero,acao.texto);
+                    if(envio?.success===false)throw Error(envio.error||'Envio ao cliente não confirmado');
+                    r=envio?.messageId?{...envio,id:{_serialized:envio.messageId}}:envio;
+                }else r=await enviarBko(sessao.client,numero,acao.texto,{});
                 if(!r?.id?._serialized)throw Error('WhatsApp não retornou recibo');
                 acao.id=r.id._serialized;acao.ack=r.ack;
                 if(acao.alvo==='bko')c.bko_reply_ids=[...new Set([...(c.bko_reply_ids||[]),acao.id])];
