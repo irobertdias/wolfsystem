@@ -7,7 +7,7 @@ function impedirReconexao(sessao,atual,motivo,esperada){
  if(sessao.substituida||sessao.encerrando)return 'sessão já está sendo encerrada';
  if(sessao.status==='aguardando_qr')return 'autenticação já está em andamento';
  if(sessao.status==='inicializando'&&Date.now()-(sessao.inicializacaoEm||Date.now())<(sessao.authenticatedProcessado?300000:180000))return 'autenticação já está em andamento';
- if(sessao.status==='conectado'&&/^evento disconnected/i.test(motivo))return 'a conexão já foi recuperada';
+ if(sessao.status==='conectado'&&/^(?:evento disconnected|auto-)/i.test(motivo))return 'a conexão já foi recuperada';
  return '';
 }
 function instalar(ctx,{processo=process,encerrar,temporizador=setTimeout}={}){
