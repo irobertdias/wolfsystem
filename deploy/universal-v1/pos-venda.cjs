@@ -72,7 +72,7 @@ module.exports = function criarPosVenda({workspace='grupoprime',ctx,db,salvarEnt
                 acao.numero=numero;acao.canal_id=canalId;
                 if(acao.alvo==='cliente'&&typeof ctx.registrarDestinoConversaWebjs==='function'){
                     const recebidas=await db.from('mensagens').select('provider_message_id').eq('workspace_id',workspace).eq('canal_id',canalId).eq('numero',numero).eq('de','cliente').order('created_at',{ascending:false}).limit(20);if(recebidas.error)throw recebidas.error;
-                    const jid=(recebidas.data||[]).map(m=>String(m.provider_message_id||'').match(/^false_([0-9]{8,20}@(?:c\.us|lid))_/)?.[1]).find(Boolean);
+                    const jid=(recebidas.data||[]).map(item=>{const m=String(item.provider_message_id||'').match(/^(?:webjs:(\d+):)?false_([0-9]{8,20}@(?:c\.us|lid))_/);return m&&(!m[1]||Number(m[1])===Number(canalId))?m[2]:null;}).find(Boolean);
                     if(jid)ctx.registrarDestinoConversaWebjs(sessao.client,numero,jid);
                 }
                 if(acao.id) {
