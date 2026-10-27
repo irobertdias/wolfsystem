@@ -6,6 +6,7 @@ import { deveNotificarAtendimento } from "../../lib/notificacoes-atendimento";
 import { supabase } from "../../lib/supabase";
 import { chaveMensagem, mesclarHistorico, atualizarRecibo, criarSincronizadorHistorico, type MensagemHistorico } from "../../lib/historico-mensagens";
 import { nomeArquivoAudio, lerRespostaAudio } from "../../lib/audio-envio";
+import { validarGravacaoAudio } from "../../lib/audio-gravacao";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useConversasFixadas } from "../../hooks/useConversasFixadas";
 import { usePermissao } from "../../hooks/usePermissao";
@@ -2479,17 +2480,22 @@ export function ChatSection() {
   const iniciarGravacao = async () => {
     if (!atendimentoAtivo) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Captura direta evita filtros de supressão que podem cortar a voz.
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: { ideal: 1 }, echoCancellation: false, noiseSuppression: false, autoGainControl: true } });
       audioStreamRef.current = stream;
+      const track = stream.getAudioTracks()[0];
+      if (!track || track.readyState !== "live") throw new Error("Microfone sem sinal");
+      track.onmute = () => notify("O microfone ficou sem sinal.", "aviso", "Verifique o dispositivo e as permissões antes de enviar.");
       const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : MediaRecorder.isTypeSupported("audio/ogg;codecs=opus") ? "audio/ogg;codecs=opus" : "";
       const recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
-      audioChunksRef.current = [];
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      const chunks: Blob[] = [];
+      audioChunksRef.current = chunks;
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.start();
       setGravando(true); setTempoGravacao(0);
       timerRef.current = setInterval(() => setTempoGravacao(t => t + 1), 1000);
-    } catch (err: any) { notify("Não foi possível acessar o microfone.", "erro", "Verifique as permissões do navegador."); }
+    } catch (err: any) { pararStream(); notify("Não foi possível acessar o microfone.", "erro", "Verifique as permissões do navegador."); }
   };
 
   const pararStream = () => {
@@ -2506,12 +2512,13 @@ export function ChatSection() {
     if (!atendimentoAtivo || !mediaRecorderRef.current) return;
     if (!atendimentoAtivo.canal_id) { notify("Atendimento sem canal. Não é possível enviar áudio.", "aviso"); return; }
     const recorder = mediaRecorderRef.current;
+    if (recorder.state === "inactive") return;
     setEnviandoAudio(true);
     await new Promise<void>((resolve) => { recorder.onstop = () => resolve(); try { recorder.stop(); } catch { resolve(); } });
     pararStream(); setGravando(false);
     try {
       const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || audioChunksRef.current[0]?.type || "application/octet-stream" });
-      if (!blob.size) throw new Error("A gravação ficou vazia. Grave o áudio novamente.");
+      await validarGravacaoAudio(blob);
       const canalAtual = canais.find(c => c.id === atendimentoAtivo.canal_id);
       const tipoCanal = canalAtual?.tipo;
       const ehCanalMeta = tipoCanal === "meta" || tipoCanal === "instagram" || tipoCanal === "messenger";
