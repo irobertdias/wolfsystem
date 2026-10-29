@@ -64,6 +64,36 @@ export function configurarNicho(valor: string) {
 }
 export function validarEstruturaUniversal(nos: {id:string;tipo:string;dados:Record<string,any>}[], arestas:{de:string;para:string;saidaIndex:number}[]) {
   const problemas:string[]=[];
+  // Pós-venda tem sua própria entrada CRM e atualiza uma proposta existente.
+  // Só exclui da regra de venda nova os nós de um trecho conectado e válido.
+  const posVenda=new Set<string>();
+  for(const raiz of nos.filter(n=>n.tipo==='gatilho_crm'&&n.dados.executor==='pos_venda_universal')){
+    const trecho:typeof nos=[],vistos=new Set<string>();let atual:typeof nos[number]|undefined=raiz;
+    while(atual){
+      if(vistos.has(atual.id)){problemas.push(`Pós-venda ${raiz.id}: remova o ciclo de conexões.`);break;}
+      vistos.add(atual.id);trecho.push(atual);
+      const saidas=arestas.filter(a=>a.de===atual!.id&&Number(a.saidaIndex||0)===0);
+      if(saidas.length>1){problemas.push(`Pós-venda ${atual.id}: conecte uma única saída de sucesso.`);break;}
+      if(!saidas.length)break;
+      atual=nos.find(n=>n.id===saidas[0].para);
+      if(!atual)problemas.push(`Pós-venda ${raiz.id}: a conexão aponta para um bloco inexistente.`);
+    }
+    const erros:string[]=[];
+    if(!arestas.some(a=>a.de===raiz.id&&Number(a.saidaIndex||0)===0))erros.push('conecte o gatilho ao tratamento do retorno');
+    if(trecho.some(n=>!['gatilho_crm','texto','nicho_atendimento','atualizar_venda','concluir_venda_universal'].includes(n.tipo)))erros.push('use apenas Texto, Nicho, Atualizar Venda e Concluir Venda neste trecho');
+    const coleta=trecho.filter(n=>n.tipo==='nicho_atendimento');
+    const atualizar=trecho.findIndex(n=>n.tipo==='atualizar_venda'),enviar=trecho.findIndex(n=>n.tipo==='concluir_venda_universal');
+    if(coleta.length>1)erros.push('use uma única coleta neste trecho');
+    for(const n of coleta){
+      if(n.dados.integracao!=='pos_venda_universal'||!Array.isArray(n.dados.coleta)||!n.dados.coleta.some((c:any)=>c.variavel))erros.push('configure os campos da coleta de pós-venda');
+      if(atualizar<=trecho.indexOf(n)||enviar<=atualizar)erros.push('conecte Coleta → Atualizar Venda → Concluir Venda');
+    }
+    if(enviar>=0&&atualizar<0)erros.push('adicione Atualizar Venda antes do reenvio');
+    for(const n of trecho.filter(n=>n.tipo==='concluir_venda_universal'))if(n.dados.crm!==false)erros.push('desmarque criar no CRM no reenvio, pois a venda já existe');
+    for(const n of trecho.filter(n=>n.tipo==='atualizar_venda'))if(!Array.isArray(n.dados.atualizacoes)||!n.dados.atualizacoes.some((c:any)=>c.campo))erros.push('configure os campos de Atualizar Venda');
+    if(erros.length)problemas.push(...erros.map(e=>`Pós-venda ${raiz.id}: ${e}.`));
+    else trecho.forEach(n=>posVenda.add(n.id));
+  }
   for (const no of nos.filter(n=>n.tipo==='assistente_universal')) {
     const lembretes=no.dados.lembretes_inteligentes;
     if(lembretes?.ativo===true&&(!Array.isArray(lembretes.minutos)||lembretes.minutos.length!==5||!lembretes.minutos.every((v:any,i:number)=>Number.isFinite(Number(v))&&Number(v)>0&&(!i||Number(v)>Number(lembretes.minutos[i-1])))))problemas.push('Configure os cinco horários crescentes dos lembretes inteligentes.');
@@ -76,8 +106,8 @@ export function validarEstruturaUniversal(nos: {id:string;tipo:string;dados:Reco
     }
     if(!String(no.dados.nome||'').trim()||!String(no.dados.empresa||'').trim())problemas.push('Informe o nome do assistente e a empresa.');
   }
-  for(const no of nos.filter(n=>n.tipo==='nicho_atendimento'))if(!arestas.some(a=>a.para===no.id&&nos.some(n=>n.id===a.de&&n.tipo==='assistente_universal')))problemas.push('O bloco Nicho de atendimento precisa receber a conexão de um assistente.');
-  for(const no of nos.filter(n=>n.tipo==='concluir_venda_universal')){
+  for(const no of nos.filter(n=>n.tipo==='nicho_atendimento'&&!posVenda.has(n.id)))if(!arestas.some(a=>a.para===no.id&&nos.some(n=>n.id===a.de&&n.tipo==='assistente_universal')))problemas.push('O bloco Nicho de atendimento precisa receber a conexão de um assistente.');
+  for(const no of nos.filter(n=>n.tipo==='concluir_venda_universal'&&!posVenda.has(n.id))){
     if(no.dados.whatsapp===true&&no.dados.crm===false)problemas.push('Ative o cadastro no CRM antes do encaminhamento pelo WhatsApp.');
     if(!arestas.some(a=>a.para===no.id&&nos.some(n=>n.id===a.de&&n.tipo==='nicho_atendimento')))problemas.push('Conecte a conclusão da venda ao nicho de atendimento.');
   }

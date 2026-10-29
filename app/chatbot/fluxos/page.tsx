@@ -2557,7 +2557,7 @@ export default function FluxosPage() {
 
   async function salvar(opcoes?: { fecharEditor?: boolean; avisarSucesso?: boolean }): Promise<boolean> {
     if(!fluxoAtivo?.id) return false;
-    if(fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))&&!universalExecutavel(nos,arestas,wsId)){alert('Esta configuração universal ainda não possui execução liberada. Desative o fluxo para salvar o rascunho.');return false;}
+    if(fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))&&!universalExecutavel(nos,arestas,wsId)){alert('Revise a configuração antes de salvar:\n\n'+(validarEstruturaUniversal(nos,arestas).join('\n')||'Configure o motor do assistente e carregue o workspace.'));return false;}
     if (nos.some(n => ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(n.tipo)) && !contratosLiberados) {
       alert("🔒 Este workspace não possui o módulo Contratos e Assinaturas. Planos a partir de R$ 49,90/mês com CRM Wolf.");
       return false;
@@ -2673,7 +2673,7 @@ export default function FluxosPage() {
   async function toggleAtivo() {
     if(!fluxoAtivo?.id) return;
     if(!fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))){
-      if(!universalExecutavel(nos,arestas,wsId)){alert('Confira o assistente, o nicho e o bloco de conclusão antes de ativar.');return;}
+      if(!universalExecutavel(nos,arestas,wsId)){alert('Revise a configuração antes de ativar:\n\n'+(validarEstruturaUniversal(nos,arestas).join('\n')||'Configure o motor do assistente e carregue o workspace.'));return;}
       try{const {data:{session}}=await supabase.auth.getSession();const r=await fetch('/api/workspace/vendas/health?workspaceId='+encodeURIComponent(wsId||''),{cache:'no-store',headers:session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{}});const j=await r.json();if(!r.ok||j.versao<2||!j.pronto)throw Error();}catch{alert('O serviço universal não está pronto. A ativação foi interrompida.');return;}
     }
     if (!fluxoAtivo.ativo && nos.some(n => ["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(n.tipo)) && !contratosLiberados) {
