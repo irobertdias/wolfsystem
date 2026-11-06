@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { supabase } from "../../../lib/supabase";
+import { vocabularioDoWorkspace } from "../../../lib/vertical-workspace";
 import { usePermissao } from "../../../hooks/usePermissao";
 import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 import {
@@ -164,6 +165,9 @@ const statusMeta = (s: any): MetaStatusVenda => {
   if (/ANALIS|ANALISE/.test(t)) return { cor: "#9333ea", bg: "#faf5ff", border: "#d8b4fe", emoji: "◈", grupo: "andamento" };
   if (/VALIDA/.test(t)) return { cor: "#c026d3", bg: "#fdf4ff", border: "#f0abfc", emoji: "✓", grupo: "andamento" };
   if (/PROCESS/.test(t)) return { cor: "#0f766e", bg: "#f0fdfa", border: "#5eead4", emoji: "↻", grupo: "andamento" };
+  if (/AVERB/.test(t)) return { cor: "#0891b2", bg: "#ecfeff", border: "#67e8f9", emoji: "📝", grupo: "andamento" };
+  if (/DIGITAD|SIMULA/.test(t)) return { cor: "#7c3aed", bg: "#f5f3ff", border: "#c4b5fd", emoji: "◆", grupo: "andamento" };
+  if (/DOCUMENT/.test(t)) return { cor: "#ea580c", bg: "#fff7ed", border: "#fdba74", emoji: "📎", grupo: "andamento" };
   if (/ENVIAD/.test(t)) return { cor: "#0369a1", bg: "#f0f9ff", border: "#7dd3fc", emoji: "➜", grupo: "andamento" };
   if (/ABERT/.test(t)) return { cor: "#475569", bg: "#f8fafc", border: "#cbd5e1", emoji: "○", grupo: "andamento" };
   if (/ANDAMENTO/.test(t)) return { cor: "#0284c7", bg: "#f0f9ff", border: "#7dd3fc", emoji: "▶", grupo: "andamento" };
@@ -1208,10 +1212,10 @@ export default function Vendas() {
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, minmax(0, 1fr))", gap: 10 }}>
           {[
             { label: "Visiveis", valor: totalVisivel, detalhe: `${totalGeral} no workspace`, cor: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
-            { label: "Instaladas", valor: kpis.instaladas, detalhe: `R$ ${kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#16a34a", bg: "#ecfdf5", border: "#bbf7d0" },
+            { label: vocabularioDoWorkspace(workspaceId).concluidas, valor: kpis.instaladas, detalhe: `R$ ${kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#16a34a", bg: "#ecfdf5", border: "#bbf7d0" },
             { label: "Em andamento", valor: kpis.andamento, detalhe: "aguardando/geradas", cor: "#f59e0b", bg: "#fffbeb", border: "#fde68a" },
             { label: "Canceladas", valor: kpis.canceladas, detalhe: "canceladas/reprovadas", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-            { label: "Ticket", valor: `R$ ${kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, detalhe: "media instalada", cor: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" },
+            { label: "Ticket", valor: `R$ ${kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, detalhe: vocabularioDoWorkspace(workspaceId).ticketDetalhe, cor: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" },
           ].map(card => (
             <button key={card.label} type="button" style={{
               textAlign: "left",

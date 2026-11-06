@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { vocabularioDoWorkspace } from "../../lib/vertical-workspace";
 import { useModulos } from "../../hooks/useModulos";
 import { usePermissao } from "../../hooks/usePermissao";
 
@@ -420,7 +421,7 @@ export default function VisaoGeralPage() {
     const criadasMes = propostas.filter((p) => noMes(p.data_proposta || p.created_at));
     const instaladasMes = instaladas.filter((p) => noMes(p.data_proposta || p.created_at));
     const receitaMes = instaladasMes.reduce((s, p) => s + (Number(p.valor_plano) || 0), 0);
-    const emAndamento = propostas.filter((p) => /AGUARD|PENDENT|GERAD|AUDITOR|ANALIS|PROCESS|ANDAMENTO/.test(norm(p.status_venda))).length;
+    const emAndamento = propostas.filter((p) => /AGUARD|PENDENT|GERAD|AUDITOR|ANALIS|PROCESS|ANDAMENTO|DIGITAD|SIMULA/.test(norm(p.status_venda))).length;
     const canceladas = propostas.filter((p) => /CANCEL|REPROV|CHURN|FRAUDE|PERDID|NEGAD|RECUSAD/.test(norm(p.status_venda))).length;
     const conversao = propostas.length ? Math.round((instaladas.length / propostas.length) * 100) : 0;
     return { receitaMes, total: propostas.length, criadasMes: criadasMes.length, instaladas: instaladas.length, emAndamento, canceladas, conversao };
@@ -591,7 +592,7 @@ export default function VisaoGeralPage() {
           `Workspace ${tenantWsIds[0] || wsId || "-"}`,
         ]}
         pulse={[
-          ["Receita instalada no mes", real(vendas.receitaMes), "#16a34a"],
+          [`${vocabularioDoWorkspace(wsId).receitaConcluida} no mes`, real(vendas.receitaMes), "#16a34a"],
           ["Propostas totais", num(vendas.total), "#2563eb"],
           ["Conversao acumulada", `${vendas.conversao}%`, "#7c3aed"],
           ...(temTelefonia ? [["Canais conectados", `${canaisResumo.conectados}/${canaisResumo.total}`, "#0891b2"] as [string, string, string]] : []),
@@ -606,12 +607,12 @@ export default function VisaoGeralPage() {
 
           {temVendas && (
             <Section title="Vendas" subtitle="Receita, propostas e velocidade comercial do workspace." accent="#16a34a">
-              <Metric label="Receita do mes" value={real(vendas.receitaMes)} color="#16a34a" note="instaladas no periodo" />
+              <Metric label={vocabularioDoWorkspace(wsId).receitaConcluida === "Receita instalada" ? "Receita do mes" : `${vocabularioDoWorkspace(wsId).receitaConcluida} no mes`} value={real(vendas.receitaMes)} color="#16a34a" note={`${vocabularioDoWorkspace(wsId).concluidasMin} no periodo`} />
               <Metric label="Propostas totais" value={num(vendas.total)} color="#2563eb" note={`${num(vendas.criadasMes)} criada(s) no mes`} />
-              <Metric label="Instaladas" value={num(vendas.instaladas)} color="#0ea5e9" note="total visivel" />
+              <Metric label={vocabularioDoWorkspace(wsId).concluidas} value={num(vendas.instaladas)} color="#0ea5e9" note="total visivel" />
               <Metric label="Em andamento" value={num(vendas.emAndamento)} color="#f59e0b" note="pendentes, geradas, aguardando" />
               <Metric label="Canceladas" value={num(vendas.canceladas)} color="#dc2626" note="canceladas e reprovadas" />
-              <Metric label="Conversao" value={`${vendas.conversao}%`} color="#7c3aed" note="instaladas sobre total" />
+              <Metric label="Conversao" value={`${vendas.conversao}%`} color="#7c3aed" note={`${vocabularioDoWorkspace(wsId).concluidasMin} sobre total`} />
             </Section>
           )}
 

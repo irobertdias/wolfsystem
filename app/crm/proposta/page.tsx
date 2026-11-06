@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
+import { vocabularioDoWorkspace } from "../../lib/vertical-workspace";
 import {
   SECOES_LABEL,
   montarCamposUnificados,
@@ -679,7 +680,10 @@ function PropostaForm() {
           : null;
         const corSecaoCustomizada = campoComCor ? String((campoComCor as any).secao_cor) : null;
         const corCustom = corSecaoCustomizada || ((labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null);
-        const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
+        const metaPadrao = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
+        const voc = vocabularioDoWorkspace(workspace?.username);
+        const descricaoRamo = sec === "endereco" ? voc.secaoEndereco : sec === "agendamento" ? voc.secaoAgendamento : sec === "plano" ? voc.secaoPlano : "";
+        const metaBase = descricaoRamo ? { ...metaPadrao, descricao: descricaoRamo } : metaPadrao;
         grupoAtual = {
           key: sec,
           keyUnica: `${sec}-${result.length}`,
@@ -693,7 +697,7 @@ function PropostaForm() {
       grupoAtual.campos.push(camposUnificados[i]);
     }
     return result;
-  }, [camposUnificados]);
+  }, [camposUnificados, workspace?.username]);
 
   // Progresso por seção
   const progressoSecao = (campos: CampoUnificado[]) => {
