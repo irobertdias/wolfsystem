@@ -29,7 +29,12 @@ export function mesclarMensagem<T extends MensagemHistorico>(anterior: T, nova: 
   if (!resultado.provider_message_id && anterior.provider_message_id) {
     resultado.provider_message_id = anterior.provider_message_id;
   }
-  return resultado;
+  // Sem mudança real devolve o mesmo objeto, para o React não redesenhar a conversa à toa.
+  const chaves = new Set([...Object.keys(anterior), ...Object.keys(resultado)]);
+  for (const k of chaves) {
+    if ((anterior as any)[k] !== (resultado as any)[k]) return resultado;
+  }
+  return anterior;
 }
 
 export function mesclarHistorico<T extends MensagemHistorico>(anterior: T[], recebidas: T[]): T[] {
@@ -43,15 +48,22 @@ export function mesclarHistorico<T extends MensagemHistorico>(anterior: T[], rec
     ids.set(chaveMensagem(m), indice);
     if (m.provider_message_id) providers.set(m.provider_message_id, indice);
   }
-  return resultado.sort((a, b) => String(a.created_at || "").localeCompare(String(b.created_at || "")));
+  resultado.sort((a, b) => String(a.created_at || "").localeCompare(String(b.created_at || "")));
+  // A sincronização roda a cada poucos segundos; se nada mudou, mantém o mesmo array.
+  if (resultado.length === anterior.length && resultado.every((m, i) => m === anterior[i])) return anterior;
+  return resultado;
 }
 
 export function atualizarRecibo<T extends MensagemHistorico>(historico: T[], nova: Partial<T>): T[] {
-  return historico.map(m => {
+  let mudou = false;
+  const resultado = historico.map(m => {
     const mesmoId = m.id != null && nova.id != null && String(m.id) === String(nova.id);
     const mesmoProvider = !!m.provider_message_id && m.provider_message_id === nova.provider_message_id;
-    return mesmoId || mesmoProvider ? mesclarMensagem(m, nova) : m;
+    const r = mesmoId || mesmoProvider ? mesclarMensagem(m, nova) : m;
+    if (r !== m) mudou = true;
+    return r;
   });
+  return mudou ? resultado : historico;
 }
 
 // Cada conversa possui sua própria sessão. Encerrá-la invalida inclusive consultas

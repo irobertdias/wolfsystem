@@ -1237,8 +1237,74 @@ export function ChatSection() {
     }
   };
 
-  const fetchAtendimentos = async () => {
+  // ⚡ Desempenho: antes, a cada 5s e a cada mudança em qualquer atendimento, cada
+  // tela de chat baixava TODOS os atendimentos do workspace (até 5000, ~700 KB por
+  // 1000). Quando uma carga demorava mais que 5s, as cargas se empilhavam e o chat
+  // inteiro ficava lento. Agora: uma carga por vez (as chamadas no meio se juntam
+  // numa só), carga completa no máximo a cada 60s e, entre elas, só os
+  // atendimentos alterados (updated_at recente) são buscados e mesclados.
+  const cacheAtendimentosRef = useRef<{ ws: string; lista: Atendimento[]; ultimaCompleta: number; ultimaLimpeza: number; rodando: boolean; pendente: boolean; completaPendente: boolean; esperando: (() => void)[] }>(
+    { ws: "", lista: [], ultimaCompleta: 0, ultimaLimpeza: 0, rodando: false, pendente: false, completaPendente: false, esperando: [] });
+  // Lista igual campo a campo → mantém a anterior e a tela não redesenha 5000 cartões à toa.
+  const mesmaListaAtendimentos = (a: Atendimento[], b: Atendimento[]) => {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      const x = a[i] as any, y = b[i] as any;
+      if (x === y) continue;
+      const kx = Object.keys(x), ky = Object.keys(y);
+      if (kx.length !== ky.length) return false;
+      for (const k of kx) if (x[k] !== y[k] && (typeof x[k] !== "object" || JSON.stringify(x[k]) !== JSON.stringify(y[k]))) return false;
+    }
+    return true;
+  };
+  const ordenarPorAtualizacao = (lista: Atendimento[]) =>
+    [...lista].sort((a, b) => String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
+
+  const fetchAtendimentos = async (completa = false): Promise<void> => {
     if (!wsId) return;
+    if (cacheAtendimentosRef.current.ws !== wsId) {
+      cacheAtendimentosRef.current = { ws: wsId, lista: [], ultimaCompleta: 0, ultimaLimpeza: 0, rodando: false, pendente: false, completaPendente: false, esperando: [] };
+    }
+    const cache = cacheAtendimentosRef.current;
+    if (cache.rodando) {
+      cache.pendente = true;
+      if (completa) cache.completaPendente = true;
+      return new Promise<void>(resolve => { cache.esperando.push(resolve); });
+    }
+    cache.rodando = true;
+    try {
+      await carregarAtendimentos(cache, completa);
+    } finally {
+      cache.rodando = false;
+      if (cache.pendente && cacheAtendimentosRef.current === cache) {
+        const esperando = cache.esperando.splice(0);
+        const repetirCompleta = cache.completaPendente;
+        cache.pendente = false;
+        cache.completaPendente = false;
+        void fetchAtendimentos(repetirCompleta).finally(() => esperando.forEach(r => r()));
+      } else {
+        cache.esperando.splice(0).forEach(r => r());
+      }
+    }
+  };
+
+  // Aplica na hora o atendimento que chegou pelo realtime; a busca incremental confirma.
+  const aplicarMudancaAtendimento = (payload: any) => {
+    const cache = cacheAtendimentosRef.current;
+    if (cache.ws !== wsId || !cache.lista.length) return;
+    if (payload?.eventType === "DELETE") {
+      const id = payload.old?.id;
+      if (id !== undefined) cache.lista = cache.lista.filter(a => a.id !== id);
+      return;
+    }
+    const novo = payload?.new as Atendimento | undefined;
+    if (!novo?.id) return;
+    const existe = cache.lista.some(a => a.id === novo.id);
+    cache.lista = ordenarPorAtualizacao(existe ? cache.lista.map(a => a.id === novo.id ? { ...a, ...novo } : a) : [novo, ...cache.lista]);
+  };
+
+  const carregarAtendimentos = async (cache: typeof cacheAtendimentosRef.current, completa: boolean) => {
     if (indiceMensagensRef.current?.workspaceId !== wsId) {
       indiceMensagensRef.current = { workspaceId: wsId, indice: criarIndiceUltimasMensagens(supabase, wsId) };
     }
@@ -1253,21 +1319,49 @@ export function ChatSection() {
     const PAGE_SIZE = 1000;
     const TOTAL_LIMITE = LIMITE_ATIVOS; // 5000
     let lista: Atendimento[] = [];
-    let offset = 0;
-    while (offset < TOTAL_LIMITE) {
-      const { data: pagina, error } = await supabase.from("atendimentos").select("*")
+    const maisRecente = cache.lista.reduce((max, a) => (a.updated_at && a.updated_at > max ? a.updated_at : max), "");
+    const usarIncremental = !completa && cache.lista.length > 0 && !!maisRecente && Date.now() - cache.ultimaCompleta < 60_000;
+    let incrementalOk = false;
+    if (usarIncremental) {
+      // Margem de 2 min cobre relógios diferentes e gravações quase simultâneas.
+      const corte = new Date(Date.parse(maisRecente) - 120_000).toISOString();
+      const { data: alterados, error } = await supabase.from("atendimentos").select("*")
         .eq("workspace_id", wsId)
-        .order("updated_at", { ascending: false, nullsFirst: false })
-        .range(offset, offset + PAGE_SIZE - 1);
-      if (error) {
-        console.error("Erro fetchAtendimentos paginado:", error);
-        break;
+        .gte("updated_at", corte)
+        .order("updated_at", { ascending: false })
+        .limit(PAGE_SIZE);
+      if (!error && alterados && alterados.length < PAGE_SIZE) {
+        const porId = new Map(cache.lista.map(a => [a.id, a] as const));
+        (alterados as Atendimento[]).forEach(a => porId.set(a.id, { ...porId.get(a.id), ...a }));
+        lista = ordenarPorAtualizacao([...porId.values()]).slice(0, TOTAL_LIMITE);
+        incrementalOk = true;
+      } else if (error) {
+        console.warn("Busca incremental de atendimentos falhou; fazendo carga completa:", error);
       }
-      if (!pagina || pagina.length === 0) break; // chegou no fim
-      lista = lista.concat(pagina as Atendimento[]);
-      if (pagina.length < PAGE_SIZE) break; // última página tinha menos = chegou no fim
-      offset += PAGE_SIZE;
     }
+    if (!incrementalOk) {
+      let offset = 0;
+      let completou = true;
+      while (offset < TOTAL_LIMITE) {
+        const { data: pagina, error } = await supabase.from("atendimentos").select("*")
+          .eq("workspace_id", wsId)
+          .order("updated_at", { ascending: false, nullsFirst: false })
+          .range(offset, offset + PAGE_SIZE - 1);
+        if (error) {
+          console.error("Erro fetchAtendimentos paginado:", error);
+          completou = false;
+          break;
+        }
+        if (!pagina || pagina.length === 0) break; // chegou no fim
+        lista = lista.concat(pagina as Atendimento[]);
+        if (pagina.length < PAGE_SIZE) break; // última página tinha menos = chegou no fim
+        offset += PAGE_SIZE;
+      }
+      if (!completou && cache.lista.length) return; // mantém a lista atual se a carga falhar no meio
+      cache.ultimaCompleta = Date.now();
+    }
+    if (cacheAtendimentosRef.current !== cache) return;
+    cache.lista = lista;
 
     // 🔔 DETECÇÃO DE ATENDIMENTO NOVO — pra tocar som distinto
     // Lógica: se um atendimento aparece agora mas o ID NÃO estava no Set de conhecidos,
@@ -1310,16 +1404,19 @@ export function ChatSection() {
     try {
       const atualizados = await indiceAtual.indice.carregar(listaFinal);
       if (indiceMensagensRef.current !== indiceAtual) return;
-      setAtendimentos(atualizados);
+      setAtendimentos(anterior => mesmaListaAtendimentos(anterior, atualizados) ? anterior : atualizados);
     } catch (erro) {
       console.error("Falha ao consultar última mensagem dos atendimentos:", erro);
       if (indiceMensagensRef.current !== indiceAtual) return;
-      setAtendimentos(indiceAtual.indice.aplicar(listaFinal));
+      const aplicados = indiceAtual.indice.aplicar(listaFinal);
+      setAtendimentos(anterior => mesmaListaAtendimentos(anterior, aplicados) ? anterior : aplicados);
     }
 
     // 🆕 Dispara auto-limpeza em background (não aguarda).
     // Só dono/supervisor dispara — atendente comum não tem permissão de fazer update em massa.
-    if (isDono || permissoes.chat_todos) {
+    // A contagem para limpeza não precisa rodar a cada atualização: no máximo a cada 5 min.
+    if ((isDono || permissoes.chat_todos) && Date.now() - cache.ultimaLimpeza > 300_000) {
+      cache.ultimaLimpeza = Date.now();
       autoLimparExcedentes();
     }
   };
@@ -1655,7 +1752,7 @@ export function ChatSection() {
         if (indiceMensagensRef.current?.workspaceId === wsId) indiceMensagensRef.current.indice.registrar({ ...m, created_at: m.created_at });
         refletirAtividadeAtendimento({ numero: m.numero, canalId: m.canal_id }, m.mensagem, m.created_at);
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos", filter: `workspace_id=eq.${wsId}` }, () => fetchAtendimentos())
+      .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos", filter: `workspace_id=eq.${wsId}` }, payload => { aplicarMudancaAtendimento(payload); void fetchAtendimentos(); })
       .on("postgres_changes", { event: "*", schema: "public", table: "etiquetas", filter: `workspace_id=eq.${wsId}` }, () => fetchEtiquetasWorkspace())
       .on("postgres_changes", { event: "*", schema: "public", table: "usuarios_workspace", filter: `workspace_id=eq.${wsId}` }, () => fetchUsuariosWorkspace())
       .on("postgres_changes", { event: "*", schema: "public", table: "conexoes", filter: `workspace_id=eq.${wsId}` }, () => fetchCanais())
@@ -1833,7 +1930,8 @@ export function ChatSection() {
     const sincronizador = criarSincronizadorHistorico(
       async (inicial, signal) => {
         const mensagens: Mensagem[] = [];
-        const tamanho = inicial ? 500 : 200;
+        // Sincronizações seguintes só precisam do fim da conversa (novas + recibos recentes).
+        const tamanho = inicial ? 500 : 60;
         // Na abertura pagina todo o histórico. Nas sincronizações busca as mais
         // recentes, evitando o limite que antes escondia o fim de chats longos.
         for (let inicio = 0; ; inicio += tamanho) {
@@ -1877,7 +1975,8 @@ export function ChatSection() {
           console.warn("Realtime de mensagens indisponível; sincronização automática permanece ativa.", status);
         }
       });
-    const polling = setInterval(() => { void sincronizador.atualizar(); }, 1250);
+    // O realtime entrega as mensagens na hora; a consulta periódica é só a rede de segurança.
+    const polling = setInterval(() => { void sincronizador.atualizar(); }, 2500);
     const atualizarAoRetornar = () => { if (document.visibilityState === "visible") void sincronizador.atualizar(); };
     window.addEventListener("focus", atualizarAoRetornar);
     document.addEventListener("visibilitychange", atualizarAoRetornar);
