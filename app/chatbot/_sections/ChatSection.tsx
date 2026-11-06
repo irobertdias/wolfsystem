@@ -7,6 +7,7 @@ import { supabase } from "../../lib/supabase";
 import { chaveMensagem, mesclarHistorico, atualizarRecibo, criarSincronizadorHistorico, type MensagemHistorico } from "../../lib/historico-mensagens";
 import { nomeArquivoAudio, lerRespostaAudio } from "../../lib/audio-envio";
 import { validarGravacaoAudio } from "../../lib/audio-gravacao";
+import { BibliotecaMidia, PreviaBiblioteca, type AbaBiblioteca } from "./BibliotecaMidia";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { useConversasFixadas } from "../../hooks/useConversasFixadas";
 import { usePermissao } from "../../hooks/usePermissao";
@@ -419,7 +420,8 @@ export function ChatSection() {
   const [meuNome, setMeuNome] = useState("");
 
   const [showPainelContato, setShowPainelContato] = useState(false);
-  const [abaPainel, setAbaPainel] = useState<"perfil" | "protocolo" | "funil" | "ia" | "utils" | "etiquetas">("perfil");
+  const [abaPainel, setAbaPainel] = useState<"perfil" | "midia" | "protocolo" | "funil" | "ia" | "utils" | "etiquetas">("perfil");
+  const [abaBiblioteca, setAbaBiblioteca] = useState<AbaBiblioteca>("midia");
   const [salvandoContato, setSalvandoContato] = useState(false);
 
   const [etiquetasWorkspace, setEtiquetasWorkspace] = useState<Etiqueta[]>([]);
@@ -3663,6 +3665,7 @@ export function ChatSection() {
           <div style={{ display: "flex", borderBottom: "1px solid #e5e7eb", background: "#ffffff", padding: "8px 6px", gap: 4 }}>
             {[
               { key: "perfil",    icon: "👤", label: "Perfil",    cor: "#3b82f6" },
+              { key: "midia",     icon: "🖼️", label: "Mídia",     cor: "#00a884" },
               { key: "protocolo", icon: "📋", label: "Protocolo", cor: "#10b981" },
               { key: "funil",     icon: "🎯", label: "Funil",     cor: "#f59e0b" },
               { key: "etiquetas", icon: "🏷️", label: "Tags",      cor: "#ec4899" },
@@ -3692,6 +3695,7 @@ export function ChatSection() {
                   <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38, margin: "0 auto 12px", boxShadow: "0 8px 20px rgba(59,130,246,0.25)" }}><span style={{ filter: "saturate(0) brightness(2)" }}>👤</span></div>
                   <p style={{ color: "#1f2937", fontSize: 14, fontWeight: "bold", margin: 0 }}>{atendimentoAtivo.nome}</p>
                 </div>
+                <PreviaBiblioteca mensagens={historico} urlMidia={audioUrl} onAbrir={() => { setAbaBiblioteca("midia"); setAbaPainel("midia"); }} />
                 <div>
                   <label style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label>
                   <input value={atendimentoAtivo.nome || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, nome: e.target.value })} onBlur={e => salvarCampoContato("nome", e.target.value)} style={inputSm} />
@@ -3715,6 +3719,9 @@ export function ChatSection() {
               </div>
             )}
 
+            {abaPainel === "midia" && (
+              <BibliotecaMidia mensagens={historico} urlMidia={audioUrl} aba={abaBiblioteca} onAba={setAbaBiblioteca} />
+            )}
             {abaPainel === "protocolo" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ background: "#dcfce7", borderRadius: 8, padding: 12 }}>
