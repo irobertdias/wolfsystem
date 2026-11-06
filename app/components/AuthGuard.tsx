@@ -47,6 +47,25 @@ export default function AuthGuard({
     const verificar = async () => {
       // 1) Tem sessão?
       const { data: { session } } = await supabase.auth.getSession();
+      if (cancelado) return;
+
+      // ⚡ O mesmo token já foi validado no servidor há menos de 45 min (o cookie dura 60):
+      // libera a tela na hora em vez de repetir a validação a cada página aberta.
+      const CHAVE_VALIDACAO = "wolf_sessao_validada";
+      if (!requireSuperAdmin && session?.access_token) {
+        try {
+          const salvo = JSON.parse(sessionStorage.getItem(CHAVE_VALIDACAO) || "null");
+          if (salvo?.token === session.access_token && Date.now() - Number(salvo.em) < 45 * 60_000) {
+            setEstado("autorizado");
+            return;
+          }
+        } catch {}
+      }
+
+      // Valida usuário e registra a sessão no servidor ao mesmo tempo (antes era em sequência).
+      const registroServidor = session?.access_token
+        ? fetch("/api/session", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` } }).catch(() => null)
+        : Promise.resolve(null);
       const { data: { user }, error } = await supabase.auth.getUser();
       if (cancelado) return;
 
@@ -65,12 +84,14 @@ export default function AuthGuard({
         setEstado("negado");
         return;
       }
-      const sessaoServidor = await fetch("/api/session", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` } });
-      if (!sessaoServidor.ok) {
+      const sessaoServidor = await registroServidor;
+      if (cancelado) return;
+      if (!sessaoServidor || !sessaoServidor.ok) {
         router.replace(redirectTo);
         setEstado("negado");
         return;
       }
+      try { sessionStorage.setItem(CHAVE_VALIDACAO, JSON.stringify({ token: session.access_token, em: Date.now() })); } catch {}
 
       // 2) Se exigir super admin, confere
       if (requireSuperAdmin) {
