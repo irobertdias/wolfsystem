@@ -156,7 +156,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   // topo da faixa
   marca(M, 12, 11, C.branco, C.verde700);
   fonte("bold", 13, C.branco); texto(empresa, M + 15, 17);
-  fonte("normal", 8, C.verde100); texto(imovel ? "Revisão de financiamento imobiliário" : "Revisão de financiamento de veículo", M + 15, 21.5);
+  fonte("normal", 8, C.verde100); texto(imovel ? "Análise contratual · financiamento imobiliário" : "Análise contratual · financiamento de veículo", M + 15, 21.5);
   // selo do número
   opacidade(0.16); fill(C.branco); doc.roundedRect(PW - M - 52, 11, 52, 15, 3, 3, "F"); opacidade(1);
   fonte("normal", 6.5, C.verde100); texto("PROPOSTA Nº", PW - M - 26, 16, { align: "center" });
@@ -200,7 +200,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   const x2 = M + wc + 16;
   cartao(x2, y, wc, 30, 4, C.verde50, C.verde500);
   stroke(C.verde500); doc.setLineWidth(0.8); doc.roundedRect(x2, y, wc, 30, 4, 4, "S");
-  fonte("bold", 7.5, C.verde700); texto("COM A REVISÃO", x2 + wc / 2, y + 8, { align: "center" });
+  fonte("bold", 7.5, C.verde700); texto("VALOR CORRIGIDO", x2 + wc / 2, y + 8, { align: "center" });
   fonte("bold", 21, C.verde600); texto(brl(parcelaNova), x2 + wc / 2, y + 19, { align: "center" });
   fonte("normal", 7.5, C.verde700); texto("por mês", x2 + wc / 2, y + 25.5, { align: "center" });
   y += 37;
@@ -220,7 +220,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   y += 10;
 
   // indicadores
-  tituloSecao("2", "Números da revisão", M, y);
+  tituloSecao("2", "Números da análise", M, y);
   y += 5;
   const kpis: [string, number, RGB][] = imovel
     ? [["Saldo devedor correto", r.saldo_correto, C.azul600], ["Economia por parcela", r.diferenca_parcela, C.verde600], ["Economia até o fim", r.economia_total, C.roxo500]]
@@ -358,7 +358,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
     const passos: [string, string][] = [
       ["Aceite a proposta", "Pelo link, dentro do prazo de validade."],
       ["Análise do contrato", "Conferimos documentos e valores."],
-      ["Revisão e economia", "Parcela menor e devolução do excesso."],
+      ["Correção e economia", "Parcela menor e devolução do excesso."],
     ];
     const wp = W / 3;
     cartao(M, y, W, 19, 4);

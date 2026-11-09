@@ -58,7 +58,7 @@ function linkWhats(telefone: string, texto: string) {
 
 function mensagemCliente(nome: string, link: string, horas: number) {
   const primeiro = nome.trim().split(/\s+/)[0] || "";
-  return `Olá ${primeiro}! Finalizamos a análise do seu financiamento e identificamos cobranças indevidas. Sua proposta de revisão está pronta:\n\n${link}\n\n⚠️ Ela é válida por ${horas}h.`;
+  return `Olá ${primeiro}! Finalizamos a análise do seu financiamento e identificamos cobranças indevidas. Sua análise contratual está pronta:\n\n${link}\n\n⚠️ Ela é válida por ${horas}h.`;
 }
 
 /* ---------- campos ---------- */

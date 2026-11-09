@@ -223,7 +223,7 @@ export default function PropostaRevisionalPage() {
   const taxaCobrada: number | null = imovel ? r.taxa_contratada_mensal ?? null : r.taxa_contratada ?? null;
   const taxaMedia: number | null = r.taxa_media_mensal ?? null;
   const zap = (proposta.empresa?.whatsapp || "").replace(/\D/g, "");
-  const msgZap = encodeURIComponent(`Olá! Aceitei a proposta revisional nº ${proposta.numero}.`);
+  const msgZap = encodeURIComponent(`Olá! Aceitei a proposta de análise contratual nº ${proposta.numero}.`);
   const primeiroNome = proposta.cliente_nome.trim().split(/\s+/)[0] || "";
 
   return (
@@ -234,7 +234,7 @@ export default function PropostaRevisionalPage() {
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-[15px] text-white shadow-md shadow-emerald-600/30">⚖️</span>
             <div className="leading-tight">
-              <div className="font-bold text-slate-800">{proposta.empresa?.nome || "Análise revisional"}</div>
+              <div className="font-bold text-slate-800">{proposta.empresa?.nome || "Análise contratual"}</div>
               {proposta.empresa?.cnpj && <div className="text-[10px] text-slate-500">CNPJ {proposta.empresa.cnpj}</div>}
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function PropostaRevisionalPage() {
               </div>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md sm:h-9 sm:w-9">→</div>
               <div className="min-w-0 rounded-2xl bg-emerald-50 px-2 py-4 text-center ring-2 ring-emerald-500 sm:px-4">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Com a revisão</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Valor corrigido</div>
                 <div className="mt-1 text-[17px] font-extrabold text-emerald-600 tabular-nums min-[400px]:text-[20px] sm:text-[26px]">{brl(r.parcela_corrigida)}</div>
               </div>
             </div>
