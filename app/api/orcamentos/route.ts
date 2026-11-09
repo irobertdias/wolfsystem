@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { autenticarUsuario, respostaErroAcesso, supabaseServer } from "../_auth";
-import { ITENS_PADRAO, PAGAMENTO_PADRAO } from "../../lib/orcamento";
+import { ITENS_PADRAO, PAGAMENTO_PADRAO, sanitizarItens } from "../../lib/orcamento";
 
 // Orçamentos comerciais do Wolf System — somente o super admin.
 
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       token,
       cliente_nome: cliente,
       cliente_telefone: String(b.cliente_telefone || "").replace(/\D/g, "").slice(0, 15),
-      itens: Array.isArray(b.itens) && b.itens.length ? b.itens : ITENS_PADRAO,
+      itens: Array.isArray(b.itens) && b.itens.length ? sanitizarItens(b.itens) : ITENS_PADRAO,
       usuarios_incluidos: usuarios,
       mensalidade,
       configuracao,
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH { id, acao: "cancelar" | "renovar", horas? }
+// PATCH { id, acao: "cancelar" | "renovar" | "editar", horas?, ...campos do orçamento }
 export async function PATCH(request: NextRequest) {
   try {
     await exigirSuperAdmin(request);
@@ -85,6 +85,20 @@ export async function PATCH(request: NextRequest) {
     let update: Record<string, unknown>;
     if (b.acao === "cancelar") update = { status: "cancelado" };
     else if (b.acao === "renovar") update = { status: "enviado", expira_em: new Date(Date.now() + Math.min(720, Math.max(1, Number(b.horas) || 24)) * 3600_000).toISOString() };
+    else if (b.acao === "editar") {
+      const cliente = String(b.cliente_nome || "").trim().slice(0, 160);
+      const mensalidade = Number(b.mensalidade), configuracao = Number(b.configuracao);
+      if (!cliente) return NextResponse.json({ success: false, error: "Informe o nome do cliente" }, { status: 400 });
+      if (!(mensalidade >= 0) || !(configuracao >= 0)) return NextResponse.json({ success: false, error: "Valores inválidos" }, { status: 400 });
+      update = {
+        cliente_nome: cliente,
+        cliente_telefone: String(b.cliente_telefone || "").replace(/\D/g, "").slice(0, 15),
+        usuarios_incluidos: Math.min(500, Math.max(1, Math.round(Number(b.usuarios_incluidos) || 10))),
+        mensalidade,
+        configuracao,
+        itens: sanitizarItens(b.itens),
+      };
+    }
     else return NextResponse.json({ success: false, error: "Ação inválida" }, { status: 400 });
     const { error } = await supabaseServer.from("wolf_orcamentos")
       .update({ ...update, updated_at: new Date().toISOString() })

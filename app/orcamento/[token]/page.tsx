@@ -210,7 +210,7 @@ export default function OrcamentoPage() {
             <div className="text-[13px] font-medium text-emerald-100">{primeiro ? `${primeiro}, preparamos sua proposta comercial` : "Sua proposta comercial"}</div>
             <h1 className="mt-2 text-[30px] font-black leading-[1.1] tracking-tight sm:text-[40px]">Plataforma completa<br />para sua operação</h1>
             <div className="mt-4 flex flex-wrap gap-2 text-[12px]">
-              {[`${orc.usuarios_incluidos} usuários`, ...orc.itens.filter((i) => i.nome.startsWith("Módulo")).map((i) => i.nome.replace("Módulo ", ""))].map((t) => (
+              {[`${orc.usuarios_incluidos} usuários`, ...orc.itens.filter((i) => i.id !== "plataforma" && i.nome !== "Plataforma Wolf System").map((i) => i.nome.replace("Módulo ", ""))].map((t) => (
                 <span key={t} className="rounded-full bg-white/15 px-3 py-1 font-semibold backdrop-blur">{t}</span>
               ))}
             </div>
