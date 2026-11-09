@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import SimuladorOrcamento from "./components/SimuladorOrcamento";
+import { PLANOS_WOLF, PRECO_USUARIO_EXTRA, PRECO_WHATSAPP_EXTRA, brlCurto } from "./lib/precos-wolf";
 
 const WHATSAPP = "https://wa.me/5562981519991?text=";
 
@@ -20,30 +21,8 @@ export default function Site() {
   const falar = (texto = "Olá! Quero conhecer o Wolf System.") =>
     window.open(WHATSAPP + encodeURIComponent(texto), "_blank");
 
-  const planos = [
-    {
-      nome: "Básico",
-      preco: "R$ 497",
-      cor: "#16a34a",
-      descricao: "Para organizar atendimento e vendas com uma operação profissional.",
-      recursos: ["Até 5 usuários", "1 conexão WhatsApp", "Chat unificado", "CRM de vendas", "ChatBot visual", "Filas e departamentos", "Protocolos e etiquetas", "Dashboard operacional"],
-    },
-    {
-      nome: "Intermediário",
-      preco: "R$ 897",
-      cor: "#2563eb",
-      destaque: true,
-      descricao: "Para equipes comerciais que precisam automatizar, distribuir e medir.",
-      recursos: ["Até 15 usuários", "2 conexões WhatsApp", "Tudo do Básico", "Roleta de distribuição", "Disparos via WhatsApp Web", "Equipes e permissões", "API de integração", "Indicadores comerciais"],
-    },
-    {
-      nome: "Ultra",
-      preco: "R$ 1.497",
-      cor: "#7c3aed",
-      descricao: "Para operações multicanal que querem gestão completa e escala.",
-      recursos: ["Até 50 usuários", "5 conexões WhatsApp", "Tudo do Intermediário", "API Oficial da Meta", "Cobrança automatizada", "Ligações VOIP", "Central Ads", "Financeiro, RH e Instagram"],
-    },
-  ];
+  // Preços vêm da tabela única (app/lib/precos-wolf.ts).
+  const planos = PLANOS_WOLF.map((p) => ({ nome: p.nome, preco: brlCurto(p.preco), cor: p.cor, destaque: p.destaque, descricao: p.descricao, recursos: p.recursos }));
 
   const planosContratos = [
     { nome: "Essencial", limite: "Até 20 contratos por mês", comCrm: "R$ 49,90", semCrm: "R$ 69,90", cor: "#2563eb" },
@@ -143,7 +122,7 @@ export default function Site() {
               <div style={{ marginTop: 23, display: "grid", gap: 11 }}>{p.recursos.map(r => <div key={r} style={{ display: "flex", gap: 9, color: "#475569", fontSize: 13 }}><span style={{ color: p.cor, fontWeight: 900 }}>✓</span>{r}</div>)}</div>
             </div>)}
           </div>
-          <div style={{ marginTop: 22, padding: 22, borderRadius: 18, background: "#f7f9fd", border: "1px solid #e5ebf5", textAlign: "center", color: "#52627a", fontSize: 13 }}><strong style={{ color: "#17233b" }}>Adicionais disponíveis:</strong> usuários, conexões, Central Ads, Instagram, Financeiro, RH e Wolf Contratos a partir de R$ 49,90/mês para clientes com CRM ou R$ 69,90/mês sem CRM.</div>
+          <div style={{ marginTop: 22, padding: 22, borderRadius: 18, background: "#f7f9fd", border: "1px solid #e5ebf5", textAlign: "center", color: "#52627a", fontSize: 13 }}><strong style={{ color: "#17233b" }}>Adicionais disponíveis:</strong> usuário extra {brlCurto(PRECO_USUARIO_EXTRA)}/mês, conexão de WhatsApp extra {brlCurto(PRECO_WHATSAPP_EXTRA)}/mês, Módulo Revisional, Central Ads, Financeiro, RH e Wolf Contratos a partir de R$ 49,90/mês para clientes com CRM ou R$ 69,90/mês sem CRM. <strong style={{ color: "#17233b" }}>Acima de 25 usuários?</strong> Fale com a gente sobre o plano Empresarial.</div>
         </div>
       </section>
 

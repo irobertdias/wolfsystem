@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { CONFIGURACAO_PADRAO, PLANOS_WOLF, PRECO_MODULO, PRECO_USUARIO_EXTRA as USUARIO_EXTRA_TABELA, PRECO_WHATSAPP_EXTRA } from "../lib/precos-wolf";
 
 type Plano = {
   id: string;
@@ -20,58 +21,36 @@ type Modulo = {
   implantacao: number;
 };
 
-const PLANOS: Plano[] = [
-  {
-    id: "basico",
-    nome: "Básico",
-    mensalidade: 497,
-    usuarios: 5,
-    canais: 1,
-    descricao: "Para organizar o atendimento e começar a vender com processo.",
-    recursos: ["CRM comercial", "Chatbot visual", "Atendimento multicanal", "Dashboard de vendas"],
-  },
-  {
-    id: "intermediario",
-    nome: "Intermediário",
-    mensalidade: 897,
-    usuarios: 15,
-    canais: 2,
-    descricao: "Para equipes em crescimento que precisam de mais automação e controle.",
-    recursos: ["Tudo do Básico", "Automações avançadas", "Gestão de equipes", "Relatórios completos"],
-  },
-  {
-    id: "ultra",
-    nome: "Ultra",
-    mensalidade: 1497,
-    usuarios: 50,
-    canais: 5,
-    descricao: "Estrutura completa para operações com alto volume de contatos.",
-    recursos: ["Tudo do Intermediário", "Até 50 usuários", "Até 5 canais", "Operação em escala"],
-  },
-];
+// Preços vêm da tabela única (app/lib/precos-wolf.ts).
+const PLANOS: Plano[] = PLANOS_WOLF.map((p) => ({
+  id: p.id, nome: p.nome, mensalidade: p.preco, usuarios: p.usuarios, canais: p.whatsapps,
+  descricao: p.descricao, recursos: p.resumo,
+}));
+const INCLUI: Record<string, string[]> = Object.fromEntries(PLANOS_WOLF.map((p) => [p.id, p.inclui]));
 
-const MODULOS: Modulo[] = [
-
-  { id: "central-ads", nome: "Central Ads", descricao: "Indicadores e relatórios das campanhas em um só lugar.", mensalidade: 297, implantacao: 0 },
+// "ref" liga o módulo do simulador ao id da tabela de preços (para saber se já vem no plano).
+const MODULOS: (Modulo & { ref?: string })[] = [
+  { id: "revisional", ref: "revisional", nome: "Módulo Revisional", descricao: "Análise contratual: simulação de financiamentos e proposta por link com aceite.", mensalidade: PRECO_MODULO.revisional, implantacao: 0 },
+  { id: "central-ads", ref: "meta_ads", nome: "Central Ads", descricao: "Indicadores e relatórios das campanhas em um só lugar.", mensalidade: PRECO_MODULO.meta_ads, implantacao: 0 },
+  { id: "financeiro", ref: "financeiro", nome: "Financeiro", descricao: "Contas a pagar e a receber, caixa, conciliação e DRE.", mensalidade: PRECO_MODULO.financeiro, implantacao: 0 },
   { id: "contratos-essencial", nome: "Wolf Contratos Essencial", descricao: "Até 20 contratos/mês. Preço especial para quem já contrata o CRM Wolf.", mensalidade: 49.90, implantacao: 0 },
   { id: "contratos-profissional", nome: "Wolf Contratos Profissional", descricao: "Até 100 contratos/mês. Preço especial para quem já contrata o CRM Wolf.", mensalidade: 69.90, implantacao: 0 },
   { id: "contratos-empresarial", nome: "Wolf Contratos Empresarial", descricao: "Contratos ilimitados. Preço especial para quem já contrata o CRM Wolf.", mensalidade: 99.90, implantacao: 0 },
-  { id: "automacao-crm", nome: "Automação de CRM", descricao: "Ações automáticas quando o status de uma venda muda.", mensalidade: 197, implantacao: 0 },
-  { id: "voip", nome: "Telefonia VoIP", descricao: "Chamadas e histórico integrados à operação comercial.", mensalidade: 197, implantacao: 0 },
-  { id: "onboarding", nome: "Onboarding premium", descricao: "Implantação acompanhada e configuração inicial orientada.", mensalidade: 0, implantacao: 890 },
+  { id: "automacao-crm", ref: "automacao_crm", nome: "Automação de CRM", descricao: "Ações automáticas quando o status de uma venda muda.", mensalidade: PRECO_MODULO.automacao_crm, implantacao: 0 },
+  { id: "voip", ref: "voip", nome: "Telefonia VoIP", descricao: "Chamadas e histórico integrados à operação comercial.", mensalidade: PRECO_MODULO.voip, implantacao: 0 },
+  { id: "onboarding", nome: "Onboarding premium", descricao: "Implantação acompanhada e configuração inicial orientada.", mensalidade: 0, implantacao: CONFIGURACAO_PADRAO },
 ];
 
 const WHATSAPP = "5562981519991";
-const PRECO_USUARIO_EXTRA = 39;
-const PRECO_CANAL_EXTRA = 149;
-
+const PRECO_USUARIO_EXTRA = USUARIO_EXTRA_TABELA;
+const PRECO_CANAL_EXTRA = PRECO_WHATSAPP_EXTRA;
 const moeda = (valor: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
 
 export default function SimuladorOrcamento() {
   const [mobile, setMobile] = useState(false);
   const [planoId, setPlanoId] = useState("intermediario");
-  const [usuarios, setUsuarios] = useState(15);
+  const [usuarios, setUsuarios] = useState(12);
   const [canais, setCanais] = useState(2);
   const [modulos, setModulos] = useState<string[]>([]);
   const [dados, setDados] = useState({ nome: "", empresa: "", email: "", telefone: "" });
@@ -80,7 +59,9 @@ export default function SimuladorOrcamento() {
   const plano = PLANOS.find((item) => item.id === planoId) || PLANOS[1];
   const usuariosExtras = Math.max(0, usuarios - plano.usuarios);
   const canaisExtras = Math.max(0, canais - plano.canais);
-  const selecionados = MODULOS.filter((item) => modulos.includes(item.id));
+  const noPlano = (item: { ref?: string }) => !!item.ref && (INCLUI[plano.id] || []).includes(item.ref);
+  // módulos que já vêm no plano não são cobrados de novo
+  const selecionados = MODULOS.filter((item) => modulos.includes(item.id) && !noPlano(item));
   const totalMensal =
     plano.mensalidade +
     usuariosExtras * PRECO_USUARIO_EXTRA +
@@ -303,10 +284,11 @@ export default function SimuladorOrcamento() {
             <Bloco numero="3" titulo="Adicione recursos">
               <div style={gridModulos}>
                 {MODULOS.map((item) => {
-                  const ativo = modulos.includes(item.id);
-                  const preco = item.mensalidade ? `${moeda(item.mensalidade)}/mês` : `${moeda(item.implantacao)} único`;
+                  const incluso = noPlano(item);
+                  const ativo = incluso || modulos.includes(item.id);
+                  const preco = incluso ? "incluso no plano" : item.mensalidade ? `${moeda(item.mensalidade)}/mês` : `${moeda(item.implantacao)} único`;
                   return (
-                    <button key={item.id} type="button" onClick={() => alternarModulo(item.id)} style={{ ...cardModulo, borderColor: ativo ? "#7c3aed" : "#dfe7f3", background: ativo ? "#faf5ff" : "#fff" }}>
+                    <button key={item.id} type="button" disabled={incluso} onClick={() => alternarModulo(item.id)} style={{ ...cardModulo, borderColor: ativo ? "#7c3aed" : "#dfe7f3", background: ativo ? "#faf5ff" : "#fff", cursor: incluso ? "default" : cardModulo.cursor }}>
                       <span style={{ ...check, background: ativo ? "#7c3aed" : "#eef2f7", color: ativo ? "#fff" : "#94a3b8" }}>{ativo ? "✓" : "+"}</span>
                       <span style={{ flex: 1 }}><strong style={{ display: "block", color: "#17233b", marginBottom: 5 }}>{item.nome}</strong><small style={{ color: "#64748b", lineHeight: 1.45 }}>{item.descricao}</small></span>
                       <strong style={{ color: "#6d28d9", fontSize: 12 }}>{preco}</strong>

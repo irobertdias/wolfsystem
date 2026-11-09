@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { PLANOS_WOLF, brlCurto } from "../../lib/precos-wolf";
 
 type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid";
 
@@ -146,9 +147,11 @@ export default function Register() {
 
   const planos = [
     { value: "", label: "Selecione um plano *" },
-    { value: "Básico - R$ 497/mês", label: "🐺 Plano Básico — R$ 497/mês (até 5 usuários)" },
-    { value: "Intermediário - R$ 897/mês", label: "⭐ Plano Intermediário — R$ 897/mês (até 15 usuários)" },
-    { value: "Ultra - R$ 1.497/mês", label: "🚀 Plano Ultra — R$ 1.497/mês (até 50 usuários)" },
+    // preços da tabela única (app/lib/precos-wolf.ts)
+    ...PLANOS_WOLF.map((p, i) => ({
+      value: `${p.nome} - ${brlCurto(p.preco)}/mês`,
+      label: `${["🐺", "⭐", "🚀"][i] || "•"} Plano ${p.nome} — ${brlCurto(p.preco)}/mês (até ${p.usuarios} usuários)`,
+    })),
   ];
   // ✅ Borda do input username muda conforme status
   const usernameBorderColor =

@@ -23,14 +23,16 @@ export type ItemOrcamento = {
   whatsapps?: number;         // só no plano
 };
 
-export const PRECO_USUARIO = 39;
-export const PRECO_WHATSAPP = 149;
-export const CONFIGURACAO_PADRAO = 1000;
+import { CONFIGURACAO_PADRAO as CONFIG_TABELA, PLANOS_WOLF, PRECO_MODULO, PRECO_USUARIO_EXTRA, PRECO_WHATSAPP_EXTRA } from "./precos-wolf";
+
+export const PRECO_USUARIO = PRECO_USUARIO_EXTRA;
+export const PRECO_WHATSAPP = PRECO_WHATSAPP_EXTRA;
+export const CONFIGURACAO_PADRAO = CONFIG_TABELA;
 
 type Modulo = { id: string; nome: string; sub: string; cor: string; preco: number; linhas: string[] };
 
 /** Módulos vendidos à parte (preço mensal de tabela). */
-export const MODULOS: Modulo[] = [
+const MODULOS_BASE: Modulo[] = [
   { id: "crm", nome: "Módulo CRM", sub: "Gestão comercial", cor: "#2563eb", preco: 197, linhas: [
     "Funil de vendas, contatos e histórico do cliente", "Vendas por consultor e por equipe", "Dashboard com os números da operação",
   ] },
@@ -90,17 +92,17 @@ export const MODULOS: Modulo[] = [
   ] },
 ];
 
+/** Módulos com o preço da tabela única (precos-wolf.ts). */
+export const MODULOS: Modulo[] = MODULOS_BASE.map((m) => ({ ...m, preco: PRECO_MODULO[m.id] ?? m.preco }));
+
 export type Plano = { id: string; nome: string; preco: number; usuarios: number; whatsapps: number; inclui: string[]; linhas: string[]; cor: string };
 
 /** Planos do site: já trazem usuários, conexões de WhatsApp e módulos. */
-export const PLANOS: Plano[] = [
-  { id: "basico", nome: "Plano Básico", preco: 497, usuarios: 5, whatsapps: 1, inclui: ["crm", "chatbot"], cor: "#059669",
-    linhas: ["5 usuários e 1 conexão de WhatsApp", "CRM de vendas e Chatbot visual", "Filas, etiquetas e dashboard"] },
-  { id: "intermediario", nome: "Plano Intermediário", preco: 897, usuarios: 15, whatsapps: 2, inclui: ["crm", "chatbot", "roleta", "disparos_web", "equipes", "api"], cor: "#047857",
-    linhas: ["15 usuários e 2 conexões de WhatsApp", "Tudo do Básico", "Roleta, disparos, equipes e API de integração"] },
-  { id: "ultra", nome: "Plano Ultra", preco: 1497, usuarios: 50, whatsapps: 5, inclui: ["crm", "chatbot", "roleta", "disparos_web", "equipes", "api", "disparos_api", "cobranca", "voip", "meta_ads", "financeiro"], cor: "#065f46",
-    linhas: ["50 usuários e 5 conexões de WhatsApp", "Tudo do Intermediário", "API oficial da Meta, cobrança, VoIP, Central Ads e Financeiro"] },
-];
+/** Planos do site (fonte: precos-wolf.ts). */
+export const PLANOS: Plano[] = PLANOS_WOLF.map((p) => ({
+  id: p.id, nome: `Plano ${p.nome}`, preco: p.preco, usuarios: p.usuarios, whatsapps: p.whatsapps, inclui: p.inclui, linhas: p.resumo,
+  cor: p.id === "basico" ? "#059669" : p.id === "intermediario" ? "#047857" : "#065f46",
+}));
 
 const r2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
 const limitar = (v: unknown, min: number, max: number, padrao = 0) => {
