@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { PERFIS, brlOrc, type DadosPagamento, type Implantacao, type ItemOrcamento, type UsuarioImplantacao } from "../../lib/orcamento";
+import { PERFIS, PLANOS, brlOrc, calcularOrcamento, pctOrc, type DadosPagamento, type Implantacao, type ItemOrcamento, type UsuarioImplantacao } from "../../lib/orcamento";
 
 type Orcamento = {
   numero: string;
@@ -102,19 +102,24 @@ export default function OrcamentoPage() {
   const [carregando, setCarregando] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [deslocamento, setDeslocamento] = useState(0);
-  const [form, setForm] = useState<Omit<Implantacao, "usuarios">>({ razao_social: "", cnpj: "", responsavel: "", email: "", telefone: "", whatsapp_atendimento: "", pagamento_realizado: false, observacoes: "" });
+  const [form, setForm] = useState<Omit<Implantacao, "usuarios" | "whatsapps">>({ razao_social: "", cnpj: "", responsavel: "", email: "", telefone: "", whatsapp_atendimento: "", pagamento_realizado: false, observacoes: "" });
+  const [whatsapps, setWhatsapps] = useState<string[]>([""]);
   const [usuarios, setUsuarios] = useState<UsuarioImplantacao[]>([usuarioVazio()]);
   const [erroForm, setErroForm] = useState("");
   const [editando, setEditando] = useState(false);
 
   function aplicar(o: Orcamento) {
     setOrc(o);
+    const conexoes = Math.max(1, calcularOrcamento(o.itens || []).whatsapps);
     if (o.implantacao) {
-      const { usuarios: us, ...resto } = o.implantacao;
+      const { usuarios: us, whatsapps: ws, ...resto } = o.implantacao;
       setForm(resto);
       setUsuarios(us.length ? us : [usuarioVazio()]);
+      const lista = ws?.length ? ws : [resto.whatsapp_atendimento];
+      setWhatsapps(Array.from({ length: conexoes }, (_, i) => lista[i] || ""));
     } else {
       setForm((f) => ({ ...f, responsavel: f.responsavel || o.cliente_nome }));
+      setWhatsapps(Array.from({ length: conexoes }, () => ""));
     }
   }
 
@@ -161,7 +166,7 @@ export default function OrcamentoPage() {
     try {
       const r = await fetch(`/api/orcamentos/publico/${encodeURIComponent(token)}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "implantacao", dados: { ...form, usuarios } }),
+        body: JSON.stringify({ acao: "implantacao", dados: { ...form, usuarios, whatsapps } }),
       });
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Não foi possível enviar");
@@ -189,6 +194,21 @@ export default function OrcamentoPage() {
   const primeiro = orc.cliente_nome.trim().split(/\s+/)[0] || "";
   const aceito = orc.status === "aceito";
   const mostrarForm = aceito && (!orc.implantacao_enviada || editando);
+  const tot = calcularOrcamento(orc.itens || []);
+  const comPrecos = (orc.itens || []).some((i) => i.tipo);
+  const planoItem = orc.itens.find((i) => i.tipo === "plano");
+  const planoDef = PLANOS.find((p) => p.id === planoItem?.id);
+  // cartões do "o que está incluso": plataforma + módulos/itens (sem as linhas de quantidade e configuração)
+  const cartoes: (ItemOrcamento & { tag?: string })[] = comPrecos
+    ? [
+        { nome: planoDef ? planoDef.nome : "Plataforma Wolf System", sub: `${tot.usuarios} usuários · ${tot.whatsapps} WhatsApp${tot.whatsapps === 1 ? "" : "s"}`, cor: planoDef?.cor || "#059669",
+          linhas: planoDef?.linhas || ["Acesso individual com login e senha para cada usuário", "Perfis e grupos de permissão por função", "Acesso pelo navegador, no computador e no celular"] },
+        ...orc.itens.filter((i) => i.tipo === "modulo" || i.tipo === "personalizado").map((i) => ({ ...i, tag: i.incluso ? "incluso no plano" : undefined })),
+      ]
+    : orc.itens;
+  const chips = comPrecos
+    ? [`${tot.usuarios} usuários`, `${tot.whatsapps} WhatsApp${tot.whatsapps === 1 ? "" : "s"}`, ...orc.itens.filter((i) => i.tipo === "modulo" || i.tipo === "personalizado").map((i) => i.nome.replace("Módulo ", ""))]
+    : [`${orc.usuarios_incluidos} usuários`, ...orc.itens.filter((i) => i.id !== "plataforma" && i.nome !== "Plataforma Wolf System").map((i) => i.nome.replace("Módulo ", ""))];
 
   return (
     <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#d1fae5_0%,_#f8fafc_45%)] text-slate-800">
@@ -210,7 +230,7 @@ export default function OrcamentoPage() {
             <div className="text-[13px] font-medium text-emerald-100">{primeiro ? `${primeiro}, preparamos sua proposta comercial` : "Sua proposta comercial"}</div>
             <h1 className="mt-2 text-[30px] font-black leading-[1.1] tracking-tight sm:text-[40px]">Plataforma completa<br />para sua operação</h1>
             <div className="mt-4 flex flex-wrap gap-2 text-[12px]">
-              {[`${orc.usuarios_incluidos} usuários`, ...orc.itens.filter((i) => i.id !== "plataforma" && i.nome !== "Plataforma Wolf System").map((i) => i.nome.replace("Módulo ", ""))].map((t) => (
+              {chips.map((t) => (
                 <span key={t} className="rounded-full bg-white/15 px-3 py-1 font-semibold backdrop-blur">{t}</span>
               ))}
             </div>
@@ -280,7 +300,11 @@ export default function OrcamentoPage() {
                         <Campo rotulo="Responsável"><input className={inputCls} value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })} /></Campo>
                         <Campo rotulo="E-mail do responsável"><input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Campo>
                         <Campo rotulo="Telefone / WhatsApp do responsável"><input className={inputCls} inputMode="tel" placeholder="(62) 99999-9999" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></Campo>
-                        <Campo rotulo="Número de WhatsApp do atendimento" className="sm:col-span-2"><input className={inputCls} inputMode="tel" placeholder="Número que será conectado ao Chatbot" value={form.whatsapp_atendimento} onChange={(e) => setForm({ ...form, whatsapp_atendimento: e.target.value })} /></Campo>
+                        {whatsapps.map((w, i) => (
+                          <Campo key={i} rotulo={whatsapps.length > 1 ? `WhatsApp do atendimento ${i + 1}` : "Número de WhatsApp do atendimento"} className={whatsapps.length > 1 ? "" : "sm:col-span-2"}>
+                            <input className={inputCls} inputMode="tel" placeholder="Número que será conectado" value={w} onChange={(e) => setWhatsapps((l) => l.map((x, k) => (k === i ? e.target.value : x)))} />
+                          </Campo>
+                        ))}
                       </div>
                     </div>
 
@@ -332,10 +356,13 @@ export default function OrcamentoPage() {
           <Card>
             <Titulo n={aceito ? "3" : "1"}>O que está incluso</Titulo>
             <div className="grid gap-3 sm:grid-cols-2">
-              {orc.itens.map((it) => (
+              {cartoes.map((it) => (
                 <div key={it.nome} className="relative overflow-hidden rounded-2xl border border-slate-200 p-4">
                   <div className="absolute inset-x-0 top-0 h-1" style={{ background: it.cor }} />
-                  <div className="text-[15px] font-bold text-slate-800">{it.nome}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-[15px] font-bold text-slate-800">{it.nome}</div>
+                    {"tag" in it && it.tag && <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">{it.tag}</span>}
+                  </div>
                   <div className="text-[11px] font-bold uppercase tracking-wide" style={{ color: it.cor }}>{it.sub === "usuários" ? `${orc.usuarios_incluidos} usuários` : it.sub}</div>
                   <ul className="mt-3 space-y-1.5">
                     {it.linhas.map((l) => <li key={l} className="flex gap-2 text-[13px] text-slate-600"><Check cor={it.cor} />{l}</li>)}
@@ -348,6 +375,27 @@ export default function OrcamentoPage() {
           {/* investimento */}
           <Card>
             <Titulo n={aceito ? "4" : "2"}>Investimento</Titulo>
+            {comPrecos && (
+              <div className="mb-3 divide-y divide-slate-100 rounded-2xl border border-slate-200 text-[13px]">
+                {tot.linhas.filter((l) => !l.incluso).map((l) => (
+                  <div key={`${l.tipo}-${l.id}-${l.nome}`} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-slate-700">{l.nome}{(l.qtd || 1) > 1 && <span className="font-normal text-slate-400"> × {l.qtd}</span>}</div>
+                      <div className="text-[11px] text-slate-400">{l.cobranca === "unico" ? "pagamento único" : "por mês"}{l.desconto ? ` · ${pctOrc(l.desconto)} de desconto` : ""}</div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {l.desconto ? <div className="text-[11px] text-slate-400 line-through tabular-nums">{brlOrc(l.bruto)}</div> : null}
+                      <div className="font-bold tabular-nums text-slate-800">{brlOrc(l.liquido)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {comPrecos && tot.mensalDesconto + tot.unicoDesconto > 0 && (
+              <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-[13px] text-amber-900 ring-1 ring-amber-200">
+                🎁 Você economiza <b>{brlOrc(tot.mensalDesconto)} por mês</b>{tot.unicoDesconto > 0 ? <> e <b>{brlOrc(tot.unicoDesconto)}</b> na configuração</> : null} em relação à tabela.
+              </div>
+            )}
             <div className="divide-y divide-slate-100 text-[14px]">
               <div className="flex justify-between py-3"><span className="text-slate-600">Configuração inicial <span className="text-slate-400">(pagamento único, na contratação)</span></span><b className="tabular-nums">{brlOrc(orc.configuracao)}</b></div>
               <div className="flex justify-between py-3"><span className="text-slate-600">Mensalidade <span className="text-slate-400">(a partir do mês seguinte)</span></span><b className="tabular-nums">{brlOrc(orc.mensalidade)}/mês</b></div>

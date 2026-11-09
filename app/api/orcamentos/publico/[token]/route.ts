@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "../../../_auth";
-import { normalizarImplantacao, validarImplantacao } from "../../../../lib/orcamento";
+import { calcularOrcamento, normalizarImplantacao, validarImplantacao } from "../../../../lib/orcamento";
 
 // Página pública do orçamento: sem login, o token do link é a credencial.
 
@@ -87,7 +87,8 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ token:
 
     if (b.acao === "implantacao") {
       if (o.status !== "aceito") return NextResponse.json({ success: false, error: "Aceite o orçamento antes de enviar os dados" }, { status: 409 });
-      const dados = normalizarImplantacao(b.dados || {}, Number(o.usuarios_incluidos) || 10);
+      const conexoes = Math.max(1, calcularOrcamento(Array.isArray(o.itens) ? o.itens : []).whatsapps);
+      const dados = normalizarImplantacao(b.dados || {}, Number(o.usuarios_incluidos) || 10, conexoes);
       const erros = validarImplantacao(dados);
       if (erros.length) return NextResponse.json({ success: false, error: erros.join(". ") }, { status: 400 });
       const { error } = await supabaseServer.from("wolf_orcamentos")
