@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SoftphoneProvider } from "./hooks/useSoftphone";
-import { Softphone } from "./components/Softphone";
+import { SoftphoneVisivel } from "./components/SoftphoneVisivel";
 import PopupCobranca from "./components/PopupCobranca";
 import AcessoTeste from "./components/AcessoTeste";
 
@@ -52,7 +52,7 @@ export default function RootLayout({
         <AcessoTeste>
           <SoftphoneProvider>
             {children}
-            <Softphone />
+            <SoftphoneVisivel />
             <PopupCobranca />
           </SoftphoneProvider>
         </AcessoTeste>

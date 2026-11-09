@@ -6,6 +6,7 @@ import {
   brl, calcularImovel, calcularVeiculo, formatarDocumento, normalizarImovel, normalizarVeiculo,
   pctBR, validarDados, type TipoRevisional,
 } from "../lib/revisional";
+import { baixarPdfProposta } from "../lib/revisional-pdf";
 
 type Config = {
   empresa_nome: string; empresa_cnpj: string; whatsapp_contato: string; validade_horas: number;
@@ -15,7 +16,7 @@ type PropostaLista = {
   id: string; numero: string; tipo: TipoRevisional; status: string; cliente_nome: string; cliente_documento: string;
   cliente_telefone: string; consultor_nome: string; resultado: Record<string, number>; dados: Record<string, any>;
   expira_em: string; visualizada_em: string | null; visualizacoes: number; respondida_em: string | null;
-  motivo_recusa: string | null; created_at: string; link: string;
+  motivo_recusa: string | null; created_at: string; link: string; empresa?: { nome?: string; cnpj?: string };
 };
 
 const STATUS: Record<string, { rotulo: string; cls: string }> = {
@@ -559,6 +560,7 @@ function ListaPropostas({ propostas, config, onMudou }: { propostas: PropostaLis
               </div>
               <div className="flex flex-wrap gap-1.5 text-[12px]">
                 <button onClick={() => navigator.clipboard.writeText(p.link)} className="rounded-lg border border-slate-200 px-2.5 py-1.5">Copiar link</button>
+                <button onClick={() => void baixarPdfProposta({ ...p, cliente_documento: formatarDocumento(p.cliente_documento), empresa: p.empresa || {}, criada_em: p.created_at }).catch(() => alert("Não foi possível gerar o PDF"))} className="rounded-lg border border-red-200 px-2.5 py-1.5 font-semibold text-red-600">PDF</button>
                 <a href={linkWhats(p.cliente_telefone, mensagemCliente(p.cliente_nome, p.link, Math.max(1, Math.round((new Date(p.expira_em).getTime() - Date.now()) / 3600_000))))} target="_blank" rel="noreferrer" className="rounded-lg border border-emerald-200 px-2.5 py-1.5 text-emerald-700">WhatsApp</a>
                 <a href={p.link} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 px-2.5 py-1.5">Abrir</a>
                 {(p.status === "expirada" || p.status === "cancelada" || aberta) && (

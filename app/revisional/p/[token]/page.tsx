@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { brl, pctBR } from "../../../lib/revisional";
+import { baixarPdfProposta } from "../../../lib/revisional-pdf";
 
 type Proposta = {
   numero: string;
@@ -41,7 +42,7 @@ function useContagem(alvo: number, duracao = 1400) {
 
 /* ---------- peças visuais ---------- */
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)] ${className}`}>{children}</div>;
+  return <div className={`break-inside-avoid rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)] print:shadow-none ${className}`}>{children}</div>;
 }
 
 function Titulo({ icone, children }: { icone: string; children: React.ReactNode }) {
@@ -138,6 +139,7 @@ export default function PropostaRevisionalPage() {
   const [motivo, setMotivo] = useState("");
   const [deslocamento, setDeslocamento] = useState(0);
   const [verContrato, setVerContrato] = useState(false);
+  const [gerandoPdf, setGerandoPdf] = useState(false);
 
   useEffect(() => {
     let ativo = true;
@@ -164,6 +166,18 @@ export default function PropostaRevisionalPage() {
   const imovel = proposta?.tipo === "imovel";
   const total = proposta ? Number(imovel ? proposta.resultado.diferenca_total : proposta.resultado.economia_total) || 0 : 0;
   const totalAnimado = useContagem(total);
+
+  async function baixarPdf() {
+    if (!proposta) return;
+    setGerandoPdf(true);
+    try {
+      await baixarPdfProposta(proposta);
+    } catch {
+      alert("Não foi possível gerar o PDF. Tente novamente.");
+    } finally {
+      setGerandoPdf(false);
+    }
+  }
 
   async function responder(acao: "aceitar" | "recusar") {
     setEnviando(true);
@@ -228,12 +242,12 @@ export default function PropostaRevisionalPage() {
         </div>
 
         {/* destaque */}
-        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-900 p-6 text-white shadow-xl shadow-emerald-900/20">
+        <div className="relative break-inside-avoid overflow-hidden rounded-[28px] bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-900 p-6 text-white shadow-xl shadow-emerald-900/20">
           <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-teal-400/20" />
           <div className="relative">
             <div className="text-[13px] font-medium text-emerald-100">{primeiroNome ? `${primeiroNome}, identificamos` : "Identificamos"}</div>
-            <div className="mt-1 text-[40px] font-black leading-none tracking-tight tabular-nums sm:text-[48px]">{brl(totalAnimado)}</div>
+            <div className="mt-1 text-[40px] font-black leading-none tracking-tight tabular-nums sm:text-[48px]"><span className="print:hidden">{brl(totalAnimado)}</span><span className="hidden print:inline">{brl(total)}</span></div>
             <div className="mt-2 text-[14px] text-emerald-50/90">
               {imovel ? "em cobranças indevidas no seu financiamento imobiliário" : "de economia no seu financiamento de veículo"} · <b className="text-white">{d.banco}</b>
             </div>
@@ -364,10 +378,10 @@ export default function PropostaRevisionalPage() {
           <Card className="py-0">
             <button onClick={() => setVerContrato((v) => !v)} className="flex w-full items-center justify-between py-4 text-left">
               <span className="flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50">📄</span><b className="text-[15px]">Dados do contrato</b></span>
-              <span className={`text-slate-400 transition ${verContrato ? "rotate-180" : ""}`}>⌄</span>
+              <span className={`text-slate-400 transition print:hidden ${verContrato ? "rotate-180" : ""}`}>⌄</span>
             </button>
-            {(verContrato) && (
-              <div className="grid gap-x-6 border-t border-slate-100 pb-4 pt-2 text-[13px] sm:grid-cols-2">
+            {(
+              <div className={`${verContrato ? "grid" : "hidden"} gap-x-6 border-t border-slate-100 pb-4 pt-2 text-[13px] sm:grid-cols-2 print:grid print:grid-cols-2`}>
                 {([
                   ["Banco / Financeira", d.banco],
                   ...(!imovel ? [["Veículo", `${d.modelo || "—"}${d.ano ? ` (${d.ano})` : ""}`]] : []),
@@ -396,13 +410,17 @@ export default function PropostaRevisionalPage() {
               )}
             </div>
           )}
+          <button onClick={baixarPdf} disabled={gerandoPdf} className="flex w-full items-center justify-center gap-2.5 rounded-3xl border border-slate-200 bg-white py-4 text-[14px] font-bold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-60 print:hidden">
+            <span className="flex h-7 w-9 items-center justify-center rounded-lg bg-red-50 text-[10px] font-black tracking-wide text-red-600">PDF</span>
+            {gerandoPdf ? "Gerando PDF…" : "Baixar PDF da proposta"}
+          </button>
+
           {proposta.status === "recusada" && (
             <div className="rounded-3xl border border-slate-200 bg-white p-5 text-center text-[13px] text-slate-600">Proposta recusada. Se mudar de ideia, fale com seu consultor.</div>
           )}
 
           <div className="space-y-2 px-1 text-center text-[10px] leading-relaxed text-slate-400">
             <p>Arts. 42, 43 e 51 da Lei nº 8.078/1990 (Código de Defesa do Consumidor). Valores estimados com base nos dados informados, sujeitos à análise do contrato.{taxaMedia ? " Taxa média de mercado: Banco Central do Brasil (SGS)." : ""}</p>
-            <button onClick={() => window.print()} className="text-slate-500 underline print:hidden">Baixar / imprimir em PDF</button>
           </div>
         </div>
       </div>

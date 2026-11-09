@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     await exigirRevisional(acesso);
     let query = supabaseServer
       .from("revisional_propostas")
-      .select("id,numero,token,tipo,status,cliente_nome,cliente_documento,cliente_telefone,consultor_nome,consultor_email,resultado,dados,expira_em,visualizada_em,visualizacoes,respondida_em,motivo_recusa,created_at")
+      .select("id,numero,token,tipo,status,cliente_nome,cliente_documento,cliente_telefone,consultor_nome,consultor_email,resultado,dados,empresa,expira_em,visualizada_em,visualizacoes,respondida_em,motivo_recusa,created_at")
       .eq("workspace_id", acesso.workspaceId)
       .order("created_at", { ascending: false })
       .limit(300);
