@@ -6,6 +6,6 @@ import { Softphone } from "./Softphone";
 // (proposta do Revisional em /revisional/p/... ou rev.wolfgyn.com.br/p/...).
 export function SoftphoneVisivel() {
   const pathname = usePathname() || "";
-  if (pathname.startsWith("/revisional/p/") || pathname.startsWith("/p/")) return null;
+  if (pathname.startsWith("/revisional/p/") || pathname.startsWith("/p/") || pathname.startsWith("/orcamento/")) return null;
   return <Softphone />;
 }

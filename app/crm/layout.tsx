@@ -231,7 +231,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   });
 
   const launchers = [
-    ...(isSuperAdmin ? [{ path: "/crm/clientes", label: "Clientes", icon: "👥", visivel: true }] : []),
+    ...(isSuperAdmin ? [{ path: "/crm/clientes", label: "Clientes", icon: "👥", visivel: true }, { path: "/crm/orcamentos", label: "Orçamentos", icon: "💼", visivel: true }] : []),
     ...(revisional
       ? [
           { path: "/crm/revisional", label: "Revisional", icon: "⚖️", visivel: true },
