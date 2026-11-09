@@ -211,14 +211,11 @@ export default function Vendas() {
 
   const statusOpcoesFiltro = useMemo(() => {
     const set = new Set<string>();
+    // Status reais: os configurados no workspace + os que aparecem nas propostas.
+    // A lista padrão do sistema (STATUS_OPCOES) só entra se o workspace não tem nada próprio.
     const campoStatus = camposUnificados.find(c => c.slug === "status_venda");
-    if (Array.isArray(campoStatus?.opcoes)) {
-      for (const s of campoStatus.opcoes) {
-        const v = String(s || "").trim();
-        if (v) set.add(v);
-      }
-    }
-    for (const s of (STATUS_OPCOES as string[])) {
+    const configurados = Array.isArray(campoStatus?.opcoes) && campoStatus.opcoes !== STATUS_OPCOES ? campoStatus.opcoes : [];
+    for (const s of configurados) {
       const v = String(s || "").trim();
       if (v) set.add(v);
     }
@@ -226,6 +223,7 @@ export default function Vendas() {
       const v = String(p.status_venda || "").trim();
       if (v) set.add(v);
     }
+    if (set.size === 0) for (const s of (STATUS_OPCOES as string[])) set.add(s);
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
   }, [camposUnificados, propostas]);
 
@@ -451,10 +449,11 @@ export default function Vendas() {
 
     if (c.tipo === "dropdown") {
       const prefixoVenc = c.slug === "vencimento";
+      const opcoes = c.slug === "status_venda" ? statusOpcoesFiltro : (c.opcoes || []);
       return (
         <select value={val} onChange={e => setarFiltroColuna(c.slug, e.target.value)} style={filtroInputStyle}>
           <option value="">Todos</option>
-          {(c.opcoes || []).map(op => (
+          {opcoes.map(op => (
             <option key={op} value={op}>{prefixoVenc ? `Dia ${op}` : op}</option>
           ))}
         </select>
@@ -495,7 +494,7 @@ export default function Vendas() {
       }
 
       if (campo.tipo === "dropdown" || campo.tipo === "vendedor" || slug === "vendedor") {
-        if (String(raw ?? "") !== valor) return false;
+        if (String(raw ?? "").trim() !== valor.trim()) return false;
         continue;
       }
 
@@ -916,7 +915,7 @@ export default function Vendas() {
       return true;
     })
     .filter(p => !equipeEfetiva || String(p.equipe_id ?? "") === String(equipeEfetiva))
-    .filter(p => filtroStatus === "todos" || p.status_venda === filtroStatus)
+    .filter(p => filtroStatus === "todos" || String(p.status_venda || "").trim() === filtroStatus)
     .filter(p => !buscaDebounced || p.nome?.toLowerCase().includes(buscaDebounced.toLowerCase()) || p.cpf?.includes(buscaDebounced) || nomeVendedor(p.vendedor).toLowerCase().includes(buscaDebounced.toLowerCase()))
     .filter(p => {
       if (!filtroDataInicio && !filtroDataFim) return true;
