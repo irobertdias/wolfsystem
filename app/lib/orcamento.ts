@@ -175,6 +175,39 @@ export function sanitizarItens(v: unknown): ItemOrcamento[] {
   }).filter((i) => i.nome);
 }
 
+/* ---------- orçamento montado pelo próprio cliente no site ---------- */
+/** Faixas do Wolf Contratos vendidas no site (preço especial para quem tem CRM). */
+export const CONTRATOS_SITE: Record<string, { nome: string; sub: string; preco: number }> = {
+  "contratos-essencial": { nome: "Wolf Contratos Essencial", sub: "Até 20 contratos por mês", preco: 49.9 },
+  "contratos-profissional": { nome: "Wolf Contratos Profissional", sub: "Até 100 contratos por mês", preco: 69.9 },
+  "contratos-empresarial": { nome: "Wolf Contratos Empresarial", sub: "Contratos ilimitados", preco: 99.9 },
+};
+
+/**
+ * Monta as linhas do orçamento a partir das escolhas do site, sempre com preço de tabela
+ * (o visitante só escolhe plano, quantidades e módulos; nunca o preço).
+ */
+export function itensDoSite(e: { plano: string; usuarios: number; whatsapps: number; modulos: string[] }): ItemOrcamento[] {
+  const plano = PLANOS.find((p) => p.id === e.plano) || PLANOS[1];
+  const usuarios = Math.max(1, Math.min(500, Math.round(Number(e.usuarios) || plano.usuarios)));
+  const whatsapps = Math.max(1, Math.min(50, Math.round(Number(e.whatsapps) || plano.whatsapps)));
+  const escolhidos = new Set((Array.isArray(e.modulos) ? e.modulos : []).map(String));
+  const itens: ItemOrcamento[] = [{ tipo: "plano", id: plano.id, nome: plano.nome, sub: "", cor: plano.cor, linhas: plano.linhas, preco: plano.preco, qtd: 1, usuarios: plano.usuarios, whatsapps: plano.whatsapps }];
+  if (usuarios > plano.usuarios) itens.push({ tipo: "usuarios", id: "usuarios", nome: "Usuários adicionais", sub: "Acesso individual ao sistema", cor: "#059669", linhas: [], preco: PRECO_USUARIO, qtd: usuarios - plano.usuarios });
+  if (whatsapps > plano.whatsapps) itens.push({ tipo: "whatsapp", id: "whatsapp", nome: "Conexões de WhatsApp adicionais", sub: "Números conectados ao atendimento", cor: "#16a34a", linhas: [], preco: PRECO_WHATSAPP, qtd: whatsapps - plano.whatsapps });
+  MODULOS.forEach((m) => {
+    const noPlano = plano.inclui.includes(m.id);
+    if (noPlano || escolhidos.has(m.id)) itens.push({ tipo: "modulo", id: m.id, nome: m.nome, sub: m.sub, cor: m.cor, linhas: m.linhas, preco: m.preco, qtd: 1, incluso: noPlano });
+  });
+  const contrato = Object.keys(CONTRATOS_SITE).find((k) => escolhidos.has(k));
+  if (contrato) {
+    const c = CONTRATOS_SITE[contrato];
+    itens.push({ tipo: "personalizado", id: contrato, nome: c.nome, sub: c.sub, cor: "#155eef", linhas: ["Envio de contratos para assinatura por link", "Contratos assinados guardados e para baixar"], preco: c.preco, qtd: 1, cobranca: "mensal" });
+  }
+  itens.push({ tipo: "configuracao", id: "configuracao", nome: "Configuração inicial", sub: "Implantação e configuração do ambiente", cor: "#0f766e", linhas: [], preco: CONFIGURACAO_PADRAO, qtd: 1, cobranca: "unico" });
+  return itens;
+}
+
 /* ---------- compatibilidade: orçamentos antigos (sem preço por item) ---------- */
 export const ITENS_PADRAO: ItemOrcamento[] = [
   { nome: "Plataforma Wolf System", sub: "usuários", cor: "#059669", linhas: ["Acesso individual com login e senha para cada usuário", "Perfis e grupos de permissão por função", "Acesso pelo navegador, no computador e no celular"] },

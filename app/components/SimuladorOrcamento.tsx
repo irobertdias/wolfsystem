@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { CONFIGURACAO_PADRAO, PLANOS_WOLF, PRECO_MODULO, PRECO_USUARIO_EXTRA as USUARIO_EXTRA_TABELA, PRECO_WHATSAPP_EXTRA } from "../lib/precos-wolf";
+import { CONFIGURACAO_PADRAO, PLANOS_WOLF, PRECO_USUARIO_EXTRA as USUARIO_EXTRA_TABELA, PRECO_WHATSAPP_EXTRA } from "../lib/precos-wolf";
+import { CONTRATOS_SITE, MODULOS as CATALOGO_MODULOS } from "../lib/orcamento";
 
 type Plano = {
   id: string;
@@ -29,18 +30,13 @@ const PLANOS: Plano[] = PLANOS_WOLF.map((p) => ({
 const INCLUI: Record<string, string[]> = Object.fromEntries(PLANOS_WOLF.map((p) => [p.id, p.inclui]));
 
 // "ref" liga o módulo do simulador ao id da tabela de preços (para saber se já vem no plano).
+// Lista: todos os módulos do catálogo (menos CRM e Chatbot, que vêm em todos os planos) + Wolf Contratos.
 const MODULOS: (Modulo & { ref?: string })[] = [
-  { id: "revisional", ref: "revisional", nome: "Módulo Revisional", descricao: "Análise contratual: simulação de financiamentos e proposta por link com aceite.", mensalidade: PRECO_MODULO.revisional, implantacao: 0 },
-  { id: "central-ads", ref: "meta_ads", nome: "Central Ads", descricao: "Indicadores e relatórios das campanhas em um só lugar.", mensalidade: PRECO_MODULO.meta_ads, implantacao: 0 },
-  { id: "financeiro", ref: "financeiro", nome: "Financeiro", descricao: "Contas a pagar e a receber, caixa, conciliação e DRE.", mensalidade: PRECO_MODULO.financeiro, implantacao: 0 },
-  { id: "contratos-essencial", nome: "Wolf Contratos Essencial", descricao: "Até 20 contratos/mês. Preço especial para quem já contrata o CRM Wolf.", mensalidade: 49.90, implantacao: 0 },
-  { id: "contratos-profissional", nome: "Wolf Contratos Profissional", descricao: "Até 100 contratos/mês. Preço especial para quem já contrata o CRM Wolf.", mensalidade: 69.90, implantacao: 0 },
-  { id: "contratos-empresarial", nome: "Wolf Contratos Empresarial", descricao: "Contratos ilimitados. Preço especial para quem já contrata o CRM Wolf.", mensalidade: 99.90, implantacao: 0 },
-  { id: "automacao-crm", ref: "automacao_crm", nome: "Automação de CRM", descricao: "Ações automáticas quando o status de uma venda muda.", mensalidade: PRECO_MODULO.automacao_crm, implantacao: 0 },
-  { id: "voip", ref: "voip", nome: "Telefonia VoIP", descricao: "Chamadas e histórico integrados à operação comercial.", mensalidade: PRECO_MODULO.voip, implantacao: 0 },
-  { id: "onboarding", nome: "Onboarding premium", descricao: "Implantação acompanhada e configuração inicial orientada.", mensalidade: 0, implantacao: CONFIGURACAO_PADRAO },
+  ...CATALOGO_MODULOS.filter((m) => m.id !== "crm" && m.id !== "chatbot" && m.id !== "contratos").map((m) => ({
+    id: m.id, ref: m.id, nome: m.nome, descricao: m.linhas[0] || m.sub, mensalidade: m.preco, implantacao: 0,
+  })),
+  ...Object.entries(CONTRATOS_SITE).map(([id, c]) => ({ id, nome: c.nome, descricao: `${c.sub}. Preço especial para quem contrata o CRM Wolf.`, mensalidade: c.preco, implantacao: 0 })),
 ];
-
 const WHATSAPP = "5562981519991";
 const PRECO_USUARIO_EXTRA = USUARIO_EXTRA_TABELA;
 const PRECO_CANAL_EXTRA = PRECO_WHATSAPP_EXTRA;
@@ -67,7 +63,8 @@ export default function SimuladorOrcamento() {
     usuariosExtras * PRECO_USUARIO_EXTRA +
     canaisExtras * PRECO_CANAL_EXTRA +
     selecionados.reduce((total, item) => total + item.mensalidade, 0);
-  const totalImplantacao = selecionados.reduce((total, item) => total + item.implantacao, 0);
+  // configuração inicial é cobrada em toda contratação (pagamento único)
+  const totalImplantacao = CONFIGURACAO_PADRAO + selecionados.reduce((total, item) => total + item.implantacao, 0);
 
   const itens = useMemo(() => {
     const lista = [{ descricao: `Plano Wolf ${plano.nome}`, tipo: "Mensal", valor: plano.mensalidade }];
@@ -77,6 +74,7 @@ export default function SimuladorOrcamento() {
       if (item.mensalidade) lista.push({ descricao: item.nome, tipo: "Mensal", valor: item.mensalidade });
       if (item.implantacao) lista.push({ descricao: item.nome, tipo: "Único", valor: item.implantacao });
     });
+    lista.push({ descricao: "Configuração inicial (único)", tipo: "Único", valor: CONFIGURACAO_PADRAO });
     return lista;
   }, [plano, usuariosExtras, canaisExtras, selecionados]);
 
@@ -108,6 +106,31 @@ export default function SimuladorOrcamento() {
       dados.empresa ? `Empresa: ${dados.empresa}` : "",
       dados.nome ? `Contato: ${dados.nome}` : "",
     ].filter(Boolean).join("\n");
+  }
+
+  const [online, setOnline] = useState<{ carregando: boolean; erro: string }>({ carregando: false, erro: "" });
+  const [isca, setIsca] = useState("");
+
+  // Gera um orçamento online de verdade (com aceite, PIX e cadastro) e leva o cliente até ele.
+  async function gerarOrcamentoOnline() {
+    if (dados.nome.trim().length < 2 || dados.telefone.replace(/\D/g, "").length < 10) {
+      setOnline({ carregando: false, erro: "Preencha seu nome e WhatsApp com DDD no passo 4." });
+      document.getElementById("orcamento-identificacao")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    setOnline({ carregando: true, erro: "" });
+    try {
+      const r = await fetch("/api/orcamentos/site", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...dados, site: isca, plano: plano.id, usuarios, whatsapps: canais, modulos: selecionados.map((m) => m.id) }),
+      });
+      const d = await r.json().catch(() => ({ success: false, error: "Resposta inválida" }));
+      if (!r.ok || !d.success) throw new Error(d.error || "Não foi possível gerar o orçamento");
+      window.location.href = d.link;
+    } catch (e) {
+      setOnline({ carregando: false, erro: e instanceof Error ? e.message : "Não foi possível gerar o orçamento" });
+    }
   }
 
   function abrirWhatsApp() {
@@ -299,7 +322,9 @@ export default function SimuladorOrcamento() {
             </Bloco>
 
             <Bloco numero="4" titulo="Identifique o orçamento">
-              <div style={gridDois}>
+              <div id="orcamento-identificacao" style={gridDois}>
+                {/* campo isca contra robôs: invisível para pessoas */}
+                <input aria-hidden="true" tabIndex={-1} autoComplete="off" value={isca} onChange={(e) => setIsca(e.target.value)} name="site" style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} />
                 <Campo label="Seu nome" value={dados.nome} onChange={(valor) => setDados({ ...dados, nome: valor })} />
                 <Campo label="Empresa" value={dados.empresa} onChange={(valor) => setDados({ ...dados, empresa: valor })} />
                 <Campo label="E-mail" type="email" value={dados.email} onChange={(valor) => setDados({ ...dados, email: valor })} />
@@ -322,9 +347,11 @@ export default function SimuladorOrcamento() {
               <strong style={{ display: "block", fontSize: 31, marginTop: 3 }}>{moeda(totalMensal)}<span style={{ fontSize: 12, fontWeight: 500 }}>/mês</span></strong>
               <small style={{ display: "block", marginTop: 8, opacity: .85 }}>Investimento inicial: {moeda(totalImplantacao)}</small>
             </div>
-            <button type="button" onClick={gerarPdf} disabled={gerando} style={botaoPdf}>{gerando ? "Gerando PDF..." : "Finalizar e abrir orçamento em PDF"}</button>
+            <button type="button" onClick={gerarOrcamentoOnline} disabled={online.carregando} style={botaoOnline}>{online.carregando ? "Gerando seu orçamento..." : "Gerar meu orçamento e contratar →"}</button>
+            {online.erro && <p style={{ color: "#dc2626", fontSize: 12, margin: "8px 0 0", textAlign: "center" }}>{online.erro}</p>}
+            <button type="button" onClick={gerarPdf} disabled={gerando} style={botaoPdf}>{gerando ? "Gerando PDF..." : "Baixar orçamento em PDF"}</button>
             <button type="button" onClick={abrirWhatsApp} style={botaoWhats}>Falar com um especialista no WhatsApp</button>
-            <p style={{ color: "#94a3b8", fontSize: 10, lineHeight: 1.5, textAlign: "center", marginBottom: 0 }}>O orçamento é estimativo e válido por 7 dias. As condições finais são confirmadas pelo especialista.</p>
+            <p style={{ color: "#94a3b8", fontSize: 10, lineHeight: 1.5, textAlign: "center", marginBottom: 0 }}>Ao gerar o orçamento você recebe um link para conferir, aceitar e pagar a configuração inicial. Válido por 7 dias.</p>
           </aside>
         </div>
       </div>
@@ -359,5 +386,6 @@ const check: CSSProperties = { width: 28, height: 28, flex: "0 0 28px", borderRa
 const input: CSSProperties = { width: "100%", boxSizing: "border-box", border: "1px solid #dbe4f1", borderRadius: 12, padding: "13px 14px", background: "#fbfdff", color: "#17233b", outline: "none" };
 const resumo: CSSProperties = { position: "sticky", top: 88, background: "#fff", border: "1px solid #dce5f2", borderRadius: 25, padding: 24, boxShadow: "0 22px 60px rgba(15,23,42,.1)" };
 const linha: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, color: "#52627a", margin: "10px 0" };
-const botaoPdf: CSSProperties = { width: "100%", border: 0, borderRadius: 13, padding: "15px 12px", marginTop: 16, background: "#17233b", color: "#fff", fontWeight: 900, cursor: "pointer" };
+const botaoOnline: CSSProperties = { width: "100%", border: 0, borderRadius: 13, padding: "16px 12px", marginTop: 16, background: "linear-gradient(135deg,#059669,#0d9488)", color: "#fff", fontWeight: 900, fontSize: 15, cursor: "pointer", boxShadow: "0 12px 28px rgba(5,150,105,.28)" };
+const botaoPdf: CSSProperties = { width: "100%", border: 0, borderRadius: 13, padding: "14px 12px", marginTop: 10, background: "#17233b", color: "#fff", fontWeight: 900, cursor: "pointer" };
 const botaoWhats: CSSProperties = { width: "100%", border: "1px solid #16a34a", borderRadius: 13, padding: "14px 12px", marginTop: 10, background: "#ecfdf3", color: "#15803d", fontWeight: 900, cursor: "pointer" };

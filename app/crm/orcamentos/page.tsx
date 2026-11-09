@@ -11,7 +11,7 @@ type Orc = {
   id: string; numero: string; cliente_nome: string; cliente_telefone: string; usuarios_incluidos: number;
   mensalidade: number; configuracao: number; status: string; expira_em: string; visualizacoes: number;
   visualizado_em: string | null; aceito_em: string | null; implantacao: Implantacao | null; implantacao_em: string | null;
-  itens: ItemOrcamento[]; created_at: string; link: string;
+  itens: ItemOrcamento[]; created_at: string; link: string; criado_por?: string;
 };
 type Personalizado = { nome: string; sub: string; linhas: string; preco: string; cobranca: Cobranca };
 type Rascunho = {
@@ -370,7 +370,7 @@ export default function OrcamentosPage() {
               <div key={o.id} className="p-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-[220px] flex-1">
-                    <div className="flex flex-wrap items-center gap-2"><b>{o.cliente_nome}</b><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${cls}`}>{rotulo}</span>{o.implantacao_em && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">Dados recebidos</span>}{imp?.pagamento_realizado && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Diz que pagou</span>}</div>
+                    <div className="flex flex-wrap items-center gap-2"><b>{o.cliente_nome}</b><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${cls}`}>{rotulo}</span>{o.criado_por === "site" && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-700">🌐 Site</span>}{o.implantacao_em && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">Dados recebidos</span>}{imp?.pagamento_realizado && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Diz que pagou</span>}</div>
                     <div className="text-[12px] text-slate-500">{o.numero} · {o.usuarios_incluidos} usuários{tot.whatsapps ? ` · ${tot.whatsapps} WhatsApp${tot.whatsapps > 1 ? "s" : ""}` : ""} · {brlOrc(o.configuracao)} agora + {brlOrc(o.mensalidade)}/mês{tot.mensalDesconto > 0 ? ` (tabela ${brlOrc(tot.mensalTabela)})` : ""}</div>
                     <div className="mt-1 flex flex-wrap gap-1">{nomes.map((n) => <span key={n} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{n}</span>)}</div>
                     <div className="mt-1 text-[11px] text-slate-400">
