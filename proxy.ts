@@ -12,6 +12,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.rewrite(new URL("/redirect", request.url));
   }
 
+  // Subdomínio rev.* → módulo Revisional.
+  //   rev.wolfgyn.com.br/          → painel do consultor (/revisional)
+  //   rev.wolfgyn.com.br/p/<token> → proposta pública do cliente
+  if (host.startsWith("rev.")) {
+    if (pathname === "/") return NextResponse.rewrite(new URL("/revisional", request.url));
+    if (pathname.startsWith("/p/")) return NextResponse.rewrite(new URL(`/revisional${pathname}`, request.url));
+  }
+
   return NextResponse.next();
 }
 
