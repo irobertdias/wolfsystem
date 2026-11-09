@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { Fragment, useState, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { dataUltimaMensagem, ordenarAtendimentos, capturarPosicaoLista, restaurarPosicaoLista, type PosicaoLista, type OrdemAtendimentos } from "../../lib/ordenacao-atendimentos";
 import { criarIndiceUltimasMensagens } from "../../lib/ultima-mensagem-atendimentos";
 import { deveNotificarAtendimento } from "../../lib/notificacoes-atendimento";
@@ -2801,6 +2801,36 @@ export function ChatSection() {
   const tempoRelativo = (data: string) => { const d = Math.floor((Date.now() - new Date(data).getTime()) / 60000); return d < 1 ? "agora" : d < 60 ? `${d}min` : d < 1440 ? `${Math.floor(d/60)}h` : `${Math.floor(d/1440)}d`; };
   const horaMsg = (data: string) => new Date(data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const dataHoraMsg = (data: string) => new Date(data).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  // 📅 Separador de dia no chat (estilo WhatsApp): Hoje, Ontem, dia da semana ou data.
+  const chaveDia = (data?: string | null) => {
+    if (!data) return "";
+    const d = new Date(data);
+    return Number.isNaN(d.getTime()) ? "" : `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  };
+  const rotuloDia = (data: string) => {
+    const d = new Date(data);
+    const inicio = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const dias = Math.round((inicio(new Date()) - inicio(d)) / 86400000);
+    if (dias === 0) return "Hoje";
+    if (dias === 1) return "Ontem";
+    if (dias > 1 && dias < 7) {
+      const s = d.toLocaleDateString("pt-BR", { weekday: "long" });
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  };
+  const separadorDia = (i: number) => {
+    const atual = historico[i];
+    const dia = chaveDia(atual?.created_at);
+    if (!dia || (i > 0 && chaveDia(historico[i - 1]?.created_at) === dia)) return null;
+    return (
+      <div style={{ display: "flex", justifyContent: "center", margin: "8px 0 4px", position: "sticky", top: 0, zIndex: 2 }}>
+        <span style={{ background: "#ffffff", color: "#54656f", fontSize: 11.5, fontWeight: 700, padding: "5px 12px", borderRadius: 8, boxShadow: "0 1px 1px rgba(11,20,26,0.13)" }}>
+          {rotuloDia(atual.created_at as string)}
+        </span>
+      </div>
+    );
+  };
   const formatTempo = (s: number) => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
 
   const salvarCampoContato = async (campo: string, valor: any) => {
@@ -3304,6 +3334,8 @@ export function ChatSection() {
               {historico.length === 0
                 ? <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma mensagem ainda</p></div>
                 : historico.map((msg, i) => {
+                    const sepDia = separadorDia(i);
+                    const corpo = ((): ReactNode => {
                     if (msg.de === "sistema") {
                       return (
                         <div key={chaveMensagem(msg)} style={{ display: "flex", justifyContent: "center", margin: "4px 0" }}>
@@ -3429,7 +3461,7 @@ export function ChatSection() {
                             <p style={{ color: mensagemApagada ? "#667781" : "#111b21", fontSize: 14.2, margin: 0, lineHeight: 1.42, fontStyle: mensagemApagada ? "italic" : "normal", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{mensagemApagada ? "Esta mensagem foi apagada" : msgTextoLimpo}</p>
                           )}
                           {msg.created_at && (
-                            <p style={{ color: "#54656f", fontSize: 10.5, fontWeight: 600, margin: "3px 2px 0 0", textAlign: "right", lineHeight: 1 }}>
+                            <p title={dataHoraMsg(msg.created_at)} style={{ color: "#54656f", fontSize: 10.5, fontWeight: 600, margin: "3px 2px 0 0", textAlign: "right", lineHeight: 1 }}>
                               {foiEditada && <span style={{ fontStyle: "italic", marginRight: 6, opacity: 0.85 }}>editada</span>}
                               {horaMsg(msg.created_at)}{!isCliente && (() => {
                                 const entrega = statusLeituraMensagem(msg.status_entrega);
@@ -3440,6 +3472,8 @@ export function ChatSection() {
                         </div>
                       </div>
                     );
+                    })();
+                    return <Fragment key={chaveMensagem(msg)}>{sepDia}{corpo}</Fragment>;
                   })}
               <div ref={chatBottomRef} />
             </div>
