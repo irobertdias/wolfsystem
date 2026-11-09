@@ -380,6 +380,10 @@ body {
   min-height: 0;
   overflow: hidden;
 }
+/* No celular 100vh é maior que a área visível (barra do navegador): usa a altura real. */
+@supports (height: 100dvh) {
+  .wolf-chat-shell { height: 100dvh !important; }
+}
 
 .wolf-chat-navigation {
   width: 100% !important;
@@ -480,4 +484,9 @@ body {
   .wolf-chat-navigation { height: auto !important; min-height: 76px; overflow-x: auto !important; }
   .wolf-chat-navigation > div:first-child { width: 170px; min-width: 170px; padding: 10px !important; }
   .wolf-chat-return { padding: 0 10px !important; }
+  /* iPhone dá zoom ao focar campo com letra < 16px e a tela "quebra": mantém 16px. */
+  .wolf-chat-shell input,
+  .wolf-chat-shell textarea,
+  .wolf-chat-shell select { font-size: 16px !important; }
+  .wolf-chat-shell { position: fixed; inset: 0; width: 100%; }
 }

@@ -2887,7 +2887,7 @@ export function ChatSection() {
   });
 
   return (
-    <div style={{ display: "flex", flex: 1, height: "100%", minHeight: 0, overflow: "hidden" }}>
+    <div style={{ display: "flex", flex: 1, height: "100%", minHeight: 0, width: "100%", minWidth: 0, overflow: "hidden" }}>
       {/* 🔔 CSS de animação da bolinha azul piscando (notificação não lida) */}
       <style>{`
         @keyframes pulseBlue {
@@ -2902,7 +2902,7 @@ export function ChatSection() {
 
       {/* LISTA ESQUERDA — mobile: 100% largura quando nenhum chat aberto, esconde quando chat aberto */}
       <div style={{ width: isMobile ? "100%" : 340, background: tema.sidebarBg, borderRight: `1px solid ${tema.bordaSutil}`, display: isMobile && atendimentoAtivo ? "none" : "flex", flexDirection: "column" }}>
-        <div style={{ padding: "12px 14px", background: tema.headerBg, borderBottom: `1px solid ${tema.bordaSutil}`, display: "flex", gap: 8, alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+        <div style={{ padding: isMobile ? "12px 14px 12px 58px" : "12px 14px", background: tema.headerBg, borderBottom: `1px solid ${tema.bordaSutil}`, display: "flex", gap: 8, alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
           <div style={{ flex: 1, position: "relative" }}>
             <input
               placeholder="🔍 Buscar conversa, nome ou mensagem..."
@@ -3152,10 +3152,10 @@ export function ChatSection() {
       </div>
 
       {/* ÁREA DO CHAT — mobile: esconde quando nenhum chat aberto (mostra só a lista) */}
-      <div style={{ flex: 1, display: isMobile && !atendimentoAtivo ? "none" : "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: WA_BG_LIGHT, backgroundRepeat: "repeat", position: "relative", width: isMobile ? "100%" : "auto" }}>
+      <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden", display: isMobile && !atendimentoAtivo ? "none" : "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: WA_BG_LIGHT, backgroundRepeat: "repeat", position: "relative", width: isMobile ? "100%" : "auto" }}>
         {atendimentoAtivo ? (
           <>
-            <div style={{ padding: "10px 16px", borderBottom: `1px solid ${tema.bordaSutil}`, background: tema.headerBg, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div style={{ padding: isMobile ? "8px 8px 8px 56px" : "10px 16px", borderBottom: `1px solid ${tema.bordaSutil}`, background: tema.headerBg, display: "flex", justifyContent: "space-between", alignItems: "center", gap: isMobile ? 6 : 12, flexShrink: 0, position: "relative", zIndex: 5 }}>
               {isMobile && (
                 <button onClick={() => setAtendimentoAtivo(null)} title="Voltar para a lista"
                   style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer", fontSize: 24, padding: "4px 8px", marginLeft: -8, flexShrink: 0, lineHeight: 1 }}>←</button>
@@ -3330,7 +3330,7 @@ export function ChatSection() {
               </div>
             </div>
 
-            <div ref={scrollContainerRef} onScroll={onScrollChat} style={{ flex: 1, overflowY: "auto", padding: "18px clamp(14px, 7vw, 96px)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div ref={scrollContainerRef} onScroll={onScrollChat} style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: isMobile ? "12px 10px" : "18px clamp(14px, 7vw, 96px)", display: "flex", flexDirection: "column", gap: 8 }}>
               {historico.length === 0
                 ? <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#6b7280", fontSize: 13 }}>Nenhuma mensagem ainda</p></div>
                 : historico.map((msg, i) => {
