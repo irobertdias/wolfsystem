@@ -30,7 +30,8 @@ export type Modulos = {
   meta_ads: boolean;
 
   contratos_assinaturas: boolean;
-  rh: boolean;            // 🆕 Recursos Humanos
+  revisional: boolean;    // Revisional (simulação + propostas com link)
+  rh: boolean;           // 🆕 Recursos Humanos
   bater_ponto: boolean;   // 🆕 Bater Ponto
   financeiro: boolean;                          // 🆕 Financeiro (master)
   financeiro_opcoes: Record<string, boolean>;   // 🆕 subset de opções do workspace
@@ -50,7 +51,7 @@ const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
   vendedor_ia: false,
   roleta: false, disparos_web: false, validacao_numeros: false, disparos_api: false,
   voip: false, api_integracao: false, instagram: false,
-  cobranca: false, meta_ads: false,  contratos_assinaturas: false, rh: false, bater_ponto: false,
+  cobranca: false, meta_ads: false,  contratos_assinaturas: false, revisional: false, rh: false, bater_ponto: false,
   financeiro: false, financeiro_opcoes: {},
   plano: "basico",
 };
@@ -100,7 +101,7 @@ export function useModulos() {
         // isso os módulos voltariam todos false pro time interno da casa.
         if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           if (!cancelado) {
-            setModulos({ vendedor_ia: true, roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true,  contratos_assinaturas: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
+            setModulos({ vendedor_ia: true, roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true,  contratos_assinaturas: true, revisional: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -109,6 +110,11 @@ export function useModulos() {
         // Busca os módulos liberados no cadastro do dono
         const { data: cad } = await supabase.from("cadastros")
           .select("ia, modulo_roleta, modulo_disparos_web, modulo_validacao_numeros, modulo_disparos_api, modulo_voip, modulo_api_integracao, modulo_instagram, modulo_cobranca, modulo_meta_ads, modulo_contratos_assinaturas, modulo_rh, modulo_bater_ponto, modulo_financeiro, financeiro_opcoes, plano")
+          .eq("email", ownerEmail)
+          .maybeSingle();
+        // Revisional em consulta separada: se a coluna ainda não existir, só ele fica desligado.
+        const { data: cadRev } = await supabase.from("cadastros")
+          .select("modulo_revisional")
           .eq("email", ownerEmail)
           .maybeSingle();
 
@@ -126,6 +132,7 @@ export function useModulos() {
             meta_ads: !!cad?.modulo_meta_ads,
 
             contratos_assinaturas: !!cad?.modulo_contratos_assinaturas,
+            revisional: !!(cadRev as { modulo_revisional?: boolean } | null)?.modulo_revisional,
             rh: !!cad?.modulo_rh,                 // 🆕
             bater_ponto: !!cad?.modulo_bater_ponto, // 🆕
             financeiro: !!cad?.modulo_financeiro,

@@ -1,6 +1,28 @@
 import { randomBytes, randomUUID } from "crypto";
 import type { NextRequest } from "next/server";
-import { supabaseServer } from "../_auth";
+import { SUPER_ADMIN_EMAIL, exigirPermissao, supabaseServer, type AcessoWolf } from "../_auth";
+
+/**
+ * Módulo liberado pelo super admin (cadastros.modulo_revisional) + permissão do
+ * usuário (revisional_acessar; dono/administrador sempre têm).
+ * O workspace do próprio admin Wolf tem tudo liberado, como no useModulos.
+ */
+export async function exigirRevisional(acesso: AcessoWolf) {
+  if (!acesso.isSuperAdmin) {
+    const { data: ws } = await supabaseServer
+      .from("workspaces").select("owner_email").eq("username", acesso.workspaceId).maybeSingle();
+    const dono = String(ws?.owner_email || "").toLowerCase();
+    if (!dono) throw Object.assign(new Error("Workspace não encontrado"), { statusCode: 404 });
+    if (dono !== SUPER_ADMIN_EMAIL) {
+      const { data: cad, error } = await supabaseServer
+        .from("cadastros").select("modulo_revisional").ilike("email", dono).maybeSingle();
+      if (error || cad?.modulo_revisional !== true) {
+        throw Object.assign(new Error("Módulo Revisional não liberado para este workspace"), { statusCode: 403 });
+      }
+    }
+  }
+  exigirPermissao(acesso, "revisional_acessar");
+}
 
 export type ConfigRevisional = {
   workspace_id: string;

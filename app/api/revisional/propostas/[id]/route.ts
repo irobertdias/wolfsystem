@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { autenticarWorkspace, exigirPermissao, respostaErroAcesso, supabaseServer } from "../../../_auth";
-import { SEM_CACHE, lerConfig } from "../../_shared";
+import { autenticarWorkspace, respostaErroAcesso, supabaseServer } from "../../../_auth";
+import { SEM_CACHE, exigirRevisional, lerConfig } from "../../_shared";
 
 // PATCH { acao: "cancelar" | "renovar", horas? }
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -9,7 +9,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ success: false, error: "Proposta inválida" }, { status: 400 });
     const body = await request.json().catch(() => ({}));
     const acesso = await autenticarWorkspace(request, String(body.workspace || ""));
-    exigirPermissao(acesso, "revisional_acessar", "proposta_criar");
+    await exigirRevisional(acesso);
 
     const { data: proposta, error } = await supabaseServer
       .from("revisional_propostas").select("id,status,consultor_email")

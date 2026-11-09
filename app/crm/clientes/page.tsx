@@ -25,6 +25,7 @@ type Cadastro = {
   modulo_meta_ads?: boolean;
 
   modulo_contratos_assinaturas?: boolean;
+  modulo_revisional?: boolean;
   modulo_contratos_plano?: PlanoContratos;
   modulo_contratos_com_crm?: boolean;
   modulo_equipes?: boolean;
@@ -291,7 +292,7 @@ export default function Clientes() {
     nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
     username: "",
     usuarios_liberados: 5, conexoes_liberadas: 1,
-    modulo_meta_ads: false,  modulo_contratos_assinaturas: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
+    modulo_meta_ads: false,  modulo_contratos_assinaturas: false, modulo_revisional: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
     permite_webjs: true, permite_waba: false, permite_instagram: false,
     modulo_roleta: false, modulo_disparos_web: false, modulo_validacao_numeros: false, modulo_disparos_api: false,
     modulo_voip: false, modulo_api_integracao: false, modulo_instagram: false,
@@ -562,7 +563,7 @@ export default function Clientes() {
     setFormCadastro({
       nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
       username: "",
-      modulo_meta_ads: false,  modulo_contratos_assinaturas: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
+      modulo_meta_ads: false,  modulo_contratos_assinaturas: false, modulo_revisional: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
       usuarios_liberados: 5, conexoes_liberadas: 1,
       permite_webjs: true, permite_waba: false, permite_instagram: false,
       modulo_roleta: false, modulo_disparos_web: false, modulo_validacao_numeros: false, modulo_disparos_api: false,
@@ -720,7 +721,7 @@ export default function Clientes() {
         const respModulo = await fetch("/api/admin/cliente", {
           method: "PATCH",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tokenModulo },
-          body: JSON.stringify({ email: formCadastro.email, teste_config: testeCliente, modulo_contratos_assinaturas: !!formCadastro.modulo_contratos_assinaturas, modulo_contratos_plano: formCadastro.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: formCadastro.modulo_contratos_com_crm !== false }),
+          body: JSON.stringify({ email: formCadastro.email, teste_config: testeCliente, modulo_contratos_assinaturas: !!formCadastro.modulo_contratos_assinaturas, modulo_revisional: !!formCadastro.modulo_revisional, modulo_contratos_plano: formCadastro.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: formCadastro.modulo_contratos_com_crm !== false }),
         });
         const resultModulo = await respModulo.json();
         if (!resultModulo.success) { alert("Erro ao salvar Contratos e Assinaturas: " + resultModulo.error); setSalvandoCliente(false); return; }
@@ -1114,6 +1115,7 @@ export default function Clientes() {
                 <Toggle value={!!formCadastro.modulo_roleta} onChange={() => setFormCadastro({ ...formCadastro, modulo_roleta: !formCadastro.modulo_roleta })} label="🎯 Roleta de Distribuição" desc="Intermediário, Ultra" color="#3b82f6" />
                 <Toggle value={!!formCadastro.modulo_disparos_web} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_web: !formCadastro.modulo_disparos_web })} label="📤 Disparos Web" desc="Intermediário, Ultra" color="#3b82f6" />
                 <Toggle value={!!formCadastro.modulo_validacao_numeros} onChange={() => setFormCadastro({ ...formCadastro, modulo_validacao_numeros: !formCadastro.modulo_validacao_numeros })} label={"\u2705 Valida\u00e7\u00e3o de n\u00fameros"} desc={"Higieniza\u00e7\u00e3o de listas com canal exclusivo"} color="#0891b2" />
+                <Toggle value={!!formCadastro.modulo_revisional} onChange={() => setFormCadastro({ ...formCadastro, modulo_revisional: !formCadastro.modulo_revisional })} label="⚖️ Revisional" desc="Simulação de juros e propostas com link" color="#059669" />
                 <Toggle value={!!formCadastro.modulo_contratos_assinaturas} onChange={() => setFormCadastro({ ...formCadastro, modulo_contratos_assinaturas: !formCadastro.modulo_contratos_assinaturas })} label="📄 Contratos e Assinaturas" desc="Planos Essencial, Profissional e Empresarial" color="#155eef" />
                 {formCadastro.modulo_contratos_assinaturas && (() => {
                   const chave = (formCadastro.modulo_contratos_plano || "essencial") as PlanoContratos;
@@ -1480,6 +1482,7 @@ export default function Clientes() {
               <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>🎁 Módulos Liberados</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_roleta} icone="🎯" label="Roleta" cor="#3b82f6" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_revisional} icone="⚖️" label="Revisional" cor="#059669" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_contratos_assinaturas} icone="📄" label={`Contratos — ${CONTRATOS_PLANOS[cadastroSelecionado.modulo_contratos_plano || "essencial"].nome}`} cor="#155eef" />
 
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_meta_ads} icone="📊" label="Central Ads" cor="#7e22ce" />
@@ -1701,6 +1704,7 @@ export default function Clientes() {
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                          {c.modulo_revisional && <span style={{ fontSize: 14 }} title="Revisional">⚖️</span>}
                           {c.modulo_contratos_assinaturas && <span style={{ fontSize: 14 }} title={`Contratos — ${CONTRATOS_PLANOS[c.modulo_contratos_plano || "essencial"].nome} (${CONTRATOS_PLANOS[c.modulo_contratos_plano || "essencial"].limite})`}>📄</span>}
 
                           {c.modulo_meta_ads && <span style={{ fontSize: 14 }} title="Central Ads">📊</span>}
@@ -1717,7 +1721,7 @@ export default function Clientes() {
                           {c.modulo_rh && <span style={{ fontSize: 14 }} title="RH">🧑‍💼</span>}
                           {c.modulo_bater_ponto && <span style={{ fontSize: 14 }} title="Bater Ponto">🕐</span>}
                           {c.modulo_financeiro && <span style={{ fontSize: 14 }} title="Financeiro">💰</span>}
-                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_validacao_numeros && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && !c.modulo_financeiro && !c.modulo_meta_ads && !c.modulo_contratos_assinaturas && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
+                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_validacao_numeros && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && !c.modulo_financeiro && !c.modulo_meta_ads && !c.modulo_contratos_assinaturas && !c.modulo_revisional && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
                         </div>
                       </td>
 

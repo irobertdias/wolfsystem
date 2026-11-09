@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { autenticarWorkspace, respostaErroAcesso, supabaseServer } from "../../_auth";
-import { SEM_CACHE } from "../_shared";
+import { SEM_CACHE, exigirRevisional } from "../_shared";
 
 const n = (v: unknown, min: number, max: number, padrao: number) => {
   const x = Number(String(v ?? "").replace(",", "."));
@@ -11,6 +11,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const acesso = await autenticarWorkspace(request, String(body.workspace || ""));
+    await exigirRevisional(acesso);
     if (!(acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador)) {
       return NextResponse.json({ success: false, error: "Só o administrador altera as configurações" }, { status: 403 });
     }

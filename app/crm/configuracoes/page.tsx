@@ -86,6 +86,10 @@ const CATEGORIAS_PERMISSAO = [
     { key: "contratos_baixar", label: "Baixar contratos assinados" },
     { key: "contratos_configurar", label: "Configurar empresa e representantes" },
   ]},
+  { nome: "⚖️ Revisional", cor: "#059669", permissoes: [
+    { key: "revisional_acessar", label: "✅ Acessar o Revisional (simular e enviar propostas)" },
+    { key: "revisional_todas", label: "Ver propostas de todos os consultores" },
+  ]},
   { nome: "💬 Chatbot", cor: "#3b82f6", permissoes: [
     { key: "chatbot_acessar", label: "✅ Acessar o Chatbot" },
     { key: "chat_proprio", label: "Ver próprios atendimentos" },

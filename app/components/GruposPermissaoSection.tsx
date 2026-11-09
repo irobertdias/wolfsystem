@@ -48,6 +48,14 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
     ],
   },
   {
+    nome: "⚖️ Revisional",
+    cor: "#059669",
+    permissoes: [
+      { key: "revisional_acessar", label: "Acessar o Revisional (simular e enviar propostas)" },
+      { key: "revisional_todas", label: "↳ Ver propostas de todos os consultores" },
+    ],
+  },
+  {
     nome: "📄 Contratos",
     cor: "#155eef",
     permissoes: [

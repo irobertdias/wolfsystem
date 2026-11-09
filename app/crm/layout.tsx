@@ -200,6 +200,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const podeVerRH = podeVerComHierarquia(modulos.rh, "rh" as any);
   const podeVerFinanceiro = podeVerComHierarquia(modulos.financeiro, "financeiro_acessar" as any);
   const podeBaterPonto = podeVerComHierarquia(modulos.bater_ponto, "bater_ponto" as any);
+  const podeVerPropostasRevisional = podeVerComHierarquia(modulos.revisional, "revisional_acessar");
   const crmRotaAtiva = crmItems.some((i) => isActive(i.path));
 
   const perfilLabel = isSuperAdmin
@@ -243,6 +244,8 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     { path: "/chatbot", label: "Atendimento", icon: "💬", visivel: podeVerChatbot },
     { path: "/chatbot/vendas", label: "Vendas", icon: "💰", visivel: !revisional && modulosCarregados && modulos.vendedor_ia && (podeVerConfig || permissoes.vendas_proprio || permissoes.vendas_equipe) },
     { path: "/crm/contratos", label: "Contratos", icon: "📄", visivel: podeVerContratos },
+    // No workspace que já é escritório revisional (/crm/revisional), este vira "Propostas".
+    { path: "/crm/propostas-revisional", label: revisional ? "Propostas" : "Revisional", icon: revisional ? "📨" : "⚖️", visivel: modulosCarregados && podeVerPropostasRevisional },
     { path: "/crm/meta-ads", label: "Central Ads", icon: "📣", visivel: podeVerMetaAds },
     { path: "/crm/telefonia", label: "Telefonia", icon: "📞", visivel: modulosCarregados && podeVerTelefonia },
     { path: "/crm/cobranca", label: "Cobrança", icon: "💳", visivel: modulosCarregados && podeVerCobranca },

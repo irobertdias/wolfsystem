@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { autenticarWorkspace, exigirPermissao, respostaErroAcesso, supabaseServer, type AcessoWolf } from "../../_auth";
+import { autenticarWorkspace, respostaErroAcesso, supabaseServer, type AcessoWolf } from "../../_auth";
 import {
   calcularImovel, calcularVeiculo, normalizarImovel, normalizarVeiculo, validarDados,
   type TipoRevisional,
 } from "../../../lib/revisional";
-import { SEM_CACHE, lerConfig, linkPublico, novoNumero, novoToken, statusEfetivo } from "../_shared";
+import { SEM_CACHE, exigirRevisional, lerConfig, linkPublico, novoNumero, novoToken, statusEfetivo } from "../_shared";
 
 function veTodas(acesso: AcessoWolf) {
   return acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador || acesso.permissoes.revisional_todas === true;
@@ -13,7 +13,7 @@ function veTodas(acesso: AcessoWolf) {
 export async function GET(request: NextRequest) {
   try {
     const acesso = await autenticarWorkspace(request, request.nextUrl.searchParams.get("workspace") || "");
-    exigirPermissao(acesso, "revisional_acessar", "proposta_criar");
+    await exigirRevisional(acesso);
     let query = supabaseServer
       .from("revisional_propostas")
       .select("id,numero,token,tipo,status,cliente_nome,cliente_documento,cliente_telefone,consultor_nome,consultor_email,resultado,dados,expira_em,visualizada_em,visualizacoes,respondida_em,motivo_recusa,created_at")
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const acesso = await autenticarWorkspace(request, String(body.workspace || ""));
-    exigirPermissao(acesso, "revisional_acessar", "proposta_criar");
+    await exigirRevisional(acesso);
 
     const tipo: TipoRevisional = body.tipo === "veiculo" ? "veiculo" : "imovel";
     const clienteNome = String(body.cliente_nome || "").trim().slice(0, 160);
