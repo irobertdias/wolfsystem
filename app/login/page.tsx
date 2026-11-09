@@ -11,6 +11,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
 
+  // No subdomínio rev.* (módulo Revisional) o login volta para o painel do consultor.
+  const irParaInicio = () => {
+    if (window.location.host.startsWith("rev.")) { window.location.href = "/"; return; }
+    router.push("/crm");
+  };
+
   const handleLogin = async () => {
     if (!email || !password) { setErro("Preencha e-mail e senha!"); return; }
     setLoading(true);
@@ -23,12 +29,12 @@ export default function Login() {
       const { data: workspace } = await supabase.from("workspaces").select("id, ativo").eq("owner_id", data.user.id).single();
       if (workspace) {
         if (workspace.ativo !== true) { setErro("Seu acesso ainda não foi autorizado pelo administrador!"); await supabase.auth.signOut(); return; }
-        router.push("/crm"); return;
+        irParaInicio(); return;
       }
 
       // 2. Verifica se é usuário de algum workspace
       const { data: usuarioWs } = await supabase.from("usuarios_workspace").select("workspace_id").eq("email", email).single();
-      if (usuarioWs) { router.push("/crm"); return; }
+      if (usuarioWs) { irParaInicio(); return; }
 
       // 3. Verifica se está autorizado no cadastro
       const { data: cadastro } = await supabase.from("cadastros").select("autorizado").eq("email", email).single();
@@ -38,7 +44,7 @@ export default function Login() {
         return;
       }
 
-      router.push("/crm");
+      irParaInicio();
     }
   };
 
