@@ -38,7 +38,9 @@ export default function ConfigFinanceiro() {
   async function salvar() {
     if (!wsId) return;
     setSalvando(true); setSalvo(false);
-    await supabase.from("fin_config").upsert({ workspace_id: wsId, regime, config: { ...c } }, { onConflict: "workspace_id" });
+    // Mantém outras chaves de config (ex.: `revisional`) que esta tela não edita.
+    const { data: atual } = await supabase.from("fin_config").select("config").eq("workspace_id", wsId).maybeSingle();
+    await supabase.from("fin_config").upsert({ workspace_id: wsId, regime, config: { ...((atual as any)?.config || {}), ...c } }, { onConflict: "workspace_id" });
     setSalvando(false); setSalvo(true); setTimeout(() => setSalvo(false), 2500);
   }
   const set = (k: string, v: string) => setC((p: any) => ({ ...p, [k]: v }));

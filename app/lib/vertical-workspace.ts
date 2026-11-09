@@ -2,14 +2,21 @@
 // de internet (instalação, operadora). Workspaces de outro ramo recebem os textos
 // próprios aqui, sem mudar nada para os demais.
 
-export type Vertical = "telecom" | "consignado";
+export type Vertical = "telecom" | "consignado" | "revisional";
 
 const VERTICAL_POR_WORKSPACE: Record<string, Vertical> = {
   blennerjuridico: "consignado",
+  teste1: "revisional",
 };
 
 export function verticalDoWorkspace(workspaceId?: string | number | null): Vertical {
   return VERTICAL_POR_WORKSPACE[String(workspaceId ?? "").trim().toLowerCase()] || "telecom";
+}
+
+// Workspaces de revisão de contratos financeiros: sem telas de vendas, com o
+// módulo Revisional (/crm/revisional) no lugar do CRM comercial.
+export function ehRevisional(workspaceId?: string | number | null): boolean {
+  return verticalDoWorkspace(workspaceId) === "revisional";
 }
 
 export type Vocabulario = {

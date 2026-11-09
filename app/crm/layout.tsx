@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { usePermissao } from "../hooks/usePermissao";
 import { useModulos } from "../hooks/useModulos";
+import { useWorkspace } from "../hooks/useWorkspace";
+import { ehRevisional } from "../lib/vertical-workspace";
 import AuthGuard from "../components/AuthGuard";
 import PontoGuard from "../components/PontoGuard";
 
@@ -14,6 +16,10 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   const { permissoes, isDono, isSuperAdmin, perfil } = usePermissao();
   const { modulos, carregado: modulosCarregados } = useModulos();
+  const { wsId: wsAberto } = useWorkspace();
+  // Workspace de revisão de contratos: sem telas de vendas; o módulo
+  // Revisional ocupa o lugar da Visão e do CRM comercial.
+  const revisional = ehRevisional(wsAberto);
 
   const [userEmail, setUserEmail] = useState("");
   const [userNome, setUserNome] = useState("");
@@ -225,10 +231,17 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   const launchers = [
     ...(isSuperAdmin ? [{ path: "/crm/clientes", label: "Clientes", icon: "👥", visivel: true }] : []),
-    { path: "/crm/visao", label: "Visão", icon: "📊", visivel: true },
-    { path: crmItems[0]?.path || "/crm/dashboard", label: "CRM", icon: "🎯", visivel: podeVerCRM },
+    ...(revisional
+      ? [
+          { path: "/crm/revisional", label: "Revisional", icon: "⚖️", visivel: true },
+          { path: "/crm/contatos", label: "Contatos", icon: "👥", visivel: crmItems.some((i) => i.path === "/crm/contatos") },
+        ]
+      : [
+          { path: "/crm/visao", label: "Visão", icon: "📊", visivel: true },
+          { path: crmItems[0]?.path || "/crm/dashboard", label: "CRM", icon: "🎯", visivel: podeVerCRM },
+        ]),
     { path: "/chatbot", label: "Atendimento", icon: "💬", visivel: podeVerChatbot },
-    { path: "/chatbot/vendas", label: "Vendas", icon: "💰", visivel: modulosCarregados && modulos.vendedor_ia && (podeVerConfig || permissoes.vendas_proprio || permissoes.vendas_equipe) },
+    { path: "/chatbot/vendas", label: "Vendas", icon: "💰", visivel: !revisional && modulosCarregados && modulos.vendedor_ia && (podeVerConfig || permissoes.vendas_proprio || permissoes.vendas_equipe) },
     { path: "/crm/contratos", label: "Contratos", icon: "📄", visivel: podeVerContratos },
     { path: "/crm/meta-ads", label: "Central Ads", icon: "📣", visivel: podeVerMetaAds },
     { path: "/crm/telefonia", label: "Telefonia", icon: "📞", visivel: modulosCarregados && podeVerTelefonia },
@@ -239,7 +252,18 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     { path: "/crm/configuracoes", label: "Ajustes", icon: "⚙️", visivel: podeVerConfig },
   ].filter((item) => item.visivel);
 
+  const inicio = revisional ? "/crm/revisional" : "/crm/visao";
+
+  // Telas de vendas não existem no workspace revisional: manda para o módulo.
+  useEffect(() => {
+    if (!revisional) return;
+    if (["/crm/visao", "/crm/dashboard", "/crm/funil", "/crm/vendas", "/crm/proposta", "/crm/editor-proposta"].includes(pathname)) {
+      router.replace("/crm/revisional");
+    }
+  }, [revisional, pathname, router]);
+
   const launcherAtivo = (path: string) => {
+    if (revisional && path === "/crm/contatos") return pathname.startsWith("/crm/contatos");
     if (path === "/crm/visao" || path === "/chatbot" || path === "/crm/clientes") {
       return pathname === path || (path === "/chatbot" && pathname.startsWith("/chatbot/"));
     }
@@ -265,7 +289,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     <AuthGuard>
       <div className="wolf-premium-shell">
         <header className="wolf-premium-header">
-          <button className="wolf-premium-brand" onClick={() => navegarPara("/crm/visao")}>
+          <button className="wolf-premium-brand" onClick={() => navegarPara(inicio)}>
             <span className="wolf-premium-brand-mark">
               <img src="/logo1.png" alt="Wolf System" />
             </span>
@@ -316,7 +340,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               <span className="plan-info">👥 {usuariosCount}/{limiteUsuarios} usuários</span>
             )}
             <span className="system-status"><i /> Sistema operacional</span>
-            <button onClick={() => navegarPara("/crm/visao")}>Visão executiva</button>
+            <button onClick={() => navegarPara(inicio)}>{revisional ? "Painel revisional" : "Visão executiva"}</button>
           </div>
         </div>
 

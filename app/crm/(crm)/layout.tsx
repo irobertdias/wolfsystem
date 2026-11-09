@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { usePermissao } from "../../hooks/usePermissao";
+import { useWorkspace } from "../../hooks/useWorkspace";
+import { ehRevisional } from "../../lib/vertical-workspace";
 
 const COR = "#16a34a";
 const COR_TEXTO = "#15803d";
@@ -18,6 +20,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const { isDono, isSuperAdmin, permissoes } = usePermissao();
+  const { wsId } = useWorkspace();
 
   const [isMobile, setIsMobile] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
@@ -44,7 +47,9 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
     };
   }, []);
 
-  const itens: Item[] = [
+  const revisional = ehRevisional(wsId);
+
+  const itensTodos: Item[] = [
     ...((isSuperAdmin || isDono || permissoes.dashboard)
       ? [{ path: "/crm/dashboard", icon: "📈", label: "Dashboard de Vendas" }]
       : []),
@@ -58,6 +63,8 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
       ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos" }]
       : []),
   ];
+  // Workspace revisional: nada de vendas aqui, só a lista de contatos.
+  const itens = revisional ? itensTodos.filter((i) => i.path === "/crm/contatos") : itensTodos;
 
   const ativo = (path: string) => pathname === path;
 
@@ -190,7 +197,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
                   textTransform: "uppercase",
                 }}
               >
-                Comercial &amp; Vendas
+                {revisional ? "Contatos dos clientes" : "Comercial & Vendas"}
               </span>
             </div>
           </div>
