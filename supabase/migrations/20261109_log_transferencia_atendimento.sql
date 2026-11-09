@@ -15,7 +15,8 @@ declare
   mudou_fila boolean := coalesce(nullif(trim(new.fila), ''), '') is distinct from coalesce(nullif(trim(old.fila), ''), '')
                         and coalesce(nullif(trim(new.fila), ''), '') <> '';
   mudou_atendente boolean := coalesce(nullif(trim(new.atendente), ''), '') is distinct from coalesce(nullif(trim(old.atendente), ''), '')
-                             and coalesce(nullif(trim(new.atendente), ''), '') <> '';
+                             and coalesce(nullif(trim(new.atendente), ''), '') <> ''
+                             and upper(trim(new.atendente)) <> 'BOT';
   nome_atendente text;
   texto text;
 begin
