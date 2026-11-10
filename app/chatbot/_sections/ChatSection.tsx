@@ -2891,12 +2891,13 @@ export function ChatSection() {
 
   const renderBotaoAcaoLista = (a: Atendimento) => {
     const aba = classificarAba(a);
-    if (aba === "automatico") return <button onClick={(e) => pararBotDaLista(e, a)} title="Parar BOT e assumir" style={{ background: "#dc2626", color: "#0F172A", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>Parar BOT</button>;
-    if (aba === "aguardando") return <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir atendimento" style={{ background: "#f59e0b", color: "#0F172A", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>Atender</button>;
-    if (aba === "finalizados") return <button onClick={(e) => { e.stopPropagation(); reabrirChat(a); }} title="Reabrir esta conversa" style={{ background: "#f59e0b", color: "#0F172A", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>Reabrir</button>;
+    if (aba === "automatico") return <button onClick={(e) => pararBotDaLista(e, a)} title="Parar BOT e assumir" style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 999, padding: "5px 12px", fontSize: 11.5, cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap" }}>Parar bot</button>;
+    if (aba === "aguardando") return <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir atendimento" style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#FFFFFF", border: "none", borderRadius: 999, padding: "5px 14px", fontSize: 11.5, cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap", boxShadow: "0 4px 10px -4px rgba(5,150,105,.8)" }}>Atender</button>;
+    if (aba === "finalizados") return <button onClick={(e) => { e.stopPropagation(); reabrirChat(a); }} title="Reabrir esta conversa" style={{ background: "#ECFDF5", color: "#047857", border: "none", borderRadius: 999, padding: "5px 12px", fontSize: 11.5, cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap" }}>Reabrir</button>;
     return null;
   };
 
+  const acaoPainel: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10, width: "100%", height: 46, padding: "0 16px", background: "#FFFFFF", color: "#0F172A", border: "none", borderRadius: 14, fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 8px 20px -14px rgba(16,24,40,.2)" };
   const botaoComp: React.CSSProperties = { width: 40, height: 40, flexShrink: 0, borderRadius: 12, border: 0, background: "#FFFFFF", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 1px 3px rgba(16,24,40,.08)", padding: 0 };
   const botaoToolbar = (cor: string = "#475569") => ({
     background: cor === "#475569" || cor === "#64748B" ? "#F3F6F5" : `${cor}14`,
@@ -3013,12 +3014,12 @@ export function ChatSection() {
         </div>
 
         {abaConversa === "finalizados" && podeVerTudo && (
-          <div style={{ background: "#ECFDF5", borderBottom: "1px solid #A7F3D0", borderLeft: "3px solid #059669", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <div style={{ background: "#FFFFFF", margin: "0 12px 8px", borderRadius: 14, boxShadow: "0 1px 2px rgba(16,24,40,.05), inset 0 0 0 1px #EEF2F1", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ color: "#065F46", fontSize: 12, fontWeight: 700, margin: 0 }}>
-                {mostrarTodosFinalizados ? "👁️ Todos os finalizados" : "👤 Só os meus finalizados"}
+              <p style={{ color: "#0F172A", fontSize: 12.5, fontWeight: 800, margin: 0 }}>
+                {mostrarTodosFinalizados ? "Todos os finalizados" : "Só os meus finalizados"}
               </p>
-              <p style={{ color: "#059669", fontSize: 10, margin: "2px 0 0", fontWeight: 500 }}>
+              <p style={{ color: "#64748B", fontSize: 11, margin: "2px 0 0", fontWeight: 500 }}>
                 {mostrarTodosFinalizados ? "Visualizando de todos os atendentes" : "Ative pra ver os de outros atendentes"}
               </p>
             </div>
@@ -3034,9 +3035,9 @@ export function ChatSection() {
           const qtde2dias = contarPendentesAntigos(2);
           if (qtde2dias === 0) return null;
           return (
-            <div style={{ background: ehClaro ? "#fff8e1" : "#0d1418", borderBottom: `1px solid ${tema.bordaSutil}`, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div style={{ background: "#FFF7ED", margin: "0 12px 8px", borderRadius: 14, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ color: ehClaro ? "#92400e" : "#f59e0b", fontSize: 12, fontWeight: "bold", margin: 0 }}>
+                <p style={{ color: "#9A3412", fontSize: 12.5, fontWeight: 800, margin: 0 }}>
                   {qtde2dias} pendente(s) há +2 dias
                 </p>
                 <p style={{ color: tema.textoFraco, fontSize: 10, margin: "2px 0 0" }}>
@@ -3044,7 +3045,7 @@ export function ChatSection() {
                 </p>
               </div>
               <button onClick={() => setShowEncerrarAntigos(true)}
-                style={{ background: "#f59e0b22", color: "#f59e0b", border: "1px solid #f59e0b66", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: "bold", cursor: "pointer", whiteSpace: "nowrap" }}>
+                style={{ background: "#EA580C", color: "#FFFFFF", border: "none", borderRadius: 999, padding: "6px 14px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>
                 Limpar
               </button>
             </div>
@@ -3491,7 +3492,7 @@ export function ChatSection() {
             {!stickyFundo && (
               <button onClick={irParaFundo} title={temMensagemNova ? "Nova mensagem recebida — clique pra ver" : "Ir para a última mensagem"}
                 style={{ position: "absolute", right: isMobile ? 68 : 92, bottom: 90, width: 42, height: 42, borderRadius: "50%", background: temMensagemNova ? "#059669" : "#FFFFFF", border: "none", color: temMensagemNova ? "#FFFFFF" : "#334155", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 20px -8px rgba(16,24,40,.35)", zIndex: 10, fontWeight: "bold" }}>
-                {temMensagemNova && <span style={{ position: "absolute", top: -4, right: -4, width: 12, height: 12, background: "#dc2626", borderRadius: "50%", border: "2px solid #ffffff" }} />}
+                <Icone nome="baixo" tamanho={18} espessura={2.2} />{temMensagemNova && <span style={{ position: "absolute", top: -4, right: -4, width: 12, height: 12, background: "#dc2626", borderRadius: "50%", border: "2px solid #ffffff" }} />}
               </button>
             )}
 
@@ -3797,68 +3798,76 @@ export function ChatSection() {
 
       {/* PAINEL DADOS DO CONTATO — mobile: fullscreen overlay; desktop: sidebar 340px */}
       {atendimentoAtivo && showPainelContato && (
-        <div style={{ width: isMobile ? "100%" : 340, background: "#ffffff", borderLeft: "1px solid #E6ECEA", display: "flex", flexDirection: "column", overflow: "hidden", position: isMobile ? "fixed" : "relative", top: isMobile ? 0 : "auto", left: isMobile ? 0 : "auto", right: isMobile ? 0 : "auto", bottom: isMobile ? 0 : "auto", zIndex: isMobile ? 100 : "auto", height: isMobile ? "100vh" : "auto" }}>
-          <div style={{ padding: "16px 18px", borderBottom: "1px solid #E6ECEA", background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+        <div style={{ width: isMobile ? "100%" : 330, background: "#FBFCFB", borderLeft: "1px solid #EEF2F1", display: "flex", flexDirection: "column", overflow: "hidden", position: isMobile ? "fixed" : "relative", top: isMobile ? 0 : "auto", left: isMobile ? 0 : "auto", right: isMobile ? 0 : "auto", bottom: isMobile ? 0 : "auto", zIndex: isMobile ? 100 : "auto", height: isMobile ? "100vh" : "auto" }}>
+          <div style={{ padding: "18px 18px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <h3 style={{ color: "#ffffff", fontSize: 15, fontWeight: 700, margin: 0, letterSpacing: 0.2 }}>Dados do Contato</h3>
-              <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 11, margin: "3px 0 0", fontWeight: 500 }}>{salvandoContato ? "💾 Salvando..." : "Auto-salvo"}</p>
+              <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: 0 }}>Dados do contato</h3>
+              <p style={{ color: salvandoContato ? "#047857" : "#94A3B8", fontSize: 11.5, margin: "2px 0 0", fontWeight: 600 }}>{salvandoContato ? "Salvando..." : "Salvo automaticamente"}</p>
             </div>
-            <button onClick={() => setShowPainelContato(false)} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#ffffff", fontSize: 14, cursor: "pointer", width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }} onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.3)"} onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}>✕</button>
+            <button onClick={() => setShowPainelContato(false)} title="Fechar" style={{ background: "#F3F6F5", border: "none", color: "#475569", cursor: "pointer", width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
           </div>
 
           {/* 🎨 ABAS DO PAINEL — visual tech com containers coloridos */}
-          <div style={{ display: "flex", borderBottom: "1px solid #E6ECEA", background: "#ffffff", padding: "8px 6px", gap: 4 }}>
+          <div role="tablist" aria-label="Seções do contato" style={{ display: "flex", background: "#EEF2F1", padding: 4, gap: 2, borderRadius: 12, margin: "0 16px 6px" }}>
             {[
-              { key: "perfil",    icon: "👤", label: "Perfil",    cor: "#3b82f6" },
-              { key: "midia",     icon: "🖼️", label: "Mídia",     cor: "#00a884" },
-              { key: "protocolo", icon: "📋", label: "Protocolo", cor: "#10b981" },
-              { key: "funil",     icon: "🎯", label: "Funil",     cor: "#f59e0b" },
-              { key: "etiquetas", icon: "🏷️", label: "Tags",      cor: "#ec4899" },
-              { key: "ia",        icon: "🤖", label: "IA",        cor: "#8b5cf6" },
-              { key: "utils",     icon: "🔧", label: "Utils",     cor: "#64748B" },
+              { key: "perfil",    icon: "usuario",   label: "Perfil" },
+              { key: "midia",     icon: "pasta",     label: "Mídia" },
+              { key: "protocolo", icon: "documento", label: "Protocolo" },
+              { key: "funil",     icon: "funil",     label: "Funil" },
+              { key: "etiquetas", icon: "tag",       label: "Etiquetas" },
+              { key: "ia",        icon: "robo",      label: "Automação" },
+              { key: "utils",     icon: "config",    label: "Ações" },
             ].map(a => {
               const ativa = abaPainel === a.key;
               return (
-                <button key={a.key} onClick={() => setAbaPainel(a.key as any)} title={a.label}
-                  style={{ flex: 1, padding: "6px 2px", background: ativa ? `${a.cor}12` : "transparent", border: "none", borderRadius: 8, cursor: "pointer", position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "all 0.15s" }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 7, background: ativa ? a.cor : `${a.cor}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, boxShadow: ativa ? `0 3px 8px ${a.cor}40` : "none", transition: "all 0.15s" }}>
-                    <span style={{ filter: ativa ? "saturate(0) brightness(2)" : "none" }}>{<IconeEmoji e={a.icon} />}</span>
-                  </div>
-                  <span style={{ color: ativa ? a.cor : "#94A3B8", fontSize: 9, fontWeight: ativa ? 700 : 500 }}>{a.label}</span>
+                <button key={a.key} role="tab" aria-selected={ativa} onClick={() => setAbaPainel(a.key as any)} title={a.label}
+                  style={{ flex: 1, height: 34, background: ativa ? "#FFFFFF" : "transparent", border: "none", borderRadius: 9, cursor: "pointer", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", color: ativa ? "#059669" : "#64748B", boxShadow: ativa ? "0 2px 6px rgba(16,24,40,.1)" : "none", transition: "all 0.15s" }}>
+                  <Icone nome={a.icon} tamanho={16} />
                   {a.key === "etiquetas" && etiquetasAtendimento.length > 0 && (
-                    <span style={{ position: "absolute", top: 2, right: 4, background: "#ec4899", color: "#ffffff", borderRadius: 10, minWidth: 14, height: 14, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, padding: "0 4px", boxShadow: "0 2px 4px rgba(236,72,153,0.4)" }}>{etiquetasAtendimento.length}</span>
+                    <span style={{ position: "absolute", top: 1, right: 1, background: "#059669", color: "#ffffff", borderRadius: 999, minWidth: 14, height: 14, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, padding: "0 3px" }}>{etiquetasAtendimento.length}</span>
                   )}
                 </button>
               );
             })}
           </div>
+          <p style={{ margin: "0 18px 4px", color: "#94A3B8", fontSize: 11.5, fontWeight: 700 }}>{({ perfil: "Perfil", midia: "Mídia da conversa", protocolo: "Protocolo e notas", funil: "Funil de vendas", etiquetas: "Etiquetas", ia: "Automação", utils: "Ações" } as Record<string, string>)[abaPainel] || ""}</p>
 
-          <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: "8px 16px 18px" }}>
             {abaPainel === "perfil" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ textAlign: "center", padding: "10px 0" }}>
-                  <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38, margin: "0 auto 12px", boxShadow: "0 8px 20px rgba(5,150,105,0.25)" }}><span style={{ filter: "saturate(0) brightness(2)" }}>👤</span></div>
-                  <p style={{ color: "#0F172A", fontSize: 14, fontWeight: "bold", margin: 0 }}>{atendimentoAtivo.nome}</p>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center", padding: "6px 0 2px" }}>
+                  <div style={{ width: 72, height: 72, borderRadius: 22, background: "linear-gradient(140deg, #D1FAE5, #6EE7B7)", color: "#065F46", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, boxShadow: "0 12px 24px -12px rgba(5,150,105,.6)" }}>{iniciaisNome(atendimentoAtivo.nome || atendimentoAtivo.numero)}</div>
+                  <p style={{ color: "#0F172A", fontSize: 17, fontWeight: 800, margin: "4px 0 0" }}>{atendimentoAtivo.nome}</p>
+                  <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>{atendimentoAtivo.created_at ? `Contato desde ${new Date(atendimentoAtivo.created_at).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}` : numeroSanitizado(atendimentoAtivo.numero)}</p>
                 </div>
+                {(atendimentoAtivo.funil_etapa || Number(atendimentoAtivo.valor) > 0) && (
+                  <div style={{ position: "relative", overflow: "hidden", borderRadius: 18, padding: 18, color: "#FFFFFF", background: "linear-gradient(140deg, #059669, #065F46)", boxShadow: "0 16px 32px -16px rgba(6,95,70,.7)", display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div aria-hidden="true" style={{ position: "absolute", right: -40, top: -40, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,.1)" }} />
+                    <span style={{ color: "rgba(255,255,255,.8)", fontSize: 12, fontWeight: 700 }}>Negócio aberto</span>
+                    <span style={{ fontSize: 15, fontWeight: 800 }}>{funilEtapas.find(e => e.opcao === atendimentoAtivo.funil_etapa)?.opcao || atendimentoAtivo.funil_etapa || "Sem etapa"}</span>
+                    {Number(atendimentoAtivo.valor) > 0 && <span style={{ fontSize: 26, fontWeight: 800 }}>{Number(atendimentoAtivo.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>}
+                    <button onClick={() => setAbaPainel("funil")} style={{ position: "relative", marginTop: 6, height: 40, borderRadius: 11, border: 0, background: "#FFFFFF", color: "#065F46", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Ver no funil</button>
+                  </div>
+                )}
                 <PreviaBiblioteca mensagens={historico} urlMidia={audioUrl} onAbrir={() => { setAbaBiblioteca("midia"); setAbaPainel("midia"); }} />
                 <div>
-                  <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Nome *</label>
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Nome *</label>
                   <input value={atendimentoAtivo.nome || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, nome: e.target.value })} onBlur={e => salvarCampoContato("nome", e.target.value)} style={inputSm} />
                 </div>
                 <div>
-                  <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Telefone</label>
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Telefone</label>
                   <input value={atendimentoAtivo.numero || ""} disabled style={{ ...inputSm, opacity: 0.6 }} />
                 </div>
                 <div>
-                  <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Canal</label>
-                  <input value={atendimentoAtivo.canal_id ? `${iconeCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)} ${nomeDoCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem)}` : "—"} disabled style={{ ...inputSm, opacity: 0.6 }} />
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Canal</label>
+                  <input value={atendimentoAtivo.canal_id ? nomeDoCanal(atendimentoAtivo.canal_id, atendimentoAtivo.origem) : "—"} disabled style={{ ...inputSm, opacity: 0.7 }} />
                 </div>
                 <div>
-                  <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>E-mail</label>
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>E-mail</label>
                   <input type="email" placeholder="contato@email.com" value={atendimentoAtivo.email || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, email: e.target.value })} onBlur={e => salvarCampoContato("email", e.target.value)} style={inputSm} />
                 </div>
                 <div>
-                  <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Atendente</label>
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Atendente</label>
                   <input value={atendimentoAtivo.atendente ? nomeDoAtendente(atendimentoAtivo.atendente) : "—"} disabled style={{ ...inputSm, opacity: 0.6 }} />
                 </div>
               </div>
@@ -3869,20 +3878,20 @@ export function ChatSection() {
             )}
             {abaPainel === "protocolo" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ background: "#D1FAE5", borderRadius: 8, padding: 12 }}>
-                  <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase" }}>Número do Protocolo</label>
-                  <p style={{ color: "#00a884", fontSize: 16, fontWeight: "bold", margin: "4px 0 0", fontFamily: "monospace" }}>#{String(atendimentoAtivo.id).padStart(6, "0")}</p>
+                <div style={{ background: "#FFFFFF", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 8px 20px -14px rgba(16,24,40,.2)" }}>
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }}>Número do protocolo</label>
+                  <p style={{ color: "#047857", fontSize: 20, fontWeight: 800, margin: "4px 0 0", letterSpacing: ".02em" }}>#{String(atendimentoAtivo.id).padStart(6, "0")}</p>
                 </div>
                 <div>
-                  <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Avaliação</label>
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>Avaliação</label>
                   <div style={{ display: "flex", gap: 6 }}>
                     {[1, 2, 3, 4, 5].map(n => (
-                      <button key={n} onClick={() => salvarCampoContato("avaliacao", n)} style={{ background: (atendimentoAtivo.avaliacao || 0) >= n ? "#f59e0b" : "#0F172A", border: "1px solid #E6ECEA", borderRadius: 6, padding: "8px 12px", fontSize: 16, cursor: "pointer" }}>⭐</button>
+                      <button key={n} onClick={() => salvarCampoContato("avaliacao", n)} title={`${n} estrela(s)`} style={{ background: (atendimentoAtivo.avaliacao || 0) >= n ? "#FEF3C7" : "#F3F6F5", color: (atendimentoAtivo.avaliacao || 0) >= n ? "#D97706" : "#CBD5E1", border: "none", borderRadius: 10, width: 40, height: 40, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="estrela" tamanho={18} /></button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Notas</label>
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Notas</label>
                   <textarea value={atendimentoAtivo.notas || ""} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, notas: e.target.value })} onBlur={e => salvarCampoContato("notas", e.target.value)} rows={8} style={{ ...inputSm, resize: "vertical", minHeight: 100 }} />
                 </div>
               </div>
@@ -3891,13 +3900,13 @@ export function ChatSection() {
             {abaPainel === "funil" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
-                  <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Etapa</label>
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Etapa</label>
                   <select value={atendimentoAtivo.funil_etapa || ""} onChange={e => salvarCampoContato("funil_etapa", e.target.value)} style={inputSm}>
                     <option value="">Sem etapa</option>
                     {funilEtapas.length > 0 ? (
                       funilEtapas.map(et => (
                         <option key={et.opcao} value={et.opcao}>
-                          {et.tipo === "ganho" ? "✅ " : et.tipo === "perdido" ? "❌ " : "▸ "}{et.opcao}
+                          {et.opcao}{et.tipo === "ganho" ? " (ganho)" : et.tipo === "perdido" ? " (perdido)" : ""}
                         </option>
                       ))
                     ) : (
@@ -3914,7 +3923,7 @@ export function ChatSection() {
                   </select>
                   {funilEtapas.length > 0 ? (
                     <p style={{ color: "#94A3B8", fontSize: 10, margin: "6px 0 0", lineHeight: 1.4 }}>
-                      Etapas sincronizadas com o seu <b>Funil de Vendas</b> (definidas no Editor de Proposta). ✅ = ganho · ❌ = perdido.
+                      Etapas sincronizadas com o seu <b>Funil de Vendas</b> (definidas no Editor de Proposta).
                     </p>
                   ) : (
                     <p style={{ color: "#94A3B8", fontSize: 10, margin: "6px 0 0", lineHeight: 1.4 }}>
@@ -3923,7 +3932,7 @@ export function ChatSection() {
                   )}
                 </div>
                 <div>
-                  <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Valor (R$)</label>
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Valor (R$)</label>
                   <input type="number" step="0.01" value={atendimentoAtivo.valor || 0} onChange={e => setAtendimentoAtivo({ ...atendimentoAtivo, valor: parseFloat(e.target.value) || 0 })} onBlur={e => salvarCampoContato("valor", parseFloat(e.target.value) || 0)} style={inputSm} />
                 </div>
               </div>
@@ -3941,11 +3950,11 @@ export function ChatSection() {
                       const marcada = etiquetasAtendimento.includes(et.id);
                       return (
                         <button key={et.id} onClick={() => toggleEtiqueta(et.id)}
-                          style={{ background: marcada ? `${et.cor}15` : "#ffffff", border: `1px solid ${marcada ? et.cor : "#E6ECEA"}`, borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", transition: "all 0.15s", boxShadow: marcada ? `0 2px 6px ${et.cor}25` : "0 1px 2px rgba(0,0,0,0.03)" }}
+                          style={{ background: marcada ? `${et.cor}12` : "#ffffff", border: `1px solid ${marcada ? et.cor : "#EEF2F1"}`, borderRadius: 12, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", transition: "all 0.15s", boxShadow: marcada ? `0 2px 6px ${et.cor}25` : "0 1px 2px rgba(0,0,0,0.03)" }}
                           onMouseEnter={(e) => { if (!marcada) { e.currentTarget.style.background = "#F7FAF9"; e.currentTarget.style.borderColor = "#CBD5E1"; } }}
                           onMouseLeave={(e) => { if (!marcada) { e.currentTarget.style.background = "#ffffff"; e.currentTarget.style.borderColor = "#E6ECEA"; } }}>
                           <div style={{ background: marcada ? et.cor : `${et.cor}20`, borderRadius: 7, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0, transition: "background 0.15s" }}>
-                            <span style={{ filter: marcada ? "saturate(0) brightness(2)" : "none" }}>{et.icone || "🏷️"}</span>
+                            <span style={{ color: marcada ? "#FFFFFF" : et.cor, display: "inline-flex" }}><Icone nome="tag" tamanho={15} /></span>
                           </div>
                           <span style={{ flex: 1, color: marcada ? et.cor : "#0F172A", fontSize: 13, fontWeight: marcada ? 700 : 600, textAlign: "left" }}>{et.nome}</span>
                           {marcada && <span style={{ background: et.cor, color: "#ffffff", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, boxShadow: `0 2px 6px ${et.cor}50` }}>✓</span>}
@@ -3959,13 +3968,13 @@ export function ChatSection() {
 
             {abaPainel === "ia" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {[{ key: "bloqueado_ia", label: "ChatGPT / IA", cor: "#059669" }, { key: "bloqueado_typebot", label: "TypeBOT", cor: "#3b82f6" }].map(item => {
+                {[{ key: "bloqueado_ia", label: "ChatGPT / IA", cor: "#059669" }, { key: "bloqueado_typebot", label: "TypeBOT", cor: "#059669" }].map(item => {
                   const bloqueado = !!(atendimentoAtivo as any)[item.key];
                   return (
-                    <div key={item.key} style={{ background: "#D1FAE5", borderRadius: 10, padding: 14 }}>
+                    <div key={item.key} style={{ background: "#FFFFFF", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 8px 20px -14px rgba(16,24,40,.2)" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <p style={{ color: "#0F172A", fontSize: 13, fontWeight: "bold", margin: 0 }}>{item.label}</p>
-                        <button onClick={() => salvarCampoContato(item.key, !bloqueado)} style={{ width: 44, height: 24, background: bloqueado ? "#dc2626" : item.cor, borderRadius: 12, cursor: "pointer", border: "none", position: "relative" }}>
+                        <div><p style={{ color: "#0F172A", fontSize: 13.5, fontWeight: 800, margin: 0 }}>{item.label}</p><p style={{ color: bloqueado ? "#B91C1C" : "#047857", fontSize: 12, fontWeight: 600, margin: "2px 0 0" }}>{bloqueado ? "Desligado nesta conversa" : "Ligado nesta conversa"}</p></div>
+                        <button onClick={() => salvarCampoContato(item.key, !bloqueado)} aria-label={bloqueado ? "Ligar" : "Desligar"} style={{ width: 44, height: 24, background: bloqueado ? "#CBD5E1" : item.cor, borderRadius: 12, cursor: "pointer", border: "none", position: "relative" }}>
                           <div style={{ width: 18, height: 18, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: bloqueado ? 23 : 3, transition: "left 0.2s" }} />
                         </button>
                       </div>
@@ -3977,9 +3986,9 @@ export function ChatSection() {
 
             {abaPainel === "utils" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <button onClick={exportarPDF} style={{ background: "#dc262622", color: "#dc2626", border: "1px solid #dc262633", borderRadius: 8, padding: "12px", fontSize: 13, cursor: "pointer", fontWeight: "bold" }}>Exportar Histórico em PDF</button>
-                <button onClick={() => { navigator.clipboard.writeText(numeroSanitizado(atendimentoAtivo.numero)); notify("Número copiado.", "sucesso"); }} style={{ background: "#16a34a22", color: "#059669", border: "1px solid #16a34a33", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>Copiar número</button>
-                <button onClick={() => window.open(`https://wa.me/${numeroSanitizado(atendimentoAtivo.numero)}`, "_blank")} style={{ background: "#3b82f622", color: "#059669", border: "1px solid #3b82f633", borderRadius: 8, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: "bold" }}>Abrir no WhatsApp Web</button>
+                <button onClick={exportarPDF} style={acaoPainel}><Icone nome="download" tamanho={17} /> Exportar histórico em PDF</button>
+                <button onClick={() => { navigator.clipboard.writeText(numeroSanitizado(atendimentoAtivo.numero)); notify("Número copiado.", "sucesso"); }} style={acaoPainel}><Icone nome="copiar" tamanho={17} /> Copiar número</button>
+                <button onClick={() => window.open(`https://wa.me/${numeroSanitizado(atendimentoAtivo.numero)}`, "_blank")} style={acaoPainel}><Icone nome="whatsapp" tamanho={17} /> Abrir no WhatsApp Web</button>
               </div>
             )}
           </div>
