@@ -18,7 +18,7 @@ import {
   type CampoCustom,
 } from "../../../lib/campos_proposta_definicao";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎯 FUNIL DE VENDAS — MOTOR GENÉRICO MULTI-VERTICAL
 // ───────────────────────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ type CampoUni = CampoUnificado & {
 };
 
 type PeriodoKey = "semanal" | "mensal" | "trimestral" | "ano" | "tudo" | "custom";
-type AbaKey = "visao" | "etapas" | "dimensoes" | "vendedores" | "atendimentos" | "metas" | "temporal" | "cohort" | "horarios" | "lista";
+type AbaKey = "quadro" | "visao" | "etapas" | "dimensoes" | "vendedores" | "atendimentos" | "metas" | "temporal" | "cohort" | "horarios" | "lista";
 type OrdemLista = "recente" | "antiga" | "valor_desc" | "valor_asc" | "nome_az";
 
 // Configuração semântica do funil (o que cada coisa significa neste workspace)
@@ -355,7 +355,7 @@ export default function Funil() {
   const [filtrosDim, setFiltrosDim] = useState<Record<string, string>>({});
 
   // ─── NAVEGAÇÃO ────────────────────────────────────────────────────────────
-  const [aba, setAba] = useState<AbaKey>("visao");
+  const [aba, setAba] = useState<AbaKey>("quadro");
   const [etapaAberta, setEtapaAberta] = useState<string | null>(null); // opção do status em drilldown
   const [dimensaoSel, setDimensaoSel] = useState<string>("");          // slug da dimensão na aba "dimensoes"
 
@@ -1550,29 +1550,29 @@ export default function Funil() {
               const at = periodo === p.key;
               return (
                 <button key={p.key} onClick={() => setPeriodo(p.key)}
-                  style={{ background: at ? `${p.cor}15` : "#ffffff", color: at ? p.cor : "#64748B", border: `1px solid ${at ? `${p.cor}50` : "#E6ECEA"}`, borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: at ? 700 : 600, boxShadow: at ? `0 2px 8px ${p.cor}20` : "none", transition: "all 0.15s" }}>
-                  {<IconeEmoji e={p.icone} />} {p.label}
+                  style={{ background: at ? "#ECFDF5" : "#ffffff", color: at ? "#047857" : "#475569", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: at ? 800 : 600, boxShadow: at ? "inset 0 0 0 1.5px #A7F3D0" : "inset 0 0 0 1px #EEF2F1", transition: "all 0.15s" }}>
+                  {p.label}
                 </button>
               );
             })}
             {/* Botão Personalizado (calendário) */}
             <button onClick={() => setPeriodo("custom")}
-              style={{ background: periodo === "custom" ? "#ec489915" : "#ffffff", color: periodo === "custom" ? "#ec4899" : "#64748B", border: `1px solid ${periodo === "custom" ? "#ec489950" : "#E6ECEA"}`, borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: periodo === "custom" ? 700 : 600, boxShadow: periodo === "custom" ? "0 2px 8px #ec489920" : "none", transition: "all 0.15s" }}>
+              style={{ background: periodo === "custom" ? "#ECFDF5" : "#ffffff", color: periodo === "custom" ? "#047857" : "#475569", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: periodo === "custom" ? 800 : 600, boxShadow: periodo === "custom" ? "inset 0 0 0 1.5px #A7F3D0" : "inset 0 0 0 1px #EEF2F1", transition: "all 0.15s" }}>
               Personalizado
             </button>
           </div>
           {/* Campos de data quando custom */}
           {periodo === "custom" && (
-            <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end", background: "#fdf2f8", border: "1px solid #fbcfe8", borderRadius: 10, padding: 12 }}>
+            <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end", background: "#F7FAF9", borderRadius: 12, padding: 12 }}>
               <div>
-                <label style={{ color: "#9d174d", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5 }}>De</label>
+                <label style={{ color: "#047857", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5 }}>De</label>
                 <input type="date" value={dataInicio} max={dataFim || undefined} onChange={e => setDataInicio(e.target.value)}
-                  style={{ ...inputStyle, cursor: "text", borderColor: "#fbcfe8" }} />
+                  style={{ ...inputStyle, cursor: "text", borderColor: "#E6ECEA" }} />
               </div>
               <div>
-                <label style={{ color: "#9d174d", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5 }}>Até</label>
+                <label style={{ color: "#047857", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5 }}>Até</label>
                 <input type="date" value={dataFim} min={dataInicio || undefined} onChange={e => setDataFim(e.target.value)}
-                  style={{ ...inputStyle, cursor: "text", borderColor: "#fbcfe8" }} />
+                  style={{ ...inputStyle, cursor: "text", borderColor: "#E6ECEA" }} />
               </div>
               {/* Atalhos rápidos */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1582,12 +1582,12 @@ export default function Funil() {
                   { l: "Este ano", calc: () => { const n = new Date(); return [new Date(n.getFullYear(), 0, 1), new Date(n.getFullYear(), 11, 31)] as [Date, Date]; } },
                 ]).map(a => (
                   <button key={a.l} onClick={() => { const [i, f] = a.calc(); setDataInicio(i.toISOString().slice(0, 10)); setDataFim(f.toISOString().slice(0, 10)); }}
-                    style={{ background: "#ffffff", color: "#9d174d", border: "1px solid #fbcfe8", borderRadius: 8, padding: "7px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                    style={{ background: "#ffffff", color: "#047857", border: "1px solid #E6ECEA", borderRadius: 8, padding: "7px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
                     {a.l}
                   </button>
                 ))}
               </div>
-              {(!dataInicio || !dataFim) && <span style={{ color: "#9d174d", fontSize: 11, fontWeight: 600, alignSelf: "center" }}>escolha as duas datas</span>}
+              {(!dataInicio || !dataFim) && <span style={{ color: "#047857", fontSize: 11, fontWeight: 600, alignSelf: "center" }}>escolha as duas datas</span>}
             </div>
           )}
         </div>
@@ -1632,8 +1632,9 @@ export default function Funil() {
       </div>
 
       {/* ═══ TABS ═══ */}
-      <div style={{ ...cardStyle, padding: 6, display: "flex", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ ...cardStyle, padding: 5, display: "flex", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch", alignSelf: "flex-start", maxWidth: "100%" }}>
         {([
+          { key: "quadro",     label: "Quadro",      icone: "", color: "#059669" },
           { key: "visao",      label: "Visão Geral", icone: "📊", color: "#059669" },
           { key: "etapas",     label: "Etapas",      icone: "🎯", color: "#059669" },
           { key: "dimensoes",  label: "Quebras",     icone: "🧩", color: "#059669" },
@@ -1648,8 +1649,8 @@ export default function Funil() {
           const at = aba === t.key;
           return (
             <button key={t.key} onClick={() => setAba(t.key)}
-              style={{ background: at ? `linear-gradient(135deg, ${t.color} 0%, ${t.color}dd 100%)` : "transparent", color: at ? "white" : "#64748B", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: at ? `0 4px 12px ${t.color}40` : "none", transition: "all 0.15s", whiteSpace: "nowrap", flexShrink: 0 }}>
-              {<IconeEmoji e={t.icone} />} {t.label}
+              style={{ background: at ? "#059669" : "transparent", color: at ? "#FFFFFF" : "#475569", border: "none", borderRadius: 9, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: at ? 800 : 600, boxShadow: at ? "0 8px 18px -8px rgba(5,150,105,.7)" : "none", transition: "all 0.15s", whiteSpace: "nowrap", flexShrink: 0 }}>
+              {t.label}
             </button>
           );
         })}
@@ -1662,13 +1663,33 @@ export default function Funil() {
       ) : metricas.total === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
           <div style={{ width: 80, height: 80, borderRadius: 20, background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, margin: "0 auto 16px", boxShadow: "0 12px 24px rgba(5,150,105,0.25)" }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🎯</span>
+            <Icone nome="funil" tamanho={36} cor="#FFFFFF" espessura={1.7} />
           </div>
-          <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Sem registros no período</h3>
-          <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>Amplie o período, limpe filtros, ou confira a config do funil (⚙️).</p>
+          <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: "0 0 8px" }}>Sem negócios no período</h3>
+          <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>Aumente o período, limpe os filtros ou confira a configuração do funil.</p>
         </div>
       ) : (
         <>
+          {/* ════════════ ABA: QUADRO (A2) ════════════ */}
+          {aba === "quadro" && (
+            <QuadroFunil
+              etapas={etapas}
+              props={propsFiltradas}
+              statusDe={statusDe}
+              valorDe={valorDe}
+              nomeDe={(p) => lerTexto(p, camposMap.get("nome")) || (p as any).nome || "Sem nome"}
+              detalheDe={(p) => {
+                const dim = dimensoesDisponiveis[0];
+                return dim ? lerTexto(p, dim) : "";
+              }}
+              vendedorDe={(p) => nomeVendedor(p.vendedor)}
+              diasParado={config?.diasParado ?? 14}
+              resumo={{ abertos: metricas.pipelineCount, valorPipeline: metricas.valorPipeline, winRate: metricas.winRate }}
+              onAbrir={() => router.push("/crm/vendas")}
+              isMobile={isMobile}
+            />
+          )}
+
           {/* ════════════ ABA: VISÃO GERAL ════════════ */}
           {aba === "visao" && (
             <>
@@ -2523,6 +2544,108 @@ function Mini({ label, valor, cor, bg, icone, isMobile }: {
       {icone && <p style={{ fontSize: 14, margin: "0 0 2px" }}>{<IconeEmoji e={icone} />}</p>}
       <p style={{ color: cor, fontSize: isMobile ? 14 : 16, fontWeight: 800, margin: 0, letterSpacing: -0.3, wordBreak: "break-word" }}>{valor}</p>
       <p style={{ color: "#64748B", fontSize: 9, margin: "2px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</p>
+    </div>
+  );
+}
+
+// ─── QUADRO DO FUNIL (visual A2) ─────────────────────────────────────────────
+const CORES_ETAPA = ["#94A3B8", "#A7F3D0", "#34D399", "#10B981", "#059669", "#047857"];
+function iniciaisDe(t: string) {
+  const p = String(t || "").replace(/[^\p{L}\p{N} ]/gu, " ").trim().split(/\s+/).filter(Boolean);
+  return ((p[0]?.[0] || "?") + (p[1]?.[0] || "")).toUpperCase();
+}
+function haQuanto(iso?: string | null) {
+  if (!iso) return "";
+  const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (min < 60) return min <= 1 ? "agora" : `há ${min} min`;
+  if (min < 1440) return `há ${Math.floor(min / 60)} h`;
+  const d = Math.floor(min / 1440);
+  return d === 1 ? "ontem" : `há ${d} dias`;
+}
+function compactoBRL(v: number) {
+  if (Math.abs(v) >= 1000) return `R$ ${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil`;
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+}
+
+function QuadroFunil({ etapas, props, statusDe, valorDe, nomeDe, detalheDe, vendedorDe, diasParado, resumo, onAbrir, isMobile }: {
+  etapas: Array<{ opcao: string; qtd: number; valor: number; tipo: string }>;
+  props: Proposta[];
+  statusDe: (p: Proposta) => string;
+  valorDe: (p: Proposta) => number;
+  nomeDe: (p: Proposta) => string;
+  detalheDe: (p: Proposta) => string;
+  vendedorDe: (p: Proposta) => string;
+  diasParado: number;
+  resumo: { abertos: number; valorPipeline: number; winRate: number };
+  onAbrir: () => void;
+  isMobile: boolean;
+}) {
+  const [mostrarPerdidos, setMostrarPerdidos] = useState(false);
+  const LIMITE = 30;
+  // Ordem: etapas em aberto, depois ganho, depois perdido.
+  const peso = (tipo: string) => (tipo === "ganho" ? 1 : tipo === "perdido" ? 2 : 0);
+  const visiveis = etapas.filter((e) => e.tipo !== "perdido" || mostrarPerdidos).sort((a, b) => peso(a.tipo) - peso(b.tipo));
+  const perdidas = etapas.filter((e) => e.tipo === "perdido");
+  let iPipe = 0;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ color: "#64748B", fontSize: 14 }}>
+          {resumo.abertos} negócio(s) aberto(s) · <b style={{ color: "#0F172A" }}>{resumo.valorPipeline.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b> em negociação · conversão de {resumo.winRate}%
+        </span>
+        {perdidas.length > 0 && (
+          <button onClick={() => setMostrarPerdidos((v) => !v)} style={{ marginLeft: "auto", border: 0, background: "#FFFFFF", color: "#475569", borderRadius: 10, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: "inset 0 0 0 1px #EEF2F1" }}>
+            {mostrarPerdidos ? "Esconder perdidos" : `Mostrar perdidos (${perdidas.reduce((s, e) => s + e.qtd, 0)})`}
+          </button>
+        )}
+      </div>
+      <div style={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: isMobile ? "86%" : "minmax(270px, 1fr)", gap: 16, overflowX: "auto", paddingBottom: 8, alignItems: "start" }}>
+        {visiveis.map((e) => {
+          const cor = e.tipo === "ganho" ? "#059669" : e.tipo === "perdido" ? "#DC2626" : CORES_ETAPA[Math.min(iPipe++, CORES_ETAPA.length - 1)];
+          const cards = props.filter((p) => statusDe(p) === e.opcao)
+            .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
+          const ganho = e.tipo === "ganho";
+          return (
+            <section key={e.opcao} aria-label={`Etapa ${e.opcao}`} style={{ background: ganho ? "linear-gradient(180deg, #ECFDF5, #E3F5EC)" : "#EAF0EE", borderRadius: 20, padding: 14, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 6px" }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: cor, flexShrink: 0 }} />
+                <span style={{ fontSize: 14, fontWeight: 800, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={e.opcao}>{e.opcao}</span>
+                <span style={{ background: "#FFFFFF", color: "#475569", borderRadius: 999, padding: "1px 8px", fontSize: 12, fontWeight: 700 }}>{e.qtd}</span>
+                <span style={{ marginLeft: "auto", color: ganho ? "#047857" : "#64748B", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap" }}>{compactoBRL(e.valor)}</span>
+              </div>
+              {cards.length === 0 && (
+                <div style={{ border: "1.5px dashed #CBD5E1", borderRadius: 14, padding: "18px 12px", textAlign: "center", color: "#94A3B8", fontSize: 12.5, fontWeight: 600 }}>Nenhum negócio aqui</div>
+              )}
+              {cards.slice(0, LIMITE).map((p) => {
+                const ref = p.updated_at || p.created_at;
+                const dias = Math.floor((Date.now() - new Date(ref).getTime()) / 86400000);
+                const parado = e.tipo === "pipeline" && dias >= diasParado;
+                const detalhe = detalheDe(p);
+                const vend = vendedorDe(p);
+                return (
+                  <button key={p.id} onClick={onAbrir} style={{ textAlign: "left", border: 0, cursor: "pointer", background: "#FFFFFF", borderRadius: 16, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 8, boxShadow: parado ? "0 1px 2px rgba(16,24,40,.05), 0 10px 22px -14px rgba(16,24,40,.25), inset 0 0 0 1.5px #FED7AA" : "0 1px 2px rgba(16,24,40,.05), 0 10px 22px -14px rgba(16,24,40,.25)" }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 800, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>{nomeDe(p)}</span>
+                    {(detalhe || parado) && (
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {detalhe && <span style={{ background: "#F1F5F4", color: "#475569", borderRadius: 999, padding: "2px 9px", fontSize: 11, fontWeight: 700 }}>{detalhe}</span>}
+                        {parado && <span style={{ background: "#FFF7ED", color: "#C2410C", borderRadius: 999, padding: "2px 9px", fontSize: 11, fontWeight: 700 }}>{dias} dias parado</span>}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 8, borderTop: "1px solid #F1F5F4", width: "100%" }}>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>{valorDe(p).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                      <span style={{ marginLeft: "auto", color: "#94A3B8", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>{haQuanto(ref)}</span>
+                      {vend && vend !== "—" && <span title={vend} style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{iniciaisDe(vend)}</span>}
+                    </div>
+                  </button>
+                );
+              })}
+              {cards.length > LIMITE && (
+                <button onClick={onAbrir} style={{ border: 0, background: "rgba(255,255,255,.6)", borderRadius: 12, padding: 10, fontSize: 13, fontWeight: 700, color: "#475569", cursor: "pointer" }}>+ {cards.length - LIMITE} negócio(s) · ver em Vendas</button>
+              )}
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 }
