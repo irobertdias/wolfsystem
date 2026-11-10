@@ -409,6 +409,22 @@ export default function Clientes() {
     } catch { alert("Erro ao autorizar!"); }
   };
 
+  // "Acessar como cliente": link de uso único para entrar no workspace do cliente sem senha.
+  const [acessoSuporte, setAcessoSuporte] = useState<{ url: string; nome: string; email: string; copiado?: boolean } | null>(null);
+  const [gerandoAcesso, setGerandoAcesso] = useState<number | null>(null);
+  const acessarComoCliente = async (c: Cadastro) => {
+    setGerandoAcesso(c.id);
+    try {
+      const token = await getToken();
+      if (!token) { alert("Sessão expirou."); return; }
+      const r = await fetch("/api/admin/acessar-cliente", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ cadastroId: c.id }) });
+      const j = await r.json();
+      if (!j.success) { alert("Não foi possível gerar o acesso: " + j.error); return; }
+      const frag = new URLSearchParams({ th: j.tokenHash, e: j.email, n: j.nome || c.nome || "" }).toString();
+      setAcessoSuporte({ url: `${window.location.origin}/login/suporte#${frag}`, nome: c.empresa || c.nome, email: j.email });
+    } finally { setGerandoAcesso(null); }
+  };
+
   const desautorizarCadastro = async (c: Cadastro) => {
     if (!confirm(`Desautorizar ${c.nome}?`)) return;
     await supabase.from("cadastros").update({ autorizado: false }).eq("id", c.id);
@@ -857,6 +873,33 @@ export default function Clientes() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+      {/* Acessar como cliente */}
+      {acessoSuporte && (
+        <div onClick={() => setAcessoSuporte(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ ...cardStyle, borderRadius: 24, padding: 26, width: "100%", maxWidth: 520, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <span style={{ width: 42, height: 42, borderRadius: 13, background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="seta" tamanho={19} espessura={2.3} /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "#0F172A" }}>Acessar como {acessoSuporte.nome}</h2>
+                <p style={{ margin: "3px 0 0", fontSize: 13.5, color: "#64748B" }}>Entra no workspace com o login de <b>{acessoSuporte.email}</b>, sem senha.</p>
+              </div>
+              <button onClick={() => setAcessoSuporte(null)} title="Fechar" style={{ background: "#F3F6F5", border: "none", color: "#64748B", cursor: "pointer", width: 32, height: 32, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
+            </div>
+            <ol style={{ margin: 0, paddingLeft: 20, color: "#334155", fontSize: 14, lineHeight: 1.7 }}>
+              <li>Copie o link abaixo.</li>
+              <li>Abra uma <b>janela anônima</b> (Ctrl + Shift + N) e cole o link.</li>
+              <li>Pronto: você entra no sistema do cliente e sua conta de admin continua aberta aqui.</li>
+            </ol>
+            <div style={{ background: "#F7FAF9", borderRadius: 12, padding: "10px 12px", fontFamily: "monospace", fontSize: 12, color: "#475569", wordBreak: "break-all", maxHeight: 74, overflow: "hidden" }}>{acessoSuporte.url}</div>
+            <button onClick={async () => { try { await navigator.clipboard.writeText(acessoSuporte.url); setAcessoSuporte({ ...acessoSuporte, copiado: true }); } catch { alert("Não consegui copiar. Selecione o link e copie manualmente."); } }}
+              style={{ height: 48, borderRadius: 14, border: 0, cursor: "pointer", color: "#fff", fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", boxShadow: "0 14px 26px -14px rgba(5,150,105,.8)" }}>
+              <Icone nome={acessoSuporte.copiado ? "check" : "copiar"} tamanho={17} /> {acessoSuporte.copiado ? "Link copiado" : "Copiar link"}
+            </button>
+            <p style={{ margin: 0, fontSize: 12.5, color: "#94A3B8" }}>O link funciona uma vez só e vale por 1 hora. O acesso fica registrado.</p>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════
           MODAL CRIAR/EDITAR
@@ -1766,6 +1809,8 @@ export default function Clientes() {
                             : <button onClick={() => desautorizarCadastro(c)}
                                 style={{ background: "#FFF7ED", color: "#C2410C", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 600 }} title="Suspender acesso"><Icone nome="cadeado" tamanho={15} /></button>
                           }
+                          <button onClick={() => acessarComoCliente(c)} title="Acessar como cliente" disabled={!c.autorizado || gerandoAcesso === c.id}
+                            style={{ background: "#0F172A", color: "#fff", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: c.autorizado ? "pointer" : "not-allowed", opacity: c.autorizado ? 1 : 0.35 }}><Icone nome="seta" tamanho={15} espessura={2.3} /></button>
                           <button onClick={() => abrirEditar(c)}
                             style={{ background: "#ECFDF5", color: "#059669", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="editar" tamanho={15} /></button>
                           <button onClick={() => excluirCadastro(c)}

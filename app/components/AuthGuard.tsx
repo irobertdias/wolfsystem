@@ -50,7 +50,10 @@ export default function AuthGuard({
       if (cancelado) return;
 
       // Login criado pelo administrador: no primeiro acesso o cliente cria a própria senha.
-      if (session?.user?.user_metadata?.trocar_senha === true) {
+      // (no acesso de suporte o admin não troca a senha do cliente)
+      let modoSuporte = false;
+      try { modoSuporte = !!sessionStorage.getItem("wolf_modo_suporte"); } catch {}
+      if (session?.user?.user_metadata?.trocar_senha === true && !modoSuporte) {
         router.replace("/login/nova-senha?primeiro=1");
         setEstado("negado");
         return;
@@ -153,7 +156,26 @@ export default function AuthGuard({
     return null;
   }
 
-  return <>{children}</>;
+  return <>{children}<FaixaSuporte /></>;
+}
+
+// Selo discreto quando o super admin está no workspace de um cliente pelo "Acessar como cliente".
+function FaixaSuporte() {
+  const [email, setEmail] = useState("");
+  useEffect(() => { try { setEmail(sessionStorage.getItem("wolf_modo_suporte") || ""); } catch {} }, []);
+  if (!email) return null;
+  const sair = async () => {
+    try { sessionStorage.removeItem("wolf_modo_suporte"); sessionStorage.removeItem("wolf_sessao_validada"); } catch {}
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+  return (
+    <div style={{ position: "fixed", left: "50%", bottom: 14, transform: "translateX(-50%)", zIndex: 3000, display: "flex", alignItems: "center", gap: 10, background: "#0F172A", color: "#fff", borderRadius: 999, padding: "8px 8px 8px 16px", fontSize: 13, fontWeight: 600, boxShadow: "0 14px 30px -12px rgba(15,23,42,.6)" }}>
+      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FBBF24" }} />
+      Modo suporte · {email}
+      <button onClick={sair} style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "6px 12px", background: "rgba(255,255,255,.14)", color: "#fff", fontSize: 12.5, fontWeight: 800 }}>Sair</button>
+    </div>
+  );
 }
 
 // ─── Helper: checar se é super admin ──────────────────────────────────────
