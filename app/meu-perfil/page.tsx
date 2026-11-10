@@ -312,7 +312,7 @@ export default function MeuPerfilPage() {
           <div style={{ position: "relative" }}>
             <div style={{
               width: 110, height: 110, borderRadius: "50%",
-              background: fotoUrl ? `url(${fotoUrl}) center/cover` : "linear-gradient(135deg, #f59e0b 0%, #ec4899 100%)",
+              background: fotoUrl ? `url(${fotoUrl}) center/cover` : "linear-gradient(135deg, #C2410C 0%, #BE185D 100%)",
               border: "5px solid #fff",
               boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -391,7 +391,7 @@ export default function MeuPerfilPage() {
           </div>
 
           {/* ──────── DADOS PESSOAIS ──────── */}
-          <h2 style={{ fontSize: 13, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>
+          <h2 style={{ fontSize: 13, fontWeight: 800, color: "#64748B", margin: "0 0 12px" }}>
             Dados Pessoais
           </h2>
 
@@ -418,7 +418,7 @@ export default function MeuPerfilPage() {
           </div>
 
           {/* ──────── SENHA ──────── */}
-          <h2 style={{ fontSize: 13, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 800, color: "#64748B", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
             Trocar Senha
             <span style={{ color: "#94A3B8", fontWeight: 500, fontSize: 11, textTransform: "none", letterSpacing: 0 }}>
               (opcional — deixe em branco pra não trocar)
@@ -466,7 +466,7 @@ export default function MeuPerfilPage() {
 
             {novaSenha && (
               <div style={{
-                background: "#fef3c7", border: "1px solid #fde68a",
+                background: "#FFEDD5", border: "1px solid #fde68a",
                 borderRadius: 8, padding: "10px 14px",
                 fontSize: 11.5, color: "#92400e",
               }}>
@@ -491,11 +491,11 @@ export default function MeuPerfilPage() {
               onClick={salvar}
               disabled={salvando}
               style={{
-                background: salvando ? "#a5b4fc" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                background: salvando ? "#6EE7B7" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                 color: "#fff", border: "none", borderRadius: 10,
                 padding: "11px 26px", fontSize: 13, fontWeight: 800,
                 cursor: salvando ? "wait" : "pointer",
-                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
               }}>
               {salvando ? "Salvando..." : "Salvar Alterações"}
             </button>
@@ -511,9 +511,10 @@ const INPUT_STYLE: React.CSSProperties = {
   width: "100%",
   padding: "11px 14px",
   border: "1px solid #E6ECEA",
-  borderRadius: 10,
-  fontSize: 13.5,
-  background: "#fff",
+  borderRadius: 12,
+  fontSize: 14,
+  fontWeight: 600,
+  background: "#F7FAF9",
   color: "#0F172A",
   outline: "none",
   fontFamily: "inherit",
@@ -524,7 +525,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label style={{
         display: "block", fontSize: 11, fontWeight: 700,
-        color: "#334155", textTransform: "uppercase",
+        color: "#334155",
         letterSpacing: 0.5, marginBottom: 6,
       }}>
         {label}
