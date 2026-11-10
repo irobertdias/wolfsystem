@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import Icone from "../../components/a2/Icone";
 import {
   CONFIGURACAO_PADRAO, MODULOS, PLANOS, PRECO_USUARIO, PRECO_WHATSAPP, brlOrc, calcularOrcamento, pctOrc,
   type Cobranca, type Implantacao, type ItemOrcamento,
@@ -25,15 +26,40 @@ type Rascunho = {
 };
 
 const STATUS: Record<string, [string, string]> = {
-  enviado: ["Enviado", "bg-blue-50 text-blue-700 ring-blue-200"],
-  visualizado: ["Visualizado", "bg-indigo-50 text-indigo-700 ring-indigo-200"],
-  aceito: ["Aceito", "bg-emerald-50 text-emerald-700 ring-emerald-200"],
-  expirado: ["Expirado", "bg-slate-100 text-slate-600 ring-slate-200"],
-  cancelado: ["Cancelado", "bg-slate-100 text-slate-500 ring-slate-200"],
-  recusado: ["Recusado", "bg-red-50 text-red-700 ring-red-200"],
+  enviado: ["Enviado", "bg-[#F1F5F9] text-[#475569]"],
+  visualizado: ["Visualizado", "bg-[#ECFDF5] text-[#047857]"],
+  aceito: ["Aceito", "bg-[#059669] text-white"],
+  expirado: ["Expirado", "bg-[#F3F6F5] text-[#64748B]"],
+  cancelado: ["Cancelado", "bg-[#F3F6F5] text-[#94A3B8]"],
+  recusado: ["Recusado", "bg-[#FEF2F2] text-[#B91C1C]"],
 };
-const inputCls = "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
-const rot = "mb-1 block text-[11px] font-semibold uppercase text-slate-500";
+const inputCls = "h-11 w-full rounded-xl border border-[#E6ECEA] bg-[#F7FAF9] px-3.5 text-[14px] font-semibold text-[#0F172A] outline-none placeholder:font-medium placeholder:text-[#94A3B8]";
+const rot = "mb-1.5 block text-[12px] font-bold text-[#64748B]";
+// A2: cartões, pílulas e botões.
+const cartaoCls = "rounded-[20px] bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),0_14px_32px_-18px_rgba(16,24,40,.2)]";
+const pilula = "rounded-full px-[9px] py-0.5 text-[11px] font-bold";
+const botaoClaro = "inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#F3F6F5] px-3.5 text-[13px] font-bold text-[#334155] transition hover:bg-[#E6ECEA]";
+const botaoIcone = "inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#F3F6F5] text-[#475569] transition hover:bg-[#E6ECEA] hover:text-[#0F172A]";
+const botaoVerde = "inline-flex items-center justify-center gap-1.5 rounded-[14px] bg-gradient-to-br from-[#10B981] to-[#059669] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none";
+const CORES_AVATAR = [
+  ["linear-gradient(140deg, #D1FAE5, #A7F3D0)", "#065F46"], ["#FFF7ED", "#C2410C"], ["#F1F5F9", "#334155"],
+  ["#FEF3C7", "#92400E"], ["#E0F2F1", "#0F766E"], ["#ECFDF5", "#047857"],
+];
+function avatar(nome: string) {
+  let h = 0; for (const c of nome) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const p = nome.replace(/[^\p{L}\p{N} ]/gu, " ").trim().split(/\s+/).filter(Boolean);
+  const [bg, fg] = CORES_AVATAR[h % CORES_AVATAR.length];
+  return { ini: ((p[0]?.[0] || "?") + (p[1]?.[0] || "")).toUpperCase(), bg, fg };
+}
+function Etapa({ n, titulo, extra }: { n: number; titulo: string; extra?: React.ReactNode }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-2.5">
+      <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-lg bg-[#059669] text-[12px] font-extrabold text-white">{n}</span>
+      <span className="text-[15px] font-extrabold text-[#0F172A]">{titulo}</span>
+      {extra && <span className="ml-auto">{extra}</span>}
+    </div>
+  );
+}
 const VAZIO: Rascunho = {
   cliente_nome: "", cliente_telefone: "", validade_horas: "24", base: "avulso", usuarios: "10", whatsapps: "1",
   modulos: ["crm", "chatbot", "revisional"], personalizados: [], configuracao: String(CONFIGURACAO_PADRAO), descontos: {},
@@ -161,8 +187,8 @@ function Editor({ inicial, editando, onSalvar, onCancelar }: { inicial: Rascunho
   }
 
   return (
-    <form onSubmit={enviar} className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-4">
+    <form onSubmit={enviar} className="space-y-7">
+      <div className="grid gap-3.5 sm:grid-cols-4">
         <label className="sm:col-span-2"><span className={rot}>Cliente</span><input className={inputCls} value={r.cliente_nome} onChange={(e) => setR({ ...r, cliente_nome: e.target.value })} /></label>
         <label><span className={rot}>WhatsApp do cliente</span><input className={inputCls} value={r.cliente_telefone} onChange={(e) => setR({ ...r, cliente_telefone: e.target.value })} /></label>
         {!editando && <label><span className={rot}>Validade (horas)</span><input className={inputCls} value={r.validade_horas} onChange={(e) => setR({ ...r, validade_horas: e.target.value })} /></label>}
@@ -170,17 +196,20 @@ function Editor({ inicial, editando, onSalvar, onCancelar }: { inicial: Rascunho
 
       {/* base */}
       <div>
-        <div className="mb-2 text-[13px] font-bold text-slate-700">1. Base do orçamento</div>
-        <div className="grid gap-2 sm:grid-cols-4">
+        <Etapa n={1} titulo="Base do orçamento" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[{ id: "avulso", nome: "Montar avulso", preco: 0, info: `Usuário ${brlOrc(PRECO_USUARIO)} · WhatsApp ${brlOrc(PRECO_WHATSAPP)}` }, ...PLANOS.map((p) => ({ id: p.id, nome: p.nome, preco: p.preco, info: `${p.usuarios} usuários · ${p.whatsapps} WhatsApp${p.whatsapps > 1 ? "s" : ""}` }))].map((b) => (
             <button type="button" key={b.id} onClick={() => setR((s) => {
               const p = PLANOS.find((x) => x.id === b.id);
               return { ...s, base: b.id, usuarios: p ? String(Math.max(inteiro(s.usuarios), p.usuarios)) : s.usuarios, whatsapps: p ? String(Math.max(inteiro(s.whatsapps), p.whatsapps)) : s.whatsapps };
             })}
-              className={`rounded-xl border p-3 text-left transition ${r.base === b.id ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-              <div className="text-[13px] font-bold text-slate-800">{b.nome}</div>
-              {b.preco > 0 && <div className="text-[15px] font-extrabold text-emerald-700">{brlOrc(b.preco)}<span className="text-[11px] font-normal text-slate-500">/mês</span></div>}
-              <div className="text-[11px] text-slate-500">{b.info}</div>
+              className={`rounded-2xl p-4 text-left transition ${r.base === b.id ? "bg-white shadow-[0_10px_24px_-14px_rgba(5,150,105,.5)] outline outline-2 outline-[#059669]" : "bg-[#F7FAF9] shadow-[inset_0_0_0_1px_#E6ECEA] hover:bg-white hover:shadow-[0_1px_2px_rgba(16,24,40,.05),0_8px_20px_-14px_rgba(16,24,40,.25)]"}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] font-extrabold text-[#0F172A]">{b.nome}</span>
+                {r.base === b.id && <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-md bg-[#059669] text-white"><Icone nome="check" tamanho={12} espessura={2.6} /></span>}
+              </div>
+              {b.preco > 0 && <div className="mt-1 text-[18px] font-extrabold tracking-tight text-[#047857]">{brlOrc(b.preco)}<span className="text-[12px] font-semibold text-[#64748B]">/mês</span></div>}
+              <div className="mt-0.5 text-[12px] text-[#64748B]">{b.info}</div>
             </button>
           ))}
         </div>
@@ -188,31 +217,31 @@ function Editor({ inicial, editando, onSalvar, onCancelar }: { inicial: Rascunho
 
       {/* quantidades */}
       <div>
-        <div className="mb-2 text-[13px] font-bold text-slate-700">2. Usuários e conexões</div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="rounded-xl border border-slate-200 p-3"><span className={rot}>Total de usuários</span><input className={inputCls} inputMode="numeric" value={r.usuarios} onChange={(e) => setR({ ...r, usuarios: e.target.value })} />
-            <span className="mt-1 block text-[11px] text-slate-500">{plano ? `${plano.usuarios} no plano · ` : ""}{brlOrc(PRECO_USUARIO)} por usuário {plano ? "adicional" : ""}</span></label>
-          <label className="rounded-xl border border-slate-200 p-3"><span className={rot}>Conexões de WhatsApp</span><input className={inputCls} inputMode="numeric" value={r.whatsapps} onChange={(e) => setR({ ...r, whatsapps: e.target.value })} />
-            <span className="mt-1 block text-[11px] text-slate-500">{plano ? `${plano.whatsapps} no plano · ` : ""}{brlOrc(PRECO_WHATSAPP)} por conexão {plano ? "adicional" : ""}</span></label>
+        <Etapa n={2} titulo="Usuários e conexões" />
+        <div className="grid gap-3.5 sm:grid-cols-2">
+          <label className="block"><span className={rot}>Total de usuários</span><input className={inputCls} inputMode="numeric" value={r.usuarios} onChange={(e) => setR({ ...r, usuarios: e.target.value })} />
+            <span className="mt-1.5 block text-[12px] text-[#94A3B8]">{plano ? `${plano.usuarios} no plano · ` : ""}{brlOrc(PRECO_USUARIO)} por usuário {plano ? "adicional" : ""}</span></label>
+          <label className="block"><span className={rot}>Conexões de WhatsApp</span><input className={inputCls} inputMode="numeric" value={r.whatsapps} onChange={(e) => setR({ ...r, whatsapps: e.target.value })} />
+            <span className="mt-1.5 block text-[12px] text-[#94A3B8]">{plano ? `${plano.whatsapps} no plano · ` : ""}{brlOrc(PRECO_WHATSAPP)} por conexão {plano ? "adicional" : ""}</span></label>
         </div>
       </div>
 
       {/* módulos */}
       <div>
-        <div className="mb-2 text-[13px] font-bold text-slate-700">3. Módulos</div>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <Etapa n={3} titulo="Módulos" />
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {MODULOS.map((m) => {
             const noPlano = !!plano?.inclui.includes(m.id);
             const marcado = noPlano || r.modulos.includes(m.id);
             return (
               <button type="button" key={m.id} disabled={noPlano} onClick={() => setR((s) => ({ ...s, modulos: s.modulos.includes(m.id) ? s.modulos.filter((x) => x !== m.id) : [...s.modulos, m.id] }))}
-                className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition ${marcado ? "border-emerald-400 bg-emerald-50/70" : "border-slate-200 bg-white hover:border-slate-300"} ${noPlano ? "cursor-default" : ""}`}>
-                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[11px] font-bold ${marcado ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 bg-white text-transparent"}`}>✓</span>
+                className={`flex items-start gap-3 rounded-[14px] p-3.5 text-left transition ${marcado ? "bg-[#F7FFFB] shadow-[inset_0_0_0_1.5px_#A7F3D0]" : "bg-[#F7FAF9] shadow-[inset_0_0_0_1px_#E6ECEA] hover:bg-white"} ${noPlano ? "cursor-default" : ""}`}>
+                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${marcado ? "bg-[#059669] text-white" : "bg-white text-transparent shadow-[inset_0_0_0_1.5px_#CBD5E1]"}`}><Icone nome="check" tamanho={12} espessura={2.6} /></span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-semibold text-slate-800">{m.nome}</span>
-                  <span className="block text-[11px]" style={{ color: m.cor }}>{m.sub}</span>
+                  <span className="block text-[13.5px] font-bold text-[#0F172A]">{m.nome}</span>
+                  <span className="block text-[12px]" style={{ color: m.cor }}>{m.sub}</span>
                 </span>
-                <span className={`shrink-0 text-[12px] font-bold ${noPlano ? "text-emerald-600" : "text-slate-700"}`}>{noPlano ? "no plano" : brlOrc(m.preco)}</span>
+                <span className={`shrink-0 text-[12.5px] font-extrabold ${noPlano ? "text-[#059669]" : "text-[#334155]"}`}>{noPlano ? "no plano" : brlOrc(m.preco)}</span>
               </button>
             );
           })}
@@ -220,91 +249,91 @@ function Editor({ inicial, editando, onSalvar, onCancelar }: { inicial: Rascunho
       </div>
 
       {/* personalizados + configuração */}
-      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
         <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[13px] font-bold text-slate-700">4. Itens personalizados</span>
-            <button type="button" onClick={() => setR((s) => ({ ...s, personalizados: [...s.personalizados, { nome: "", sub: "", linhas: "", preco: "0", cobranca: "mensal" }] }))} className="rounded-lg bg-slate-100 px-3 py-1.5 text-[12px] font-semibold text-slate-700">+ Adicionar item</button>
-          </div>
-          {r.personalizados.length === 0 && <div className="rounded-xl border border-dashed border-slate-200 p-3 text-center text-[12px] text-slate-400">Ex.: treinamento da equipe, integração específica.</div>}
-          <div className="space-y-2">
+          <Etapa n={4} titulo="Itens personalizados" extra={
+            <button type="button" onClick={() => setR((s) => ({ ...s, personalizados: [...s.personalizados, { nome: "", sub: "", linhas: "", preco: "0", cobranca: "mensal" }] }))} className={`${botaoClaro} !h-9 !text-[12.5px]`}><Icone nome="mais" tamanho={14} />Adicionar item</button>
+          } />
+          {r.personalizados.length === 0 && <div className="rounded-[14px] bg-[#F7FAF9] p-4 text-center text-[12.5px] text-[#94A3B8] shadow-[inset_0_0_0_1px_#E6ECEA]">Ex.: treinamento da equipe, integração específica.</div>}
+          <div className="space-y-2.5">
             {r.personalizados.map((p, i) => {
               const up = (campo: Partial<Personalizado>) => setR((s) => ({ ...s, personalizados: s.personalizados.map((x, k) => (k === i ? { ...x, ...campo } : x)) }));
               return (
-                <div key={i} className="grid gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_1fr_0.7fr_0.8fr_auto]">
-                  <input className={inputCls} placeholder="Nome do item" value={p.nome} onChange={(e) => up({ nome: e.target.value })} />
-                  <input className={inputCls} placeholder="Subtítulo" value={p.sub} onChange={(e) => up({ sub: e.target.value })} />
-                  <input className={inputCls} placeholder="Preço R$" value={p.preco} onChange={(e) => up({ preco: e.target.value })} />
-                  <select className={inputCls} value={p.cobranca} onChange={(e) => up({ cobranca: e.target.value as Cobranca })}><option value="mensal">Mensal</option><option value="unico">Único</option></select>
-                  <button type="button" onClick={() => setR((s) => ({ ...s, personalizados: s.personalizados.filter((_, k) => k !== i) }))} className="text-[12px] text-red-500">Remover</button>
-                  <textarea className={`${inputCls} sm:col-span-5`} rows={2} placeholder="Detalhes, um por linha (opcional)" value={p.linhas} onChange={(e) => up({ linhas: e.target.value })} />
+                <div key={i} className="grid gap-2 rounded-[14px] bg-[#F7FAF9] p-3 shadow-[inset_0_0_0_1px_#E6ECEA] sm:grid-cols-[1fr_1fr_0.7fr_0.8fr_auto]">
+                  <input className={`${inputCls} !bg-white`} placeholder="Nome do item" value={p.nome} onChange={(e) => up({ nome: e.target.value })} />
+                  <input className={`${inputCls} !bg-white`} placeholder="Subtítulo" value={p.sub} onChange={(e) => up({ sub: e.target.value })} />
+                  <input className={`${inputCls} !bg-white`} placeholder="Preço R$" value={p.preco} onChange={(e) => up({ preco: e.target.value })} />
+                  <select className={`${inputCls} !bg-white`} value={p.cobranca} onChange={(e) => up({ cobranca: e.target.value as Cobranca })}><option value="mensal">Mensal</option><option value="unico">Único</option></select>
+                  <button type="button" title="Remover item" onClick={() => setR((s) => ({ ...s, personalizados: s.personalizados.filter((_, k) => k !== i) }))} className={`${botaoIcone} !h-11 !w-11 !bg-[#FEF2F2] !text-[#B91C1C]`}><Icone nome="lixeira" tamanho={16} /></button>
+                  <textarea className={`${inputCls} !h-auto !bg-white py-2.5 sm:col-span-5`} rows={2} placeholder="Detalhes, um por linha (opcional)" value={p.linhas} onChange={(e) => up({ linhas: e.target.value })} />
                 </div>
               );
             })}
           </div>
         </div>
         <div>
-          <div className="mb-2 text-[13px] font-bold text-slate-700">5. Configuração inicial</div>
-          <label className="block rounded-xl border border-slate-200 p-3"><span className={rot}>Valor de tabela (pagamento único)</span><input className={inputCls} value={r.configuracao} onChange={(e) => setR({ ...r, configuracao: e.target.value })} /></label>
+          <Etapa n={5} titulo="Configuração inicial" />
+          <label className="block"><span className={rot}>Valor de tabela (pagamento único)</span><input className={inputCls} value={r.configuracao} onChange={(e) => setR({ ...r, configuracao: e.target.value })} /></label>
         </div>
       </div>
 
       {/* resumo com descontos */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200">
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-3">
-          <span className="text-[13px] font-bold text-slate-700">6. Resumo e descontos</span>
-          <div className="flex flex-wrap items-center gap-2 text-[12px]">
-            <span className="text-slate-500">Desconto em tudo</span>
-            <input className="w-16 rounded-lg border border-slate-200 px-2 py-1.5 text-right" placeholder="%" value={descGeral} onChange={(e) => setDescGeral(e.target.value)} />
-            <button type="button" onClick={() => aplicarEmTodos(Math.min(100, Math.max(0, num(descGeral))))} className="rounded-lg bg-slate-800 px-2.5 py-1.5 font-semibold text-white">Aplicar</button>
-            <span className="ml-2 text-slate-500">Fechar mensalidade em</span>
-            <input className="w-24 rounded-lg border border-slate-200 px-2 py-1.5 text-right" placeholder="R$" value={alvo} onChange={(e) => setAlvo(e.target.value)} />
-            <button type="button" onClick={fecharEm} className="rounded-lg bg-emerald-600 px-2.5 py-1.5 font-semibold text-white">Ajustar</button>
+      <div>
+        <Etapa n={6} titulo="Resumo e descontos" />
+        <div className="overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_#E6ECEA]">
+          <div className="flex flex-wrap items-center gap-2 bg-[#F7FAF9] px-4 py-3 text-[12.5px]">
+            <span className="font-semibold text-[#64748B]">Desconto em tudo</span>
+            <input className="h-9 w-16 rounded-[10px] border border-[#E6ECEA] bg-white px-2 text-right font-semibold" placeholder="%" value={descGeral} onChange={(e) => setDescGeral(e.target.value)} />
+            <button type="button" onClick={() => aplicarEmTodos(Math.min(100, Math.max(0, num(descGeral))))} className="h-9 rounded-[10px] bg-[#0F172A] px-3 font-bold text-white">Aplicar</button>
+            <span className="ml-auto font-semibold text-[#64748B]">Fechar mensalidade em</span>
+            <input className="h-9 w-24 rounded-[10px] border border-[#E6ECEA] bg-white px-2 text-right font-semibold" placeholder="R$" value={alvo} onChange={(e) => setAlvo(e.target.value)} />
+            <button type="button" onClick={fecharEm} className="h-9 rounded-[10px] bg-[#059669] px-3 font-bold text-white">Ajustar</button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] text-[13px]">
+              <thead className="text-[12px] text-[#64748B]"><tr className="border-b border-[#F1F5F4]"><th className="px-4 py-2.5 text-left font-bold">Item</th><th className="px-2 text-right font-bold">Qtd</th><th className="px-2 text-right font-bold">Tabela</th><th className="px-2 text-center font-bold">Desconto</th><th className="px-4 text-right font-bold">Total</th></tr></thead>
+              <tbody>
+                {cobraveis.map((l) => {
+                  const k = chave(l);
+                  return (
+                    <tr key={k} className="border-b border-[#F1F5F4]">
+                      <td className="px-4 py-2.5"><b className="text-[#0F172A]">{l.nome}</b>{l.cobranca === "unico" && <span className={`${pilula} ml-1.5 bg-[#FEF3C7] text-[#92400E]`}>único</span>}</td>
+                      <td className="px-2 text-right tabular-nums">{l.qtd}</td>
+                      <td className="px-2 text-right tabular-nums text-[#64748B]">{brlOrc(l.bruto)}</td>
+                      <td className="px-2 text-center">
+                        <span className="inline-flex items-center gap-1"><input className="h-8 w-16 rounded-[9px] border border-[#E6ECEA] bg-[#F7FAF9] px-2 text-right font-semibold" inputMode="decimal" value={r.descontos[k] ?? 0} onChange={(e) => setDesc(k, e.target.value)} /><span className="text-[#94A3B8]">%</span></span>
+                      </td>
+                      <td className="px-4 text-right font-extrabold tabular-nums">{brlOrc(l.liquido)}</td>
+                    </tr>
+                  );
+                })}
+                {t.linhas.filter((l) => l.incluso).length > 0 && (
+                  <tr><td colSpan={5} className="px-4 py-2.5 text-[12.5px] text-[#64748B]">Inclusos no plano: {t.linhas.filter((l) => l.incluso).map((l) => l.nome.replace("Módulo ", "")).join(", ")}</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[620px] text-[13px]">
-            <thead className="text-[11px] uppercase text-slate-500"><tr className="border-b border-slate-100"><th className="px-4 py-2 text-left">Item</th><th className="px-2 text-right">Qtd</th><th className="px-2 text-right">Tabela</th><th className="px-2 text-center">Desconto</th><th className="px-4 text-right">Total</th></tr></thead>
-            <tbody>
-              {cobraveis.map((l) => {
-                const k = chave(l);
-                return (
-                  <tr key={k} className="border-b border-slate-50">
-                    <td className="px-4 py-2"><b className="text-slate-800">{l.nome}</b>{l.cobranca === "unico" && <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">único</span>}</td>
-                    <td className="px-2 text-right tabular-nums">{l.qtd}</td>
-                    <td className="px-2 text-right tabular-nums text-slate-500">{brlOrc(l.bruto)}</td>
-                    <td className="px-2 text-center">
-                      <span className="inline-flex items-center gap-1"><input className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-right" inputMode="decimal" value={r.descontos[k] ?? 0} onChange={(e) => setDesc(k, e.target.value)} /><span className="text-slate-400">%</span></span>
-                    </td>
-                    <td className="px-4 text-right font-bold tabular-nums">{brlOrc(l.liquido)}</td>
-                  </tr>
-                );
-              })}
-              {t.linhas.filter((l) => l.incluso).length > 0 && (
-                <tr><td colSpan={5} className="px-4 py-2 text-[12px] text-slate-500">Inclusos no plano: {t.linhas.filter((l) => l.incluso).map((l) => l.nome.replace("Módulo ", "")).join(", ")}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="grid gap-3 border-t border-slate-100 bg-white p-4 sm:grid-cols-2">
-          <div className="rounded-xl bg-emerald-600 p-4 text-white">
-            <div className="text-[11px] uppercase tracking-wide opacity-80">Mensalidade</div>
-            <div className="text-[26px] font-black tabular-nums">{brlOrc(t.mensal)}</div>
-            <div className="text-[12px] opacity-90">Tabela {brlOrc(t.mensalTabela)}{t.mensalDesconto > 0 && ` · desconto ${brlOrc(t.mensalDesconto)} (${pctOrc((t.mensalDesconto / (t.mensalTabela || 1)) * 100)})`}</div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="relative overflow-hidden rounded-[18px] bg-gradient-to-br from-[#059669] to-[#065F46] px-[22px] py-5 text-white shadow-[0_16px_32px_-16px_rgba(6,95,70,.7)]">
+            <div aria-hidden className="pointer-events-none absolute -right-8 -top-8 h-[120px] w-[120px] rounded-full bg-white/10" />
+            <div className="relative text-[13px] font-semibold text-white/85">Mensalidade</div>
+            <div className="relative text-[30px] font-extrabold tracking-tight tabular-nums">{brlOrc(t.mensal)}</div>
+            <div className="relative text-[12.5px] text-white/85">Tabela {brlOrc(t.mensalTabela)}{t.mensalDesconto > 0 && ` · desconto ${brlOrc(t.mensalDesconto)} (${pctOrc((t.mensalDesconto / (t.mensalTabela || 1)) * 100)})`}</div>
           </div>
-          <div className="rounded-xl border border-slate-200 p-4">
-            <div className="text-[11px] uppercase tracking-wide text-slate-500">Pagamento único (configuração)</div>
-            <div className="text-[26px] font-black tabular-nums text-slate-800">{brlOrc(t.unico)}</div>
-            <div className="text-[12px] text-slate-500">Tabela {brlOrc(t.unicoTabela)}{t.unicoDesconto > 0 && ` · desconto ${brlOrc(t.unicoDesconto)}`} · {t.usuarios} usuários · {t.whatsapps} WhatsApp{t.whatsapps === 1 ? "" : "s"}</div>
+          <div className="rounded-[18px] bg-[#F7FAF9] px-[22px] py-5 shadow-[inset_0_0_0_1px_#E6ECEA]">
+            <div className="text-[13px] font-semibold text-[#64748B]">Pagamento único (configuração)</div>
+            <div className="text-[30px] font-extrabold tracking-tight tabular-nums text-[#0F172A]">{brlOrc(t.unico)}</div>
+            <div className="text-[12.5px] text-[#64748B]">Tabela {brlOrc(t.unicoTabela)}{t.unicoDesconto > 0 && ` · desconto ${brlOrc(t.unicoDesconto)}`} · {t.usuarios} usuários · {t.whatsapps} WhatsApp{t.whatsapps === 1 ? "" : "s"}</div>
           </div>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-[12px] text-slate-500">Pagamento: PIX Abc Call e Serviços (Nubank)</span>
+        <span className="text-[12.5px] text-[#64748B]">Pagamento: PIX Abc Call e Serviços (Nubank)</span>
         <div className="ml-auto flex gap-2">
-          {onCancelar && <button type="button" onClick={onCancelar} className="rounded-xl border border-slate-200 px-4 py-2.5 text-[14px]">Cancelar</button>}
-          <button disabled={salvando || !r.cliente_nome.trim() || t.usuarios < 1} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-[14px] font-bold text-white disabled:opacity-40">{salvando ? "Salvando…" : editando ? "Salvar alterações" : "Gerar link do orçamento"}</button>
+          {onCancelar && <button type="button" onClick={onCancelar} className={`${botaoClaro} !h-[46px] !px-5 !text-[14px]`}>Cancelar</button>}
+          <button disabled={salvando || !r.cliente_nome.trim() || t.usuarios < 1} className={`${botaoVerde} h-[46px] px-6 text-[14px]`}>{salvando ? "Salvando…" : editando ? "Salvar alterações" : "Gerar link do orçamento"}</button>
         </div>
       </div>
     </form>
@@ -317,6 +346,8 @@ export default function OrcamentosPage() {
   const [aberto, setAberto] = useState<string>("");
   const [editando, setEditando] = useState<string>("");
   const [chaveNovo, setChaveNovo] = useState(0);
+  const [novoAberto, setNovoAberto] = useState(false);
+  const [filtro, setFiltro] = useState<"todos" | "aguardando" | "aceitos" | "expirados" | "cancelados">("todos");
 
   const carregar = useCallback(async () => {
     try { const d = await api("/api/orcamentos"); setLista(d.orcamentos); setErro(""); } catch (e: any) { setErro(e.message); }
@@ -330,7 +361,7 @@ export default function OrcamentosPage() {
   async function criar(itens: ItemOrcamento[], r: Rascunho) {
     try {
       await api("/api/orcamentos", { method: "POST", body: JSON.stringify({ cliente_nome: r.cliente_nome, cliente_telefone: r.cliente_telefone, validade_horas: r.validade_horas, itens }) });
-      setChaveNovo((k) => k + 1); await carregar();
+      setChaveNovo((k) => k + 1); setNovoAberto(false); setFiltro("todos"); await carregar();
     } catch (e: any) { alert(e.message); throw e; }
   }
   async function salvarEdicao(id: string, itens: ItemOrcamento[], r: Rascunho) {
@@ -344,79 +375,170 @@ export default function OrcamentosPage() {
     try { await api("/api/orcamentos", { method: "PATCH", body: JSON.stringify({ id, acao: a }) }); await carregar(); } catch (e: any) { alert(e.message); }
   }
 
+  // Resumo do mês corrente.
+  const agora = new Date();
+  const doMes = (iso?: string | null) => { if (!iso) return false; const d = new Date(iso); return d.getMonth() === agora.getMonth() && d.getFullYear() === agora.getFullYear(); };
+  const mesLista = lista.filter((o) => doMes(o.created_at));
+  const pelSite = mesLista.filter((o) => o.criado_por === "site").length;
+  const aceitosMes = lista.filter((o) => o.status === "aceito" && doMes(o.aceito_em || o.created_at));
+  const taxaAceite = mesLista.length ? Math.round((mesLista.filter((o) => o.status === "aceito").length / mesLista.length) * 100) : 0;
+  const mensalFechada = aceitosMes.reduce((s, o) => s + (Number(o.mensalidade) || 0), 0);
+  const configFechada = aceitosMes.reduce((s, o) => s + (Number(o.configuracao) || 0), 0);
+  const ehAguardando = (o: Orc) => o.status === "enviado" || o.status === "visualizado";
+  const aguardando = lista.filter(ehAguardando);
+  const expiramHoje = aguardando.filter((o) => new Date(o.expira_em).toDateString() === agora.toDateString()).length;
+
+  const grupos = {
+    todos: lista,
+    aguardando,
+    aceitos: lista.filter((o) => o.status === "aceito"),
+    expirados: lista.filter((o) => o.status === "expirado"),
+    cancelados: lista.filter((o) => o.status === "cancelado" || o.status === "recusado"),
+  };
+  const filtros = ([["todos", "Todos"], ["aguardando", "Aguardando"], ["aceitos", "Aceitos"], ["expirados", "Expirados"], ["cancelados", "Cancelados"]] as const)
+    .filter(([k]) => k === "todos" || grupos[k].length > 0 || filtro === k);
+  const visiveis = grupos[filtro];
+
+  const kpi = `${cartaoCls} flex flex-col gap-1.5 !rounded-[18px] px-[22px] py-5`;
+
   return (
-    <div className="mx-auto max-w-6xl space-y-5 px-4 py-5 text-slate-800">
-      <div>
-        <div className="text-[20px] font-extrabold">Orçamentos</div>
-        <div className="text-[13px] text-slate-500">Monte o orçamento com a tabela de preços, dê desconto por item, envie o link e acompanhe o aceite.</div>
-      </div>
-      {erro && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</div>}
+    <div className="mx-auto flex max-w-[1360px] flex-col gap-[22px] px-4 pb-8 pt-5 text-[#0F172A] sm:px-7">
+      <section className="flex flex-wrap items-end gap-4 px-1 pt-1">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="m-0 text-[30px] font-extrabold tracking-[-.02em]">Orçamentos</h1>
+          <span className="text-[14px] text-[#64748B]">Envie o link, o cliente aceita, paga a configuração e manda os dados de implantação</span>
+        </div>
+        <button onClick={() => setNovoAberto((v) => !v)} className={`${botaoVerde} ml-auto h-[46px] px-5 text-[14px]`}>
+          <Icone nome={novoAberto ? "x" : "mais"} tamanho={16} espessura={2.4} />{novoAberto ? "Fechar" : "Novo orçamento"}
+        </button>
+      </section>
+      {erro && <div className="rounded-xl bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#B91C1C]">{erro}</div>}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="mb-3 text-[15px] font-bold">Novo orçamento</div>
-        <Editor key={chaveNovo} inicial={VAZIO} editando={false} onSalvar={criar} />
-      </div>
+      {novoAberto && (
+        <section className={`${cartaoCls} !rounded-[22px] p-[22px] sm:p-7`}>
+          <div className="mb-5 flex items-center gap-2.5">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#ECFDF5] text-[#059669]"><Icone nome="documento" tamanho={19} /></span>
+            <div className="flex flex-col">
+              <span className="text-[17px] font-extrabold">Novo orçamento</span>
+              <span className="text-[12.5px] text-[#64748B]">Monte com a tabela de preços, dê desconto por item e gere o link</span>
+            </div>
+          </div>
+          <Editor key={chaveNovo} inicial={VAZIO} editando={false} onSalvar={criar} />
+        </section>
+      )}
 
-      <div className="rounded-2xl border border-slate-200 bg-white">
-        {lista.length === 0 && <div className="p-8 text-center text-sm text-slate-400">Nenhum orçamento ainda.</div>}
-        <div className="divide-y divide-slate-100">
-          {lista.map((o) => {
-            const [rotulo, cls] = STATUS[o.status] || STATUS.enviado;
-            const imp = o.implantacao;
-            const tot = calcularOrcamento(o.itens || []);
-            const podeEditar = ["enviado", "visualizado", "expirado", "cancelado"].includes(o.status);
-            const nomes = (o.itens || []).filter((it) => it.tipo !== "configuracao" && it.tipo !== "usuarios" && it.tipo !== "whatsapp" && it.nome !== "Plataforma Wolf System").map((it) => it.nome.replace("Módulo ", ""));
-            return (
-              <div key={o.id} className="p-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="min-w-[220px] flex-1">
-                    <div className="flex flex-wrap items-center gap-2"><b>{o.cliente_nome}</b><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${cls}`}>{rotulo}</span>{o.criado_por === "site" && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-700">Site</span>}{o.implantacao_em && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">Dados recebidos</span>}{imp?.pagamento_realizado && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Diz que pagou</span>}</div>
-                    <div className="text-[12px] text-slate-500">{o.numero} · {o.usuarios_incluidos} usuários{tot.whatsapps ? ` · ${tot.whatsapps} WhatsApp${tot.whatsapps > 1 ? "s" : ""}` : ""} · {brlOrc(o.configuracao)} agora + {brlOrc(o.mensalidade)}/mês{tot.mensalDesconto > 0 ? ` (tabela ${brlOrc(tot.mensalTabela)})` : ""}</div>
-                    <div className="mt-1 flex flex-wrap gap-1">{nomes.map((n) => <span key={n} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{n}</span>)}</div>
-                    <div className="mt-1 text-[11px] text-slate-400">
-                      {o.visualizacoes ? `Aberto ${o.visualizacoes}x` : "Ainda não aberto"}
-                      {o.aceito_em ? ` · aceito em ${new Date(o.aceito_em).toLocaleString("pt-BR")}` : ` · válido até ${new Date(o.expira_em).toLocaleString("pt-BR")}`} · criado {new Date(o.created_at).toLocaleString("pt-BR")}
-                    </div>
+      <section aria-label="Resumo" className="grid grid-cols-2 gap-[18px] lg:grid-cols-4">
+        <div className={kpi}><span className="text-[13px] font-semibold text-[#64748B]">Enviados no mês</span><span className="text-[28px] font-extrabold tracking-tight">{mesLista.length}</span><span className="text-[12.5px] text-[#64748B]">{pelSite ? `${pelSite} vie${pelSite === 1 ? "io" : "ram"} pelo site` : "nenhum pelo site"}</span></div>
+        <div className={kpi}><span className="text-[13px] font-semibold text-[#64748B]">Aceitos</span><span className="text-[28px] font-extrabold tracking-tight">{aceitosMes.length}</span><span className="self-start rounded-full bg-[#ECFDF5] px-[9px] py-0.5 text-[12px] font-bold text-[#047857]">{taxaAceite}% de aceite</span></div>
+        <div className={kpi}><span className="text-[13px] font-semibold text-[#64748B]">Mensalidade fechada</span><span className="text-[28px] font-extrabold tracking-tight">{brlOrc(mensalFechada)}</span><span className="text-[12.5px] text-[#64748B]">+ {brlOrc(configFechada)} em configurações</span></div>
+        <div className="relative flex flex-col gap-1.5 overflow-hidden rounded-[18px] bg-gradient-to-br from-[#059669] to-[#065F46] px-[22px] py-5 text-white shadow-[0_16px_32px_-16px_rgba(6,95,70,.7)]">
+          <div aria-hidden className="pointer-events-none absolute -right-[30px] -top-[30px] h-[120px] w-[120px] rounded-full bg-white/10" />
+          <span className="relative text-[13px] font-semibold text-white/85">Aguardando resposta</span>
+          <span className="relative text-[28px] font-extrabold tracking-tight">{aguardando.length}</span>
+          <span className="relative text-[12.5px] text-white/85">{expiramHoje ? `${expiramHoje} expira${expiramHoje === 1 ? "" : "m"} hoje` : "nenhum expira hoje"}</span>
+        </div>
+      </section>
+
+      <section aria-label="Lista de orçamentos" className="rounded-[22px] bg-white p-2 shadow-[0_2px_4px_rgba(16,24,40,.04),0_24px_48px_-24px_rgba(16,24,40,.2)]">
+        <div className="flex flex-wrap items-center gap-2 px-3.5 py-3">
+          {filtros.map(([k, t]) => (
+            <button key={k} onClick={() => setFiltro(k)}
+              className={`h-[38px] rounded-[11px] px-3.5 text-[13px] transition ${filtro === k ? "bg-[#ECFDF5] font-extrabold text-[#047857]" : "bg-[#F3F6F5] font-semibold text-[#475569] hover:bg-[#E6ECEA]"}`}>
+              {t} {grupos[k].length}
+            </button>
+          ))}
+        </div>
+
+        {visiveis.length === 0 && (
+          <div className="flex flex-col items-center gap-2 px-6 pb-12 pt-6 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#ECFDF5] text-[#059669]"><Icone nome="documento" tamanho={22} /></span>
+            <span className="text-[15px] font-extrabold">{lista.length ? "Nenhum orçamento neste filtro" : "Nenhum orçamento ainda"}</span>
+            <span className="text-[13px] text-[#64748B]">{lista.length ? "Escolha outro filtro acima." : "Clique em Novo orçamento para montar o primeiro."}</span>
+          </div>
+        )}
+
+        {visiveis.map((o) => {
+          const [rotulo, cls] = STATUS[o.status] || STATUS.enviado;
+          const imp = o.implantacao;
+          const tot = calcularOrcamento(o.itens || []);
+          const podeEditar = ["enviado", "visualizado", "expirado", "cancelado"].includes(o.status);
+          const nomes = (o.itens || []).filter((it) => it.tipo !== "configuracao" && it.tipo !== "usuarios" && it.tipo !== "whatsapp" && it.nome !== "Plataforma Wolf System").map((it) => it.nome.replace("Módulo ", ""));
+          const av = avatar(o.cliente_nome);
+          const destaque = o.status === "aceito" && !!imp;
+          const expira = new Date(o.expira_em);
+          const expiraHoje = ehAguardando(o) && expira.toDateString() === agora.toDateString();
+          const descPct = tot.mensalTabela > 0 && tot.mensalDesconto > 0 ? Math.round((tot.mensalDesconto / tot.mensalTabela) * 100) : 0;
+          const detalhe = [
+            nomes.length > 3 ? `${nomes.slice(0, 3).join(" + ")} + ${nomes.length - 3} módulos` : nomes.join(" + ") || "Montagem avulsa",
+            `${o.usuarios_incluidos} usuários`,
+            tot.whatsapps ? `${tot.whatsapps} WhatsApp${tot.whatsapps > 1 ? "s" : ""}` : "",
+            o.numero,
+            o.aceito_em ? `aceito em ${new Date(o.aceito_em).toLocaleDateString("pt-BR")}` : ehAguardando(o) ? `válido até ${expira.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}` : "",
+            ehAguardando(o) && !o.visualizacoes ? "ainda não aberto" : "",
+          ].filter(Boolean).join(" · ");
+          return (
+            <div key={o.id} className={`mx-1.5 my-1 rounded-2xl px-[18px] py-4 transition ${destaque ? "bg-[#F7FFFB] shadow-[inset_0_0_0_1.5px_#A7F3D0]" : "hover:bg-[#F7FAF9]"}`}>
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[14px] text-[14px] font-extrabold" style={{ background: av.bg, color: av.fg }}>{av.ini}</span>
+                <div className="flex min-w-[220px] flex-1 flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[15px] font-extrabold">{o.cliente_nome}</span>
+                    {expiraHoje
+                      ? <span className={`${pilula} bg-[#FFF7ED] text-[#C2410C]`}>Expira hoje às {expira.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                      : <span className={`${pilula} ${cls} ${o.status === "aceito" ? "!font-extrabold" : ""}`}>{rotulo}{o.status === "visualizado" && o.visualizacoes ? ` ${o.visualizacoes}x` : ""}</span>}
+                    {o.criado_por === "site" && <span className={`${pilula} bg-[#E0F2F1] text-[#0F766E]`}>Site</span>}
+                    {o.implantacao_em && <span className={`${pilula} bg-[#FEF3C7] text-[#92400E]`}>Dados recebidos</span>}
+                    {imp?.pagamento_realizado && <span className={`${pilula} bg-[#ECFDF5] text-[#047857]`}>Diz que pagou</span>}
                   </div>
-                  <div className="flex flex-wrap gap-1.5 text-[12px]">
-                    <button onClick={() => navigator.clipboard.writeText(o.link)} className="rounded-lg border border-slate-200 px-2.5 py-1.5">Copiar link</button>
-                    <a href={whats(o.cliente_telefone, o.cliente_nome, o.link)} target="_blank" rel="noreferrer" className="rounded-lg border border-emerald-200 px-2.5 py-1.5 text-emerald-700">WhatsApp</a>
-                    <a href={o.link} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 px-2.5 py-1.5">Abrir</a>
-                    {podeEditar && <button onClick={() => setEditando(editando === o.id ? "" : o.id)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold">{editando === o.id ? "Fechar edição" : "Editar"}</button>}
-                    {o.status !== "aceito" && <button onClick={() => acao(o.id, "renovar")} className="rounded-lg border border-slate-200 px-2.5 py-1.5">Renovar 24h</button>}
-                    {(o.status === "enviado" || o.status === "visualizado") && <button onClick={() => acao(o.id, "cancelar")} className="rounded-lg border border-red-200 px-2.5 py-1.5 text-red-600">Cancelar</button>}
-                    {imp && <button onClick={() => setAberto(aberto === o.id ? "" : o.id)} className="rounded-lg bg-slate-800 px-2.5 py-1.5 font-semibold text-white">{aberto === o.id ? "Fechar dados" : "Ver dados"}</button>}
-                  </div>
+                  <span className="text-[13px] text-[#64748B]">{detalhe}</span>
                 </div>
-                {editando === o.id && (
-                  <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50/30 p-4">
-                    <div className="mb-3 text-[13px] font-bold text-emerald-800">Editando {o.numero} — o link continua o mesmo</div>
-                    <Editor inicial={rascunhoDe(o)} editando onSalvar={(itens, r) => salvarEdicao(o.id, itens, r)} onCancelar={() => setEditando("")} />
+                <div className="flex flex-col items-end">
+                  <span className="text-[17px] font-extrabold tracking-tight">{brlOrc(o.mensalidade)}<span className="text-[12px] font-semibold text-[#64748B]">/mês</span></span>
+                  {descPct > 0
+                    ? <span className="text-[12px] font-bold text-[#047857]">{descPct}% de desconto</span>
+                    : <span className="text-[12px] text-[#64748B]">+ {brlOrc(o.configuracao)} configuração</span>}
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button title="Copiar link" onClick={() => navigator.clipboard.writeText(o.link)} className={botaoIcone}><Icone nome="copiar" tamanho={16} /></button>
+                  <a title="Abrir como o cliente" href={o.link} target="_blank" rel="noreferrer" className={botaoIcone}><Icone nome="olho" tamanho={16} /></a>
+                  {o.status !== "aceito" && <button onClick={() => acao(o.id, "renovar")} className={botaoClaro}><Icone nome="atualizar" tamanho={14} />Renovar 24h</button>}
+                  {podeEditar && <button onClick={() => setEditando(editando === o.id ? "" : o.id)} className={botaoClaro}><Icone nome="editar" tamanho={14} />{editando === o.id ? "Fechar edição" : "Editar"}</button>}
+                  {ehAguardando(o) && <button title="Cancelar orçamento" onClick={() => acao(o.id, "cancelar")} className={`${botaoIcone} hover:!bg-[#FEF2F2] hover:!text-[#B91C1C]`}><Icone nome="x" tamanho={16} /></button>}
+                  {imp
+                    ? <button onClick={() => setAberto(aberto === o.id ? "" : o.id)} className="inline-flex h-10 items-center rounded-xl bg-[#0F172A] px-4 text-[13px] font-extrabold text-white shadow-[0_8px_18px_-10px_rgba(15,23,42,.6)]">{aberto === o.id ? "Fechar dados" : "Ver dados"}</button>
+                    : <a href={whats(o.cliente_telefone, o.cliente_nome, o.link)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#ECFDF5] px-3.5 text-[13px] font-extrabold text-[#047857] transition hover:bg-[#D1FAE5]"><Icone nome="whatsapp" tamanho={15} />WhatsApp</a>}
+                </div>
+              </div>
+              {editando === o.id && (
+                <div className="mt-4 rounded-[18px] bg-white p-5 shadow-[inset_0_0_0_1.5px_#A7F3D0]">
+                  <div className="mb-4 flex items-center gap-2 text-[13.5px] font-extrabold text-[#065F46]"><Icone nome="editar" tamanho={15} />Editando {o.numero} · o link continua o mesmo</div>
+                  <Editor inicial={rascunhoDe(o)} editando onSalvar={(itens, r) => salvarEdicao(o.id, itens, r)} onCancelar={() => setEditando("")} />
+                </div>
+              )}
+              {imp && aberto === o.id && (
+                <div className="mt-4 grid gap-5 rounded-[18px] bg-white p-5 text-[13px] shadow-[inset_0_0_0_1px_#E6ECEA] lg:grid-cols-[1fr_1.6fr]">
+                  <div>
+                    <div className="mb-2 text-[13px] font-extrabold">Empresa</div>
+                    {[["Razão social", imp.razao_social], ["CNPJ/CPF", imp.cnpj], ["Responsável", imp.responsavel], ["E-mail", imp.email], ["Telefone", imp.telefone], ["WhatsApps do atendimento", (imp.whatsapps?.length ? imp.whatsapps : [imp.whatsapp_atendimento]).filter(Boolean).join(", ")], ["Pagamento", imp.pagamento_realizado ? "Cliente informou que pagou" : "Ainda não informado"]].map(([k, v]) => (
+                      <div key={k} className="flex justify-between gap-3 border-b border-[#F1F5F4] py-2 last:border-0"><span className="text-[#64748B]">{k}</span><b className="text-right">{v || "-"}</b></div>
+                    ))}
+                    {imp.observacoes && <div className="mt-2 rounded-xl bg-[#F7FAF9] p-3 text-[#475569]"><b className="text-[#64748B]">Observações:</b> {imp.observacoes}</div>}
                   </div>
-                )}
-                {imp && aberto === o.id && (
-                  <div className="mt-3 grid gap-3 rounded-2xl bg-slate-50 p-4 text-[13px] lg:grid-cols-[1fr_1.6fr]">
-                    <div className="space-y-1">
-                      <div className="mb-1 text-[12px] font-bold uppercase text-slate-500">Empresa</div>
-                      {[["Razão social", imp.razao_social], ["CNPJ/CPF", imp.cnpj], ["Responsável", imp.responsavel], ["E-mail", imp.email], ["Telefone", imp.telefone], ["WhatsApps do atendimento", (imp.whatsapps?.length ? imp.whatsapps : [imp.whatsapp_atendimento]).filter(Boolean).join(", ")], ["Pagamento", imp.pagamento_realizado ? "Cliente informou que pagou" : "Ainda não informado"]].map(([k, v]) => (
-                        <div key={k} className="flex justify-between gap-3"><span className="text-slate-500">{k}</span><b className="text-right">{v || "-"}</b></div>
-                      ))}
-                      {imp.observacoes && <div className="pt-2 text-slate-600"><span className="text-slate-500">Observações:</span> {imp.observacoes}</div>}
-                    </div>
-                    <div>
-                      <div className="mb-1 text-[12px] font-bold uppercase text-slate-500">Usuários ({imp.usuarios.length})</div>
-                      <table className="w-full text-left text-[12px]">
-                        <thead className="text-slate-500"><tr><th className="py-1">Nome</th><th>E-mail</th><th>Telefone</th><th>Perfil</th></tr></thead>
-                        <tbody>{imp.usuarios.map((u) => <tr key={u.email} className="border-t border-slate-200"><td className="py-1.5 font-semibold">{u.nome}</td><td>{u.email}</td><td>{u.telefone || "-"}</td><td>{u.perfil}</td></tr>)}</tbody>
+                  <div className="min-w-0">
+                    <div className="mb-2 text-[13px] font-extrabold">Usuários <span className="ml-1 rounded-full bg-[#ECFDF5] px-2 py-0.5 text-[11px] text-[#047857]">{imp.usuarios.length}</span></div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-[12.5px]">
+                        <thead className="text-[#64748B]"><tr><th className="py-1.5 font-bold">Nome</th><th className="font-bold">E-mail</th><th className="font-bold">Telefone</th><th className="font-bold">Perfil</th></tr></thead>
+                        <tbody>{imp.usuarios.map((u) => <tr key={u.email} className="border-t border-[#F1F5F4]"><td className="py-2 font-bold">{u.nome}</td><td>{u.email}</td><td>{u.telefone || "-"}</td><td>{u.perfil}</td></tr>)}</tbody>
                       </table>
                     </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </section>
     </div>
   );
 }
