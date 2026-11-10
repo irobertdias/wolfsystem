@@ -3,16 +3,16 @@ import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🏷️ PLANO DE CONTAS — categorias de receita/despesa com hierarquia,
 //     valor movimentado por categoria e criação de plano padrão.
 //     (fin_categorias + leitura de fin_lancamentos)
 // ═══════════════════════════════════════════════════════════════════════
 const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
-const input: any = { width: "100%", background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 13px", color: "#0F172A", fontSize: 13.5, boxSizing: "border-box", outline: "none" };
-const lbl: any = { color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 };
+const card: any = { background: "#fff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
+const input: any = { width: "100%", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, boxSizing: "border-box", outline: "none" };
+const lbl: any = { color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6 };
 const PALETA = ["#059669", "#2563eb", "#dc2626", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#475569", "#ea580c", "#0d9488", "#9333ea"];
 
 const PADRAO_DESPESA = ["Folha de Pagamento", "Aluguel", "Fornecedores", "Impostos e Taxas", "Marketing", "Despesas Operacionais", "Energia / Água / Internet"];
@@ -82,35 +82,32 @@ export default function PlanoContas() {
   const g2Aba = aba === "receita" ? "#10B981" : "#f87171";
 
   const kpis = [
-    { label: "Total de categorias", valor: String(lista.length), cor: "#d97706", g2: "#f59e0b", icone: "🏷️" },
+    { label: "Total de categorias", valor: String(lista.length), cor: "#C2410C", g2: "#FB923C", icone: "🏷️" },
     { label: "Categorias de receita", valor: String(nReceitas), cor: "#059669", g2: "#10B981", icone: "📥" },
     { label: "Categorias de despesa", valor: String(nDespesas), cor: "#dc2626", g2: "#f87171", icone: "📤" },
-    { label: "Subcategorias", valor: String(nSubs), cor: "#7c3aed", g2: "#a78bfa", icone: "↳" },
+    { label: "Subcategorias", valor: String(nSubs), cor: "#047857", g2: "#34D399", icone: "↳" },
   ];
 
   return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
+    <div style={{ padding: "4px 0 28px", display: "flex", flexDirection: "column", gap: 20, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: "0 8px 20px rgba(217,119,6,0.35)" }}><span style={{ filter: "saturate(0) brightness(2)" }}>🏷️</span></div>
-          <div><h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Plano de Contas</h1><p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Categorias de receita e despesa, com subcategorias e movimentação</p></div>
+          <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Plano de Contas</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Categorias de receita e despesa, com subcategorias e movimentação</p></div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={criarPadrao} style={{ background: "#fff", color: "#d97706", border: "1px solid #fcd34d", borderRadius: 11, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Plano padrão</button>
+          <button onClick={criarPadrao} style={{ background: "#fff", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 11, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Plano padrão</button>
           <button onClick={() => abrirNovo(aba)} style={{ background: `linear-gradient(135deg, ${corAba} 0%, ${g2Aba} 100%)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 12px ${corAba}40` }}>+ Nova categoria</button>
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(195px, 1fr))", gap: 16 }}>
         {kpis.map((k) => (
-          <div key={k.label} style={{ ...card, padding: 20, borderTop: `3px solid ${k.cor}`, transition: "all 0.15s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 24px ${k.cor}22`; e.currentTarget.style.transform = "translateY(-3px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
+          <div key={k.label} style={{ ...card, padding: 20, borderRadius: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.cor} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, boxShadow: `0 4px 10px ${k.cor}30` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={k.icone} />}</span></div>
-              <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: `${k.cor}14`, color: k.cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, boxShadow: "none" }}><IconeEmoji e={k.icone} tamanho={17} /></div>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{k.label}</span>
             </div>
-            <div style={{ color: k.cor, fontSize: 28, fontWeight: 800, letterSpacing: -1 }}>{k.valor}</div>
+            <div style={{ color: k.cor === "#dc2626" ? "#DC2626" : "#0F172A", fontSize: 28, fontWeight: 800, letterSpacing: "-.02em" }}>{k.valor}</div>
           </div>
         ))}
       </div>
@@ -120,7 +117,7 @@ export default function PlanoContas() {
           const on = aba === t; const cc = t === "receita" ? "#059669" : "#dc2626"; const qt = lista.filter((c) => c.tipo === t).length;
           return (
             <button key={t} onClick={() => setAba(t)} style={{ flex: 1, padding: "14px", borderRadius: 12, cursor: "pointer", fontWeight: 700, fontSize: 14, border: on ? `2px solid ${cc}` : "1px solid #E6ECEA", background: on ? `${cc}10` : "#fff", color: on ? cc : "#64748B", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              {t === "receita" ? "📥 Receitas" : "📤 Despesas"} <span style={{ background: on ? cc : "#E6ECEA", color: on ? "#fff" : "#64748B", fontSize: 11, padding: "2px 9px", borderRadius: 20 }}>{qt}</span>
+              {t === "receita" ? "Receitas" : "Despesas"} <span style={{ background: on ? cc : "#E6ECEA", color: on ? "#fff" : "#64748B", fontSize: 11, padding: "2px 9px", borderRadius: 20 }}>{qt}</span>
             </button>
           );
         })}
@@ -129,11 +126,11 @@ export default function PlanoContas() {
       {carregando ? <p style={{ color: "#94A3B8", fontSize: 14 }}>Carregando…</p>
         : raizes.length === 0 ? (
           <div style={{ ...card, padding: "48px 24px", textAlign: "center" }}>
-            <div style={{ fontSize: 42 }}>🏷️</div>
+            <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🏷️" tamanho={24} /></div>
             <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "10px 0 4px" }}>Nenhuma categoria de {aba}</h3>
             <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 16px" }}>Crie do zero ou comece com um plano de contas padrão pronto.</p>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-              <button onClick={criarPadrao} style={{ background: "#fff", color: "#d97706", border: "1px solid #fcd34d", borderRadius: 10, padding: "11px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Criar plano padrão</button>
+              <button onClick={criarPadrao} style={{ background: "#fff", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 10, padding: "11px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Criar plano padrão</button>
               <button onClick={() => abrirNovo(aba)} style={{ background: `linear-gradient(135deg, ${corAba} 0%, ${g2Aba} 100%)`, color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Nova categoria</button>
             </div>
           </div>
@@ -157,14 +154,14 @@ export default function PlanoContas() {
                       </div>
                       <div style={{ display: "flex", gap: 5 }}>
                         <button onClick={() => abrirNovo(aba, c.id)} title="Subcategoria" style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 8, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, color: "#64748B" }}>+ sub</button>
-                        <button onClick={() => abrirEdicao(c)} style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "4px 8px", fontSize: 13, cursor: "pointer" }}>✏️</button>
-                        <button onClick={() => remover(c)} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "4px 8px", fontSize: 13, cursor: "pointer" }}>🗑️</button>
+                        <button onClick={() => abrirEdicao(c)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "4px 8px", fontSize: 13, cursor: "pointer" }}>✏️</button>
+                        <button onClick={() => remover(c)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "4px 8px", fontSize: 13, cursor: "pointer" }}><Icone nome="lixeira" tamanho={15} /></button>
                       </div>
                     </div>
 
                     <div style={{ marginTop: 14 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-                        <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Movimentado</span>
+                        <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 700, }}>Movimentado</span>
                         <span style={{ fontSize: 18, fontWeight: 800, color: corAba }}>{brl(mov)}</span>
                       </div>
                       <div style={{ height: 8, background: "#F1F5F4", borderRadius: 5, overflow: "hidden" }}><div style={{ width: `${Math.min(share, 100)}%`, height: "100%", background: `linear-gradient(90deg, ${c.cor || corAba} 0%, ${c.cor || corAba}99 100%)`, borderRadius: 5 }} /></div>
@@ -180,7 +177,7 @@ export default function PlanoContas() {
                             <span style={{ flex: 1, fontSize: 13, color: "#334155", fontWeight: 600 }}>{s.nome}</span>
                             <span style={{ fontSize: 12.5, color: "#64748B", fontWeight: 700 }}>{brl(movDireto(s.id))}</span>
                             <button onClick={() => abrirEdicao(s)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12 }}>✏️</button>
-                            <button onClick={() => remover(s)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12 }}>🗑️</button>
+                            <button onClick={() => remover(s)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12 }}><Icone nome="lixeira" tamanho={15} /></button>
                           </div>
                         ))}
                       </div>
@@ -196,12 +193,12 @@ export default function PlanoContas() {
         <div onClick={() => setModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ ...card, padding: 28, width: "100%", maxWidth: 470 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h2 style={{ color: form.tipo === "receita" ? "#059669" : "#dc2626", fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "✏️ Editar categoria" : form.pai_id ? "↳ Nova subcategoria" : "🏷️ Nova categoria"}</h2>
-              <button onClick={() => setModal(false)} style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+              <h2 style={{ color: form.tipo === "receita" ? "#059669" : "#dc2626", fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "Editar categoria" : form.pai_id ? "↳ Nova subcategoria" : "Nova categoria"}</h2>
+              <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", border: "none", color: "#64748B", cursor: "pointer", width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {(["receita", "despesa"] as const).map((t) => (
-                <button key={t} onClick={() => setForm({ ...form, tipo: t, pai_id: "" })} style={{ flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13, border: form.tipo === t ? `2px solid ${t === "receita" ? "#059669" : "#dc2626"}` : "1px solid #E6ECEA", background: form.tipo === t ? (t === "receita" ? "#ECFDF5" : "#fef2f2") : "#fff", color: t === "receita" ? "#059669" : "#dc2626" }}>{t === "receita" ? "📥 Receita" : "📤 Despesa"}</button>
+                <button key={t} onClick={() => setForm({ ...form, tipo: t, pai_id: "" })} style={{ flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13, border: form.tipo === t ? `2px solid ${t === "receita" ? "#059669" : "#dc2626"}` : "1px solid #E6ECEA", background: form.tipo === t ? (t === "receita" ? "#ECFDF5" : "#fef2f2") : "#fff", color: t === "receita" ? "#059669" : "#dc2626" }}>{t === "receita" ? "Receita" : "Despesa"}</button>
               ))}
             </div>
             <div style={{ marginBottom: 14 }}><label style={lbl}>Nome *</label><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} style={input} placeholder="Ex: Vendas de produtos" /></div>
@@ -214,8 +211,8 @@ export default function PlanoContas() {
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer", fontSize: 14, color: "#334155" }}><input type="checkbox" checked={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.target.checked })} /> Ativa</label>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
-              <button onClick={() => setModal(false)} style={{ background: "#fff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: `linear-gradient(135deg, ${form.tipo === "receita" ? "#059669" : "#dc2626"} 0%, ${form.tipo === "receita" ? "#10B981" : "#f87171"} 100%)`, color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1 }}>{salvando ? "Salvando…" : "💾 Salvar"}</button>
+              <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
+              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: `linear-gradient(135deg, ${form.tipo === "receita" ? "#059669" : "#dc2626"} 0%, ${form.tipo === "receita" ? "#10B981" : "#f87171"} 100%)`, color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1 }}>{salvando ? "Salvando…" : "Salvar"}</button>
             </div>
           </div>
         </div>

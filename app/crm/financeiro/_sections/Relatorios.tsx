@@ -12,12 +12,12 @@ const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency",
 const dataBR = (iso: string | null | undefined) => (iso || "").slice(0, 10).split("-").reverse().join("/");
 const iniMes = () => new Date().toISOString().slice(0, 8) + "01";
 const hoje = () => new Date().toISOString().slice(0, 10);
-const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
-const input: any = { background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 13px", color: "#0F172A", fontSize: 13.5, outline: "none" };
-const th: any = { padding: "12px 18px", color: "#64748B", fontSize: 10.5, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" };
+const card: any = { background: "#fff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
+const input: any = { background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, outline: "none" };
+const th: any = { padding: "12px 18px", color: "#64748B", fontSize: 12, textAlign: "left",  fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" };
 const td: any = { padding: "11px 18px", fontSize: 13, color: "#0F172A", borderTop: "1px solid #F1F5F4", verticalAlign: "middle" };
 const COR = "#ea580c", G2 = "#fb923c";
-const STC: any = { pago: { l: "Pago", c: "#059669" }, pendente: { l: "Pendente", c: "#d97706" }, cancelado: { l: "Cancelado", c: "#64748B" } };
+const STC: any = { pago: { l: "Pago", c: "#059669" }, pendente: { l: "Pendente", c: "#C2410C" }, cancelado: { l: "Cancelado", c: "#64748B" } };
 
 export default function Relatorios() {
   const { wsId } = useWorkspace();
@@ -73,11 +73,10 @@ export default function Relatorios() {
   ];
 
   return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
+    <div style={{ padding: "4px 0 28px", display: "flex", flexDirection: "column", gap: 20, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: `0 8px 20px ${COR}40` }}><span style={{ filter: "saturate(0) brightness(2)" }}>📊</span></div>
-          <div><h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Relatórios</h1><p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Filtre os lançamentos e exporte</p></div>
+          <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Relatórios</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Filtre os lançamentos e exporte</p></div>
         </div>
         <button onClick={exportarCSV} disabled={filtrados.length === 0} style={{ background: filtrados.length ? `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)` : "#E6ECEA", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: filtrados.length ? "pointer" : "default", boxShadow: filtrados.length ? `0 4px 12px ${COR}40` : "none" }}>Exportar CSV</button>
       </div>
@@ -94,14 +93,12 @@ export default function Relatorios() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
         {kpis.map((k) => (
-          <div key={k.label} style={{ ...card, padding: 20, borderTop: `3px solid ${k.cor}`, transition: "all 0.15s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 24px ${k.cor}22`; e.currentTarget.style.transform = "translateY(-3px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
+          <div key={k.label} style={{ ...card, padding: 20, borderRadius: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.cor} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: `0 4px 10px ${k.cor}30` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={k.icone} />}</span></div>
-              <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: `${k.cor}14`, color: k.cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: "none" }}><IconeEmoji e={k.icone} tamanho={17} /></div>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{k.label}</span>
             </div>
-            <div style={{ color: k.cor, fontSize: 24, fontWeight: 800, letterSpacing: -1 }}>{k.valor}</div>
+            <div style={{ color: k.cor === "#dc2626" ? "#DC2626" : "#0F172A", fontSize: 24, fontWeight: 800, letterSpacing: "-.02em" }}>{k.valor}</div>
           </div>
         ))}
       </div>
@@ -113,7 +110,7 @@ export default function Relatorios() {
             {carregando ? <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               : filtrados.length === 0 ? (
                 <tr><td colSpan={5} style={{ padding: "48px 24px", textAlign: "center" }}>
-                  <div style={{ fontSize: 38 }}>📊</div>
+                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📊" tamanho={24} /></div>
                   <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhum lançamento no filtro</p>
                   <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Ajuste o período ou os filtros acima.</p>
                 </td></tr>

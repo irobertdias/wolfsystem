@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 📨 NOTAS RECEBIDAS — sobe o XML da NF-e e o sistema lê sozinho
 //   (fin_notas tipo=nfe direcao=recebida) + lançar a pagar (fin_lancamentos)
@@ -11,8 +11,8 @@ import { IconeEmoji } from "../../../components/a2/Icone";
 const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const mesAtual = () => new Date().toISOString().slice(0, 7);
 const dataBR = (iso: string | null | undefined) => (iso || "").slice(0, 10).split("-").reverse().join("/");
-const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
-const th: any = { padding: "12px 18px", color: "#64748B", fontSize: 10.5, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" };
+const card: any = { background: "#fff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
+const th: any = { padding: "12px 18px", color: "#64748B", fontSize: 12, textAlign: "left",  fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" };
 const td: any = { padding: "12px 18px", fontSize: 13.5, color: "#0F172A", borderTop: "1px solid #F1F5F4", verticalAlign: "middle" };
 const COR = "#0891b2", G2 = "#22d3ee";
 
@@ -93,27 +93,24 @@ export default function NotasRecebidas() {
   const kpis = [
     { label: "Notas importadas", valor: String(lista.length), cor: COR, g2: G2, icone: "📨" },
     { label: "Valor total", valor: brl(total), cor: "#dc2626", g2: "#f87171", icone: "💰" },
-    { label: "Notas no mês", valor: String(noMes.length), cor: "#2563eb", g2: "#60a5fa", icone: "📅" },
+    { label: "Notas no mês", valor: String(noMes.length), cor: "#0F766E", g2: "#14B8A6", icone: "📅" },
     { label: "Já lançadas", valor: `${lancadas}/${lista.length}`, cor: "#059669", g2: "#10B981", icone: "✅" },
   ];
 
   return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
+    <div style={{ padding: "4px 0 28px", display: "flex", flexDirection: "column", gap: 20, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: `0 8px 20px ${COR}40` }}><span style={{ filter: "saturate(0) brightness(2)" }}>📨</span></div>
-        <div><h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Notas recebidas</h1><p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Suba o XML da NF-e — o sistema lê emitente, valor e data sozinho</p></div>
+        <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Notas recebidas</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Suba o XML da NF-e — o sistema lê emitente, valor e data sozinho</p></div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
         {kpis.map((k) => (
-          <div key={k.label} style={{ ...card, padding: 20, borderTop: `3px solid ${k.cor}`, transition: "all 0.15s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 24px ${k.cor}22`; e.currentTarget.style.transform = "translateY(-3px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
+          <div key={k.label} style={{ ...card, padding: 20, borderRadius: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.cor} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: `0 4px 10px ${k.cor}30` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={k.icone} />}</span></div>
-              <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: `${k.cor}14`, color: k.cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: "none" }}><IconeEmoji e={k.icone} tamanho={17} /></div>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{k.label}</span>
             </div>
-            <div style={{ color: k.cor, fontSize: 25, fontWeight: 800, letterSpacing: -1 }}>{k.valor}</div>
+            <div style={{ color: k.cor === "#dc2626" ? "#DC2626" : "#0F172A", fontSize: 25, fontWeight: 800, letterSpacing: "-.02em" }}>{k.valor}</div>
           </div>
         ))}
       </div>
@@ -124,7 +121,7 @@ export default function NotasRecebidas() {
         onDrop={(e) => { e.preventDefault(); setDrag(false); processar(e.dataTransfer.files); }}
         style={{ display: "block", border: `2px dashed ${drag ? COR : COR + "88"}`, borderRadius: 16, padding: 30, textAlign: "center", cursor: "pointer", background: drag ? `${COR}10` : `${COR}06`, transition: "all 0.15s" }}>
         <input type="file" accept=".xml,text/xml" multiple style={{ display: "none" }} onChange={(e) => processar(e.target.files)} />
-        <div style={{ fontSize: 36 }}>📥</div>
+        <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📥" tamanho={24} /></div>
         <div style={{ fontSize: 15, fontWeight: 800, color: COR, marginTop: 8 }}>{importando ? "Lendo XML(s)…" : "Arraste os XML aqui ou clique para selecionar"}</div>
         <div style={{ fontSize: 12.5, color: "#64748B", marginTop: 4 }}>Aceita vários arquivos · evita duplicar pela chave da nota</div>
       </label>
@@ -141,7 +138,7 @@ export default function NotasRecebidas() {
             {carregando ? <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               : lista.length === 0 ? (
                 <tr><td colSpan={6} style={{ padding: "48px 24px", textAlign: "center" }}>
-                  <div style={{ fontSize: 38 }}>📨</div>
+                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📨" tamanho={24} /></div>
                   <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhuma nota importada</p>
                   <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Suba o XML de uma NF-e acima — o sistema preenche tudo sozinho.</p>
                 </td></tr>
@@ -155,7 +152,7 @@ export default function NotasRecebidas() {
                     : <button onClick={() => lancar(n)} style={{ background: `${COR}12`, color: COR, border: `1px solid ${COR}55`, borderRadius: 9, padding: "6px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Lançar a pagar</button>}
                   </td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "#dc2626", whiteSpace: "nowrap" }}>{brl(n.valor_total)}</td>
-                  <td style={{ ...td, textAlign: "right" }}><button onClick={() => remover(n)} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}>🗑️</button></td>
+                  <td style={{ ...td, textAlign: "right" }}><button onClick={() => remover(n)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}><Icone nome="lixeira" tamanho={15} /></button></td>
                 </tr>
               ))}
           </tbody>

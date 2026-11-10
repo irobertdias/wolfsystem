@@ -10,7 +10,7 @@ import { IconeEmoji } from "../../../components/a2/Icone";
 const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const pct = (n: number) => `${(n || 0).toFixed(1)}%`;
 const hoje = () => new Date().toISOString().slice(0, 10);
-const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
+const card: any = { background: "#fff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
 export default function Indicadores() {
   const { wsId } = useWorkspace();
@@ -55,9 +55,9 @@ export default function Indicadores() {
     { label: "Recebido (total)", valor: brl(recebido), cor: "#059669", g2: "#10B981", icone: "📥" },
     { label: "Pago (total)", valor: brl(pago), cor: "#dc2626", g2: "#f87171", icone: "📤" },
     { label: "Resultado", valor: brl(resultado), cor: resultado >= 0 ? "#059669" : "#dc2626", g2: resultado >= 0 ? "#10B981" : "#f87171", icone: "📈" },
-    { label: "Ticket médio", valor: brl(ticket), cor: "#2563eb", g2: "#60a5fa", icone: "🎫" },
-    { label: "Margem", valor: pct(margem), cor: "#7c3aed", g2: "#a78bfa", icone: "📊" },
-    { label: "Inadimplência", valor: pct(inadimplencia), cor: "#d97706", g2: "#f59e0b", icone: "⚠️" },
+    { label: "Ticket médio", valor: brl(ticket), cor: "#0F766E", g2: "#14B8A6", icone: "🎫" },
+    { label: "Margem", valor: pct(margem), cor: "#047857", g2: "#34D399", icone: "📊" },
+    { label: "Inadimplência", valor: pct(inadimplencia), cor: "#C2410C", g2: "#FB923C", icone: "⚠️" },
   ];
 
   function Barras({ titulo, dados, max, emoji }: any) {
@@ -66,7 +66,7 @@ export default function Indicadores() {
         <h3 style={{ margin: "0 0 18px", fontSize: 14, fontWeight: 800, color: "#0F172A" }}>{<IconeEmoji e={emoji} />} {titulo}</h3>
         {carregando ? <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Carregando…</p>
           : dados.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "20px 0", color: "#94A3B8" }}><div style={{ fontSize: 30 }}>📊</div><p style={{ fontSize: 13, margin: "6px 0 0", fontStyle: "italic" }}>Sem dados pagos ainda.</p></div>
+            <div style={{ textAlign: "center", padding: "20px 0", color: "#94A3B8" }}><div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📊" tamanho={24} /></div><p style={{ fontSize: 13, margin: "6px 0 0", fontStyle: "italic" }}>Sem dados pagos ainda.</p></div>
           ) : dados.map((d: any, i: number) => (
             <div key={i} style={{ marginBottom: i === dados.length - 1 ? 0 : 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
@@ -81,22 +81,19 @@ export default function Indicadores() {
   }
 
   return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
+    <div style={{ padding: "4px 0 28px", display: "flex", flexDirection: "column", gap: 20, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ width: 52, height: 52, borderRadius: 16, background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: "0 8px 20px rgba(5,150,105,0.35)" }}><span style={{ filter: "saturate(0) brightness(2)" }}>📈</span></div>
-        <div><h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Indicadores</h1><p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Saúde financeira do negócio</p></div>
+        <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Indicadores</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Saúde financeira do negócio</p></div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(185px, 1fr))", gap: 16 }}>
         {kpis.map((k) => (
-          <div key={k.label} style={{ ...card, padding: 20, borderTop: `3px solid ${k.cor}`, transition: "all 0.15s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 24px ${k.cor}22`; e.currentTarget.style.transform = "translateY(-3px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
+          <div key={k.label} style={{ ...card, padding: 20, borderRadius: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.cor} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, boxShadow: `0 4px 10px ${k.cor}30` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={k.icone} />}</span></div>
-              <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: `${k.cor}14`, color: k.cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, boxShadow: "none" }}><IconeEmoji e={k.icone} tamanho={17} /></div>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{k.label}</span>
             </div>
-            <div style={{ color: k.cor, fontSize: 26, fontWeight: 800, letterSpacing: -1 }}>{k.valor}</div>
+            <div style={{ color: k.cor === "#dc2626" ? "#DC2626" : "#0F172A", fontSize: 26, fontWeight: 800, letterSpacing: "-.02em" }}>{k.valor}</div>
           </div>
         ))}
       </div>

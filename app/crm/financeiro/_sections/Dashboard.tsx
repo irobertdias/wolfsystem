@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 📊 DASHBOARD FINANCEIRO — visão completa (fin_contas + fin_lancamentos)
 // ═══════════════════════════════════════════════════════════════════════
@@ -86,41 +86,38 @@ export default function DashboardFinanceiro() {
   const topDesp = Object.entries(despAgg).map(([id, v]) => ({ id, nome: id === "—" ? "Sem categoria" : nomeCat(id), cor: id === "—" ? "#94A3B8" : corCat(id), valor: v })).sort((a, b) => b.valor - a.valor).slice(0, 5);
   const maxDesp = topDesp[0]?.valor || 1;
 
-  const stStatus = (l: any) => (l.vencimento && l.vencimento < hoje() ? { l: "Atrasado", c: "#dc2626", bg: "#fef2f2", bd: "#fecaca" } : { l: "Pendente", c: "#d97706", bg: "#fffbeb", bd: "#fde68a" });
+  const stStatus = (l: any) => (l.vencimento && l.vencimento < hoje() ? { l: "Atrasado", c: "#dc2626", bg: "#fef2f2", bd: "#fecaca" } : { l: "Pendente", c: "#C2410C", bg: "#fffbeb", bd: "#fde68a" });
 
   // ─── KPIs ───
   const kpis = [
     { label: "Saldo em contas", valor: brl(saldoTotal), cor: saldoTotal >= 0 ? "#059669" : "#dc2626", g1: "#059669", g2: "#10B981", icone: "🏦", sub: `${contas.length} conta(s) ativa(s)` },
     { label: "A receber", valor: brl(aReceber), cor: "#059669", g1: "#059669", g2: "#34d399", icone: "📥", sub: "em aberto" },
     { label: "A pagar", valor: brl(aPagar), cor: "#dc2626", g1: "#dc2626", g2: "#f87171", icone: "📤", sub: "em aberto" },
-    { label: "Recebido no mês", valor: brl(recebidoMes), cor: "#2563eb", g1: "#2563eb", g2: "#60a5fa", icone: "✅", sub: "liquidado" },
-    { label: "Pago no mês", valor: brl(pagoMes), cor: "#d97706", g1: "#d97706", g2: "#fbbf24", icone: "💸", sub: "liquidado" },
+    { label: "Recebido no mês", valor: brl(recebidoMes), cor: "#0F766E", g1: "#0F766E", g2: "#14B8A6", icone: "✅", sub: "liquidado" },
+    { label: "Pago no mês", valor: brl(pagoMes), cor: "#C2410C", g1: "#C2410C", g2: "#FB923C", icone: "💸", sub: "liquidado" },
     { label: "Resultado do mês", valor: brl(resultadoMes), cor: resultadoMes >= 0 ? "#059669" : "#dc2626", g1: resultadoMes >= 0 ? "#059669" : "#dc2626", g2: resultadoMes >= 0 ? "#10B981" : "#f87171", icone: "📈", sub: "receitas − despesas" },
   ];
 
   return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
+    <div style={{ padding: "4px 0 28px", display: "flex", flexDirection: "column", gap: 20, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
 
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: "0 8px 20px rgba(217,119,6,0.3)" }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>📊</span>
-          </div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Dashboard financeiro</h1>
-            <p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Visão geral de {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</p>
+            <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Dashboard financeiro</h1>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Visão geral de {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</p>
           </div>
         </div>
-        <button onClick={carregar} style={{ background: "#fff", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-          Atualizar
+        <button onClick={carregar} style={{ background: "#fff", color: "#334155", border: "none", borderRadius: 12, height: 42, padding: "0 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25)" }}>
+          <Icone nome="atualizar" tamanho={15} />Atualizar
         </button>
       </div>
 
       {/* ═══ ALERTA ATRASO ═══ */}
       {atrasados.length > 0 && (
-        <div style={{ background: "linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)", border: "1px solid #fecaca", borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: "#fecaca", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⚠️</div>
+        <div style={{ background: "#FEF2F2", boxShadow: "inset 0 0 0 1.5px #FECACA", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FEE2E2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="alerta" tamanho={18} /></div>
           <div>
             <p style={{ margin: 0, color: "#991b1b", fontSize: 14, fontWeight: 800 }}>{atrasados.length} lançamento(s) em atraso</p>
             <p style={{ margin: "2px 0 0", color: "#b91c1c", fontSize: 12 }}>Total vencido: <b>{brl(totAtrasado)}</b> — regularize em Contas a Pagar / Receber.</p>
@@ -130,21 +127,27 @@ export default function DashboardFinanceiro() {
 
       {/* ═══ KPIs ═══ */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(195px, 1fr))", gap: 16 }}>
-        {kpis.map((k) => (
-          <div key={k.label}
-            style={{ ...cardStyle, padding: 20, borderTop: `3px solid ${k.cor}`, transition: "all 0.15s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 24px ${k.cor}22`; e.currentTarget.style.transform = "translateY(-3px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.g1} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: `0 4px 10px ${k.cor}30` }}>
-                <span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={k.icone} />}</span>
+        {kpis.map((k, idx) => {
+          // A2: o primeiro cartão (saldo) ganha destaque em verde, como no protótipo.
+          const destaque = idx === 0 && saldoTotal >= 0;
+          const negativo = k.cor === "#dc2626";
+          return (
+            <div key={k.label}
+              style={destaque
+                ? { position: "relative", overflow: "hidden", borderRadius: 18, padding: "20px 22px", color: "#fff", background: "linear-gradient(140deg, #059669, #065F46)", boxShadow: "0 16px 32px -16px rgba(6,95,70,.7)" }
+                : { ...cardStyle, padding: "20px 22px", borderRadius: 18 }}>
+              {destaque && <div aria-hidden style={{ position: "absolute", right: -30, top: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,.1)" }} />}
+              <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ width: 32, height: 32, borderRadius: 10, background: destaque ? "rgba(255,255,255,.18)" : negativo ? "#FEF2F2" : "#ECFDF5", color: destaque ? "#fff" : negativo ? "#B91C1C" : "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <IconeEmoji e={k.icone} tamanho={16} />
+                </span>
+                <span style={{ color: destaque ? "rgba(255,255,255,.85)" : "#64748B", fontSize: 13, fontWeight: 600 }}>{k.label}</span>
               </div>
-              <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
+              <div style={{ position: "relative", color: destaque ? "#fff" : negativo ? "#DC2626" : "#0F172A", fontSize: 27, fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.1 }}>{k.valor}</div>
+              <div style={{ position: "relative", color: destaque ? "rgba(255,255,255,.85)" : "#64748B", fontSize: 12.5, marginTop: 6 }}>{k.sub}</div>
             </div>
-            <div style={{ color: k.cor, fontSize: 27, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1 }}>{k.valor}</div>
-            <div style={{ color: "#94A3B8", fontSize: 11, marginTop: 5, fontWeight: 600 }}>{k.sub}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ═══ GRÁFICO 6 MESES + SALDO POR CONTA ═══ */}
@@ -180,15 +183,15 @@ export default function DashboardFinanceiro() {
           <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 800, color: "#0F172A" }}>Saldo por conta</h3>
           {carregando ? <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Carregando…</p>
             : contas.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "20px 0", color: "#94A3B8" }}>
-                <div style={{ fontSize: 30 }}>🏦</div>
-                <p style={{ fontSize: 13, margin: "6px 0 0", fontStyle: "italic" }}>Nenhuma conta cadastrada.</p>
+              <div style={{ textAlign: "center", padding: "20px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <span style={{ width: 44, height: 44, borderRadius: 13, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="predio" tamanho={20} /></span>
+                <p style={{ fontSize: 13, margin: 0, color: "#64748B" }}>Nenhuma conta cadastrada.</p>
               </div>
             ) : contas.map((c, i) => {
               const t = TIPO_CONTA[c.tipo] || TIPO_CONTA.corrente;
               return (
                 <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 0", borderTop: i === 0 ? "none" : "1px solid #F1F5F4" }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 10, background: "#fffbeb", border: "1px solid #fde68a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{t.i}</div>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={t.i} tamanho={16} /></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, color: "#0F172A", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
                     <div style={{ fontSize: 11, color: "#94A3B8" }}>{t.l}</div>
@@ -199,7 +202,7 @@ export default function DashboardFinanceiro() {
             })}
           {contas.length > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 14, borderTop: "2px solid #F1F5F4" }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.4 }}>Total</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: "#64748B", }}>Total</span>
               <span style={{ fontSize: 17, fontWeight: 800, color: saldoTotal >= 0 ? "#059669" : "#dc2626" }}>{brl(saldoTotal)}</span>
             </div>
           )}
@@ -218,7 +221,7 @@ export default function DashboardFinanceiro() {
             <thead>
               <tr style={{ background: "#F7FAF9" }}>
                 {["Vencimento", "Descrição", "Status", "Valor"].map((h, i) => (
-                  <th key={i} style={{ padding: "11px 20px", color: "#64748B", fontSize: 10.5, textAlign: i === 3 ? "right" : "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
+                  <th key={i} style={{ padding: "12px 20px", color: "#64748B", fontSize: 12, textAlign: i === 3 ? "right" : "left", fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -227,8 +230,8 @@ export default function DashboardFinanceiro() {
                 <tr><td colSpan={4} style={{ padding: "34px", textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               ) : proximos.length === 0 ? (
                 <tr><td colSpan={4} style={{ padding: "40px 24px", textAlign: "center" }}>
-                  <div style={{ fontSize: 34 }}>🎉</div>
-                  <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: "8px 0 2px" }}>Nada pendente à frente</p>
+                  <span style={{ width: 44, height: 44, borderRadius: 13, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={20} /></span>
+                  <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: "8px 0 2px" }}>Nada pendente à frente</p>
                   <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>Você está em dia com os vencimentos.</p>
                 </td></tr>
               ) : proximos.map((l, i) => {
@@ -238,7 +241,7 @@ export default function DashboardFinanceiro() {
                     <td style={{ padding: "12px 20px", fontSize: 13, color: "#64748B", fontWeight: 600, borderTop: "1px solid #F1F5F4" }}>{dataBR(l.vencimento)}</td>
                     <td style={{ padding: "12px 20px", fontSize: 13.5, color: "#0F172A", fontWeight: 600, borderTop: "1px solid #F1F5F4" }}>{l.descricao}</td>
                     <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F4" }}>
-                      <span style={{ background: st.bg, color: st.c, border: `1px solid ${st.bd}`, fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{st.l}</span>
+                      <span style={{ background: st.c === "#dc2626" ? "#FEF2F2" : "#FFF7ED", color: st.c === "#dc2626" ? "#B91C1C" : "#C2410C", fontSize: 12, padding: "3px 10px", borderRadius: 999, fontWeight: 700 }}>{st.l}</span>
                     </td>
                     <td style={{ padding: "12px 20px", fontSize: 14, fontWeight: 800, textAlign: "right", color: l.tipo === "receita" ? "#059669" : "#dc2626", borderTop: "1px solid #F1F5F4", whiteSpace: "nowrap" }}>{l.tipo === "receita" ? "+" : "-"}{brl(l.valor)}</td>
                   </tr>
@@ -253,9 +256,9 @@ export default function DashboardFinanceiro() {
           <h3 style={{ margin: "0 0 18px", fontSize: 14, fontWeight: 800, color: "#0F172A" }}>Top despesas por categoria</h3>
           {carregando ? <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Carregando…</p>
             : topDesp.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "20px 0", color: "#94A3B8" }}>
-                <div style={{ fontSize: 30 }}>📊</div>
-                <p style={{ fontSize: 13, margin: "6px 0 0", fontStyle: "italic" }}>Sem despesas pagas ainda.</p>
+              <div style={{ textAlign: "center", padding: "20px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <span style={{ width: 44, height: 44, borderRadius: 13, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="grafico" tamanho={20} /></span>
+                <p style={{ fontSize: 13, margin: 0, color: "#64748B" }}>Sem despesas pagas ainda.</p>
               </div>
             ) : topDesp.map((d, i) => (
               <div key={i} style={{ marginBottom: i === topDesp.length - 1 ? 0 : 16 }}>

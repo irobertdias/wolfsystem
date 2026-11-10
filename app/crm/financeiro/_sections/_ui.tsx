@@ -1,13 +1,14 @@
 "use client";
 import { ReactNode } from "react";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
-// 🎨 _ui — kit visual do Financeiro (largura total + visual rico do Wolf)
+// _ui — kit visual do Financeiro no padrão A2 (esmeralda, cartões brancos,
+// sombras suaves). A API é a mesma de antes: as seções não mudam.
 //   import { Page, PageHeader, Stats, Stat, Table, Card, Modal, ... } from "./_ui";
 // ═══════════════════════════════════════════════════════════════════════
-export const COR = "#d97706";
-export const C = { amber: "#d97706", green: "#059669", red: "#dc2626", blue: "#2563eb", purple: "#7c3aed", pink: "#db2777", slate: "#475569", gray: "#64748B" };
+export const COR = "#059669";
+export const C = { amber: "#C2410C", green: "#059669", red: "#DC2626", blue: "#0F766E", purple: "#047857", pink: "#B91C1C", slate: "#475569", gray: "#64748B" };
 
 export const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export const pct = (n: number) => `${(n || 0).toFixed(1)}%`;
@@ -15,64 +16,66 @@ export const hoje = () => new Date().toISOString().slice(0, 10);
 export const mesAtual = () => new Date().toISOString().slice(0, 7);
 export const dataBR = (iso: string | null | undefined) => (iso || "").slice(0, 10).split("-").reverse().join("/");
 
-export const cardStyle: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
-export const inputStyle: any = { width: "100%", background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 14px", color: "#0F172A", fontSize: 14, boxSizing: "border-box", outline: "none" };
-export const inputSm: any = { ...inputStyle, padding: "9px 12px", fontSize: 13 };
-export const labelStyle: any = { color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 };
-export const thStyle: any = { padding: "13px 18px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", background: "#F7FAF9", whiteSpace: "nowrap" };
-export const tdStyle: any = { padding: "13px 18px", fontSize: 13.5, color: "#0F172A", borderTop: "1px solid #F1F5F4", verticalAlign: "middle" };
+const SOMBRA = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)";
+export const cardStyle: any = { background: "#fff", borderRadius: 20, boxShadow: SOMBRA };
+export const inputStyle: any = { width: "100%", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, boxSizing: "border-box", outline: "none" };
+export const inputSm: any = { ...inputStyle, padding: "9px 12px", fontSize: 13, borderRadius: 10 };
+export const labelStyle: any = { color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 };
+export const thStyle: any = { padding: "14px 18px", color: "#64748B", fontSize: 12, textAlign: "left", fontWeight: 700, borderBottom: "1px solid #EEF2F1", background: "#F7FAF9", whiteSpace: "nowrap" };
+export const tdStyle: any = { padding: "14px 18px", fontSize: 13.5, color: "#0F172A", borderTop: "1px solid #F1F5F4", verticalAlign: "middle" };
+
+// Tons A2 a partir da cor pedida pela seção (vermelho e laranja continuam com sentido de alerta).
+function tom(cor?: string) {
+  const c = (cor || "").toLowerCase();
+  if (["#dc2626", "#ef4444", "#b91c1c", "#db2777"].includes(c)) return { fg: "#B91C1C", bg: "#FEF2F2", valor: "#DC2626" };
+  if (["#c2410c", "#ea580c", "#f59e0b", "#d97706"].includes(c)) return { fg: "#C2410C", bg: "#FFF7ED", valor: "#C2410C" };
+  if (["#475569", "#64748b", "#94a3b8"].includes(c)) return { fg: "#475569", bg: "#F3F6F5", valor: "#0F172A" };
+  return { fg: "#059669", bg: "#ECFDF5", valor: "#0F172A" };
+}
 
 // container largura total
 export function Page({ children }: { children: ReactNode }) {
-  return <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box" }}>{children}</div>;
+  return <div style={{ padding: "4px 0 28px", display: "flex", flexDirection: "column", gap: 20, width: "100%", boxSizing: "border-box" }}>{children}</div>;
 }
 
-// cabeçalho com badge em gradiente
-export function PageHeader({ icone, titulo, subtitulo, cor = COR, acao }: { icone: string; titulo: string; subtitulo?: string; cor?: string; acao?: ReactNode }) {
+// título grande da seção (como nas telas do protótipo A2)
+export function PageHeader({ titulo, subtitulo, acao }: { icone?: string; titulo: string; subtitulo?: string; cor?: string; acao?: ReactNode }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ width: 50, height: 50, borderRadius: 15, background: `linear-gradient(135deg, ${cor} 0%, ${cor}bb 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 25, boxShadow: `0 8px 20px ${cor}40`, flexShrink: 0 }}>
-          <span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={icone} />}</span>
-        </div>
-        <div>
-          <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.4 }}>{titulo}</h1>
-          {subtitulo && <p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>{subtitulo}</p>}
-        </div>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>{titulo}</h1>
+        {subtitulo && <p style={{ color: "#64748B", fontSize: 14, margin: 0 }}>{subtitulo}</p>}
       </div>
       {acao}
     </div>
   );
 }
 
-// stat-cards (com chip colorido + número grande + hover) — igual ao resto do Wolf
+// cartões de resumo
 export function Stats({ children }: { children: ReactNode }) {
-  return <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>{children}</div>;
+  return <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 18 }}>{children}</div>;
 }
 export function Stat({ label, valor, cor = COR, icone, sub }: { label: string; valor: ReactNode; cor?: string; icone?: string; sub?: string }) {
+  const t = tom(cor);
   return (
-    <div
-      style={{ flex: "1 1 190px", minWidth: 175, ...cardStyle, padding: 20, borderTop: `3px solid ${cor}`, transition: "all 0.15s" }}
-      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 20px ${cor}20`; e.currentTarget.style.transform = "translateY(-2px)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        {icone && <div style={{ width: 30, height: 30, borderRadius: 9, background: `${cor}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{<IconeEmoji e={icone} />}</div>}
-        <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>{label}</span>
+    <div style={{ ...cardStyle, borderRadius: 18, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {icone && <span style={{ width: 30, height: 30, borderRadius: 9, background: t.bg, color: t.fg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={icone} tamanho={16} /></span>}
+        <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{label}</span>
       </div>
-      <div style={{ color: cor, fontSize: 30, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1 }}>{valor}</div>
-      {sub && <div style={{ color: "#94A3B8", fontSize: 11, marginTop: 4 }}>{sub}</div>}
+      <div style={{ color: t.valor, fontSize: 26, fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.15, overflowWrap: "anywhere" }}>{valor}</div>
+      {sub && <div style={{ color: "#64748B", fontSize: 12.5 }}>{sub}</div>}
     </div>
   );
 }
 
-// card branco genérico
-export function Card({ titulo, cor, acao, children, pad = 22 }: { titulo?: string; cor?: string; acao?: ReactNode; children: ReactNode; pad?: number }) {
+// cartão branco genérico
+export function Card({ titulo, acao, children, pad = 22 }: { titulo?: string; cor?: string; acao?: ReactNode; children: ReactNode; pad?: number }) {
   return (
-    <div style={{ ...cardStyle, padding: pad, width: "100%", boxSizing: "border-box" }}>
+    <div style={{ ...cardStyle, padding: pad, width: "100%", boxSizing: "border-box", overflow: pad === 0 ? "hidden" : undefined }}>
       {(titulo || acao) && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: pad === 0 ? "16px 18px" : 0, marginBottom: pad === 0 ? 0 : 14, borderBottom: pad === 0 ? "1px solid #F1F5F4" : "none", gap: 10, flexWrap: "wrap" }}>
-          {titulo && <h3 style={{ margin: 0, fontSize: 12, fontWeight: 700, color: cor || "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</h3>}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: pad === 0 ? "16px 20px" : 0, marginBottom: pad === 0 ? 0 : 14, borderBottom: pad === 0 ? "1px solid #F1F5F4" : "none", gap: 10, flexWrap: "wrap" }}>
+          {titulo && <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#0F172A" }}>{titulo}</h3>}
           {acao}
         </div>
       )}
@@ -81,14 +84,14 @@ export function Card({ titulo, cor, acao, children, pad = 22 }: { titulo?: strin
   );
 }
 
-// tabela emoldurada: SEMPRE mostra cabeçalho; vazio vira linha centralizada dentro do quadro
+// tabela emoldurada: sempre mostra o cabeçalho; vazio vira linha centralizada dentro do quadro
 export function Table({ cols, empty, children }: { cols: { label: string; align?: "left" | "right" | "center"; width?: number }[]; empty?: ReactNode; children?: ReactNode }) {
   return (
-    <div style={{ ...cardStyle, width: "100%", overflow: "hidden", boxSizing: "border-box" }}>
+    <div style={{ ...cardStyle, borderRadius: 22, width: "100%", overflow: "hidden", boxSizing: "border-box" }}>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead><tr>{cols.map((c, i) => <th key={i} style={{ ...thStyle, textAlign: c.align || "left", width: c.width }}>{c.label}</th>)}</tr></thead>
-          <tbody>
+          <tbody className="a2-tabela-fin">
             {empty ? (
               <tr><td colSpan={cols.length} style={{ padding: "44px 24px", textAlign: "center" }}>{empty}</td></tr>
             ) : children}
@@ -99,52 +102,64 @@ export function Table({ cols, empty, children }: { cols: { label: string; align?
   );
 }
 
-// estado vazio rico (usado dentro de Table ou solto)
+// estado vazio (usado dentro de Table ou solto)
 export function Vazio({ icone = "📭", titulo, sub, acao }: { icone?: string; titulo: string; sub?: string; acao?: ReactNode }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <div style={{ width: 64, height: 64, borderRadius: 18, background: "#F1F5F4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, marginBottom: 4 }}>{<IconeEmoji e={icone} />}</div>
-      <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: 0 }}>{titulo}</h3>
-      {sub && <p style={{ color: "#94A3B8", fontSize: 13, margin: 0, maxWidth: 360 }}>{sub}</p>}
+      <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}><IconeEmoji e={icone} tamanho={24} /></div>
+      <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: 0 }}>{titulo}</h3>
+      {sub && <p style={{ color: "#64748B", fontSize: 13, margin: 0, maxWidth: 380 }}>{sub}</p>}
       {acao && <div style={{ marginTop: 12 }}>{acao}</div>}
     </div>
   );
 }
 
-// estado vazio em card (solto, fora de tabela)
+// estado vazio em cartão (solto, fora de tabela)
 export function Empty({ icone = "📭", titulo, sub, acao }: { icone?: string; titulo: string; sub?: string; acao?: ReactNode }) {
-  return <div style={{ ...cardStyle, padding: "48px 24px" }}><Vazio icone={icone} titulo={titulo} sub={sub} acao={acao} /></div>;
+  return <div style={{ ...cardStyle, padding: "44px 24px" }}><Vazio icone={icone} titulo={titulo} sub={sub} acao={acao} /></div>;
 }
 
-// banner informativo
+// aviso
 export function Banner({ tipo = "info", children }: { tipo?: "info" | "warn" | "ok"; children: ReactNode }) {
-  const m: any = { info: { bg: "#eff6ff", bd: "#bfdbfe", cor: "#1e40af", ic: "ℹ️" }, warn: { bg: "#fffbeb", bd: "#fde68a", cor: "#92400e", ic: "⚠️" }, ok: { bg: "#ECFDF5", bd: "#A7F3D0", cor: "#047857", ic: "✅" } };
-  const s = m[tipo];
-  return <div style={{ background: s.bg, border: `1px solid ${s.bd}`, borderRadius: 12, padding: "13px 16px", color: s.cor, fontSize: 13, lineHeight: 1.5, display: "flex", gap: 10 }}><span>{s.ic}</span><div>{children}</div></div>;
+  const m = {
+    info: { bg: "#F7FFFB", anel: "#A7F3D0", cor: "#334155", icBg: "#ECFDF5", icCor: "#059669", ic: "info" },
+    warn: { bg: "#FFFBEB", anel: "#FDE68A", cor: "#78350F", icBg: "#FEF3C7", icCor: "#B45309", ic: "alerta" },
+    ok: { bg: "#F7FFFB", anel: "#A7F3D0", cor: "#065F46", icBg: "#ECFDF5", icCor: "#059669", ic: "check" },
+  }[tipo];
+  return (
+    <div style={{ background: m.bg, boxShadow: `inset 0 0 0 1.5px ${m.anel}`, borderRadius: 16, padding: "13px 16px", color: m.cor, fontSize: 13, lineHeight: 1.55, display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <span style={{ width: 28, height: 28, borderRadius: 8, background: m.icBg, color: m.icCor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome={m.ic as any} tamanho={15} /></span>
+      <div style={{ paddingTop: 4 }}>{children}</div>
+    </div>
+  );
 }
 
 // botão
 export function Btn({ children, onClick, cor = COR, variante = "primary", disabled }: { children: ReactNode; onClick?: () => void; cor?: string; variante?: "primary" | "ghost" | "danger"; disabled?: boolean }) {
-  const base: any = { borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1, whiteSpace: "nowrap", border: "none" };
+  const t = tom(cor);
+  const base: any = { height: 42, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 12, padding: "0 18px", fontSize: 13.5, fontWeight: 800, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1, whiteSpace: "nowrap", border: "none" };
+  const vermelho = t.fg === "#B91C1C";
   const est: any = {
-    primary: { ...base, background: `linear-gradient(135deg, ${cor} 0%, ${cor}dd 100%)`, color: "#fff", boxShadow: `0 4px 12px ${cor}40` },
-    ghost: { ...base, background: "#fff", color: cor, border: `1px solid ${cor}55` },
-    danger: { ...base, background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" },
+    primary: vermelho
+      ? { ...base, background: "linear-gradient(140deg, #EF4444, #DC2626)", color: "#fff", boxShadow: "0 12px 24px -12px rgba(220,38,38,.7)" }
+      : { ...base, background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", boxShadow: "0 12px 24px -12px rgba(5,150,105,.8)" },
+    ghost: { ...base, background: "#F3F6F5", color: "#334155", fontWeight: 700 },
+    danger: { ...base, background: "#FEF2F2", color: "#B91C1C", fontWeight: 700 },
   };
   return <button onClick={onClick} disabled={disabled} style={est[variante]}>{children}</button>;
 }
 
-// modal
-export function Modal({ titulo, cor = COR, onClose, children, footer, maxWidth = 520 }: { titulo: string; cor?: string; onClose: () => void; children: ReactNode; footer?: ReactNode; maxWidth?: number }) {
+// janela
+export function Modal({ titulo, onClose, children, footer, maxWidth = 520 }: { titulo: string; cor?: string; onClose: () => void; children: ReactNode; footer?: ReactNode; maxWidth?: number }) {
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...cardStyle, padding: 26, width: "100%", maxWidth, maxHeight: "92vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ color: cor, fontSize: 18, fontWeight: 800, margin: 0 }}>{titulo}</h2>
-          <button onClick={onClose} style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 22, boxShadow: "0 30px 60px -20px rgba(15,23,42,.45)", padding: 24, width: "100%", maxWidth, maxHeight: "92vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 16, boxSizing: "border-box" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <h2 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: 0 }}>{titulo}</h2>
+          <button onClick={onClose} title="Fechar" style={{ background: "#F3F6F5", border: "none", color: "#64748B", cursor: "pointer", width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="x" tamanho={16} /></button>
         </div>
         {children}
-        {footer && <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 14 }}>{footer}</div>}
+        {footer && <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #F1F5F4", paddingTop: 16, flexWrap: "wrap" }}>{footer}</div>}
       </div>
     </div>
   );
@@ -157,8 +172,16 @@ export function Row({ children, gap = 12 }: { children: ReactNode; gap?: number 
   return <div style={{ display: "flex", gap, flexWrap: "wrap" }}>{children}</div>;
 }
 export function Pill({ texto, cor }: { texto: string; cor: string }) {
-  return <span style={{ fontSize: 11, fontWeight: 700, color: cor, background: `${cor}14`, border: `1px solid ${cor}44`, borderRadius: 20, padding: "3px 11px", whiteSpace: "nowrap", display: "inline-block" }}>{texto}</span>;
+  const t = tom(cor);
+  const neutro = t.fg === "#475569";
+  return <span style={{ fontSize: 12, fontWeight: 700, color: neutro ? "#475569" : t.fg, background: t.bg, borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap", display: "inline-block" }}>{texto}</span>;
 }
 export function IconBtn({ icone, onClick, title }: { icone: string; onClick?: () => void; title?: string }) {
-  return <button onClick={onClick} title={title} style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 8, padding: "5px 9px", fontSize: 14, cursor: "pointer", marginLeft: 4 }}>{<IconeEmoji e={icone} />}</button>;
+  const perigo = /🗑|❌|✕|✖/.test(icone);
+  return (
+    <button onClick={onClick} title={title}
+      style={{ background: perigo ? "#FEF2F2" : "#F3F6F5", color: perigo ? "#B91C1C" : "#475569", border: 0, borderRadius: 10, width: 34, height: 34, cursor: "pointer", marginLeft: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle" }}>
+      <IconeEmoji e={icone} tamanho={15} />
+    </button>
+  );
 }

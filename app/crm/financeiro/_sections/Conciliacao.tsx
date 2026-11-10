@@ -3,15 +3,15 @@ import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🔁 CONCILIAÇÃO — casa fin_extratos (linhas do banco) com fin_lancamentos
 //   ao conciliar: marca pago, liga os dois e ajusta o saldo da conta.
 // ═══════════════════════════════════════════════════════════════════════
 const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (iso: string | null | undefined) => (iso || "").slice(0, 10).split("-").reverse().join("/");
-const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
-const COR = "#2563eb", G2 = "#60a5fa";
+const card: any = { background: "#fff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
+const COR = "#059669", G2 = "#10B981";
 
 export default function Conciliacao() {
   const { wsId } = useWorkspace();
@@ -64,28 +64,25 @@ export default function Conciliacao() {
   const taxa = totalLinhas ? (totConc / totalLinhas) * 100 : 0;
   const kpis = [
     { label: "A conciliar", valor: String(extratos.length), cor: COR, g2: G2, icone: "🔁" },
-    { label: "Valor pendente", valor: brl(valorPendente), cor: "#d97706", g2: "#f59e0b", icone: "💰" },
+    { label: "Valor pendente", valor: brl(valorPendente), cor: "#C2410C", g2: "#FB923C", icone: "💰" },
     { label: "Já conciliadas", valor: String(totConc), cor: "#059669", g2: "#10B981", icone: "✅" },
-    { label: "Taxa de conciliação", valor: `${taxa.toFixed(0)}%`, cor: "#7c3aed", g2: "#a78bfa", icone: "📊" },
+    { label: "Taxa de conciliação", valor: `${taxa.toFixed(0)}%`, cor: "#047857", g2: "#34D399", icone: "📊" },
   ];
 
   return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
+    <div style={{ padding: "4px 0 28px", display: "flex", flexDirection: "column", gap: 20, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: `0 8px 20px ${COR}40` }}><span style={{ filter: "saturate(0) brightness(2)" }}>🔁</span></div>
-        <div><h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Conciliação</h1><p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Ligue cada linha do extrato ao lançamento correspondente</p></div>
+        <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Conciliação</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Ligue cada linha do extrato ao lançamento correspondente</p></div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
         {kpis.map((k) => (
-          <div key={k.label} style={{ ...card, padding: 20, borderTop: `3px solid ${k.cor}`, transition: "all 0.15s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 24px ${k.cor}22`; e.currentTarget.style.transform = "translateY(-3px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
+          <div key={k.label} style={{ ...card, padding: 20, borderRadius: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.cor} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: `0 4px 10px ${k.cor}30` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={k.icone} />}</span></div>
-              <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: `${k.cor}14`, color: k.cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: "none" }}><IconeEmoji e={k.icone} tamanho={17} /></div>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{k.label}</span>
             </div>
-            <div style={{ color: k.cor, fontSize: 25, fontWeight: 800, letterSpacing: -1 }}>{k.valor}</div>
+            <div style={{ color: k.cor === "#dc2626" ? "#DC2626" : "#0F172A", fontSize: 25, fontWeight: 800, letterSpacing: "-.02em" }}>{k.valor}</div>
           </div>
         ))}
       </div>
@@ -93,7 +90,7 @@ export default function Conciliacao() {
       {carregando ? <p style={{ color: "#94A3B8", fontSize: 14 }}>Carregando…</p>
         : extratos.length === 0 ? (
           <div style={{ ...card, padding: "52px 24px", textAlign: "center" }}>
-            <div style={{ width: 70, height: 70, borderRadius: 20, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, margin: "0 auto 12px" }}>✓</div>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}><Icone nome="check" tamanho={26} /></div>
             <h3 style={{ color: "#059669", fontSize: 17, fontWeight: 800, margin: "0 0 4px" }}>Tudo conciliado!</h3>
             <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Importe um extrato (OFX) em <b>Importar extrato</b> pra trazer novas linhas.</p>
           </div>

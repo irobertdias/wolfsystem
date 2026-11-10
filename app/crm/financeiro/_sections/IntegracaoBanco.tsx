@@ -1,4 +1,5 @@
 "use client";
+import { IconeEmoji } from "../../../components/a2/Icone";
 import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
@@ -7,7 +8,7 @@ import { supabase } from "../../../lib/supabase";
 // 🔌 INTEGRAÇÃO BANCÁRIA (ao-vivo) — slot pra agregador Open Finance
 //   lê o status do provedor em fin_config; sincronização entra com o provedor.
 // ═══════════════════════════════════════════════════════════════════════
-const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
+const card: any = { background: "#fff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 const COR = "#6366f1", G2 = "#818cf8";
 
 export default function IntegracaoBanco() {
@@ -35,10 +36,9 @@ export default function IntegracaoBanco() {
   ];
 
   return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
+    <div style={{ padding: "4px 0 28px", display: "flex", flexDirection: "column", gap: 20, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: `0 8px 20px ${COR}40` }}><span style={{ filter: "saturate(0) brightness(2)" }}>🔌</span></div>
-        <div><h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Integração bancária</h1><p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Puxar o extrato direto do banco, ao-vivo, sem subir arquivo</p></div>
+        <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Integração bancária</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Puxar o extrato direto do banco, ao-vivo, sem subir arquivo</p></div>
       </div>
 
       {/* STATUS */}
@@ -60,7 +60,7 @@ export default function IntegracaoBanco() {
 
       {/* PASSOS */}
       <div>
-        <h3 style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>Como funciona</h3>
+        <h3 style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", margin: "0 0 14px" }}>Como funciona</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
           {passos.map((p) => (
             <div key={p.n} style={{ ...card, padding: 20 }}>
@@ -78,11 +78,11 @@ export default function IntegracaoBanco() {
       {/* COMPARATIVO */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
         <div style={{ ...card, padding: 22, borderTop: "3px solid #059669" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ fontSize: 22 }}>📑</span><h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#059669" }}>Importar OFX <span style={{ fontSize: 11, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 9px", borderRadius: 20 }}>Disponível agora</span></h3></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e="📑" tamanho={17} /></span><h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#059669" }}>Importar OFX <span style={{ fontSize: 11, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 9px", borderRadius: 20 }}>Disponível agora</span></h3></div>
           <p style={{ fontSize: 13.5, color: "#64748B", lineHeight: 1.6, margin: 0 }}>Baixe o extrato em <b>.ofx</b> no app do banco e suba em <b>Importar extrato</b>. A conciliação funciona igual, <b>sem custo</b> de provedor.</p>
         </div>
         <div style={{ ...card, padding: 22, borderTop: `3px solid ${COR}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ fontSize: 22 }}>🔌</span><h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: COR }}>Open Finance ao-vivo <span style={{ fontSize: 11, background: "#ECFDF5", color: COR, border: "1px solid #A7F3D0", padding: "2px 9px", borderRadius: 20 }}>Em breve</span></h3></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e="🔌" tamanho={17} /></span><h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: COR }}>Open Finance ao-vivo <span style={{ fontSize: 11, background: "#ECFDF5", color: COR, border: "1px solid #A7F3D0", padding: "2px 9px", borderRadius: 20 }}>Em breve</span></h3></div>
           <p style={{ fontSize: 13.5, color: "#64748B", lineHeight: 1.6, margin: 0 }}>Conexão direta com o banco via agregador (Pluggy/Belvo). O extrato chega <b>sozinho</b>, sem baixar arquivo. É um serviço contratado à parte.</p>
         </div>
       </div>

@@ -3,20 +3,20 @@ import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🏦 CONTAS BANCÁRIAS / caixa / cartão (fin_contas)
 // ═══════════════════════════════════════════════════════════════════════
 const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
-const input: any = { width: "100%", background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 13px", color: "#0F172A", fontSize: 13.5, boxSizing: "border-box", outline: "none" };
-const lbl: any = { color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 };
+const card: any = { background: "#fff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
+const input: any = { width: "100%", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, boxSizing: "border-box", outline: "none" };
+const lbl: any = { color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6 };
 
 const TIPOS = [
-  { v: "corrente", l: "Conta Corrente", i: "🏦", g1: "#2563eb", g2: "#60a5fa" },
+  { v: "corrente", l: "Conta Corrente", i: "🏦", g1: "#0F766E", g2: "#14B8A6" },
   { v: "poupanca", l: "Poupança", i: "🐷", g1: "#059669", g2: "#10B981" },
-  { v: "caixa", l: "Caixa / Dinheiro", i: "💵", g1: "#d97706", g2: "#f59e0b" },
-  { v: "cartao", l: "Cartão", i: "💳", g1: "#7c3aed", g2: "#a78bfa" },
+  { v: "caixa", l: "Caixa / Dinheiro", i: "💵", g1: "#C2410C", g2: "#FB923C" },
+  { v: "cartao", l: "Cartão", i: "💳", g1: "#047857", g2: "#34D399" },
   { v: "investimento", l: "Investimento", i: "📈", g1: "#0891b2", g2: "#22d3ee" },
 ];
 const tipoMeta = (v: string) => TIPOS.find((t) => t.v === v) || TIPOS[0];
@@ -63,30 +63,27 @@ export default function ContasBancarias() {
 
   const kpis = [
     { label: "Saldo total (ativas)", valor: brl(total), cor: total >= 0 ? "#059669" : "#dc2626", g2: total >= 0 ? "#10B981" : "#f87171", icone: "💰" },
-    { label: "Contas ativas", valor: String(ativas.length), cor: "#2563eb", g2: "#60a5fa", icone: "🏦" },
-    { label: "Maior saldo", valor: brl(maior), cor: "#7c3aed", g2: "#a78bfa", icone: "📈" },
+    { label: "Contas ativas", valor: String(ativas.length), cor: "#0F766E", g2: "#14B8A6", icone: "🏦" },
+    { label: "Maior saldo", valor: brl(maior), cor: "#047857", g2: "#34D399", icone: "📈" },
   ];
 
   return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
+    <div style={{ padding: "4px 0 28px", display: "flex", flexDirection: "column", gap: 20, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: "0 8px 20px rgba(217,119,6,0.35)" }}><span style={{ filter: "saturate(0) brightness(2)" }}>🏦</span></div>
-          <div><h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Contas bancárias</h1><p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Bancos, caixa, cartões e investimentos</p></div>
+          <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Contas bancárias</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Bancos, caixa, cartões e investimentos</p></div>
         </div>
-        <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(217,119,6,0.4)" }}>+ Nova conta</button>
+        <button onClick={abrirNovo} style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(5,150,105,0.4)" }}>+ Nova conta</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
         {kpis.map((k) => (
-          <div key={k.label} style={{ ...card, padding: 20, borderTop: `3px solid ${k.cor}`, transition: "all 0.15s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 24px ${k.cor}22`; e.currentTarget.style.transform = "translateY(-3px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
+          <div key={k.label} style={{ ...card, padding: 20, borderRadius: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.cor} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, boxShadow: `0 4px 10px ${k.cor}30` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={k.icone} />}</span></div>
-              <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: `${k.cor}14`, color: k.cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, boxShadow: "none" }}><IconeEmoji e={k.icone} tamanho={17} /></div>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{k.label}</span>
             </div>
-            <div style={{ color: k.cor, fontSize: 26, fontWeight: 800, letterSpacing: -1 }}>{k.valor}</div>
+            <div style={{ color: k.cor === "#dc2626" ? "#DC2626" : "#0F172A", fontSize: 26, fontWeight: 800, letterSpacing: "-.02em" }}>{k.valor}</div>
           </div>
         ))}
       </div>
@@ -94,10 +91,10 @@ export default function ContasBancarias() {
       {carregando ? <p style={{ color: "#94A3B8", fontSize: 14 }}>Carregando…</p>
         : lista.length === 0 ? (
           <div style={{ ...card, padding: "48px 24px", textAlign: "center" }}>
-            <div style={{ fontSize: 42 }}>🏦</div>
+            <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🏦" tamanho={24} /></div>
             <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "10px 0 4px" }}>Nenhuma conta cadastrada</h3>
             <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 16px" }}>Cadastre suas contas pra controlar saldos e ligar aos lançamentos.</p>
-            <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Nova conta</button>
+            <button onClick={abrirNovo} style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Nova conta</button>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 18 }}>
@@ -107,18 +104,18 @@ export default function ContasBancarias() {
                 <div key={c.id} style={{ ...card, overflow: "hidden", opacity: c.ativo ? 1 : 0.6 }}>
                   <div style={{ background: `linear-gradient(135deg, ${t.g1} 0%, ${t.g2} 100%)`, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 24, filter: "saturate(0) brightness(2)" }}>{t.i}</span>
+                      <span style={{ width: 36, height: 36, borderRadius: 11, background: "rgba(255,255,255,.18)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={t.i} tamanho={18} /></span>
                       <div><div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>{c.nome}</div><div style={{ color: "rgba(255,255,255,0.85)", fontSize: 11 }}>{t.l}{c.banco ? ` · ${c.banco}` : ""}</div></div>
                     </div>
                     {!c.ativo && <span style={{ background: "rgba(255,255,255,0.25)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10 }}>inativa</span>}
                   </div>
                   <div style={{ padding: 18 }}>
-                    <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Saldo atual</div>
+                    <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 700, }}>Saldo atual</div>
                     <div style={{ fontSize: 26, fontWeight: 800, color: (c.saldo_atual || 0) >= 0 ? "#059669" : "#dc2626", letterSpacing: -1, margin: "2px 0 10px" }}>{brl(c.saldo_atual)}</div>
                     {(c.agencia || c.conta) && <div style={{ fontSize: 12, color: "#64748B", marginBottom: 12 }}>Ag <b>{c.agencia || "—"}</b> · CC <b>{c.conta || "—"}</b></div>}
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => abrirEdicao(c)} style={{ flex: 1, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 9, padding: "8px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Editar</button>
-                      <button onClick={() => remover(c)} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 9, padding: "8px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>🗑️</button>
+                      <button onClick={() => abrirEdicao(c)} style={{ flex: 1, background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "8px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Editar</button>
+                      <button onClick={() => remover(c)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 9, padding: "8px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}><Icone nome="lixeira" tamanho={15} /></button>
                     </div>
                   </div>
                 </div>
@@ -131,15 +128,15 @@ export default function ContasBancarias() {
         <div onClick={() => setModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ ...card, padding: 28, width: "100%", maxWidth: 470, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h2 style={{ color: "#d97706", fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "✏️ Editar conta" : "🏦 Nova conta"}</h2>
-              <button onClick={() => setModal(false)} style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+              <h2 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "Editar conta" : "Nova conta"}</h2>
+              <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", border: "none", color: "#64748B", cursor: "pointer", width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <div style={{ marginBottom: 14 }}><label style={lbl}>Nome *</label><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} style={input} placeholder="Ex: Itaú Principal" /></div>
             <div style={{ marginBottom: 14 }}>
               <label style={lbl}>Tipo</label>
               <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
                 {TIPOS.map((t) => { const on = form.tipo === t.v; return (
-                  <button key={t.v} onClick={() => setForm({ ...form, tipo: t.v })} style={{ padding: "8px 12px", borderRadius: 9, border: on ? `2px solid ${t.g1}` : "1px solid #E6ECEA", background: on ? `${t.g1}12` : "#fff", color: on ? t.g1 : "#64748B", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{t.i} {t.l}</button>
+                  <button key={t.v} onClick={() => setForm({ ...form, tipo: t.v })} style={{ padding: "8px 12px", borderRadius: 9, border: on ? `2px solid ${t.g1}` : "1px solid #E6ECEA", background: on ? `${t.g1}12` : "#fff", color: on ? t.g1 : "#64748B", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}><IconeEmoji e={t.i} tamanho={14} /> {t.l}</button>
                 ); })}
               </div>
             </div>
@@ -151,8 +148,8 @@ export default function ContasBancarias() {
             <div style={{ marginBottom: 16 }}><label style={lbl}>Saldo inicial</label><input value={form.saldo_inicial} onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} style={{ ...input, maxWidth: 200 }} placeholder="0,00" />{editando && <span style={{ fontSize: 11, color: "#94A3B8", display: "block", marginTop: 4 }}>Mudar o saldo inicial não recalcula lançamentos já feitos.</span>}</div>
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer", fontSize: 14, color: "#334155" }}><input type="checkbox" checked={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.target.checked })} /> Conta ativa</label>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
-              <button onClick={() => setModal(false)} style={{ background: "#fff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1, boxShadow: "0 4px 12px rgba(217,119,6,0.4)" }}>{salvando ? "Salvando…" : "💾 Salvar"}</button>
+              <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
+              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1, boxShadow: "0 4px 12px rgba(5,150,105,0.4)" }}>{salvando ? "Salvando…" : "Salvar"}</button>
             </div>
           </div>
         </div>

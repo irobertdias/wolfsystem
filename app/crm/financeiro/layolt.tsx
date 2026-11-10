@@ -22,7 +22,7 @@ import Conciliacao from "./_sections/Conciliacao";
 import ImportarExtrato from "./_sections/ImportarExtrato";
 import IntegracaoBanco from "./_sections/IntegracaoBanco";
 
-import { IconeEmoji } from "../../components/a2/Icone";
+import Icone from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 💰 Financeiro — SHELL (registro de seções + menu interno)
 // ───────────────────────────────────────────────────────────────────────
@@ -41,51 +41,51 @@ type Grupo = { nome: string; itens: Item[] };
 
 const GRUPOS: Grupo[] = [
   { nome: "Visão Geral", itens: [
-    { key: "dashboard",   label: "Dashboard",   icone: "📊" },
-    { key: "indicadores", label: "Indicadores", icone: "📈" },
+    { key: "dashboard",   label: "Dashboard",   icone: "grafico" },
+    { key: "indicadores", label: "Indicadores", icone: "alvo" },
   ]},
   { nome: "Movimentações", itens: [
-    { key: "contas_receber", label: "Contas a Receber", icone: "📥" },
-    { key: "contas_pagar",   label: "Contas a Pagar",   icone: "📤" },
-    { key: "caixa",          label: "Lançamentos / Caixa", icone: "💵" },
-    { key: "transferencias", label: "Transferências",   icone: "🔄" },
+    { key: "contas_receber", label: "Contas a Receber", icone: "download" },
+    { key: "contas_pagar",   label: "Contas a Pagar",   icone: "upload" },
+    { key: "caixa",          label: "Lançamentos / Caixa", icone: "dinheiro" },
+    { key: "transferencias", label: "Transferências",   icone: "atualizar" },
   ]},
   { nome: "Bancos", itens: [
-    { key: "contas_bancarias", label: "Contas bancárias",     icone: "🏦" },
-    { key: "conciliacao",      label: "Conciliação",          icone: "🔁" },
-    { key: "extrato",          label: "Importar extrato (OFX)", icone: "📑" },
-    { key: "integracao_banco", label: "Integração bancária",  icone: "🔌" },
+    { key: "contas_bancarias", label: "Contas bancárias",     icone: "predio" },
+    { key: "conciliacao",      label: "Conciliação",          icone: "check" },
+    { key: "extrato",          label: "Importar extrato (OFX)", icone: "documento" },
+    { key: "integracao_banco", label: "Integração bancária",  icone: "link" },
   ]},
   { nome: "Notas & Documentos", itens: [
-    { key: "emitir_nota",     label: "Emitir NF-e",        icone: "🧾" },
-    { key: "notas_recebidas", label: "Notas recebidas",    icone: "📨" },
-    { key: "boletos",         label: "Boletos",            icone: "🎫" },
+    { key: "emitir_nota",     label: "Emitir NF-e",        icone: "documento" },
+    { key: "notas_recebidas", label: "Notas recebidas",    icone: "pasta" },
+    { key: "boletos",         label: "Boletos",            icone: "carteira" },
   ]},
   { nome: "Cadastros", itens: [
-    { key: "plano_contas",     label: "Plano de Contas",   icone: "🏷️" },
-    { key: "centros_custo",    label: "Centros de Custo",  icone: "🎯" },
-    { key: "contatos",         label: "Clientes / Fornecedores", icone: "🧑‍🤝‍🧑" },
-    { key: "formas_pagamento", label: "Formas de Pagamento", icone: "💳" },
+    { key: "plano_contas",     label: "Plano de Contas",   icone: "tag" },
+    { key: "centros_custo",    label: "Centros de Custo",  icone: "alvo" },
+    { key: "contatos",         label: "Clientes / Fornecedores", icone: "usuarios" },
+    { key: "formas_pagamento", label: "Formas de Pagamento", icone: "carteira" },
   ]},
   { nome: "Relatórios", itens: [
-    { key: "dre",        label: "DRE",            icone: "📈" },
-    { key: "fluxo_caixa", label: "Fluxo de Caixa", icone: "🌊" },
-    { key: "relatorios", label: "Relatórios",     icone: "📊" },
+    { key: "dre",        label: "DRE",            icone: "balanca" },
+    { key: "fluxo_caixa", label: "Fluxo de Caixa", icone: "grafico" },
+    { key: "relatorios", label: "Relatórios",     icone: "pasta" },
   ]},
   { nome: "Configurações", itens: [
-    { key: "config", label: "Configurações", icone: "⚙️" },
+    { key: "config", label: "Configurações", icone: "config" },
   ]},
 ];
 
-const COR = "#d97706"; // âmbar — identidade do Financeiro (bate com o botão da barra)
+const SOMBRA = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)";
 
 // 🚧 Fallback pras telas ainda não construídas
 function EmConstrucao({ titulo }: { titulo: string }) {
   return (
-    <div style={{ padding: 48, textAlign: "center", color: "#64748B" }}>
-      <div style={{ fontSize: 44, marginBottom: 12 }}>🚧</div>
-      <h2 style={{ margin: "0 0 6px", color: "#0F172A", fontSize: 20 }}>{titulo}</h2>
-      <p style={{ margin: 0, fontSize: 14 }}>Tela em construção — chega em breve.</p>
+    <div style={{ background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: "44px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="relogio" tamanho={24} /></span>
+      <h2 style={{ margin: 0, color: "#0F172A", fontSize: 18, fontWeight: 800 }}>{titulo}</h2>
+      <p style={{ margin: 0, fontSize: 14, color: "#64748B" }}>Tela em construção, chega em breve.</p>
     </div>
   );
 }
@@ -139,10 +139,13 @@ export default function FinanceiroLayolt() {
     .filter((g) => g.itens.length > 0);
 
   const [aba, setAba] = useState("dashboard");
-  const [abertos, setAbertos] = useState<Record<string, boolean>>(
-    GRUPOS.reduce((acc, g) => { acc[g.nome] = true; return acc; }, {} as Record<string, boolean>)
-  );
   const [menuMobile, setMenuMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const ver = () => setIsMobile(window.innerWidth < 900);
+    ver(); window.addEventListener("resize", ver);
+    return () => window.removeEventListener("resize", ver);
+  }, []);
 
   // mantém a aba válida (1ª tela visível) quando as permissões carregam
   useEffect(() => {
@@ -157,77 +160,72 @@ export default function FinanceiroLayolt() {
 
   if (!temAcessoModulo) {
     return (
-      <div style={{ padding: 48, textAlign: "center", color: "#64748B" }}>
-        <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
-        <h2 style={{ margin: "0 0 6px", color: "#0F172A", fontSize: 20 }}>Financeiro</h2>
-        <p style={{ margin: 0, fontSize: 14 }}>Você não tem acesso a este módulo.</p>
+      <div style={{ minHeight: "50vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        <div style={{ background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: 40, textAlign: "center", maxWidth: 420 }}>
+          <span style={{ width: 56, height: 56, borderRadius: 16, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}><Icone nome="cadeado" tamanho={24} /></span>
+          <h2 style={{ margin: "0 0 6px", color: "#0F172A", fontSize: 19, fontWeight: 800 }}>Financeiro</h2>
+          <p style={{ margin: 0, fontSize: 14, color: "#64748B" }}>Você não tem acesso a este módulo. Fale com o administrador.</p>
+        </div>
       </div>
     );
   }
 
   const Comp = SECTIONS[aba] || (() => <EmConstrucao titulo={LABELS[aba] || "Financeiro"} />);
 
-  return (
-    <div style={{ display: "flex", minHeight: "calc(100vh - 64px)", background: "#F3F6F5" }}>
-      {/* Sidebar interna */}
-      <aside
+  const botao = (i: Item) => {
+    const sel = aba === i.key;
+    return (
+      <button key={i.key} onClick={() => { setAba(i.key); setMenuMobile(false); }}
+        className={`a2-menu-config${sel ? " ativo" : ""}`}
         style={{
-          width: 248,
-          background: "#fff",
-          borderRight: "1px solid #E6ECEA",
-          padding: "16px 10px",
-          flexShrink: 0,
-          display: menuMobile ? "block" : undefined,
-        }}
-        className="fin-aside"
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 8px 14px" }}>
-          <span style={{ fontSize: 22 }}>💰</span>
-          <span style={{ fontWeight: 800, color: COR, fontSize: 16 }}>Financeiro</span>
+          width: isMobile ? "auto" : "100%", display: "flex", alignItems: "center", gap: 10,
+          padding: "9px 12px", border: 0, borderRadius: 11, cursor: "pointer", textAlign: "left", whiteSpace: "nowrap",
+          background: sel ? "#ECFDF5" : "transparent", color: sel ? "#065F46" : "#475569",
+          fontSize: 13.5, fontWeight: sel ? 800 : 600, transition: "background .15s",
+        }}>
+        <Icone nome={i.icone as any} tamanho={16} cor={sel ? "#059669" : "#94A3B8"} />
+        {i.label}
+      </button>
+    );
+  };
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 22, alignItems: "flex-start", padding: isMobile ? "4px 0 20px" : "8px 4px 28px", maxWidth: 1440, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+      {isMobile ? (
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
+          <button onClick={() => setMenuMobile((v) => !v)}
+            style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: 0, borderRadius: 16, boxShadow: SOMBRA, padding: "12px 16px", fontSize: 14, fontWeight: 800, color: "#0F172A", cursor: "pointer" }}>
+            <Icone nome="dinheiro" tamanho={18} cor="#059669" />
+            Financeiro · {LABELS[aba] || ""}
+            <span style={{ marginLeft: "auto", display: "inline-flex", transform: menuMobile ? "rotate(180deg)" : "none", transition: "transform .15s" }}><Icone nome="baixo" tamanho={16} /></span>
+          </button>
+          {menuMobile && (
+            <nav aria-label="Seções do financeiro" style={{ background: "#fff", borderRadius: 16, boxShadow: SOMBRA, padding: 10, display: "flex", flexDirection: "column", gap: 2 }}>
+              {gruposVisiveis.map((g) => (
+                <div key={g.nome} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, padding: "8px 12px 4px" }}>{g.nome}</span>
+                  {g.itens.map((i) => <div key={i.key} style={{ display: "flex" }}>{botao(i)}</div>)}
+                </div>
+              ))}
+            </nav>
+          )}
         </div>
-
-        {gruposVisiveis.map((g) => (
-          <div key={g.nome} style={{ marginBottom: 6 }}>
-            <button
-              onClick={() => setAbertos((p) => ({ ...p, [g.nome]: !p[g.nome] }))}
-              style={{
-                width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-                background: "none", border: "none", cursor: "pointer",
-                padding: "6px 8px", color: "#64748B", fontSize: 11, fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: 0.5,
-              }}
-            >
-              {g.nome}
-              <span style={{ fontSize: 10 }}>{abertos[g.nome] ? "▼" : "▶"}</span>
-            </button>
-
-            {abertos[g.nome] && g.itens.map((i) => {
-              const sel = aba === i.key;
-              return (
-                <button
-                  key={i.key}
-                  onClick={() => { setAba(i.key); setMenuMobile(false); }}
-                  style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 10,
-                    padding: "9px 10px", marginBottom: 2,
-                    background: sel ? `${COR}14` : "transparent",
-                    border: sel ? `1px solid ${COR}55` : "1px solid transparent",
-                    borderRadius: 8, cursor: "pointer", textAlign: "left",
-                    color: sel ? COR : "#334155", fontSize: 13.5,
-                    fontWeight: sel ? 700 : 500,
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>{<IconeEmoji e={i.icone} />}</span>
-                  {i.label}
-                </button>
-              );
-            })}
+      ) : (
+        <nav aria-label="Seções do financeiro" style={{ flex: "0 0 250px", background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: 12, display: "flex", flexDirection: "column", gap: 2, position: "sticky", top: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 12px 10px" }}>
+            <span style={{ width: 32, height: 32, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="dinheiro" tamanho={17} /></span>
+            <span style={{ fontWeight: 800, color: "#0F172A", fontSize: 16 }}>Financeiro</span>
           </div>
-        ))}
-      </aside>
+          {gruposVisiveis.map((g) => (
+            <div key={g.nome} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, padding: "12px 12px 4px" }}>{g.nome}</span>
+              {g.itens.map(botao)}
+            </div>
+          ))}
+        </nav>
+      )}
 
-      {/* Conteúdo */}
-      <main style={{ flex: 1, minWidth: 0 }}>
+      <main style={{ flex: "999 1 560px", minWidth: 0 }}>
         <Comp secKey={aba} />
       </main>
     </div>

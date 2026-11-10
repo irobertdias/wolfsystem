@@ -8,9 +8,9 @@ import { IconeEmoji } from "../../../components/a2/Icone";
 // ⚙️ CONFIGURAÇÕES DO FINANCEIRO (fin_config) — empresa, regime e provedores
 //   upsert por workspace_id; guarda dados em config (jsonb).
 // ═══════════════════════════════════════════════════════════════════════
-const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
-const input: any = { width: "100%", background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 13px", color: "#0F172A", fontSize: 13.5, boxSizing: "border-box", outline: "none" };
-const lbl: any = { color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 };
+const card: any = { background: "#fff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
+const input: any = { width: "100%", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, boxSizing: "border-box", outline: "none" };
+const lbl: any = { color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6 };
 const COR = "#475569", G2 = "#94a3b8";
 
 const REGIMES = [
@@ -63,10 +63,9 @@ export default function ConfigFinanceiro() {
     <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 20, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: `0 8px 20px ${COR}40` }}><span style={{ filter: "saturate(0) brightness(2)" }}>⚙️</span></div>
-          <div><h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Configurações</h1><p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Dados da empresa, regime e integrações</p></div>
+          <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Configurações</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Dados da empresa, regime e integrações</p></div>
         </div>
-        <button onClick={salvar} disabled={salvando || carregando} style={{ background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 24px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", opacity: salvando || carregando ? 0.6 : 1, boxShadow: `0 4px 12px ${COR}40` }}>{salvando ? "Salvando…" : salvo ? "✓ Salvo!" : "💾 Salvar"}</button>
+        <button onClick={salvar} disabled={salvando || carregando} style={{ background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 24px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", opacity: salvando || carregando ? 0.6 : 1, boxShadow: `0 4px 12px ${COR}40` }}>{salvando ? "Salvando…" : salvo ? "✓ Salvo!" : "Salvar"}</button>
       </div>
 
       {carregando ? <p style={{ color: "#94A3B8", fontSize: 14 }}>Carregando…</p> : (
@@ -107,7 +106,7 @@ export default function ConfigFinanceiro() {
           </Secao>
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button onClick={salvar} disabled={salvando} style={{ background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 28px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", opacity: salvando ? 0.6 : 1, boxShadow: `0 4px 12px ${COR}40` }}>{salvando ? "Salvando…" : salvo ? "✓ Salvo!" : "💾 Salvar configurações"}</button>
+            <button onClick={salvar} disabled={salvando} style={{ background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 28px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", opacity: salvando ? 0.6 : 1, boxShadow: `0 4px 12px ${COR}40` }}>{salvando ? "Salvando…" : salvo ? "✓ Salvo!" : "Salvar configurações"}</button>
           </div>
         </>
       )}
