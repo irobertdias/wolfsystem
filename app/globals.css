@@ -546,7 +546,7 @@ body {
 .wolf-premium-brand-copy b { font-size: 15px; font-weight: 800; letter-spacing: .01em; }
 .wolf-premium-brand-copy small { font-size: 10.5px; font-weight: 600; letter-spacing: .02em; text-transform: none; color: var(--a2-texto-3); margin-top: 2px; }
 .wolf-premium-launcher {
-  justify-self: start;
+  justify-self: center;
   gap: 4px;
   padding: 0;
   background: transparent;

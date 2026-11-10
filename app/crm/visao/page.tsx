@@ -33,6 +33,7 @@ type Cadastro = {
   autorizado?: boolean | null;
   status_pagamento?: string | null;
   usuarios_liberados?: number | null;
+  valor_mensalidade?: number | null;
   conexoes_liberadas?: number | null;
   modulo_cobranca?: boolean | null;
   modulo_rh?: boolean | null;
@@ -522,6 +523,22 @@ export default function VisaoGeralPage() {
   const [conversasOntem, setConversasOntem] = useState(0);
   const [periodo, setPeriodo] = useState<7 | 30 | 90>(7);
   const podeVerChat = isSuperAdmin || isDono || perfil === "Administrador" || !!permissoes.chat_proprio || !!permissoes.chat_todos;
+  // Orçamentos comerciais da Wolf (só o admin da plataforma vê).
+  const [orcamentos, setOrcamentos] = useState<OrcamentoWolf[]>([]);
+
+  useEffect(() => {
+    if (!isWolfAdmin || !isSuperAdmin) return;
+    let cancelado = false;
+    (async () => {
+      const { data: s } = await supabase.auth.getSession();
+      const token = s.session?.access_token;
+      if (!token) return;
+      const r = await fetch("/api/orcamentos", { headers: { Authorization: `Bearer ${token}` } });
+      const j = await r.json().catch(() => null);
+      if (!cancelado && j?.success) setOrcamentos(j.orcamentos || []);
+    })().catch((e) => console.warn("visao orcamentos:", e));
+    return () => { cancelado = true; };
+  }, [isWolfAdmin, isSuperAdmin]);
 
   useEffect(() => {
     let cancelado = false;
@@ -581,47 +598,71 @@ export default function VisaoGeralPage() {
   const voc = vocabularioDoWorkspace(wsId);
 
   if (isWolfAdmin) {
-    const conversaoGlobal = vendas.total ? Math.round((vendas.instaladas / vendas.total) * 100) : 0;
+    // Números do negócio Wolf: clientes, receita recorrente e orçamentos comerciais.
+    const comp = compAtual();
+    const ativos = cadastros.filter((c) => c.autorizado !== false && norm(c.status_pagamento) !== "SUSPENSO");
+    const mrr = ativos.reduce((s, c) => s + (Number(c.valor_mensalidade) || 0), 0);
+    const comValor = ativos.filter((c) => Number(c.valor_mensalidade) > 0).length;
+    const ticket = comValor ? mrr / comValor : 0;
+    const novosMes = cadastros.filter((c) => (c.created_at || "").slice(0, 7) === comp).length;
+    const orcMes = orcamentos.filter((o) => (o.created_at || "").slice(0, 7) === comp);
+    const aceitos = orcamentos.filter((o) => o.status === "aceito");
+    const aceitosMes = aceitos.filter((o) => (o.aceito_em || o.created_at || "").slice(0, 7) === comp);
+    const visualizados = orcamentos.filter((o) => o.status === "aceito" || !!o.visualizado_em || o.status === "visualizado");
+    const pendentes = orcamentos.filter((o) => o.status === "enviado" || o.status === "visualizado");
+    const taxaAceite = orcamentos.length ? Math.round((aceitos.length / orcamentos.length) * 100) : 0;
+    const mrrAceitoMes = aceitosMes.reduce((s, o) => s + (Number(o.mensalidade) || 0), 0);
+    const graficoOrc = montarGraficoDatas(orcamentos.map((o) => o.created_at), periodo);
+    const statusOrc: Record<string, { label: string; cor: string }> = {
+      aceito: { label: "Aceito", cor: "#047857" },
+      visualizado: { label: "Visualizado", cor: "#C2410C" },
+      enviado: { label: "Enviado", cor: "#475569" },
+      expirado: { label: "Expirado", cor: "#94A3B8" },
+      recusado: { label: "Recusado", cor: "#DC2626" },
+      cancelado: { label: "Cancelado", cor: "#94A3B8" },
+    };
     return (
       <div style={shell}>
         <HeroA2
-          status={`Central da plataforma · ${canaisResumo.conectados} de ${canaisResumo.total} canais conectados`}
+          status={`Plataforma online · ${canaisResumo.conectados} de ${canaisResumo.total} canais conectados`}
           titulo={`${saudacao}${primeiroNome ? `, ${primeiroNome}` : ""}`}
-          resumo={`${dataHojeFmt} · ${num(adminStats.ativos)} clientes ativos e ${num(adminStats.wsAtivos)} workspaces em operação`}
+          resumo={`${dataHojeFmt} · ${num(ativos.length)} clientes ativos · ${real(mrr)} de receita mensal${pendentes.length ? ` · ${num(pendentes.length)} orçamento(s) aguardando resposta` : ""}`}
           acoes={[
             { label: "Clientes", onClick: () => router.push("/crm/clientes") },
             { label: "+ Novo orçamento", onClick: () => router.push("/crm/orcamentos"), principal: true },
           ]}
         />
         <FaixaKpis itens={[
-          { icone: "usuarios", label: "Clientes ativos", valor: num(adminStats.ativos), pill: adminStats.suspensos ? `${adminStats.suspensos} suspenso(s)` : "nenhum suspenso", tom: adminStats.suspensos ? "laranja" : "verde" },
-          { icone: "predio", label: "Workspaces ativos", valor: num(adminStats.wsAtivos), pill: `${num(usuarios)} usuários vinculados`, tom: "verde" },
-          { icone: "grafico", label: "Receita instalada no mês", valor: real(vendas.receitaMes), barra: conversaoGlobal, barraLabel: `${conversaoGlobal}%` },
-          { icone: "whatsapp", label: "Canais conectados", valor: `${canaisResumo.conectados}/${canaisResumo.total}`, pill: `${num(canaisResumo.waba)} na API oficial`, tom: "verde" },
+          { icone: "usuarios", label: "Clientes ativos", valor: num(ativos.length), pill: novosMes ? `+${novosMes} novo(s) no mês` : adminStats.suspensos ? `${adminStats.suspensos} suspenso(s)` : "nenhum suspenso", tom: !novosMes && adminStats.suspensos ? "laranja" : "verde" },
+          { icone: "dinheiro", label: "Receita mensal", valor: real(mrr), pill: comValor ? `ticket médio ${real(ticket)}` : "cadastre a mensalidade dos clientes", tom: "verde" },
+          { icone: "documento", label: "Orçamentos no mês", valor: num(orcMes.length), barra: taxaAceite, barraLabel: `${taxaAceite}% aceitos` },
+          { icone: "relogio", label: "Aguardando resposta", valor: num(pendentes.length), pill: pendentes.length ? "orçamentos enviados em aberto" : "nenhum em aberto", tom: pendentes.length ? "laranja" : "verde", alerta: true },
         ]} />
 
-        {adminCarregando ? <LoadingBox text="Carregando centro de comando da plataforma..." /> : (
+        {adminCarregando ? <LoadingBox text="Carregando a visão da plataforma..." /> : (
           <>
             <div className="a2-visao-grade">
-              <GraficoVendas grafico={grafico} periodo={periodo} setPeriodo={setPeriodo} titulo="Propostas na plataforma" />
+              <GraficoVendas grafico={graficoOrc} periodo={periodo} setPeriodo={setPeriodo} titulo="Orçamentos enviados" unidade={["orçamento", "orçamentos"]} />
               <CartaoLista
-                titulo="Tenants em destaque"
-                link={{ label: "Ver clientes", onClick: () => router.push("/crm/clientes") }}
-                vazio="Sem dados para montar o ranking ainda."
-                itens={topTenants.slice(0, 5).map((t) => ({
-                  chave: t.workspace,
-                  iniciais: iniciais(t.workspace),
-                  titulo: t.workspace,
-                  sub: `${num(t.vendas)} proposta(s) · ${num(t.canais)} canal(is)`,
-                  dir: real(t.receita),
+                titulo="Últimos orçamentos"
+                link={{ label: "Ver todos →", onClick: () => router.push("/crm/orcamentos") }}
+                vazio="Nenhum orçamento enviado ainda."
+                itens={orcamentos.slice(0, 5).map((o) => ({
+                  chave: String(o.id),
+                  iniciais: iniciais(o.cliente_nome || "?"),
+                  titulo: o.cliente_nome || "Cliente",
+                  sub: `${real(Number(o.mensalidade) || 0)}/mês · ${statusOrc[o.status]?.label || o.status}`,
+                  dir: tempoCurto(minutosDesde(o.created_at)),
+                  destaque: o.status === "visualizado",
+                  onClick: () => router.push("/crm/orcamentos"),
                 }))}
               />
             </div>
             <FaixaFunil itens={[
-              { label: "Propostas totais", valor: vendas.total, base: vendas.total, cor: "#A7F3D0" },
-              { label: "Em andamento", valor: vendas.emAndamento, base: vendas.total, cor: "#34D399" },
-              { label: "Canceladas", valor: vendas.canceladas, base: vendas.total, cor: "#059669" },
-            ]} final={{ label: "Instaladas", valor: vendas.instaladas, nota: `Conversão de ${conversaoGlobal}% no total` }} />
+              { label: "Orçamentos enviados", valor: orcamentos.length, base: orcamentos.length, cor: "#A7F3D0" },
+              { label: "Abertos pelo cliente", valor: visualizados.length, base: orcamentos.length, cor: "#34D399" },
+              { label: "Aguardando resposta", valor: pendentes.length, base: orcamentos.length, cor: "#059669" },
+            ]} final={{ label: "Orçamentos aceitos", valor: aceitos.length, nota: aceitosMes.length ? `${real(mrrAceitoMes)}/mês fechados neste mês` : `Taxa de aceite de ${taxaAceite}%` }} />
 
             <div style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 22 }}>
               <Section title="Planos e módulos" subtitle="O que está vendido e liberado por cliente.">
@@ -634,7 +675,13 @@ export default function VisaoGeralPage() {
                 <Metric label="Telefonia" value={num(adminStats.clientesComVoip)} color="#059669" note="módulo liberado" />
                 <Metric label="API oficial" value={num(adminStats.clientesComApi)} color="#059669" note="disparos via API" />
               </Section>
-              <TenantTable rows={topTenants} />
+              <Section title="Uso da plataforma" subtitle="Ambientes, pessoas e conexões dos seus clientes.">
+                <Metric label="Workspaces ativos" value={num(adminStats.wsAtivos)} color="#059669" note={`${num(workspaces.length)} no total`} />
+                <Metric label="Usuários vinculados" value={num(usuarios)} color="#059669" note="logins dos clientes" />
+                <Metric label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#059669" note="WhatsApp e API" />
+                <Metric label="API oficial" value={num(canaisResumo.waba)} color="#059669" note="canais na API da Meta" />
+              </Section>
+              <TabelaClientes linhas={cadastros} />
             </div>
           </>
         )}
@@ -766,6 +813,61 @@ export default function VisaoGeralPage() {
 }
 
 // ─── Auxiliares ───────────────────────────────────────────────────────────
+type OrcamentoWolf = { id: string | number; numero?: string | null; cliente_nome: string | null; status: string; mensalidade: number | null; configuracao?: number | null; created_at: string; visualizado_em?: string | null; aceito_em?: string | null };
+
+function TabelaClientes({ linhas }: { linhas: Cadastro[] }) {
+  const situacao = (c: Cadastro) => {
+    if (norm(c.status_pagamento) === "SUSPENSO") return { label: "Suspenso", bg: "#FEF2F2", fg: "#B91C1C" };
+    if (c.autorizado === false) return { label: "Pendente", bg: "#FFF7ED", fg: "#C2410C" };
+    return { label: "Ativo", bg: "#ECFDF5", fg: "#047857" };
+  };
+  const plano = (p?: string | null) => ({ BASICO: "Básico", INTERMEDIARIO: "Intermediário", ULTRA: "Ultra" } as Record<string, string>)[norm(p)] || (p || "—");
+  const ordenadas = [...linhas].sort((a, b) => (Number(b.valor_mensalidade) || 0) - (Number(a.valor_mensalidade) || 0));
+  return (
+    <section style={{ ...card, overflow: "hidden" }}>
+      <div style={{ padding: "22px 24px 14px" }}>
+        <h2 style={{ color: "#0F172A", fontSize: 17, fontWeight: 800, margin: 0 }}>Seus clientes</h2>
+        <p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Ordenados pela mensalidade.</p>
+      </div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
+          <thead>
+            <tr>
+              {["Cliente", "Plano", "Mensalidade", "Usuários", "Situação"].map((h) => (
+                <th key={h} style={{ textAlign: "left", padding: "10px 24px", color: "#64748B", fontSize: 12, fontWeight: 700, borderBottom: "1px solid #EEF2F1", background: "#F7FAF9" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {ordenadas.length === 0 ? (
+              <tr><td colSpan={5} style={{ padding: 22, color: "#94A3B8", fontSize: 13 }}>Nenhum cliente cadastrado ainda.</td></tr>
+            ) : ordenadas.map((c, i) => {
+              const s = situacao(c);
+              return (
+                <tr key={c.id ?? i} style={{ borderTop: "1px solid #EEF2F1" }}>
+                  <td style={{ padding: "13px 24px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ width: 36, height: 36, borderRadius: 11, background: "#ECFDF5", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{iniciais(c.empresa || c.nome || "?")}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{c.empresa || c.nome || "—"}</div>
+                        <div style={{ color: "#94A3B8", fontSize: 12 }}>{c.email || ""}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: "13px 24px", color: "#334155", fontSize: 14, fontWeight: 600 }}>{plano(c.plano)}</td>
+                  <td style={{ padding: "13px 24px", color: "#047857", fontSize: 14, fontWeight: 700 }}>{Number(c.valor_mensalidade) > 0 ? real(Number(c.valor_mensalidade)) : "—"}</td>
+                  <td style={{ padding: "13px 24px", color: "#334155", fontSize: 14 }}>{num(Number(c.usuarios_liberados) || 0)}</td>
+                  <td style={{ padding: "13px 24px" }}><span style={{ background: s.bg, color: s.fg, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{s.label}</span></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 type FilaItem = { id: number; nome: string | null; numero: string | null; mensagem: string | null; atendente: string | null; status: string | null; created_at: string; ultima_mensagem_em?: string | null };
 type Grafico = { barras: Array<{ label: string; valor: number }>; total: number; melhor: number };
 
@@ -801,6 +903,10 @@ function resumoMensagem(m?: string | null) {
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 function montarGrafico(propostas: Proposta[], periodo: 7 | 30 | 90): Grafico {
+  return montarGraficoDatas(propostas.map((p) => p.data_proposta || p.created_at), periodo);
+}
+
+function montarGraficoDatas(datas: Array<string | null | undefined>, periodo: 7 | 30 | 90): Grafico {
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
   const passo = periodo === 7 ? 1 : periodo === 30 ? 5 : 7;
   const qtd = periodo === 7 ? 7 : periodo === 30 ? 6 : 13;
@@ -811,8 +917,7 @@ function montarGrafico(propostas: Proposta[], periodo: 7 | 30 | 90): Grafico {
     const label = periodo === 7 ? DIAS[ini.getDay()] : ini.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
     barras.push({ label, valor: 0, ini: ini.getTime(), fim: fim.getTime() });
   }
-  for (const p of propostas) {
-    const iso = p.data_proposta || p.created_at;
+  for (const iso of datas) {
     if (!iso) continue;
     const t = new Date(iso.length <= 10 ? iso + "T12:00:00" : iso).getTime();
     const b = barras.find((x) => t >= x.ini && t < x.fim);
@@ -892,7 +997,7 @@ function FaixaKpis({ itens }: { itens: Kpi[] }) {
   );
 }
 
-function GraficoVendas({ grafico, periodo, setPeriodo, titulo }: { grafico: Grafico; periodo: 7 | 30 | 90; setPeriodo: (p: 7 | 30 | 90) => void; titulo: string }) {
+function GraficoVendas({ grafico, periodo, setPeriodo, titulo, unidade = ["venda", "vendas"] }: { grafico: Grafico; periodo: 7 | 30 | 90; setPeriodo: (p: 7 | 30 | 90) => void; titulo: string; unidade?: [string, string] }) {
   const max = Math.max(1, ...grafico.barras.map((b) => b.valor));
   const nomePeriodo = periodo === 7 ? "da semana" : periodo === 30 ? "dos últimos 30 dias" : "dos últimos 90 dias";
   const melhor = grafico.barras[grafico.melhor];
@@ -902,7 +1007,7 @@ function GraficoVendas({ grafico, periodo, setPeriodo, titulo }: { grafico: Graf
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0F172A" }}>{titulo} {nomePeriodo}</h2>
           <span style={{ color: "#64748B", fontSize: 13 }}>
-            {num(grafico.total)} {grafico.total === 1 ? "proposta" : "propostas"}{grafico.total > 0 && melhor ? ` · melhor ${periodo === 7 ? "dia" : "período"}: ${melhor.label}` : ""}
+            {num(grafico.total)} {grafico.total === 1 ? unidade[0] : unidade[1]}{grafico.total > 0 && melhor ? ` · melhor ${periodo === 7 ? "dia" : "período"}: ${melhor.label}` : ""}
           </span>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: "#F3F6F5", padding: 4, borderRadius: 12 }}>
@@ -918,7 +1023,7 @@ function GraficoVendas({ grafico, periodo, setPeriodo, titulo }: { grafico: Graf
           return (
             <div key={i} title={`${b.label}: ${b.valor}`} style={{ position: "relative", flex: 1, height: `${h}%`, borderRadius: 12, background: destaque ? "linear-gradient(180deg, #34D399 0%, #059669 55%, #047857 100%)" : "#E3F5EC", boxShadow: destaque ? "0 14px 28px -10px rgba(5,150,105,.6)" : "none", transition: "height .35s ease" }}>
               {destaque && (
-                <span style={{ position: "absolute", top: -34, left: "50%", transform: "translateX(-50%)", background: "#0F172A", color: "#FFFFFF", borderRadius: 8, padding: "4px 9px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", boxShadow: "0 6px 14px -6px rgba(15,23,42,.6)" }}>{b.valor} {b.valor === 1 ? "venda" : "vendas"}</span>
+                <span style={{ position: "absolute", top: -34, left: "50%", transform: "translateX(-50%)", background: "#0F172A", color: "#FFFFFF", borderRadius: 8, padding: "4px 9px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", boxShadow: "0 6px 14px -6px rgba(15,23,42,.6)" }}>{b.valor} {b.valor === 1 ? unidade[0] : unidade[1]}</span>
               )}
             </div>
           );
