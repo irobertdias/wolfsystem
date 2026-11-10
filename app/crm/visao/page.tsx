@@ -6,6 +6,8 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 import { vocabularioDoWorkspace } from "../../lib/vertical-workspace";
 import { useModulos } from "../../hooks/useModulos";
 import { usePermissao } from "../../hooks/usePermissao";
+import { useRouter } from "next/navigation";
+import Icone from "../../components/a2/Icone";
 
 type Proposta = {
   workspace_id?: string | null;
@@ -256,13 +258,6 @@ const shell: React.CSSProperties = {
   minHeight: "100%",
   color: "#0f172a",
   fontFamily: "var(--font-wolf), system-ui, sans-serif",
-};
-
-const panel: React.CSSProperties = {
-  background: "rgba(255,255,255,0.93)",
-  border: "1px solid rgba(226,232,240,0.95)",
-  borderRadius: 12,
-  boxShadow: "0 10px 30px rgba(15,23,42,0.07)",
 };
 
 export default function VisaoGeralPage() {
@@ -518,237 +513,490 @@ export default function VisaoGeralPage() {
     return Array.from(mapa.values()).sort((a, b) => b.receita - a.receita || b.vendas - a.vendas).slice(0, 8);
   }, [propostas, canais]);
 
+  // ─── Dados extras do visual A2: nome do usuário, fila de atendimento e conversas do dia ───
+  const router = useRouter();
+  const [nomeUsuario, setNomeUsuario] = useState("");
+  const [fila, setFila] = useState<FilaItem[]>([]);
+  const [aguardandoTotal, setAguardandoTotal] = useState(0);
+  const [conversasHoje, setConversasHoje] = useState<number | null>(null);
+  const [conversasOntem, setConversasOntem] = useState(0);
+  const [periodo, setPeriodo] = useState<7 | 30 | 90>(7);
+  const podeVerChat = isSuperAdmin || isDono || perfil === "Administrador" || !!permissoes.chat_proprio || !!permissoes.chat_todos;
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const user = auth?.user;
+      if (!user || cancelado) return;
+      let nome = String((user.user_metadata as any)?.nome || "");
+      const { data: uw } = await supabase.from("usuarios_workspace").select("nome").eq("email", user.email || "").order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (uw?.nome) nome = uw.nome;
+      if (!cancelado) setNomeUsuario(nome || String(user.email || "").split("@")[0]);
+    })().catch(() => {});
+    return () => { cancelado = true; };
+  }, []);
+
+  useEffect(() => {
+    if (isWolfAdmin || !podeVerChat || tenantWsIds.length === 0) return;
+    let cancelado = false;
+    (async () => {
+      const inicioHoje = new Date(); inicioHoje.setHours(0, 0, 0, 0);
+      const inicioOntem = new Date(inicioHoje.getTime() - 86400000);
+      const [pend, hoje, ontem] = await Promise.all([
+        supabase.from("atendimentos").select("id, nome, numero, mensagem, atendente, status, created_at, ultima_mensagem_em")
+          .in("workspace_id", tenantWsIds).eq("status", "pendente").order("ultima_mensagem_em", { ascending: true }).limit(200),
+        supabase.from("atendimentos").select("id", { count: "exact", head: true }).in("workspace_id", tenantWsIds).gte("created_at", inicioHoje.toISOString()),
+        supabase.from("atendimentos").select("id", { count: "exact", head: true }).in("workspace_id", tenantWsIds).gte("created_at", inicioOntem.toISOString()).lt("created_at", inicioHoje.toISOString()),
+      ]);
+      if (cancelado) return;
+      // Mesma regra da tela de Atendimento: aguardando = pendente, sem BOT e sem atendente real.
+      const esperando = ((pend.data || []) as FilaItem[]).filter((a) => !a.atendente || a.atendente === "Humano");
+      setAguardandoTotal(esperando.length);
+      setFila(esperando.slice(0, 5));
+      setConversasHoje(hoje.count || 0);
+      setConversasOntem(ontem.count || 0);
+    })().catch((e) => console.warn("visao fila:", e));
+    return () => { cancelado = true; };
+  }, [isWolfAdmin, podeVerChat, tenantWsIds]);
+
+  // Vendas por período (gráfico): propostas criadas, agrupadas em barras.
+  const grafico = useMemo(() => montarGrafico(propostas, periodo), [propostas, periodo]);
+
+  const comparativoMes = useMemo(() => {
+    const d = new Date();
+    const atual = compAtual();
+    const ant = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+    const anterior = `${ant.getFullYear()}-${String(ant.getMonth() + 1).padStart(2, "0")}`;
+    const mesAnt = propostas.filter((p) => (p.data_proposta || p.created_at || "").slice(0, 7) === anterior).length;
+    const mesAtual = propostas.filter((p) => (p.data_proposta || p.created_at || "").slice(0, 7) === atual).length;
+    return { mesAnt, mesAtual, nomeAnterior: ant.toLocaleDateString("pt-BR", { month: "long" }) };
+  }, [propostas]);
+
   const loadingTenant = workspaceLoading || permLoading || (!isWolfAdmin && !modulosCarregados && tenantWsIds.length === 0) || carregando;
+  const primeiroNome = (nomeUsuario || "").trim().split(/\s+/)[0] || "";
+  const saudacao = saudacaoDoHorario();
+  const dataHoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+  const dataHojeFmt = dataHoje.charAt(0).toUpperCase() + dataHoje.slice(1);
+  const voc = vocabularioDoWorkspace(wsId);
 
   if (isWolfAdmin) {
+    const conversaoGlobal = vendas.total ? Math.round((vendas.instaladas / vendas.total) * 100) : 0;
     return (
       <div style={shell}>
-        <Hero
-          badge="Central wolf_admin"
-          title="Comando Multi-Tenant"
-          subtitle="Visao de dono da plataforma: clientes, workspaces, modulos, canais e movimento geral do ecossistema Wolf."
-          pills={[
-            `${cadastros.length} cliente(s) cadastrados`,
-            `${workspaces.length} workspace(s)`,
-            `${usuarios} usuario(s) vinculados`,
-            `${canaisResumo.conectados}/${canaisResumo.total} canais conectados`,
-          ]}
-          pulse={[
-            ["Receita instalada total", real(vendas.receitaMes), "#059669"],
-            ["Clientes ativos", num(adminStats.ativos), "#2563eb"],
-            ["Workspaces ativos", num(adminStats.wsAtivos), "#7c3aed"],
-            ["Canais WABA/API", num(canaisResumo.waba), "#0891b2"],
+        <HeroA2
+          status={`Central da plataforma · ${canaisResumo.conectados} de ${canaisResumo.total} canais conectados`}
+          titulo={`${saudacao}${primeiroNome ? `, ${primeiroNome}` : ""}`}
+          resumo={`${dataHojeFmt} · ${num(adminStats.ativos)} clientes ativos e ${num(adminStats.wsAtivos)} workspaces em operação`}
+          acoes={[
+            { label: "Clientes", onClick: () => router.push("/crm/clientes") },
+            { label: "+ Novo orçamento", onClick: () => router.push("/crm/orcamentos"), principal: true },
           ]}
         />
+        <FaixaKpis itens={[
+          { icone: "usuarios", label: "Clientes ativos", valor: num(adminStats.ativos), pill: adminStats.suspensos ? `${adminStats.suspensos} suspenso(s)` : "nenhum suspenso", tom: adminStats.suspensos ? "laranja" : "verde" },
+          { icone: "predio", label: "Workspaces ativos", valor: num(adminStats.wsAtivos), pill: `${num(usuarios)} usuários vinculados`, tom: "verde" },
+          { icone: "grafico", label: "Receita instalada no mês", valor: real(vendas.receitaMes), barra: conversaoGlobal, barraLabel: `${conversaoGlobal}%` },
+          { icone: "whatsapp", label: "Canais conectados", valor: `${canaisResumo.conectados}/${canaisResumo.total}`, pill: `${num(canaisResumo.waba)} na API oficial`, tom: "verde" },
+        ]} />
 
-        {adminCarregando ? (
-          <LoadingBox text="Carregando centro de comando da plataforma..." />
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            <Section title="Plataforma" subtitle="Saude comercial e operacional do Wolf System." accent="#0f172a">
-              <Metric label="Clientes ativos" value={num(adminStats.ativos)} color="#059669" note="autorizados e nao suspensos" />
-              <Metric label="Suspensos" value={num(adminStats.suspensos)} color="#dc2626" note="bloqueio financeiro" />
-              <Metric label="Workspaces ativos" value={num(adminStats.wsAtivos)} color="#2563eb" note="ambientes operacionais" />
-              <Metric label="Usuarios vinculados" value={num(usuarios)} color="#7c3aed" note="usuarios_workspace" />
-            </Section>
+        {adminCarregando ? <LoadingBox text="Carregando centro de comando da plataforma..." /> : (
+          <>
+            <div className="a2-visao-grade">
+              <GraficoVendas grafico={grafico} periodo={periodo} setPeriodo={setPeriodo} titulo="Propostas na plataforma" />
+              <CartaoLista
+                titulo="Tenants em destaque"
+                link={{ label: "Ver clientes", onClick: () => router.push("/crm/clientes") }}
+                vazio="Sem dados para montar o ranking ainda."
+                itens={topTenants.slice(0, 5).map((t) => ({
+                  chave: t.workspace,
+                  iniciais: iniciais(t.workspace),
+                  titulo: t.workspace,
+                  sub: `${num(t.vendas)} proposta(s) · ${num(t.canais)} canal(is)`,
+                  dir: real(t.receita),
+                }))}
+              />
+            </div>
+            <FaixaFunil itens={[
+              { label: "Propostas totais", valor: vendas.total, base: vendas.total, cor: "#A7F3D0" },
+              { label: "Em andamento", valor: vendas.emAndamento, base: vendas.total, cor: "#34D399" },
+              { label: "Canceladas", valor: vendas.canceladas, base: vendas.total, cor: "#059669" },
+            ]} final={{ label: "Instaladas", valor: vendas.instaladas, nota: `Conversão de ${conversaoGlobal}% no total` }} />
 
-            <Section title="Planos e modulos" subtitle="Distribuicao do que esta vendido e liberado por cliente." accent="#7c3aed">
-              <Metric label="Basico" value={num(adminStats.basico)} color="#059669" note="clientes no plano" />
-              <Metric label="Intermediario" value={num(adminStats.intermediario)} color="#2563eb" note="clientes no plano" />
-              <Metric label="Ultra" value={num(adminStats.ultra)} color="#7c3aed" note="clientes no plano" />
-              <Metric label="Cobranca" value={num(adminStats.clientesComCobranca)} color="#dc2626" note="modulo liberado" />
-              <Metric label="RH" value={num(adminStats.clientesComRH)} color="#4f46e5" note="modulo liberado" />
-              <Metric label="Financeiro" value={num(adminStats.clientesComFinanceiro)} color="#d97706" note="modulo liberado" />
-              <Metric label="Telefonia" value={num(adminStats.clientesComVoip)} color="#0891b2" note="modulo liberado" />
-              <Metric label="API oficial" value={num(adminStats.clientesComApi)} color="#0f766e" note="disparos api" />
-            </Section>
-
-            <Section title="Operacao global" subtitle="Movimento agregado de vendas e canais de todos os tenants visiveis." accent="#059669">
-              <Metric label="Propostas totais" value={num(propostas.length)} color="#2563eb" note="todos os workspaces" />
-              <Metric label="Instaladas" value={num(vendas.instaladas)} color="#059669" note="status instalados" />
-              <Metric label="Em andamento" value={num(vendas.emAndamento)} color="#f59e0b" note="pendentes e geradas" />
-              <Metric label="Canceladas" value={num(vendas.canceladas)} color="#dc2626" note="perdas e reprovas" />
-              <Metric label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#0891b2" note="webjs + waba" />
-              <Metric label="WebJS / WABA" value={`${num(canaisResumo.webjs)} / ${num(canaisResumo.waba)}`} color="#7c3aed" note="mix de conexoes" />
-            </Section>
-
-            <TenantTable rows={topTenants} />
-          </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 22 }}>
+              <Section title="Planos e módulos" subtitle="O que está vendido e liberado por cliente.">
+                <Metric label="Básico" value={num(adminStats.basico)} color="#10B981" note="clientes no plano" />
+                <Metric label="Intermediário" value={num(adminStats.intermediario)} color="#059669" note="clientes no plano" />
+                <Metric label="Ultra" value={num(adminStats.ultra)} color="#065F46" note="clientes no plano" />
+                <Metric label="Cobrança" value={num(adminStats.clientesComCobranca)} color="#059669" note="módulo liberado" />
+                <Metric label="RH" value={num(adminStats.clientesComRH)} color="#059669" note="módulo liberado" />
+                <Metric label="Financeiro" value={num(adminStats.clientesComFinanceiro)} color="#d97706" note="módulo liberado" />
+                <Metric label="Telefonia" value={num(adminStats.clientesComVoip)} color="#059669" note="módulo liberado" />
+                <Metric label="API oficial" value={num(adminStats.clientesComApi)} color="#059669" note="disparos via API" />
+              </Section>
+              <TenantTable rows={topTenants} />
+            </div>
+          </>
         )}
       </div>
     );
   }
 
+  const variacaoHoje = conversasHoje !== null && conversasOntem > 0 ? Math.round(((conversasHoje - conversasOntem) / conversasOntem) * 100) : null;
+  const variacaoMes = comparativoMes.mesAnt > 0 ? Math.round(((comparativoMes.mesAtual - comparativoMes.mesAnt) / comparativoMes.mesAnt) * 100) : null;
+  const esperandoMuito = fila.filter((a) => minutosDesde(a.ultima_mensagem_em || a.created_at) > 10).length;
+  const resumoHero = [
+    podeVerChat ? `você tem ${num(aguardandoTotal)} conversa(s) esperando` : "",
+    temVendas ? `${num(vendas.emAndamento)} proposta(s) em andamento` : "",
+  ].filter(Boolean).join(" e ");
+
   return (
     <div style={shell}>
-      <Hero
-        badge="Painel vivo do workspace"
-        title="Visao Geral"
-        subtitle={`${tenantNome || (workspace as any)?.nome || "Workspace"} em modo operacional. A tela mostra apenas os modulos liberados no plano deste tenant e resume o que merece atencao agora.`}
-        pills={[
-          `Plano ${String(modulos.plano || "basico").replace("_", " ")}`,
-          `${modulosAtivos.length} modulo(s) ativo(s)`,
-          `${usuarios} usuario(s)`,
-          `Workspace ${tenantWsIds[0] || wsId || "-"}`,
-        ]}
-        pulse={[
-          [`${vocabularioDoWorkspace(wsId).receitaConcluida} no mes`, real(vendas.receitaMes), "#059669"],
-          ["Propostas totais", num(vendas.total), "#2563eb"],
-          ["Conversao acumulada", `${vendas.conversao}%`, "#7c3aed"],
-          ...(temTelefonia ? [["Canais conectados", `${canaisResumo.conectados}/${canaisResumo.total}`, "#0891b2"] as [string, string, string]] : []),
+      <HeroA2
+        status={`Operação online${temTelefonia || temDisparos || temIntegracoes ? ` · ${canaisResumo.conectados} canal(is) conectado(s)` : ""}`}
+        titulo={`${saudacao}${primeiroNome ? `, ${primeiroNome}` : ""}`}
+        resumo={`${dataHojeFmt}${resumoHero ? ` · ${resumoHero}` : ""}`}
+        acoes={[
+          ...(podeVerChat ? [{ label: "Abrir atendimento", onClick: () => router.push("/chatbot") }] : []),
+          ...(temVendas ? [{ label: "+ Nova venda", onClick: () => router.push("/crm/funil"), principal: true }] : []),
         ]}
       />
 
       {loadingTenant ? (
-        <LoadingBox text={tenantWsIds.length === 0 && !workspaceLoading ? "Localizando dados do workspace..." : "Carregando panorama do tenant..."} />
+        <div style={{ marginTop: 22 }}><LoadingBox text={tenantWsIds.length === 0 && !workspaceLoading ? "Localizando dados do workspace..." : "Carregando sua visão geral..."} /></div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <ModuleStrip items={modulosAtivos} />
+        <>
+          <FaixaKpis itens={[
+            podeVerChat
+              ? { icone: "chat", label: "Conversas hoje", valor: num(conversasHoje || 0), pill: variacaoHoje === null ? "hoje" : `${variacaoHoje >= 0 ? "↑" : "↓"} ${Math.abs(variacaoHoje)}% vs ontem`, tom: variacaoHoje !== null && variacaoHoje < 0 ? "laranja" : "verde" }
+              : { icone: "documento", label: "Propostas totais", valor: num(vendas.total), pill: `${num(vendas.criadasMes)} no mês`, tom: "verde" },
+            { icone: "check", label: "Vendas no mês", valor: num(comparativoMes.mesAtual), pill: variacaoMes === null ? `${num(vendas.instaladas)} ${voc.concluidasMin}` : `${variacaoMes >= 0 ? "↑" : "↓"} ${Math.abs(variacaoMes)}% vs ${comparativoMes.nomeAnterior}`, tom: variacaoMes !== null && variacaoMes < 0 ? "laranja" : "verde" },
+            { icone: "grafico", label: voc.receitaConcluida === "Receita instalada" ? "Receita do mês" : `${voc.receitaConcluida} no mês`, valor: real(vendas.receitaMes), barra: vendas.conversao, barraLabel: `${vendas.conversao}%` },
+            podeVerChat
+              ? { icone: "relogio", label: "Aguardando resposta", valor: num(aguardandoTotal), pill: esperandoMuito ? `${esperandoMuito} há mais de 10 min` : "ninguém esperando muito", tom: esperandoMuito ? "laranja" : "verde", alerta: true }
+              : { icone: "relogio", label: "Em andamento", valor: num(vendas.emAndamento), pill: "propostas abertas", tom: "laranja", alerta: true },
+          ]} />
+
+          <div className="a2-visao-grade">
+            {temVendas
+              ? <GraficoVendas grafico={grafico} periodo={periodo} setPeriodo={setPeriodo} titulo="Vendas" />
+              : <div style={{ ...card, gridColumn: "span 2", padding: 26, color: "#64748B" }}>O gráfico de vendas aparece quando o CRM está liberado para o seu usuário.</div>}
+            {podeVerChat ? (
+              <CartaoLista
+                titulo="Na fila agora"
+                link={{ label: "Abrir atendimento →", onClick: () => router.push("/chatbot") }}
+                vazio="Ninguém esperando. Tudo em dia!"
+                itens={fila.map((a, i) => {
+                  const min = minutosDesde(a.ultima_mensagem_em || a.created_at);
+                  return {
+                    chave: String(a.id),
+                    iniciais: iniciais(a.nome || a.numero || "?"),
+                    titulo: a.nome || a.numero || "Contato",
+                    sub: resumoMensagem(a.mensagem),
+                    dir: tempoCurto(min),
+                    destaque: i === 0 && min > 10,
+                    onClick: () => router.push("/chatbot"),
+                  };
+                })}
+              />
+            ) : (
+              <CartaoLista titulo="Módulos liberados" vazio="Nenhum módulo liberado." itens={modulosAtivos.map((m) => ({ chave: m.key, iniciais: m.nome.slice(0, 2).toUpperCase(), titulo: m.nome, sub: "ativo no plano", dir: "" }))} />
+            )}
+          </div>
 
           {temVendas && (
-            <Section title="Vendas" subtitle="Receita, propostas e velocidade comercial do workspace." accent="#059669">
-              <Metric label={vocabularioDoWorkspace(wsId).receitaConcluida === "Receita instalada" ? "Receita do mes" : `${vocabularioDoWorkspace(wsId).receitaConcluida} no mes`} value={real(vendas.receitaMes)} color="#059669" note={`${vocabularioDoWorkspace(wsId).concluidasMin} no periodo`} />
-              <Metric label="Propostas totais" value={num(vendas.total)} color="#2563eb" note={`${num(vendas.criadasMes)} criada(s) no mes`} />
-              <Metric label={vocabularioDoWorkspace(wsId).concluidas} value={num(vendas.instaladas)} color="#0ea5e9" note="total visivel" />
-              <Metric label="Em andamento" value={num(vendas.emAndamento)} color="#f59e0b" note="pendentes, geradas, aguardando" />
-              <Metric label="Canceladas" value={num(vendas.canceladas)} color="#dc2626" note="canceladas e reprovadas" />
-              <Metric label="Conversao" value={`${vendas.conversao}%`} color="#7c3aed" note={`${vocabularioDoWorkspace(wsId).concluidasMin} sobre total`} />
-            </Section>
+            <FaixaFunil itens={[
+              { label: "Propostas totais", valor: vendas.total, base: vendas.total, cor: "#A7F3D0" },
+              { label: "Criadas no mês", valor: vendas.criadasMes, base: vendas.total, cor: "#34D399" },
+              { label: "Em andamento", valor: vendas.emAndamento, base: vendas.total, cor: "#059669" },
+            ]} final={{ label: voc.concluidas, valor: vendas.instaladas, nota: `Conversão de ${vendas.conversao}% no total` }} />
           )}
 
-          {temCobranca && (
-            <Section title="Cobranca" subtitle="Somente aparece para planos com modulo de cobranca ativo." accent="#dc2626">
-              <Metric label="Em dia" value={num(cobranca.emDia)} color="#059669" note="sem risco imediato" />
-              <Metric label="Vencendo" value={num(cobranca.vencendo)} color="#f59e0b" note="proximos 2 dias" />
-              <Metric label="Atrasado" value={num(cobranca.atrasado)} color="#dc2626" note="vencimento passou" />
-              <Metric label="Bloqueado" value={num(cobranca.bloqueado)} color="#7f1d1d" note="2+ dias vencido" />
-            </Section>
-          )}
-
-          {(temRH || temPonto) && (
-            <Section title="Pessoas e ponto" subtitle="RH e ponto respeitam separadamente os modulos do plano." accent="#4f46e5">
-              {temRH && <Metric label="Funcionarios ativos" value={num(rh.ativos)} color="#4f46e5" note="na base de RH" />}
-              {temRH && <Metric label="Custo da folha" value={real(rh.custoFolha)} color="#d97706" note="competencia atual" />}
-              {temPonto && <Metric label="Batidas hoje" value={num(pontoHoje)} color="#0891b2" note={hojeISO()} />}
-            </Section>
-          )}
-
-          {temFinanceiro && (
-            <Section title="Financeiro" subtitle="Resumo do modulo financeiro liberado para este workspace." accent="#d97706">
-              <Metric label="Receitas do mes" value={real(financeiro.receitas)} color="#059669" note="lancamentos do periodo" />
-              <Metric label="Despesas do mes" value={real(financeiro.despesas)} color="#dc2626" note="lancamentos do periodo" />
-              <Metric label="Saldo projetado" value={real(financeiro.saldo)} color={financeiro.saldo >= 0 ? "#059669" : "#dc2626"} note="receitas - despesas" />
-              <Metric label="Pendencias" value={num(financeiro.pendentes)} color="#f59e0b" note="nao pagos" />
-            </Section>
-          )}
-
-          {(temTelefonia || temDisparos || temIntegracoes) && (
-            <Section title="Canais e automacao" subtitle="Mostra apenas recursos liberados: telefonia, disparos, API, Instagram e roleta." accent="#0891b2">
-              {temTelefonia && <Metric label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#0891b2" note="conexoes ativas" />}
-              {temTelefonia && <Metric label="WebJS" value={num(canaisResumo.webjs)} color="#059669" note="canais QR" />}
-              {temDisparos && <Metric label="WABA/API" value={num(canaisResumo.waba)} color="#2563eb" note="API oficial" />}
-              {modulos.roleta && <Metric label="Roleta" value="Ativa no plano" color="#7c3aed" note="distribuicao de leads" />}
-              {modulos.instagram && <Metric label="Instagram" value="Liberado" color="#db2777" note="atendimento social" />}
-              {modulos.api_integracao && <Metric label="API" value="Liberada" color="#0f766e" note="integracoes externas" />}
-            </Section>
-          )}
-
-          {temEquipe && (
-            <Section title="Equipe" subtitle="Base administrativa do workspace." accent="#2563eb">
-              <Metric label="Usuarios no workspace" value={num(usuarios)} color="#2563eb" note="logins vinculados" />
-              <Metric label="Vendedores ativos" value={num(vendedoresAtivos)} color="#0ea5e9" note="com propostas vinculadas" />
-            </Section>
-          )}
-
-          {!temVendas && !temCobranca && !temRH && !temPonto && !temFinanceiro && !temTelefonia && !temDisparos && !temIntegracoes && !temEquipe && (
-            <div style={{ ...panel, padding: 32, textAlign: "center" }}>
-              <p style={{ color: "#0f172a", fontSize: 18, fontWeight: 900, margin: 0 }}>Nenhum modulo visivel para seu usuario.</p>
-              <p style={{ color: "#64748b", fontSize: 13, margin: "8px 0 0" }}>O plano ou as permissoes deste login nao liberam indicadores nesta visao.</p>
-            </div>
-          )}
-        </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 22 }}>
+            {temCobranca && (
+              <Section title="Cobrança" subtitle="Situação dos vencimentos dos seus clientes.">
+                <Metric label="Em dia" value={num(cobranca.emDia)} color="#059669" note="sem risco imediato" />
+                <Metric label="Vencendo" value={num(cobranca.vencendo)} color="#f59e0b" note="próximos 2 dias" />
+                <Metric label="Atrasado" value={num(cobranca.atrasado)} color="#dc2626" note="vencimento passou" />
+                <Metric label="Bloqueado" value={num(cobranca.bloqueado)} color="#7f1d1d" note="2+ dias vencido" />
+              </Section>
+            )}
+            {(temRH || temPonto) && (
+              <Section title="Pessoas e ponto" subtitle="Equipe, folha e batidas de hoje.">
+                {temRH && <Metric label="Funcionários ativos" value={num(rh.ativos)} color="#059669" note="na base de RH" />}
+                {temRH && <Metric label="Custo da folha" value={real(rh.custoFolha)} color="#d97706" note="competência atual" />}
+                {temPonto && <Metric label="Batidas hoje" value={num(pontoHoje)} color="#059669" note={hojeISO().split("-").reverse().join("/")} />}
+              </Section>
+            )}
+            {temFinanceiro && (
+              <Section title="Financeiro" subtitle="Receitas e despesas do mês.">
+                <Metric label="Receitas do mês" value={real(financeiro.receitas)} color="#059669" note="lançamentos do período" />
+                <Metric label="Despesas do mês" value={real(financeiro.despesas)} color="#dc2626" note="lançamentos do período" />
+                <Metric label="Saldo projetado" value={real(financeiro.saldo)} color={financeiro.saldo >= 0 ? "#059669" : "#dc2626"} note="receitas menos despesas" />
+                <Metric label="Pendências" value={num(financeiro.pendentes)} color="#f59e0b" note="não pagos" />
+              </Section>
+            )}
+            {(temTelefonia || temDisparos || temIntegracoes) && (
+              <Section title="Canais e automação" subtitle="Conexões e recursos liberados no plano.">
+                {temTelefonia && <Metric label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#059669" note="conexões ativas" />}
+                {temTelefonia && <Metric label="WhatsApp Web" value={num(canaisResumo.webjs)} color="#059669" note="canais por QR code" />}
+                {temDisparos && <Metric label="API oficial" value={num(canaisResumo.waba)} color="#059669" note="WhatsApp Business API" />}
+                {modulos.roleta && <Metric label="Roleta" value="Ativa" color="#059669" note="distribuição de leads" />}
+                {modulos.instagram && <Metric label="Instagram" value="Liberado" color="#059669" note="atendimento no Direct" />}
+                {modulos.api_integracao && <Metric label="API" value="Liberada" color="#059669" note="integrações externas" />}
+              </Section>
+            )}
+            {temEquipe && (
+              <Section title="Equipe" subtitle="Quem usa o sistema neste workspace.">
+                <Metric label="Usuários no workspace" value={num(usuarios)} color="#059669" note="logins vinculados" />
+                <Metric label="Vendedores ativos" value={num(vendedoresAtivos)} color="#059669" note="com propostas vinculadas" />
+              </Section>
+            )}
+            {!temVendas && !temCobranca && !temRH && !temPonto && !temFinanceiro && !temTelefonia && !temDisparos && !temIntegracoes && !temEquipe && !podeVerChat && (
+              <div style={{ ...card, padding: 32, textAlign: "center" }}>
+                <p style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: 0 }}>Nenhum módulo visível para seu usuário.</p>
+                <p style={{ color: "#64748B", fontSize: 13, margin: "8px 0 0" }}>O plano ou as permissões deste login não liberam indicadores nesta visão.</p>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-function Hero({ badge, title, subtitle, pills, pulse }: { badge: string; title: string; subtitle: string; pills: string[]; pulse: Array<[string, string, string]> }) {
-  return (
-    <div style={{ position: "relative", overflow: "hidden", borderRadius: 16, marginBottom: 18, border: "1px solid #D1FAE5", background: "linear-gradient(135deg, #F3F6F5 0%, #eefdf4 42%, #ECFDF5 100%)" }}>
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 12% 20%, rgba(5,150,105,0.18), transparent 28%), radial-gradient(circle at 85% 25%, rgba(5,150,105,0.18), transparent 28%), linear-gradient(120deg, rgba(255,255,255,0.72), rgba(255,255,255,0.36))" }} />
-      <div style={{ position: "relative", padding: "24px 26px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18, alignItems: "stretch" }}>
-        <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 999, background: "rgba(15,23,42,0.06)", border: "1px solid rgba(15,23,42,0.08)", marginBottom: 12 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 999, background: "#059669", boxShadow: "0 0 0 5px rgba(5,150,105,0.12)" }} />
-            <span style={{ color: "#334155", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6 }}>{badge}</span>
-          </div>
-          <h1 style={{ color: "#07111f", fontSize: 34, lineHeight: 1.05, fontWeight: 950, margin: 0, letterSpacing: -1.2 }}>{title}</h1>
-          <p style={{ color: "#475569", fontSize: 13, lineHeight: 1.55, margin: "10px 0 0", maxWidth: 780 }}>{subtitle}</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
-            {pills.map((p, i) => <Pill key={i} label={p} color={i === 0 ? "#0f172a" : i === 1 ? "#059669" : i === 2 ? "#2563eb" : "#64748b"} />)}
-          </div>
-        </div>
+// ─── Auxiliares ───────────────────────────────────────────────────────────
+type FilaItem = { id: number; nome: string | null; numero: string | null; mensagem: string | null; atendente: string | null; status: string | null; created_at: string; ultima_mensagem_em?: string | null };
+type Grafico = { barras: Array<{ label: string; valor: number }>; total: number; melhor: number };
 
-        <div style={{ ...panel, padding: 16, display: "grid", gap: 10 }}>
-          <p style={{ color: "#64748b", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6, margin: 0 }}>Pulso geral</p>
-          {pulse.map(([label, value, color]) => <PulseRow key={label} label={label} value={value} color={color} />)}
+function saudacaoDoHorario() {
+  const h = new Date().getHours();
+  return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+}
+
+function minutosDesde(iso?: string | null) {
+  if (!iso) return 0;
+  const t = new Date(iso).getTime();
+  return Number.isNaN(t) ? 0 : Math.max(0, Math.round((Date.now() - t) / 60000));
+}
+
+function tempoCurto(min: number) {
+  if (min < 1) return "agora";
+  if (min < 60) return `${min} min`;
+  if (min < 1440) return `${Math.floor(min / 60)} h`;
+  return `${Math.floor(min / 1440)} d`;
+}
+
+function iniciais(t: string) {
+  const p = String(t).replace(/[^\p{L}\p{N} ]/gu, " ").trim().split(/\s+/).filter(Boolean);
+  return ((p[0]?.[0] || "?") + (p[1]?.[0] || "")).toUpperCase();
+}
+
+function resumoMensagem(m?: string | null) {
+  const t = String(m || "").replace(/\s+/g, " ").trim();
+  if (!t) return "Nova conversa";
+  return t.length > 42 ? t.slice(0, 42) + "…" : t;
+}
+
+const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function montarGrafico(propostas: Proposta[], periodo: 7 | 30 | 90): Grafico {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const passo = periodo === 7 ? 1 : periodo === 30 ? 5 : 7;
+  const qtd = periodo === 7 ? 7 : periodo === 30 ? 6 : 13;
+  const barras: Array<{ label: string; valor: number; ini: number; fim: number }> = [];
+  for (let i = qtd - 1; i >= 0; i--) {
+    const fim = new Date(hoje.getTime() - i * passo * 86400000 + 86400000);
+    const ini = new Date(fim.getTime() - passo * 86400000);
+    const label = periodo === 7 ? DIAS[ini.getDay()] : ini.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    barras.push({ label, valor: 0, ini: ini.getTime(), fim: fim.getTime() });
+  }
+  for (const p of propostas) {
+    const iso = p.data_proposta || p.created_at;
+    if (!iso) continue;
+    const t = new Date(iso.length <= 10 ? iso + "T12:00:00" : iso).getTime();
+    const b = barras.find((x) => t >= x.ini && t < x.fim);
+    if (b) b.valor++;
+  }
+  const total = barras.reduce((s, b) => s + b.valor, 0);
+  let melhor = 0;
+  barras.forEach((b, i) => { if (b.valor > barras[melhor].valor) melhor = i; });
+  return { barras: barras.map(({ label, valor }) => ({ label, valor })), total, melhor };
+}
+
+const card: React.CSSProperties = {
+  background: "#FFFFFF",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 12px 32px -14px rgba(16,24,40,.12)",
+};
+
+function HeroA2({ status, titulo, resumo, acoes }: { status: string; titulo: string; resumo: string; acoes: Array<{ label: string; onClick: () => void; principal?: boolean }> }) {
+  return (
+    <section className="a2-visao-hero">
+      <div aria-hidden="true" style={{ position: "absolute", right: -80, top: -120, width: 420, height: 420, borderRadius: "50%", background: "rgba(255,255,255,.08)" }} />
+      <div aria-hidden="true" style={{ position: "absolute", right: 180, bottom: -160, width: 320, height: 320, borderRadius: "50%", background: "rgba(110,231,183,.14)" }} />
+      <div style={{ position: "relative", display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
+          <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: 8, background: "rgba(255,255,255,.14)", border: "1px solid rgba(255,255,255,.22)", borderRadius: 999, padding: "5px 12px", fontSize: 12.5, fontWeight: 600 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#6EE7B7", boxShadow: "0 0 0 3px rgba(110,231,183,.25)" }} />{status}
+          </span>
+          <h1 style={{ margin: "6px 0 0", fontSize: 34, fontWeight: 800, letterSpacing: "-.02em", color: "#fff" }}>{titulo}</h1>
+          <span style={{ color: "rgba(255,255,255,.82)", fontSize: 15 }}>{resumo}</span>
         </div>
+        {acoes.length > 0 && (
+          <div style={{ marginLeft: "auto", display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {acoes.map((a) => (
+              <button key={a.label} onClick={a.onClick} style={a.principal
+                ? { height: 44, borderRadius: 12, border: 0, background: "#FFFFFF", color: "#065F46", fontSize: 14, fontWeight: 800, padding: "0 18px", cursor: "pointer", boxShadow: "0 10px 24px -10px rgba(2,44,34,.6)" }
+                : { height: 44, borderRadius: 12, border: "1px solid rgba(255,255,255,.3)", background: "rgba(255,255,255,.12)", color: "#FFFFFF", fontSize: 14, fontWeight: 700, padding: "0 16px", cursor: "pointer" }}>
+                {a.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+type Kpi = { icone: string; label: string; valor: string; pill?: string; tom?: "verde" | "laranja"; barra?: number; barraLabel?: string; alerta?: boolean };
+
+function FaixaKpis({ itens }: { itens: Kpi[] }) {
+  return (
+    <section aria-label="Indicadores" className="a2-visao-kpis">
+      {itens.map((k) => {
+        const laranja = k.tom === "laranja";
+        return (
+          <div key={k.label} className="a2-visao-kpi">
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 34, height: 34, borderRadius: 10, background: k.alerta && laranja ? "#FFF7ED" : "#ECFDF5", color: k.alerta && laranja ? "#EA580C" : "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icone nome={k.icone} tamanho={17} espessura={2} />
+              </span>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{k.label}</span>
+            </div>
+            <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-.02em", color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={k.valor}>{k.valor}</span>
+            {typeof k.barra === "number" ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ flex: 1, height: 8, borderRadius: 99, background: "#EEF2F1" }}>
+                  <div style={{ width: `${Math.max(0, Math.min(100, k.barra))}%`, height: 8, borderRadius: 99, background: "linear-gradient(90deg, #34D399, #059669)", boxShadow: "0 2px 6px rgba(5,150,105,.4)" }} />
+                </div>
+                <span style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }} title="Conversão">{k.barraLabel}</span>
+              </div>
+            ) : k.pill ? (
+              <span style={{ alignSelf: "flex-start", background: laranja ? "#FFF7ED" : "#ECFDF5", color: laranja ? "#C2410C" : "#047857", borderRadius: 999, padding: "3px 9px", fontSize: 12, fontWeight: 700 }}>{k.pill}</span>
+            ) : null}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function GraficoVendas({ grafico, periodo, setPeriodo, titulo }: { grafico: Grafico; periodo: 7 | 30 | 90; setPeriodo: (p: 7 | 30 | 90) => void; titulo: string }) {
+  const max = Math.max(1, ...grafico.barras.map((b) => b.valor));
+  const nomePeriodo = periodo === 7 ? "da semana" : periodo === 30 ? "dos últimos 30 dias" : "dos últimos 90 dias";
+  const melhor = grafico.barras[grafico.melhor];
+  return (
+    <div style={{ ...card, gridColumn: "span 2", padding: "24px 26px", display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }} className="a2-visao-grafico">
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0F172A" }}>{titulo} {nomePeriodo}</h2>
+          <span style={{ color: "#64748B", fontSize: 13 }}>
+            {num(grafico.total)} {grafico.total === 1 ? "proposta" : "propostas"}{grafico.total > 0 && melhor ? ` · melhor ${periodo === 7 ? "dia" : "período"}: ${melhor.label}` : ""}
+          </span>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: "#F3F6F5", padding: 4, borderRadius: 12 }}>
+          {([7, 30, 90] as const).map((p) => (
+            <button key={p} onClick={() => setPeriodo(p)} style={{ border: 0, background: periodo === p ? "#FFFFFF" : "transparent", borderRadius: 9, padding: "7px 13px", fontSize: 13, fontWeight: periodo === p ? 700 : 600, color: periodo === p ? "#0F172A" : "#64748B", cursor: "pointer", boxShadow: periodo === p ? "0 1px 3px rgba(16,24,40,.1)" : "none" }}>{p} dias</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: grafico.barras.length > 8 ? 8 : 16, height: 240, paddingTop: 34 }}>
+        {grafico.barras.map((b, i) => {
+          const destaque = grafico.total > 0 && i === grafico.melhor;
+          const h = grafico.total > 0 ? Math.max(6, Math.round((b.valor / max) * 100)) : 6;
+          return (
+            <div key={i} title={`${b.label}: ${b.valor}`} style={{ position: "relative", flex: 1, height: `${h}%`, borderRadius: 12, background: destaque ? "linear-gradient(180deg, #34D399 0%, #059669 55%, #047857 100%)" : "#E3F5EC", boxShadow: destaque ? "0 14px 28px -10px rgba(5,150,105,.6)" : "none", transition: "height .35s ease" }}>
+              {destaque && (
+                <span style={{ position: "absolute", top: -34, left: "50%", transform: "translateX(-50%)", background: "#0F172A", color: "#FFFFFF", borderRadius: 8, padding: "4px 9px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", boxShadow: "0 6px 14px -6px rgba(15,23,42,.6)" }}>{b.valor} {b.valor === 1 ? "venda" : "vendas"}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: grafico.barras.length > 8 ? 8 : 16, color: "#94A3B8", fontSize: grafico.barras.length > 8 ? 11 : 12.5, fontWeight: 600 }}>
+        {grafico.barras.map((b, i) => (
+          <span key={i} style={{ flex: 1, textAlign: "center", color: grafico.total > 0 && i === grafico.melhor ? "#047857" : undefined, fontWeight: grafico.total > 0 && i === grafico.melhor ? 800 : 600 }}>{b.label}</span>
+        ))}
       </div>
     </div>
   );
 }
 
-function LoadingBox({ text }: { text: string }) {
-  return (
-    <div style={{ ...panel, padding: 44, textAlign: "center" }}>
-      <div style={{ width: 40, height: 40, borderRadius: 12, margin: "0 auto 12px", background: "linear-gradient(135deg, #10B981, #059669)", boxShadow: "0 12px 24px rgba(5,150,105,0.18)" }} />
-      <p style={{ color: "#64748b", fontSize: 13, margin: 0, fontWeight: 700 }}>{text}</p>
-    </div>
-  );
-}
+type ItemLista = { chave: string; iniciais: string; titulo: string; sub: string; dir: string; destaque?: boolean; onClick?: () => void };
 
-function Pill({ label, color }: { label: string; color: string }) {
+function CartaoLista({ titulo, link, itens, vazio }: { titulo: string; link?: { label: string; onClick: () => void }; itens: ItemLista[]; vazio: string }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 999, background: "#ffffff", border: `1px solid ${color}22`, color, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.35 }}>
-      {label}
-    </span>
-  );
-}
-
-function PulseRow({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "8px 0", borderTop: "1px solid #f1f5f9" }}>
-      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>{label}</span>
-      <span style={{ color, fontSize: 14, fontWeight: 950 }}>{value}</span>
-    </div>
-  );
-}
-
-function ModuleStrip({ items }: { items: Array<{ key: string; nome: string; cor: string }> }) {
-  return (
-    <div style={{ ...panel, padding: 14, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-      <span style={{ color: "#64748b", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6, marginRight: 2 }}>Modulos liberados</span>
-      {items.map((item) => (
-        <span key={item.key} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 11px", borderRadius: 999, background: `${item.cor}10`, border: `1px solid ${item.cor}30`, color: item.cor, fontSize: 12, fontWeight: 900 }}>
-          <span style={{ width: 7, height: 7, borderRadius: 99, background: item.cor, boxShadow: `0 0 0 4px ${item.cor}16` }} />
-          {item.nome}
-        </span>
+    <div style={{ ...card, padding: "24px 22px", display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 8, gap: 8 }}>
+        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0F172A" }}>{titulo}</h2>
+        {link && <button onClick={link.onClick} style={{ marginLeft: "auto", border: 0, background: "transparent", color: "#047857", fontSize: 13, fontWeight: 700, cursor: "pointer", padding: 0 }}>{link.label}</button>}
+      </div>
+      {itens.length === 0 ? (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: "28px 0", color: "#64748B", fontSize: 13.5, textAlign: "center" }}>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={20} espessura={2.2} /></span>
+          {vazio}
+        </div>
+      ) : itens.map((it) => (
+        <div key={it.chave} onClick={it.onClick} style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 14, background: it.destaque ? "#FFF7ED" : "transparent", cursor: it.onClick ? "pointer" : "default" }}>
+          <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 12, background: it.destaque ? "#FFFFFF" : "#ECFDF5", color: it.destaque ? "#C2410C" : "#047857", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, boxShadow: it.destaque ? "0 2px 6px rgba(194,65,12,.15)" : "none" }}>{it.iniciais}</div>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.titulo}</span>
+            <span style={{ color: "#64748B", fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.sub}</span>
+          </div>
+          {it.dir && <span style={{ color: it.destaque ? "#C2410C" : "#64748B", fontSize: 12, fontWeight: it.destaque ? 800 : 600, whiteSpace: "nowrap" }}>{it.dir}</span>}
+        </div>
       ))}
     </div>
   );
 }
 
-function Section({ title, subtitle, accent, children }: { title: string; subtitle: string; accent: string; children: React.ReactNode }) {
+function FaixaFunil({ itens, final }: { itens: Array<{ label: string; valor: number; base: number; cor: string }>; final: { label: string; valor: number; nota: string } }) {
   return (
-    <section style={{ ...panel, overflow: "hidden" }}>
-      <div style={{ padding: "16px 18px", borderBottom: "1px solid #E6ECEA", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: `linear-gradient(90deg, ${accent}10, rgba(255,255,255,0.9))` }}>
-        <div>
-          <h2 style={{ color: "#0f172a", fontSize: 16, fontWeight: 950, margin: 0, letterSpacing: -0.2 }}>{title}</h2>
-          <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>{subtitle}</p>
+    <section aria-label="Funil" className="a2-visao-funil">
+      {itens.map((it) => (
+        <div key={it.label} style={{ ...card, borderRadius: 18, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ width: 9, height: 9, borderRadius: "50%", background: it.cor }} /><span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{it.label}</span></div>
+          <span style={{ fontSize: 26, fontWeight: 800, color: "#0F172A" }}>{num(it.valor)}</span>
+          <div style={{ height: 6, borderRadius: 99, background: "#EEF2F1" }}><div style={{ width: `${it.base ? Math.round((it.valor / it.base) * 100) : 0}%`, height: 6, borderRadius: 99, background: it.cor }} /></div>
         </div>
-        <div style={{ width: 36, height: 8, borderRadius: 99, background: accent, boxShadow: `0 0 18px ${accent}66` }} />
+      ))}
+      <div style={{ background: "linear-gradient(140deg, #059669, #065F46)", color: "#FFFFFF", borderRadius: 18, padding: "20px 22px", boxShadow: "0 16px 32px -14px rgba(6,95,70,.6)", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ width: 9, height: 9, borderRadius: "50%", background: "#FFFFFF" }} /><span style={{ color: "rgba(255,255,255,.85)", fontSize: 13, fontWeight: 600 }}>{final.label}</span></div>
+        <span style={{ fontSize: 26, fontWeight: 800 }}>{num(final.valor)}</span>
+        <span style={{ color: "rgba(255,255,255,.85)", fontSize: 12.5, fontWeight: 600 }}>{final.nota}</span>
       </div>
-      <div style={{ padding: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
+    </section>
+  );
+}
+
+function LoadingBox({ text }: { text: string }) {
+  return (
+    <div style={{ ...card, padding: 44, textAlign: "center" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 12, margin: "0 auto 12px", background: "linear-gradient(140deg, #10B981, #059669)", boxShadow: "0 12px 24px -8px rgba(5,150,105,0.5)" }} />
+      <p style={{ color: "#64748B", fontSize: 13, margin: 0, fontWeight: 600 }}>{text}</p>
+    </div>
+  );
+}
+
+function Section({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  return (
+    <section style={{ ...card, padding: "22px 24px" }}>
+      <div style={{ marginBottom: 16 }}>
+        <h2 style={{ color: "#0F172A", fontSize: 17, fontWeight: 800, margin: 0 }}>{title}</h2>
+        <p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>{subtitle}</p>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
         {children}
       </div>
     </section>
@@ -757,42 +1005,42 @@ function Section({ title, subtitle, accent, children }: { title: string; subtitl
 
 function Metric({ label, value, color, note }: { label: string; value: string; color: string; note: string }) {
   return (
-    <div style={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 14, minHeight: 96, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${color}12, transparent 55%)`, pointerEvents: "none" }} />
-      <div style={{ position: "relative" }}>
-        <p style={{ color: "#64748b", fontSize: 10, fontWeight: 950, textTransform: "uppercase", letterSpacing: 0.55, margin: 0 }}>{label}</p>
-        <p style={{ color, fontSize: 24, lineHeight: 1.1, fontWeight: 950, letterSpacing: -0.7, margin: "10px 0 0", wordBreak: "break-word" }}>{value}</p>
-        <p style={{ color: "#94a3b8", fontSize: 11, fontWeight: 800, margin: "5px 0 0" }}>{note}</p>
+    <div style={{ background: "#F7FAF9", borderRadius: 14, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+        <span style={{ color: "#64748B", fontSize: 12.5, fontWeight: 600 }}>{label}</span>
       </div>
+      <span style={{ color: "#0F172A", fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", wordBreak: "break-word" }}>{value}</span>
+      <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 500 }}>{note}</span>
     </div>
   );
 }
 
 function TenantTable({ rows }: { rows: Array<{ workspace: string; vendas: number; receita: number; canais: number }> }) {
   return (
-    <section style={{ ...panel, overflow: "hidden" }}>
-      <div style={{ padding: "16px 18px", borderBottom: "1px solid #E6ECEA", background: "linear-gradient(90deg, rgba(15,23,42,0.08), rgba(255,255,255,0.9))" }}>
-        <h2 style={{ color: "#0f172a", fontSize: 16, fontWeight: 950, margin: 0 }}>Tenants em destaque</h2>
-        <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>Ranking por receita instalada e volume de propostas.</p>
+    <section style={{ ...card, overflow: "hidden" }}>
+      <div style={{ padding: "22px 24px 14px" }}>
+        <h2 style={{ color: "#0F172A", fontSize: 17, fontWeight: 800, margin: 0 }}>Ranking de workspaces</h2>
+        <p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Por receita instalada e volume de propostas.</p>
       </div>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
           <thead>
-            <tr style={{ background: "#F3F6F5" }}>
+            <tr>
               {["Workspace", "Propostas", "Receita instalada", "Canais"].map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: "12px 16px", color: "#64748b", fontSize: 11, fontWeight: 950, textTransform: "uppercase", borderBottom: "1px solid #E6ECEA" }}>{h}</th>
+                <th key={h} style={{ textAlign: "left", padding: "10px 24px", color: "#64748B", fontSize: 12, fontWeight: 700, borderBottom: "1px solid #EEF2F1", background: "#F7FAF9" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={4} style={{ padding: 22, color: "#94a3b8", fontSize: 13 }}>Sem dados para montar ranking ainda.</td></tr>
-            ) : rows.map((r, i) => (
-              <tr key={r.workspace} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#ffffff" : "#fbfdff" }}>
-                <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13, fontWeight: 900 }}>{r.workspace}</td>
-                <td style={{ padding: "12px 16px", color: "#047857", fontSize: 13, fontWeight: 900 }}>{num(r.vendas)}</td>
-                <td style={{ padding: "12px 16px", color: "#059669", fontSize: 13, fontWeight: 900 }}>{real(r.receita)}</td>
-                <td style={{ padding: "12px 16px", color: "#047857", fontSize: 13, fontWeight: 900 }}>{num(r.canais)}</td>
+              <tr><td colSpan={4} style={{ padding: 22, color: "#94A3B8", fontSize: 13 }}>Sem dados para montar o ranking ainda.</td></tr>
+            ) : rows.map((r) => (
+              <tr key={r.workspace} style={{ borderTop: "1px solid #EEF2F1" }}>
+                <td style={{ padding: "13px 24px", color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{r.workspace}</td>
+                <td style={{ padding: "13px 24px", color: "#334155", fontSize: 14 }}>{num(r.vendas)}</td>
+                <td style={{ padding: "13px 24px", color: "#047857", fontSize: 14, fontWeight: 700 }}>{real(r.receita)}</td>
+                <td style={{ padding: "13px 24px", color: "#334155", fontSize: 14 }}>{num(r.canais)}</td>
               </tr>
             ))}
           </tbody>
@@ -801,4 +1049,3 @@ function TenantTable({ rows }: { rows: Array<{ workspace: string; vendas: number
     </section>
   );
 }
-

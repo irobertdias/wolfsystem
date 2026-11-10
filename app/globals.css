@@ -761,3 +761,36 @@ select:focus, textarea:focus {
 *::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 9px; border: 2px solid transparent; background-clip: padding-box; }
 *::-webkit-scrollbar-thumb:hover { background: #94A3B8; background-clip: padding-box; }
 *::-webkit-scrollbar-track { background: transparent; }
+/* ---------- A2: Visão geral ---------- */
+.a2-visao-hero {
+  position: relative; overflow: hidden; border-radius: 24px; color: #fff;
+  background: linear-gradient(125deg, #10B981 0%, #059669 35%, #065F46 75%, #064E3B 100%);
+  padding: 34px 38px 104px;
+  box-shadow: 0 24px 48px -24px rgba(6,95,70,.55);
+}
+.a2-visao-kpis {
+  position: relative; margin: -70px 22px 0;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: #fff; border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(16,24,40,.04), 0 24px 48px -16px rgba(16,24,40,.18);
+}
+.a2-visao-kpi { padding: 24px 26px; display: flex; flex-direction: column; gap: 10px; min-width: 0; border-right: 1px solid #EEF2F1; }
+.a2-visao-kpi:last-child { border-right: 0; }
+.a2-visao-grade { margin-top: 22px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+.a2-visao-funil { margin-top: 22px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
+@media (max-width: 1100px) {
+  .a2-visao-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .a2-visao-kpi:nth-child(2) { border-right: 0; }
+  .a2-visao-kpi:nth-child(-n+2) { border-bottom: 1px solid #EEF2F1; }
+  .a2-visao-grade { grid-template-columns: minmax(0, 1fr); }
+  .a2-visao-grade > .a2-visao-grafico { grid-column: auto !important; }
+  .a2-visao-funil { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .a2-visao-hero { padding: 24px 20px 92px; border-radius: 20px; }
+  .a2-visao-hero h1 { font-size: 26px !important; }
+  .a2-visao-kpis { margin: -64px 10px 0; grid-template-columns: minmax(0, 1fr); }
+  .a2-visao-kpi { border-right: 0; border-bottom: 1px solid #EEF2F1; padding: 18px 20px; }
+  .a2-visao-kpi:last-child { border-bottom: 0; }
+  .a2-visao-funil { grid-template-columns: minmax(0, 1fr); }
+}
