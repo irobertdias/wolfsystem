@@ -1,4 +1,5 @@
 "use client";
+import Icone, { IconeEmoji } from "../../components/a2/Icone";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -414,7 +415,7 @@ export default function DisparosPage() {
           .map(n => n.replace(/\D/g, ""))
           .filter(n => n.length >= 10 && n.length <= 15);
         setNumerosTexto(numeros.join("\n"));
-        alert(`✅ ${numeros.length} número(s) importado(s)`);
+        alert(`${numeros.length} número(s) importado(s)`);
       } else {
         const varsTemplate = extrairVariaveisTemplate();
         const contatos: ContatoWaba[] = [];
@@ -429,7 +430,7 @@ export default function DisparosPage() {
           contatos.push({ numero, vars });
         }
         setContatosWaba(contatos);
-        alert(`✅ ${contatos.length} contato(s) importado(s) com ${varsTemplate.length} variável(is) por linha`);
+        alert(`${contatos.length} contato(s) importado(s) com ${varsTemplate.length} variável(is) por linha`);
       }
     };
     reader.readAsText(file);
@@ -471,14 +472,14 @@ export default function DisparosPage() {
       });
       if (resp.success) {
         const msgOk = ag.iso
-          ? `✅ Disparo agendado!\n\n${resp.totalContatos} números na fila.\n🗓️ Vai começar em: ${new Date(ag.iso).toLocaleString("pt-BR")}`
-          : `✅ Disparo iniciado!\n\n${resp.totalContatos} números na fila.`;
+          ? `Disparo agendado!\n\n${resp.totalContatos} números na fila.\n🗓️ Vai começar em: ${new Date(ag.iso).toLocaleString("pt-BR")}`
+          : `Disparo iniciado!\n\n${resp.totalContatos} números na fila.`;
         alert(msgOk);
         setMensagem(""); setNumerosTexto(""); setNome("");
         setAgendarAtivo(false); setAgendarPara("");
         fetchDisparos();
-      } else alert("❌ Erro: " + (resp.error || "desconhecido"));
-    } catch (e: any) { alert("❌ Erro: " + e.message); }
+      } else alert("Erro: " + (resp.error || "desconhecido"));
+    } catch (e: any) { alert("Erro: " + e.message); }
     setEnviando(false);
   };
 
@@ -498,7 +499,7 @@ export default function DisparosPage() {
       if (algumContatoSemValor && !temValorFixo) varsSemValor.push(v);
     }
     if (varsSemValor.length > 0) {
-      if (!confirm(`⚠️ As variáveis {{${varsSemValor.join("}}, {{")}}} não têm valor definido.\n\nElas serão enviadas LITERALMENTE ({{1}}, etc) se não tiverem valor. Continuar mesmo assim?`)) return;
+      if (!confirm(`As variáveis {{${varsSemValor.join("}}, {{")}}} não têm valor definido.\n\nElas serão enviadas LITERALMENTE ({{1}}, etc) se não tiverem valor. Continuar mesmo assim?`)) return;
     }
 
     // 🗓️ valida agendamento (se ativo)
@@ -522,14 +523,14 @@ export default function DisparosPage() {
       });
       if (resp.success) {
         const msgOk = ag.iso
-          ? `✅ Disparo pela API oficial agendado!\n\n${resp.totalContatos} contatos na fila.\n🗓️ Vai começar em: ${new Date(ag.iso).toLocaleString("pt-BR")}`
-          : `✅ Disparo pela API oficial iniciado!\n\n${resp.totalContatos} contatos na fila.`;
+          ? `Disparo pela API oficial agendado!\n\n${resp.totalContatos} contatos na fila.\n🗓️ Vai começar em: ${new Date(ag.iso).toLocaleString("pt-BR")}`
+          : `Disparo pela API oficial iniciado!\n\n${resp.totalContatos} contatos na fila.`;
         alert(msgOk);
         setNome(""); setVarsFixas({}); setContatosWaba([]); setNumerosTexto("");
         setAgendarAtivo(false); setAgendarPara("");
         fetchDisparos();
-      } else alert("❌ Erro: " + (resp.error || "desconhecido"));
-    } catch (e: any) { alert("❌ Erro: " + e.message); }
+      } else alert("Erro: " + (resp.error || "desconhecido"));
+    } catch (e: any) { alert("Erro: " + e.message); }
     setEnviando(false);
   };
 
@@ -555,15 +556,15 @@ export default function DisparosPage() {
   const varsTemplate = extrairVariaveisTemplate();
 
   const statusColor: Record<string, string> = {
-    pendente: "#f59e0b", rodando: "#3b82f6", pausado: "#f59e0b",
+    pendente: "#C2410C", rodando: "#14B8A6", pausado: "#C2410C",
     concluido: "#059669", cancelado: "#64748B", erro: "#dc2626",
     // 🗓️ Novo status visual pra disparo aguardando o horário marcado
-    agendado: "#8b5cf6"
+    agendado: "#0F766E"
   };
   const statusLabel: Record<string, string> = {
-    pendente: "⏳ Pendente", rodando: "🚀 Enviando", pausado: "⏸️ Pausado",
-    concluido: "✅ Concluído", cancelado: "🛑 Cancelado", erro: "❌ Erro",
-    agendado: "🗓️ Agendado"
+    pendente: "⏳ Pendente", rodando: "Enviando", pausado: "⏸️ Pausado",
+    concluido: "Concluído", cancelado: "Cancelado", erro: "Erro",
+    agendado: "Agendado"
   };
 
   // 🗓️ Status "efetivo" pra exibição: se a linha tá pendente E tem agendado_para
@@ -761,17 +762,12 @@ export default function DisparosPage() {
   };
 
   // 🎨 ESTILOS LIGHT TECH
-  const IS = { width: "100%", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 14px", color: "#0F172A", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
-  const cardStyle = {
-    background: "#ffffff",
-    borderRadius: 14,
-    border: "1px solid #E6ECEA",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-  };
+  const IS = { width: "100%", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
+  const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
-  const corScore = integridadeApi.score >= 85 ? "#059669" : integridadeApi.score >= 60 ? "#f59e0b" : "#dc2626";
-  const corQualidade = integridadeApi.qualidade === "Alta" ? "#059669" : integridadeApi.qualidade === "Média" ? "#f59e0b" : integridadeApi.qualidade === "Baixa" ? "#dc2626" : "#64748b";
-  const corQualidadeCanalDetalhe = qualidadeCanalDetalhe.qualidade === "Alta" ? "#059669" : qualidadeCanalDetalhe.qualidade === "Média" ? "#f59e0b" : qualidadeCanalDetalhe.qualidade === "Baixa" ? "#dc2626" : "#64748b";
+  const corScore = integridadeApi.score >= 85 ? "#059669" : integridadeApi.score >= 60 ? "#C2410C" : "#dc2626";
+  const corQualidade = integridadeApi.qualidade === "Alta" ? "#059669" : integridadeApi.qualidade === "Média" ? "#C2410C" : integridadeApi.qualidade === "Baixa" ? "#dc2626" : "#64748b";
+  const corQualidadeCanalDetalhe = qualidadeCanalDetalhe.qualidade === "Alta" ? "#059669" : qualidadeCanalDetalhe.qualidade === "Média" ? "#C2410C" : qualidadeCanalDetalhe.qualidade === "Baixa" ? "#dc2626" : "#64748b";
   // A pontuacao de integridade e apenas informativa. Falhas anteriores,
   // indisponibilidade temporaria das metricas ou pagamento pendente nao devem
   // esconder/desativar o botao; o backend devolve o motivo real de cada erro.
@@ -802,7 +798,7 @@ export default function DisparosPage() {
       : taxa >= 85 ? "Boa"
       : taxa >= 70 ? "Atenção"
       : "Crítica";
-    const cor = processados === 0 ? "#64748b" : taxa >= 95 ? "#059669" : taxa >= 85 ? "#059669" : taxa >= 70 ? "#f59e0b" : "#dc2626";
+    const cor = processados === 0 ? "#64748b" : taxa >= 95 ? "#059669" : taxa >= 85 ? "#059669" : taxa >= 70 ? "#C2410C" : "#dc2626";
     return { sucessos, falhas, lidos, entregues, processados, pendentes, taxa, qualidade, cor };
   })();
   const barraIntegridade = (label: string, valor: number, total: number, cor: string, detalhe: string) => {
@@ -830,15 +826,7 @@ export default function DisparosPage() {
     return (
       <div style={{ padding: 32, minHeight: "100vh", background: "#F3F6F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
-          </div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🔒"} tamanho={28} /></div>
           <h1 style={{ color: "#0F172A", fontSize: 20, fontWeight: 700, margin: "0 0 8px" }}>Acesso Restrito</h1>
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 8px" }}>Seu usuário não tem permissão para disparos em massa.</p>
           <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, lineHeight: 1.5 }}>Peça ao administrador do workspace pra marcar "Enviar disparos em massa" no seu grupo de permissão.</p>
@@ -857,17 +845,10 @@ export default function DisparosPage() {
           Voltar ao Chatbot
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(245,158,11,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>📢</span>
-          </div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"📢"} tamanho={22} /></div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Disparos em Massa</h1>
-            <p style={{ color: "#64748B", fontSize: 13, margin: "2px 0 0", maxWidth: 720, lineHeight: 1.5 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Disparos em Massa</h1>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0", maxWidth: 720, lineHeight: 1.5 }}>
               Envie mensagens em lote pelo WhatsApp Web ou pela API oficial da Meta com um modelo aprovado.
             </p>
           </div>
@@ -876,7 +857,7 @@ export default function DisparosPage() {
 
       {/* ═══ TOGGLE TIPO ═══ */}
       <div style={{ ...cardStyle, padding: 18 }}>
-        <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>Tipo de disparo</p>
+        <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 12px" }}>Tipo de disparo</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <button onClick={() => setTipoDisparo("webjs")}
             disabled={!modulos.disparos_web}
@@ -921,7 +902,7 @@ export default function DisparosPage() {
           </p>
         </div>
       ) : (
-        <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderLeft: "4px solid #059669", borderRadius: 12, padding: "14px 18px" }}>
+        <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "14px 18px" }}>
           <p style={{ color: "#065F46", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
             <b>Pela API oficial:</b> Modelos aprovados pela Meta seguem as regras da plataforma. O preço por mensagem varia por categoria (Marketing/Utilidade/Autenticação). Um intervalo de 1 a 3 segundos é suficiente.
           </p>
@@ -944,7 +925,7 @@ export default function DisparosPage() {
                 <span style={{ background: canalConectado ? "#D1FAE5" : "#fee2e2", color: canalConectado ? "#047857" : "#b91c1c", border: `1px solid ${canalConectado ? "#6EE7B7" : "#fecaca"}`, borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 800 }}>
                   {canalConectado ? "Ativo" : "Desconectado"}
                 </span>
-                <span style={{ background: `${corQualidade}18`, color: corQualidade, border: `1px solid ${corQualidade}55`, borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 800 }}>
+                <span style={{ background: `${corQualidade}18`, color: corQualidade, borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 800 }}>
                   Qualidade {integridadeApi.qualidade}
                 </span>
                 <span style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #6EE7B7", borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 800 }}>
@@ -960,7 +941,7 @@ export default function DisparosPage() {
             </div>
 
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ background: podeDispararApi ? "#059669" : "#f59e0b", color: "white", borderRadius: 999, padding: "7px 13px", fontSize: 12, fontWeight: 900, boxShadow: `0 8px 20px ${podeDispararApi ? "rgba(5,150,105,0.25)" : "rgba(245,158,11,0.25)"}` }}>
+              <span style={{ background: podeDispararApi ? "#059669" : "#C2410C", color: "white", borderRadius: 999, padding: "7px 13px", fontSize: 12, fontWeight: 900, boxShadow: `0 8px 20px ${podeDispararApi ? "rgba(5,150,105,0.25)" : "rgba(245,158,11,0.25)"}` }}>
                 {podeDispararApi ? "Pode disparar" : "Requer atencao"}
               </span>
               <button
@@ -985,33 +966,33 @@ export default function DisparosPage() {
 
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
               <h3 style={{ color: "#0f172a", fontSize: 16, margin: 0, fontWeight: 900 }}>Integridade da API</h3>
-              <span style={{ background: `${corScore}18`, color: corScore, border: `1px solid ${corScore}55`, borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 900 }}>
+              <span style={{ background: `${corScore}18`, color: corScore, borderRadius: 999, padding: "5px 11px", fontSize: 12, fontWeight: 900 }}>
                 {integridadeApi.score >= 85 ? "Saudavel" : integridadeApi.score >= 60 ? "Atencao" : "Critico"} - {integridadeApi.score}/100
               </span>
               {integridadeApi.loading && <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>lendo em tempo real...</span>}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 16 }}>
-              {barraIntegridade("Saude interna", integridadeApi.saudeInterna, 100, integridadeApi.saudeInterna >= 80 ? "#10b981" : "#f59e0b", `${integridadeApi.saudeInterna}/100`)}
-              {barraIntegridade("Enviados (24h rolling)", integridadeApi.enviados24h, integridadeApi.limite24h, pct(integridadeApi.enviados24h, integridadeApi.limite24h) >= 90 ? "#f59e0b" : "#10b981", `${integridadeApi.enviados24h} / ${integridadeApi.limite24h} (${pct(integridadeApi.enviados24h, integridadeApi.limite24h)}%)`)}
-              {barraIntegridade("Enviados (1h rolling)", integridadeApi.enviados1h, integridadeApi.limite1h, pct(integridadeApi.enviados1h, integridadeApi.limite1h) >= 80 ? "#f59e0b" : "#38bdf8", `${integridadeApi.enviados1h} / ${integridadeApi.limite1h}`)}
+              {barraIntegridade("Saude interna", integridadeApi.saudeInterna, 100, integridadeApi.saudeInterna >= 80 ? "#10b981" : "#C2410C", `${integridadeApi.saudeInterna}/100`)}
+              {barraIntegridade("Enviados (24h rolling)", integridadeApi.enviados24h, integridadeApi.limite24h, pct(integridadeApi.enviados24h, integridadeApi.limite24h) >= 90 ? "#C2410C" : "#10b981", `${integridadeApi.enviados24h} / ${integridadeApi.limite24h} (${pct(integridadeApi.enviados24h, integridadeApi.limite24h)}%)`)}
+              {barraIntegridade("Enviados (1h rolling)", integridadeApi.enviados1h, integridadeApi.limite1h, pct(integridadeApi.enviados1h, integridadeApi.limite1h) >= 80 ? "#C2410C" : "#38bdf8", `${integridadeApi.enviados1h} / ${integridadeApi.limite1h}`)}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 14 }}>
               <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
-                <p style={{ color: "#065F46", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 5px" }}>Templates aprovados</p>
+                <p style={{ color: "#065F46", fontSize: 10, fontWeight: 900, margin: "0 0 5px" }}>Templates aprovados</p>
                 <p style={{ color: "#059669", fontSize: 22, fontWeight: 900, margin: 0 }}>{integridadeApi.templatesAprovados}</p>
               </div>
-              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 12 }}>
-                <p style={{ color: "#92400e", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 5px" }}>Em analise</p>
-                <p style={{ color: "#f59e0b", fontSize: 22, fontWeight: 900, margin: 0 }}>{integridadeApi.templatesPendentes}</p>
+              <div style={{ background: "#FFF7ED", border: "1px solid #fde68a", borderRadius: 10, padding: 12 }}>
+                <p style={{ color: "#92400e", fontSize: 10, fontWeight: 900, margin: "0 0 5px" }}>Em analise</p>
+                <p style={{ color: "#C2410C", fontSize: 22, fontWeight: 900, margin: 0 }}>{integridadeApi.templatesPendentes}</p>
               </div>
               <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: 12 }}>
-                <p style={{ color: "#991b1b", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 5px" }}>Falhas 24h</p>
+                <p style={{ color: "#991b1b", fontSize: 10, fontWeight: 900, margin: "0 0 5px" }}>Falhas 24h</p>
                 <p style={{ color: "#dc2626", fontSize: 22, fontWeight: 900, margin: 0 }}>{integridadeApi.falhas24h}</p>
               </div>
               <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: 12 }}>
-                <p style={{ color: "#9a3412", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 5px" }}>Rejeitados</p>
+                <p style={{ color: "#9a3412", fontSize: 10, fontWeight: 900, margin: "0 0 5px" }}>Rejeitados</p>
                 <p style={{ color: "#ea580c", fontSize: 22, fontWeight: 900, margin: 0 }}>{integridadeApi.templatesRejeitados}</p>
               </div>
             </div>
@@ -1042,7 +1023,7 @@ export default function DisparosPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
           <div>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Canal {tipoDisparo === "webjs" ? "WhatsApp Web" : "WABA"}</label>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Canal {tipoDisparo === "webjs" ? "WhatsApp Web" : "WABA"}</label>
             <select value={canalSelecionado || ""} onChange={e => setCanalSelecionado(parseInt(e.target.value) || null)} style={IS}>
               <option value="">Selecione um canal</option>
               {canais.map(c => (
@@ -1056,7 +1037,7 @@ export default function DisparosPage() {
             )}
           </div>
           <div>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Nome da Campanha (opcional)</label>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Nome da Campanha (opcional)</label>
             <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex.: Campanha de julho" style={IS} />
           </div>
         </div>
@@ -1078,10 +1059,10 @@ export default function DisparosPage() {
             <div style={{ minWidth: 240, flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
                 <b style={{ color: "#0f172a", fontSize: 13 }}>Integridade da API</b>
-                <span style={{ background: `${corScore}18`, color: corScore, border: `1px solid ${corScore}55`, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
+                <span style={{ background: `${corScore}18`, color: corScore, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
                   {integridadeApi.score}/100
                 </span>
-                <span style={{ background: `${corQualidade}18`, color: corQualidade, border: `1px solid ${corQualidade}55`, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
+                <span style={{ background: `${corQualidade}18`, color: corQualidade, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
                   {integridadeApi.qualidade}
                 </span>
                 <span style={{ background: canalConectado ? "#D1FAE5" : "#fee2e2", color: canalConectado ? "#047857" : "#b91c1c", border: `1px solid ${canalConectado ? "#6EE7B7" : "#fecaca"}`, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
@@ -1119,7 +1100,7 @@ export default function DisparosPage() {
 
         {tipoDisparo === "waba" && canalSelecionado && (
           <div style={{ marginBottom: 16 }}>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Modelo aprovado</label>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Modelo aprovado</label>
             {templates.length === 0 ? (
               <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: 16, textAlign: "center" }}>
                 <p style={{ color: "#991b1b", fontSize: 13, margin: "0 0 10px", fontWeight: 600 }}>Nenhum modelo aprovado para esse canal.</p>
@@ -1146,14 +1127,14 @@ export default function DisparosPage() {
           <div style={{
             background: "#F3F6F5",
             border: `1px solid ${String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#6EE7B7" : "#fde68a"}`,
-            borderLeft: `4px solid ${String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#059669" : "#f59e0b"}`,
+            borderLeft: `4px solid ${String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#059669" : "#C2410C"}`,
             borderRadius: 12,
             padding: 14,
             marginBottom: 16,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 7 }}>
               <b style={{ color: "#0f172a", fontSize: 13 }}>Integridade do modelo</b>
-              <span style={{ background: String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#D1FAE5" : "#fffbeb", color: String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#047857" : "#92400e", border: `1px solid ${String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#6EE7B7" : "#fde68a"}`, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
+              <span style={{ background: String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#D1FAE5" : "#FFF7ED", color: String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#047857" : "#92400e", border: `1px solid ${String(templateEscolhido.status || "").toLowerCase() === "aprovado" ? "#6EE7B7" : "#fde68a"}`, borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
                 {templateEscolhido.status || "sem status"}
               </span>
               <span style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 999, padding: "3px 9px", fontSize: 11, fontWeight: 800 }}>
@@ -1185,7 +1166,7 @@ export default function DisparosPage() {
 
         {tipoDisparo === "waba" && templateEscolhido && (
           <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-            <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>Prévia do modelo</p>
+            <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px" }}>Prévia do modelo</p>
             {(templateEscolhido.componentes || []).map((c: any, i: number) => {
               if (c.type === "HEADER" && c.format === "TEXT") return <p key={i} style={{ color: "#059669", fontSize: 12, margin: "0 0 6px", fontWeight: 700 }}>{c.text}</p>;
               if (c.type === "HEADER") return <p key={i} style={{ color: "#64748B", fontSize: 11, margin: "0 0 6px" }}>{c.format} (mídia anexada)</p>;
@@ -1203,12 +1184,12 @@ export default function DisparosPage() {
 
         {tipoDisparo === "waba" && templateEscolhido && varsTemplate.length > 0 && (
           <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-            <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 4px" }}>Variáveis Fixas (valor pra TODOS)</p>
+            <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 4px" }}>Variáveis Fixas (valor pra TODOS)</p>
             <p style={{ color: "#94A3B8", fontSize: 11, margin: "0 0 12px" }}>Deixe vazio se quer definir por contato no CSV (última coluna por variável).</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
               {varsTemplate.map(v => (
                 <div key={v}>
-                  <label style={{ color: "#64748B", fontSize: 10, fontWeight: 600, display: "block", marginBottom: 4 }}>{"{{"}{v}{"}}"}</label>
+                  <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 600, display: "block", marginBottom: 4 }}>{"{{"}{v}{"}}"}</label>
                   <input
                     value={varsFixas[v] || ""}
                     onChange={e => setVarsFixas(p => ({ ...p, [v]: e.target.value }))}
@@ -1223,7 +1204,7 @@ export default function DisparosPage() {
 
         {tipoDisparo === "webjs" && (
           <div style={{ marginBottom: 16 }}>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Mensagem</label>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Mensagem</label>
             <textarea value={mensagem} onChange={e => setMensagem(e.target.value)} placeholder="Digite a mensagem..." rows={5} style={{ ...IS, resize: "vertical", minHeight: 100, fontFamily: "inherit" }} />
             <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>{mensagem.length} caracteres</p>
           </div>
@@ -1231,23 +1212,23 @@ export default function DisparosPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
           <div>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Intervalo mínimo (seg)</label>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Intervalo mínimo (seg)</label>
             <input type="number" min={tipoDisparo === "webjs" ? 30 : 0} max={300} value={delayMin} onChange={e => setDelayMin(parseInt(e.target.value) || 0)} style={IS} />
             <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>
               {tipoDisparo === "webjs" ? "Mínimo de 30s; recomendado: 60s ou mais" : "API oficial: pode ser de 0 a 5s"}
             </p>
           </div>
           <div>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Intervalo máximo (seg)</label>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Intervalo máximo (seg)</label>
             <input type="number" min={tipoDisparo === "webjs" ? 30 : 0} max={300} value={delayMax} onChange={e => setDelayMax(parseInt(e.target.value) || 0)} style={IS} />
             <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Máx: 300s</p>
           </div>
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>
             {tipoDisparo === "webjs" ? "Números (um por linha)" : "Contatos"}
-            {tipoDisparo === "waba" && varsTemplate.length > 0 && <span style={{ color: "#f59e0b", marginLeft: 8 }}>• CSV: numero,var1,var2...</span>}
+            {tipoDisparo === "waba" && varsTemplate.length > 0 && <span style={{ color: "#C2410C", marginLeft: 8 }}>• CSV: numero,var1,var2...</span>}
           </label>
 
           {tipoDisparo === "waba" && contatosWaba.length > 0 ? (
@@ -1262,7 +1243,7 @@ export default function DisparosPage() {
                 {contatosWaba.length > 5 && <div style={{ color: "#94A3B8", padding: "6px 0" }}>... e +{contatosWaba.length - 5} contato(s)</div>}
               </div>
               <button onClick={() => setContatosWaba([])}
-                style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "7px 14px", fontSize: 11, cursor: "pointer", marginTop: 12, fontWeight: 600 }}>
+                style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 11, cursor: "pointer", marginTop: 12, fontWeight: 600 }}>
                 Limpar e usar campo de texto
               </button>
             </div>
@@ -1312,7 +1293,7 @@ export default function DisparosPage() {
           {agendarAtivo && (
             <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
               <div style={{ flex: "1 1 240px", minWidth: 220 }}>
-                <label style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>Data e hora de início</label>
+                <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 4 }}>Data e hora de início</label>
                 <input type="datetime-local"
                   value={agendarPara}
                   min={agoraDatetimeLocal()}
@@ -1354,7 +1335,7 @@ export default function DisparosPage() {
 
         <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
           <button onClick={() => { setMensagem(""); setNumerosTexto(""); setNome(""); setVarsFixas({}); setContatosWaba([]); setAgendarAtivo(false); setAgendarPara(""); }}
-            style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
+            style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
             Limpar
           </button>
           <button onClick={iniciarDisparo} disabled={envioBloqueado}
@@ -1364,7 +1345,7 @@ export default function DisparosPage() {
                 : (agendarAtivo
                   ? "linear-gradient(135deg, #10B981 0%, #059669 100%)"
                   : (tipoDisparo === "waba"
-                    ? "linear-gradient(135deg, #059669 0%, #10B981 100%)"
+                    ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)"
                     : "linear-gradient(135deg, #10B981 0%, #059669 100%)")),
               color: "white", border: "none", borderRadius: 10,
               padding: "10px 28px", fontSize: 13,
@@ -1374,8 +1355,8 @@ export default function DisparosPage() {
             {enviando
               ? "⏳ Criando..."
               : agendarAtivo
-                ? `🗓️ AGENDAR ${tipoDisparo === "waba" ? "PELA API OFICIAL" : "PELO WHATSAPP WEB"}`
-                : `🚀 ENVIAR ${tipoDisparo === "waba" ? "PELA API OFICIAL" : "PELO WHATSAPP WEB"}`}
+                ? `AGENDAR ${tipoDisparo === "waba" ? "PELA API OFICIAL" : "PELO WHATSAPP WEB"}`
+                : `ENVIAR ${tipoDisparo === "waba" ? "PELA API OFICIAL" : "PELO WHATSAPP WEB"}`}
           </button>
         </div>
       </div>
@@ -1386,7 +1367,7 @@ export default function DisparosPage() {
 
         {disparos.length === 0 ? (
           <div style={{ textAlign: "center", padding: 32 }}>
-            <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
+            <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
             <p style={{ color: "#94A3B8", fontSize: 13 }}>Nenhum disparo criado ainda.</p>
           </div>
         ) : (
@@ -1427,7 +1408,6 @@ export default function DisparosPage() {
                     </div>
                     <span style={{
                       background: `${cor}15`, color: cor,
-                      border: `1px solid ${cor}40`,
                       fontSize: 11, padding: "5px 12px", borderRadius: 12, fontWeight: 700, whiteSpace: "nowrap",
                     }}>
                       {statusLabel[stat] || stat}
@@ -1439,18 +1419,18 @@ export default function DisparosPage() {
                   <p style={{ color: "#64748B", fontSize: 11, margin: "0 0 12px" }}>
                     <b style={{ color: "#0F172A" }}>{d.total_enviados + d.total_falhas}</b> / {d.total_contatos} processados ({progresso}%) · <span style={{ color: "#059669", fontWeight: 700 }}>{d.total_enviados}</span> · <span style={{ color: "#dc2626", fontWeight: 700 }}>{d.total_falhas}</span>
                   </p>
-                  {d.pausado_motivo && <p style={{ color: "#92400e", fontSize: 11, margin: "0 0 8px", background: "#fffbeb", padding: "6px 10px", borderRadius: 6, border: "1px solid #fde68a" }}>{d.pausado_motivo}</p>}
+                  {d.pausado_motivo && <p style={{ color: "#92400e", fontSize: 11, margin: "0 0 8px", background: "#FFF7ED", padding: "6px 10px", borderRadius: 6, border: "1px solid #fde68a" }}>{d.pausado_motivo}</p>}
                   {d.erro_msg && <p style={{ color: "#991b1b", fontSize: 11, margin: "0 0 8px", background: "#fef2f2", padding: "6px 10px", borderRadius: 6, border: "1px solid #fecaca" }}>❌ <b>Motivo:</b> {mensagemErroCliente(d.erro_msg)}</p>}
 
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <button onClick={() => setDisparoDetalhe(d)}
                       style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Detalhes</button>
                     {d.status === "rodando" && <button onClick={() => pausarDisparo(d.id)}
-                      style={{ background: "#fffbeb", color: "#f59e0b", border: "1px solid #fde68a", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Pausar</button>}
+                      style={{ background: "#FFF7ED", color: "#C2410C", border: "1px solid #fde68a", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Pausar</button>}
                     {d.status === "pausado" && <button onClick={() => retomarDisparo(d.id)}
                       style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Retomar</button>}
                     {["rodando", "pausado", "pendente"].includes(d.status) && <button onClick={() => cancelarDisparo(d.id)}
-                      style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>{estaAgendado ? "Cancelar agendamento" : "Cancelar"}</button>}
+                      style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>{estaAgendado ? "Cancelar agendamento" : "Cancelar"}</button>}
                   </div>
                 </div>
               );
@@ -1466,16 +1446,19 @@ export default function DisparosPage() {
           <div onClick={e => e.stopPropagation()}
             style={{ ...cardStyle, width: "100%", maxWidth: 720, maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ padding: "18px 22px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: 0 }}>
                 {disparoDetalhe.tipo === "waba" ? "🔗" : "📱"} {disparoDetalhe.nome || `Disparo #${disparoDetalhe.id}`}
               </h3>
-              <button onClick={() => setDisparoDetalhe(null)} style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+              <button onClick={() => setDisparoDetalhe(null)} style={{ background: "#F3F6F5", border: "none", color: "#64748B", fontSize: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center", cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}><Icone nome="x" tamanho={16} /></button>
             </div>
 
             <div style={{ padding: "16px 22px", borderBottom: "1px solid #E6ECEA", background: "#ffffff" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 12 }}>
                 <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: "10px 12px" }}>
-                  <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, margin: "0 0 4px", textTransform: "uppercase" }}>Canal utilizado</p>
+                  <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, margin: "0 0 4px" }}>Canal utilizado</p>
                   <p style={{ color: "#065F46", fontSize: 13, fontWeight: 800, margin: 0 }}>{canalDisparoDetalhe?.nome || ("Canal #" + disparoDetalhe.canal_id)}</p>
                   <p style={{ color: "#475569", fontSize: 10.5, margin: "3px 0 0" }}>
                     {disparoDetalhe.tipo === "waba" ? "API Oficial WABA" : "WhatsApp Web"}
@@ -1483,13 +1466,13 @@ export default function DisparosPage() {
                   </p>
                 </div>
                 <div style={{ background: resumoDisparoDetalhe.cor + "10", border: "1px solid " + resumoDisparoDetalhe.cor + "45", borderRadius: 10, padding: "10px 12px" }}>
-                  <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, margin: "0 0 4px", textTransform: "uppercase" }}>Qualidade do disparo</p>
+                  <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, margin: "0 0 4px" }}>Qualidade do disparo</p>
                   <p style={{ color: resumoDisparoDetalhe.cor, fontSize: 13, fontWeight: 900, margin: 0 }}>{resumoDisparoDetalhe.qualidade} · {resumoDisparoDetalhe.taxa}%</p>
                   <p style={{ color: "#475569", fontSize: 10.5, margin: "3px 0 0" }}>{resumoDisparoDetalhe.sucessos} sucesso(s) · {resumoDisparoDetalhe.falhas} falha(s)</p>
                 </div>
                 {disparoDetalhe.tipo === "waba" && (
                   <div style={{ background: "#F3F6F5", border: "1px solid #cbd5e1", borderRadius: 10, padding: "10px 12px" }}>
-                    <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, margin: "0 0 4px", textTransform: "uppercase" }}>Qualidade Meta atual</p>
+                    <p style={{ color: "#64748b", fontSize: 10, fontWeight: 800, margin: "0 0 4px" }}>Qualidade Meta atual</p>
                     <p style={{ color: corQualidadeCanalDetalhe, fontSize: 13, fontWeight: 900, margin: 0 }}>
                       {qualidadeCanalDetalhe.loading ? "Consultando..." : qualidadeCanalDetalhe.qualidade}
                     </p>
@@ -1499,10 +1482,10 @@ export default function DisparosPage() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
                 {[
-                  ["Processados", resumoDisparoDetalhe.processados, "#2563eb"],
+                  ["Processados", resumoDisparoDetalhe.processados, "#0F766E"],
                   ["Sucessos", resumoDisparoDetalhe.sucessos, "#059669"],
                   ["Falhas", resumoDisparoDetalhe.falhas, "#dc2626"],
-                  ["Pendentes", resumoDisparoDetalhe.pendentes, "#d97706"],
+                  ["Pendentes", resumoDisparoDetalhe.pendentes, "#C2410C"],
                 ].map(([label, valor, cor]) => (
                   <div key={String(label)} style={{ background: "#F3F6F5", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 9px", textAlign: "center" }}>
                     <strong style={{ display: "block", color: String(cor), fontSize: 14 }}>{String(valor)}</strong>
@@ -1525,7 +1508,7 @@ export default function DisparosPage() {
                 </p>
               )}
               <p style={{ color: "#0F172A", fontSize: 13, margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-                {disparoDetalhe.tipo === "waba" ? `📋 Modelo: ${disparoDetalhe.template_name}\n\n` : ""}
+                {disparoDetalhe.tipo === "waba" ? `Modelo: ${disparoDetalhe.template_name}\n\n` : ""}
                 {disparoDetalhe.mensagem}
               </p>
             </div>
@@ -1535,8 +1518,8 @@ export default function DisparosPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {contatosDetalhe.map(c => {
                   const statusIcon = c.status === "enviado" ? "✅" : c.status === "falha" ? "❌" : "⏳";
-                  const statusCor = c.status === "enviado" ? "#059669" : c.status === "falha" ? "#dc2626" : "#f59e0b";
-                  const statusBg = c.status === "enviado" ? "#ECFDF5" : c.status === "falha" ? "#fef2f2" : "#fffbeb";
+                  const statusCor = c.status === "enviado" ? "#059669" : c.status === "falha" ? "#dc2626" : "#C2410C";
+                  const statusBg = c.status === "enviado" ? "#ECFDF5" : c.status === "falha" ? "#fef2f2" : "#FFF7ED";
                   return (
                     <div key={c.id}
                       style={{
@@ -1557,7 +1540,7 @@ export default function DisparosPage() {
                       </span>
                       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                         {c.enviado_em && <span style={{ color: "#94A3B8", fontSize: 10 }}>{new Date(c.enviado_em).toLocaleTimeString("pt-BR")}</span>}
-                        <span style={{ color: statusCor, fontWeight: 700, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.3 }}>{c.status}</span>
+                        <span style={{ color: statusCor, fontWeight: 700, fontSize: 10 }}>{c.status}</span>
                       </div>
                     </div>
                   );

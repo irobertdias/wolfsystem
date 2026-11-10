@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import * as XLSX from "xlsx";
 
-import { IconeEmoji } from "../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../components/a2/Icone";
 type Atendimento = {
   id: number;
   created_at: string;
@@ -43,14 +43,9 @@ export function RelatoriosSection() {
   const [filtroAtendente, setFiltroAtendente] = useState("todos");
   const [filtroEtiqueta, setFiltroEtiqueta] = useState("todas");
 
-  const IS = { background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 14px", color: "#0F172A", fontSize: 13, width: "100%", boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
+  const IS = { background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, width: "100%", boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
 
-  const cardStyle = {
-    background: "#ffffff",
-    borderRadius: 14,
-    border: "1px solid #E6ECEA",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-  };
+  const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
   const [truncado, setTruncado] = useState(false);
 
@@ -230,24 +225,17 @@ export function RelatoriosSection() {
       {/* ═══ HEADER ═══ */}
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(5,150,105,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>📈</span>
-          </div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"📈"} tamanho={22} /></div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Relatórios</h1>
-            <p style={{ color: "#64748B", fontSize: 13, margin: "2px 0 0" }}>Filtre e exporte seus atendimentos em Excel</p>
+            <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Relatórios</h1>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Filtre e exporte seus atendimentos em Excel</p>
           </div>
         </div>
 
         {/* Aviso de truncamento */}
         {truncado && (
-          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: "12px 16px", marginTop: 14, display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 22 }}>⚠️</span>
+          <div style={{ background: "#FFF7ED", border: "1px solid #fde68a", borderRadius: 12, padding: "12px 16px", marginTop: 14, display: "flex", alignItems: "center", gap: 12 }}>
+            <IconeEmoji e="⚠️" tamanho={20} />
             <div style={{ flex: 1 }}>
               <p style={{ color: "#92400e", fontSize: 13, fontWeight: 700, margin: 0 }}>
                 Mostrando os 20.000 atendimentos mais recentes
@@ -263,20 +251,20 @@ export function RelatoriosSection() {
       {/* ═══ FILTROS ═══ */}
       <div style={{ ...cardStyle, padding: 24, display: "flex", flexDirection: "column", gap: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Filtros</p>
+          <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: 0 }}>Filtros</p>
           <button onClick={limparFiltros} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", fontSize: 11, fontWeight: 700, cursor: "pointer", padding: "6px 12px", borderRadius: 8 }}>Limpar tudo</button>
         </div>
 
         {/* PERÍODO */}
         <div>
-          <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 10 }}>Período</label>
+          <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 10 }}>Período</label>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {[
               { key: "todas", label: "Todas", color: "#059669" },
               { key: "hoje", label: "Hoje", color: "#059669" },
               { key: "semana", label: "Últimos 7 dias", color: "#059669" },
-              { key: "mes", label: "Últimos 30 dias", color: "#f59e0b" },
-              { key: "customizado", label: "Personalizado", color: "#ec4899" },
+              { key: "mes", label: "Últimos 30 dias", color: "#C2410C" },
+              { key: "customizado", label: "Personalizado", color: "#BE185D" },
             ].map(p => {
               const ativo = periodo === p.key;
               return (
@@ -299,11 +287,11 @@ export function RelatoriosSection() {
           {periodo === "customizado" && (
             <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
               <div style={{ flex: 1 }}>
-                <label style={{ color: "#64748B", fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4, textTransform: "uppercase" }}>De:</label>
+                <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 4 }}>De:</label>
                 <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} style={{ ...IS, colorScheme: "light" }} />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ color: "#64748B", fontSize: 10, fontWeight: 700, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Até:</label>
+                <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 4 }}>Até:</label>
                 <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} style={{ ...IS, colorScheme: "light" }} />
               </div>
             </div>
@@ -313,7 +301,7 @@ export function RelatoriosSection() {
         {/* OUTROS FILTROS */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
           <div>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Status</label>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Status</label>
             <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={IS}>
               <option value="todos">Todos</option>
               <option value="aberto">Aberto</option>
@@ -324,7 +312,7 @@ export function RelatoriosSection() {
           {/* 👥 Equipe — afunila as filas abaixo */}
           {equipes.length > 0 && (
             <div>
-              <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Equipe</label>
+              <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Equipe</label>
               <select
                 value={filtroEquipe}
                 onChange={e => {
@@ -340,21 +328,21 @@ export function RelatoriosSection() {
             </div>
           )}
           <div>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Fila</label>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Fila</label>
             <select value={filtroFila} onChange={e => setFiltroFila(e.target.value)} style={IS}>
               <option value="todas">Todas</option>
               {filasFiltradas.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Atendente</label>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Atendente</label>
             <select value={filtroAtendente} onChange={e => setFiltroAtendente(e.target.value)} style={IS}>
               <option value="todos">Todos</option>
-              {atendentes.map(a => <option key={a} value={a}>{a === "BOT" ? "🤖 BOT" : a}</option>)}
+              {atendentes.map(a => <option key={a} value={a}>{a === "BOT" ? "BOT" : a}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Etiqueta</label>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Etiqueta</label>
             <select value={filtroEtiqueta} onChange={e => setFiltroEtiqueta(e.target.value)} style={IS}>
               <option value="todas">Todas</option>
               {etiquetas.map(e => <option key={e.id} value={e.id.toString()}>{e.icone} {e.nome}</option>)}
@@ -367,9 +355,9 @@ export function RelatoriosSection() {
             background: loading ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             color: "white", border: "none", borderRadius: 12,
             padding: "14px", fontSize: 14, cursor: "pointer", fontWeight: 700,
-            boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+            boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
           }}>
-          {loading ? "⏳ Gerando..." : "🔍 Gerar Relatório"}
+          {loading ? "⏳ Gerando..." : "Gerar Relatório"}
         </button>
       </div>
 
@@ -381,7 +369,7 @@ export function RelatoriosSection() {
             {[
               { label: "Total", value: resultado.length, color: "#059669", icon: "📊" },
               { label: "Abertos", value: resultado.filter(a => a.status === "aberto").length, color: "#059669", icon: "💬" },
-              { label: "Pendentes", value: resultado.filter(a => a.status === "pendente").length, color: "#f59e0b", icon: "⏳" },
+              { label: "Pendentes", value: resultado.filter(a => a.status === "pendente").length, color: "#C2410C", icon: "⏳" },
               { label: "Resolvidos", value: resultado.filter(a => a.status === "resolvido").length, color: "#059669", icon: "✅" },
             ].map(card => (
               <div key={card.label}
@@ -389,7 +377,6 @@ export function RelatoriosSection() {
                   flex: "1 1 180px",
                   ...cardStyle,
                   padding: 22,
-                  borderTop: `3px solid ${card.color}`,
                   transition: "all 0.15s",
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 20px ${card.color}20`; e.currentTarget.style.transform = "translateY(-2px)"; }}
@@ -398,7 +385,7 @@ export function RelatoriosSection() {
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: `${card.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
                     {<IconeEmoji e={card.icon} />}
                   </div>
-                  <p style={{ color: "#64748B", fontSize: 12, margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>{card.label}</p>
+                  <p style={{ color: "#64748B", fontSize: 12, margin: 0, fontWeight: 600 }}>{card.label}</p>
                 </div>
                 <p style={{ color: card.color, fontSize: 34, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{card.value}</p>
               </div>
@@ -413,17 +400,17 @@ export function RelatoriosSection() {
               </h2>
               <button onClick={exportarExcel} disabled={exportando || resultado.length === 0}
                 style={{
-                  background: exportando ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+                  background: exportando ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                  boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
                 }}>
-                {exportando ? "⏳ Exportando..." : "📥 Exportar Excel (.xlsx)"}
+                {exportando ? "⏳ Exportando..." : "Exportar Excel (.xlsx)"}
               </button>
             </div>
             {resultado.length === 0 ? (
               <div style={{ padding: 40, textAlign: "center" }}>
-                <p style={{ fontSize: 40, margin: "0 0 10px" }}>📭</p>
+                <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
                 <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum atendimento encontrado com esses filtros</p>
               </div>
             ) : (
@@ -432,7 +419,7 @@ export function RelatoriosSection() {
                   <thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
                     <tr style={{ background: "#F7FAF9" }}>
                       {["Nome", "Telefone", "Etiquetas", "Equipe", "Fila", "Atendente", "Status", "Data"].map(h => (
-                        <th key={h} style={{ padding: "12px 18px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>{h}</th>
+                        <th key={h} style={{ padding: "12px 18px", color: "#64748B", fontSize: 12.5, textAlign: "left", whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -443,9 +430,9 @@ export function RelatoriosSection() {
                       const eqNome = equipeNome(a);
                       return (
                         <tr key={a.id}
-                          style={{ borderTop: "1px solid #F1F5F4", background: i % 2 === 0 ? "#ffffff" : "#F7FAF9", transition: "background 0.1s" }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = "#F1F5F4"}
-                          onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#F7FAF9"}
+                          style={{ borderTop: "1px solid #F1F5F4", background: "#ffffff", transition: "background 0.1s" }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "#F7FAF9"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = "#ffffff"}
                         >
                           <td style={{ padding: "14px 18px", color: "#0F172A", fontSize: 13, fontWeight: 600 }}>{a.nome}</td>
                           <td style={{ padding: "14px 18px", color: "#64748B", fontSize: 12, fontFamily: "monospace" }}>{(a.numero || "").replace(/\D/g, "")}</td>
@@ -471,20 +458,20 @@ export function RelatoriosSection() {
                           </td>
                           <td style={{ padding: "14px 18px" }}>
                             {a.fila ? (
-                              <span style={{ background: "#3b82f615", color: "#059669", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 600, border: "1px solid #3b82f630" }}>{a.fila}</span>
+                              <span style={{ background: "#14B8A615", color: "#059669", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 600, border: "1px solid #14B8A630" }}>{a.fila}</span>
                             ) : (
                               <span style={{ color: "#CBD5E1", fontSize: 11 }}>—</span>
                             )}
                           </td>
-                          <td style={{ padding: "14px 18px", color: "#475569", fontSize: 12, fontWeight: 500 }}>{a.atendente === "BOT" ? "🤖 BOT" : a.atendente || <span style={{ color: "#CBD5E1" }}>—</span>}</td>
+                          <td style={{ padding: "14px 18px", color: "#475569", fontSize: 12, fontWeight: 500 }}>{a.atendente === "BOT" ? "BOT" : a.atendente || <span style={{ color: "#CBD5E1" }}>—</span>}</td>
                           <td style={{ padding: "14px 18px" }}>
                             <span style={{
-                              background: a.status === "resolvido" ? "#ECFDF5" : a.status === "aberto" ? "#ECFDF5" : "#fffbeb",
-                              color: a.status === "resolvido" ? "#059669" : a.status === "aberto" ? "#059669" : "#f59e0b",
+                              background: a.status === "resolvido" ? "#ECFDF5" : a.status === "aberto" ? "#ECFDF5" : "#FFF7ED",
+                              color: a.status === "resolvido" ? "#059669" : a.status === "aberto" ? "#059669" : "#C2410C",
                               border: `1px solid ${a.status === "resolvido" ? "#A7F3D0" : a.status === "aberto" ? "#A7F3D0" : "#fde68a"}`,
                               fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap",
                             }}>
-                              {a.status === "resolvido" ? "✅ Resolvido" : a.status === "aberto" ? "💬 Aberto" : "⏳ Pendente"}
+                              {a.status === "resolvido" ? "Resolvido" : a.status === "aberto" ? "Aberto" : "⏳ Pendente"}
                             </span>
                           </td>
                           <td style={{ padding: "14px 18px", color: "#64748B", fontSize: 12, whiteSpace: "nowrap" }}>

@@ -287,7 +287,7 @@ export default function ValidacaoNumerosPage() {
     }
   };
 
-  const card = { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)" };
+  const card = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
   const input = { width: "100%", border: "1px solid #cbd5e1", borderRadius: 10, padding: "11px 13px", color: "#0f172a", background: "#fff", fontSize: 13, boxSizing: "border-box" as const, outline: "none" };
   const button = { border: 0, borderRadius: 10, padding: "11px 16px", fontWeight: 800, cursor: "pointer", fontSize: 13 } as const;
 
@@ -298,8 +298,7 @@ export default function ValidacaoNumerosPage() {
     <div style={{ maxWidth: 1280, margin: "0 auto", display: "grid", gap: 20 }}>
       <header style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
         <button onClick={() => router.push("/chatbot")} style={{ ...button, background: "#fff", border: "1px solid #cbd5e1" }}>&larr; Voltar</button>
-        <div style={{ width: 48, height: 48, borderRadius: 14, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#047857,#059669)", color: "#fff", fontSize: 22 }}>&#9989;</div>
-        <div><h1 style={{ margin: 0, fontSize: 25 }}>Valida&ccedil;&atilde;o de n&uacute;meros</h1><p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 13 }}>Higienize listas sem enviar mensagens aos contatos.</p></div>
+        <div><h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-.02em", color: "#0F172A" }}>Valida&ccedil;&atilde;o de n&uacute;meros</h1><p style={{ margin: "6px 0 0", color: "#64748B", fontSize: 14 }}>Higienize listas sem enviar mensagens aos contatos.</p></div>
       </header>
 
       <section style={{ ...card, padding: 20 }}>
@@ -332,7 +331,7 @@ export default function ValidacaoNumerosPage() {
       {job && <section style={{ ...card, padding: 20, display: "grid", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: "0 0 4px", fontSize: 17 }}>Resultado</h2><p style={{ margin: 0, color: "#64748b", fontSize: 12 }}>Status: {job.status} - {job.processados}/{job.total} consultados</p></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button onClick={() => copiar(validos, "validos")} disabled={!validos.length} style={{ ...button, background: "#ecfdf5", color: "#047857" }}>{copiado === "validos" ? "Copiados!" : `Copiar com WhatsApp (${validos.length})`}</button><button onClick={() => copiar(invalidos, "invalidos")} disabled={!invalidos.length} style={{ ...button, background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca" }}>{copiado === "invalidos" ? "Copiados!" : `Copiar sem WhatsApp / inválidos (${invalidos.length})`}</button></div></div>
         <div style={{ height: 9, borderRadius: 999, background: "#e2e8f0", overflow: "hidden" }}><div style={{ height: "100%", width: progresso + "%", background: "linear-gradient(90deg,#047857,#059669)", transition: "width .3s" }}/></div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 10 }}><Resumo titulo="Com WhatsApp" valor={validos.length} cor="#059669"/><Resumo titulo="Sem WhatsApp" valor={(job.semWhatsapp || []).length} cor="#dc2626"/><Resumo titulo="Formato inv&aacute;lido" valor={(job.invalidos || []).length} cor="#d97706"/></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 10 }}><Resumo titulo="Com WhatsApp" valor={validos.length} cor="#059669"/><Resumo titulo="Sem WhatsApp" valor={(job.semWhatsapp || []).length} cor="#dc2626"/><Resumo titulo="Formato inv&aacute;lido" valor={(job.invalidos || []).length} cor="#C2410C"/></div>
         <div style={{ display: "flex", gap: 8 }}><Filtro ativo={filtro === "todos"} onClick={() => setFiltro("todos")}>Todos</Filtro><Filtro ativo={filtro === "validos"} onClick={() => setFiltro("validos")}>Com WhatsApp</Filtro><Filtro ativo={filtro === "invalidos"} onClick={() => setFiltro("invalidos")}>Sem WhatsApp / inv&aacute;lidos</Filtro></div>
         <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "auto", maxHeight: 430 }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}><thead style={{ position: "sticky", top: 0, background: "#F3F6F5" }}><tr><th style={th}>Original</th><th style={th}>Normalizado</th><th style={th}>Resultado</th><th style={th}>Observa&ccedil;&atilde;o</th></tr></thead><tbody>{exibidos.map((r, i) => <tr key={r.status + "-" + r.numero + "-" + i}><td style={td}>{r.original}</td><td style={{ ...td, fontFamily: "ui-monospace,monospace" }}>{r.numero || "-"}</td><td style={td}><span style={{ fontWeight: 800, color: r.status === "com_whatsapp" ? "#047857" : r.status === "sem_whatsapp" ? "#b91c1c" : "#b45309" }}>{r.status === "com_whatsapp" ? "TEM WHATSAPP" : r.status === "sem_whatsapp" ? "NAO TEM WHATSAPP" : "FORMATO INVALIDO"}</span></td><td style={td}>{r.erroChecagem || "-"}</td></tr>)}</tbody></table></div>
       </section>}

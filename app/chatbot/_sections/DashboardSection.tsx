@@ -177,7 +177,7 @@ export function DashboardSection() {
   };
 
   const cards = [
-    { label: "Aguardando", value: atendimentosFiltrados.filter(a => classificarAtendimento(a) === "aguardando").length, color: "#f59e0b", icon: "⏳", bgLight: "#fffbeb" },
+    { label: "Aguardando", value: atendimentosFiltrados.filter(a => classificarAtendimento(a) === "aguardando").length, color: "#C2410C", icon: "⏳", bgLight: "#FFF7ED" },
     { label: "Em Atendimento", value: atendimentosFiltrados.filter(a => classificarAtendimento(a) === "abertos").length, color: "#059669", icon: "👤", bgLight: "#ECFDF5" },
     { label: "Resolvidos", value: atendimentosFiltrados.filter(a => classificarAtendimento(a) === "finalizados").length, color: "#059669", icon: "✅", bgLight: "#ECFDF5" },
     { label: "Total", value: atendimentosFiltrados.length, color: "#059669", icon: "📊", bgLight: "#ECFDF5" },
@@ -189,7 +189,7 @@ export function DashboardSection() {
     return Object.entries(map)
       .map(([id, count]) => {
         const canal = canais.find(c => String(c.id) === id);
-        return { id, nome: canal ? canal.nome : id === "sem-canal" ? "— Sem canal —" : `Canal ${id}`, tipo: canal?.tipo || "", count, cor: canal?.tipo === "waba" ? "#3b82f6" : "#059669" };
+        return { id, nome: canal ? canal.nome : id === "sem-canal" ? "— Sem canal —" : `Canal ${id}`, tipo: canal?.tipo || "", count, cor: canal?.tipo === "waba" ? "#14B8A6" : "#059669" };
       })
       .sort((a, b) => b.count - a.count);
   }, [atendimentosFiltrados, canais]);
@@ -274,17 +274,17 @@ export function DashboardSection() {
     });
     const nomeDe = (chave: string): string => {
       if (chave === "sem-atendente") return "— Sem atendente —";
-      if (chave === "BOT") return "🤖 BOT (automático)";
-      if (chave === "Humano") return "👤 Humano (legado)";
+      if (chave === "BOT") return "BOT (automático)";
+      if (chave === "Humano") return "Humano (legado)";
       const u = usuariosWs.find(us => us.email?.toLowerCase() === chave.toLowerCase());
       if (u?.nome) return u.nome;
       return chave.includes("@") ? chave.split("@")[0] : chave;
     };
     const corDe = (chave: string): string => {
-      if (chave === "BOT") return "#8b5cf6";
+      if (chave === "BOT") return "#0F766E";
       if (chave === "sem-atendente") return "#64748B";
       if (chave === "Humano") return "#64748b";
-      return "#3b82f6";
+      return "#14B8A6";
     };
     return Object.values(map)
       .map(b => ({ ...b, nome: nomeDe(b.chave), cor: corDe(b.chave), inicial: (nomeDe(b.chave).replace(/[^a-zA-Z0-9À-ÿ]/g, "").charAt(0) || "?").toUpperCase() }))
@@ -304,13 +304,7 @@ export function DashboardSection() {
   // ═══════════════════════════════════════════════════════════════
   // 🎨 ESTILOS LIGHT TECH — consistentes com ChatSection e editor de fluxos
   // ═══════════════════════════════════════════════════════════════
-  const cardStyle = {
-    background: "#ffffff",
-    borderRadius: 14,
-    border: "1px solid #E6ECEA",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-    transition: "all 0.15s",
-  };
+  const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
   const selectStyle = {
     width: "100%",
@@ -343,18 +337,10 @@ export function DashboardSection() {
         {/* ═══ HEADER ═══ */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: 14,
-              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 24,
-              boxShadow: "0 8px 20px rgba(5,150,105, 0.25)",
-            }}>
-              <span style={{ filter: "saturate(0) brightness(2)" }}>📊</span>
-            </div>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"📊"} tamanho={22} /></div>
             <div>
-              <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Dashboard</h1>
-              <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+              <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Dashboard</h1>
+              <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
                 {carregando ? "Carregando dados..." : `Mostrando: ${labelPeriodo}`}
               </p>
             </div>
@@ -386,17 +372,17 @@ export function DashboardSection() {
         <div style={{ ...cardStyle, padding: 22 }}>
           {/* Período */}
           <div style={{ marginBottom: 16 }}>
-            <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 10px", letterSpacing: 0.5 }}>
+            <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px", letterSpacing: 0.5 }}>
               Período
             </p>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {([
-                { p: "hoje" as Periodo, label: "Hoje", icon: "📅", cor: "#3b82f6" },
-                { p: "semana" as Periodo, label: "7 dias", icon: "🗓️", cor: "#8b5cf6" },
-                { p: "mes" as Periodo, label: "30 dias", icon: "📆", cor: "#6366f1" },
-                { p: "ano" as Periodo, label: "365 dias", icon: "🗃️", cor: "#ec4899" },
+                { p: "hoje" as Periodo, label: "Hoje", icon: "📅", cor: "#14B8A6" },
+                { p: "semana" as Periodo, label: "7 dias", icon: "🗓️", cor: "#0F766E" },
+                { p: "mes" as Periodo, label: "30 dias", icon: "📆", cor: "#059669" },
+                { p: "ano" as Periodo, label: "365 dias", icon: "🗃️", cor: "#BE185D" },
                 { p: "todos" as Periodo, label: "Todos", icon: "∞", cor: "#14b8a6" },
-                { p: "personalizado" as Periodo, label: "Personalizado", icon: "🎯", cor: "#f59e0b" },
+                { p: "personalizado" as Periodo, label: "Personalizado", icon: "🎯", cor: "#C2410C" },
               ]).map(item => {
                 const ativo = periodo === item.p;
                 return (
@@ -424,12 +410,12 @@ export function DashboardSection() {
             {periodo === "personalizado" && (
               <div style={{ display: "flex", gap: 12, marginTop: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
                 <div style={{ flex: "1 1 180px", minWidth: 160 }}>
-                  <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 6px" }}>De</p>
+                  <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>De</p>
                   <input type="date" value={dataCustomInicio} max={dataCustomFim} onChange={e => setDataCustomInicio(e.target.value)}
                     style={{ ...selectStyle, colorScheme: "light" }} />
                 </div>
                 <div style={{ flex: "1 1 180px", minWidth: 160 }}>
-                  <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 6px" }}>Até</p>
+                  <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Até</p>
                   <input type="date" value={dataCustomFim} min={dataCustomInicio} max={hojeStr} onChange={e => setDataCustomFim(e.target.value)}
                     style={{ ...selectStyle, colorScheme: "light" }} />
                 </div>
@@ -443,7 +429,7 @@ export function DashboardSection() {
           {/* Canal, Equipe, Fila, Atendente */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div style={{ flex: "1 1 200px", minWidth: 180 }}>
-              <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 6px" }}>Canal / Conexão</p>
+              <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Canal / Conexão</p>
               <select value={canalFiltro} onChange={e => setCanalFiltro(e.target.value)} style={selectStyle}>
                 <option value="todos">Todos os canais</option>
                 {canais.map(c => <option key={c.id} value={String(c.id)}>{c.tipo === "waba" ? "🔗" : "📱"} {c.nome}</option>)}
@@ -452,7 +438,7 @@ export function DashboardSection() {
             {/* 👥 Equipe — afunila as filas abaixo */}
             {equipes.length > 0 && (
               <div style={{ flex: "1 1 200px", minWidth: 180 }}>
-                <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 6px" }}>Equipe</p>
+                <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Equipe</p>
                 <select
                   value={equipeFiltro}
                   onChange={e => {
@@ -470,14 +456,14 @@ export function DashboardSection() {
               </div>
             )}
             <div style={{ flex: "1 1 200px", minWidth: 180 }}>
-              <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 6px" }}>Fila</p>
+              <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Fila</p>
               <select value={filaFiltro} onChange={e => setFilaFiltro(e.target.value)} style={selectStyle}>
                 <option value="todas">Todas as filas</option>
                 {filasFiltradas.map(f => <option key={f.id} value={f.nome}>{f.nome}</option>)}
               </select>
             </div>
             <div style={{ flex: "1 1 200px", minWidth: 180 }}>
-              <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 6px" }}>Atendente</p>
+              <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Atendente</p>
               <select value={atendenteFiltro} onChange={e => setAtendenteFiltro(e.target.value)} style={selectStyle}>
                 <option value="todos">Todos os atendentes</option>
                 <option value="BOT">BOT (automático)</option>
@@ -487,7 +473,7 @@ export function DashboardSection() {
             {temFiltroAtivo && (
               <button onClick={() => { setPeriodo("todos"); setCanalFiltro("todos"); setEquipeFiltro("todas"); setFilaFiltro("todas"); setAtendenteFiltro("todos"); }}
                 style={{
-                  background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10,
+                  background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 10,
                   padding: "10px 18px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
                   transition: "all 0.15s",
                 }}>
@@ -505,7 +491,6 @@ export function DashboardSection() {
                 flex: "1 1 200px",
                 ...cardStyle,
                 padding: 22,
-                borderTop: `3px solid ${card.color}`,
                 animation: `fadeInUp 0.3s ease-out ${idx * 0.05}s both`,
               }}
               onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 20px ${card.color}20`; e.currentTarget.style.transform = "translateY(-2px)"; }}
@@ -520,7 +505,7 @@ export function DashboardSection() {
                 }}>
                   {<IconeEmoji e={card.icon} />}
                 </div>
-                <p style={{ color: "#64748B", fontSize: 12, margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>
+                <p style={{ color: "#64748B", fontSize: 12, margin: 0, fontWeight: 600 }}>
                   {card.label}
                 </p>
               </div>
@@ -537,8 +522,8 @@ export function DashboardSection() {
             </p>
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
               {[
-                { cor: "#f59e0b", label: "Aguardando" },
-                { cor: "#3b82f6", label: "Em atendimento" },
+                { cor: "#C2410C", label: "Aguardando" },
+                { cor: "#14B8A6", label: "Em atendimento" },
                 { cor: "#059669", label: "Resolvidos" },
               ].map(l => (
                 <span key={l.label} style={{ display: "flex", alignItems: "center", gap: 6, color: "#475569", fontSize: 12, fontWeight: 500 }}>
@@ -579,8 +564,8 @@ export function DashboardSection() {
                   return (
                     <g key={b.rotulo + i}>
                       <title>{b.rotulo}: {b.total} total ({b.aguardando} aguardando, {b.em_atendimento} em atendimento, {b.resolvidos} resolvidos)</title>
-                      {hAguardando > 0 && <rect x={x} y={yCursor} width={barW} height={hAguardando} fill="#f59e0b" rx="3" />}
-                      {hAtend > 0 && <rect x={x} y={yCursor + hAguardando} width={barW} height={hAtend} fill="#3b82f6" rx={hResolv > 0 ? 0 : 3} />}
+                      {hAguardando > 0 && <rect x={x} y={yCursor} width={barW} height={hAguardando} fill="#C2410C" rx="3" />}
+                      {hAtend > 0 && <rect x={x} y={yCursor + hAguardando} width={barW} height={hAtend} fill="#14B8A6" rx={hResolv > 0 ? 0 : 3} />}
                       {hResolv > 0 && <rect x={x} y={yCursor + hAguardando + hAtend} width={barW} height={hResolv} fill="#059669" rx="3" />}
                       {i % passoRotulo === 0 && <text x={x + barW / 2} y={h - padB + 16} fontSize="10" fill="#94A3B8" textAnchor="middle">{b.rotulo}</text>}
                       {totalH > 18 && <text x={x + barW / 2} y={yCursor - 4} fontSize="9" fill="#475569" textAnchor="middle" fontWeight="bold">{b.total}</text>}
@@ -651,7 +636,7 @@ export function DashboardSection() {
             <p style={{ color: "#0F172A", fontSize: 14, margin: 0, fontWeight: 700 }}>Por Atendente</p>
             <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
               {[
-                { cor: "#f59e0b", label: "Em atendimento" },
+                { cor: "#C2410C", label: "Em atendimento" },
                 { cor: "#059669", label: "Resolvidos" },
               ].map(l => (
                 <span key={l.label} style={{ display: "flex", alignItems: "center", gap: 6, color: "#475569", fontSize: 11, fontWeight: 600 }}>
@@ -678,7 +663,7 @@ export function DashboardSection() {
                   }}>{a.inicial}</div>
                   <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nome}</span>
                   <span style={{ color: "#64748B", fontSize: 12, flexShrink: 0, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#f59e0b", fontWeight: 700 }}>{a.emAtendimento}</span>
+                    <span style={{ color: "#C2410C", fontWeight: 700 }}>{a.emAtendimento}</span>
                     <span style={{ opacity: 0.3 }}>·</span>
                     <span style={{ color: "#059669", fontWeight: 700 }}>{a.resolvidos}</span>
                     <span style={{ opacity: 0.3 }}>·</span>
@@ -686,7 +671,7 @@ export function DashboardSection() {
                   </span>
                 </div>
                 <div style={{ height: 8, background: "#F1F5F4", borderRadius: 4, overflow: "hidden", width: `${pctBarra}%`, minWidth: 40, transition: "width 0.3s", display: "flex" }}>
-                  <div style={{ width: `${pctAtendendo}%`, height: "100%", background: "#f59e0b", borderRadius: "4px 0 0 4px" }} />
+                  <div style={{ width: `${pctAtendendo}%`, height: "100%", background: "#C2410C", borderRadius: "4px 0 0 4px" }} />
                   <div style={{ flex: 1, height: "100%", background: "#059669", borderRadius: "0 4px 4px 0" }} />
                 </div>
               </div>
@@ -704,7 +689,7 @@ export function DashboardSection() {
               onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: "#16a34a15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📱</div>
-                <p style={{ color: "#64748B", fontSize: 12, margin: 0, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>WhatsApp</p>
+                <p style={{ color: "#64748B", fontSize: 12, margin: 0, fontWeight: 700 }}>WhatsApp</p>
               </div>
               <p style={{ color: "#059669", fontSize: 36, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{porTipoCanal.webjs}</p>
               <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>tickets {labelPeriodo}</p>
@@ -714,8 +699,8 @@ export function DashboardSection() {
               onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 20px rgba(5,150,105,0.15)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: "#8b5cf615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🔗</div>
-                <p style={{ color: "#64748B", fontSize: 12, margin: 0, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>API Oficial</p>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: "#0F766E15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🔗</div>
+                <p style={{ color: "#64748B", fontSize: 12, margin: 0, fontWeight: 700 }}>API Oficial</p>
               </div>
               <p style={{ color: "#059669", fontSize: 36, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{porTipoCanal.waba}</p>
               <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>tickets {labelPeriodo}</p>
@@ -731,7 +716,7 @@ export function DashboardSection() {
             <div style={{ ...cardStyle, padding: 22 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <p style={{ color: "#0F172A", fontSize: 14, margin: 0, fontWeight: 700 }}>Distribuição de Status</p>
-                <span style={{ background: "#3b82f615", color: "#059669", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #3b82f630" }}>Total: {atendimentosFiltrados.length}</span>
+                <span style={{ background: "#14B8A615", color: "#059669", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #14B8A630" }}>Total: {atendimentosFiltrados.length}</span>
               </div>
               {(() => {
                 const aguardando = cards[0].value;
@@ -743,8 +728,8 @@ export function DashboardSection() {
                 const cx = 110, cy = 110;
                 let anguloAcumulado = -Math.PI / 2;
                 const fatias = [
-                  { valor: aguardando, cor: "#f59e0b", label: "Aguardando" },
-                  { valor: emAtend, cor: "#3b82f6", label: "Em Atendimento" },
+                  { valor: aguardando, cor: "#C2410C", label: "Aguardando" },
+                  { valor: emAtend, cor: "#14B8A6", label: "Em Atendimento" },
                   { valor: resolvidos, cor: "#059669", label: "Resolvidos" },
                 ].filter(f => f.valor > 0);
                 return (
@@ -794,12 +779,12 @@ export function DashboardSection() {
             <div style={{ ...cardStyle, padding: 22 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <p style={{ color: "#0F172A", fontSize: 14, margin: 0, fontWeight: 700 }}>Tickets por Status</p>
-                <span style={{ background: "#3b82f615", color: "#059669", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #3b82f630" }}>Total: {atendimentosFiltrados.length}</span>
+                <span style={{ background: "#14B8A615", color: "#059669", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #14B8A630" }}>Total: {atendimentosFiltrados.length}</span>
               </div>
               {(() => {
                 const dados = [
-                  { label: "Aguardando", valor: cards[0].value, cor: "#f59e0b" },
-                  { label: "Em Atendimento", valor: cards[1].value, cor: "#3b82f6" },
+                  { label: "Aguardando", valor: cards[0].value, cor: "#C2410C" },
+                  { label: "Em Atendimento", valor: cards[1].value, cor: "#14B8A6" },
                   { label: "Resolvidos", valor: cards[2].value, cor: "#059669" },
                 ];
                 const max = Math.max(...dados.map(d => d.valor), 1);
@@ -841,7 +826,7 @@ export function DashboardSection() {
         <div style={{ ...cardStyle, padding: 22 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <p style={{ color: "#0F172A", fontSize: 14, margin: 0, fontWeight: 700 }}>Evolução dos Tickets</p>
-            <span style={{ background: "#3b82f615", color: "#059669", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #3b82f630" }}>Total: {atendimentosFiltrados.length}</span>
+            <span style={{ background: "#14B8A615", color: "#059669", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #14B8A630" }}>Total: {atendimentosFiltrados.length}</span>
           </div>
           {(() => {
             const pontos = [
@@ -866,8 +851,8 @@ export function DashboardSection() {
               <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto", display: "block" }}>
                 <defs>
                   <linearGradient id="gradEvolucao" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                    <stop offset="0%" stopColor="#14B8A6" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="#14B8A6" stopOpacity="0" />
                   </linearGradient>
                 </defs>
                 {[0.25, 0.5, 0.75, 1].map((p, i) => (
@@ -877,10 +862,10 @@ export function DashboardSection() {
                   </g>
                 ))}
                 <path d={pathArea} fill="url(#gradEvolucao)" />
-                <path d={path} fill="none" stroke="#3b82f6" strokeWidth="2.5" />
+                <path d={path} fill="none" stroke="#14B8A6" strokeWidth="2.5" />
                 {coords.map((c, i) => (
                   <g key={i}>
-                    <circle cx={c.x} cy={c.y} r="7" fill="#3b82f6" stroke="#ffffff" strokeWidth="2"><title>{c.label}: {c.valor}</title></circle>
+                    <circle cx={c.x} cy={c.y} r="7" fill="#14B8A6" stroke="#ffffff" strokeWidth="2"><title>{c.label}: {c.valor}</title></circle>
                     <circle cx={c.x} cy={c.y} r="3" fill="white" />
                     <text x={c.x} y={c.y - 14} fontSize="12" fill="#0F172A" textAnchor="middle" fontWeight="bold">{c.valor}</text>
                     <text x={c.x} y={h - padB + 18} fontSize="11" fill="#64748B" textAnchor="middle">{c.label}</text>
@@ -926,12 +911,12 @@ export function DashboardSection() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ color: "#0F172A", fontSize: 13, margin: 0, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nome}</p>
-                      <p style={{ color: a.online ? "#059669" : "#94A3B8", fontSize: 11, margin: "2px 0 0", fontWeight: 500 }}>{a.online ? "🟢 Ativo agora" : "⚫ Inativo"}</p>
+                      <p style={{ color: a.online ? "#059669" : "#94A3B8", fontSize: 11, margin: "2px 0 0", fontWeight: 500 }}>{a.online ? "Ativo agora" : "Inativo"}</p>
                     </div>
                     {a.atendendoAgora > 0 && (
                       <span style={{
-                        background: "#3b82f615", color: "#059669", fontSize: 11, padding: "4px 12px",
-                        borderRadius: 12, fontWeight: 700, whiteSpace: "nowrap", border: "1px solid #3b82f630",
+                        background: "#14B8A615", color: "#059669", fontSize: 11, padding: "4px 12px",
+                        borderRadius: 12, fontWeight: 700, whiteSpace: "nowrap", border: "1px solid #14B8A630",
                       }}>
                         {a.atendendoAgora} ativo{a.atendendoAgora > 1 ? "s" : ""}
                       </span>
@@ -965,8 +950,8 @@ export function DashboardSection() {
                   <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto", display: "block" }}>
                     <defs>
                       <linearGradient id="gradHora" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.2" />
-                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+                        <stop offset="0%" stopColor="#0F766E" stopOpacity="0.2" />
+                        <stop offset="100%" stopColor="#0F766E" stopOpacity="0" />
                       </linearGradient>
                     </defs>
                     {[0.5, 1].map((p, i) => (
@@ -978,13 +963,13 @@ export function DashboardSection() {
                       return (
                         <>
                           <path d={pathArea} fill="url(#gradHora)" />
-                          <path d={path} fill="none" stroke="#8b5cf6" strokeWidth="2" />
+                          <path d={path} fill="none" stroke="#0F766E" strokeWidth="2" />
                         </>
                       );
                     })()}
                     {coords.map((c, i) => (
                       <g key={i}>
-                        <circle cx={c.x} cy={c.y} r="3" fill="#8b5cf6" stroke="#ffffff" strokeWidth="1.5"><title>{c.hora}: {c.count} atendimentos</title></circle>
+                        <circle cx={c.x} cy={c.y} r="3" fill="#0F766E" stroke="#ffffff" strokeWidth="1.5"><title>{c.hora}: {c.count} atendimentos</title></circle>
                         {i % 3 === 0 && <text x={c.x} y={h - padB + 14} fontSize="9" fill="#94A3B8" textAnchor="middle">{c.hora}</text>}
                       </g>
                     ))}

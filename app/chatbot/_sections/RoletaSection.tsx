@@ -1,4 +1,5 @@
 "use client";
+import { IconeEmoji } from "../../components/a2/Icone";
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
@@ -48,21 +49,16 @@ export function RoletaSection() {
 
   const podeGerenciar = isDono || permissoes.roleta_gerenciar;
 
-  const cardStyle = {
-    background: "#ffffff",
-    borderRadius: 14,
-    border: "1px solid #E6ECEA",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-  };
+  const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
   const inputStyle = {
     width: "100%",
-    background: "#ffffff",
+    background: "#F7FAF9",
     border: "1px solid #E6ECEA",
-    borderRadius: 10,
-    padding: "10px 14px",
+    borderRadius: 12,
+    padding: "11px 14px",
     color: "#0F172A",
-    fontSize: 13,
+    fontSize: 14, fontWeight: 600,
     boxSizing: "border-box" as const,
     outline: "none",
   };
@@ -112,9 +108,9 @@ export function RoletaSection() {
         { onConflict: "workspace_id" }
       );
       if (error) throw error;
-      alert("✅ Configuração da roleta salva!");
+      alert("Configuração da roleta salva!");
     } catch (e: any) {
-      alert("❌ Erro: " + e.message);
+      alert("Erro: " + e.message);
     }
     setSalvando(false);
   };
@@ -130,7 +126,7 @@ export function RoletaSection() {
     if (!wsId) return;
     if (!confirm("Resetar o contador da roleta? O próximo lead irá pro primeiro atendente da lista.")) return;
     await supabase.from("roleta_config").update({ proximo_index: 0 }).eq("workspace_id", wsId);
-    alert("✅ Contador resetado!");
+    alert("Contador resetado!");
     fetchTudo();
   };
 
@@ -147,15 +143,7 @@ export function RoletaSection() {
     return (
       <div style={{ padding: 32, background: "#F3F6F5", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
-          </div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🔒"} tamanho={28} /></div>
           <h2 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Sem permissão</h2>
           <p style={{ color: "#64748B", fontSize: 13, margin: 0, lineHeight: 1.5 }}>Apenas dono ou usuários com permissão "Gerenciar roleta de distribuição" podem acessar.</p>
         </div>
@@ -178,17 +166,10 @@ export function RoletaSection() {
 
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: 14,
-          background: "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 24, boxShadow: "0 8px 20px rgba(236,72,153,0.25)",
-        }}>
-          <span style={{ filter: "saturate(0) brightness(2)" }}>🎯</span>
-        </div>
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"🎯"} tamanho={22} /></div>
         <div>
-          <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Roleta de Distribuição</h1>
-          <p style={{ color: "#64748B", fontSize: 13, margin: "2px 0 0", maxWidth: 720, lineHeight: 1.5 }}>
+          <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Roleta de Distribuição</h1>
+          <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0", maxWidth: 720, lineHeight: 1.5 }}>
             Distribui novos leads automaticamente entre os atendentes. Um supervisor não precisa ficar dizendo "fulano pega esse lead aí".
           </p>
         </div>
@@ -215,7 +196,7 @@ export function RoletaSection() {
             <p style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
               {config.ativa ? "Roleta ATIVA" : "Roleta desativada"}
             </p>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               {config.ativa
                 ? `Cada novo lead será atribuído automaticamente a um dos ${config.usuarios.length} atendente(s) selecionado(s)`
                 : "Leads entrantes ficam pendentes até que alguém os pegue manualmente"}
@@ -231,14 +212,14 @@ export function RoletaSection() {
       {/* ═══ TIPO DE DISTRIBUIÇÃO ═══ */}
       <div style={{ ...cardStyle, padding: 22 }}>
         <h3 style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: "0 0 14px", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 32, height: 32, borderRadius: 8, background: "#8b5cf615", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🎲</span>
+          <span style={{ width: 32, height: 32, borderRadius: 8, background: "#0F766E15", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🎲</span>
           Lógica de distribuição
         </h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
           {[
-            { key: "balanceada", titulo: "Balanceada", desc: "Vai na ordem da lista, um por um (round-robin). Ex: Ana, João, Maria, Ana, João, Maria...", cor: "#3b82f6" },
+            { key: "balanceada", titulo: "Balanceada", desc: "Vai na ordem da lista, um por um (round-robin). Ex: Ana, João, Maria, Ana, João, Maria...", cor: "#14B8A6" },
             { key: "ranqueada", titulo: "Ranqueada", desc: "Manda pro atendente com MENOS conversas ativas. Quem tá mais livre recebe.", cor: "#059669" },
-            { key: "aleatoria", titulo: "Aleatória", desc: "Sorteia um atendente aleatório a cada novo lead.", cor: "#f59e0b" },
+            { key: "aleatoria", titulo: "Aleatória", desc: "Sorteia um atendente aleatório a cada novo lead.", cor: "#C2410C" },
           ].map(opt => {
             const ativo = config.tipo === opt.key;
             return (
@@ -263,7 +244,7 @@ export function RoletaSection() {
       {/* ═══ SELEÇÃO DE USUÁRIOS ═══ */}
       <div style={{ ...cardStyle, padding: 22 }}>
         <h3 style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: "0 0 6px", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 32, height: 32, borderRadius: 8, background: "#3b82f615", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>👥</span>
+          <span style={{ width: 32, height: 32, borderRadius: 8, background: "#14B8A615", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>👥</span>
           Atendentes na roleta
         </h3>
         <p style={{ color: "#64748B", fontSize: 12, margin: "0 0 14px", paddingLeft: 40 }}>
@@ -330,7 +311,7 @@ export function RoletaSection() {
                     {filtroEquipeUsuarios === "todas" ? "Selecionar todos" : "Selecionar a equipe"}
                   </button>
                   <button onClick={() => { const vis = new Set(usuariosVisiveis.map(u => u.email)); setConfig(c => ({ ...c, usuarios: c.usuarios.filter(e => !vis.has(e)) })); }}
-                    style={{ flex: 1, background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+                    style={{ flex: 1, background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
                     {filtroEquipeUsuarios === "todas" ? "Desmarcar todos" : "Desmarcar a equipe"}
                   </button>
                   <button onClick={() => setShowDropdown(false)}
@@ -364,7 +345,7 @@ export function RoletaSection() {
       {/* ═══ FILTROS AVANÇADOS ═══ */}
       <div style={{ ...cardStyle, padding: 22 }}>
         <h3 style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 32, height: 32, borderRadius: 8, background: "#f59e0b15", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>⚙️</span>
+          <span style={{ width: 32, height: 32, borderRadius: 8, background: "#C2410C15", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>⚙️</span>
           Filtros avançados
         </h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -403,12 +384,12 @@ export function RoletaSection() {
           {config.apenas_horario_comercial && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginLeft: 28, padding: 14, background: "#F7FAF9", borderRadius: 12, border: "1px solid #E6ECEA" }}>
               <div>
-                <label style={{ color: "#64748B", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Início</label>
+                <label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 6, fontWeight: 700, letterSpacing: 0.5 }}>Início</label>
                 <input type="time" value={config.horario_inicio} onChange={e => setConfig(c => ({ ...c, horario_inicio: e.target.value }))}
                   style={{ ...inputStyle, colorScheme: "light" }} />
               </div>
               <div>
-                <label style={{ color: "#64748B", fontSize: 11, display: "block", marginBottom: 6, textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Fim</label>
+                <label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 6, fontWeight: 700, letterSpacing: 0.5 }}>Fim</label>
                 <input type="time" value={config.horario_fim} onChange={e => setConfig(c => ({ ...c, horario_fim: e.target.value }))}
                   style={{ ...inputStyle, colorScheme: "light" }} />
               </div>
@@ -428,7 +409,7 @@ export function RoletaSection() {
           display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: "#3b82f615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📍</div>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: "#14B8A615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📍</div>
             <div>
               <p style={{ color: "#065F46", fontSize: 13, margin: 0, fontWeight: 700 }}>
                 Próximo atendente: {usuarios.find(u => u.email === config.usuarios[config.proximo_index % config.usuarios.length])?.nome || "—"}
@@ -440,13 +421,13 @@ export function RoletaSection() {
           </div>
           <button onClick={resetarContador}
             style={{
-              background: "#fffbeb", color: "#f59e0b",
+              background: "#FFF7ED", color: "#C2410C",
               border: "1px solid #fde68a", borderRadius: 10,
               padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700,
               transition: "all 0.15s",
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = "#fef3c7"}
-            onMouseLeave={(e) => e.currentTarget.style.background = "#fffbeb"}>
+            onMouseEnter={(e) => e.currentTarget.style.background = "#FFEDD5"}
+            onMouseLeave={(e) => e.currentTarget.style.background = "#FFF7ED"}>
             Resetar
           </button>
         </div>
@@ -455,14 +436,14 @@ export function RoletaSection() {
       {/* ═══ BOTÃO SALVAR ═══ */}
       <button onClick={salvar} disabled={salvando}
         style={{
-          background: salvando ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+          background: salvando ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
           color: "white", border: "none", borderRadius: 12,
           padding: "14px", fontSize: 14,
           cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
           alignSelf: "flex-end", minWidth: 240,
-          boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+          boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
         }}>
-        {salvando ? "⏳ Salvando..." : "💾 Salvar configurações"}
+        {salvando ? "⏳ Salvando..." : "Salvar configurações"}
       </button>
     </div>
   );

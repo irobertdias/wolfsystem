@@ -67,8 +67,8 @@ const T = {
   soft: "#F3F6F5",
   green: "#059669",
   greenLt: "#10b981",
-  brand: "#2563eb",
-  brand2: "#3b82f6",
+  brand: "#0F766E",
+  brand2: "#14B8A6",
 };
 
 const normStatus = (status: any) =>
@@ -135,10 +135,10 @@ const grupoDe = (status: any): Grupo => STATUS_GRUPO[normStatus(status)] || "PEN
 
 const GRUPO_META: Record<Grupo, { label: string; cor: string; bg: string; icone: string }> = {
   INSTALADA: { label: "Instaladas", cor: "#059669", bg: "#ecfdf5", icone: "✅" },
-  AGUARDANDO_INST: { label: "Aguardando instalação", cor: "#0284c7", bg: "#f0f9ff", icone: "🔧" },
-  BIOMETRIA: { label: "Aguardando biometria", cor: "#6366f1", bg: "#eef2ff", icone: "🪪" },
-  GERADA: { label: "Geradas", cor: "#7c3aed", bg: "#f5f3ff", icone: "📄" },
-  PENDENTE: { label: "Pendentes", cor: "#d97706", bg: "#fffbeb", icone: "⏳" },
+  AGUARDANDO_INST: { label: "Aguardando instalação", cor: "#0369A1", bg: "#f0f9ff", icone: "🔧" },
+  BIOMETRIA: { label: "Aguardando biometria", cor: "#059669", bg: "#ECFDF5", icone: "🪪" },
+  GERADA: { label: "Geradas", cor: "#0F766E", bg: "#F0FDFA", icone: "📄" },
+  PENDENTE: { label: "Pendentes", cor: "#C2410C", bg: "#FFF7ED", icone: "⏳" },
   AUDITORIA: { label: "Auditoria", cor: "#0891b2", bg: "#ecfeff", icone: "🔍" },
   CANCELADA: { label: "Canceladas", cor: "#dc2626", bg: "#fef2f2", icone: "❌" },
   CHURN: { label: "Churn", cor: "#9333ea", bg: "#faf5ff", icone: "📉" },
@@ -521,7 +521,7 @@ export default function Dashboard() {
       counts[nome] = (counts[nome] || 0) + 1;
     });
 
-    const cores = ["#2563eb", "#059669", "#7c3aed", "#0284c7", "#d97706", "#dc2626"];
+    const cores = ["#0F766E", "#059669", "#0F766E", "#0369A1", "#C2410C", "#dc2626"];
     return Object.entries(counts)
       .map(([name, value], i) => ({ name, value, color: cores[i % cores.length] }))
       .sort((a, b) => b.value - a.value);
@@ -597,7 +597,7 @@ export default function Dashboard() {
     { label: voc.aguardando, value: aguardandoInst, cor: grupoMeta.AGUARDANDO_INST.cor, icone: grupoMeta.AGUARDANDO_INST.icone, hint: "podem virar venda" },
     { label: "Pendentes", value: stats.grupos.PENDENTE, cor: grupoMeta.PENDENTE.cor, icone: "⏳", hint: "precisam de ação" },
     { label: "Ticket médio", value: stats.ticketMedio, cor: T.brand, icone: "💳", hint: `em ${voc.concluidasMin}`, money: true },
-    { label: "Vendedores ativos", value: stats.vendedoresAtivos, cor: "#7c3aed", icone: "👥", hint: "no período" },
+    { label: "Vendedores ativos", value: stats.vendedoresAtivos, cor: "#0F766E", icone: "👥", hint: "no período" },
   ];
 
   const insights = useMemo(() => {
@@ -607,7 +607,7 @@ export default function Dashboard() {
       lista.push({
         icon: "🏆",
         text: `${rankingVendedores[0].nome} lidera com ${rankingVendedores[0].instaladas} ${voc.concluidasMin}`,
-        color: "#d97706",
+        color: "#C2410C",
       });
     }
 
@@ -643,7 +643,6 @@ export default function Dashboard() {
     color: T.faint,
     fontSize: 11,
     fontWeight: 800,
-    textTransform: "uppercase" as const,
     letterSpacing: 0.6,
     margin: 0,
   };
@@ -941,7 +940,7 @@ export default function Dashboard() {
                 <thead>
                   <tr style={{ background: T.soft }}>
                     {["Vendedor", `${voc.abrev.charAt(0).toUpperCase()}${voc.abrev.slice(1)}`, `${grupoMeta.AGUARDANDO_INST.icone} Aguard.`, "Biometria", "⏳ Pendentes", "Auditoria", "Cancel."].map((h) => (
-                      <th key={h} style={{ padding: "12px 14px", color: T.sub, fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 800, borderBottom: `1px solid ${T.line}`, whiteSpace: "nowrap" }}>{h}</th>
+                      <th key={h} style={{ padding: "12px 14px", color: T.sub, fontSize: 12.5, textAlign: "left", fontWeight: 800, borderBottom: `1px solid ${T.line}`, whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -970,7 +969,7 @@ export default function Dashboard() {
             <p style={{ color: T.sub, fontSize: 12, margin: "0 0 16px" }}>{voc.somenteConcluidas}</p>
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={receitaPorDia} margin={{ top: 5, right: 8, left: -15, bottom: 0 }}>
-                <defs><linearGradient id="wolfReceita" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#2563eb" stopOpacity={0.28} /><stop offset="95%" stopColor="#2563eb" stopOpacity={0} /></linearGradient></defs>
+                <defs><linearGradient id="wolfReceita" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0F766E" stopOpacity={0.28} /><stop offset="95%" stopColor="#0F766E" stopOpacity={0} /></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="data" stroke={T.faint} fontSize={10} tickLine={false} axisLine={false} interval={isMobile ? 6 : 3} />
                 <YAxis stroke={T.faint} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `R$ ${Number(v) >= 1000 ? `${Math.round(Number(v) / 1000)}k` : v}`} />

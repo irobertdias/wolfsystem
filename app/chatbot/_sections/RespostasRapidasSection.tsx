@@ -1,4 +1,5 @@
 "use client";
+import { IconeEmoji } from "../../components/a2/Icone";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
@@ -30,14 +31,9 @@ export function RespostasRapidasSection() {
   const [midiaPreview, setMidiaPreview] = useState<string>("");
   const [uploadandoMidia, setUploadandoMidia] = useState(false);
 
-  const IS = { width: "100%", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 14px", color: "#0F172A", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
+  const IS = { width: "100%", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
 
-  const cardStyle = {
-    background: "#ffffff",
-    borderRadius: 14,
-    border: "1px solid #E6ECEA",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-  };
+  const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
   // 🔒 MULTI-TENANT FIX: padronizar a chave de workspace usada em TODAS as queries
   // (fetch, insert, delete). Antes, salvava com `wsId` e buscava com `workspace.username
@@ -223,17 +219,10 @@ export function RespostasRapidasSection() {
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(245,158,11,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>⚡</span>
-          </div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"⚡"} tamanho={22} /></div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Respostas Rápidas</h1>
-            <p style={{ color: "#64748B", fontSize: 13, margin: "2px 0 0" }}>
+            <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Respostas Rápidas</h1>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               Digite <code style={{ background: "#F1F5F4", color: "#059669", padding: "1px 6px", borderRadius: 4, fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}>/</code> no chat para usar
             </p>
           </div>
@@ -243,7 +232,7 @@ export function RespostasRapidasSection() {
             background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-            boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+            boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
           }}>
           + Nova Resposta
         </button>
@@ -265,23 +254,23 @@ export function RespostasRapidasSection() {
       {showForm && (
         <div style={{ ...cardStyle, padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: "#3b82f615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>➕</div>
-            <p style={{ color: "#059669", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Nova Resposta Rápida</p>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: "#14B8A615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>➕</div>
+            <p style={{ color: "#059669", fontSize: 12, fontWeight: 700, margin: 0 }}>Nova Resposta Rápida</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 12 }}>
             <div>
-              <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Atalho *</label>
+              <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Atalho *</label>
               <input placeholder="/oi" value={form.atalho} onChange={e => setForm({ ...form, atalho: e.target.value })} style={{ ...IS, fontFamily: "monospace", fontWeight: 600 }} />
             </div>
             <div>
-              <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Mensagem *</label>
+              <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Mensagem *</label>
               <textarea placeholder={"Olá! Como posso te ajudar?\nDigite ou cole sua mensagem com as quebras de linha desejadas."} value={form.mensagem} onChange={e => setForm({ ...form, mensagem: e.target.value })} rows={6} style={{ ...IS, resize: "vertical", minHeight: 140, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }} />
               <p style={{ color: "#64748B", fontSize: 11, margin: "6px 0 0" }}>Use Enter para quebrar a linha. Os parágrafos serão mantidos no envio.</p>
             </div>
           </div>
           {/* 🆕 MÍDIA */}
           <div>
-            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>
+            <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>
               Mídia (opcional — imagem, vídeo, áudio ou documento)
             </label>
             <input
@@ -298,7 +287,7 @@ export function RespostasRapidasSection() {
                   padding: "14px 20px", cursor: "pointer", color: "#64748B", fontSize: 13,
                   fontWeight: 600, width: "100%", textAlign: "center" as const, transition: "all 0.15s",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.color = "#3b82f6"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#14B8A6"; e.currentTarget.style.color = "#14B8A6"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "#E6ECEA"; e.currentTarget.style.color = "#64748B"; }}>
                 Clique para anexar uma mídia
               </button>
@@ -319,7 +308,7 @@ export function RespostasRapidasSection() {
                   <p style={{ margin: "2px 0 0", fontSize: 11, color: "#64748B" }}>{(midiaArquivo.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
                 <button type="button" onClick={limparMidia}
-                  style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>
+                  style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>
                   Remover
                 </button>
               </div>
@@ -330,7 +319,7 @@ export function RespostasRapidasSection() {
           {/* 👥 EQUIPE */}
           {equipes.length > 0 && (
             <div>
-              <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Equipe</label>
+              <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Equipe</label>
               <select value={form.equipeId} onChange={e => setForm({ ...form, equipeId: e.target.value })} style={IS}>
                 <option value="">Geral (todas as equipes)</option>
                 {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
@@ -348,9 +337,9 @@ export function RespostasRapidasSection() {
                 background: (salvando || uploadandoMidia) ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "9px 22px", fontSize: 12, cursor: "pointer", fontWeight: 700,
-                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
               }}>
-              {uploadandoMidia ? "⏳ Enviando mídia..." : salvando ? "⏳ Salvando..." : "💾 Salvar"}
+              {uploadandoMidia ? "⏳ Enviando mídia..." : salvando ? "⏳ Salvando..." : "Salvar"}
             </button>
           </div>
         </div>
@@ -364,16 +353,8 @@ export function RespostasRapidasSection() {
           </div>
         ) : respostasFiltradas.length === 0 ? (
           <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-            <div style={{
-              width: 80, height: 80, borderRadius: 20,
-              background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 40, margin: "0 auto 16px",
-              boxShadow: "0 12px 24px rgba(245,158,11,0.25)",
-            }}>
-              <span style={{ filter: "saturate(0) brightness(2)" }}>⚡</span>
-            </div>
-            <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>
+            <div style={{ width: 80, height: 80, borderRadius: 18, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"⚡"} tamanho={28} /></div>
+            <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "0 0 8px" }}>
               {filtroEquipe !== "todas" ? "Nenhuma resposta nessa equipe" : "Nenhuma resposta rápida cadastrada ainda"}
             </h3>
             <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>Clique em <b>+ Nova Resposta</b> pra criar a primeira</p>
@@ -390,9 +371,9 @@ export function RespostasRapidasSection() {
             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}
           >
             <span style={{
-              background: "#3b82f615",
+              background: "#14B8A615",
               color: "#059669",
-              border: "1px solid #3b82f630",
+              border: "1px solid #14B8A630",
               fontSize: 12, padding: "5px 12px",
               borderRadius: 8, fontWeight: 700,
               whiteSpace: "nowrap",
@@ -425,8 +406,8 @@ export function RespostasRapidasSection() {
             )}
             <button onClick={() => remover(r)}
               style={{
-                background: "#fef2f2", color: "#dc2626",
-                border: "1px solid #fecaca", borderRadius: 8,
+                background: "#FEF2F2", color: "#B91C1C",
+                border: "none", borderRadius: 8,
                 padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600,
                 transition: "all 0.15s",
               }}

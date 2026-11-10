@@ -1,4 +1,5 @@
 "use client";
+import Icone from "../../components/a2/Icone";
 import { useEffect, useMemo, useState } from "react";
 
 // Biblioteca de mídia da conversa (estilo WhatsApp): fotos/vídeos, documentos e links.
@@ -166,7 +167,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
 
       {aba === "midia" && (midias.length === 0 ? vazio("Nenhuma foto ou vídeo nesta conversa.") : agruparPorMes(midias).map(g => (
         <div key={g.rotulo}>
-          <p style={{ color: "#54656f", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, margin: "4px 0 6px" }}>{g.rotulo}</p>
+          <p style={{ color: "#54656f", fontSize: 11, fontWeight: 700, margin: "4px 0 6px" }}>{g.rotulo}</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3 }}>
             {g.itens.map(item => {
               const indice = midias.indexOf(item);
@@ -189,7 +190,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
 
       {aba === "docs" && (docs.length === 0 ? vazio("Nenhum documento nesta conversa.") : agruparPorMes(docs).map(g => (
         <div key={g.rotulo} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <p style={{ color: "#54656f", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, margin: "4px 0 0" }}>{g.rotulo}</p>
+          <p style={{ color: "#54656f", fontSize: 11, fontWeight: 700, margin: "4px 0 0" }}>{g.rotulo}</p>
           {g.itens.map(item => {
             const icone = iconeDoc(item.filename);
             return (
@@ -209,7 +210,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
 
       {aba === "links" && (links.length === 0 ? vazio("Nenhum link nesta conversa.") : agruparPorMes(links).map(g => (
         <div key={g.rotulo} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <p style={{ color: "#54656f", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, margin: "4px 0 0" }}>{g.rotulo}</p>
+          <p style={{ color: "#54656f", fontSize: 11, fontWeight: 700, margin: "4px 0 0" }}>{g.rotulo}</p>
           {g.itens.map(item => (
             <a key={item.chave} href={hrefLink(item.url)} target="_blank" rel="noreferrer noopener"
               style={{ display: "flex", gap: 10, padding: "9px 10px", border: "1px solid #E6ECEA", borderRadius: 8, textDecoration: "none", background: "#ffffff" }}>
@@ -261,7 +262,7 @@ function Visualizador({ itens, indice, urlMidia, onIndice, onFechar }: { itens: 
           <div style={{ fontSize: 11, color: "#aebac1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nomeExibicao(item.filename)} · {itens.length - indice} de {itens.length}</div>
         </div>
         <a href={src} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="Abrir / baixar" style={{ color: "#e9edef", fontSize: 18, textDecoration: "none" }}>⤓</a>
-        <button onClick={onFechar} title="Fechar" style={{ background: "none", border: "none", color: "#e9edef", fontSize: 20, cursor: "pointer" }}>✕</button>
+        <button onClick={onFechar} title="Fechar" style={{ background: "none", border: "none", color: "#e9edef", fontSize: 20, cursor: "pointer" }}><Icone nome="x" tamanho={16} /></button>
       </div>
       <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 64px", minHeight: 0 }}>
         {seta("esq", indice < itens.length - 1, () => onIndice(indice + 1))}
