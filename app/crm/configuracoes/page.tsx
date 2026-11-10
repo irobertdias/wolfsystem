@@ -6,7 +6,7 @@ import { usePermissao } from "../../hooks/usePermissao";
 import { useModulos } from "../../hooks/useModulos";
 import { useWorkspace } from "../../hooks/useWorkspace";
 
-import Icone, { IconeEmoji } from "../../components/a2/Icone";
+import Icone from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // ⚙️ CONFIGURAÇÕES — Wolf CRM (multi-tenant, premium)
 // ───────────────────────────────────────────────────────────────────────
@@ -30,6 +30,101 @@ const CORES_AVATAR_USUARIO = [
 function corAvatarUsuario(t: string) {
   let h = 0; for (const c of String(t || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return CORES_AVATAR_USUARIO[h % CORES_AVATAR_USUARIO.length];
+}
+
+// ═══ Peças A2 compartilhadas pelas abas ═══
+const SOMBRA_A2 = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)";
+const btnPrimarioA2: React.CSSProperties = {
+  height: 46, display: "inline-flex", alignItems: "center", gap: 7,
+  background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: 0, borderRadius: 14,
+  padding: "0 20px", fontSize: 14, fontWeight: 800, cursor: "pointer",
+  boxShadow: "0 12px 24px -12px rgba(5,150,105,.8)", whiteSpace: "nowrap",
+};
+const btnClaroA2: React.CSSProperties = {
+  height: 34, display: "inline-flex", alignItems: "center", gap: 6, background: "#F3F6F5", color: "#334155",
+  border: 0, borderRadius: 10, padding: "0 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+};
+const btnLixoA2: React.CSSProperties = {
+  width: 34, height: 34, display: "inline-flex", alignItems: "center", justifyContent: "center",
+  background: "#FEF2F2", color: "#B91C1C", border: 0, borderRadius: 10, cursor: "pointer", flexShrink: 0,
+};
+const semEmoji = (t: string) => String(t || "").replace(/^[^\p{L}\p{N}]+/u, "").trim();
+
+function DicaA2({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#F7FFFB", boxShadow: "inset 0 0 0 1.5px #A7F3D0", borderRadius: 16, padding: "14px 18px" }}>
+      <span style={{ width: 30, height: 30, borderRadius: 9, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="info" tamanho={16} /></span>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ color: "#065F46", fontSize: 13.5, margin: 0, fontWeight: 800 }}>{titulo}</p>
+        <p style={{ color: "#475569", fontSize: 13, margin: "3px 0 0", lineHeight: 1.55 }}>{children}</p>
+      </div>
+    </div>
+  );
+}
+
+function BarraA2({ busca, setBusca, placeholder, rotuloNovo, onNovo }: { busca: string; setBusca: (v: string) => void; placeholder: string; rotuloNovo?: string; onNovo?: () => void }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, boxShadow: SOMBRA_A2, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <label style={{ flex: "1 1 240px", maxWidth: 420, height: 44, display: "flex", alignItems: "center", gap: 10, background: "#F3F6F5", borderRadius: 13, padding: "0 14px", color: "#64748B" }}>
+        <Icone nome="busca" tamanho={17} />
+        <input className="a2-input-limpo" placeholder={placeholder} value={busca} onChange={e => setBusca(e.target.value)}
+          style={{ flex: 1, minWidth: 0, height: "100%", border: 0, background: "transparent", outline: "none", fontSize: 14, fontWeight: 600, color: "#0F172A" }} />
+      </label>
+      <div style={{ flex: 1 }} />
+      {onNovo && rotuloNovo && (
+        <button onClick={onNovo} style={btnPrimarioA2}><Icone nome="mais" tamanho={16} espessura={2.4} />{rotuloNovo}</button>
+      )}
+    </div>
+  );
+}
+
+function FormA2({ titulo, icone, children, onCancelar, onSalvar, salvando, rotuloSalvar = "Salvar" }: { titulo: string; icone: string; children: React.ReactNode; onCancelar: () => void; onSalvar: () => void; salvando: boolean; rotuloSalvar?: string }) {
+  return (
+    <section style={{ background: "#fff", borderRadius: 20, boxShadow: `inset 0 0 0 1.5px #A7F3D0, ${SOMBRA_A2}`, padding: 22, display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={icone as any} tamanho={17} /></span>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0F172A" }}>{titulo}</h2>
+      </div>
+      {children}
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+        <button onClick={onCancelar} style={{ ...btnClaroA2, height: 46, padding: "0 20px", fontSize: 14, borderRadius: 14 }}>Cancelar</button>
+        <button onClick={onSalvar} disabled={salvando} style={{ ...btnPrimarioA2, opacity: salvando ? 0.6 : 1, cursor: salvando ? "wait" : "pointer" }}>
+          <Icone nome="check" tamanho={16} espessura={2.4} />{salvando ? "Salvando…" : rotuloSalvar}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function VazioA2({ icone, titulo, texto }: { icone: string; titulo: string; texto?: string }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, boxShadow: SOMBRA_A2, padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 48, height: 48, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={icone as any} tamanho={22} /></span>
+      <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>{titulo}</span>
+      {texto && <span style={{ fontSize: 13, color: "#64748B" }}>{texto}</span>}
+    </div>
+  );
+}
+
+function AcoesA2({ onEditar, onExcluir, rotuloExcluir = "Excluir" }: { onEditar: () => void; onExcluir: () => void; rotuloExcluir?: string }) {
+  return (
+    <div style={{ display: "inline-flex", gap: 6 }}>
+      <button onClick={onEditar} style={btnClaroA2}><Icone nome="editar" tamanho={14} />Editar</button>
+      <button onClick={onExcluir} title={rotuloExcluir} style={btnLixoA2}><Icone nome="lixeira" tamanho={15} /></button>
+    </div>
+  );
+}
+
+function CabecalhoSecaoA2({ icone, titulo, sub, fundo = "#ECFDF5", cor = "#059669" }: { icone: string; titulo: string; sub: string; fundo?: string; cor?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+      <span style={{ width: 42, height: 42, borderRadius: 12, background: fundo, color: cor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome={icone as any} tamanho={20} /></span>
+      <div>
+        <h2 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: 0 }}>{titulo}</h2>
+        <p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>{sub}</p>
+      </div>
+    </div>
+  );
 }
 
 type Usuario = {
@@ -892,10 +987,11 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
 
       {/* Form */}
       {showForm && (
-        <div style={{ ...cardStyle, padding: 22, borderTop: "3px solid #059669" }}>
-          <p style={{ color: "#059669", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
-            {editandoUsuario ? "✏️ Editar Usuário" : "➕ Novo Usuário"}
-          </p>
+        <div style={{ ...cardStyle, padding: 22, boxShadow: `inset 0 0 0 1.5px #A7F3D0, ${SOMBRA_A2}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+            <span style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={editandoUsuario ? "editar" : "usuario"} tamanho={17} /></span>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0F172A" }}>{editandoUsuario ? `Editar ${editandoUsuario.nome}` : "Novo usuário"}</h2>
+          </div>
 
           {/* ─── LINHA 1: Nome + E-mail ─── */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 14 }}>
@@ -972,7 +1068,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                       transition: "all 0.15s",
                     }}>
                     {ativa && <span>✓</span>}
-                    {iconeHashFromString(eq.nome)} {eq.nome.toUpperCase()}
+                    {eq.nome}
                   </button>
                 );
               })}
@@ -1026,15 +1122,15 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                     return (
                       <button key={f.id} type="button" onClick={toggleF}
                         style={{
-                          background: ativa ? "#fff7ed" : "#ffffff",
-                          color: ativa ? "#ea580c" : "#64748B",
-                          border: "1.5px solid " + (ativa ? "#fb923c" : "#E6ECEA"),
+                          background: ativa ? "#ECFDF5" : "#ffffff",
+                          color: ativa ? "#047857" : "#64748B",
+                          border: "1.5px solid " + (ativa ? "#10B981" : "#E6ECEA"),
                           borderRadius: 10, padding: "9px 14px",
                           fontSize: 12, fontWeight: 700, cursor: "pointer",
                           display: "flex", alignItems: "center", gap: 6,
                         }}>
                         {ativa && <span>✓</span>}
-                        {iconeFilaFromString(f.nome)} {f.nome.toUpperCase()}
+                        {f.nome}
                       </button>
                     );
                   })}
@@ -1094,7 +1190,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                         display: "flex", alignItems: "center", gap: 5,
                       }}>
                       {ativo && <span>✓</span>}
-                      {iconeCanal} {c.nome}
+                      {c.nome}
                     </button>
                   );
                 })}
@@ -1273,9 +1369,9 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
               <input type={showSenha ? "text" : "password"} placeholder="Mínimo 6 caracteres" value={formUsuario.senha}
                 onChange={e => setFormUsuario({ ...formUsuario, senha: e.target.value })}
                 style={{ ...IS, paddingRight: 40 }} />
-              <button onClick={() => setShowSenha(!showSenha)} type="button"
-                style={{ position: "absolute", right: 8, top: 32, background: "#F1F5F4", border: "none", cursor: "pointer", color: "#64748B", fontSize: 12, width: 28, height: 28, borderRadius: 6 }}>
-                {showSenha ? "🙈" : "👁️"}
+              <button onClick={() => setShowSenha(!showSenha)} type="button" title={showSenha ? "Esconder senha" : "Mostrar senha"}
+                style={{ position: "absolute", right: 8, top: 31, background: "#fff", border: "none", cursor: "pointer", color: showSenha ? "#059669" : "#64748B", width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icone nome="olho" tamanho={16} />
               </button>
             </div>
           )}
@@ -1283,16 +1379,12 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
           {/* ─── BOTÕES ─── */}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button onClick={() => { setShowForm(false); setEditandoUsuario(null); }}
-              style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              style={{ ...btnClaroA2, height: 46, padding: "0 20px", fontSize: 14, borderRadius: 14 }}>
               Cancelar
             </button>
-            <button onClick={salvarUsuario} disabled={salvando}
-              style={{
-                background: salvando ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                color: "white", border: "none", borderRadius: 10,
-                padding: "9px 22px", fontSize: 12, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
-                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
-              }}>{salvando ? "Salvando..." : "💾 Salvar"}</button>
+            <button onClick={salvarUsuario} disabled={salvando} style={{ ...btnPrimarioA2, opacity: salvando ? 0.6 : 1, cursor: salvando ? "wait" : "pointer" }}>
+              <Icone nome="check" tamanho={16} espessura={2.4} />{salvando ? "Salvando…" : "Salvar"}
+            </button>
           </div>
         </div>
       )}
@@ -1454,136 +1546,57 @@ function AbaEquipes({ equipes, usuarios, filas, usuariosPorEquipe, filasPorEquip
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Info card explicativo */}
-      <div style={{
-        background: "linear-gradient(135deg, #ECFDF5 0%, #A7F3D0 100%)",
-        border: "1px solid #A7F3D0",
-        borderLeft: "4px solid #059669",
-        borderRadius: 12,
-        padding: "14px 18px",
-      }}>
-        <p style={{ color: "#6b21a8", fontSize: 13, margin: 0, fontWeight: 700 }}>Como funciona</p>
-        <p style={{ color: "#047857", fontSize: 12, margin: "3px 0 0", lineHeight: 1.5 }}>
-          Organize seu workspace em <b>equipes/empresas/filiais</b>. Cada usuário ou fila pode ser atribuído a uma equipe — assim você filtra a visão por equipe e cada uma trabalha de forma isolada nos relatórios e dashboards.
-        </p>
-      </div>
+      <DicaA2 titulo="Como funciona">
+        Organize o workspace em <b>equipes, empresas ou filiais</b>. Cada usuário ou fila pode pertencer a uma equipe. Assim você filtra a visão por equipe e cada uma trabalha separada nos relatórios e painéis.
+      </DicaA2>
 
-      {/* Toolbar */}
-      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <input placeholder="Buscar equipes..." value={busca} onChange={e => setBusca(e.target.value)}
-          style={{ ...IS, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
-        <div style={{ flex: 1 }} />
-        <button onClick={abrirNova}
-          style={{
-            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-            color: "white", border: "none", borderRadius: 10,
-            padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
-          }}>+ Nova Equipe</button>
-      </div>
+      <BarraA2 busca={busca} setBusca={setBusca} placeholder="Buscar equipes" rotuloNovo="Nova equipe" onNovo={abrirNova} />
 
-      {/* Form */}
       {showForm && (
-        <div style={{ ...cardStyle, padding: 22, borderTop: "3px solid #059669" }}>
-          <p style={{ color: "#059669", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
-            {editando ? "✏️ Editar Equipe" : "➕ Nova Equipe"}
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 2fr", gap: 12, marginBottom: 18 }}>
+        <FormA2 titulo={editando ? "Editar equipe" : "Nova equipe"} icone="predio" salvando={salvando} onSalvar={salvar}
+          onCancelar={() => { setShowForm(false); setEditando(null); }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 2fr", gap: 14 }}>
             <div>
               <label style={labelStyle}>Nome *</label>
-              <input autoFocus placeholder='Ex: "Filial Centro"' value={formEquipe.nome} onChange={e => setFormEquipe({ ...formEquipe, nome: e.target.value })} style={IS} />
+              <input autoFocus placeholder='Ex.: "Filial Centro"' value={formEquipe.nome} onChange={e => setFormEquipe({ ...formEquipe, nome: e.target.value })} style={IS} />
             </div>
             <div>
               <label style={labelStyle}>Descrição</label>
-              <input placeholder="Quem coordena, onde fica, etc." value={formEquipe.descricao} onChange={e => setFormEquipe({ ...formEquipe, descricao: e.target.value })} style={IS} />
+              <input placeholder="Quem coordena, onde fica etc." value={formEquipe.descricao} onChange={e => setFormEquipe({ ...formEquipe, descricao: e.target.value })} style={IS} />
             </div>
           </div>
-          {/* Preview */}
-          {formEquipe.nome && (
-            <div style={{ marginBottom: 14, padding: 14, background: "#F7FAF9", borderRadius: 10, border: "1px dashed #E6ECEA" }}>
-              <p style={{ color: "#94A3B8", fontSize: 10, margin: "0 0 8px", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>PREVIEW (cor e ícone gerados automaticamente)</p>
-              <span style={{
-                background: `${corHashFromString(formEquipe.nome)}15`,
-                color: corHashFromString(formEquipe.nome),
-                border: `1px solid ${corHashFromString(formEquipe.nome)}40`,
-                padding: "5px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700,
-                display: "inline-flex", alignItems: "center", gap: 6
-              }}>
-                <span style={{ fontSize: 16 }}>{iconeHashFromString(formEquipe.nome)}</span>
-                <span>{formEquipe.nome}</span>
-              </span>
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button onClick={() => { setShowForm(false); setEditando(null); }}
-              style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-              Cancelar
-            </button>
-            <button onClick={salvar} disabled={salvando}
-              style={{
-                background: salvando ? "#7e22ce" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                color: "white", border: "none", borderRadius: 10,
-                padding: "9px 22px", fontSize: 12, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
-                boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
-              }}>{salvando ? "Salvando..." : "💾 Salvar"}</button>
-          </div>
-        </div>
+        </FormA2>
       )}
 
-      {/* Lista */}
       {equipesFiltradas.length === 0 ? (
-        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <p style={{ fontSize: 40, margin: "0 0 8px" }}>{busca ? "🔍" : "🏢"}</p>
-          <p style={{ color: "#94A3B8", fontSize: 13 }}>{busca ? "Nenhuma equipe encontrada" : "Nenhuma equipe cadastrada"}</p>
-        </div>
+        <VazioA2 icone={busca ? "busca" : "predio"} titulo={busca ? "Nenhuma equipe encontrada" : "Nenhuma equipe cadastrada"} texto={busca ? "Tente outro nome." : "Clique em Nova equipe para criar a primeira."} />
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 16 }}>
           {equipesFiltradas.map((eq: Equipe) => {
-            const cor = corHashFromString(eq.nome);
-            const icone = iconeHashFromString(eq.nome);
+            const av = corAvatarUsuario(eq.nome);
             const qtdU = usuariosPorEquipe.get(eq.id) || 0;
             const qtdF = filasPorEquipe.get(eq.id) || 0;
             return (
-              <div key={eq.id} style={{
-                ...cardStyle,
-                padding: 0,
-                overflow: "hidden",
-                transition: "all 0.15s",
-                borderTop: `4px solid ${cor}`,
-              }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 20px ${cor}20`; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; }}>
-                <div style={{ padding: "16px 18px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                    <div style={{
-                      width: 40, height: 40, borderRadius: 10,
-                      background: `linear-gradient(135deg, ${cor} 0%, ${cor}cc 100%)`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 20,
-                      boxShadow: `0 4px 10px ${cor}40`,
-                      flexShrink: 0,
-                    }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={icone} />}</span></div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0, wordBreak: "break-word" }}>{eq.nome}</p>
-                      {eq.descricao && <p style={{ color: "#64748B", fontSize: 11, margin: "3px 0 0", lineHeight: 1.3 }}>{eq.descricao}</p>}
-                    </div>
+              <div key={eq.id} style={{ ...cardStyle, borderRadius: 20, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 13, background: av.bg, color: av.fg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, flexShrink: 0 }}>
+                    {initialsFromName(eq.nome)}
                   </div>
-                  <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
-                    <div style={{ flex: 1, background: `${cor}10`, border: `1px solid ${cor}30`, borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
-                      <p style={{ color: cor, fontSize: 9, margin: 0, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Usuários</p>
-                      <p style={{ color: cor, fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{qtdU}</p>
-                    </div>
-                    <div style={{ flex: 1, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
-                      <p style={{ color: "#047857", fontSize: 9, margin: 0, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Filas</p>
-                      <p style={{ color: "#059669", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{qtdF}</p>
-                    </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: 0, wordBreak: "break-word" }}>{eq.nome}</p>
+                    <p style={{ color: "#64748B", fontSize: 12.5, margin: "2px 0 0", lineHeight: 1.35 }}>{eq.descricao || "Sem descrição"}</p>
                   </div>
-                  <div style={{ display: "flex", gap: 6, marginTop: 12, justifyContent: "flex-end" }}>
-                    <button onClick={() => abrirEditar(eq)}
-                      style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Editar</button>
-                    <button onClick={() => excluir(eq)}
-                      style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
-                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {[["Usuários", qtdU, "usuarios"], ["Filas", qtdF, "chat"]].map(([rot, n, ic]) => (
+                    <div key={rot as string} style={{ background: "#F7FAF9", borderRadius: 12, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 2 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#64748B", fontSize: 12, fontWeight: 700 }}><Icone nome={ic as any} tamanho={13} />{rot}</span>
+                      <span style={{ color: "#0F172A", fontSize: 20, fontWeight: 800 }}>{n}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <AcoesA2 onEditar={() => abrirEditar(eq)} onExcluir={() => excluir(eq)} rotuloExcluir="Desativar equipe" />
                 </div>
               </div>
             );
@@ -1735,135 +1748,68 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Toolbar */}
-      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <input placeholder="Buscar filas..." value={busca} onChange={e => setBusca(e.target.value)}
-          style={{ ...IS, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
-        <div style={{ flex: 1 }} />
-        <button onClick={abrirNova}
-          style={{
-            background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
-            color: "white", border: "none", borderRadius: 10,
-            padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
-          }}>+ Nova Fila</button>
-      </div>
+      <BarraA2 busca={busca} setBusca={setBusca} placeholder="Buscar filas" rotuloNovo="Nova fila" onNovo={abrirNova} />
 
       {showForm && (
-        <div style={{ ...cardStyle, padding: 22, borderTop: "3px solid #059669" }}>
-          <p style={{ color: "#059669", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
-            {editandoFila ? "✏️ Editar Fila" : "➕ Nova Fila"}
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 18 }}>
+        <FormA2 titulo={editandoFila ? "Editar fila" : "Nova fila"} icone="chat" salvando={salvando} onSalvar={salvar}
+          rotuloSalvar={editandoFila ? "Salvar alterações" : "Salvar"}
+          onCancelar={() => { setShowForm(false); setEditandoFila(null); setFormFila({ nome: "", conexao: "", equipe_id: "" }); }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 14 }}>
             <div>
               <label style={labelStyle}>Nome *</label>
-              <input autoFocus placeholder='Ex: "Vendas Fibra"' value={formFila.nome} onChange={e => setFormFila({ ...formFila, nome: e.target.value })} style={IS} />
+              <input autoFocus placeholder='Ex.: "Vendas Fibra"' value={formFila.nome} onChange={e => setFormFila({ ...formFila, nome: e.target.value })} style={IS} />
             </div>
             <div>
               <label style={labelStyle}>Equipe responsável</label>
               <select value={formFila.equipe_id} onChange={e => setFormFila({ ...formFila, equipe_id: e.target.value })} style={IS}>
                 <option value="">Sem equipe (global)</option>
-                {equipes.map((eq: Equipe) => <option key={eq.id} value={eq.id}>{iconeHashFromString(eq.nome)} {eq.nome}</option>)}
+                {equipes.map((eq: Equipe) => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
               </select>
             </div>
             <div>
               <label style={labelStyle}>Conexão (opcional)</label>
-              <input placeholder='Ex: "WhatsApp 01"' value={formFila.conexao} onChange={e => setFormFila({ ...formFila, conexao: e.target.value })} style={IS} />
+              <input placeholder='Ex.: "WhatsApp 01"' value={formFila.conexao} onChange={e => setFormFila({ ...formFila, conexao: e.target.value })} style={IS} />
             </div>
           </div>
-          {formFila.nome && (
-            <div style={{ marginBottom: 14, padding: 14, background: "#F7FAF9", borderRadius: 10, border: "1px dashed #E6ECEA" }}>
-              <p style={{ color: "#94A3B8", fontSize: 10, margin: "0 0 8px", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>PREVIEW</p>
-              <span style={{
-                background: `${corHashFromString(formFila.nome)}15`,
-                color: corHashFromString(formFila.nome),
-                border: `1px solid ${corHashFromString(formFila.nome)}40`,
-                padding: "5px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700,
-                display: "inline-flex", alignItems: "center", gap: 6
-              }}>
-                <span style={{ fontSize: 16 }}>{iconeFilaFromString(formFila.nome)}</span>
-                <span>{formFila.nome}</span>
-              </span>
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button onClick={() => { setShowForm(false); setEditandoFila(null); setFormFila({ nome: "", conexao: "", equipe_id: "" }); }}
-              style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-              Cancelar
-            </button>
-            <button onClick={salvar} disabled={salvando}
-              style={{
-                background: salvando ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
-                color: "white", border: "none", borderRadius: 10,
-                padding: "9px 22px", fontSize: 12, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
-                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
-              }}>{salvando ? "Salvando..." : editandoFila ? "💾 Salvar alterações" : "💾 Salvar"}</button>
-          </div>
-        </div>
+        </FormA2>
       )}
 
       {filasFiltradas.length === 0 ? (
-        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <p style={{ fontSize: 40, margin: "0 0 8px" }}>{busca ? "🔍" : "📋"}</p>
-          <p style={{ color: "#94A3B8", fontSize: 13 }}>{busca ? "Nenhuma fila encontrada" : "Nenhuma fila cadastrada"}</p>
-        </div>
+        <VazioA2 icone={busca ? "busca" : "chat"} titulo={busca ? "Nenhuma fila encontrada" : "Nenhuma fila cadastrada"} texto={busca ? "Tente outro nome." : "Clique em Nova fila para criar a primeira."} />
       ) : (
-        <div style={{ ...cardStyle, overflow: "hidden" }}>
+        <section style={{ ...cardStyle, borderRadius: 22, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 600 : "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
               <thead>
                 <tr style={{ background: "#F7FAF9" }}>
-                  {["Fila", "Equipe", "Conexão", "Usuários", "Ações"].map(h => (
-                    <th key={h} style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
+                  {["Fila", "Equipe", "Conexão", "Usuários", ""].map((h, k) => (
+                    <th key={k} style={{ padding: "14px 18px", color: "#64748B", fontSize: 12, textAlign: k === 4 ? "right" : "left", fontWeight: 700, borderBottom: "1px solid #EEF2F1", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filasFiltradas.map((f: Fila, i: number) => {
-                  const cor = corHashFromString(f.nome);
-                  const icone = iconeFilaFromString(f.nome);
                   const equipe = f.equipe_id ? equipeById.get(f.equipe_id) : null;
-                  const corEquipe = equipe ? corHashFromString(equipe.nome) : "#94A3B8";
+                  const qtd = contarUsuariosPorFila(f.nome);
                   return (
-                    <tr key={f.id}
-                      style={{ borderTop: "1px solid #F1F5F4", background: i % 2 === 0 ? "#ffffff" : "#F7FAF9" }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#F1F5F4"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#F7FAF9"}
-                    >
-                      <td style={{ padding: "14px 16px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{
-                            width: 34, height: 34, borderRadius: 8,
-                            background: `linear-gradient(135deg, ${cor} 0%, ${cor}cc 100%)`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 16, flexShrink: 0,
-                            boxShadow: `0 2px 6px ${cor}40`,
-                          }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={icone} />}</span></div>
-                          <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{f.nome}</p>
+                    <tr key={f.id} className="a2-linha-contato" style={{ borderTop: i ? "1px solid #F1F5F4" : "none", fontSize: 13.5 }}>
+                      <td style={{ padding: "14px 18px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ width: 38, height: 38, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <Icone nome="chat" tamanho={18} />
+                          </div>
+                          <span style={{ color: "#0F172A", fontWeight: 800 }}>{f.nome}</span>
                         </div>
                       </td>
-                      <td style={{ padding: "14px 16px" }}>
-                        {equipe ? (
-                          <span style={{ background: `${corEquipe}15`, color: corEquipe, border: `1px solid ${corEquipe}40`, padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
-                            {iconeHashFromString(equipe.nome)} {equipe.nome}
-                          </span>
-                        ) : <span style={{ color: "#CBD5E1", fontSize: 12 }}>—</span>}
-                      </td>
-                      <td style={{ padding: "14px 16px", color: "#64748B", fontSize: 13 }}>
-                        {f.conexao || <span style={{ color: "#CBD5E1" }}>—</span>}
-                      </td>
-                      <td style={{ padding: "14px 16px" }}>
-                        <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "3px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
-                          {contarUsuariosPorFila(f.nome)}
+                      <td style={{ padding: "14px 18px", color: equipe ? "#334155" : "#CBD5E1", whiteSpace: "nowrap" }}>{equipe ? equipe.nome : "Global"}</td>
+                      <td style={{ padding: "14px 18px", color: f.conexao ? "#334155" : "#CBD5E1" }}>{f.conexao || "—"}</td>
+                      <td style={{ padding: "14px 18px" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: qtd ? "#ECFDF5" : "#F3F6F5", color: qtd ? "#047857" : "#94A3B8", padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 800 }}>
+                          <Icone nome="usuarios" tamanho={12} />{qtd}
                         </span>
                       </td>
-                      <td style={{ padding: "14px 16px" }}>
-                        <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
-                          <button onClick={() => abrirEditar(f)} title="Editar fila"
-                            style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>Editar</button>
-                          <button onClick={() => excluir(f)} title="Excluir fila"
-                            style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
-                        </div>
+                      <td style={{ padding: "14px 18px", textAlign: "right" }}>
+                        <AcoesA2 onEditar={() => abrirEditar(f)} onExcluir={() => excluir(f)} rotuloExcluir="Excluir fila" />
                       </td>
                     </tr>
                   );
@@ -1871,7 +1817,7 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
@@ -1951,41 +1897,16 @@ function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {/* Info card */}
-      <div style={{
-        background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
-        border: "1px solid #A7F3D0",
-        borderLeft: "4px solid #059669",
-        borderRadius: 12,
-        padding: "14px 18px",
-      }}>
-        <p style={{ color: "#065F46", fontSize: 13, margin: 0, fontWeight: 700 }}>Como funciona</p>
-        <p style={{ color: "#059669", fontSize: 12, margin: "3px 0 0", lineHeight: 1.5 }}>
-          Cada usuário tem um <b>perfil</b> (Administrador / Supervisor / Atendente) que define os padrões. Os grupos abaixo são <b>permissões granulares opcionais</b> — vincule um grupo a um usuário pra dar acesso específico além do padrão do perfil. Útil quando um atendente precisa acessar relatórios, ou um supervisor não pode mexer em conexões.
-        </p>
-      </div>
+      <DicaA2 titulo="Como funciona">
+        Cada usuário tem um <b>perfil</b> (Administrador, Supervisor ou Atendente) que define o padrão. Os grupos abaixo são <b>permissões opcionais e detalhadas</b>: vincule um grupo a um usuário para dar um acesso específico além do perfil. Serve, por exemplo, para um atendente ver relatórios ou para um supervisor não mexer em conexões.
+      </DicaA2>
 
-      {/* Toolbar */}
-      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <input placeholder="Buscar grupos..." value={busca} onChange={e => setBusca(e.target.value)}
-          style={{ ...IS, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
-        <div style={{ flex: 1 }} />
-        <button onClick={abrirNovo}
-          style={{
-            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-            color: "white", border: "none", borderRadius: 10,
-            padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
-          }}>+ Novo Grupo</button>
-      </div>
+      <BarraA2 busca={busca} setBusca={setBusca} placeholder="Buscar grupos" rotuloNovo="Novo grupo" onNovo={abrirNovo} />
 
-      {/* Form */}
       {showForm && (
-        <div style={{ ...cardStyle, padding: 22, borderTop: "3px solid #059669" }}>
-          <p style={{ color: "#059669", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>
-            {editando ? "✏️ Editar Grupo" : "➕ Novo Grupo"}
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 18 }}>
+        <FormA2 titulo={editando ? "Editar grupo" : "Novo grupo"} icone="escudo" salvando={salvando} onSalvar={salvar} rotuloSalvar="Salvar grupo"
+          onCancelar={() => { setShowForm(false); setEditando(null); }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
             <div>
               <label style={labelStyle}>Nome *</label>
               <input placeholder="Ex: Atendente Vendas" value={formGrupo.nome} onChange={e => setFormGrupo({ ...formGrupo, nome: e.target.value })} style={IS} />
@@ -2002,101 +1923,81 @@ function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, 
               const algumaMarcada = cat.permissoes.some(p => formGrupo.permissoes[p.key]);
               const aberta = catsAbertas[cat.nome] !== false;
               return (
-                <div key={cat.nome} style={{ background: "#ffffff", border: `1px solid ${cat.cor}30`, borderRadius: 12, overflow: "hidden" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: `${cat.cor}08`, cursor: "pointer", borderLeft: `4px solid ${cat.cor}` }}
+                <div key={cat.nome} style={{ background: "#fff", boxShadow: "inset 0 0 0 1px #E6ECEA", borderRadius: 16, overflow: "hidden" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "12px 16px", background: "#F7FAF9", cursor: "pointer" }}
                     onClick={() => setCatsAbertas({ ...catsAbertas, [cat.nome]: !aberta })}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ color: cat.cor, fontSize: 13, fontWeight: 700 }}>{aberta ? "▼" : "▶"} {cat.nome}</span>
-                      <span style={{ background: `${cat.cor}15`, color: cat.cor, fontSize: 10, padding: "2px 8px", borderRadius: 8, fontWeight: 700, border: `1px solid ${cat.cor}30` }}>
+                      <span style={{ display: "inline-flex", color: "#64748B", transform: aberta ? "none" : "rotate(-90deg)", transition: "transform .15s" }}><Icone nome="baixo" tamanho={16} /></span>
+                      <span style={{ color: "#0F172A", fontSize: 14, fontWeight: 800 }}>{semEmoji(cat.nome)}</span>
+                      <span style={{ background: algumaMarcada ? "#ECFDF5" : "#EEF2F1", color: algumaMarcada ? "#047857" : "#64748B", fontSize: 11.5, padding: "2px 9px", borderRadius: 999, fontWeight: 800 }}>
                         {cat.permissoes.filter(p => formGrupo.permissoes[p.key]).length}/{cat.permissoes.length}
                       </span>
                     </div>
                     <button onClick={e => { e.stopPropagation(); toggleCategoriaToda(cat.nome, !todasMarcadas); }}
-                      style={{
-                        background: todasMarcadas ? `${cat.cor}20` : algumaMarcada ? `${cat.cor}10` : "#ffffff",
-                        color: algumaMarcada || todasMarcadas ? cat.cor : "#64748B",
-                        border: `1px solid ${cat.cor}40`,
-                        borderRadius: 8, padding: "4px 10px", fontSize: 10, cursor: "pointer", fontWeight: 700,
-                      }}>{todasMarcadas ? "✓ Todos" : "+ Todos"}</button>
+                      style={{ ...btnClaroA2, height: 30, background: todasMarcadas ? "#059669" : "#fff", color: todasMarcadas ? "#fff" : "#334155", boxShadow: todasMarcadas ? "none" : "inset 0 0 0 1px #E6ECEA" }}>
+                      <Icone nome={todasMarcadas ? "check" : "mais"} tamanho={13} espessura={2.4} />{todasMarcadas ? "Todas marcadas" : "Marcar todas"}
+                    </button>
                   </div>
                   {aberta && (
-                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 6, padding: 12 }}>
-                      {cat.permissoes.map(p => (
-                        <label key={p.key}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 10,
-                            background: formGrupo.permissoes[p.key] ? `${cat.cor}10` : "#F7FAF9",
-                            borderRadius: 8, padding: "9px 12px", cursor: "pointer",
-                            border: `1px solid ${formGrupo.permissoes[p.key] ? `${cat.cor}50` : "#E6ECEA"}`,
-                            transition: "all 0.15s",
-                          }}>
-                          <input type="checkbox" checked={!!formGrupo.permissoes[p.key]}
-                            onChange={e => setFormGrupo({ ...formGrupo, permissoes: { ...formGrupo.permissoes, [p.key]: e.target.checked } })}
-                            style={{ accentColor: cat.cor, width: 16, height: 16 }} />
-                          <span style={{ color: formGrupo.permissoes[p.key] ? "#0F172A" : "#64748B", fontSize: 12, fontWeight: formGrupo.permissoes[p.key] ? 600 : 500 }}>{p.label}</span>
-                        </label>
-                      ))}
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8, padding: 12 }}>
+                      {cat.permissoes.map(p => {
+                        const on = !!formGrupo.permissoes[p.key];
+                        return (
+                          <label key={p.key}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 10,
+                              background: on ? "#F7FFFB" : "#F7FAF9",
+                              boxShadow: on ? "inset 0 0 0 1.5px #A7F3D0" : "inset 0 0 0 1px #EEF2F1",
+                              borderRadius: 12, padding: "10px 12px", cursor: "pointer", transition: "all 0.15s",
+                            }}>
+                            <input type="checkbox" checked={on}
+                              onChange={e => setFormGrupo({ ...formGrupo, permissoes: { ...formGrupo.permissoes, [p.key]: e.target.checked } })}
+                              style={{ width: 16, height: 16 }} />
+                            <span style={{ color: on ? "#0F172A" : "#64748B", fontSize: 13, fontWeight: on ? 700 : 500 }}>{p.label}</span>
+                          </label>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
-            <button onClick={() => { setShowForm(false); setEditando(null); }}
-              style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-              Cancelar
-            </button>
-            <button onClick={salvar} disabled={salvando}
-              style={{
-                background: salvando ? "#065F46" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                color: "white", border: "none", borderRadius: 10,
-                padding: "9px 22px", fontSize: 12, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
-                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
-              }}>{salvando ? "Salvando..." : "💾 Salvar Grupo"}</button>
-          </div>
-        </div>
+        </FormA2>
       )}
 
       {gruposFiltrados.length === 0 ? (
-        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <p style={{ fontSize: 40, margin: "0 0 8px" }}>{busca ? "🔍" : "🔐"}</p>
-          <p style={{ color: "#94A3B8", fontSize: 13 }}>{busca ? "Nenhum grupo encontrado" : "Nenhum grupo criado ainda"}</p>
-        </div>
+        <VazioA2 icone={busca ? "busca" : "escudo"} titulo={busca ? "Nenhum grupo encontrado" : "Nenhum grupo criado ainda"} texto={busca ? "Tente outro nome." : "Clique em Novo grupo para criar o primeiro."} />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(360px, 1fr))", gap: 16 }}>
           {gruposFiltrados.map((g: GrupoPermissao) => {
             const qtdMarcadas = Object.values(g.permissoes || {}).filter(Boolean).length;
             const total = TODAS_PERMISSOES.length;
             const pct = Math.round((qtdMarcadas / total) * 100);
             return (
-              <div key={g.id} style={{ ...cardStyle, padding: "16px 20px", borderLeft: "4px solid #059669", transition: "all 0.15s" }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 12px rgba(5,150,105,0.10)"}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, gap: 10 }}>
+              <div key={g.id} style={{ ...cardStyle, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <span style={{ width: 42, height: 42, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="escudo" tamanho={20} /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0 }}>{g.nome}</p>
-                    {g.descricao && <p style={{ color: "#64748B", fontSize: 12, margin: "4px 0 0" }}>{g.descricao}</p>}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                      <div style={{ flex: 1, maxWidth: 120, background: "#E6ECEA", borderRadius: 4, height: 6, overflow: "hidden" }}>
-                        <div style={{ background: "linear-gradient(90deg, #10B981, #059669)", height: "100%", width: `${pct}%`, transition: "width 0.3s" }} />
-                      </div>
-                      <span style={{ color: "#059669", fontSize: 11, fontWeight: 700 }}>{qtdMarcadas}/{total} permissões ({pct}%)</span>
-                    </div>
+                    <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: 0 }}>{g.nome}</p>
+                    <p style={{ color: "#64748B", fontSize: 12.5, margin: "2px 0 0" }}>{g.descricao || "Sem descrição"}</p>
                   </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => abrirEditar(g)}
-                      style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
-                    <button onClick={() => excluir(g)}
-                      style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
+                  <AcoesA2 onEditar={() => abrirEditar(g)} onExcluir={() => excluir(g)} rotuloExcluir="Excluir grupo" />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", fontSize: 12.5 }}>
+                    <span style={{ color: "#64748B", fontWeight: 600 }}>Permissões liberadas</span>
+                    <b style={{ marginLeft: "auto", color: "#047857" }}>{qtdMarcadas} de {total}</b>
+                  </div>
+                  <div style={{ height: 8, borderRadius: 99, background: "#EEF2F1" }}>
+                    <div style={{ height: 8, borderRadius: 99, background: "linear-gradient(90deg, #34D399, #059669)", width: `${pct}%`, transition: "width .3s" }} />
                   </div>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                  {Object.entries(g.permissoes || {}).filter(([_, v]) => v).slice(0, 10).map(([k]) => (
-                    <span key={k} style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 10, padding: "3px 10px", borderRadius: 12, fontWeight: 600 }}>{LABELS_MAP[k] || k}</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {Object.entries(g.permissoes || {}).filter(([, v]) => v).slice(0, 8).map(([k]) => (
+                    <span key={k} style={{ background: "#F3F6F5", color: "#334155", fontSize: 12, padding: "3px 10px", borderRadius: 999, fontWeight: 600 }}>{LABELS_MAP[k] || k}</span>
                   ))}
-                  {qtdMarcadas > 10 && <span style={{ color: "#94A3B8", fontSize: 10, padding: "3px 6px", fontStyle: "italic" }}>+{qtdMarcadas - 10} outras</span>}
+                  {qtdMarcadas > 8 && <span style={{ background: "#ECFDF5", color: "#047857", fontSize: 12, padding: "3px 10px", borderRadius: 999, fontWeight: 800 }}>+{qtdMarcadas - 8}</span>}
                 </div>
               </div>
             );
@@ -2114,29 +2015,19 @@ function AbaGeral({ workspaceId, usuarios, isAdmin, limites, limiteAtingido, pod
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {/* Info cards top */}
-      <div style={{ ...cardStyle, padding: 22 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: "#fffbeb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚙️</div>
-          <div>
-            <h2 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: 0 }}>Visão Geral do Workspace</h2>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0" }}>Estatísticas e configurações de comportamento</p>
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-          <InfoCard
-            titulo="Plano atual"
-            valor={isAdmin ? "Sem limite" : `${usuarios.length}/${limites.usuarios_liberados}`}
-            detalhe={isAdmin ? "Você é Super Admin (Wolf)" : limiteAtingido ? "⚠️ Limite atingido — Upgrade necessário" : `${limites.usuarios_liberados - usuarios.length} usuário(s) disponíveis`}
-            cor={isAdmin ? "#a855f7" : limiteAtingido ? "#dc2626" : "#059669"}
-            icone={isAdmin ? "⭐" : "📊"}
-          />
-          <InfoCard titulo="Banco de dados" valor="Supabase" detalhe="PostgreSQL · Realtime ativo" cor="#059669" icone="🗄️" />
-          <InfoCard titulo="Auth" valor="Email + Senha" detalhe="JWT · Multi-workspace" cor="#3b82f6" icone="🔐" />
-          <InfoCard titulo="Versão" valor="Wolf CRM 2.0" detalhe="SaaS Multi-tenant" cor="#f59e0b" icone="🏷️" />
-        </div>
-      </div>
+      {/* Resumo do workspace */}
+      <section style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: isMobile ? 12 : 18 }}>
+        <InfoCard
+          titulo="Plano atual"
+          valor={isAdmin ? "Sem limite" : `${usuarios.length} de ${limites.usuarios_liberados} usuários`}
+          detalhe={isAdmin ? "Acesso de administrador Wolf" : limiteAtingido ? "Limite atingido, fale com a Wolf para ampliar" : `${limites.usuarios_liberados - usuarios.length} usuário(s) disponíveis`}
+          destaque={!isAdmin && limiteAtingido ? "alerta" : undefined}
+          icone={isAdmin ? "estrela" : "usuarios"}
+        />
+        <InfoCard titulo="Acesso" valor="E-mail e senha" detalhe="Cada pessoa entra com o próprio usuário" icone="cadeado" />
+        <InfoCard titulo="Dados" valor="Salvos na nuvem" detalhe="Atualização em tempo real entre as telas" icone="escudo" />
+        <InfoCard titulo="Versão" valor="Wolf System 2.0" detalhe="Atualizações automáticas" icone="info" />
+      </section>
 
       {/* Bloqueio pós-finalização */}
       <BloqueioPosFinalizacao workspaceId={workspaceId} podeGerenciar={podeGerenciar} IS={IS} cardStyle={cardStyle} labelStyle={labelStyle} />
@@ -2144,38 +2035,24 @@ function AbaGeral({ workspaceId, usuarios, isAdmin, limites, limiteAtingido, pod
       {/* 🤳 Bater Ponto — com/sem selfie (só aparece se o módulo estiver liberado) */}
       <ConfigPontoSelfie podeGerenciar={podeGerenciar} IS={IS} cardStyle={cardStyle} />
 
-      {/* Dica roleta */}
-      <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderLeft: "4px solid #059669", borderRadius: 12, padding: "14px 18px" }}>
-        <p style={{ color: "#065F46", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-          💡 <b>A Roleta de Distribuição</b> agora fica em <b>Chatbot → Configurações → Roleta</b>, já que está mais relacionada ao fluxo de atendimento do que à configuração do workspace.
-        </p>
-      </div>
+      <DicaA2 titulo="Roleta de distribuição">
+        A roleta agora fica em <b>Atendimento → Configurações → Roleta</b>, junto com o fluxo de atendimento.
+      </DicaA2>
     </div>
   );
 }
 
-function InfoCard({ titulo, valor, detalhe, cor, icone }: any) {
+function InfoCard({ titulo, valor, detalhe, icone, destaque }: { titulo: string; valor: string; detalhe: string; icone: string; destaque?: "alerta" }) {
+  const alerta = destaque === "alerta";
   return (
-    <div style={{
-      background: `linear-gradient(135deg, ${cor}08 0%, ${cor}03 100%)`,
-      border: `1px solid ${cor}30`,
-      borderRadius: 12,
-      padding: "14px 16px",
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-    }}>
-      <div style={{
-        width: 40, height: 40, borderRadius: 10,
-        background: `linear-gradient(135deg, ${cor} 0%, ${cor}cc 100%)`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 20, flexShrink: 0,
-        boxShadow: `0 4px 10px ${cor}40`,
-      }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={icone} />}</span></div>
+    <div style={{ background: "#fff", borderRadius: 18, boxShadow: SOMBRA_A2, padding: "18px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+      <span style={{ width: 44, height: 44, borderRadius: 13, background: alerta ? "#FEF2F2" : "#ECFDF5", color: alerta ? "#B91C1C" : "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Icone nome={icone as any} tamanho={20} />
+      </span>
       <div style={{ minWidth: 0 }}>
-        <p style={{ color: "#64748B", fontSize: 10, margin: 0, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>{titulo}</p>
-        <p style={{ color: "#0F172A", fontSize: 15, margin: "2px 0 0", fontWeight: 800, letterSpacing: -0.3 }}>{valor}</p>
-        <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{detalhe}</p>
+        <p style={{ color: "#64748B", fontSize: 13, margin: 0, fontWeight: 600 }}>{titulo}</p>
+        <p style={{ color: "#0F172A", fontSize: 17, margin: "2px 0 0", fontWeight: 800, letterSpacing: "-.01em" }}>{valor}</p>
+        <p style={{ color: alerta ? "#B91C1C" : "#94A3B8", fontSize: 12.5, margin: "2px 0 0", fontWeight: alerta ? 700 : 500 }}>{detalhe}</p>
       </div>
     </div>
   );
@@ -2244,57 +2121,40 @@ function BloqueioPosFinalizacao({ workspaceId, podeGerenciar, IS, cardStyle, lab
 
   return (
     <div style={{ ...cardStyle, padding: 22 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🔒</div>
-        <div>
-          <h2 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: 0 }}>Bloqueio Pós-Finalização</h2>
-          <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0" }}>Quanto tempo um cliente fica bloqueado de reabrir após finalização</p>
-        </div>
-      </div>
+      <CabecalhoSecaoA2 icone="cadeado" titulo="Bloqueio depois de finalizar" sub="Por quanto tempo o cliente não reabre um atendimento finalizado" fundo="#FFF7ED" cor="#C2410C" />
 
-      <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 18 }}>
-        <p style={{ color: "#64748B", fontSize: 11, margin: "0 0 14px", lineHeight: 1.5 }}>
-          Quando um atendente finaliza um chat, o cliente fica bloqueado de reabrir por essa quantidade de horas.
-          Mensagens nesse período são registradas mas o atendimento <b>NÃO</b> volta pra "Aguardando".
-          <br /><b>0 = desativa o bloqueio</b>. Recomendado: <b>24h</b>. Aplica só em finalização manual humana.
-        </p>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <input type="number" min={0} max={720} value={horasBloqueio}
-            onChange={e => { setHorasBloqueio(Math.max(0, Math.min(720, parseInt(e.target.value) || 0))); setEditado(true); }}
-            disabled={!podeGerenciar || carregandoConfiguracao || salvando}
-            style={{ ...IS, width: 110, fontWeight: 700 }} />
-          <span style={{ color: "#64748B", fontSize: 12, fontWeight: 500 }}>
-            {horasBloqueio === 0 ? "(desativado)" : horasBloqueio === 24 ? "(1 dia)" : horasBloqueio === 48 ? "(2 dias)" : horasBloqueio === 168 ? "(1 semana)" : `(${horasBloqueio}h)`}
-          </span>
-          <div style={{ flex: 1 }} />
-          {editado && podeGerenciar && (
-            <button onClick={salvar} disabled={salvando}
+      <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 16px", lineHeight: 1.55 }}>
+        Quando um atendente finaliza a conversa, o cliente não reabre o atendimento durante esse tempo. As mensagens desse período ficam registradas, mas a conversa <b>não volta</b> para "Aguardando".
+        Use <b>Desligado</b> para não bloquear. O recomendado é <b>1 dia</b>. Só vale para finalizações feitas por uma pessoa.
+      </p>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", background: "#F3F6F5", padding: 4, borderRadius: 13, width: "fit-content", maxWidth: "100%" }}>
+        {[0, 12, 24, 48, 72, 168].map(h => {
+          const ativo = horasBloqueio === h;
+          return (
+            <button key={h} disabled={!podeGerenciar || carregandoConfiguracao || salvando} onClick={() => { setHorasBloqueio(h); setEditado(true); }}
               style={{
-                background: salvando ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                color: "white", border: "none", borderRadius: 10,
-                padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: salvando ? "wait" : "pointer",
-                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
-              }}>{salvando ? "Salvando..." : "💾 Salvar"}</button>
-          )}
-        </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
-          {[0, 12, 24, 48, 72, 168].map(h => {
-            const ativo = horasBloqueio === h;
-            return (
-              <button key={h} disabled={!podeGerenciar || carregandoConfiguracao || salvando} onClick={() => { setHorasBloqueio(h); setEditado(true); }}
-                style={{
-                  background: ativo ? "#059669" : "#ffffff",
-                  color: ativo ? "white" : "#64748B",
-                  border: `1px solid ${ativo ? "#059669" : "#E6ECEA"}`,
-                  borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: podeGerenciar ? "pointer" : "not-allowed", fontWeight: 700,
-                  boxShadow: ativo ? "0 2px 6px rgba(5,150,105,0.25)" : "none",
-                  opacity: podeGerenciar ? 1 : 0.5,
-                }}>
-                {h === 0 ? "Off" : h < 24 ? `${h}h` : h === 24 ? "1d" : h === 48 ? "2d" : h === 72 ? "3d" : "1sem"}
-              </button>
-            );
-          })}
-        </div>
+                background: ativo ? "#059669" : "transparent", color: ativo ? "#fff" : "#475569",
+                border: 0, borderRadius: 9, padding: "8px 14px", fontSize: 13, fontWeight: ativo ? 800 : 600,
+                cursor: podeGerenciar ? "pointer" : "not-allowed", opacity: podeGerenciar ? 1 : 0.5,
+                boxShadow: ativo ? "0 8px 18px -8px rgba(5,150,105,.7)" : "none",
+              }}>
+              {h === 0 ? "Desligado" : h < 24 ? `${h} horas` : h === 24 ? "1 dia" : h === 48 ? "2 dias" : h === 72 ? "3 dias" : "1 semana"}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 14 }}>
+        <label style={{ ...labelStyle, margin: 0 }}>Ou digite em horas</label>
+        <input type="number" min={0} max={720} value={horasBloqueio}
+          onChange={e => { setHorasBloqueio(Math.max(0, Math.min(720, parseInt(e.target.value) || 0))); setEditado(true); }}
+          disabled={!podeGerenciar || carregandoConfiguracao || salvando}
+          style={{ ...IS, width: 110, fontWeight: 700 }} />
+        <div style={{ flex: 1 }} />
+        {editado && podeGerenciar && (
+          <button onClick={salvar} disabled={salvando} style={{ ...btnPrimarioA2, opacity: salvando ? 0.6 : 1 }}>
+            <Icone nome="check" tamanho={16} espessura={2.4} />{salvando ? "Salvando…" : "Salvar"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -2332,53 +2192,44 @@ function ConfigPontoSelfie({ podeGerenciar, IS, cardStyle }: any) {
   };
 
   const opcoes = [
-    { v: true, t: "\ud83e\udd33 Com selfie", d: "Exige foto + GPS a cada batida" },
-    { v: false, t: "\ud83d\udccd Sem selfie", d: "Registra s\u00f3 com GPS, sem c\u00e2mera" },
+    { v: true, t: "Com selfie", d: "Pede foto e localização a cada batida", ic: "usuario" },
+    { v: false, t: "Sem selfie", d: "Registra só a localização, sem câmera", ic: "alvo" },
   ];
 
   return (
     <div style={{ ...cardStyle, padding: 22 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{"\ud83e\udd33"}</div>
-        <div>
-          <h2 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: 0 }}>Bater Ponto — Selfie</h2>
-          <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0" }}>Escolha se o funcionário precisa tirar selfie ao registrar o ponto</p>
-        </div>
-      </div>
-      <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 18 }}>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {opcoes.map(op => {
-            const ativo = selfie === op.v;
-            return (
-              <button key={String(op.v)} disabled={!podeGerenciar}
-                onClick={() => { setSelfie(op.v); setEditado(true); }}
-                style={{
-                  flex: "1 1 200px", textAlign: "left",
-                  background: ativo ? "#ECFDF5" : "#ffffff",
-                  border: "1px solid " + (ativo ? "#059669" : "#E6ECEA"),
-                  borderRadius: 10, padding: "12px 14px",
-                  cursor: podeGerenciar ? "pointer" : "not-allowed",
-                  boxShadow: ativo ? "0 2px 8px rgba(5,150,105,0.15)" : "none",
-                  opacity: podeGerenciar ? 1 : 0.6,
-                }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: ativo ? "#059669" : "#0F172A" }}>{op.t}</p>
-                <p style={{ margin: "3px 0 0", fontSize: 11, color: "#64748B" }}>{op.d}</p>
-              </button>
-            );
-          })}
-        </div>
-        {editado && podeGerenciar && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
-            <button onClick={salvar} disabled={salvando}
+      <CabecalhoSecaoA2 icone="relogio" titulo="Bater ponto" sub="Escolha se a pessoa precisa tirar selfie ao registrar o ponto" />
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        {opcoes.map(op => {
+          const ativo = selfie === op.v;
+          return (
+            <button key={String(op.v)} disabled={!podeGerenciar}
+              onClick={() => { setSelfie(op.v); setEditado(true); }}
               style={{
-                background: salvando ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                color: "white", border: "none", borderRadius: 10,
-                padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: salvando ? "wait" : "pointer",
-                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
-              }}>{salvando ? "Salvando..." : "\ud83d\udcbe Salvar"}</button>
-          </div>
-        )}
+                flex: "1 1 220px", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+                background: ativo ? "#fff" : "#F7FAF9", border: 0, borderRadius: 16, padding: "14px 16px",
+                outline: ativo ? "2px solid #059669" : "none",
+                boxShadow: ativo ? "0 10px 24px -14px rgba(5,150,105,.5)" : "inset 0 0 0 1px #E6ECEA",
+                cursor: podeGerenciar ? "pointer" : "not-allowed", opacity: podeGerenciar ? 1 : 0.6,
+              }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, background: ativo ? "#ECFDF5" : "#fff", color: ativo ? "#059669" : "#64748B", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icone nome={op.ic as any} tamanho={19} />
+              </span>
+              <span style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: 14.5, fontWeight: 800, color: "#0F172A" }}>{op.t}</span>
+                <span style={{ fontSize: 12.5, color: "#64748B" }}>{op.d}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
+      {editado && podeGerenciar && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+          <button onClick={salvar} disabled={salvando} style={{ ...btnPrimarioA2, opacity: salvando ? 0.6 : 1 }}>
+            <Icone nome="check" tamanho={16} espessura={2.4} />{salvando ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
