@@ -98,7 +98,7 @@ function montarItens(r: Rascunho): ItemOrcamento[] {
   const plano = PLANOS.find((p) => p.id === r.base);
   const d = (k: string) => r.descontos[k] || 0;
   const itens: ItemOrcamento[] = [];
-  if (plano) itens.push({ tipo: "plano", id: plano.id, nome: plano.nome, sub: "", cor: plano.cor, linhas: plano.linhas, desconto: d("plano") });
+  if (plano) itens.push({ tipo: "plano", id: plano.id, nome: plano.nome, sub: "", cor: plano.cor, linhas: plano.linhas, preco: plano.preco, qtd: 1, usuarios: plano.usuarios, whatsapps: plano.whatsapps, desconto: d("plano") });
   const usuariosExtra = Math.max(0, inteiro(r.usuarios) - (plano?.usuarios || 0));
   if (usuariosExtra) itens.push({ tipo: "usuarios", id: "usuarios", nome: plano ? "Usuários adicionais" : "Usuários", sub: "Acesso individual ao sistema", cor: "#059669", linhas: [], preco: PRECO_USUARIO, qtd: usuariosExtra, desconto: d("usuarios") });
   const whatsExtra = Math.max(0, inteiro(r.whatsapps) - (plano?.whatsapps || 0));
