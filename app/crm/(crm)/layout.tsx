@@ -109,7 +109,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
             display: "flex",
             alignItems: "center",
             gap: 6,
-            boxShadow: "0 4px 12px rgba(5,150,105,0.18)",
+            boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
           }}
         >
           <Icone nome="menu" tamanho={15} /> Seções
@@ -192,10 +192,9 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
               <span
                 style={{
                   color: COR_TEXTO,
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 600,
                   letterSpacing: 0.5,
-                  textTransform: "uppercase",
                 }}
               >
                 {revisional ? "Contatos dos clientes" : "Comercial & Vendas"}

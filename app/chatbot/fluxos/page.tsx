@@ -83,7 +83,7 @@ const B: Record<TipoNo, BC> = {
   gmail:                {label:"Gmail",           icone:"📨", cor:"#10b981", saidas:["Enviado","Erro"],              grupo:"Integrações"},
   gerar_documento:      {label:"Gerar Documento", icone:"📄", cor:"#0f766e", saidas:["Enviado","Erro"],              grupo:"Documentos"},
   validar_assinatura:   {label:"Validar Assinatura",icone:"✍️",cor:"#0F766E", saidas:["Assinado","Não assinado","Erro"],grupo:"Documentos"},
-  assinatura_wolf:      {label:"Assinatura Wolf",icone:"🖋️",cor:"#155eef", saidas:["Assinado","Expirado/Recusado","Erro"],grupo:"Documentos"},
+  assinatura_wolf:      {label:"Assinatura Wolf",icone:"🖋️",cor:"#059669", saidas:["Assinado","Expirado/Recusado","Erro"],grupo:"Documentos"},
   // 🆕 v20: Meta Pixel / Conversions API — manda evento de conversão pra Meta (Lead, Purchase, etc)
   meta_capi:            {label:"Meta Pixel/CAPI", icone:"📈", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
   inicio:               {label:"Início",          icone:"🚀", cor:"#10B981", saidas:["Próximo"],                     grupo:"Eventos"},
@@ -105,7 +105,7 @@ const GRUPOS = ["Bubbles","Inputs","Lógica","Integrações","Documentos","Event
 const uid = () => Math.random().toString(36).slice(2,10);
 
 const IS: React.CSSProperties = {width:"100%",background:"#F3F6F5",border:"1px solid #E6ECEA",borderRadius:6,padding:"8px 10px",color:"#0F172A",fontSize:12,boxSizing:"border-box"};
-const LS: React.CSSProperties = {color:"#94A3B8",fontSize:10,textTransform:"uppercase",display:"block",marginBottom:4,letterSpacing:1};
+const LS: React.CSSProperties = {color:"#94A3B8",fontSize: 12,display:"block",marginBottom:4,letterSpacing:1};
 
 // ✅ ATUALIZADO — pega username do workspace (nunca o id numérico)
 // 🆕 v18: padronizado com o useWorkspace.ts pra funcionar igual pra sub-usuário.
@@ -428,7 +428,7 @@ function TVarComponent({
         </button>
       </div>
       {variaveis.length > 0 && (
-        <p style={{ color: "#64748B", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
+        <p style={{ color: "#64748B", fontSize: 12, margin: "4px 0 0", lineHeight: 1.3 }}>
           Clique em <b style={{ color: "#14B8A6" }}>＋ Variável</b> pra inserir uma variável do fluxo na posição do cursor.
         </p>
       )}
@@ -686,7 +686,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             {valor ? (
               <span style={{
                 background: "#ede9fe",
-                color: "#6d28d9",
+                color: "#047857",
                 padding: "3px 10px",
                 borderRadius: 12,
                 fontSize: 12,
@@ -695,7 +695,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             ) : (
               <span style={{ color: "#64748B", fontSize: 12 }}>{placeholder}</span>
             )}
-            <span style={{ marginLeft: "auto", color: "#64748B", fontSize: 10 }}>▼</span>
+            <span style={{ marginLeft: "auto", color: "#64748B", fontSize: 12 }}>▼</span>
           </summary>
           <div style={{
             position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
@@ -747,7 +747,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                       padding: "6px 10px",
                       cursor: "pointer",
                       textAlign: "left",
-                      color: "#6d28d9",
+                      color: "#047857",
                       fontSize: 12,
                       fontWeight: "bold",
                       display: "flex",
@@ -760,7 +760,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                       padding: "2px 8px",
                       borderRadius: 10,
                       fontSize: 11,
-                      color: "#6d28d9",
+                      color: "#047857",
                     }}>{`{{${v}}}`}</span>
                   </button>
                 ))}
@@ -852,7 +852,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
         ))}
       </datalist>
       {variaveisDoFluxo.length > 0 && (
-        <p style={{color:"#64748B", fontSize:10, margin:"3px 0 0", lineHeight:1.3}}>
+        <p style={{color:"#64748B", fontSize: 12, margin:"3px 0 0", lineHeight:1.3}}>
           Variáveis no fluxo: {variaveisDoFluxo.slice(0, 5).join(", ")}{variaveisDoFluxo.length > 5 ? "..." : ""}
         </p>
       )}
@@ -908,7 +908,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           style={{...IS, height:100, resize:"vertical", fontFamily:"monospace", fontSize:11}}
           placeholder={"https://exemplo.com/produto1.jpg|Produto 1\nhttps://exemplo.com/produto2.jpg|Produto 2"}
         />
-        <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0", lineHeight:1.3}}>
+        <p style={{color:"#64748B", fontSize: 12, margin:"4px 0 0", lineHeight:1.3}}>
           Cliente recebe as imagens e escolhe uma. O título da opção escolhida é salvo na variável abaixo.
         </p>
         {VarPill("Salvar opção escolhida em", "variavel", "ex: produto_escolhido")}
@@ -970,7 +970,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                 title={opt.hint}>{opt.label}</button>
             ))}
           </div>
-          <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+          <p style={{color:"#64748B",fontSize: 12,margin:"4px 0 0",lineHeight:1.3}}>
             {modoEnvio==="interativo"
               ? "Botões nativos do WhatsApp (máx 3, até 20 caracteres cada). Precisa de canal WABA/Cloud API. No WhatsApp Web (webjs) o sistema cai pra lista numerada automaticamente."
               : "Envia como texto numerado (1, 2, 3...). Funciona em qualquer canal (Web/WABA/Meta)."}
@@ -1008,7 +1008,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             </button>
           )}
           {modoEnvio==="interativo" && botoes.some(b => (b||"").length > 20) && (
-            <p style={{color:"#C2410C",fontSize:10,margin:"4px 0 0"}}>
+            <p style={{color:"#C2410C",fontSize: 12,margin:"4px 0 0"}}>
               Botões interativos do WhatsApp aceitam no máximo 20 caracteres por botão.
             </p>
           )}
@@ -1132,7 +1132,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                       ) : (
                         <span style={{ color: "#64748B", fontSize: 12 }}>Selecionar variável...</span>
                       )}
-                      <span style={{ marginLeft: "auto", color: "#64748B", fontSize: 10 }}>▼</span>
+                      <span style={{ marginLeft: "auto", color: "#64748B", fontSize: 12 }}>▼</span>
                     </summary>
                     <div style={{
                       position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
@@ -1262,7 +1262,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           <div>
             <label style={LS}>Expressão</label>
             <input value={d.valor||""} onChange={e => u({valor: e.target.value})} style={IS} placeholder="{{nome}} - {{cpf_limpo}}" />
-            <p style={{color:"#64748B", fontSize:10, margin:"3px 0 0"}}>
+            <p style={{color:"#64748B", fontSize: 12, margin:"3px 0 0"}}>
               Use <code style={{color:"#14B8A6"}}>{"{{nome_variavel}}"}</code> pra inserir valores de outras variáveis. Ex: <code>{"Olá {{nome}}"}</code>
             </p>
           </div>
@@ -1280,7 +1280,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             </div>
             {/* Save error in variable (igual Typebot) */}
             {VarPill("Salvar erro em (opcional)", "salvar_erro_em", "Variável pra erro...")}
-            <p style={{color:"#64748B", fontSize:10, margin:"-6px 0 0", lineHeight:1.3}}>
+            <p style={{color:"#64748B", fontSize: 12, margin:"-6px 0 0", lineHeight:1.3}}>
               Se o código der erro, a mensagem fica salva nessa variável. Útil pra blocos de condição depois.
             </p>
           </>
@@ -1293,14 +1293,14 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
         <p style={{color:"#94A3B8",fontSize:11,margin:"0 0 6px"}}>API disponível: <code style={{color:"#14B8A6"}}>setVariable(nome, valor)</code>, <code style={{color:"#14B8A6"}}>getVariable(nome)</code>, <code style={{color:"#14B8A6"}}>fetch</code>, <code style={{color:"#14B8A6"}}>sleep(ms)</code>, <code style={{color:"#14B8A6"}}>log(...)</code></p>
         <p style={{color:"#94A3B8",fontSize:11,margin:"0 0 6px"}}>{`{{variaveis}} são substituídas no código antes de executar.`}</p>
         {T("Código JavaScript","codigo",`// Exemplo:\n// const resp = await fetch("https://api.exemplo.com/cep/" + getVariable("cep"))\n// const data = await resp.json()\n// setVariable("rua", data.logradouro)`,200)}
-        <p style={{color:"#94A3B8",fontSize:10,margin:"4px 0 0"}}>Saídas: <span style={{color:"#10B981"}}>0=sucesso</span> / <span style={{color:"#ef4444"}}>1=erro</span></p>
+        <p style={{color:"#94A3B8",fontSize: 12,margin:"4px 0 0"}}>Saídas: <span style={{color:"#10B981"}}>0=sucesso</span> / <span style={{color:"#ef4444"}}>1=erro</span></p>
       </>;
     case "espera":        return <>{F("Aguardar (segundos)","segundos","number","3")}</>;
     case "teste_ab":
       return <div>
         <label style={LS}>Percentual para A (%)</label>
         <input type="number" min={1} max={99} value={d.percentual_a||50} onChange={e => u({percentual_a: Number(e.target.value)})} style={IS} />
-        <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0"}}>B recebe {100-(d.percentual_a||50)}%</p>
+        <p style={{color:"#64748B",fontSize: 12,margin:"4px 0 0"}}>B recebe {100-(d.percentual_a||50)}%</p>
       </div>;
     case "webhook":
       return <>
@@ -1331,11 +1331,11 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             })}
         </select>
         {d.alvo && !nos.find(n => n.id === d.alvo) && (
-          <p style={{color:"#ef4444", fontSize:10, margin:"4px 0 0"}}>
+          <p style={{color:"#ef4444", fontSize: 12, margin:"4px 0 0"}}>
             Bloco alvo não existe mais (pode ter sido excluído). Selecione outro.
           </p>
         )}
-        <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0", lineHeight:1.3}}>
+        <p style={{color:"#64748B", fontSize: 12, margin:"4px 0 0", lineHeight:1.3}}>
           {noSel.tipo === "pular"
             ? "Pula a execução direto pro bloco escolhido (atalho/jump)."
             : "Volta a execução pro bloco escolhido (loop/retry)."}
@@ -1345,7 +1345,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       return <>
         <div style={{background:"#ECFDF5", border:"1px solid #A7F3D0", borderRadius:8, padding:10, marginBottom:10}}>
           <p style={{color:"#14532d", fontSize:11, margin:0, fontWeight:700}}>Google Sheets via Apps Script</p>
-          <p style={{color:"#059669", fontSize:10, margin:"4px 0 6px", lineHeight:1.5}}>
+          <p style={{color:"#059669", fontSize: 12, margin:"4px 0 6px", lineHeight:1.5}}>
             <b>Como configurar (5 minutos, sem OAuth):</b><br/>
             1. Abra seu Sheets <b>Extensões → Apps Script</b><br/>
             2. Cole o código de webhook (veja botão abaixo)<br/>
@@ -1406,7 +1406,7 @@ function saida(obj) {
         ])}
         {T("Dados (separados por vírgula)","dados","{{nome}}, {{email}}, {{telefone}}",80)}
         {VarPill("Salvar resposta em (opcional)","variavel_resposta","ex: resposta_sheets")}
-        <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0"}}>
+        <p style={{color:"#64748B", fontSize: 12, margin:"4px 0 0"}}>
           Use {`{{variavel}}`} nos campos. Saídas: <b>Sucesso</b> / <b>Erro</b>.
         </p>
       </>;
@@ -1434,7 +1434,7 @@ function saida(obj) {
       return <>
         <div style={{background:"#ecfdf5",border:"1px solid #99f6e4",borderRadius:8,padding:10,marginBottom:10}}>
           <p style={{color:"#0f766e",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>Gerar e enviar documento</p>
-          <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Gera um PDF com as variáveis confirmadas e envia pelo mesmo canal. Nenhuma regra de negócio fica presa ao motor.</p>
+          <p style={{color:"#475569",fontSize: 12,margin:0,lineHeight:1.45}}>Gera um PDF com as variáveis confirmadas e envia pelo mesmo canal. Nenhuma regra de negócio fica presa ao motor.</p>
         </div>
         {TVar("Título do documento","titulo","CONTRATO",55)}
         {F("Nome do arquivo","nome_arquivo","text","contrato_{{numero}}.pdf")}
@@ -1448,13 +1448,13 @@ function saida(obj) {
         {VarPill("Salvar nome do PDF em","variavel_arquivo","ex: contrato_arquivo")}
         {VarPill("Salvar confirmação de envio em","variavel_enviado","ex: contrato_enviado")}
         {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui gerar o contrato agora...",65)}
-        <p style={{color:"#0f766e",fontSize:10,lineHeight:1.4}}>Conecte <b>Enviado</b> ao bloco <b>Validar Assinatura</b>. Variáveis vazias bloqueiam a geração por padrão.</p>
+        <p style={{color:"#0f766e",fontSize: 12,lineHeight:1.4}}>Conecte <b>Enviado</b> ao bloco <b>Validar Assinatura</b>. Variáveis vazias bloqueiam a geração por padrão.</p>
       </>;
     case "assinatura_wolf":
       return <>
         <div style={{background:"#F0FDFA",border:"1px solid #99F6E4",borderRadius:8,padding:10,marginBottom:10}}>
           <p style={{color:"#0F766E",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>Assinatura eletrônica Wolf</p>
-          <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Cria um envelope sequencial: primeiro assina o representante da empresa; depois o cliente recebe o link automaticamente. O fluxo só continua quando as duas assinaturas e o PDF final estiverem concluídos.</p>
+          <p style={{color:"#475569",fontSize: 12,margin:0,lineHeight:1.45}}>Cria um envelope sequencial: primeiro assina o representante da empresa; depois o cliente recebe o link automaticamente. O fluxo só continua quando as duas assinaturas e o PDF final estiverem concluídos.</p>
         </div>
         <label style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,color:"#0F172A",fontSize:11,fontWeight:700}}><input type="checkbox" checked={d.assinatura_bilateral === true} onChange={e=>u({assinatura_bilateral:e.target.checked})}/>Assinatura bilateral: empresa → cliente</label>
         {d.assinatura_bilateral === true && <>
@@ -1462,7 +1462,7 @@ function saida(obj) {
             <option value="">— selecione o representante —</option>
             {representantesAssinatura.map(rep=><option key={rep.id} value={rep.id}>{rep.nome}{rep.cargo ? ` · ${rep.cargo}` : ""}{rep.padrao ? " · padrão" : ""}</option>)}
           </select></div>
-          {representantesAssinatura.length === 0 && <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize:10,lineHeight:1.45}}>Cadastre a empresa e pelo menos um representante em <b>CRM → Contratos → Configurações</b> antes de usar a assinatura bilateral.</div>}
+          {representantesAssinatura.length === 0 && <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize: 12,lineHeight:1.45}}>Cadastre a empresa e pelo menos um representante em <b>CRM → Contratos → Configurações</b> antes de usar a assinatura bilateral.</div>}
           {TVar("Título do contrato","titulo_documento","Contrato de prestação de serviços",45)}
           {VarPill("Variável do e-mail do cliente","variavel_email","ex: email")}
           {TVar("Mensagem enquanto a empresa assina","mensagem_aguardando_empresa","Seu contrato foi enviado primeiro ao representante da empresa...",70)}
@@ -1480,13 +1480,13 @@ function saida(obj) {
         {d.assinatura_bilateral !== true && TVar("Mensagem com o link","mensagem_link","Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",75)}
         {TVar("Mensagem após todas as assinaturas","mensagem_assinado","As duas assinaturas foram confirmadas...",60)}
         {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui iniciar a assinatura agora...",60)}
-        <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize:10,lineHeight:1.45}}>OTP, consentimento, selfie e assinatura são obrigatórios para cada signatário. Conecte somente <b>Assinado</b> ao bloco <b>Enviar Venda</b>; essa saída só é liberada após empresa e cliente assinarem.</div>
+        <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize: 12,lineHeight:1.45}}>OTP, consentimento, selfie e assinatura são obrigatórios para cada signatário. Conecte somente <b>Assinado</b> ao bloco <b>Enviar Venda</b>; essa saída só é liberada após empresa e cliente assinarem.</div>
       </>;
     case "validar_assinatura":
       return <>
         <div style={{background:"#F0FDFA",border:"1px solid #99F6E4",borderRadius:8,padding:10,marginBottom:10}}>
-          <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>Validar assinatura devolvida</p>
-          <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Espera PDF ou foto, procura evidência concreta de assinatura e só libera a saída Assinado acima da confiança mínima.</p>
+          <p style={{color:"#047857",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>Validar assinatura devolvida</p>
+          <p style={{color:"#475569",fontSize: 12,margin:0,lineHeight:1.45}}>Espera PDF ou foto, procura evidência concreta de assinatura e só libera a saída Assinado acima da confiança mínima.</p>
         </div>
         {TVar("Pedido do contrato assinado","pergunta","Agora envie o contrato assinado...",75)}
         {TVar("Signatário esperado","nome_signatario","{{nome}}",45)}
@@ -1499,7 +1499,7 @@ function saida(obj) {
         {TVar("Mensagem quando assinado","mensagem_assinado","Assinatura confirmada...",60)}
         {TVar("Mensagem quando não assinado","mensagem_nao_assinado","Não consegui confirmar a assinatura...",70)}
         {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui analisar agora...",60)}
-        <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize:10,lineHeight:1.45}}>Conecte somente <b>Assinado</b> ao bloco <b>Enviar Venda</b>. A análise é uma triagem operacional e não substitui validação jurídica ou pericial.</div>
+        <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:7,padding:8,color:"#9a3412",fontSize: 12,lineHeight:1.45}}>Conecte somente <b>Assinado</b> ao bloco <b>Enviar Venda</b>. A análise é uma triagem operacional e não substitui validação jurídica ou pericial.</div>
       </>;
 
     case "claude_ai":
@@ -1517,11 +1517,11 @@ function saida(obj) {
       return <>
         <div style={{background:"#F0FDFA", border:"1px solid #99F6E4", borderRadius:8, padding:10, marginBottom:10}}>
           <p style={{color:"#1e40af", fontSize:11, margin:0, fontWeight:700}}>Envio de email via SMTP</p>
-          <p style={{color:"#14B8A6", fontSize:10, margin:"4px 0 0", lineHeight:1.4}}>
+          <p style={{color:"#14B8A6", fontSize: 12, margin:"4px 0 0", lineHeight:1.4}}>
             Use Gmail (com <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{color:"#0F766E",fontWeight:700}}>App Password</a>), SendGrid, Mailgun ou qualquer SMTP.
           </p>
         </div>
-        <p style={{color:"#64748B", fontSize:10, margin:"6px 0 6px", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4}}>Servidor SMTP</p>
+        <p style={{color:"#64748B", fontSize: 12, margin:"6px 0 6px", fontWeight:700}}>Servidor SMTP</p>
         <div style={{display:"grid", gridTemplateColumns:"1fr 80px", gap:8}}>
           {F("Host","smtp_host","text","smtp.gmail.com")}
           {F("Porta","smtp_port","number","587")}
@@ -1532,12 +1532,12 @@ function saida(obj) {
         </label>
         {F("Usuário SMTP","smtp_user","text","seu@gmail.com")}
         {F("Senha SMTP / App Password","smtp_pass","password","••••••••")}
-        <p style={{color:"#64748B", fontSize:10, margin:"6px 0 6px", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4}}>Mensagem</p>
+        <p style={{color:"#64748B", fontSize: 12, margin:"6px 0 6px", fontWeight:700}}>Mensagem</p>
         {F("Nome do remetente (opcional)","from_name","text","Minha Empresa")}
         {F("Para","para","text","cliente@email.com  •  aceita {{variavel}}")}
         {F("Assunto","assunto","text","Bem-vindo, {{nome}}!")}
         {T("Corpo do email (texto ou HTML)","corpo","Olá {{nome}},\n\nObrigado pelo contato!\n\nAtenciosamente.",140)}
-        <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0"}}>
+        <p style={{color:"#64748B", fontSize: 12, margin:"4px 0 0"}}>
           Use {`{{variavel}}`} no Para/Assunto/Corpo. Saídas: <b>Enviado</b> (ok) / <b>Erro</b> (falha SMTP).
         </p>
       </>;
@@ -1572,12 +1572,12 @@ function saida(obj) {
         </div>
 
         {F("Pixel ID / Dataset ID","pixel_id","text","Ex: 1473534314246940")}
-        <p style={{color:"#64748B", fontSize:10, margin:"-6px 0 8px", lineHeight:1.3}}>
+        <p style={{color:"#64748B", fontSize: 12, margin:"-6px 0 8px", lineHeight:1.3}}>
           Pega no <b>Gerenciador de Eventos da Meta → Configurações do conjunto de dados</b>.
         </p>
 
         {F("Access Token (Conversions API)","access_token","password","EAAB...")}
-        <p style={{color:"#64748B", fontSize:10, margin:"-6px 0 8px", lineHeight:1.3}}>
+        <p style={{color:"#64748B", fontSize: 12, margin:"-6px 0 8px", lineHeight:1.3}}>
           Gerado em <b>Gerenciador de Eventos → Configurações → Gerar token de acesso</b>.
         </p>
 
@@ -1594,7 +1594,7 @@ function saida(obj) {
         {evento === "custom" && (
           <>
             {F("Nome do evento personalizado","evento_custom","text","Ex: PropostaInternet")}
-            <p style={{color:"#64748B", fontSize:10, margin:"-6px 0 8px"}}>
+            <p style={{color:"#64748B", fontSize: 12, margin:"-6px 0 8px"}}>
               Crie eventos personalizados no Gerenciador de Eventos antes de usar aqui.
             </p>
           </>
@@ -1609,17 +1609,17 @@ function saida(obj) {
             {value:"EUR",label:"EUR"},
           ])}
         </div>
-        <p style={{color:"#64748B", fontSize:10, margin:"-2px 0 8px", lineHeight:1.3}}>
+        <p style={{color:"#64748B", fontSize: 12, margin:"-2px 0 8px", lineHeight:1.3}}>
           Aceita {`{{variavel}}`}. Use ponto como separador decimal (99.90). Deixe vazio pra eventos sem valor.
         </p>
 
         {F("Test Event Code (opcional)","test_event_code","text","Ex: TEST12345")}
-        <p style={{color:"#64748B", fontSize:10, margin:"-6px 0 0", lineHeight:1.3}}>
+        <p style={{color:"#64748B", fontSize: 12, margin:"-6px 0 0", lineHeight:1.3}}>
           Use enquanto testa: pega em <b>Gerenciador de Eventos → Testar eventos</b>. Os eventos
           aparecem lá em tempo real. <b>Remova quando for pra produção.</b>
         </p>
 
-        <p style={{color:"#64748B", fontSize:10, margin:"10px 0 0", lineHeight:1.4, fontStyle:"italic"}}>
+        <p style={{color:"#64748B", fontSize: 12, margin:"10px 0 0", lineHeight:1.4, fontStyle:"italic"}}>
           Saídas: <span style={{color:"#10B981"}}>0=Sucesso</span> (Meta recebeu) /{" "}
           <span style={{color:"#ef4444"}}>1=Erro</span> (token inválido, pixel errado, etc).
         </p>
@@ -1655,7 +1655,7 @@ function saida(obj) {
               Atendente humano
             </button>
           </div>
-          <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0", lineHeight:1.4}}>
+          <p style={{color:"#64748B", fontSize: 12, margin:"4px 0 0", lineHeight:1.4}}>
             {modo === "humano"
               ? "Atribui o atendimento direto pro atendente escolhido."
               : "Joga o atendimento na fila — qualquer atendente da equipe pode pegar."}
@@ -1668,7 +1668,7 @@ function saida(obj) {
             {filasBanco.length === 0 ? (
               <div style={{background:"#FFEDD5", border:"1px solid #C2410C44", borderRadius:6, padding:10}}>
                 <p style={{color:"#C2410C", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>Nenhuma fila cadastrada</p>
-                <p style={{color:"#94A3B8", fontSize:10, margin:0, lineHeight:1.4}}>
+                <p style={{color:"#94A3B8", fontSize: 12, margin:0, lineHeight:1.4}}>
                   Vá em <b>CRM → Configurações → Filas</b> e crie suas filas.<br/>
                   Depois volte aqui e selecione a fila de destino.
                 </p>
@@ -1681,7 +1681,7 @@ function saida(obj) {
                 ))}
               </select>
             )}
-            <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0"}}>
+            <p style={{color:"#64748B", fontSize: 12, margin:"4px 0 0"}}>
               Filas são criadas em <b>Configurações → Filas</b> do CRM
             </p>
           </div>
@@ -1691,7 +1691,7 @@ function saida(obj) {
             {atendentesBanco.length === 0 ? (
               <div style={{background:"#FFEDD5", border:"1px solid #C2410C44", borderRadius:6, padding:10}}>
                 <p style={{color:"#C2410C", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>Nenhum atendente cadastrado</p>
-                <p style={{color:"#94A3B8", fontSize:10, margin:0, lineHeight:1.4}}>
+                <p style={{color:"#94A3B8", fontSize: 12, margin:0, lineHeight:1.4}}>
                   Cadastre atendentes em <b>CRM → Configurações → Usuários</b>.
                 </p>
               </div>
@@ -1710,7 +1710,7 @@ function saida(obj) {
                 ))}
               </select>
             )}
-            <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0"}}>
+            <p style={{color:"#64748B", fontSize: 12, margin:"4px 0 0"}}>
               Atendentes são cadastrados em <b>Configurações → Usuários</b>
             </p>
           </div>
@@ -1744,7 +1744,7 @@ function saida(obj) {
       return <>
         <div style={{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:9,padding:10}}>
           <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#c2410c"}}>Entrada automática pelo CRM</p>
-          <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#64748B"}}>Quando uma venda mudar conforme esta regra, o sistema abre o trecho conectado usando o mesmo cliente, canal e venda. Crie quantos gatilhos precisar.</p>
+          <p style={{margin:0,fontSize: 12,lineHeight:1.45,color:"#64748B"}}>Quando uma venda mudar conforme esta regra, o sistema abre o trecho conectado usando o mesmo cliente, canal e venda. Crie quantos gatilhos precisar.</p>
         </div>
         <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#334155"}}>
           <input type="checkbox" checked={d.ativo !== false} onChange={e=>u({ativo:e.target.checked})}/> Regra ativa
@@ -1767,9 +1767,9 @@ function saida(obj) {
             <input value={d.template_nome || ""} onChange={e=>u({template_nome:e.target.value})} style={IS} placeholder="nome_do_template"/>
             <input value={d.template_idioma || "pt_BR"} onChange={e=>u({template_idioma:e.target.value})} style={IS} placeholder="pt_BR"/>
           </div>}
-          <p style={{fontSize:9,color:"#9a3412",lineHeight:1.4,margin:"6px 0 0"}}>Na Cloud API, use template quando o cliente estiver fora da janela de 24 horas. Depois o fluxo e a IA continuam normalmente.</p>
+          <p style={{fontSize: 11,color:"#9a3412",lineHeight:1.4,margin:"6px 0 0"}}>Na Cloud API, use template quando o cliente estiver fora da janela de 24 horas. Depois o fluxo e a IA continuam normalmente.</p>
         </div>
-        <div style={{background:"#F3F6F5",border:"1px solid #E6ECEA",borderRadius:8,padding:9,fontSize:10,color:"#475569",lineHeight:1.5}}>
+        <div style={{background:"#F3F6F5",border:"1px solid #E6ECEA",borderRadius:8,padding:9,fontSize: 12,color:"#475569",lineHeight:1.5}}>
           Variáveis automáticas: <code>{'{{proposta_id}}'}</code>, <code>{'{{crm_campo_alterado}}'}</code>, <code>{'{{crm_valor_anterior}}'}</code>, <code>{'{{crm_valor_novo}}'}</code> e todos os campos da venda.
         </div>
       </>;
@@ -1780,7 +1780,7 @@ function saida(obj) {
       return <>
         <div style={{background:"#f0f9ff",border:"1px solid #7dd3fc",borderRadius:9,padding:10}}>
           <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#0369a1"}}>Atualizar a venda atual</p>
-          <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#64748B"}}>Edita a mesma ficha que acionou a automação. Pode alterar status, horário, CPF, observação ou qualquer campo personalizado do workspace.</p>
+          <p style={{margin:0,fontSize: 12,lineHeight:1.45,color:"#64748B"}}>Edita a mesma ficha que acionou a automação. Pode alterar status, horário, CPF, observação ou qualquer campo personalizado do workspace.</p>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>{itens.map((item,i)=><div key={i} style={{background:"#F3F6F5",border:"1px solid #E6ECEA",borderRadius:8,padding:8}}>
           <select value={item.campo || ""} onChange={e=>atualizar(i,{campo:e.target.value})} style={{...IS,marginBottom:6}}>
@@ -1793,7 +1793,7 @@ function saida(obj) {
             <button type="button" onClick={()=>u({atualizacoes:itens.filter((_,j)=>j!==i)})} style={{border:"1px solid #fecaca",background:"#fee2e2",color:"#dc2626",borderRadius:6,cursor:"pointer"}}>×</button>
           </div>
         </div>)}</div>
-        <button type="button" onClick={()=>u({atualizacoes:[...itens,{campo:"",origem:"valor",valor:""}]})} style={{background:"#e0f2fe",border:"1px solid #7dd3fc",color:"#0369a1",borderRadius:7,padding:"7px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>+ Campo para atualizar</button>
+        <button type="button" onClick={()=>u({atualizacoes:[...itens,{campo:"",origem:"valor",valor:""}]})} style={{background:"#e0f2fe",border:"1px solid #7dd3fc",color:"#0369a1",borderRadius:7,padding:"7px 10px",fontSize: 12,fontWeight:700,cursor:"pointer"}}>+ Campo para atualizar</button>
         {TVar("Mensagem após atualizar (opcional)","mensagem_sucesso","Ex.: Dados atualizados. Vou reenviar para análise.",65)}
         {TVar("Mensagem se der erro (opcional)","mensagem_erro","Não consegui atualizar agora.",55)}
       </>;
@@ -1848,11 +1848,11 @@ function saida(obj) {
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:8}}>
             <div>
               <p style={{color:"#c2410c",fontSize:12,fontWeight:"bold",margin:"0 0 3px"}}>Roleta de vendas</p>
-              <p style={{color:"#9a3412",fontSize:10,margin:0,lineHeight:1.35}}>
+              <p style={{color:"#9a3412",fontSize: 12,margin:0,lineHeight:1.35}}>
                 Marque quais vendedores podem receber vendas criadas pelo BOT neste fluxo.
               </p>
             </div>
-            <span style={{background:"#ffedd5",border:"1px solid #fdba74",borderRadius:999,padding:"4px 8px",color:"#c2410c",fontSize:10,fontWeight:700,whiteSpace:"nowrap"}}>
+            <span style={{background:"#ffedd5",border:"1px solid #fdba74",borderRadius:999,padding:"4px 8px",color:"#c2410c",fontSize: 12,fontWeight:700,whiteSpace:"nowrap"}}>
               {vendedoresRoleta.length} selecionado(s)
             </span>
           </div>
@@ -1875,17 +1875,17 @@ function saida(obj) {
             <>
               <div style={{display:"flex",gap:6,marginBottom:8}}>
                 <button type="button" onClick={marcarTodosVendedores}
-                  style={{background:"#fff",border:"1px solid #fdba74",color:"#c2410c",borderRadius:7,padding:"6px 9px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                  style={{background:"#fff",border:"1px solid #fdba74",color:"#c2410c",borderRadius:7,padding:"6px 9px",fontSize: 12,fontWeight:700,cursor:"pointer"}}>
                   Marcar todos
                 </button>
                 <button type="button" onClick={limparVendedores}
-                  style={{background:"#fff",border:"1px solid #E6ECEA",color:"#64748B",borderRadius:7,padding:"6px 9px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                  style={{background:"#fff",border:"1px solid #E6ECEA",color:"#64748B",borderRadius:7,padding:"6px 9px",fontSize: 12,fontWeight:700,cursor:"pointer"}}>
                   Limpar
                 </button>
               </div>
 
               {atendentesBanco.length === 0 ? (
-                <p style={{color:"#9a3412",fontSize:10,margin:0,lineHeight:1.35}}>
+                <p style={{color:"#9a3412",fontSize: 12,margin:0,lineHeight:1.35}}>
                   Nenhum usuário encontrado neste workspace ainda. Cadastre usuários para aparecerem aqui.
                 </p>
               ) : (
@@ -1910,7 +1910,7 @@ function saida(obj) {
                           <span style={{display:"block",color:"#0F172A",fontSize:11,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
                             {a.nome || a.email}
                           </span>
-                          <span style={{display:"block",color:"#94A3B8",fontSize:9,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                          <span style={{display:"block",color:"#94A3B8",fontSize: 11,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
                             {a.email}
                           </span>
                         </span>
@@ -1921,7 +1921,7 @@ function saida(obj) {
               )}
 
               {vendedoresRoleta.length === 0 && (
-                <p style={{color:"#dc2626",fontSize:10,margin:"8px 0 0",lineHeight:1.35,fontWeight:600}}>
+                <p style={{color:"#dc2626",fontSize: 12,margin:"8px 0 0",lineHeight:1.35,fontWeight:600}}>
                   Marque pelo menos um vendedor para a roleta funcionar quando o lead ainda não tiver atendente.
                 </p>
               )}
@@ -1950,7 +1950,7 @@ function saida(obj) {
             ))}
           </div>
           {modoMap === "automatico" && (
-            <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+            <p style={{color:"#64748B",fontSize: 12,margin:"4px 0 0",lineHeight:1.3}}>
               O sistema vai pegar todas as variáveis salvas no fluxo e tentar mapear pelo nome.
               <br/>Ex: variável <code style={{color:"#10B981"}}>nome</code> campo "Nome do cliente";
               variável <code style={{color:"#10B981"}}>cpf_limpo</code> campo "CPF" (usa nome similar).
@@ -1962,7 +1962,7 @@ function saida(obj) {
         {modoMap === "manual" && (
           <div>
             <label style={LS}>Defina qual variável preenche cada campo</label>
-            <p style={{color:"#64748B",fontSize:10,margin:"-2px 0 8px",lineHeight:1.3}}>
+            <p style={{color:"#64748B",fontSize: 12,margin:"-2px 0 8px",lineHeight:1.3}}>
               Deixe em branco os campos que não quer preencher. O sistema só cria os que você mapear.
               <br/>Datas devem vir no formato <code style={{color:"#10B981"}}>YYYY-MM-DD</code> ou <code style={{color:"#10B981"}}>DD/MM/YYYY</code>.
               Valores monetários: ponto como separador decimal (ex: <code style={{color:"#10B981"}}>99.90</code>).
@@ -1972,7 +1972,7 @@ function saida(obj) {
               {/* ──── Seção 1: Campos fixos da proposta ──── */}
               {camposFixos.length > 0 && (
                 <>
-                  <p style={{color:"#64748B",fontSize:10,margin:"0 0 2px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>
+                  <p style={{color:"#64748B",fontSize: 12,margin:"0 0 2px",fontWeight:700}}>
                     Campos da Proposta
                   </p>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -2002,7 +2002,7 @@ function saida(obj) {
               {/* ──── Seção 2: Campos customizados do workspace ──── */}
               {camposCustoms.length > 0 && (
                 <>
-                  <p style={{color:"#0F766E",fontSize:10,margin:"8px 0 2px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,borderTop:"1px dashed #CBD5E1",paddingTop:8}}>
+                  <p style={{color:"#0F766E",fontSize: 12,margin:"8px 0 2px",fontWeight:700,borderTop:"1px dashed #CBD5E1",paddingTop:8}}>
                     Campos Customizados ({camposCustoms.length})
                   </p>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -2036,7 +2036,7 @@ function saida(obj) {
               )}
             </div>
             {Object.keys(mapeamento).length > 0 && (
-              <p style={{color:"#10B981",fontSize:10,margin:"6px 0 0"}}>
+              <p style={{color:"#10B981",fontSize: 12,margin:"6px 0 0"}}>
                 {Object.keys(mapeamento).length} campo(s) mapeado(s)
               </p>
             )}
@@ -2054,7 +2054,7 @@ function saida(obj) {
           {d.aplicar_etiqueta !== false && (
             <>
               {F("Nome da etiqueta","etiqueta","text","proposta_finalizada")}
-              <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+              <p style={{color:"#64748B",fontSize: 12,margin:"4px 0 0",lineHeight:1.3}}>
                 A etiqueta é criada automaticamente se ainda não existir.
                 Útil pra filtrar atendimentos com proposta criada no chatbot.
               </p>
@@ -2065,7 +2065,7 @@ function saida(obj) {
         {/* Status inicial da proposta — dinâmico por workspace */}
         <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
           {S("Status inicial da proposta","status_inicial", statusVendaOpcoes)}
-          <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+          <p style={{color:"#64748B",fontSize: 12,margin:"4px 0 0",lineHeight:1.3}}>
             As opções mostradas são os status ativos configurados no <b>Editor de Vendas</b> deste workspace.
           </p>
         </div>
@@ -2076,7 +2076,7 @@ function saida(obj) {
           {TVar("Mensagem ao cliente (erro)","mensagem_erro","Não consegui registrar, atendente vai te ajudar.",70)}
         </div>
 
-        <p style={{color:"#64748B",fontSize:10,margin:"8px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
+        <p style={{color:"#64748B",fontSize: 12,margin:"8px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
           Saídas: <span style={{color:"#10B981"}}>0=Sucesso</span> (proposta criada) /{" "}
           <span style={{color:"#ef4444"}}>1=Erro</span> (falha ao salvar — conecte aqui um bloco "Transferir" como fallback).
         </p>
@@ -2100,7 +2100,7 @@ function saida(obj) {
         <div style={{display:"flex",flexDirection:"column",gap:14}}>
           {/* Ação: aplicar ou remover */}
           <div>
-            <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+            <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6}}>
               Ação
             </label>
             <div style={{display:"flex",gap:6}}>
@@ -2125,7 +2125,7 @@ function saida(obj) {
           {d.acao !== "remover" && (
             <>
               <div>
-                <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+                <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6}}>
                   Cor da etiqueta
                 </label>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -2138,7 +2138,7 @@ function saida(obj) {
                 </div>
               </div>
               <div>
-                <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+                <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6}}>
                   Ícone
                 </label>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
@@ -2157,7 +2157,7 @@ function saida(obj) {
           {/* Preview */}
           {d.nome && (
             <div>
-              <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+              <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6}}>
                 Preview
               </label>
               <span style={{
@@ -2171,7 +2171,7 @@ function saida(obj) {
           )}
         </div>
 
-        <p style={{color:"#64748B",fontSize:10,margin:"12px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
+        <p style={{color:"#64748B",fontSize: 12,margin:"12px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
           Use este bloco em qualquer ponto do fluxo pra marcar atendimentos.
           Se a etiqueta não existir no workspace, será criada automaticamente.
         </p>
@@ -2276,7 +2276,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
             borderRadius:6
           }}>{<IconeEmoji e={cfg.icone} />}</span>
           <span style={{color:"#ffffff", fontSize:12, fontWeight:"700", textShadow:"0 1px 2px rgba(0,0,0,.15)"}}>{cfg.label}</span>
-          <span style={{background:"rgba(255,255,255,.22)", color:"#ffffff", fontSize:9, padding:"2px 7px", borderRadius:10, fontWeight:"600", letterSpacing:.3}}>{cfg.grupo}</span>
+          <span style={{background:"rgba(255,255,255,.22)", color:"#ffffff", fontSize: 11, padding:"2px 7px", borderRadius:10, fontWeight:"600", letterSpacing:.3}}>{cfg.grupo}</span>
         </div>
         {no.tipo!=="inicio" && (
           <button
@@ -2286,7 +2286,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
         )}
       </div>
       <div style={{padding:"7px 10px", borderBottom:cfg.saidas.length?"1px solid #ffffff":"none", pointerEvents:"none"}}>
-        <p style={{color:"#94A3B8", fontSize:10, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{getPreview(no)}</p>
+        <p style={{color:"#94A3B8", fontSize: 12, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{getPreview(no)}</p>
       </div>
       {no.tipo!=="inicio" && (
         <div
@@ -2299,7 +2299,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
       {no.saidas.map((saida,idx) => (
         <div key={idx} style={{display:"flex", alignItems:"center", justifyContent:"space-between",
           padding:"0 10px", height:36, borderTop:idx>0?"1px solid #ffffff":"none"}}>
-          <span style={{color:"#64748B", fontSize:10, pointerEvents:"none"}}>{saida}</span>
+          <span style={{color:"#64748B", fontSize: 12, pointerEvents:"none"}}>{saida}</span>
           <div
             style={{width:14, height:14, borderRadius:"50%", background:cfg.cor, cursor:"crosshair",
               flexShrink:0, position:"relative", right:-18, border:"2px solid #E6ECEA"}}
@@ -2858,7 +2858,7 @@ export default function FluxosPage() {
             textAlign:"left",
             boxShadow:"0 2px 6px rgba(5,150,105,.35)",
           }}>
-          <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"#0F766E",borderRadius:8,fontSize:14,filter:"saturate(0) brightness(2)",boxShadow:"0 2px 6px rgba(5,150,105,.35)"}}>🤖</span>
+          <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"#059669",color:"#fff",borderRadius:8}}><Icone nome="robo" tamanho={15} /></span>
           Fluxos
         </button>
         <div style={{flex:1}}/>
@@ -2939,7 +2939,7 @@ export default function FluxosPage() {
                         onChange={e=>setCfg({hora_fim:e.target.value})}
                         style={{...IS,flex:1}}/>
                     </div>
-                    <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+                    <p style={{color:"#64748B",fontSize: 12,margin:"4px 0 0",lineHeight:1.3}}>
                       O fluxo dispara quando o cliente manda mensagem FORA do horário {cfg.hora_inicio}–{cfg.hora_fim}.
                     </p>
                   </div>
@@ -3020,7 +3020,7 @@ export default function FluxosPage() {
                   <div style={{display:"flex",alignItems:"center",gap:10,flex:1,minWidth:0}}>
                     <div style={{
                       width:38,height:38,borderRadius:10,
-                      background:f.ativo?"linear-gradient(135deg, #10B981 0%, #059669 100%)":"#F1F5F4",
+                      background:f.ativo?"linear-gradient(140deg, #10B981, #059669 60%, #047857)":"#F1F5F4",
                       display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,
                       boxShadow:f.ativo?"0 4px 8px rgba(34,197,94,0.25)":"none",
                       flexShrink:0
@@ -3034,7 +3034,7 @@ export default function FluxosPage() {
                     display:"inline-flex",alignItems:"center",gap:4,
                     background:f.ativo?"#D1FAE5":"#F1F5F4",
                     color:f.ativo?"#059669":"#64748B",
-                    fontSize:10,padding:"3px 9px",borderRadius:20,fontWeight:"700",whiteSpace:"nowrap",
+                    fontSize: 12,padding:"3px 9px",borderRadius:20,fontWeight:"700",whiteSpace:"nowrap",
                     border:f.ativo?"1px solid #6EE7B7":"1px solid #E6ECEA",
                     flexShrink:0
                   }}>
@@ -3110,7 +3110,7 @@ export default function FluxosPage() {
             return (
               <div key={grupo} style={{marginBottom:6}}>
                 <button onClick={()=>setGrupoAberto(ab?"":grupo)}
-                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"8px 16px",background:"none",border:"none",cursor:"pointer",color:ab?"#0F172A":"#64748B",fontSize:10,fontWeight:"800",textTransform:"uppercase",letterSpacing:1.2}}>
+                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"8px 16px",background:"none",border:"none",cursor:"pointer",color:ab?"#0F172A":"#64748B",fontSize: 12,fontWeight:"800"}}>
                   <span>{grupo}</span>
                   <span style={{fontSize:8,color:ab?"#0F766E":"#94A3B8",transition:"transform .2s",transform:ab?"rotate(0deg)":"rotate(-90deg)"}}>▼</span>
                 </button>
@@ -3244,17 +3244,17 @@ export default function FluxosPage() {
 
         <div style={{position:"absolute",bottom:16,left:16,display:"flex",gap:8}}>
           <div style={{background:"#F3F6F5",border:"1px solid #ffffff",borderRadius:8,padding:"6px 12px"}}>
-            <p style={{color:"#64748B",fontSize:10,margin:0}}>Arraste blocos • Scroll zoom • ● conectar • Clique na linha para excluir</p>
+            <p style={{color:"#64748B",fontSize: 12,margin:0}}>Arraste blocos • Scroll zoom • ● conectar • Clique na linha para excluir</p>
           </div>
           <div style={{background:"#F3F6F5",border:"1px solid #ffffff",borderRadius:8,padding:"6px 10px",display:"flex",gap:6,alignItems:"center"}}>
             <button onClick={()=>{const s=Math.min(scaleRef.current*1.2,2.5);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:16}}>+</button>
-            <span style={{color:"#64748B",fontSize:10}}>{Math.round(scale*100)}%</span>
+            <span style={{color:"#64748B",fontSize: 12}}>{Math.round(scale*100)}%</span>
             <button onClick={()=>{const s=Math.max(scaleRef.current*0.8,0.2);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:16}}>−</button>
-            <button onClick={()=>{scaleRef.current=1;offsetRef.current={x:80,y:80};setScale(1);setOffset({x:80,y:80});}} style={{background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:10}}>Reset</button>
+            <button onClick={()=>{scaleRef.current=1;offsetRef.current={x:80,y:80};setScale(1);setOffset({x:80,y:80});}} style={{background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize: 12}}>Reset</button>
           </div>
         </div>
         <div style={{position:"absolute",top:16,right:noSel?285:16,background:"#F3F6F5",border:"1px solid #ffffff",borderRadius:8,padding:"6px 12px"}}>
-          <p style={{color:"#64748B",fontSize:10,margin:0}}>{nos.length} blocos • {arestas.length} conexões</p>
+          <p style={{color:"#64748B",fontSize: 12,margin:0}}>{nos.length} blocos • {arestas.length} conexões</p>
         </div>
       </div>
 

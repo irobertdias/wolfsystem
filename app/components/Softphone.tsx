@@ -48,8 +48,8 @@ export function Softphone() {
   }[s] || s);
 
   const corStatus = (s: string) => ({
-    iniciando: "#f59e0b",
-    chamando: "#f59e0b",
+    iniciando: "#EA580C",
+    chamando: "#EA580C",
     conectado: "#059669",
     encerrando: "#dc2626",
     sem_resposta: "#64748B",
@@ -109,7 +109,7 @@ export function Softphone() {
           height: tamanho,
           borderRadius: "50%",
           background: temChamada
-            ? "linear-gradient(135deg, #059669 0%, #10B981 100%)"
+            ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)"
             : "#ffffff",
           border: temChamada ? "none" : "1px solid #E6ECEA",
           cursor: "pointer",
@@ -130,7 +130,7 @@ export function Softphone() {
         {temChamada && (
           <span style={{
             position: "absolute", top: -3, right: -3,
-            background: "#dc2626", color: "white", fontSize: 10,
+            background: "#dc2626", color: "white", fontSize: 12,
             padding: "2px 6px", borderRadius: 10, fontWeight: 700,
             border: "2px solid #ffffff",
             boxShadow: "0 2px 6px rgba(220,38,38,0.4)",
@@ -167,7 +167,7 @@ export function Softphone() {
       }}>
         {/* HEADER */}
         <div style={{
-          background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+          background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
           padding: "12px 16px",
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
@@ -176,7 +176,7 @@ export function Softphone() {
             <span style={{ color: "white", fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>Discador</span>
             <span style={{
               background: "rgba(255,255,255,0.25)", color: "white",
-              fontSize: 9, padding: "2px 7px", borderRadius: 6, fontWeight: 700,
+              fontSize: 11, padding: "2px 7px", borderRadius: 6, fontWeight: 700,
               backdropFilter: "blur(4px)",
             }}>{canais.find(c => c.id === canalSelecionadoId)?.provider === "sip_manual" ? "SIP" : canais.find(c => c.id === canalSelecionadoId)?.provider === "twilio" ? "TWILIO" : canais.length ? "VOIP" : "MOCK"}</span>
           </div>
@@ -196,7 +196,7 @@ export function Softphone() {
         {/* ÁREA DE CHAMADA ATIVA ou TECLADO */}
         {!temChamada && canais.length > 0 && (
           <div style={{ padding: "10px 14px 0", background: "#fff" }}>
-            <label style={{ display: "block", fontSize: 9, color: "#64748B", fontWeight: 700, marginBottom: 4, textTransform: "uppercase" }}>Canal de sa?da</label>
+            <label style={{ display: "block", fontSize: 11, color: "#64748B", fontWeight: 700, marginBottom: 4 }}>Canal de sa?da</label>
             <select value={canalSelecionadoId || ""} onChange={e => setCanalSelecionadoId(Number(e.target.value) || null)} style={{ width: "100%", border: "1px solid #CBD5E1", borderRadius: 8, padding: "8px 10px", fontSize: 11, background: "white", color: "#0F172A" }}>
               {canais.map(c => <option key={c.id} value={c.id}>{c.nome} - {c.provider === "sip_manual" ? `PABX/SIP ramal ${c.sip_extension || ""}` : c.provider}</option>)}
             </select>
@@ -295,7 +295,7 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
                 border: chamada.mudo ? "none" : "1px solid #E6ECEA",
                 color: chamada.mudo ? "white" : "#0F172A",
                 fontSize: 18, cursor: "pointer",
-                boxShadow: chamada.mudo ? "0 4px 12px rgba(220,38,38,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
+                boxShadow: chamada.mudo ? "0 4px 12px rgba(5,150,105,.45)" : "0 1px 3px rgba(0,0,0,0.08)",
                 transition: "all 0.15s",
               }}>
               {chamada.mudo ? "🔇" : "🎤"}
@@ -304,7 +304,7 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
               style={{
                 width: 50, height: 50, borderRadius: "50%",
                 background: mostrarTeclado
-                  ? "linear-gradient(135deg, #10B981 0%, #059669 100%)"
+                  ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)"
                   : "#F1F5F4",
                 border: mostrarTeclado ? "none" : "1px solid #E6ECEA",
                 color: mostrarTeclado ? "white" : "#0F172A",
@@ -380,7 +380,7 @@ function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNum
           style={{
             flex: 2, padding: 13,
             background: numero
-              ? "linear-gradient(135deg, #059669 0%, #10B981 100%)"
+              ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)"
               : "#F1F5F4",
             border: "none", borderRadius: 12,
             cursor: numero ? "pointer" : "not-allowed",

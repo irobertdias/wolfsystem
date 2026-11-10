@@ -684,7 +684,7 @@ export function DashboardSection() {
           <h2 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 16px" }}>Desempenho por Canal</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
             {/* WhatsApp Web */}
-            <div style={{ ...cardStyle, borderTop: "3px solid #059669", padding: 22 }}
+            <div style={{ ...cardStyle, padding: 22 }}
               onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 20px rgba(5,150,105,0.15)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
@@ -695,7 +695,7 @@ export function DashboardSection() {
               <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>tickets {labelPeriodo}</p>
             </div>
             {/* API Oficial */}
-            <div style={{ ...cardStyle, borderTop: "3px solid #059669", padding: 22 }}
+            <div style={{ ...cardStyle, padding: 22 }}
               onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 20px rgba(5,150,105,0.15)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
@@ -925,7 +925,7 @@ export function DashboardSection() {
                 ))}
               </div>
             )}
-            <p style={{ color: "#94A3B8", fontSize: 10, margin: "12px 0 0", lineHeight: 1.4 }}>
+            <p style={{ color: "#94A3B8", fontSize: 12, margin: "12px 0 0", lineHeight: 1.4 }}>
               "Ativo" = atendente que tratou pelo menos 1 chat nas últimas 4h
             </p>
           </div>

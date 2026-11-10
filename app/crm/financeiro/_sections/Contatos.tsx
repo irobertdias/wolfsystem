@@ -141,7 +141,7 @@ export default function Contatos() {
                         <div><div style={{ fontWeight: 700, color: "#0F172A" }}>{c.nome}</div>{!c.ativo && <div style={{ fontSize: 11, color: "#94A3B8" }}>inativo</div>}</div>
                       </div>
                     </td>
-                    <td style={td}><span style={{ background: t.bg, color: t.cor, border: `1px solid ${t.bd}`, fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{t.l}</span></td>
+                    <td style={td}><span style={{ background: t.bg, color: t.cor, border: `1px solid ${t.bd}`, fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{t.l}</span></td>
                     <td style={{ ...td, color: "#64748B", fontFamily: "monospace" }}>{c.documento || "—"}</td>
                     <td style={{ ...td, color: "#64748B" }}>{c.telefone ? <div>{c.telefone}</div> : null}{c.email ? <div style={{ fontSize: 12 }}>{c.email}</div> : null}{!c.telefone && !c.email ? "—" : null}</td>
                     <td style={{ ...td, textAlign: "right", fontWeight: 800, color: rec > 0 ? "#059669" : "#CBD5E1" }}>{rec > 0 ? brl(rec) : "—"}</td>

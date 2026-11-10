@@ -121,7 +121,7 @@ function CabecalhoSecaoA2({ icone, titulo, sub, fundo = "#ECFDF5", cor = "#05966
       <span style={{ width: 42, height: 42, borderRadius: 12, background: fundo, color: cor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome={icone as any} tamanho={20} /></span>
       <div>
         <h2 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: 0 }}>{titulo}</h2>
-        <p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>{sub}</p>
+        <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>{sub}</p>
       </div>
     </div>
   );
@@ -200,7 +200,7 @@ const CATEGORIAS_PERMISSAO = [
     { key: "revisional_acessar", label: "Acessar o Revisional (simular e enviar propostas)" },
     { key: "revisional_todas", label: "Ver propostas de todos os consultores" },
   ]},
-  { nome: "Chatbot", cor: "#3b82f6", permissoes: [
+  { nome: "Chatbot", cor: "#14B8A6", permissoes: [
     { key: "chatbot_acessar", label: "Acessar o Chatbot" },
     { key: "chat_proprio", label: "Ver próprios atendimentos" },
     { key: "chat_todos", label: "Ver todos atendimentos" },
@@ -220,7 +220,7 @@ const CATEGORIAS_PERMISSAO = [
   { nome: "Cobrança", cor: "#dc2626", mod: "cobranca", permissoes: [
     { key: "cobranca", label: "Acessar a Cobrança" },
   ]},
-  { nome: "RH", cor: "#4f46e5", mod: "rh", permissoes: [
+  { nome: "RH", cor: "#059669", mod: "rh", permissoes: [
     { key: "rh", label: "Acessar o RH" },
     { key: "rh_dashboard", label: "Dashboard" },
     { key: "rh_indicadores", label: "Indicadores" },
@@ -258,7 +258,7 @@ const CATEGORIAS_PERMISSAO = [
     { key: "roleta_gerenciar", label: "Gerenciar roleta de distribuição" },
     { key: "configuracoes_workspace", label: "Configurações do workspace" },
   ]},
-  { nome: "Relatórios", cor: "#8b5cf6", permissoes: [
+  { nome: "Relatórios", cor: "#14B8A6", permissoes: [
     { key: "relatorios", label: "Relatórios de atendimento" },
     { key: "relatorios_voip", label: "Relatórios de telefonia" },
   ]},
@@ -276,7 +276,7 @@ const initialsFromName = (nome: string) =>
   nome.split(" ").filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase() || "").join("") || "?";
 
 const corHashFromString = (s: string) => {
-  const cores = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#059669", "#06b6d4", "#6366f1", "#a855f7", "#0ea5e9", "#14b8a6", "#f97316"];
+  const cores = ["#14B8A6", "#14B8A6", "#BE185D", "#EA580C", "#059669", "#06b6d4", "#059669", "#a855f7", "#0ea5e9", "#14b8a6", "#f97316"];
   let h = 0;
   for (let i = 0; i < (s || "").length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return cores[Math.abs(h) % cores.length];
@@ -527,10 +527,10 @@ export default function Configuracoes() {
           </p>
           <button onClick={() => router.back()}
             style={{
-              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+              boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
             }}>Voltar</button>
         </div>
       </div>
@@ -928,7 +928,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
               <span style={{ fontSize: 26, fontWeight: 800 }}>{usuarios.length}{temLimite && <span style={{ color: "#94A3B8", fontSize: 16, fontWeight: 700 }}> de {limites.usuarios_liberados}</span>}</span>
               {temLimite ? (
                 <div style={{ height: 8, borderRadius: 99, background: "#EEF2F1" }}>
-                  <div style={{ width: `${pct}%`, height: 8, borderRadius: 99, background: limiteAtingido ? "linear-gradient(90deg, #F87171, #DC2626)" : pct >= 80 ? "linear-gradient(90deg, #FBBF24, #F59E0B)" : "linear-gradient(90deg, #34D399, #059669)", boxShadow: "0 2px 6px rgba(5,150,105,.4)", transition: "width .3s" }} />
+                  <div style={{ width: `${pct}%`, height: 8, borderRadius: 99, background: limiteAtingido ? "linear-gradient(90deg, #F87171, #DC2626)" : pct >= 80 ? "linear-gradient(90deg, #FB923C, #EA580C)" : "linear-gradient(90deg, #34D399, #059669)", boxShadow: "0 2px 6px rgba(5,150,105,.4)", transition: "width .3s" }} />
                 </div>
               ) : <span style={{ color: "#64748B", fontSize: 12.5 }}>sem limite no plano</span>}
             </div>
@@ -1018,7 +1018,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                 <option key={g.id} value={g.id.toString()}>{g.nome}</option>
               ))}
             </select>
-            <p style={{ color: "#f59e0b", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+            <p style={{ color: "#EA580C", fontSize: 12, margin: "5px 0 0", fontStyle: "italic" }}>
               É o GRUPO que define todas as permissões do usuário (configuráveis em <b>Permissões</b>).
             </p>
           </div>
@@ -1073,7 +1073,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                 );
               })}
             </div>
-            <p style={{ color: "#94A3B8", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+            <p style={{ color: "#94A3B8", fontSize: 12, margin: "5px 0 0", fontStyle: "italic" }}>
               Marque as equipes deste usuário. As vendas dessas equipes ficam visíveis pra ele (útil pra BKO e gerentes).
             </p>
           </div>
@@ -1136,7 +1136,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                   })}
                 </div>
                 {formUsuario.filas_acesso.length > 0 && (
-                  <p style={{ color: "#10b981", fontSize: 10.5, margin: "5px 0 0", fontWeight: 600 }}>
+                  <p style={{ color: "#10b981", fontSize: 12, margin: "5px 0 0", fontWeight: 600 }}>
                     Usuário verá {formUsuario.filas_acesso.length} fila(s) selecionada(s)
                   </p>
                 )}
@@ -1195,7 +1195,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                   );
                 })}
               </div>
-              <p style={{ color: "#94A3B8", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+              <p style={{ color: "#94A3B8", fontSize: 12, margin: "5px 0 0", fontStyle: "italic" }}>
                 Marque os canais que esse usuário pode ver no chat. Soma com os canais do grupo dele.
               </p>
               {modulosCarregados && modulos?.voip && (
@@ -1233,7 +1233,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                       );
                     })}
                   </div>
-                  <p style={{ color: "#94A3B8", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+                  <p style={{ color: "#94A3B8", fontSize: 12, margin: "5px 0 0", fontStyle: "italic" }}>
                     Somente os canais marcados aparecerão no softphone deste usuário.
                   </p>
                 </div>
@@ -1273,7 +1273,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                     {formUsuario.exige_selfie ? "Sim — exige selfie + GPS" : "Não — só localização (GPS)"}
                   </span>
                 </div>
-                <p style={{ color: "#94A3B8", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+                <p style={{ color: "#94A3B8", fontSize: 12, margin: "5px 0 0", fontStyle: "italic" }}>
                   Funcionários internos podem bater só com localização.
                 </p>
               </div>
@@ -1295,7 +1295,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                 }}>
                 <div style={{
                   width: 40, height: 22, borderRadius: 999,
-                  background: formUsuario.exige_ponto ? "#db2777" : "#cbd5e1",
+                  background: formUsuario.exige_ponto ? "#BE185D" : "#cbd5e1",
                   position: "relative", flexShrink: 0, transition: "background 0.15s",
                 }}>
                   <div style={{
@@ -1313,7 +1313,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                   {formUsuario.exige_ponto ? "Sim — precisa bater ponto pra entrar" : "Não — entra direto, sem bater ponto"}
                 </span>
               </div>
-              <p style={{ color: "#94A3B8", fontSize: 10.5, margin: "5px 0 0", fontStyle: "italic" }}>
+              <p style={{ color: "#94A3B8", fontSize: 12, margin: "5px 0 0", fontStyle: "italic" }}>
                 Logins administrativos (sócios, gerentes, freelancers) podem acessar sem bater ponto.
               </p>
             </div>
@@ -1326,10 +1326,9 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
               padding: 14,
               background: "#fef3c7",
               border: "1px solid #fde68a",
-              borderLeft: "3px solid #f59e0b",
               borderRadius: 10,
             }}>
-              <p style={{ color: "#92400e", fontSize: 12, fontWeight: 800, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>
+              <p style={{ color: "#92400e", fontSize: 12, fontWeight: 800, margin: "0 0 4px" }}>
                 Trocar Credenciais (Admin)
               </p>
               <p style={{ color: "#a16207", fontSize: 11, margin: "0 0 12px", lineHeight: 1.4 }}>

@@ -190,7 +190,6 @@ export function ContratosSection() {
           style={{
             background: "#FFF7ED",
             border: "1px solid #fde68a",
-            borderLeft: "4px solid #C2410C",
             borderRadius: 12,
             padding: "12px 16px",
             display: "flex",

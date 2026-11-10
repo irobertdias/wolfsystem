@@ -451,7 +451,7 @@ export function BancoHorasSection() {
                         <p
                           style={{
                             color: "#94A3B8",
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: 700,
                             margin: "0 0 6px",
                           }}
@@ -492,7 +492,7 @@ export function BancoHorasSection() {
                         <p
                           style={{
                             color: "#94A3B8",
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: 700,
                             margin: "12px 0 6px",
                           }}
@@ -703,7 +703,7 @@ function Pill({ label, valor, cor, forte }: { label: string; valor: string; cor:
       <p
         style={{
           color: "#94A3B8",
-          fontSize: 9,
+          fontSize: 11,
           margin: 0,
           fontWeight: 700,
         }}

@@ -427,7 +427,7 @@ export default function CobrancaAtualizacao() {
         </div>
       </div>
 
-      {faltaTabela && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626", borderRadius: 12, padding: "12px 18px", color: "#991b1b", fontSize: 13, fontWeight: 600 }}>A tabela <b>faturas_status</b> não existe (ou está sem as colunas/índices novos). Rode o SQL de setup da Cobrança pra liberar a gravação.</div>}
+      {faltaTabela && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "12px 18px", color: "#991b1b", fontSize: 13, fontWeight: 600 }}>A tabela <b>faturas_status</b> não existe (ou está sem as colunas/índices novos). Rode o SQL de setup da Cobrança pra liberar a gravação.</div>}
 
       {feedback && (
         <div style={{ background: feedback.tipo === "ok" ? "#ECFDF5" : feedback.tipo === "erro" ? "#fef2f2" : "#fffbeb", border: `1px solid ${feedback.tipo === "ok" ? "#A7F3D0" : feedback.tipo === "erro" ? "#fecaca" : "#fde68a"}`, borderLeft: `4px solid ${feedback.tipo === "ok" ? "#059669" : feedback.tipo === "erro" ? "#dc2626" : "#C2410C"}`, borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", gap: 12 }}>
@@ -505,7 +505,7 @@ export default function CobrancaAtualizacao() {
                 </div>
               );
             })}
-            <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #EA580C" }}>
+            <div style={{ ...card, padding: isMobile ? 14 : 18 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 9, background: "#fffbeb", border: "1px solid #fde68a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📆</div>
                 <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: 0 }}>Dias p/ pagar</p>
@@ -552,11 +552,11 @@ export default function CobrancaAtualizacao() {
                       <tr key={c.ordem} style={{ borderTop: "1px solid #F1F5F4", background: i % 2 === 0 ? "#fff" : "#F7FAF9" }}>
                         <td style={{ padding: "11px 14px", maxWidth: 200 }}>
                           <div style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</div>
-                          {!c.matched && <span style={{ color: "#dc2626", fontSize: 10.5, fontWeight: 600 }}>sem venda no CRM</span>}
+                          {!c.matched && <span style={{ color: "#dc2626", fontSize: 12, fontWeight: 600 }}>sem venda no CRM</span>}
                         </td>
                         <td style={{ padding: "11px 14px" }}>
                           <span style={{ fontFamily: "monospace", fontSize: 12.5, color: c.custcode ? "#0F172A" : "#94A3B8", fontWeight: 700, background: c.custcodeNovo ? "#ECFDF5" : "transparent", border: c.custcodeNovo ? "1px solid #A7F3D0" : "1px solid transparent", borderRadius: 6, padding: "2px 7px" }}>{c.custcode || "—"}</span>
-                          {c.custcodeNovo && <span style={{ color: "#059669", fontSize: 10, fontWeight: 700, marginLeft: 4 }}>novo</span>}
+                          {c.custcodeNovo && <span style={{ color: "#059669", fontSize: 12, fontWeight: 700, marginLeft: 4 }}>novo</span>}
                         </td>
                         <td style={{ padding: "11px 14px" }}>
                           <span style={{ background: rp.bg, color: rp.cor, border: `1px solid ${rp.border}`, fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>{rp.texto}</span>

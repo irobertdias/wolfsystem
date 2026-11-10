@@ -1,5 +1,5 @@
 "use client";
-import Icone from "../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../components/a2/Icone";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -197,22 +197,14 @@ export default function EquipesPage() {
     return (
       <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
         <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
-          </div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🔒"} tamanho={28} /></div>
           <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>
             Só o dono ou administrador do workspace pode gerenciar equipes.
           </p>
           <button onClick={() => router.back()}
             style={{
-              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
               boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -276,7 +268,7 @@ export default function EquipesPage() {
               </button>
               <button onClick={salvar} disabled={salvando}
                 style={{
-                  background: salvando ? "#7e22ce" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                  background: salvando ? "#7e22ce" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
                   boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
@@ -307,7 +299,7 @@ export default function EquipesPage() {
           </button>
           <button onClick={abrirNova}
             style={{
-              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
               color: "white", border: "none", borderRadius: 10,
               padding: "10px 22px", fontSize: 13, fontWeight: 700, cursor: "pointer",
               boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
@@ -328,15 +320,7 @@ export default function EquipesPage() {
           </div>
         ) : equipes.length === 0 ? (
           <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: 18,
-              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 36, margin: "0 auto 14px",
-              boxShadow: "0 12px 24px rgba(168,85,247,0.25)",
-            }}>
-              <span style={{ filter: "saturate(0) brightness(2)" }}>👥</span>
-            </div>
+            <div style={{ width: 72, height: 72, borderRadius: 16, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 14px" }}><IconeEmoji e={"👥"} tamanho={28} /></div>
             <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 600, margin: "0 0 6px" }}>
               Nenhuma equipe criada ainda
             </p>
@@ -345,7 +329,7 @@ export default function EquipesPage() {
             </p>
             <button onClick={abrirNova}
               style={{
-                background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "10px 22px", fontSize: 13, fontWeight: 700, cursor: "pointer",
               }}>Criar primeira equipe</button>
@@ -376,11 +360,11 @@ export default function EquipesPage() {
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                   <div style={{ flex: 1, background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
-                    <p style={{ color: "#94A3B8", fontSize: 9, margin: 0, fontWeight: 700 }}>Vendedores</p>
+                    <p style={{ color: "#94A3B8", fontSize: 11, margin: 0, fontWeight: 700 }}>Vendedores</p>
                     <p style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{eq.qtdUsuarios}</p>
                   </div>
                   <div style={{ flex: 1, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
-                    <p style={{ color: "#047857", fontSize: 9, margin: 0, fontWeight: 700 }}>Propostas</p>
+                    <p style={{ color: "#047857", fontSize: 11, margin: 0, fontWeight: 700 }}>Propostas</p>
                     <p style={{ color: "#059669", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{eq.qtdPropostas}</p>
                   </div>
                 </div>
@@ -421,12 +405,12 @@ export default function EquipesPage() {
                     {u.equipe_id ? (
                       <span style={{
                         background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0",
-                        padding: "3px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap",
+                        padding: "3px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
                       }}>{mapaEquipes.get(u.equipe_id) || "—"}</span>
                     ) : (
                       <span style={{
                         background: "#F7FAF9", color: "#94A3B8", border: "1px solid #E6ECEA",
-                        padding: "3px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap",
+                        padding: "3px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
                       }}>Sem equipe</span>
                     )}
                     <select

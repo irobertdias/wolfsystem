@@ -787,7 +787,7 @@ export default function Clientes() {
       background: ativo ? `${cor}15` : "#F1F5F4",
       color: ativo ? cor : "#94A3B8",
       border: `1px solid ${ativo ? `${cor}40` : "#E6ECEA"}`,
-      fontSize: 10, padding: "3px 10px", borderRadius: 10, fontWeight: 700,
+      fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700,
       opacity: ativo ? 1 : 0.5,
     }} title={label}>
       {<IconeEmoji e={icone} />} {label}
@@ -829,20 +829,13 @@ export default function Clientes() {
   if (!temAcesso) {
     return (
       <div style={{ padding: 48, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-        <div style={{
-          width: 80, height: 80, borderRadius: 20,
-          background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 40, boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
-        }}>
-          <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
-        </div>
+        <div style={{ width: 80, height: 80, borderRadius: 18, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"🔒"} tamanho={28} /></div>
         <h2 style={{ color: "#0F172A", fontSize: 20, fontWeight: 700, margin: 0 }}>Acesso Restrito</h2>
         <p style={{ color: "#64748B", fontSize: 14, margin: 0, textAlign: "center" }}>Esta área é exclusiva do administrador master do sistema.</p>
         <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>Logado como: <b>{emailUsuario}</b></p>
         <button onClick={() => router.push("/crm")}
           style={{
-            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+            background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, marginTop: 8,
             boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -883,7 +876,7 @@ export default function Clientes() {
                   </label>
                   <input placeholder="email@empresa.com" value={formCadastro.email || ""} onChange={e => setFormCadastro({ ...formCadastro, email: e.target.value })} style={inputSm} />
                   {cadastroSelecionado && formCadastro.email !== cadastroSelecionado.email && (
-                    <p style={{ color: "#C2410C", fontSize: 10, margin: "4px 0 0" }}>Ao salvar, o cliente passa a logar com esse novo e-mail.</p>
+                    <p style={{ color: "#C2410C", fontSize: 12, margin: "4px 0 0" }}>Ao salvar, o cliente passa a logar com esse novo e-mail.</p>
                   )}
                 </div>
                 <div><label style={labelStyle}>WhatsApp</label><input placeholder="(62) 99999-9999" value={formCadastro.whatsapp || ""} onChange={e => setFormCadastro({ ...formCadastro, whatsapp: e.target.value })} style={inputSm} /></div>
@@ -892,9 +885,9 @@ export default function Clientes() {
                   <input placeholder="ex: abc_company" value={formCadastro.username || ""}
                     onChange={e => setFormCadastro({ ...formCadastro, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
                     style={{ ...inputSm, fontFamily: "monospace" }} maxLength={30} />
-                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>a-z, 0-9, _ — 3 a 30 chars</p>
+                  <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>a-z, 0-9, _ — 3 a 30 chars</p>
                   {cadastroSelecionado && formCadastro.username !== cadastroSelecionado.username && (
-                    <p style={{ color: "#C2410C", fontSize: 10, margin: "4px 0 0" }}>Isso renomeia o workspace inteiro (conversas, fluxos, financeiro etc). Só salve se tiver certeza.</p>
+                    <p style={{ color: "#C2410C", fontSize: 12, margin: "4px 0 0" }}>Isso renomeia o workspace inteiro (conversas, fluxos, financeiro etc). Só salve se tiver certeza.</p>
                   )}
                 </div>
                 {!cadastroSelecionado && (
@@ -929,12 +922,12 @@ export default function Clientes() {
                       }}>
                       <p style={{ color: ativo ? p.color : "#0F172A", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>{p.label}</p>
                       <p style={{ color: ativo ? p.color : "#334155", fontSize: 12, margin: "0 0 4px", fontWeight: 700 }}>{p.preco}</p>
-                      <p style={{ color: "#64748B", fontSize: 10, margin: 0 }}>{p.usuarios} usuários · {p.conexoes} conexões</p>
+                      <p style={{ color: "#64748B", fontSize: 12, margin: 0 }}>{p.usuarios} usuários · {p.conexoes} conexões</p>
                     </button>
                   );
                 })}
               </div>
-              <p style={{ color: "#94A3B8", fontSize: 10, margin: "10px 0 0", fontStyle: "italic" }}>
+              <p style={{ color: "#94A3B8", fontSize: 12, margin: "10px 0 0", fontStyle: "italic" }}>
                 Ao selecionar o plano, os limites e módulos abaixo são preenchidos automaticamente. Você pode ajustar individualmente.
               </p>
             </div>
@@ -972,14 +965,14 @@ export default function Clientes() {
                       const num = v ? parseFloat(v) : null;
                       setFormCadastro({ ...formCadastro, valor_mensalidade: (num && !isNaN(num)) ? num : null });
                     }} style={inputSm} />
-                  <p style={{ color: "#78350f", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>Permite valor diferente por cliente (pra descontos)</p>
+                  <p style={{ color: "#78350f", fontSize: 12, margin: "4px 0 0", fontStyle: "italic" }}>Permite valor diferente por cliente (pra descontos)</p>
                 </div>
                 <div>
                   <label style={labelStyle}>Próximo vencimento</label>
                   <input type="date" value={formCadastro.proximo_vencimento || ""}
                     onChange={e => setFormCadastro({ ...formCadastro, proximo_vencimento: e.target.value || null })}
                     style={inputSm} />
-                  <p style={{ color: "#78350f", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>Auto-preenche ao escolher o dia</p>
+                  <p style={{ color: "#78350f", fontSize: 12, margin: "4px 0 0", fontStyle: "italic" }}>Auto-preenche ao escolher o dia</p>
                 </div>
               </div>
             </div>}
@@ -1000,7 +993,7 @@ export default function Clientes() {
                   <div style={{ background: "white", borderRadius: 10, padding: 12, marginBottom: 14, border: `1px solid ${st.borda}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                       <div>
-                        <p style={{ color: "#64748B", fontSize: 10, fontWeight: 700, margin: 0 }}>Status atual</p>
+                        <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: 0 }}>Status atual</p>
                         <p style={{ color: st.cor, fontSize: 14, fontWeight: 800, margin: "2px 0 0" }}>{<IconeEmoji e={st.icone} />} {st.label}</p>
                       </div>
                       {temConfianca && (
@@ -1043,7 +1036,7 @@ export default function Clientes() {
 
                     {/* 🤝 CONFIANÇA */}
                     <button onClick={() => setShowModalConfianca(true)}
-                      style={{ background: temConfianca ? "#ECFDF5" : "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: temConfianca ? "#047857" : "white", border: temConfianca ? "1px solid #A7F3D0" : "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: temConfianca ? "none" : "0 4px 12px rgba(5,150,105,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      style={{ background: temConfianca ? "#ECFDF5" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: temConfianca ? "#047857" : "white", border: temConfianca ? "1px solid #A7F3D0" : "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: temConfianca ? "none" : "0 4px 12px rgba(5,150,105,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                       <IconeEmoji e="🤝" tamanho={16} />
                       <span>{temConfianca ? "Alterar confiança" : "Desbloquear por X dias"}</span>
                     </button>
@@ -1116,7 +1109,7 @@ export default function Clientes() {
                 <Toggle value={!!formCadastro.modulo_disparos_web} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_web: !formCadastro.modulo_disparos_web })} label="Disparos Web" desc="Intermediário, Ultra" color="#14B8A6" />
                 <Toggle value={!!formCadastro.modulo_validacao_numeros} onChange={() => setFormCadastro({ ...formCadastro, modulo_validacao_numeros: !formCadastro.modulo_validacao_numeros })} label={"\u2705 Valida\u00e7\u00e3o de n\u00fameros"} desc={"Higieniza\u00e7\u00e3o de listas com canal exclusivo"} color="#0891b2" />
                 <Toggle value={!!formCadastro.modulo_revisional} onChange={() => setFormCadastro({ ...formCadastro, modulo_revisional: !formCadastro.modulo_revisional })} label="Revisional" desc="Simulação de juros e propostas com link" color="#059669" />
-                <Toggle value={!!formCadastro.modulo_contratos_assinaturas} onChange={() => setFormCadastro({ ...formCadastro, modulo_contratos_assinaturas: !formCadastro.modulo_contratos_assinaturas })} label="Contratos e Assinaturas" desc="Planos Essencial, Profissional e Empresarial" color="#155eef" />
+                <Toggle value={!!formCadastro.modulo_contratos_assinaturas} onChange={() => setFormCadastro({ ...formCadastro, modulo_contratos_assinaturas: !formCadastro.modulo_contratos_assinaturas })} label="Contratos e Assinaturas" desc="Planos Essencial, Profissional e Empresarial" color="#059669" />
                 {formCadastro.modulo_contratos_assinaturas && (() => {
                   const chave = (formCadastro.modulo_contratos_plano || "essencial") as PlanoContratos;
                   const planoContrato = CONTRATOS_PLANOS[chave];
@@ -1132,16 +1125,16 @@ export default function Clientes() {
                       <input type="checkbox" checked={comCrm} onChange={e => setFormCadastro({ ...formCadastro, modulo_contratos_com_crm: e.target.checked })}/>
                       Cliente possui CRM Wolf contratado
                     </label>
-                    <div style={{ borderRadius: 10, background: "#155eef", color: "white", padding: "10px 14px", minWidth: 150 }}><small style={{ opacity: .8 }}>mensalidade</small><strong style={{ display: "block", fontSize: 20 }}>R$ {preco.toFixed(2).replace(".", ",")}</strong></div>
+                    <div style={{ borderRadius: 10, background: "#059669", color: "white", padding: "10px 14px", minWidth: 150 }}><small style={{ opacity: .8 }}>mensalidade</small><strong style={{ display: "block", fontSize: 20 }}>R$ {preco.toFixed(2).replace(".", ",")}</strong></div>
                   </div>;
                 })()}
 
-                <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="Central Ads" desc="Central de campanhas e resultados de mídia paga" color="#7e22ce" />
+                <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="Central Ads" desc="Central de campanhas e resultados de mídia paga" color="#047857" />
                 <Toggle value={!!formCadastro.modulo_disparos_api} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_api: !formCadastro.modulo_disparos_api })} label="Disparos API" desc="Apenas Ultra" color="#0F766E" />
                 <Toggle value={!!formCadastro.modulo_voip} onChange={() => setFormCadastro({ ...formCadastro, modulo_voip: !formCadastro.modulo_voip })} label="Ligações VOIP" desc="Apenas Ultra" color="#0F766E" />
                 <Toggle value={!!formCadastro.modulo_api_integracao} onChange={() => setFormCadastro({ ...formCadastro, modulo_api_integracao: !formCadastro.modulo_api_integracao })} label="API de Integração" desc="Intermediário, Ultra" color="#14B8A6" />
                 <Toggle value={!!formCadastro.modulo_instagram} onChange={() => setFormCadastro({ ...formCadastro, modulo_instagram: !formCadastro.modulo_instagram })} label="Instagram Direct (Módulo)" desc="Apenas Ultra" color="#BE185D" />
-                <Toggle value={!!formCadastro.modulo_equipes} onChange={() => setFormCadastro({ ...formCadastro, modulo_equipes: !formCadastro.modulo_equipes })} label="Equipes Multi-time" desc="Intermediário, Ultra" color="#a855f7" />
+                <Toggle value={!!formCadastro.modulo_equipes} onChange={() => setFormCadastro({ ...formCadastro, modulo_equipes: !formCadastro.modulo_equipes })} label="Equipes Multi-time" desc="Intermediário, Ultra" color="#0F766E" />
                 <Toggle value={!!formCadastro.modulo_funil_avancado} onChange={() => setFormCadastro({ ...formCadastro, modulo_funil_avancado: !formCadastro.modulo_funil_avancado })} label="Funil Avançado" desc="Intermediário, Ultra" color="#14B8A6" />
                 <Toggle value={!!formCadastro.modulo_cobranca} onChange={() => setFormCadastro({ ...formCadastro, modulo_cobranca: !formCadastro.modulo_cobranca })} label="Cobrança Automatizada" desc="Apenas Ultra" color="#dc2626" />
                 <Toggle value={!!formCadastro.modulo_rh} onChange={() => setFormCadastro({ ...formCadastro, modulo_rh: !formCadastro.modulo_rh })} label="RH — Recursos Humanos" desc="Gestão de pessoas, folha, férias" color="#059669" />
@@ -1158,7 +1151,7 @@ export default function Clientes() {
                     </div>
                     {FIN_GRUPOS.map((g) => (
                       <div key={g.nome} style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#b45309", marginBottom: 5 }}>{g.nome}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#b45309", marginBottom: 5 }}>{g.nome}</div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                           {g.itens.map((it) => {
                             const on = !!(formCadastro.financeiro_opcoes || {})[it.key];
@@ -1302,7 +1295,7 @@ export default function Clientes() {
                   <button key={d} onClick={() => setDiasConfianca(d)}
                     style={{
                       flex: 1, minWidth: 60,
-                      background: diasConfianca === d ? "linear-gradient(135deg, #10B981 0%, #059669 100%)" : "#F7FAF9",
+                      background: diasConfianca === d ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)" : "#F7FAF9",
                       color: diasConfianca === d ? "white" : "#64748B",
                       border: diasConfianca === d ? "none" : "1px solid #E6ECEA",
                       borderRadius: 10, padding: "8px 0", fontSize: 13, cursor: "pointer", fontWeight: 700,
@@ -1328,7 +1321,7 @@ export default function Clientes() {
               <button onClick={async () => { await darConfianca(diasConfianca); setShowModalConfianca(false); }}
                 disabled={diasConfianca < 1 || diasConfianca > 90}
                 style={{
-                  background: (diasConfianca < 1 || diasConfianca > 90) ? "#34D399" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                  background: (diasConfianca < 1 || diasConfianca > 90) ? "#34D399" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
                   boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -1348,16 +1341,7 @@ export default function Clientes() {
           <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 720, display: "flex", flexDirection: "column", gap: 18, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: 16,
-                  background: cadastroSelecionado.autorizado
-                    ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)"
-                    : "linear-gradient(135deg, #C2410C 0%, #f97316 100%)",
-                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26,
-                  boxShadow: cadastroSelecionado.autorizado ? "0 8px 20px rgba(5,150,105,0.25)" : "0 8px 20px rgba(245,158,11,0.25)",
-                }}>
-                  <span style={{ filter: "saturate(0) brightness(2)" }}>🏢</span>
-                </div>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: cadastroSelecionado.autorizado ? "#ECFDF5" : "#FFF7ED", color: cadastroSelecionado.autorizado ? "#059669" : "#C2410C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="predio" tamanho={26} /></div>
                 <div>
                   <h2 style={{ color: "#0F172A", fontSize: 20, fontWeight: 700, margin: 0 }}>{cadastroSelecionado.nome}</h2>
                   <p style={{ color: "#64748B", fontSize: 13, margin: "4px 0 6px 0" }}>{cadastroSelecionado.empresa || "Sem empresa"}{cadastroSelecionado.username && ` · @${cadastroSelecionado.username}`}</p>
@@ -1379,7 +1363,7 @@ export default function Clientes() {
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
               {[{ label: "Email", value: cadastroSelecionado.email, icon: "✉️" }, { label: "WhatsApp", value: cadastroSelecionado.whatsapp, icon: "📱" }, { label: "Plano", value: cadastroSelecionado.plano, icon: "📦" }, { label: "IA", value: cadastroSelecionado.ia, icon: "🤖" }].filter(i => i.value).map(info => (
                 <div key={info.label} style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 10, padding: 12 }}>
-                  <p style={{ color: "#64748B", fontSize: 10, fontWeight: 700, margin: "0 0 4px 0" }}>{<IconeEmoji e={info.icon} />} {info.label}</p>
+                  <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: "0 0 4px 0" }}>{<IconeEmoji e={info.icon} />} {info.label}</p>
                   <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0 }}>{info.value}</p>
                 </div>
               ))}
@@ -1397,15 +1381,15 @@ export default function Clientes() {
               {cadastroSelecionado.dia_vencimento ? (
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
                   <div style={{ background: "white", border: `1px solid ${stCobranca.borda}`, borderRadius: 10, padding: 10, textAlign: "center" }}>
-                    <p style={{ color: "#64748B", fontSize: 9, fontWeight: 700, margin: 0 }}>Dia venc</p>
+                    <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: 0 }}>Dia venc</p>
                     <p style={{ color: stCobranca.cor, fontSize: 18, fontWeight: 800, margin: "2px 0 0" }}>{cadastroSelecionado.dia_vencimento}</p>
                   </div>
                   <div style={{ background: "white", border: `1px solid ${stCobranca.borda}`, borderRadius: 10, padding: 10, textAlign: "center" }}>
-                    <p style={{ color: "#64748B", fontSize: 9, fontWeight: 700, margin: 0 }}>Mensal</p>
+                    <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: 0 }}>Mensal</p>
                     <p style={{ color: stCobranca.cor, fontSize: 14, fontWeight: 800, margin: "2px 0 0" }}>{formatarReais(cadastroSelecionado.valor_mensalidade)}</p>
                   </div>
                   <div style={{ background: "white", border: `1px solid ${stCobranca.borda}`, borderRadius: 10, padding: 10, textAlign: "center", gridColumn: isMobile ? "span 2" : "auto" }}>
-                    <p style={{ color: "#64748B", fontSize: 9, fontWeight: 700, margin: 0 }}>Próximo</p>
+                    <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: 0 }}>Próximo</p>
                     <p style={{ color: stCobranca.cor, fontSize: 13, fontWeight: 800, margin: "2px 0 0" }}>{formatarData(cadastroSelecionado.proximo_vencimento)}</p>
                   </div>
                 </div>
@@ -1462,7 +1446,7 @@ export default function Clientes() {
                           </td>
                           <td style={{ padding: "8px 10px", color: "#059669", fontWeight: 700 }}>{formatarReais(Number(p.valor))}</td>
                           <td style={{ padding: "8px 10px" }}>
-                            <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 8px", borderRadius: 8, fontSize: 10, fontWeight: 700 }}>{p.forma_pagamento}</span>
+                            <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 8px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>{p.forma_pagamento}</span>
                           </td>
                           <td style={{ padding: "8px 10px", color: "#64748B", fontSize: 11 }}>{p.observacao || "—"}</td>
                         </tr>
@@ -1476,11 +1460,11 @@ export default function Clientes() {
             <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 18 }}>
               <p style={{ color: "#C2410C", fontSize: 11, fontWeight: 700, margin: "0 0 14px" }}>Limites do Plano</p>
               <div style={{ display: "flex", gap: 14 }}>
-                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 14, borderTop: "3px solid #C2410C" }}>
+                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 14 }}>
                   <p style={{ color: "#C2410C", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{cadastroSelecionado.usuarios_liberados || 1}</p>
                   <p style={{ color: "#64748B", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>Usuários</p>
                 </div>
-                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 14, borderTop: "3px solid #059669" }}>
+                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 14 }}>
                   <p style={{ color: "#059669", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{cadastroSelecionado.conexoes_liberadas || 1}</p>
                   <p style={{ color: "#64748B", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>Conexões</p>
                 </div>
@@ -1492,16 +1476,16 @@ export default function Clientes() {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_roleta} icone="🎯" label="Roleta" cor="#14B8A6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_revisional} icone="⚖️" label="Revisional" cor="#059669" />
-                <BadgeModulo ativo={!!cadastroSelecionado.modulo_contratos_assinaturas} icone="📄" label={`Contratos — ${CONTRATOS_PLANOS[cadastroSelecionado.modulo_contratos_plano || "essencial"].nome}`} cor="#155eef" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_contratos_assinaturas} icone="📄" label={`Contratos — ${CONTRATOS_PLANOS[cadastroSelecionado.modulo_contratos_plano || "essencial"].nome}`} cor="#059669" />
 
-                <BadgeModulo ativo={!!cadastroSelecionado.modulo_meta_ads} icone="📊" label="Central Ads" cor="#7e22ce" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_meta_ads} icone="📊" label="Central Ads" cor="#047857" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_disparos_web} icone="📤" label="Disparos Web" cor="#14B8A6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_validacao_numeros} icone={"\u2705"} label={"Valida\u00e7\u00e3o de n\u00fameros"} cor="#0891b2" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_disparos_api} icone="📨" label="Disparos API" cor="#0F766E" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_voip} icone="📞" label="VOIP" cor="#0F766E" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_api_integracao} icone="🔌" label="API Integração" cor="#14B8A6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_instagram} icone="📸" label="Instagram" cor="#BE185D" />
-                <BadgeModulo ativo={!!cadastroSelecionado.modulo_equipes} icone="👥" label="Equipes" cor="#a855f7" />
+                <BadgeModulo ativo={!!cadastroSelecionado.modulo_equipes} icone="👥" label="Equipes" cor="#0F766E" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_funil_avancado} icone="📊" label="Funil Avançado" cor="#14B8A6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_cobranca} icone="💰" label="Cobrança" cor="#dc2626" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_rh} icone="🧑‍💼" label="RH" cor="#059669" />
@@ -1614,15 +1598,7 @@ export default function Clientes() {
       {/* ═══ LISTA / TABELA (com coluna 💰 Cobrança) ═══ */}
       {loadingCadastros ? <p style={{ color: "#64748B" }}>Carregando...</p> : cadastrosFiltrados.length === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(5,150,105,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🏢</span>
-          </div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🏢"} tamanho={28} /></div>
           <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "0 0 8px 0" }}>Nenhum cliente encontrado</h3>
           <button onClick={abrirNovo}
             style={{
@@ -1672,7 +1648,7 @@ export default function Clientes() {
                         <div>
                           <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{c.nome}</p>
                           <p style={{ color: "#64748B", fontSize: 11, margin: "3px 0 0" }}>{c.email}</p>
-                          {c.empresa && <p style={{ color: "#94A3B8", fontSize: 10, margin: "2px 0 0" }}>{c.empresa}{c.username && ` · @${c.username}`}</p>}
+                          {c.empresa && <p style={{ color: "#94A3B8", fontSize: 12, margin: "2px 0 0" }}>{c.empresa}{c.username && ` · @${c.username}`}</p>}
                         </div>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
@@ -1725,7 +1701,7 @@ export default function Clientes() {
                       <td style={{ padding: "14px 16px" }}>
                         <span style={{
                           background: stCobranca.bg, color: stCobranca.cor, border: `1px solid ${stCobranca.borda}`,
-                          fontSize: 10, padding: "3px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap",
+                          fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap",
                         }} title={c.proximo_vencimento ? `Próx. venc: ${formatarData(c.proximo_vencimento)}` : "Sem cobrança configurada"}>
                           {<IconeEmoji e={stCobranca.icone} />} {stCobranca.label}
                         </span>
@@ -1796,13 +1772,13 @@ export default function Clientes() {
                                             background: s.perfil === "Administrador" ? "#FFF7ED" : s.perfil === "Supervisor" ? "#ECFDF5" : "#ECFDF5",
                                             color: s.perfil === "Administrador" ? "#C2410C" : s.perfil === "Supervisor" ? "#059669" : "#059669",
                                             border: `1px solid ${s.perfil === "Administrador" ? "#fde68a" : s.perfil === "Supervisor" ? "#A7F3D0" : "#A7F3D0"}`,
-                                            padding: "2px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700,
+                                            padding: "2px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700,
                                           }}>{s.perfil}</span>
                                         </td>
                                         <td style={{ padding: "9px 12px", color: "#64748B", fontSize: 12 }}>{s.fila || <span style={{ color: "#CBD5E1" }}>—</span>}</td>
                                         <td style={{ padding: "9px 12px" }}>
                                           {s.grupo_id ? (
-                                            <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>
+                                            <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
                                               {grupos.find(g => g.id === s.grupo_id)?.nome || "—"}
                                             </span>
                                           ) : <span style={{ color: "#CBD5E1", fontSize: 11 }}>—</span>}
@@ -1812,7 +1788,7 @@ export default function Clientes() {
                                             background: s.status === "online" ? "#ECFDF5" : "#F1F5F4",
                                             color: s.status === "online" ? "#059669" : "#64748B",
                                             border: `1px solid ${s.status === "online" ? "#A7F3D0" : "#E6ECEA"}`,
-                                            padding: "2px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700,
+                                            padding: "2px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700,
                                           }}>
                                             {s.status === "online" ? "Online" : "Offline"}
                                           </span>

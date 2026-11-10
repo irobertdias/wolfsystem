@@ -59,7 +59,7 @@ export default function ExcluirDadosPage() {
           {/* Email + botão de copiar */}
           <div style={{ background: "#0a0a0a", borderRadius: 8, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, border: "1px solid #0F172A" }}>
             <div>
-              <p style={{ color: "#64748B", fontSize: 11, margin: "0 0 4px 0", textTransform: "uppercase", letterSpacing: 1, fontWeight: "bold" }}>
+              <p style={{ color: "#64748B", fontSize: 11, margin: "0 0 4px 0", fontWeight: "bold" }}>
                 E-mail para solicitação
               </p>
               <p style={{ color: "#059669", fontSize: 17, fontWeight: "bold", margin: 0, fontFamily: "monospace" }}>

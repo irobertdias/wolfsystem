@@ -135,7 +135,7 @@ export default function ImportarExtrato() {
                   <td style={{ ...td, color: "#64748B" }}>{dataBR(l.data)}</td>
                   <td style={{ ...td, fontWeight: 600 }}>{l.descricao}</td>
                   <td style={{ ...td, color: "#64748B" }}>{nome(l.conta_id)}</td>
-                  <td style={td}>{l.conciliado ? <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Conciliado</span> : <span style={{ background: "#fefce8", color: "#ca8a04", border: "1px solid #fde68a", fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>A conciliar</span>}</td>
+                  <td style={td}>{l.conciliado ? <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Conciliado</span> : <span style={{ background: "#fefce8", color: "#ca8a04", border: "1px solid #fde68a", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>A conciliar</span>}</td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 800, color: l.tipo === "credito" ? "#059669" : "#dc2626", whiteSpace: "nowrap" }}>{l.tipo === "credito" ? "+" : "-"}{brl(l.valor)}</td>
                 </tr>
               ))}

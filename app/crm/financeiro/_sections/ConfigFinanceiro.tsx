@@ -50,7 +50,7 @@ export default function ConfigFinanceiro() {
     return (
       <div style={{ ...card, padding: 22 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 12, background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, boxShadow: `0 4px 10px ${COR}25` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={icone} />}</span></div>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={icone} tamanho={19} /></div>
           <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>{titulo}</div><div style={{ fontSize: 12.5, color: "#94A3B8" }}>{desc}</div></div>
           {badge}
         </div>
@@ -90,7 +90,7 @@ export default function ConfigFinanceiro() {
           </Secao>
 
           <Secao icone="🧾" titulo="Provedor de NF-e" desc="Para emitir nota fiscal na SEFAZ"
-            badge={<span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 11px", borderRadius: 20, background: c.nfe_provedor ? "#ECFDF5" : "#F1F5F4", color: c.nfe_provedor ? "#059669" : "#94A3B8", border: `1px solid ${c.nfe_provedor ? "#A7F3D0" : "#E6ECEA"}` }}>{c.nfe_provedor ? "● Configurado" : "○ Não configurado"}</span>}>
+            badge={<span style={{ fontSize: 12, fontWeight: 700, padding: "3px 11px", borderRadius: 20, background: c.nfe_provedor ? "#ECFDF5" : "#F1F5F4", color: c.nfe_provedor ? "#059669" : "#94A3B8", border: `1px solid ${c.nfe_provedor ? "#A7F3D0" : "#E6ECEA"}` }}>{c.nfe_provedor ? "● Configurado" : "○ Não configurado"}</span>}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 14 }}>
               <div><label style={lbl}>Provedor</label><select value={c.nfe_provedor} onChange={(e) => set("nfe_provedor", e.target.value)} style={input}><option value="">Nenhum</option><option value="PlugNotas">PlugNotas</option><option value="Focus NFe">Focus NFe</option><option value="eNotas">eNotas</option><option value="NFe.io">NFe.io</option></select></div>
               <div><label style={lbl}>Token / chave de API</label><input type="password" value={c.nfe_chave} onChange={(e) => set("nfe_chave", e.target.value)} style={input} placeholder="••••••••" /></div>
@@ -98,7 +98,7 @@ export default function ConfigFinanceiro() {
           </Secao>
 
           <Secao icone="🔌" titulo="Integração bancária" desc="Open Finance — extrato ao-vivo"
-            badge={<span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 11px", borderRadius: 20, background: c.banco_provedor ? "#ECFDF5" : "#F1F5F4", color: c.banco_provedor ? "#059669" : "#94A3B8", border: `1px solid ${c.banco_provedor ? "#A7F3D0" : "#E6ECEA"}` }}>{c.banco_provedor ? "● Configurado" : "○ Não configurado"}</span>}>
+            badge={<span style={{ fontSize: 12, fontWeight: 700, padding: "3px 11px", borderRadius: 20, background: c.banco_provedor ? "#ECFDF5" : "#F1F5F4", color: c.banco_provedor ? "#059669" : "#94A3B8", border: `1px solid ${c.banco_provedor ? "#A7F3D0" : "#E6ECEA"}` }}>{c.banco_provedor ? "● Configurado" : "○ Não configurado"}</span>}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 14 }}>
               <div><label style={lbl}>Provedor</label><select value={c.banco_provedor} onChange={(e) => set("banco_provedor", e.target.value)} style={input}><option value="">Nenhum</option><option value="Pluggy">Pluggy</option><option value="Belvo">Belvo</option></select></div>
               <div><label style={lbl}>Token / chave de API</label><input type="password" value={c.banco_chave} onChange={(e) => set("banco_chave", e.target.value)} style={input} placeholder="••••••••" /></div>

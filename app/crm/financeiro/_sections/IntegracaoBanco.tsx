@@ -77,11 +77,11 @@ export default function IntegracaoBanco() {
 
       {/* COMPARATIVO */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
-        <div style={{ ...card, padding: 22, borderTop: "3px solid #059669" }}>
+        <div style={{ ...card, padding: 22 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e="📑" tamanho={17} /></span><h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#059669" }}>Importar OFX <span style={{ fontSize: 11, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 9px", borderRadius: 20 }}>Disponível agora</span></h3></div>
           <p style={{ fontSize: 13.5, color: "#64748B", lineHeight: 1.6, margin: 0 }}>Baixe o extrato em <b>.ofx</b> no app do banco e suba em <b>Importar extrato</b>. A conciliação funciona igual, <b>sem custo</b> de provedor.</p>
         </div>
-        <div style={{ ...card, padding: 22, borderTop: `3px solid ${COR}` }}>
+        <div style={{ ...card, padding: 22 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e="🔌" tamanho={17} /></span><h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: COR }}>Open Finance ao-vivo <span style={{ fontSize: 11, background: "#ECFDF5", color: COR, border: "1px solid #A7F3D0", padding: "2px 9px", borderRadius: 20 }}>Em breve</span></h3></div>
           <p style={{ fontSize: 13.5, color: "#64748B", lineHeight: 1.6, margin: 0 }}>Conexão direta com o banco via agregador (Pluggy/Belvo). O extrato chega <b>sozinho</b>, sem baixar arquivo. É um serviço contratado à parte.</p>
         </div>

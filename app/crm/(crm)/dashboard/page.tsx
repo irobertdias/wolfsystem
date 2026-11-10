@@ -732,7 +732,7 @@ export default function Dashboard() {
               <div key={kpi.label} className="lift" style={{ ...surface, padding: isMobile ? 16 : 20, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                   <span style={{ width: 30, height: 30, borderRadius: 9, background: `${kpi.cor}15`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{<IconeEmoji e={kpi.icone} />}</span>
-                  <p style={{ ...eyebrow, fontSize: 10.5 }}>{kpi.label}</p>
+                  <p style={{ ...eyebrow, fontSize: 12 }}>{kpi.label}</p>
                 </div>
                 <p style={{ color: T.ink, fontSize: isMobile ? 26 : 34, fontWeight: 900, margin: 0, letterSpacing: -1, ...numStyle }}>
                   {kpi.money ? `R$ ${Math.round(kpi.value).toLocaleString("pt-BR")}` : kpi.value.toLocaleString("pt-BR")}
@@ -872,7 +872,7 @@ export default function Dashboard() {
                         </div>
                         <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                           <span style={{ color: i === 0 ? "#065f46" : T.green, fontSize: 14, fontWeight: 900, ...numStyle }}>{v.instaladas} {voc.abrev}</span>
-                          {v.aguardando > 0 && <span style={{ color: grupoMeta.AGUARDANDO_INST.cor, fontSize: 10.5, fontWeight: 800 }}>+{v.aguardando} aguard.</span>}
+                          {v.aguardando > 0 && <span style={{ color: grupoMeta.AGUARDANDO_INST.cor, fontSize: 12, fontWeight: 800 }}>+{v.aguardando} aguard.</span>}
                         </span>
                       </div>
                     );
@@ -926,7 +926,7 @@ export default function Dashboard() {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {(["INSTALADA", "AGUARDANDO_INST", "PENDENTE", "CANCELADA"] as Grupo[]).map((g) => (
                       <div key={g} style={{ background: grupoMeta[g].bg, border: `1px solid ${grupoMeta[g].cor}25`, borderRadius: 8, padding: "8px 12px" }}>
-                        <p style={{ color: T.sub, fontSize: 10, margin: 0, fontWeight: 700 }}>{grupoMeta[g].label}</p>
+                        <p style={{ color: T.sub, fontSize: 12, margin: 0, fontWeight: 700 }}>{grupoMeta[g].label}</p>
                         <p style={{ color: grupoMeta[g].cor, fontSize: 18, fontWeight: 900, margin: "2px 0 0", ...numStyle }}>{(v as any)[g] || 0}</p>
                       </div>
                     ))}
@@ -1002,7 +1002,7 @@ export default function Dashboard() {
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <p style={{ color: cor, fontSize: 11, margin: 0, fontWeight: 800 }}>{grupoMeta[grupo].label}</p>
-                      <p style={{ color: T.faint, fontSize: 10, margin: "1px 0 0" }}>{label}</p>
+                      <p style={{ color: T.faint, fontSize: 12, margin: "1px 0 0" }}>{label}</p>
                     </div>
                   </div>
                 );

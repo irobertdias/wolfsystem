@@ -1,4 +1,5 @@
 "use client";
+import Icone, { IconeEmoji } from "./a2/Icone";
 import { useState, useEffect } from "react";
 import { useLembretePagamento } from "../hooks/useLembretePagamento";
 import { useAcessoTeste } from "./AcessoTeste";
@@ -107,18 +108,10 @@ export default function PopupCobranca() {
           boxShadow: "0 25px 60px rgba(0,0,0,0.5)", textAlign: "center",
         }}>
           {/* Ícone gigante */}
-          <div style={{
-            width: 100, height: 100, borderRadius: 28,
-            background: "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 56, margin: "0 auto 20px",
-            boxShadow: "0 12px 30px rgba(220,38,38,0.4)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
-          </div>
+          <div style={{ width: 100, height: 100, borderRadius: 26, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 20px" }}><IconeEmoji e={"🔒"} tamanho={28} /></div>
 
           <h1 style={{ color: "#7f1d1d", fontSize: 24, fontWeight: 800, margin: "0 0 8px", letterSpacing: -0.5 }}>
-            {ehSuspenso ? "CONTA SUSPENSA" : "SISTEMA BLOQUEADO"}
+            {ehSuspenso ? "Conta suspensa" : "Sistema bloqueado"}
           </h1>
 
           <p style={{ color: "#991b1b", fontSize: 14, margin: "0 0 24px", lineHeight: 1.5 }}>
@@ -131,10 +124,10 @@ export default function PopupCobranca() {
           {/* 🆕 Valor só pra ADM */}
           {!ehSuspenso && mostrarValor && (
             <div style={{
-              background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626",
+              background: "#fef2f2", border: "1px solid #fecaca",
               borderRadius: 12, padding: 16, marginBottom: 20, textAlign: "left",
             }}>
-              <p style={{ color: "#7f1d1d", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 6px" }}>Valor pendente</p>
+              <p style={{ color: "#7f1d1d", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Valor pendente</p>
               <p style={{ color: "#dc2626", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: -1 }}>
                 {formatarReais(cobranca.valorMensalidade)}
               </p>
@@ -149,10 +142,10 @@ export default function PopupCobranca() {
           {/* 🆕 Sem valor (não-ADM): mostra só o vencimento */}
           {!ehSuspenso && !mostrarValor && cobranca.proximoVencimento && (
             <div style={{
-              background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626",
+              background: "#fef2f2", border: "1px solid #fecaca",
               borderRadius: 12, padding: 16, marginBottom: 20, textAlign: "left",
             }}>
-              <p style={{ color: "#7f1d1d", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 6px" }}>Vencimento</p>
+              <p style={{ color: "#7f1d1d", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Vencimento</p>
               <p style={{ color: "#dc2626", fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>
                 {formatarData(cobranca.proximoVencimento)}
               </p>
@@ -164,7 +157,7 @@ export default function PopupCobranca() {
             background: "#F7FAF9", border: "1px solid #E6ECEA",
             borderRadius: 12, padding: 18, marginBottom: 18, textAlign: "left",
           }}>
-            <p style={{ color: "#334155", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>Para regularizar</p>
+            <p style={{ color: "#334155", fontSize: 11, fontWeight: 700, margin: "0 0 12px" }}>Para regularizar</p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <button onClick={copiarPix}
@@ -177,7 +170,7 @@ export default function PopupCobranca() {
                   fontSize: 13, fontWeight: 600, transition: "all 0.15s",
                 }}>
                 <span>PIX (CNPJ): <b style={{ fontFamily: "monospace" }}>{CONTATO.pix_cnpj}</b></span>
-                <span style={{ fontSize: 11 }}>{pixCopiado ? "✓ Copiado!" : "Copiar"}</span>
+                <span style={{ fontSize: 11 }}>{pixCopiado ? "Copiado" : "Copiar"}</span>
               </button>
 
               <div style={{ fontSize: 11, color: "#64748B", padding: "0 6px" }}>
@@ -186,11 +179,11 @@ export default function PopupCobranca() {
 
               <button onClick={abrirWhatsApp}
                 style={{
-                  background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+                  background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "12px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700,
                   display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
-                  boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                  boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
                 }}>
                 Falar no WhatsApp: {CONTATO.whatsapp_display}
               </button>
@@ -210,7 +203,7 @@ export default function PopupCobranca() {
             </div>
           </div>
 
-          <p style={{ color: "#94A3B8", fontSize: 10, margin: 0, fontStyle: "italic" }}>
+          <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontStyle: "italic" }}>
             {ehSuspenso ? "Sua conta será reativada após contato com a administração." : "Após confirmação do pagamento, o acesso será liberado em até 1h."}
           </p>
         </div>
@@ -230,26 +223,17 @@ export default function PopupCobranca() {
         <div style={{
           background: "white", borderRadius: 18, padding: 32, maxWidth: 520, width: "100%",
           boxShadow: "0 20px 50px rgba(0,0,0,0.4)", textAlign: "center",
-          borderTop: "5px solid #dc2626",
           animation: "popupShake 0.5s ease",
         }}>
-          <div style={{
-            width: 76, height: 76, borderRadius: 20,
-            background: "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 10px 24px rgba(220,38,38,0.35)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>⚠️</span>
-          </div>
+          <div style={{ width: 76, height: 76, borderRadius: 18, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"⚠️"} tamanho={28} /></div>
 
           <h2 style={{ color: "#dc2626", fontSize: 20, fontWeight: 800, margin: "0 0 6px", letterSpacing: -0.3 }}>
-            PAGAMENTO EM ATRASO
+            Pagamento em atraso
           </h2>
 
           <p style={{ color: "#991b1b", fontSize: 13, margin: "0 0 18px", lineHeight: 1.5 }}>
             Sua mensalidade venceu <b>{Math.abs(cobranca.diasAteVencimento || 0)} {Math.abs(cobranca.diasAteVencimento || 0) === 1 ? "dia" : "dias"}</b> atrás.<br />
-            ⚠️ <b>O sistema será bloqueado em {2 + (cobranca.diasAteVencimento || 0)} {2 + (cobranca.diasAteVencimento || 0) === 1 ? "dia" : "dias"}</b> se não regularizar.
+            <b>O sistema será bloqueado em {2 + (cobranca.diasAteVencimento || 0)} {2 + (cobranca.diasAteVencimento || 0) === 1 ? "dia" : "dias"}</b> se não regularizar.
           </p>
 
           {/* 🆕 Valor só pra ADM */}
@@ -258,7 +242,7 @@ export default function PopupCobranca() {
               background: "#fef2f2", border: "1px solid #fecaca",
               borderRadius: 10, padding: 14, marginBottom: 14,
             }}>
-              <p style={{ color: "#7f1d1d", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Valor pendente</p>
+              <p style={{ color: "#7f1d1d", fontSize: 12, fontWeight: 700, margin: 0 }}>Valor pendente</p>
               <p style={{ color: "#dc2626", fontSize: 24, fontWeight: 800, margin: "2px 0", letterSpacing: -0.5 }}>
                 {formatarReais(cobranca.valorMensalidade)}
               </p>
@@ -274,7 +258,7 @@ export default function PopupCobranca() {
               background: "#fef2f2", border: "1px solid #fecaca",
               borderRadius: 10, padding: 14, marginBottom: 14,
             }}>
-              <p style={{ color: "#7f1d1d", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Vencimento</p>
+              <p style={{ color: "#7f1d1d", fontSize: 12, fontWeight: 700, margin: 0 }}>Vencimento</p>
               <p style={{ color: "#dc2626", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>
                 Venceu em {formatarData(cobranca.proximoVencimento)}
               </p>
@@ -292,16 +276,16 @@ export default function PopupCobranca() {
                 fontSize: 13, fontWeight: 600, transition: "all 0.15s",
               }}>
               <span>PIX: <b style={{ fontFamily: "monospace" }}>{CONTATO.pix_cnpj}</b></span>
-              <span style={{ fontSize: 11 }}>{pixCopiado ? "✓ Copiado!" : "Copiar"}</span>
+              <span style={{ fontSize: 11 }}>{pixCopiado ? "Copiado" : "Copiar"}</span>
             </button>
 
             <button onClick={abrirWhatsApp}
               style={{
-                background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+                background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "12px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700,
                 display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
-                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
               }}>
               Avisar pagamento no WhatsApp
             </button>
@@ -319,7 +303,7 @@ export default function PopupCobranca() {
             Fechar e continuar (re-exibe em 1h)
           </button>
 
-          <p style={{ color: "#94A3B8", fontSize: 10, margin: 0, fontStyle: "italic" }}>
+          <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontStyle: "italic" }}>
             Este aviso voltará a aparecer em 1 hora até a regularização do pagamento.
           </p>
         </div>
@@ -341,8 +325,8 @@ export default function PopupCobranca() {
   // fase === "lembrete" (0 a 2 dias antes do venc)
   const dias = cobranca.diasAteVencimento || 0;
   const venceHoje = dias === 0;
-  const corPrincipal = venceHoje ? "#dc2626" : "#f59e0b";
-  const bgPrincipal = venceHoje ? "#fef2f2" : "#fffbeb";
+  const corPrincipal = venceHoje ? "#B91C1C" : "#C2410C";
+  const bgPrincipal = venceHoje ? "#FEF2F2" : "#FFF7ED";
   const borderPrincipal = venceHoje ? "#fecaca" : "#fde68a";
 
   return (
@@ -355,23 +339,17 @@ export default function PopupCobranca() {
       <div style={{
         background: "white", borderRadius: 18, padding: 30, maxWidth: 480, width: "100%",
         boxShadow: "0 20px 50px rgba(0,0,0,0.3)", textAlign: "center",
-        borderTop: `5px solid ${corPrincipal}`,
         animation: "popupBounce 0.4s ease",
       }}>
         <div style={{
-          width: 68, height: 68, borderRadius: 18,
-          background: `linear-gradient(135deg, ${corPrincipal} 0%, ${corPrincipal}cc 100%)`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 34, margin: "0 auto 14px",
-          boxShadow: `0 8px 20px ${corPrincipal}40`,
+          width: 64, height: 64, borderRadius: 18, background: bgPrincipal, color: corPrincipal,
+          display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px",
         }}>
-          <span style={{ filter: "saturate(0) brightness(2)" }}>
-            {venceHoje ? "⚠️" : "💰"}
-          </span>
+          <Icone nome={venceHoje ? "alerta" : "dinheiro"} tamanho={28} />
         </div>
 
         <h2 style={{ color: corPrincipal, fontSize: 18, fontWeight: 700, margin: "0 0 6px", letterSpacing: -0.3 }}>
-          {venceHoje ? "Sua mensalidade vence HOJE!" : "Lembrete de pagamento"}
+          {venceHoje ? "Sua mensalidade vence hoje" : "Lembrete de pagamento"}
         </h2>
 
         <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 18px", lineHeight: 1.5 }}>
@@ -388,7 +366,7 @@ export default function PopupCobranca() {
             background: bgPrincipal, border: `1px solid ${borderPrincipal}`,
             borderRadius: 10, padding: 14, marginBottom: 14,
           }}>
-            <p style={{ color: corPrincipal, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Valor</p>
+            <p style={{ color: corPrincipal, fontSize: 12, fontWeight: 700, margin: 0 }}>Valor</p>
             <p style={{ color: corPrincipal, fontSize: 24, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.5 }}>
               {formatarReais(cobranca.valorMensalidade)}
             </p>
@@ -406,12 +384,12 @@ export default function PopupCobranca() {
               fontSize: 13, fontWeight: 600, transition: "all 0.15s",
             }}>
             <span>PIX (CNPJ): <b style={{ fontFamily: "monospace" }}>{CONTATO.pix_cnpj}</b></span>
-            <span style={{ fontSize: 11 }}>{pixCopiado ? "✓ Copiado!" : "Copiar"}</span>
+            <span style={{ fontSize: 11 }}>{pixCopiado ? "Copiado" : "Copiar"}</span>
           </button>
 
           <button onClick={abrirWhatsApp}
             style={{
-              background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
               color: "white", border: "none", borderRadius: 10,
               padding: "11px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700,
               display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
@@ -431,7 +409,7 @@ export default function PopupCobranca() {
           </button>
         </div>
 
-        <p style={{ color: "#94A3B8", fontSize: 10, margin: "12px 0 0", fontStyle: "italic" }}>
+        <p style={{ color: "#94A3B8", fontSize: 12, margin: "12px 0 0", fontStyle: "italic" }}>
           Em nome de {CONTATO.razao_social}
         </p>
       </div>

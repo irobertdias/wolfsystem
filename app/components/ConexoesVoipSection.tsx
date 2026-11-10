@@ -319,7 +319,6 @@ export default function ConexoesVoipSection() {
                 style={{
                   ...cardStyle,
                   padding: 18,
-                  borderTop: `3px solid ${cor}`,
                   transition: "all 0.15s",
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 20px ${cor}20`; e.currentTarget.style.transform = "translateY(-2px)"; }}
@@ -523,7 +522,7 @@ export default function ConexoesVoipSection() {
                       <div>
                         <label style={{ color: "#64748B", fontSize: 12.5, display: "block", marginBottom: 6, fontWeight: 700 }}>Número DID (Caller ID)</label>
                         <input value={twilioNumeroDid} onChange={e => setTwilioNumeroDid(e.target.value)} placeholder="+5511999999999" style={IS} />
-                        <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Número comprado na Twilio que aparece no celular de quem recebe.</p>
+                        <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>Número comprado na Twilio que aparece no celular de quem recebe.</p>
                       </div>
                       <details open style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "12px 16px" }}>
                         <summary style={{ cursor: "pointer", color: "#EA580C", fontSize: 12, fontWeight: 700 }}>Credenciais para ligações no navegador (obrigatório)</summary>
@@ -533,23 +532,23 @@ export default function ConexoesVoipSection() {
                             <code style={{ display: "block", fontSize: 11, background: "#0F172A", color: "#6EE7B7", padding: "8px 10px", borderRadius: 6, wordBreak: "break-all", fontFamily: "monospace" }}>
                               https://api.wolfgyn.com.br/voip/twilio/twiml/{wsId || "SEU_WORKSPACE"}
                             </code>
-                            <p style={{ color: "#64748B", fontSize: 10, margin: "8px 0 0" }}>
+                            <p style={{ color: "#64748B", fontSize: 12, margin: "8px 0 0" }}>
                               No dashboard Twilio → Voice → TwiML Apps → (criar) → cole essa URL no campo "Voice Request URL" (método POST).
                             </p>
                           </div>
                           <div>
-                            <label style={{ color: "#64748B", fontSize: 10, fontWeight: 600, display: "block", marginBottom: 4 }}>API Key SID *</label>
+                            <label style={{ color: "#64748B", fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}>API Key SID *</label>
                             <input value={twilioApiKeySid} onChange={e => setTwilioApiKeySid(e.target.value)} placeholder="SK•••••" style={{ ...IS, fontFamily: "monospace" }} />
                           </div>
                           <div>
-                            <label style={{ color: "#64748B", fontSize: 10, fontWeight: 600, display: "block", marginBottom: 4 }}>API Key Secret *</label>
+                            <label style={{ color: "#64748B", fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}>API Key Secret *</label>
                             <input type="password" value={twilioApiKeySecret} onChange={e => setTwilioApiKeySecret(e.target.value)} placeholder="•••••" style={{ ...IS, fontFamily: "monospace" }} />
                           </div>
                           <div>
-                            <label style={{ color: "#64748B", fontSize: 10, fontWeight: 600, display: "block", marginBottom: 4 }}>TwiML App SID *</label>
+                            <label style={{ color: "#64748B", fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}>TwiML App SID *</label>
                             <input value={twilioTwimlAppSid} onChange={e => setTwilioTwimlAppSid(e.target.value)} placeholder="AP•••••" style={{ ...IS, fontFamily: "monospace" }} />
                           </div>
-                          <p style={{ color: "#94A3B8", fontSize: 10, margin: 0, lineHeight: 1.5 }}>
+                          <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
                             Todos são necessários pra ligar pelo navegador. Veja o tutorial no menu "Ajuda" pra saber como gerar cada um no dashboard Twilio.
                           </p>
                         </div>
@@ -599,7 +598,7 @@ export default function ConexoesVoipSection() {
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}><input value={sipTurnUser} onChange={e => setSipTurnUser(e.target.value)} placeholder="Usuario TURN" style={IS} /><input type="password" value={sipTurnPassword} onChange={e => setSipTurnPassword(e.target.value)} placeholder="Senha TURN" style={IS} /></div>
                         </div>
                       </details>
-                      <p style={{ color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 10, fontSize: 10, margin: 0 }}>O navegador nao conecta diretamente em SIP UDP/TCP. Seu PABX deve fornecer WebRTC por WSS e certificado TLS valido.</p>
+                      <p style={{ color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 10, fontSize: 12, margin: 0 }}>O navegador nao conecta diretamente em SIP UDP/TCP. Seu PABX deve fornecer WebRTC por WSS e certificado TLS valido.</p>
                     </>
                   )}
 
@@ -607,7 +606,7 @@ export default function ConexoesVoipSection() {
                   <div>
                     <label style={{ color: "#64748B", fontSize: 12.5, display: "block", marginBottom: 6, fontWeight: 700 }}>Bina (opcional)</label>
                     <input value={numeroBina} onChange={e => setNumeroBina(e.target.value)} placeholder="+5562981519991" style={IS} />
-                    <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Número alternativo que aparece no celular de quem recebe. Se vazio, usa o DID.</p>
+                    <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>Número alternativo que aparece no celular de quem recebe. Se vazio, usa o DID.</p>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -654,7 +653,7 @@ export default function ConexoesVoipSection() {
                     <input type="checkbox" checked={permiteGravacao} onChange={e => setPermiteGravacao(e.target.checked)} style={{ accentColor: "#059669", width: 16, height: 16 }} />
                     <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 600 }}>Gravar chamadas automaticamente</span>
                   </label>
-                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "-8px 0 0", paddingLeft: 4 }}>
+                  <p style={{ color: "#94A3B8", fontSize: 12, margin: "-8px 0 0", paddingLeft: 4 }}>
                     Por LGPD, você deve avisar o cliente de que a ligação é gravada no início da chamada.
                   </p>
                 </div>

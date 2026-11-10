@@ -960,9 +960,9 @@ export function ConexoesSection() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
             <b style={{ color: "#0f172a", fontSize: 12 }}>{titulo}</b>
-            <span style={{ background: `${cor}14`, color: cor, border: `1px solid ${cor}45`, borderRadius: 999, padding: "2px 7px", fontSize: 10, fontWeight: 800 }}>{dados.carregando ? "Lendo..." : `${dados.score}/100`}</span>
-            <span style={{ background: `${corQualidade}14`, color: corQualidade, border: `1px solid ${corQualidade}45`, borderRadius: 999, padding: "2px 7px", fontSize: 10, fontWeight: 800 }}>Qualidade {dados.qualidade}</span>
-            <span style={{ background: dados.conectado ? "#D1FAE5" : "#fee2e2", color: dados.conectado ? "#047857" : "#b91c1c", border: `1px solid ${dados.conectado ? "#6EE7B7" : "#fecaca"}`, borderRadius: 999, padding: "2px 7px", fontSize: 10, fontWeight: 800 }}>{dados.conectado ? "Conectada" : "Desconectada"}</span>
+            <span style={{ background: `${cor}14`, color: cor, border: `1px solid ${cor}45`, borderRadius: 999, padding: "2px 7px", fontSize: 12, fontWeight: 800 }}>{dados.carregando ? "Lendo..." : `${dados.score}/100`}</span>
+            <span style={{ background: `${corQualidade}14`, color: corQualidade, border: `1px solid ${corQualidade}45`, borderRadius: 999, padding: "2px 7px", fontSize: 12, fontWeight: 800 }}>Qualidade {dados.qualidade}</span>
+            <span style={{ background: dados.conectado ? "#D1FAE5" : "#fee2e2", color: dados.conectado ? "#047857" : "#b91c1c", border: `1px solid ${dados.conectado ? "#6EE7B7" : "#fecaca"}`, borderRadius: 999, padding: "2px 7px", fontSize: 12, fontWeight: 800 }}>{dados.conectado ? "Conectada" : "Desconectada"}</span>
           </div>
           {onAtualizar && (
             <button onClick={onAtualizar} disabled={dados.carregando} title="Atualizar integridade" style={{ background: "#fff", color: "#334155", border: "1px solid #cbd5e1", borderRadius: 8, width: 30, height: 28, cursor: dados.carregando ? "wait" : "pointer", fontSize: 13 }}>
@@ -970,13 +970,13 @@ export function ConexoesSection() {
             </button>
           )}
         </div>
-        <p style={{ color: "#64748b", fontSize: 10.5, margin: "7px 0 0", lineHeight: 1.6 }}>
+        <p style={{ color: "#64748b", fontSize: 12, margin: "7px 0 0", lineHeight: 1.6 }}>
           Limite: <b>{formatarLimiteMeta(dados)}</b>
           {dados.enviados24h !== null && <> · Enviadas em 24h: <b>{dados.enviados24h.toLocaleString("pt-BR")}</b></>}
           {dados.falhas24h !== null && <> · Falhas em 24h: <b style={{ color: dados.falhas24h ? "#dc2626" : "#047857" }}>{dados.falhas24h.toLocaleString("pt-BR")}</b></>}
         </p>
-        {dados.nome && <p style={{ color: "#64748b", fontSize: 10.5, margin: "2px 0 0" }}>Conta consultada: <b>{dados.nome}</b></p>}
-        {dados.erro && <p style={{ color: "#b45309", fontSize: 10.5, fontWeight: 700, margin: "6px 0 0", lineHeight: 1.45 }}>{dados.erro}</p>}
+        {dados.nome && <p style={{ color: "#64748b", fontSize: 12, margin: "2px 0 0" }}>Conta consultada: <b>{dados.nome}</b></p>}
+        {dados.erro && <p style={{ color: "#b45309", fontSize: 12, fontWeight: 700, margin: "6px 0 0", lineHeight: 1.45 }}>{dados.erro}</p>}
       </div>
     );
   };
@@ -999,9 +999,7 @@ export function ConexoesSection() {
       {showModalQR && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ ...cardStyle, padding: 32, width: 460, maxHeight: "92vh", overflowY: "auto", textAlign: "center" }}>
-            <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 16px", boxShadow: "0 8px 20px rgba(5,150,105,0.25)" }}>
-              <span style={{ filter: "saturate(0) brightness(2)" }}>📱</span>
-            </div>
+            <div style={{ width: 56, height: 56, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}><IconeEmoji e={"📱"} tamanho={25} /></div>
             <h2 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Conectar WhatsApp</h2>
             <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 20px" }}>Leia o código QR com seu WhatsApp</p>
             <div style={{ background: "#F7FAF9", borderRadius: 14, padding: 16, minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, border: "1px solid #E6ECEA" }}>
@@ -1239,7 +1237,7 @@ export function ConexoesSection() {
                       <div style={{ background: "#FFF7ED", borderRadius: 10, padding: 12, border: "1px solid #fde68a" }}>
                         <p style={{ color: "#92400e", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Não está recebendo mensagens?</p>
                         <p style={{ color: "#78350f", fontSize: 11, margin: "0 0 6px", lineHeight: 1.5 }}>Pode faltar inscrever o aplicativo na conta WhatsApp Business. Execute no terminal e substitua o token:</p>
-                        <code style={{ background: "#F1F5F4", padding: "6px 8px", borderRadius: 6, color: "#0F172A", fontSize: 10, display: "block", wordBreak: "break-all", border: "1px solid #E6ECEA" }}>{`curl -X POST "https://graph.facebook.com/v25.0/${form.wabaId || "ID_DA_CONTA"}/subscribed_apps" -H "Authorization: Bearer SEU_TOKEN"`}</code>
+                        <code style={{ background: "#F1F5F4", padding: "6px 8px", borderRadius: 6, color: "#0F172A", fontSize: 12, display: "block", wordBreak: "break-all", border: "1px solid #E6ECEA" }}>{`curl -X POST "https://graph.facebook.com/v25.0/${form.wabaId || "ID_DA_CONTA"}/subscribed_apps" -H "Authorization: Bearer SEU_TOKEN"`}</code>
                       </div>
                     )}
                   </div>
@@ -1265,7 +1263,7 @@ export function ConexoesSection() {
                     }}>
                       <p style={{ fontSize: 22, margin: "0 0 4px" }}>{<IconeEmoji e={m.icon} />}</p>
                       <p style={{ color: form.modo === m.key ? m.cor : "#0F172A", fontSize: 12, fontWeight: 700, margin: "0 0 2px" }}>{m.label}</p>
-                      <p style={{ color: "#94A3B8", fontSize: 10, margin: 0 }}>{m.desc}</p>
+                      <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>{m.desc}</p>
                     </button>
                   ))}
                 </div>
@@ -1280,13 +1278,13 @@ export function ConexoesSection() {
                           borderRadius: 10, padding: "10px 12px", cursor: "pointer", textAlign: "left", transition: "all 0.15s",
                         }}>
                           <p style={{ color: form.ia === ia.key ? ia.cor : "#0F172A", fontSize: 13, fontWeight: 700, margin: "0 0 2px" }}>{ia.label}</p>
-                          <p style={{ color: "#94A3B8", fontSize: 10, margin: 0 }}>{ia.sub}</p>
+                          <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>{ia.sub}</p>
                         </button>
                       ))}
                     </div>
                     <div>
                       <label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 4, fontWeight: 600 }}>
-                        Chave da API {editandoId && !apiKeyTocada && <span style={{ color: "#10b981", fontSize: 10 }}>(já salva)</span>}
+                        Chave da API {editandoId && !apiKeyTocada && <span style={{ color: "#10b981", fontSize: 12 }}>(já salva)</span>}
                       </label>
                       <input type="password" placeholder={editandoId ? "Deixe vazio para manter" : "Cole sua chave da API"} value={form.apiKey} onChange={e => { setForm(p => ({ ...p, apiKey: e.target.value })); setApiKeyTocada(true); }} style={IS} />
                     </div>
@@ -1296,16 +1294,16 @@ export function ConexoesSection() {
                         <input type="checkbox" checked={form.iaCrmAtivo} onChange={e=>setForm(p=>({...p,iaCrmAtivo:e.target.checked}))} style={{accentColor:"#10b981",marginTop:2}}/>
                         <span>
                           <b style={{display:"block",color:"#047857",fontSize:12}}>Cadastrar vendas da IA no CRM</b>
-                          <span style={{color:"#64748B",fontSize:10,lineHeight:1.4}}>Desativado: a IA somente conversa. Ativado: salva as variáveis abaixo, mostra o resumo e só cadastra após confirmação.</span>
+                          <span style={{color:"#64748B",fontSize: 12,lineHeight:1.4}}>Desativado: a IA somente conversa. Ativado: salva as variáveis abaixo, mostra o resumo e só cadastra após confirmação.</span>
                         </span>
                       </label>
                       {form.iaCrmAtivo && (
                         <div style={{marginTop:12}}>
                           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:8}}>
                             <b style={{color:"#334155",fontSize:11}}>Mapeamento variável → CRM</b>
-                            <label style={{color:"#64748B",fontSize:10}}>
+                            <label style={{color:"#64748B",fontSize: 12}}>
                               Juntar mensagens por{" "}
-                              <select value={form.iaAgrupamentoMs} onChange={e=>setForm(p=>({...p,iaAgrupamentoMs:Number(e.target.value)}))} style={{...IS,width:"auto",padding:"4px 6px",fontSize:10}}>
+                              <select value={form.iaAgrupamentoMs} onChange={e=>setForm(p=>({...p,iaAgrupamentoMs:Number(e.target.value)}))} style={{...IS,width:"auto",padding:"4px 6px",fontSize: 12}}>
                                 <option value={2000}>2 segundos</option>
                                 <option value={3500}>3,5 segundos</option>
                                 <option value={5000}>5 segundos</option>
@@ -1316,14 +1314,14 @@ export function ConexoesSection() {
                           <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:280,overflowY:"auto",paddingRight:3}}>
                             {camposCrm.filter(c=>c.visivel!==false && !["vendedor","data_proposta","telefone1"].includes(c.slug)).map(c=>(
                               <div key={c.slug} style={{display:"grid",gridTemplateColumns:"135px 1fr auto",alignItems:"center",gap:6}}>
-                                <span style={{color:"#475569",fontSize:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={c.label}>{c.label}</span>
+                                <span style={{color:"#475569",fontSize: 12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={c.label}>{c.label}</span>
                                 <input
                                   value={form.iaCrmMapeamento[c.slug] || ""}
                                   placeholder={"ex: " + c.slug}
                                   onChange={e=>setForm(p=>{const mapa={...p.iaCrmMapeamento};const valor=e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"_");if(valor)mapa[c.slug]=valor;else delete mapa[c.slug];return {...p,iaCrmMapeamento:mapa};})}
-                                  style={{...IS,padding:"6px 8px",fontSize:10}}
+                                  style={{...IS,padding:"6px 8px",fontSize: 12}}
                                 />
-                                <label style={{display:"flex",alignItems:"center",gap:3,color:"#64748B",fontSize:9}}>
+                                <label style={{display:"flex",alignItems:"center",gap:3,color:"#64748B",fontSize: 11}}>
                                   <input
                                     type="checkbox"
                                     disabled={!form.iaCrmMapeamento[c.slug]}
@@ -1347,7 +1345,7 @@ export function ConexoesSection() {
                     {fluxos.length === 0 ? (
                       <div style={{ background: "#ffffff", borderRadius: 10, padding: 16, textAlign: "center", border: "1px solid #E6ECEA" }}>
                         <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 10px" }}>Nenhum fluxo criado ainda</p>
-                        <button onClick={() => { router.push("/chatbot/fluxos"); setShowModalNovoCanal(false); }} style={{ background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Criar Fluxo</button>
+                        <button onClick={() => { router.push("/chatbot/fluxos"); setShowModalNovoCanal(false); }} style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Criar Fluxo</button>
                       </div>
                     ) : fluxos.map(f => (
                       <button type="button" key={f.id} onClick={() => setForm(p => ({ ...p, fluxoId: f.id.toString() }))} style={{
@@ -1377,7 +1375,7 @@ export function ConexoesSection() {
                     <div>
                       <label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 4, fontWeight: 600 }}>URL do Typebot *</label>
                       <input type="text" placeholder="https://typebot.io/meu-bot ou https://seu-typebot.com.br/atendimento" value={form.typebot_url || ""} onChange={e => setForm(p => ({ ...p, typebot_url: e.target.value }))} style={IS} />
-                      <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Cole a URL completa de publicação. Aceita typebot.io e self-hosted.</p>
+                      <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0", lineHeight: 1.4 }}>Cole a URL completa de publicação. Aceita typebot.io e self-hosted.</p>
                     </div>
                     <div>
                       <label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 4, fontWeight: 600 }}>Mensagem de boas-vindas (opcional)</label>
@@ -1386,7 +1384,7 @@ export function ConexoesSection() {
                     <div>
                       <label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 4, fontWeight: 600 }}>Mensagem quando resposta é inválida</label>
                       <input type="text" placeholder="Desculpe, não entendi sua resposta. Pode tentar de novo?" value={form.typebot_msg_invalida || ""} onChange={e => setForm(p => ({ ...p, typebot_msg_invalida: e.target.value }))} style={IS} />
-                      <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Mostrada quando o cliente manda algo que o bloco do Typebot não aceita.</p>
+                      <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0", lineHeight: 1.4 }}>Mostrada quando o cliente manda algo que o bloco do Typebot não aceita.</p>
                     </div>
                   </div>
                 )}
@@ -1413,7 +1411,7 @@ export function ConexoesSection() {
                       <option value="">Todas as equipes</option>
                       {equipes.map(eq => (<option key={eq.id} value={eq.id}>{eq.nome}</option>))}
                     </select>
-                    <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Escolha a equipe e selecione abaixo qual fila (segmento) deste canal.</p>
+                    <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0", lineHeight: 1.4 }}>Escolha a equipe e selecione abaixo qual fila (segmento) deste canal.</p>
                   </div>
                 )}
 
@@ -1492,9 +1490,7 @@ export function ConexoesSection() {
       {/* ═══ CARDS DE CONEXÕES ═══ */}
       {conexoes.length === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <div style={{ width: 80, height: 80, borderRadius: 20, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, margin: "0 auto 16px", boxShadow: "0 12px 24px rgba(5,150,105,0.25)" }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>📱</span>
-          </div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}><IconeEmoji e={"📱"} tamanho={30} /></div>
           <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "0 0 8px" }}>Nenhum canal conectado</h3>
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 20px" }}>Crie seu primeiro canal pra começar</p>
           <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); fetchEquipes(); }} style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 12, padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Novo Canal</button>
@@ -1505,7 +1501,6 @@ export function ConexoesSection() {
             <div key={c.id} style={{
               ...cardStyle,
               padding: 24,
-              borderTop: `3px solid ${c.status === "conectado" ? "#059669" : "#ef4444"}`,
             }}
               onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 20px ${c.status === "conectado" ? "rgba(5,150,105,0.12)" : "rgba(239,68,68,0.08)"}`;  e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}
@@ -1658,7 +1653,7 @@ export function ConexoesSection() {
             <div style={{ padding: 22 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 9 }}>
                 <p style={{ color: "#334155", fontSize: 12, fontWeight: 800, margin: 0 }}>Período a verificar</p>
-                <span style={{ color: "#047857", fontSize: 10.5, fontWeight: 700 }}>Padrão: últimas 24 horas</span>
+                <span style={{ color: "#047857", fontSize: 12, fontWeight: 700 }}>Padrão: últimas 24 horas</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(68px, 1fr))", gap: 6, padding: 4, background: "#f1f5f9", borderRadius: 10 }}>
                 {[
@@ -1684,11 +1679,11 @@ export function ConexoesSection() {
 
               {periodoRecuperacao === "personalizado" && (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10, marginTop: 12 }}>
-                  <label style={{ color: "#475569", fontSize: 10.5, fontWeight: 800 }}>
+                  <label style={{ color: "#475569", fontSize: 12, fontWeight: 800 }}>
                     Início
                     <input type="datetime-local" value={inicioRecuperacao} max={fimRecuperacao || dataParaInputLocal(new Date())} onChange={e => setInicioRecuperacao(e.target.value)} disabled={!!jobRecuperacao && ["aguardando", "processando"].includes(jobRecuperacao.status)} style={{ ...IS, marginTop: 5 }} />
                   </label>
-                  <label style={{ color: "#475569", fontSize: 10.5, fontWeight: 800 }}>
+                  <label style={{ color: "#475569", fontSize: 12, fontWeight: 800 }}>
                     Fim
                     <input type="datetime-local" value={fimRecuperacao} min={inicioRecuperacao} max={dataParaInputLocal(new Date())} onChange={e => setFimRecuperacao(e.target.value)} disabled={!!jobRecuperacao && ["aguardando", "processando"].includes(jobRecuperacao.status)} style={{ ...IS, marginTop: 5 }} />
                   </label>
@@ -1706,7 +1701,7 @@ export function ConexoesSection() {
                       <strong style={{ display: "block", color: "#0f172a", fontSize: 12.5 }}>
                         {jobRecuperacao.status === "aguardando" ? "Aguardando na fila" : jobRecuperacao.status === "processando" ? "Atualizando em segundo plano" : jobRecuperacao.status === "concluido" ? "Recuperação concluída" : "Recuperação interrompida"}
                       </strong>
-                      <span style={{ color: "#64748b", fontSize: 10.5 }}>{jobRecuperacao.etapa}</span>
+                      <span style={{ color: "#64748b", fontSize: 12 }}>{jobRecuperacao.etapa}</span>
                     </div>
                     <strong style={{ color: jobRecuperacao.status === "erro" ? "#dc2626" : jobRecuperacao.status === "concluido" ? "#059669" : "#047857", fontSize: 14 }}>{jobRecuperacao.percentual}%</strong>
                   </div>
@@ -1725,14 +1720,14 @@ export function ConexoesSection() {
                     ].map(item => (
                       <div key={item.label} style={{ padding: "3px 7px", textAlign: "center", borderRight: "1px solid #f1f5f9" }}>
                         <strong style={{ display: "block", color: item.cor, fontSize: 17 }}>{item.valor.toLocaleString("pt-BR")}</strong>
-                        <span style={{ color: "#64748b", fontSize: 9.5, fontWeight: 700 }}>{item.label}</span>
+                        <span style={{ color: "#64748b", fontSize: 11, fontWeight: 700 }}>{item.label}</span>
                       </div>
                     ))}
                   </div>
-                  {!!jobRecuperacao.ignoradas && <p style={{ color: "#92400e", fontSize: 10.5, margin: "0 13px 10px" }}>Ignoradas: {jobRecuperacao.ignoradasSemContato || 0} sem contato identificado · {jobRecuperacao.ignoradasSemConteudo || 0} sem conteúdo recuperável.</p>}
-                  {jobRecuperacao.limitado && <p style={{ color: "#b45309", fontSize: 10.5, fontWeight: 700, margin: "0 13px 10px" }}>Muitas conversas foram encontradas. Use um período menor para verificar o restante com segurança.</p>}
-                  {jobRecuperacao.erro && <p style={{ color: "#b91c1c", fontSize: 10.5, fontWeight: 700, margin: "0 13px 10px" }}>{jobRecuperacao.erro}</p>}
-                  {!!jobRecuperacao.avisos?.length && !jobRecuperacao.erro && <p style={{ color: "#b45309", fontSize: 10.5, margin: "0 13px 10px" }}>{jobRecuperacao.avisos[0]}</p>}
+                  {!!jobRecuperacao.ignoradas && <p style={{ color: "#92400e", fontSize: 12, margin: "0 13px 10px" }}>Ignoradas: {jobRecuperacao.ignoradasSemContato || 0} sem contato identificado · {jobRecuperacao.ignoradasSemConteudo || 0} sem conteúdo recuperável.</p>}
+                  {jobRecuperacao.limitado && <p style={{ color: "#b45309", fontSize: 12, fontWeight: 700, margin: "0 13px 10px" }}>Muitas conversas foram encontradas. Use um período menor para verificar o restante com segurança.</p>}
+                  {jobRecuperacao.erro && <p style={{ color: "#b91c1c", fontSize: 12, fontWeight: 700, margin: "0 13px 10px" }}>{jobRecuperacao.erro}</p>}
+                  {!!jobRecuperacao.avisos?.length && !jobRecuperacao.erro && <p style={{ color: "#b45309", fontSize: 12, margin: "0 13px 10px" }}>{jobRecuperacao.avisos[0]}</p>}
                 </div>
               )}
             </div>

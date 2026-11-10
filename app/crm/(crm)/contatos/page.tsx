@@ -100,14 +100,11 @@ export default function Contatos() {
 
   // 🎨 ESTILOS
   const inputStyle = {
-    width: "100%", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10,
-    padding: "10px 14px", color: "#0F172A", fontSize: 13, boxSizing: "border-box" as const,
+    width: "100%", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12,
+    padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, boxSizing: "border-box" as const,
     outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
   };
-  const cardStyle = {
-    background: "#ffffff", borderRadius: 14, border: "1px solid #E6ECEA",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-  };
+  const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
   // ═══ Descobre workspace (dono OU sub-usuário) ═══
   useEffect(() => {
@@ -407,7 +404,7 @@ export default function Contatos() {
   };
 
   const corStatus = (s: string) => ({
-    resolvido: "#059669", aberto: "#3b82f6", em_atendimento: "#f59e0b", pendente: "#f59e0b",
+    resolvido: "#059669", aberto: "#14B8A6", em_atendimento: "#EA580C", pendente: "#EA580C",
   }[s] || "#64748B");
   const labelStatus = (s: string) => ({
     resolvido: "Resolvido", aberto: "Aberto", em_atendimento: "Em atendimento", pendente: "Pendente",
@@ -433,10 +430,10 @@ export default function Contatos() {
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: "50%",
-                  background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                  background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   color: "white", fontSize: 18, fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(5,150,105,0.25)",
+                  boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
                 }}>
                   {contatoEditando.nome.charAt(0).toUpperCase()}
                 </div>
@@ -453,30 +450,30 @@ export default function Contatos() {
 
               {/* Nome editável */}
               <div>
-                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome do Contato</label>
+                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6 }}>Nome do Contato</label>
                 <input value={nomeEditado} onChange={e => setNomeEditado(e.target.value)} style={inputStyle} placeholder="Nome do contato" />
-                <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Alterar aqui atualiza o nome em TODOS os atendimentos deste número.</p>
+                <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>Alterar aqui atualiza o nome em TODOS os atendimentos deste número.</p>
               </div>
 
               {/* Stats do contato */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
                 <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12, textAlign: "center" }}>
                   <p style={{ color: "#059669", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.totalAtendimentos}</p>
-                  <p style={{ color: "#64748B", fontSize: 10, margin: "3px 0 0", fontWeight: 600, textTransform: "uppercase" }}>Atendimentos</p>
+                  <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0", fontWeight: 600 }}>Atendimentos</p>
                 </div>
                 <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12, textAlign: "center" }}>
                   <p style={{ color: "#059669", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.atendimentos.filter(a => a.status === "resolvido").length}</p>
-                  <p style={{ color: "#64748B", fontSize: 10, margin: "3px 0 0", fontWeight: 600, textTransform: "uppercase" }}>Resolvidos</p>
+                  <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0", fontWeight: 600 }}>Resolvidos</p>
                 </div>
                 <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 12, textAlign: "center" }}>
-                  <p style={{ color: "#f59e0b", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.atendimentos.filter(a => a.status === "aberto" || a.status === "em_atendimento" || a.status === "pendente").length}</p>
-                  <p style={{ color: "#64748B", fontSize: 10, margin: "3px 0 0", fontWeight: 600, textTransform: "uppercase" }}>Em aberto</p>
+                  <p style={{ color: "#EA580C", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.atendimentos.filter(a => a.status === "aberto" || a.status === "em_atendimento" || a.status === "pendente").length}</p>
+                  <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0", fontWeight: 600 }}>Em aberto</p>
                 </div>
               </div>
 
               {/* Etiquetas */}
               <div>
-                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 8 }}>Etiquetas</label>
+                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 8 }}>Etiquetas</label>
                 {etiquetas.length === 0 ? (
                   <p style={{ color: "#94A3B8", fontSize: 12, fontStyle: "italic", margin: 0 }}>Nenhuma etiqueta cadastrada. Vá em Chatbot → Etiquetas para criar.</p>
                 ) : (
@@ -511,7 +508,7 @@ export default function Contatos() {
 
               {/* Histórico recente (últimos 5 atendimentos) */}
               <div>
-                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 8 }}>Histórico de atendimentos</label>
+                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 8 }}>Histórico de atendimentos</label>
                 <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 10, padding: 12, maxHeight: 240, overflowY: "auto" }}>
                   {contatoEditando.atendimentos
                     .slice()
@@ -527,10 +524,10 @@ export default function Contatos() {
                         }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
                           <span style={{ color: corStatus(a.status), fontSize: 11, fontWeight: 700 }}>{labelStatus(a.status)}</span>
-                          <span style={{ color: "#94A3B8", fontSize: 10 }}>{new Date(a.created_at).toLocaleString("pt-BR")}</span>
+                          <span style={{ color: "#94A3B8", fontSize: 12 }}>{new Date(a.created_at).toLocaleString("pt-BR")}</span>
                         </div>
                         <p style={{ color: "#334155", fontSize: 12, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.mensagem || "—"}</p>
-                        <p style={{ color: "#94A3B8", fontSize: 10, margin: "3px 0 0" }}>
+                        <p style={{ color: "#94A3B8", fontSize: 12, margin: "3px 0 0" }}>
                           {a.fila && <>{a.fila} · </>}
                           {a.atendente && (a.atendente === "BOT" ? "BOT" : `${a.atendente}`)}
                         </p>
@@ -558,10 +555,10 @@ export default function Contatos() {
                 </button>
                 <button onClick={salvarContato} disabled={salvandoContato}
                   style={{
-                    background: salvandoContato ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                    background: salvandoContato ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                     color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 12,
                     cursor: salvandoContato ? "not-allowed" : "pointer", fontWeight: 700,
-                    boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                    boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
                   }}>
                   {salvandoContato ? "Salvando..." : "Salvar"}
                 </button>
@@ -700,7 +697,7 @@ export default function Contatos() {
                     <span style={{ width: 40, height: 40, borderRadius: 12, background: corAvatarContato(c.nome).bg, color: corAvatarContato(c.nome).fg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{iniciaisContato(c.nome)}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</p>
-                      <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>{c.numero}</p>
+                      <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>{c.numero}</p>
                     </div>
                     <span style={{ background: `${cor}14`, color: cor, fontSize: 11, padding: "3px 9px", borderRadius: 999, fontWeight: 700, flexShrink: 0 }}>{labelStatus(c.ultimoStatus)}</span>
                   </div>
@@ -757,7 +754,7 @@ export default function Contatos() {
                       <td style={{ padding: "14px 22px", color: "#334155", fontSize: 13 }}>
                         {c.ultimoAtendente ? (
                           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", fontSize: 10, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{c.ultimoAtendente === "BOT" ? <Icone nome="robo" tamanho={14} /> : iniciaisContato(c.ultimoAtendente)}</span>
+                            <span style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{c.ultimoAtendente === "BOT" ? <Icone nome="robo" tamanho={14} /> : iniciaisContato(c.ultimoAtendente)}</span>
                             <span style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ultimoAtendente === "BOT" ? "Bot" : c.ultimoAtendente}</span>
                           </span>
                         ) : <span style={{ color: "#CBD5E1" }}>—</span>}

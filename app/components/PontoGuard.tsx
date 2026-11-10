@@ -229,7 +229,6 @@ export default function PontoGuard({ children, ativo }: { children: ReactNode; a
           <div style={{
             background: "#fef2f2",
             border: "1px solid #fecaca",
-            borderLeft: "4px solid #dc2626",
             borderRadius: 12,
             padding: "16px 18px",
             marginBottom: 24,

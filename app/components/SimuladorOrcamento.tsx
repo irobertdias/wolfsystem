@@ -351,7 +351,7 @@ export default function SimuladorOrcamento() {
             {online.erro && <p style={{ color: "#dc2626", fontSize: 12, margin: "8px 0 0", textAlign: "center" }}>{online.erro}</p>}
             <button type="button" onClick={gerarPdf} disabled={gerando} style={botaoPdf}>{gerando ? "Gerando PDF..." : "Baixar orçamento em PDF"}</button>
             <button type="button" onClick={abrirWhatsApp} style={botaoWhats}>Falar com um especialista no WhatsApp</button>
-            <p style={{ color: "#94a3b8", fontSize: 10, lineHeight: 1.5, textAlign: "center", marginBottom: 0 }}>Ao gerar o orçamento você recebe um link para conferir, aceitar e pagar a configuração inicial. Válido por 7 dias.</p>
+            <p style={{ color: "#94a3b8", fontSize: 12, lineHeight: 1.5, textAlign: "center", marginBottom: 0 }}>Ao gerar o orçamento você recebe um link para conferir, aceitar e pagar a configuração inicial. Válido por 7 dias.</p>
           </aside>
         </div>
       </div>

@@ -352,7 +352,7 @@ export default function Vendas() {
       return raw ? (
         <span style={{
           background: meta.bg, color: meta.cor, border: `1px solid ${meta.border}`,
-          padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 800, whiteSpace: "nowrap",
+          padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 800, whiteSpace: "nowrap",
         }}>{<IconeEmoji e={meta.emoji} />} {raw}</span>
       ) : <span style={{ color: "#CBD5E1" }}>—</span>;
     }
@@ -794,7 +794,7 @@ export default function Vendas() {
       </>
     );
     const lab = (
-      <label style={{ color: "#64748B", fontSize: 10, display: "block", marginBottom: 5, fontWeight: 700 }}>
+      <label style={{ color: "#64748B", fontSize: 12, display: "block", marginBottom: 5, fontWeight: 700 }}>
         {labelComObr}
       </label>
     );
@@ -1156,7 +1156,7 @@ export default function Vendas() {
               borderRadius: 12, padding: "6px 14px",
             }}>
               <IconeEmoji e="👥" tamanho={15} />
-              <span style={{ color: "#64748B", fontSize: 10, fontWeight: 700 }}>Equipe</span>
+              <span style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }}>Equipe</span>
               <span style={{ color: "#047857", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
             </div>
           )}
@@ -1414,15 +1414,7 @@ export default function Vendas() {
                 <tr><td colSpan={colunasTabela.length + 1} style={{ padding: 32, color: "#64748B", textAlign: "center", fontSize: 13 }}>Carregando...</td></tr>
               ) : propostasFiltradas.length === 0 ? (
                 <tr><td colSpan={colunasTabela.length + 1} style={{ padding: 48, textAlign: "center" }}>
-                  <div style={{
-                    width: 72, height: 72, borderRadius: 18,
-                    background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 36, margin: "0 auto 14px",
-                    boxShadow: "0 12px 24px rgba(5,150,105,0.25)",
-                  }}>
-                    <span style={{ filter: "saturate(0) brightness(2)" }}>💰</span>
-                  </div>
+                  <div style={{ width: 72, height: 72, borderRadius: 16, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 14px" }}><IconeEmoji e={"💰"} tamanho={28} /></div>
                   <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>
                     {busca || filtroStatus !== "todos"
                       ? "Nenhum resultado pros filtros"
@@ -1494,7 +1486,7 @@ export default function Vendas() {
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <button onClick={() => { const p = propostaVisualizando; setPropostaVisualizando(null); abrirEditar(p); }}
-                  style={{ background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Editar</button>
+                  style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Editar</button>
                 <button onClick={() => setPropostaVisualizando(null)}
                   style={{ background: "#F3F6F5", color: "#64748b", border: "1px solid #E6ECEA", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 800 }}>Fechar</button>
               </div>
@@ -1509,7 +1501,7 @@ export default function Vendas() {
                   { label: "Modificado", value: propostaVisualizando.updated_at ? new Date(propostaVisualizando.updated_at).toLocaleString("pt-BR") : "-", cor: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
                 ].map(card => (
                   <div key={card.label} style={{ background: card.bg, border: `1px solid ${card.border}`, borderRadius: 10, padding: 13 }}>
-                    <p style={{ color: "#64748b", fontSize: 10, margin: 0, fontWeight: 800, letterSpacing: 0.5 }}>{card.label}</p>
+                    <p style={{ color: "#64748b", fontSize: 12, margin: 0, fontWeight: 800, letterSpacing: 0.5 }}>{card.label}</p>
                     <p style={{ color: card.cor, fontSize: 14, margin: "5px 0 0", fontWeight: 800, wordBreak: "break-word" }}>{card.value}</p>
                   </div>
                 ))}
@@ -1649,7 +1641,7 @@ function ViewSection({ titulo, campos }: { titulo: string; campos: [string, any]
         }}>
           {campos.map(([label, valor]) => (
             <div key={label}>
-              <p style={{ color: "#94A3B8", fontSize: 10, margin: 0, fontWeight: 700 }}>{label}</p>
+              <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontWeight: 700 }}>{label}</p>
               <p style={{
                 color: valor || valor === false ? "#0F172A" : "#CBD5E1",
                 fontSize: 13, margin: "3px 0 0", wordBreak: "break-word",

@@ -2,6 +2,7 @@
 // Rota: /crm/telefonia
 // O componente ConexoesVoipSection fica em app/components/ConexoesVoipSection.tsx
 "use client";
+import { IconeEmoji } from "../../components/a2/Icone";
 import TelefoniaHub from "../../components/TelefoniaHub";
 import { useModulos, ModuloBloqueado } from "../../hooks/useModulos";
 import { usePermissao } from "../../hooks/usePermissao";
@@ -56,15 +57,7 @@ export default function TelefoniaPage() {
           boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
           padding: 48, textAlign: "center", maxWidth: 480,
         }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
-          </div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🔒"} tamanho={28} /></div>
           <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
           <p style={{ color: "#64748B", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
             Você não tem permissão para acessar a telefonia. Entre em contato com o administrador do workspace.

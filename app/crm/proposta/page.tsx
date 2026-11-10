@@ -837,7 +837,7 @@ function PropostaForm() {
                 <span style={{ fontSize: 20 }}>{iconeArquivo(a.tipo)}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: "#0F172A", fontSize: 12, margin: 0, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nome}</p>
-                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "1px 0 0" }}>{formatarTamanhoArquivo(a.tamanho)}</p>
+                  <p style={{ color: "#94A3B8", fontSize: 12, margin: "1px 0 0" }}>{formatarTamanhoArquivo(a.tamanho)}</p>
                 </div>
                 <a href={a.privado ? "#" : a.url} target="_blank" rel="noopener noreferrer"
                   onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}}
@@ -1042,7 +1042,7 @@ function PropostaForm() {
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>Você não tem permissão para criar propostas.</p>
           <button onClick={() => router.back()}
             style={{
-              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
               boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -1244,11 +1244,11 @@ function PropostaForm() {
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
                   <span style={{ color: "#64748B" }}>Salvar</span>
-                  <kbd style={{ background: "#ffffff", border: "1px solid #CBD5E1", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontFamily: "monospace", color: "#334155", fontWeight: 700 }}>Ctrl+S</kbd>
+                  <kbd style={{ background: "#ffffff", border: "1px solid #CBD5E1", padding: "2px 6px", borderRadius: 4, fontSize: 12, fontFamily: "monospace", color: "#334155", fontWeight: 700 }}>Ctrl+S</kbd>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
                   <span style={{ color: "#64748B" }}>Voltar</span>
-                  <kbd style={{ background: "#ffffff", border: "1px solid #CBD5E1", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontFamily: "monospace", color: "#334155", fontWeight: 700 }}>Esc</kbd>
+                  <kbd style={{ background: "#ffffff", border: "1px solid #CBD5E1", padding: "2px 6px", borderRadius: 4, fontSize: 12, fontFamily: "monospace", color: "#334155", fontWeight: 700 }}>Esc</kbd>
                 </div>
               </div>
             </div>

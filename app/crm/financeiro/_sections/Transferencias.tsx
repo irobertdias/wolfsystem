@@ -85,7 +85,7 @@ export default function Transferencias() {
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Mova saldo entre contas — ajusta as duas automaticamente</p>
           </div>
         </div>
-        <button onClick={abrir} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(5,150,105,0.4)" }}>+ Nova transferência</button>
+        <button onClick={abrir} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Nova transferência</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
@@ -158,7 +158,7 @@ export default function Transferencias() {
             <div style={{ marginBottom: 20 }}><label style={lbl}>Descrição</label><input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} style={input} placeholder="opcional" /></div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando ? 0.6 : 1, boxShadow: "0 4px 12px rgba(5,150,105,0.4)" }}>{salvando ? "Salvando…" : "Transferir"}</button>
+              <button onClick={salvar} disabled={salvando} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando ? 0.6 : 1, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>{salvando ? "Salvando…" : "Transferir"}</button>
             </div>
           </div>
         </div>

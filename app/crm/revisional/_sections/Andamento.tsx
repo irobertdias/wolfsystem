@@ -45,7 +45,7 @@ export default function Andamento({ dados, ir, alvo }: any) {
               onDrop={(ev) => { ev.preventDefault(); setSobre(null); if (arrastando) mover(arrastando, e.key); setArrastando(null); }}
               style={{ flex: "0 0 270px", background: destaque ? `${e.cor}0d` : "#f1f5f9", border: `1px solid ${destaque ? e.cor + "66" : "#E6ECEA"}`, borderRadius: 14, display: "flex", flexDirection: "column", maxHeight: "calc(100vh - 230px)", transition: "all .15s" }}
             >
-              <div style={{ padding: "12px 14px", borderBottom: "1px solid #E6ECEA", borderTop: `3px solid ${e.cor}`, borderRadius: "14px 14px 0 0", background: "#fff" }}>
+              <div style={{ padding: "12px 14px", borderBottom: "1px solid #E6ECEA", borderRadius: "14px 14px 0 0", background: "#fff" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <b style={{ fontSize: 13, color: "#0F172A" }}>{<IconeEmoji e={e.icone} />} {e.label}</b>
                   <span style={{ fontSize: 12, fontWeight: 800, color: e.cor, background: `${e.cor}14`, borderRadius: 20, padding: "2px 9px" }}>{itens.length}</span>

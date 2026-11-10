@@ -112,8 +112,7 @@ export function useEquipeFiltro(workspaceId: string) {
       }}>
         <span style={{ fontSize: 14, lineHeight: 1 }}>👥</span>
         <span style={{
-          color: "#64748B", fontSize: 10, fontWeight: 700,
-          textTransform: "uppercase", letterSpacing: 0.5,
+          color: "#64748B", fontSize: 12, fontWeight: 700,
           whiteSpace: "nowrap",
         }}>
           Equipe

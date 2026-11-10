@@ -179,7 +179,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
                     ? <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                     : <video src={`${src}#t=0.5`} preload="metadata" muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} />}
                   {item.tipo === "video" && (
-                    <span style={{ position: "absolute", left: 4, bottom: 4, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 5px" }}>vídeo</span>
+                    <span style={{ position: "absolute", left: 4, bottom: 4, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 12, fontWeight: 700, borderRadius: 4, padding: "1px 5px" }}>vídeo</span>
                   )}
                 </button>
               );
@@ -196,7 +196,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
             return (
               <a key={item.chave} href={urlMidia(item.filename, item.canalId)} target="_blank" rel="noreferrer"
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", border: "1px solid #E6ECEA", borderRadius: 8, textDecoration: "none", background: "#ffffff" }}>
-                <span style={{ width: 36, height: 42, borderRadius: 5, background: icone.cor, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 5, flexShrink: 0 }}>{icone.rotulo}</span>
+                <span style={{ width: 36, height: 42, borderRadius: 5, background: icone.cor, color: "#fff", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 5, flexShrink: 0 }}>{icone.rotulo}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", color: "#111b21", fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nomeExibicao(item.filename)}</span>
                   <span style={{ display: "block", color: "#667781", fontSize: 11, marginTop: 2 }}>{extensao(item.filename)} · {dataCurta(item.data)} · {item.doCliente ? "recebido" : "enviado"}</span>
@@ -221,7 +221,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
                 {item.texto && item.texto !== item.url && (
                   <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", color: "#54656f", fontSize: 11, marginTop: 3, whiteSpace: "pre-wrap", wordBreak: "break-word" } as any}>{item.texto}</span>
                 )}
-                <span style={{ display: "block", color: "#8696a0", fontSize: 10.5, marginTop: 3 }}>{dataCurta(item.data)} · {item.doCliente ? "recebido" : "enviado"}</span>
+                <span style={{ display: "block", color: "#8696a0", fontSize: 12, marginTop: 3 }}>{dataCurta(item.data)} · {item.doCliente ? "recebido" : "enviado"}</span>
               </span>
             </a>
           ))}

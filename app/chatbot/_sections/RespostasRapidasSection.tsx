@@ -229,7 +229,7 @@ export function RespostasRapidasSection() {
         </div>
         <button onClick={() => setShowForm(!showForm)}
           style={{
-            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+            background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
             boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -313,7 +313,7 @@ export function RespostasRapidasSection() {
                 </button>
               </div>
             )}
-            <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Imagem: máx 5MB · Vídeo/Áudio: máx 16MB · Documento: máx 100MB</p>
+            <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0", lineHeight: 1.4 }}>Imagem: máx 5MB · Vídeo/Áudio: máx 16MB · Documento: máx 100MB</p>
           </div>
 
           {/* 👥 EQUIPE */}
@@ -324,7 +324,7 @@ export function RespostasRapidasSection() {
                 <option value="">Geral (todas as equipes)</option>
                 {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
               </select>
-              <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Deixe "Geral" pra valer pra todas as equipes, ou escolha uma equipe específica.</p>
+              <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0", lineHeight: 1.4 }}>Deixe "Geral" pra valer pra todas as equipes, ou escolha uma equipe específica.</p>
             </div>
           )}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 14 }}>
@@ -334,7 +334,7 @@ export function RespostasRapidasSection() {
             </button>
             <button onClick={salvar} disabled={salvando || uploadandoMidia}
               style={{
-                background: (salvando || uploadandoMidia) ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                background: (salvando || uploadandoMidia) ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "9px 22px", fontSize: 12, cursor: "pointer", fontWeight: 700,
                 boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -396,7 +396,7 @@ export function RespostasRapidasSection() {
                 ) : (
                   <span style={{ fontSize: 24 }} title={r.midia_nome || "documento"}>📄</span>
                 )}
-                <span style={{ fontSize: 10, color: "#64748B", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
+                <span style={{ fontSize: 12, color: "#64748B", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
                   {r.midia_nome || "mídia"}
                 </span>
               </a>

@@ -487,7 +487,7 @@ export default function TemplatesPage() {
 
       {/* ═══ AVISO SEM CANAL ═══ */}
       {canais.length === 0 && (
-        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626", borderRadius: 12, padding: "14px 18px" }}>
+        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "14px 18px" }}>
           <p style={{ color: "#991b1b", fontSize: 13, margin: 0, fontWeight: 600 }}>
             Nenhum canal WABA conectado. Conecte um canal WABA em <b>Conexões</b> antes de criar templates.
           </p>
@@ -620,10 +620,9 @@ export default function TemplatesPage() {
                   {motivoTraduzido && (
                     <div style={{
                       background: "#fef2f2", border: "1px solid #fecaca",
-                      borderLeft: "3px solid #dc2626",
                       borderRadius: 8, padding: "10px 14px", marginBottom: 12,
                     }}>
-                      <p style={{ color: "#991b1b", fontSize: 10, margin: 0, fontWeight: 700 }}>
+                      <p style={{ color: "#991b1b", fontSize: 12, margin: 0, fontWeight: 700 }}>
                         Motivo da rejeição
                       </p>
                       <p style={{ color: "#dc2626", fontSize: 12, margin: "4px 0 0", fontWeight: 600, lineHeight: 1.4 }}>
@@ -671,19 +670,19 @@ export default function TemplatesPage() {
                   <option value="">Selecione o canal</option>
                   {canais.map(c => (<option key={c.id} value={c.id}>{c.nome} (WABA: {c.waba_id})</option>))}
                 </select>
-                <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>O template será cadastrado neste WABA específico.</p>
+                <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>O template será cadastrado neste WABA específico.</p>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div>
                   <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Nome Técnico *</label>
                   <input value={form.metaTemplateName} onChange={e => setForm(p => ({ ...p, metaTemplateName: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }))} placeholder="boas_vindas_cliente" style={{ ...IS, fontFamily: "monospace" }} />
-                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Só minúsculas, números e _</p>
+                  <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>Só minúsculas, números e _</p>
                 </div>
                 <div>
                   <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Nome Amigável</label>
                   <input value={form.nomeAmigavel} onChange={e => setForm(p => ({ ...p, nomeAmigavel: e.target.value }))} placeholder="Boas-vindas ao cliente" style={IS} />
-                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Pra aparecer no sistema</p>
+                  <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>Pra aparecer no sistema</p>
                 </div>
               </div>
 
@@ -693,7 +692,7 @@ export default function TemplatesPage() {
                   <select value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))} style={IS}>
                     {CATEGORIAS.map(c => (<option key={c.v} value={c.v}>{c.l}</option>))}
                   </select>
-                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>{CATEGORIAS.find(c => c.v === form.categoria)?.d}</p>
+                  <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>{CATEGORIAS.find(c => c.v === form.categoria)?.d}</p>
                 </div>
                 <div>
                   <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Idioma *</label>
@@ -727,7 +726,7 @@ export default function TemplatesPage() {
                 <textarea value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} rows={5}
                   placeholder="Olá {{1}}, seu pedido {{2}} foi confirmado!"
                   style={{ ...IS, resize: "vertical", minHeight: 120, fontFamily: "monospace" }} />
-                <p style={{ color: varsBody > 0 ? "#059669" : "#94A3B8", fontSize: 10, margin: "4px 0 0", fontWeight: varsBody > 0 ? 700 : 400 }}>
+                <p style={{ color: varsBody > 0 ? "#059669" : "#94A3B8", fontSize: 12, margin: "4px 0 0", fontWeight: varsBody > 0 ? 700 : 400 }}>
                   {form.body.length}/1024 caracteres · {varsBody} variável(is) detectada(s) — use {"{{1}}"}, {"{{2}}"}, etc
                 </p>
               </div>
@@ -827,12 +826,12 @@ export default function TemplatesPage() {
                 const motivoTraduzido = traduzirMotivoRejeicao(detalhe.motivo_rejeicao);
                 if (!motivoTraduzido) return null;
                 return (
-                  <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626", borderRadius: 10, padding: 14 }}>
+                  <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: 14 }}>
                     <p style={{ color: "#991b1b", fontSize: 11, margin: 0, fontWeight: 700 }}>Motivo da rejeição</p>
                     <p style={{ color: "#dc2626", fontSize: 13, margin: "5px 0 0", lineHeight: 1.5, fontWeight: 600 }}>{motivoTraduzido}</p>
                     {/* Mostra também o código original em pequeno quando for motivo desconhecido (fallback) */}
                     {detalhe.motivo_rejeicao && motivoTraduzido.startsWith("Motivo:") && (
-                      <p style={{ color: "#94A3B8", fontSize: 10, margin: "6px 0 0", fontFamily: "monospace" }}>
+                      <p style={{ color: "#94A3B8", fontSize: 12, margin: "6px 0 0", fontFamily: "monospace" }}>
                         Código Meta: {detalhe.motivo_rejeicao}
                       </p>
                     )}

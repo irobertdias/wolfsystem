@@ -623,7 +623,7 @@ export default function EditorProposta() {
           </p>
           <button onClick={() => router.back()}
             style={{
-              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
               boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -658,7 +658,7 @@ export default function EditorProposta() {
                 <span style={{ color: "#94A3B8", fontSize: 11 }}>
                   {stats.fixos} fixos · {stats.custom} personalizados · {stats.visiveis} visíveis · {stats.obrigatorios} obrigatórios
                 </span>
-                {dirty && <span style={{ fontSize: 10, color: "#C2410C", fontWeight: 700, fontStyle: "italic" }}>● mudanças não salvas</span>}
+                {dirty && <span style={{ fontSize: 12, color: "#C2410C", fontWeight: 700, fontStyle: "italic" }}>● mudanças não salvas</span>}
               </div>
             </div>
           </div>
@@ -725,7 +725,7 @@ export default function EditorProposta() {
                           {semEmojiTxt(s.label)}
                         </span>
                         <span style={{
-                          fontSize: 10, fontWeight: 800,
+                          fontSize: 12, fontWeight: 800,
                           color: ativa ? s.meta.cor : "#94A3B8",
                           background: ativa ? `${s.meta.cor}15` : "#F1F5F4",
                           padding: "1px 7px", borderRadius: 6,
@@ -740,7 +740,7 @@ export default function EditorProposta() {
             </div>
 
             <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #ECFDF5 0%, #fae8ff 100%)", border: "1px solid #A7F3D0" }}>
-              <p style={{ color: "#6b21a8", fontSize: 10, margin: "0 0 8px", fontWeight: 800 }}>
+              <p style={{ color: "#6b21a8", fontSize: 12, margin: "0 0 8px", fontWeight: 800 }}>
                 Resumo
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -758,7 +758,7 @@ export default function EditorProposta() {
               </p>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
                 <span style={{ color: "#64748B" }}>Salvar</span>
-                <kbd style={{ background: "#ffffff", border: "1px solid #CBD5E1", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontFamily: "monospace", color: "#334155", fontWeight: 700 }}>Ctrl+S</kbd>
+                <kbd style={{ background: "#ffffff", border: "1px solid #CBD5E1", padding: "2px 6px", borderRadius: 4, fontSize: 12, fontFamily: "monospace", color: "#334155", fontWeight: 700 }}>Ctrl+S</kbd>
               </div>
             </div>
           </aside>
@@ -778,7 +778,7 @@ export default function EditorProposta() {
               }}>{"+ Nova seção"}</button>
             <button onClick={() => adicionarCustom()}
               style={{
-                background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "9px 18px", fontSize: 12, fontWeight: 700, cursor: "pointer",
                 boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
@@ -896,7 +896,7 @@ export default function EditorProposta() {
                   <div key={`removido-${campo.origem}-${campo.slug}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #E6ECEA", borderRadius: 9, padding: "10px 12px" }}>
                     <div style={{ minWidth: 0 }}>
                       <span style={{ display: "block", color: "#334155", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{campo.label}</span>
-                      <span style={{ color: "#94A3B8", fontSize: 10 }}>{campo.origem === "fixo" ? "Campo padrão removido neste workspace" : "Campo personalizado removido"}</span>
+                      <span style={{ color: "#94A3B8", fontSize: 12 }}>{campo.origem === "fixo" ? "Campo padrão removido neste workspace" : "Campo personalizado removido"}</span>
                     </div>
                     <button type="button" onClick={() => restaurar(campo)} style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 8, padding: "7px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>Restaurar</button>
                   </div>
@@ -971,7 +971,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
               background: "#ffffff",
               color: ehPrimeiroGlobal ? "#CBD5E1" : "#64748B",
               border: "1px solid #E6ECEA",
-              borderRadius: 6, width: 26, height: 20, fontSize: 9,
+              borderRadius: 6, width: 26, height: 20, fontSize: 11,
               cursor: ehPrimeiroGlobal ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
             }}>▲</button>
           <button onClick={() => mover(idx, 1)} disabled={ehUltimoGlobal} title={ehUltimoGlobal ? "Já é o último" : "Mover pra baixo"}
@@ -979,7 +979,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
               background: "#ffffff",
               color: ehUltimoGlobal ? "#CBD5E1" : "#64748B",
               border: "1px solid #E6ECEA",
-              borderRadius: 6, width: 26, height: 20, fontSize: 9,
+              borderRadius: 6, width: 26, height: 20, fontSize: 11,
               cursor: ehUltimoGlobal ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
             }}>▼</button>
         </div>
@@ -988,7 +988,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
           <span style={{
             background: bgBadge, color: corBadge,
             border: `1px solid ${borderBadge}`,
-            padding: "4px 10px", borderRadius: 10, fontSize: 10,
+            padding: "4px 10px", borderRadius: 10, fontSize: 12,
             fontWeight: 700, whiteSpace: "nowrap",
           }}>{labelBadge}</span>
         )}
@@ -1001,7 +1001,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
             style={{ ...inputStyle, fontSize: 13, fontWeight: 600 }}
           />
           {ehFixo && campo.label !== campo.labelPadrao && (
-            <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>
+            <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0", fontStyle: "italic" }}>
               Padrão: {campo.labelPadrao} · slug: <code style={{ color: "#64748B", background: "#F1F5F4", padding: "1px 5px", borderRadius: 4, border: "1px solid #E6ECEA" }}>{campo.slug}</code>
             </p>
           )}
@@ -1042,7 +1042,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
           <span style={{
             background: bgBadge, color: corBadge,
             border: `1px solid ${borderBadge}`,
-            padding: "3px 10px", borderRadius: 10, fontSize: 10,
+            padding: "3px 10px", borderRadius: 10, fontSize: 12,
             fontWeight: 700, whiteSpace: "nowrap",
           }}>{labelBadge}</span>
           {ehFixo ? (
@@ -1118,7 +1118,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
           <p style={{ color: "#64748B", fontSize: 11, margin: "0 0 8px", fontWeight: 700 }}>
             Opções do dropdown
             {ehFixo && (
-              <span style={{ color: "#94A3B8", fontSize: 10, marginLeft: 8, textTransform: "none", fontWeight: 500, fontStyle: "italic" }}>
+              <span style={{ color: "#94A3B8", fontSize: 12, marginLeft: 8, textTransform: "none", fontWeight: 500, fontStyle: "italic" }}>
                 (você pode editar — vai sobrescrever a do sistema)
               </span>
             )}
@@ -1137,7 +1137,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
             Adicionar opção
           </button>
           {ehFixo && campo.slug === "status_venda" && (
-            <p style={{ color: "#92400e", fontSize: 10, margin: "10px 0 0", fontStyle: "italic", background: "#FFF7ED", padding: "6px 10px", borderRadius: 6, border: "1px solid #fde68a" }}>
+            <p style={{ color: "#92400e", fontSize: 12, margin: "10px 0 0", fontStyle: "italic", background: "#FFF7ED", padding: "6px 10px", borderRadius: 6, border: "1px solid #fde68a" }}>
               Status novos não terão cor personalizada na lista de vendas — vão aparecer em cinza.
             </p>
           )}

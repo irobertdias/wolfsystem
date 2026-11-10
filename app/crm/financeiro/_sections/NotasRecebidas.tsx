@@ -148,7 +148,7 @@ export default function NotasRecebidas() {
                   <td style={{ ...td, color: "#64748B" }}>{n.numero || "—"}</td>
                   <td style={{ ...td, color: "#64748B" }}>{dataBR(n.emissao)}</td>
                   <td style={td}>{n.lancamento_id
-                    ? <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Lançada</span>
+                    ? <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Lançada</span>
                     : <button onClick={() => lancar(n)} style={{ background: `${COR}12`, color: COR, border: `1px solid ${COR}55`, borderRadius: 9, padding: "6px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Lançar a pagar</button>}
                   </td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "#dc2626", whiteSpace: "nowrap" }}>{brl(n.valor_total)}</td>

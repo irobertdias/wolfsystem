@@ -2967,7 +2967,7 @@ export function ChatSection() {
         {showFiltros && (
           <div style={{ background: "#FFFFFF", margin: "0 12px 10px", borderRadius: 14, boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 10px 24px -14px rgba(16,24,40,.25)", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: tema.textoFraco, fontSize: 11, fontWeight: "bold", textTransform: "uppercase" }}>Filtros</span>
+              <span style={{ color: tema.textoFraco, fontSize: 11, fontWeight: "bold" }}>Filtros</span>
               {temFiltroAtivo && <button onClick={limparFiltros} style={{ background: "none", border: "none", color: "#dc2626", fontSize: 11, cursor: "pointer" }}>Limpar</button>}
             </div>
             {/* 🆕 FILTRO DE TEMPO — primeira opção, mais usado */}
@@ -3042,7 +3042,7 @@ export function ChatSection() {
                 <p style={{ color: "#9A3412", fontSize: 12.5, fontWeight: 800, margin: 0 }}>
                   {qtde2dias} pendente(s) há +2 dias
                 </p>
-                <p style={{ color: tema.textoFraco, fontSize: 10, margin: "2px 0 0" }}>
+                <p style={{ color: tema.textoFraco, fontSize: 12, margin: "2px 0 0" }}>
                   Encerra atendimentos sem interação recente
                 </p>
               </div>
@@ -3199,7 +3199,7 @@ export function ChatSection() {
                     const tempoFmt = horas > 0 ? `${horas}h${min > 0 ? ` ${min}min` : ""}` : `${minutosRest}min`;
                     const dataLib = new Date(fim).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
                     return (
-                      <div style={{ marginTop: 5, background: "#dc262611", border: "1px solid #dc262633", borderRadius: 6, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10 }}>
+                      <div style={{ marginTop: 5, background: "#dc262611", border: "1px solid #dc262633", borderRadius: 6, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
                         <span style={{ color: "#dc2626", fontWeight: "bold" }}>Bloqueado por {tempoFmt}</span>
                         <span style={{ color: "#94A3B8" }}>· libera {dataLib}</span>
                       </div>
@@ -3208,11 +3208,11 @@ export function ChatSection() {
                   {etiquetasAplicadas.length > 0 && (
                     <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
                       {etiquetasAplicadas.slice(0, 3).map(et => (
-                        <span key={et.id} style={{ background: et.cor + "22", border: `1px solid ${et.cor}`, color: et.cor, fontSize: 10, padding: "1px 7px", borderRadius: 10, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                        <span key={et.id} style={{ background: et.cor + "22", border: `1px solid ${et.cor}`, color: et.cor, fontSize: 12, padding: "1px 7px", borderRadius: 10, display: "inline-flex", alignItems: "center", gap: 3 }}>
                           <span>{<IconeEmoji e={et.icone} />}</span> {et.nome}
                         </span>
                       ))}
-                      {etiquetasAplicadas.length > 3 && <span style={{ color: "#64748B", fontSize: 10 }}>+{etiquetasAplicadas.length - 3}</span>}
+                      {etiquetasAplicadas.length > 3 && <span style={{ color: "#64748B", fontSize: 12 }}>+{etiquetasAplicadas.length - 3}</span>}
                     </div>
                   )}
                 </div>
@@ -3308,7 +3308,7 @@ export function ChatSection() {
                 )}
                 {showTransferir && (
                   <div style={{ position: "absolute", top: 48, right: 0, background: "#FFFFFF", borderRadius: 14, padding: 12, zIndex: 110, width: 270, maxHeight: 440, overflowY: "auto", boxShadow: "0 2px 4px rgba(16,24,40,.06), 0 20px 40px -12px rgba(16,24,40,.28)" }}>
-                    <p style={{ color: "#047857", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px", letterSpacing: 0.5 }}>Encaminhar para fila</p>
+                    <p style={{ color: "#047857", fontSize: 12, fontWeight: "bold", margin: "0 0 8px", letterSpacing: 0.5 }}>Encaminhar para fila</p>
                     {filas.length === 0 ? (
                       <p style={{ color: "#64748B", fontSize: 11, fontStyle: "italic", margin: "0 0 10px" }}>Nenhuma fila cadastrada.</p>
                     ) : (
@@ -3318,7 +3318,7 @@ export function ChatSection() {
                       ))
                     )}
                     <div style={{ height: 1, background: "#F1F5F4", margin: "12px 0" }} />
-                    <p style={{ color: "#047857", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px", letterSpacing: 0.5 }}>Encaminhar para atendente</p>
+                    <p style={{ color: "#047857", fontSize: 12, fontWeight: "bold", margin: "0 0 8px", letterSpacing: 0.5 }}>Encaminhar para atendente</p>
                     {(() => {
                       const outrosAtendentes = usuariosWs.filter(u => u.email && u.email.toLowerCase() !== user?.email?.toLowerCase());
                       if (outrosAtendentes.length === 0) { return <p style={{ color: "#64748B", fontSize: 11, fontStyle: "italic", margin: "0 0 8px" }}>Nenhum outro atendente no workspace.</p>; }
@@ -3330,7 +3330,7 @@ export function ChatSection() {
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ color: "#0F172A", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nome || u.email.split("@")[0]}</p>
-                            <p style={{ color: "#64748B", fontSize: 9, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</p>
+                            <p style={{ color: "#64748B", fontSize: 11, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</p>
                           </div>
                         </button>
                       ));
@@ -3352,7 +3352,7 @@ export function ChatSection() {
                         <div key={chaveMensagem(msg)} style={{ display: "flex", justifyContent: "center", margin: "4px 0" }}>
                           <div style={{ background: "#FFFBEB", color: "#78350F", boxShadow: "0 1px 2px rgba(16,24,40,.05)", fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 12, maxWidth: "80%", textAlign: "center" }}>
                             {msg.mensagem}
-                            {msg.created_at && <div style={{ fontSize: 10, color: "#54656f", fontWeight: 600, marginTop: 3 }}>{dataHoraMsg(msg.created_at)}</div>}
+                            {msg.created_at && <div style={{ fontSize: 12, color: "#54656f", fontWeight: 600, marginTop: 3 }}>{dataHoraMsg(msg.created_at)}</div>}
                           </div>
                         </div>
                       );
@@ -3381,7 +3381,7 @@ export function ChatSection() {
                       <div key={chaveMensagem(msg)} onMouseEnter={() => setHoverMsgIdx(i)} onMouseLeave={() => { setHoverMsgIdx(prev => prev === i ? null : prev); }}
                         style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end", position: "relative" }}>
                         <div style={{ maxWidth, padding: ehMidia ? "5px 5px 8px" : "11px 15px 9px", borderRadius: isCliente ? "6px 18px 18px 18px" : "18px 6px 18px 18px", background: isCliente ? "#ffffff" : bolhaVerde ? (isBot ? "linear-gradient(140deg, #34D399, #10B981 60%, #059669)" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)") : "#ECFDF5", boxShadow: bolhaVerde ? "0 12px 24px -12px rgba(5,150,105,.7)" : "0 1px 2px rgba(16,24,40,.05), 0 8px 20px -12px rgba(16,24,40,.18)", position: "relative" }}>
-                          {!isCliente && !ehAudio && !ehMidia && <p style={{ color: "rgba(255,255,255,.82)", fontSize: 10.5, margin: "0 0 3px", fontWeight: 800, letterSpacing: 0.15 }}>{isBot ? "BOT" : "Voc\u00ea"}</p>}
+                          {!isCliente && !ehAudio && !ehMidia && <p style={{ color: "rgba(255,255,255,.82)", fontSize: 12, margin: "0 0 3px", fontWeight: 800, letterSpacing: 0.15 }}>{isBot ? "BOT" : "Voc\u00ea"}</p>}
                           {quoteAutor && quoteTexto && (
                             <div style={{ background: bolhaVerde ? "rgba(255,255,255,0.18)" : "#F3F6F5", borderLeft: `3px solid ${bolhaVerde ? "#FFFFFF" : "#059669"}`, padding: "6px 8px", borderRadius: 8, marginBottom: 6 }}>
                               <p style={{ fontSize: 11, fontWeight: "bold", color: bolhaVerde ? "#FFFFFF" : "#047857", margin: 0 }}>{quoteAutor}</p>
@@ -3437,7 +3437,7 @@ export function ChatSection() {
                                   color: "#0F172A", fontStyle: "italic",
                                   whiteSpace: "pre-wrap", wordBreak: "break-word",
                                 }}>
-                                  <span style={{ fontWeight: 700, color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4, marginRight: 6 }}>Transcrição</span>
+                                  <span style={{ fontWeight: 700, color: "#64748B", fontSize: 12, marginRight: 6 }}>Transcrição</span>
                                   {audioTranscricao(msg.mensagem)}
                                 </div>
                               )}
@@ -3501,14 +3501,14 @@ export function ChatSection() {
             {(respondendoMsg || editandoMsg) && !gravando && (
               <div style={{ background: "#FFFFFF", borderTop: "1px solid #EEF2F1", padding: "10px 20px", display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ color: "#059669", display: "inline-flex" }}><Icone nome={editandoMsg ? "editar" : "voltar"} tamanho={18} /></span>
-                <div style={{ flex: 1, borderLeft: "3px solid #059669", paddingLeft: 10, minWidth: 0 }}>
+                <div style={{ flex: 1, paddingLeft: 10, minWidth: 0 }}>
                   <p style={{ color: "#047857", fontSize: 11, fontWeight: "bold", margin: 0 }}>
                     {editandoMsg ? "Editando sua mensagem" : `Respondendo a ${(respondendoMsg?.de === "cliente" ? (atendimentoAtivo?.nome || "Cliente") : respondendoMsg?.de === "bot" ? "BOT" : "Atendente")}`}
                   </p>
                   <p style={{ color: "#475569", fontSize: 12, margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {(() => { const m = editandoMsg || respondendoMsg; if (!m) return ""; const t = String(m.mensagem || "").replace(/^↪️ \*[^*]+\*: "[\s\S]+?"\n\n/, "").replace(/^\*[^*]+\*\n/, "").replace(/\s*\*\(editado\)\*\s*$/, ""); return t.length > 80 ? t.slice(0, 80) + "..." : t; })()}
                   </p>
-                  {editandoMsg && <p style={{ color: "#B45309", fontSize: 10, margin: "3px 0 0", fontStyle: "italic" }}>Edição apenas no histórico interno — cliente já recebeu a versão original.</p>}
+                  {editandoMsg && <p style={{ color: "#B45309", fontSize: 12, margin: "3px 0 0", fontStyle: "italic" }}>Edição apenas no histórico interno — cliente já recebeu a versão original.</p>}
                 </div>
                 <button onClick={cancelarRespostaOuEdicao} title="Cancelar" style={{ background: "none", color: "#64748B", border: "none", fontSize: 22, cursor: "pointer", padding: "4px 8px", lineHeight: 1, fontWeight: "bold" }}>×</button>
               </div>
@@ -3634,9 +3634,7 @@ export function ChatSection() {
           </>
         ) : (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 18, background: "transparent" }}>
-            <div style={{ width: 96, height: 96, borderRadius: 24, background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, boxShadow: "0 12px 24px rgba(5,150,105, 0.25), 0 4px 8px rgba(5,150,105, 0.15)" }}>
-              <span style={{ filter: "saturate(0) brightness(2)" }}>💬</span>
-            </div>
+            <div style={{ width: 96, height: 96, borderRadius: 22, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"💬"} tamanho={30} /></div>
             <h2 style={{ color: "#0F172A", fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Wolf Chatbot</h2>
             <p style={{ color: "#64748B", fontSize: 14, margin: 0, maxWidth: 400, textAlign: "center", lineHeight: 1.5 }}>Selecione uma conversa à esquerda pra começar a atender</p>
             {meuNome && (
@@ -3727,7 +3725,7 @@ export function ChatSection() {
             )}
             <div style={{ padding: 20, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={{ color: "#64748B", fontSize: 11, display: "block", marginBottom: 4, textTransform: "uppercase", fontWeight: "bold" }}>
+                <label style={{ color: "#64748B", fontSize: 11, display: "block", marginBottom: 4, fontWeight: "bold" }}>
                   Template aprovado ({templatesDoCanal.length} disponíveis)
                 </label>
                 {templatesDoCanal.length === 0 ? (
@@ -3750,7 +3748,7 @@ export function ChatSection() {
               </div>
               {templateEscolhido && (
                 <div style={{ background: "#D1FAE5", borderRadius: 10, padding: 14 }}>
-                  <p style={{ color: "#64748B", fontSize: 10, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>Preview</p>
+                  <p style={{ color: "#64748B", fontSize: 12, fontWeight: "bold", margin: "0 0 8px" }}>Preview</p>
                   {(templateEscolhido.componentes || []).map((c: any, i: number) => {
                     if (c.type === "HEADER" && c.format === "TEXT") return <p key={i} style={{ color: "#6EE7B7", fontSize: 12, margin: "0 0 6px", fontWeight: "bold" }}>{c.text}</p>;
                     if (c.type === "HEADER") return <p key={i} style={{ color: "#64748B", fontSize: 11, margin: "0 0 6px" }}>{c.format}</p>;
@@ -3767,7 +3765,7 @@ export function ChatSection() {
               )}
               {templateEscolhido && variaveisDoTemplate.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <label style={{ color: "#64748B", fontSize: 11, textTransform: "uppercase", fontWeight: "bold" }}>
+                  <label style={{ color: "#64748B", fontSize: 11, fontWeight: "bold" }}>
                     Variáveis ({variaveisDoTemplate.length})
                   </label>
                   {variaveisDoTemplate.map(v => (
@@ -3826,7 +3824,7 @@ export function ChatSection() {
                   style={{ flex: 1, height: 34, background: ativa ? "#FFFFFF" : "transparent", border: "none", borderRadius: 9, cursor: "pointer", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", color: ativa ? "#059669" : "#64748B", boxShadow: ativa ? "0 2px 6px rgba(16,24,40,.1)" : "none", transition: "all 0.15s" }}>
                   <Icone nome={a.icon} tamanho={16} />
                   {a.key === "etiquetas" && etiquetasAtendimento.length > 0 && (
-                    <span style={{ position: "absolute", top: 1, right: 1, background: "#059669", color: "#ffffff", borderRadius: 999, minWidth: 14, height: 14, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, padding: "0 3px" }}>{etiquetasAtendimento.length}</span>
+                    <span style={{ position: "absolute", top: 1, right: 1, background: "#059669", color: "#ffffff", borderRadius: 999, minWidth: 14, height: 14, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, padding: "0 3px" }}>{etiquetasAtendimento.length}</span>
                   )}
                 </button>
               );
@@ -3924,11 +3922,11 @@ export function ChatSection() {
                     )}
                   </select>
                   {funilEtapas.length > 0 ? (
-                    <p style={{ color: "#94A3B8", fontSize: 10, margin: "6px 0 0", lineHeight: 1.4 }}>
+                    <p style={{ color: "#94A3B8", fontSize: 12, margin: "6px 0 0", lineHeight: 1.4 }}>
                       Etapas sincronizadas com o seu <b>Funil de Vendas</b> (definidas no Editor de Proposta).
                     </p>
                   ) : (
-                    <p style={{ color: "#94A3B8", fontSize: 10, margin: "6px 0 0", lineHeight: 1.4 }}>
+                    <p style={{ color: "#94A3B8", fontSize: 12, margin: "6px 0 0", lineHeight: 1.4 }}>
                       Configure um campo de status no <b>Editor de Proposta / Funil</b> pra estas etapas virarem as do seu negócio.
                     </p>
                   )}
@@ -4009,7 +4007,7 @@ export function ChatSection() {
                 Vai marcar como <b>resolvido</b> todos os atendimentos pendentes que estão sem nova interação há mais tempo que o limite escolhido.
               </p>
             </div>
-            <p style={{ color: tema.textoNormal, fontSize: 12, fontWeight: "bold", textTransform: "uppercase", margin: "0 0 8px" }}>Encerrar pendentes há mais de:</p>
+            <p style={{ color: tema.textoNormal, fontSize: 12, fontWeight: "bold", margin: "0 0 8px" }}>Encerrar pendentes há mais de:</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
               {[1, 2, 3, 7].map(d => {
                 const qtde = contarPendentesAntigos(d as 1 | 2 | 3 | 7);
@@ -4018,7 +4016,7 @@ export function ChatSection() {
                   <button key={d} onClick={() => setDiasAntiguidade(d as 1 | 2 | 3 | 7)}
                     style={{ background: ativo ? "#f59e0b22" : (ehClaro ? "#F1F5F4" : "#0F172A"), border: `2px solid ${ativo ? "#f59e0b" : tema.bordaForte}`, borderRadius: 10, padding: "12px 8px", cursor: "pointer", textAlign: "center" }}>
                     <p style={{ color: ativo ? "#f59e0b" : tema.textoForte, fontSize: 14, fontWeight: "bold", margin: "0 0 4px" }}>{d} {d === 1 ? "dia" : "dias"}</p>
-                    <p style={{ color: tema.textoFraco, fontSize: 10, margin: 0 }}>{qtde} {qtde === 1 ? "atend." : "atend."}</p>
+                    <p style={{ color: tema.textoFraco, fontSize: 12, margin: 0 }}>{qtde} {qtde === 1 ? "atend." : "atend."}</p>
                   </button>
                 );
               })}

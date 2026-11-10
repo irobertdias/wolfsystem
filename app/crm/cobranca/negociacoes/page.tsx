@@ -1336,7 +1336,7 @@ export default function CobrancaPage() {
       {tabelasFaltando.length > 0 && (
         <div style={{
           background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-          border: "1px solid #fcd34d", borderLeft: "4px solid #EA580C",
+          border: "1px solid #fcd34d",
           borderRadius: 12, padding: "12px 16px",
           display: "flex", gap: 12, alignItems: "flex-start",
         }}>
@@ -1410,11 +1410,11 @@ export default function CobrancaPage() {
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <p style={{ margin: 0, color: "#059669", fontSize: 12.5, fontWeight: 800 }}>R$ {Number(cli.valor_plano || 0).toFixed(2).replace(".", ",")}</p>
-                          <p style={{ margin: "2px 0 0", color: "#94A3B8", fontSize: 10.5 }}>{cli.plano || ""}</p>
+                          <p style={{ margin: "2px 0 0", color: "#94A3B8", fontSize: 12 }}>{cli.plano || ""}</p>
                         </div>
                         <div style={{ textAlign: "right", minWidth: 110 }}>
                           <p style={{ margin: 0, color: "#334155", fontSize: 11, fontWeight: 700 }}>{a.updated_at ? new Date(a.updated_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</p>
-                          <p style={{ margin: "2px 0 0", color: a.status === "resolvido" ? "#059669" : "#C2410C", fontSize: 10.5, fontWeight: 700 }}>{a.status || ""}{a.atendente ? ` · ${String(a.atendente).split("@")[0]}` : ""}</p>
+                          <p style={{ margin: "2px 0 0", color: a.status === "resolvido" ? "#059669" : "#C2410C", fontSize: 12, fontWeight: 700 }}>{a.status || ""}{a.atendente ? ` · ${String(a.atendente).split("@")[0]}` : ""}</p>
                         </div>
                         <span style={{ color: "#94A3B8", fontSize: 14, fontWeight: 700 }}>{convAberta === a.numero ? "▾" : "▸"}</span>
                       </div>
@@ -1429,7 +1429,7 @@ export default function CobrancaPage() {
                                 return (
                                   <div key={m.id || i} style={{ alignSelf: doCliente ? "flex-start" : "flex-end", maxWidth: "78%", background: doCliente ? "#ffffff" : "#D1FAE5", border: "1px solid " + (doCliente ? "#E6ECEA" : "#A7F3D0"), borderRadius: 10, padding: "7px 11px" }}>
                                     <p style={{ margin: 0, color: "#0F172A", fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.mensagem}</p>
-                                    <p style={{ margin: "3px 0 0", color: "#94A3B8", fontSize: 9.5, textAlign: "right" }}>{doCliente ? "cliente" : m.de} · {m.created_at ? new Date(m.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</p>
+                                    <p style={{ margin: "3px 0 0", color: "#94A3B8", fontSize: 11, textAlign: "right" }}>{doCliente ? "cliente" : m.de} · {m.created_at ? new Date(m.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</p>
                                   </div>
                                 );
                               })}
@@ -1654,13 +1654,13 @@ export default function CobrancaPage() {
                               {/* coluna Fraude */}
                               <td style={{ padding: "12px 14px", textAlign: "center", whiteSpace: "nowrap" }}>
                                 {c.temFraude
-                                  ? <span style={{ background: "#fef2f2", color: "#b91c1c", fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>FRAUDE</span>
+                                  ? <span style={{ background: "#fef2f2", color: "#b91c1c", fontSize: 12, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>FRAUDE</span>
                                   : <span style={{ color: "#CBD5E1", fontSize: 12 }}>—</span>}
                               </td>
                               {/* coluna Churn */}
                               <td style={{ padding: "12px 14px", textAlign: "center", whiteSpace: "nowrap" }}>
                                 {c.temChurn
-                                  ? <span style={{ background: "#fff7ed", color: "#c2410c", fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>CHURN</span>
+                                  ? <span style={{ background: "#fff7ed", color: "#c2410c", fontSize: 12, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>CHURN</span>
                                   : <span style={{ color: "#CBD5E1", fontSize: 12 }}>—</span>}
                               </td>
                               <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
@@ -1700,7 +1700,7 @@ export default function CobrancaPage() {
                                 {c.proxVenc ? (
                                   <div>
                                     <div style={{ color: "#0F172A", fontSize: 12, fontWeight: 600 }}>{formatData(c.proxVenc)}</div>
-                                    <div style={{ color: c.proxDias <= 5 ? "#C2410C" : "#047857", fontSize: 10, fontWeight: 700 }}>
+                                    <div style={{ color: c.proxDias <= 5 ? "#C2410C" : "#047857", fontSize: 12, fontWeight: 700 }}>
                                       {c.proxDias === 0 ? "vence hoje" : `em ${c.proxDias}d`}
                                     </div>
                                   </div>
@@ -1775,7 +1775,7 @@ export default function CobrancaPage() {
                                 <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.proposta.nome || "—"}</span>
                                 <span onClick={ev => { ev.stopPropagation(); abrirEdicaoCliente(c.proposta); }} title="Editar OS / custcode" style={{ fontSize: 11, cursor: "pointer", color: "#94A3B8", flexShrink: 0 }}>✏️</span>
                               </div>
-                              <div style={{ fontFamily: "monospace", fontSize: 10.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              <div style={{ fontFamily: "monospace", fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                 <span style={{ color: c.proposta.dados_customizados?.os ? "#047857" : "#CBD5E1", fontWeight: 700 }}>{c.proposta.dados_customizados?.os || "sem OS"}</span>
                                 <span style={{ color: "#CBD5E1" }}> · </span>
                                 <span style={{ color: c.proposta.dados_customizados?.custcode ? "#047857" : "#CBD5E1", fontWeight: 700 }}>{c.proposta.dados_customizados?.custcode || "sem custcode"}</span>
@@ -1786,7 +1786,7 @@ export default function CobrancaPage() {
                               {inad ? (
                                 <>
                                   <div style={{ color: "#dc2626", fontSize: 13, fontWeight: 800 }}>{formatBRL(c.totalAberto)}</div>
-                                  <div style={{ color: "#94A3B8", fontSize: 10 }}>{c.atrasadas} mês · {c.atrasoMax}d</div>
+                                  <div style={{ color: "#94A3B8", fontSize: 12 }}>{c.atrasadas} mês · {c.atrasoMax}d</div>
                                 </>
                               ) : (
                                 <div style={{ color: "#059669", fontSize: 12, fontWeight: 700 }}>em dia</div>
@@ -1883,7 +1883,7 @@ export default function CobrancaPage() {
                       <button key={o.v} onClick={() => { setEnvioModo(o.v); setEnvioContatos(montarContatosClientes(envioOrigemClientes, o.v)); }}
                         style={{ flex: 1, padding: "10px 12px", borderRadius: 10, textAlign: "left", border: envioModo === o.v ? "2px solid #047857" : "1px solid #E6ECEA", background: envioModo === o.v ? "#ECFDF5" : "#ffffff", color: envioModo === o.v ? "#047857" : "#64748B", cursor: "pointer" }}>
                         <div style={{ fontSize: 12.5, fontWeight: 700 }}>{o.l}</div>
-                        <div style={{ fontSize: 10.5, color: "#94A3B8", marginTop: 2 }}>{o.sub}</div>
+                        <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>{o.sub}</div>
                       </button>
                     ))}
                   </div>
@@ -1957,7 +1957,7 @@ export default function CobrancaPage() {
                   <input type="number" min={1} max={300} value={envioDelayMin} onChange={e => setEnvioDelayMin(parseInt(e.target.value) || 30)} style={inputStyle} placeholder="Mínimo" />
                   <input type="number" min={1} max={300} value={envioDelayMax} onChange={e => setEnvioDelayMax(parseInt(e.target.value) || 60)} style={inputStyle} placeholder="Máximo" />
                 </div>
-                <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Recomendo 30-60s pra WebJS evitar ban. WABA pode ser mais rápido (1-3s).</p>
+                <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>Recomendo 30-60s pra WebJS evitar ban. WABA pode ser mais rápido (1-3s).</p>
               </div>
             </div>
 
@@ -2011,7 +2011,7 @@ export default function CobrancaPage() {
                             }}
                             title={m.descricao}>
                             <div>{<IconeEmoji e={m.icone} />} {m.label}</div>
-                            <div style={{ fontSize: 10, fontWeight: 500, color: at ? m.color : "#94A3B8", marginTop: 2 }}>{m.descricao}</div>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: at ? m.color : "#94A3B8", marginTop: 2 }}>{m.descricao}</div>
                           </button>
                         );
                       })}
@@ -2054,7 +2054,7 @@ export default function CobrancaPage() {
                   <div>
                     <label style={labelStyle}>Data prometida pelo cliente *</label>
                     <input type="date" value={statusPromessa} onChange={e => setStatusPromessa(e.target.value)} style={inputStyle} />
-                    <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Se passar dessa data sem pagar, a fatura volta a aparecer como atrasada.</p>
+                    <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>Se passar dessa data sem pagar, a fatura volta a aparecer como atrasada.</p>
                   </div>
                 )}
                 <div>
@@ -2156,9 +2156,9 @@ export default function CobrancaPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <h3 style={{ color: "#0F172A", fontSize: isMobile ? 16 : 18, fontWeight: 800, margin: 0 }}>{c.proposta.nome || "—"}</h3>
-                    {c.temFraude && <span style={{ background: "#fef2f2", color: "#b91c1c", fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>FRAUDE</span>}
-                    {c.temChurn && <span style={{ background: "#fff7ed", color: "#c2410c", fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>CHURN</span>}
-                    {precoce && <span style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>INADIMPLÊNCIA PRECOCE</span>}
+                    {c.temFraude && <span style={{ background: "#fef2f2", color: "#b91c1c", fontSize: 12, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>FRAUDE</span>}
+                    {c.temChurn && <span style={{ background: "#fff7ed", color: "#c2410c", fontSize: 12, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>CHURN</span>}
+                    {precoce && <span style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", fontSize: 12, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>INADIMPLÊNCIA PRECOCE</span>}
                   </div>
                   <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 6, fontSize: 12 }}>
                     <span style={{ color: "#64748B" }}>OS: <b style={{ fontFamily: "monospace", color: "#047857" }}>{c.proposta.dados_customizados?.os || "—"}</b></span>
@@ -2211,7 +2211,7 @@ export default function CobrancaPage() {
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
                             <span style={{ background: cc.bg, color: cc.cor, fontWeight: 700, fontSize: 11, padding: "2px 9px", borderRadius: 999 }}>{f.codigo_status || "—"} · {cc.txt}</span>
                             <div style={{ marginTop: 3 }}>
-                              <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}`, borderRadius: 6, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{st.label}</span>
+                              <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}`, borderRadius: 6, padding: "1px 7px", fontSize: 12, fontWeight: 700 }}>{st.label}</span>
                             </div>
                           </td>
                           <td style={{ padding: "10px 12px", color: f.detalhamento ? "#334155" : "#CBD5E1", maxWidth: 230, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11.5 }} title={f.detalhamento || undefined}>{f.detalhamento || "—"}</td>
@@ -2219,22 +2219,22 @@ export default function CobrancaPage() {
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "#64748B" }}>{mesAnoBR(f.data_vencimento)}</td>
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "#0F172A", fontWeight: 600 }}>
                             {formatData(f.data_vencimento)}
-                            {f.status_visual === "atrasada" && <div style={{ color: "#dc2626", fontSize: 10, fontWeight: 700 }}>{f.dias_atraso}d atraso</div>}
+                            {f.status_visual === "atrasada" && <div style={{ color: "#dc2626", fontSize: 12, fontWeight: 700 }}>{f.dias_atraso}d atraso</div>}
                           </td>
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: f.data_pagamento ? "#059669" : "#CBD5E1", fontWeight: f.data_pagamento ? 700 : 400 }}>{f.data_pagamento ? formatData(f.data_pagamento) : "—"}</td>
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap", fontSize: 11 }}>
                             {f.nome_banco && <div style={{ color: "#334155" }}>{f.nome_banco}</div>}
-                            {f.opcao_pagamento && <span style={{ background: "#ECFDF5", color: "#047857", fontWeight: 700, fontSize: 10, padding: "1px 7px", borderRadius: 999 }}>{f.opcao_pagamento}</span>}
+                            {f.opcao_pagamento && <span style={{ background: "#ECFDF5", color: "#047857", fontWeight: 700, fontSize: 12, padding: "1px 7px", borderRadius: 999 }}>{f.opcao_pagamento}</span>}
                             {!f.nome_banco && !f.opcao_pagamento && <span style={{ color: "#CBD5E1" }}>—</span>}
                           </td>
                           <td style={{ padding: "10px 12px", textAlign: "center" }}>
                             {f.suspensao_fraude == null ? <span style={{ color: "#CBD5E1" }}>—</span>
-                              : f.suspensao_fraude ? <span style={{ background: "#fef2f2", color: "#b91c1c", fontWeight: 800, fontSize: 10, padding: "2px 8px", borderRadius: 999 }}>SIM</span>
+                              : f.suspensao_fraude ? <span style={{ background: "#fef2f2", color: "#b91c1c", fontWeight: 800, fontSize: 12, padding: "2px 8px", borderRadius: 999 }}>SIM</span>
                               : <span style={{ color: "#94A3B8", fontSize: 11 }}>não</span>}
                           </td>
                           <td style={{ padding: "10px 12px", textAlign: "center" }}>
                             {f.churn == null ? <span style={{ color: "#CBD5E1" }}>—</span>
-                              : f.churn ? <span style={{ background: "#fff7ed", color: "#c2410c", fontWeight: 800, fontSize: 10, padding: "2px 8px", borderRadius: 999 }}>SIM</span>
+                              : f.churn ? <span style={{ background: "#fff7ed", color: "#c2410c", fontWeight: 800, fontSize: 12, padding: "2px 8px", borderRadius: 999 }}>SIM</span>
                               : <span style={{ color: "#94A3B8", fontSize: 11 }}>não</span>}
                           </td>
                           <td style={{ padding: "10px 12px" }}>
@@ -2243,16 +2243,16 @@ export default function CobrancaPage() {
                                 <>
                                   {STATUS_META[f.status]?.pendencia !== false || f.status === "pendente" ? (
                                     <button onClick={() => abrirStatus(f, "paga")} title="Marcar como paga"
-                                      style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 6, padding: "4px 8px", fontSize: 10.5, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>Paga</button>
+                                      style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>Paga</button>
                                   ) : (
                                     <button onClick={() => marcarAPagar(f)} title="Reverter status"
-                                      style={{ background: "#fffbeb", color: "#C2410C", border: "1px solid #fde68a", borderRadius: 6, padding: "4px 8px", fontSize: 10.5, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>A pagar</button>
+                                      style={{ background: "#fffbeb", color: "#C2410C", border: "1px solid #fde68a", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>A pagar</button>
                                   )}
                                   <button onClick={() => abrirStatus(f, "promessa")} title="Mais status"
-                                    style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 6, padding: "4px 8px", fontSize: 10.5, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>⚙</button>
+                                    style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>⚙</button>
                                 </>
                               ) : (
-                                <span style={{ color: "#94A3B8", fontSize: 10, fontStyle: "italic" }}>leitura</span>
+                                <span style={{ color: "#94A3B8", fontSize: 12, fontStyle: "italic" }}>leitura</span>
                               )}
                             </div>
                           </td>

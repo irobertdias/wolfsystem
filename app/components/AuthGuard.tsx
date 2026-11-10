@@ -134,7 +134,7 @@ export default function AuthGuard({
           width: 48, height: 48, borderRadius: 12,
           background: "linear-gradient(135deg, #10B981 0%, #047857 100%)",
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
-          boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+          boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
         }}>🔒</div>
         <p style={{ color: "#64748B", fontSize: 13, margin: 0, fontWeight: 600 }}>Verificando acesso...</p>
       </div>

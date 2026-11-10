@@ -520,11 +520,11 @@ export default function CobrancaDashboard() {
       {!vazio && (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 10 : 14 }}>
           {/* Recebidas */}
-          <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #059669" }}>
+          <div style={{ ...card, padding: isMobile ? 14 : 18 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>✅</div>
-                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0 }}>Recebidas</p>
+                <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: 0 }}>Recebidas</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.recebidas} anterior={kpisAnt.recebidas} />}
             </div>
@@ -535,11 +535,11 @@ export default function CobrancaDashboard() {
           </div>
 
           {/* Em Negociação */}
-          <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #047857" }}>
+          <div style={{ ...card, padding: isMobile ? 14 : 18 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🤝</div>
-                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0 }}>Em negociação</p>
+                <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: 0 }}>Em negociação</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.negociacao} anterior={kpisAnt.negociacao} />}
             </div>
@@ -550,11 +550,11 @@ export default function CobrancaDashboard() {
           </div>
 
           {/* Inadimplentes */}
-          <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #dc2626" }}>
+          <div style={{ ...card, padding: isMobile ? 14 : 18 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🔴</div>
-                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0 }}>Inadimplentes</p>
+                <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: 0 }}>Inadimplentes</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.inadimplentes} anterior={kpisAnt.inadimplentes} invertido />}
             </div>
@@ -565,10 +565,10 @@ export default function CobrancaDashboard() {
           </div>
 
           {/* Taxa de Inadimplência */}
-          <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #047857" }}>
+          <div style={{ ...card, padding: isMobile ? 14 : 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>📉</div>
-              <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0 }}>Tx. Inadimplência</p>
+              <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: 0 }}>Tx. Inadimplência</p>
             </div>
             <p style={{ color: kpis.pctInad < 10 ? "#059669" : kpis.pctInad < 25 ? "#C2410C" : "#dc2626", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{kpis.pctInad}%</p>
             <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
@@ -599,7 +599,7 @@ export default function CobrancaDashboard() {
       {!vazio && (alertas.vencemEm3 > 0 || alertas.atrasadasMais30d > 0 || alertas.promessasHoje > 0) && (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 12 }}>
           {alertas.vencemEm3 > 0 && (
-            <div style={{ ...card, padding: 16, borderLeft: "4px solid #C2410C", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ ...card, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontSize: 28 }}>⏰</div>
               <div>
                 <p style={{ color: "#C2410C", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.vencemEm3)}</p>
@@ -617,7 +617,7 @@ export default function CobrancaDashboard() {
             </div>
           )}
           {alertas.atrasadasMais30d > 0 && (
-            <div style={{ ...card, padding: 16, borderLeft: "4px solid #dc2626", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ ...card, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="🚨" tamanho={26} /></div>
               <div>
                 <p style={{ color: "#dc2626", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.atrasadasMais30d)}</p>
@@ -650,7 +650,7 @@ export default function CobrancaDashboard() {
                   </div>
                   <p style={{ color: meta.cor, fontSize: 24, fontWeight: 800, margin: 0, lineHeight: 1 }}>{formatNum(qtd)}</p>
                   <p style={{ color: "#64748B", fontSize: 11, margin: "2px 0 6px", fontWeight: 600 }}>{pct}% do total</p>
-                  <p style={{ color: "#64748B", fontSize: 10.5, margin: 0, lineHeight: 1.4, fontStyle: "italic" }}>{meta.desc}</p>
+                  <p style={{ color: "#64748B", fontSize: 12, margin: 0, lineHeight: 1.4, fontStyle: "italic" }}>{meta.desc}</p>
                 </div>
               );
             })}
@@ -758,7 +758,7 @@ export default function CobrancaDashboard() {
                     <td style={{ padding: "12px 14px", color: "#94A3B8", fontSize: 12, fontWeight: 700 }}>#{i + 1}</td>
                     <td style={{ padding: "12px 14px" }}>
                       <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{c.proposta?.nome || "—"}</p>
-                      {c.proposta?.dados_customizados?.custcode && <p style={{ color: "#94A3B8", fontSize: 10.5, margin: "2px 0 0", fontFamily: "monospace" }}>{c.proposta.dados_customizados.custcode}</p>}
+                      {c.proposta?.dados_customizados?.custcode && <p style={{ color: "#94A3B8", fontSize: 12, margin: "2px 0 0", fontFamily: "monospace" }}>{c.proposta.dados_customizados.custcode}</p>}
                     </td>
                     <td style={{ padding: "12px 14px" }}>
                       {c.emRisco > 0 ? <span style={{ background: "#fffbeb", color: "#C2410C", border: "1px solid #fde68a", borderRadius: 10, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{c.emRisco}</span> : <span style={{ color: "#CBD5E1", fontSize: 13 }}>—</span>}

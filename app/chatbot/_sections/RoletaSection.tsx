@@ -297,7 +297,7 @@ export function RoletaSection() {
                     <div style={{ flex: 1 }}>
                       <p style={{ color: "#0F172A", fontSize: 13, margin: 0, fontWeight: 600 }}>
                         {u.nome}
-                        {equipeNomeDe(u.equipe_id) && <span style={{ marginLeft: 8, background: "#a855f715", color: "#059669", fontSize: 10, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>{equipeNomeDe(u.equipe_id)}</span>}
+                        {equipeNomeDe(u.equipe_id) && <span style={{ marginLeft: 8, background: "#a855f715", color: "#059669", fontSize: 12, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>{equipeNomeDe(u.equipe_id)}</span>}
                       </p>
                       <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>
                         {u.email} · {u.perfil}{u.fila ? ` · Fila${u.fila.includes(",") ? "s" : ""}: ${u.fila.split(",").map(s => s.trim()).filter(Boolean).join(", ")}` : ""}
@@ -403,7 +403,6 @@ export function RoletaSection() {
         <div style={{
           background: "#ECFDF5",
           border: "1px solid #A7F3D0",
-          borderLeft: "4px solid #059669",
           borderRadius: 12,
           padding: 16,
           display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap",

@@ -73,7 +73,7 @@ export default function ContasBancarias() {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Contas bancárias</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Bancos, caixa, cartões e investimentos</p></div>
         </div>
-        <button onClick={abrirNovo} style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(5,150,105,0.4)" }}>+ Nova conta</button>
+        <button onClick={abrirNovo} style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Nova conta</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
@@ -107,7 +107,7 @@ export default function ContasBancarias() {
                       <span style={{ width: 36, height: 36, borderRadius: 11, background: "rgba(255,255,255,.18)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={t.i} tamanho={18} /></span>
                       <div><div style={{ color: "#fff", fontSize: 15, fontWeight: 800 }}>{c.nome}</div><div style={{ color: "rgba(255,255,255,0.85)", fontSize: 11 }}>{t.l}{c.banco ? ` · ${c.banco}` : ""}</div></div>
                     </div>
-                    {!c.ativo && <span style={{ background: "rgba(255,255,255,0.25)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10 }}>inativa</span>}
+                    {!c.ativo && <span style={{ background: "rgba(255,255,255,0.25)", color: "#fff", fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 10 }}>inativa</span>}
                   </div>
                   <div style={{ padding: 18 }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 700, }}>Saldo atual</div>
@@ -149,7 +149,7 @@ export default function ContasBancarias() {
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer", fontSize: 14, color: "#334155" }}><input type="checkbox" checked={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.target.checked })} /> Conta ativa</label>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1, boxShadow: "0 4px 12px rgba(5,150,105,0.4)" }}>{salvando ? "Salvando…" : "Salvar"}</button>
+              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>{salvando ? "Salvando…" : "Salvar"}</button>
             </div>
           </div>
         </div>

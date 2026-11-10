@@ -352,7 +352,7 @@ export function RelatoriosSection() {
 
         <button onClick={gerarRelatorio} disabled={loading}
           style={{
-            background: loading ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+            background: loading ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
             color: "white", border: "none", borderRadius: 12,
             padding: "14px", fontSize: 14, cursor: "pointer", fontWeight: 700,
             boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -442,7 +442,7 @@ export function RelatoriosSection() {
                             ) : (
                               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                                 {etiqs.map(e => (
-                                  <span key={e.id} style={{ background: e.cor + "15", border: `1px solid ${e.cor}`, color: e.cor, fontSize: 10, padding: "3px 8px", borderRadius: 10, display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 600 }}>
+                                  <span key={e.id} style={{ background: e.cor + "15", border: `1px solid ${e.cor}`, color: e.cor, fontSize: 12, padding: "3px 8px", borderRadius: 10, display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 600 }}>
                                     <span>{<IconeEmoji e={e.icone} />}</span>{e.nome}
                                   </span>
                                 ))}

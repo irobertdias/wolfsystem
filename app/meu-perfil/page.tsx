@@ -285,7 +285,7 @@ export default function MeuPerfilPage() {
       }}>
         {/* Header roxo */}
         <div style={{
-          background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+          background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
           padding: "28px 32px 60px",
           position: "relative",
         }}>
@@ -491,7 +491,7 @@ export default function MeuPerfilPage() {
               onClick={salvar}
               disabled={salvando}
               style={{
-                background: salvando ? "#6EE7B7" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                background: salvando ? "#6EE7B7" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                 color: "#fff", border: "none", borderRadius: 10,
                 padding: "11px 26px", fontSize: 13, fontWeight: 800,
                 cursor: salvando ? "wait" : "pointer",

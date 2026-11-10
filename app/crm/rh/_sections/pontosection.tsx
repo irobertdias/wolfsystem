@@ -587,7 +587,7 @@ export function PontoSection() {
                                     <IconeEmoji e="🏷️" tamanho={15} />
                                     <div>
                                       <p style={{ color: am.cor, fontSize: 13, fontWeight: 800, margin: 0 }}>{b.tipo}</p>
-                                      <p style={{ color: am.cor, fontSize: 10, margin: 0, opacity: 0.8 }}>{temHora ? horaFmt(b.data_hora) : "dia inteiro"}</p>
+                                      <p style={{ color: am.cor, fontSize: 12, margin: 0, opacity: 0.8 }}>{temHora ? horaFmt(b.data_hora) : "dia inteiro"}</p>
                                     </div>
                                     {b.ajuste_por && <span title={`Lançado por ${b.ajuste_por}`} style={{ fontSize: 11, marginLeft: 2 }}><Icone nome="editar" tamanho={15} /></span>}
                                     {podeEditar && (
@@ -622,7 +622,7 @@ export function PontoSection() {
                                     <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>
                                       {horaFmt(b.data_hora)}
                                     </p>
-                                    <p style={{ color: "#94A3B8", fontSize: 10, margin: 0 }}>{b.tipo}</p>
+                                    <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>{b.tipo}</p>
                                   </div>
                                   {mapsUrl ? (
                                     <a

@@ -225,7 +225,7 @@ export default function Contratos({ dados, ir, alvo }: any) {
 export function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div style={{ border: "1px solid #F1F5F4", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 12, background: "#fcfcfd" }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#334155" }}>{titulo}</div>
       {children}
     </div>
   );
@@ -235,7 +235,7 @@ export function PreviaCalculo({ calc }: { calc: ReturnType<typeof calcular> }) {
   if (!calc.valido) return <div style={{ fontSize: 12, color: "#94A3B8" }}>Informe valor financiado, prazo e parcela (ou taxa) para ver o cálculo.</div>;
   const item = (l: string, v: string, cor = "#0F172A") => (
     <div style={{ flex: "1 1 130px", background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "8px 12px" }}>
-      <div style={{ fontSize: 10.5, color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>{l}</div>
+      <div style={{ fontSize: 12, color: "#64748B", fontWeight: 700 }}>{l}</div>
       <div style={{ fontSize: 15, fontWeight: 800, color: cor }}>{v}</div>
     </div>
   );
@@ -295,7 +295,7 @@ function FichaContrato({ c, cfg, wsId, usuario, onClose, onEditar, onExcluir, on
 
   const info = (l: string, v: any) => (
     <div style={{ flex: "1 1 160px", minWidth: 0 }}>
-      <div style={{ fontSize: 10.5, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase" }}>{l}</div>
+      <div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 700 }}>{l}</div>
       <div style={{ fontSize: 13.5, color: "#0F172A", fontWeight: 600, overflowWrap: "anywhere" }}>{v || "—"}</div>
     </div>
   );

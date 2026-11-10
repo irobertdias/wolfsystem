@@ -158,7 +158,7 @@ export default function AtendimentoShell({ children }: { children?: ReactNode })
             <img src="/logo1.png" alt="Wolf" style={{ width: 32, flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
               <span style={{ color: "#0F172A", fontWeight: "700", fontSize: 14, display: "block" }}>Wolf Chatbot</span>
-              <span style={{ color: "#059669", fontSize: 10, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ color: "#059669", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981", boxShadow: "0 0 0 2px #22c55e22" }}/>
                 {workspace?.nome || "Carregando..."}
               </span>

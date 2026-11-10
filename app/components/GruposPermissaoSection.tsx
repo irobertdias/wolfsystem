@@ -79,7 +79,7 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
   },
   {
     nome: "💬 Chatbot",
-    cor: "#3b82f6",
+    cor: "#14B8A6",
     permissoes: [
       { key: "chatbot_acessar", label: "Acessar o Chatbot" },
       { key: "chat_proprio", label: "Ver próprios atendimentos" },
@@ -111,7 +111,7 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
   },
   {
     nome: "🧑‍💼 RH",
-    cor: "#4f46e5",
+    cor: "#059669",
     permissoes: [
       { key: "rh", label: "Acessar o RH (tudo)" },
       // Visão Geral
@@ -151,7 +151,7 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
   },
   {
     nome: "💵 Financeiro",
-    cor: "#d97706",
+    cor: "#C2410C",
     permissoes: [
       { key: "financeiro_acessar", label: "Acessar o Financeiro" },
       { key: "fin_dashboard", label: "Dashboard" },
@@ -179,7 +179,7 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
   },
   {
     nome: "🕐 Bater Ponto",
-    cor: "#db2777",
+    cor: "#BE185D",
     permissoes: [{ key: "bater_ponto", label: "Acessar o Bater Ponto" }],
   },
   {
@@ -599,7 +599,7 @@ export default function GruposPermissaoSection({
                         {/* Slug em monospace pra debug (some no mobile) */}
                         <code
                           style={{
-                            fontSize: 10,
+                            fontSize: 12,
                             color: "#94A3B8",
                             fontFamily: "monospace",
                             background: "#F1F5F4",

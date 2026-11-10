@@ -120,7 +120,7 @@ export default function EmitirNota() {
                   <td style={{ ...td, fontWeight: 700 }}>{n.destinatario_nome}</td>
                   <td style={{ ...td, color: "#64748B" }}>{n.numero || "—"}</td>
                   <td style={{ ...td, color: "#64748B" }}>{dataBR(n.emissao)}</td>
-                  <td style={td}>{n.lancamento_id ? <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Gerado</span> : <span style={{ fontSize: 12, color: "#94A3B8" }}>—</span>}</td>
+                  <td style={td}>{n.lancamento_id ? <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Gerado</span> : <span style={{ fontSize: 12, color: "#94A3B8" }}>—</span>}</td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "#059669", whiteSpace: "nowrap" }}>{brl(n.valor_total)}</td>
                   <td style={{ ...td, textAlign: "right" }}><button onClick={() => remover(n)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}><Icone nome="lixeira" tamanho={15} /></button></td>
                 </tr>

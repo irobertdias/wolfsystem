@@ -129,11 +129,11 @@ export default function Boletos() {
                 const s = sit(b);
                 return (
                   <tr key={b.id} style={{ background: i % 2 === 0 ? "#fff" : "#F7FAF9" }}>
-                    <td style={{ ...td, fontWeight: 700 }}>{b.emitente_nome}{b.linha_digitavel && <div style={{ fontSize: 10.5, color: "#94A3B8", fontFamily: "monospace" }}>{b.linha_digitavel.slice(0, 20)}…</div>}</td>
+                    <td style={{ ...td, fontWeight: 700 }}>{b.emitente_nome}{b.linha_digitavel && <div style={{ fontSize: 12, color: "#94A3B8", fontFamily: "monospace" }}>{b.linha_digitavel.slice(0, 20)}…</div>}</td>
                     <td style={{ ...td, color: "#64748B" }}>{b.numero || "—"}</td>
                     <td style={{ ...td, color: "#64748B" }}>{dataBR(b.vencimento)}</td>
-                    <td style={td}>{b.lancamento_id ? <span style={{ background: s.bg, color: s.c, border: `1px solid ${s.bd}`, fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{s.l}</span> : (
-                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ background: s.bg, color: s.c, border: `1px solid ${s.bd}`, fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{s.l}</span><button onClick={() => lancar(b)} style={{ background: `${COR}12`, color: COR, border: `1px solid ${COR}55`, borderRadius: 9, padding: "5px 9px", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>Lançar</button></div>
+                    <td style={td}>{b.lancamento_id ? <span style={{ background: s.bg, color: s.c, border: `1px solid ${s.bd}`, fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{s.l}</span> : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ background: s.bg, color: s.c, border: `1px solid ${s.bd}`, fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{s.l}</span><button onClick={() => lancar(b)} style={{ background: `${COR}12`, color: COR, border: `1px solid ${COR}55`, borderRadius: 9, padding: "5px 9px", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>Lançar</button></div>
                     )}</td>
                     <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "#dc2626", whiteSpace: "nowrap" }}>{brl(b.valor_total)}</td>
                     <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>

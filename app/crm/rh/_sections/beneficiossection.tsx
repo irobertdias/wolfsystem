@@ -325,7 +325,7 @@ export function BeneficiosSection() {
                     <p
                       style={{
                         color: "#94A3B8",
-                        fontSize: 10,
+                        fontSize: 12,
                         margin: 0,
                         fontWeight: 700,
                       }}
@@ -340,7 +340,7 @@ export function BeneficiosSection() {
                     <p
                       style={{
                         color: "#94A3B8",
-                        fontSize: 10,
+                        fontSize: 12,
                         margin: 0,
                         fontWeight: 700,
                       }}

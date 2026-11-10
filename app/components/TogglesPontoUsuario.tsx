@@ -92,7 +92,6 @@ export default function TogglesPontoUsuario({
         <div style={{
           background: "#fffbeb",
           border: "1px solid #fde68a",
-          borderLeft: "3px solid #f59e0b",
           borderRadius: 10,
           padding: "10px 14px",
           gridColumn: layout === "grid" ? "1 / -1" : undefined,
@@ -213,7 +212,7 @@ function Toggle({
         </p>
 
         {desabilitado && avisoDesabilitado && (
-          <p style={{ color: "#94a3b8", fontSize: 10.5, margin: "4px 0 0", fontStyle: "italic" }}>
+          <p style={{ color: "#94a3b8", fontSize: 12, margin: "4px 0 0", fontStyle: "italic" }}>
             {avisoDesabilitado}
           </p>
         )}

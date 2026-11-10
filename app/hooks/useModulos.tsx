@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "./useWorkspace";
 
-import { IconeEmoji } from "../components/a2/Icone";
+import Icone, { IconeEmoji } from "../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🎁 useModulos — descobre quais módulos estão liberados pro workspace atual
 // ═══════════════════════════════════════════════════════════════════════
@@ -257,109 +257,49 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
   };
 
   return (
-    <div style={{
-      minHeight: "calc(100vh - 64px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: 32, background: "#0a0a0a",
-    }}>
-      <div style={{
-        maxWidth: 520, width: "100%",
-        background: "#111",
-        border: `1px solid ${info.cor}44`,
-        borderRadius: 16,
-        padding: 40,
-        textAlign: "center",
-        boxShadow: `0 0 60px ${info.cor}22`,
-      }}>
-        {/* Ícone grande com brilho */}
-        <div style={{
-          width: 96, height: 96, margin: "0 auto 24px",
-          borderRadius: "50%",
-          background: `${info.cor}22`,
-          border: `2px solid ${info.cor}66`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 48,
-        }}>
-          {<IconeEmoji e={info.icone} />}
+    <div style={{ minHeight: "calc(100vh - 120px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+      <div style={{ maxWidth: 520, width: "100%", background: "#fff", borderRadius: 24, overflow: "hidden", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 24px 48px -24px rgba(16,24,40,.28)" }}>
+        {/* Faixa esmeralda */}
+        <div style={{ position: "relative", overflow: "hidden", padding: "30px 30px 26px", color: "#fff", background: "linear-gradient(130deg, #10B981 0%, #059669 42%, #065F46 100%)" }}>
+          <div aria-hidden style={{ position: "absolute", right: -70, top: -90, width: 240, height: 240, borderRadius: "50%", background: "rgba(255,255,255,.09)" }} />
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+            <span style={{ width: 52, height: 52, borderRadius: 15, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <IconeEmoji e={info.icone} tamanho={26} />
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.16)", borderRadius: 999, padding: "4px 11px", fontSize: 12, fontWeight: 700 }}>
+                <Icone nome="cadeado" tamanho={13} /> Plano {info.planoNecessario}
+              </span>
+              <h1 style={{ margin: "8px 0 0", fontSize: 26, fontWeight: 800, letterSpacing: "-.02em" }}>{info.nome}</h1>
+            </div>
+          </div>
         </div>
 
-        {/* Badge do plano */}
-        <div style={{
-          display: "inline-block",
-          background: `${info.cor}22`,
-          border: `1px solid ${info.cor}44`,
-          borderRadius: 20,
-          padding: "4px 14px",
-          marginBottom: 16,
-        }}>
-          <span style={{ color: info.cor, fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 0.5 }}>
-            Plano {info.planoNecessario}
-          </span>
-        </div>
+        <div style={{ padding: "24px 30px 28px", display: "flex", flexDirection: "column", gap: 18 }}>
+          <p style={{ color: "#475569", fontSize: 15, lineHeight: 1.6, margin: 0 }}>{info.desc}</p>
 
-        <h1 style={{ color: "white", fontSize: 26, fontWeight: "bold", margin: "0 0 12px" }}>
-          {info.nome}
-        </h1>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#FFF7ED", boxShadow: "inset 0 0 0 1.5px #FED7AA", borderRadius: 14, padding: "13px 15px" }}>
+            <span style={{ width: 30, height: 30, borderRadius: 9, background: "#FFEDD5", color: "#C2410C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="alerta" tamanho={16} /></span>
+            <p style={{ color: "#7C2D12", fontSize: 13.5, margin: "4px 0 0", lineHeight: 1.5 }}>
+              Este módulo <strong>não está disponível no seu plano atual</strong>. Peça a liberação para começar a usar.
+            </p>
+          </div>
 
-        <p style={{ color: "#94A3B8", fontSize: 15, lineHeight: 1.6, margin: "0 0 32px" }}>
-          {info.desc}
-        </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button onClick={solicitarLiberacao}
+              style={{ flex: "1 1 200px", height: 50, borderRadius: 14, border: 0, cursor: "pointer", color: "#fff", fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", boxShadow: "0 14px 26px -14px rgba(5,150,105,.8)" }}>
+              <Icone nome="whatsapp" tamanho={18} /> Solicitar liberação
+            </button>
+            <button onClick={() => router.push("/crm/dashboard")}
+              style={{ flex: "0 1 140px", height: 50, borderRadius: 14, border: 0, cursor: "pointer", background: "#F3F6F5", color: "#334155", fontSize: 15, fontWeight: 700 }}>
+              Voltar
+            </button>
+          </div>
 
-        {/* Aviso de bloqueio */}
-        <div style={{
-          background: "#0a0a0a",
-          border: "1px solid #0F172A",
-          borderRadius: 10,
-          padding: "16px 20px",
-          marginBottom: 24,
-          textAlign: "left",
-          display: "flex", gap: 12, alignItems: "center",
-        }}>
-          <span style={{ fontSize: 24 }}>⚠️</span>
-          <p style={{ color: "#CBD5E1", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-            Este módulo <strong>não está disponível no seu plano atual</strong>.
-            Solicite a liberação para o administrador para começar a usar.
+          <p style={{ color: "#94A3B8", fontSize: 12.5, margin: 0 }}>
+            Ao clicar em &quot;Solicitar liberação&quot; você vai para o WhatsApp do suporte.
           </p>
         </div>
-
-        {/* Botões */}
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-          <button
-            onClick={solicitarLiberacao}
-            style={{
-              background: info.cor,
-              color: "white",
-              border: "none",
-              borderRadius: 10,
-              padding: "14px 28px",
-              fontSize: 14,
-              fontWeight: "bold",
-              cursor: "pointer",
-              display: "flex", alignItems: "center", gap: 8,
-            }}
-          >
-            Solicitar Liberação
-          </button>
-          <button
-            onClick={() => router.push("/crm/dashboard")}
-            style={{
-              background: "none",
-              color: "#94A3B8",
-              border: "1px solid #334155",
-              borderRadius: 10,
-              padding: "14px 28px",
-              fontSize: 14,
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            Voltar
-          </button>
-        </div>
-
-        <p style={{ color: "#64748B", fontSize: 11, margin: "24px 0 0", fontStyle: "italic" }}>
-          Ao clicar em &quot;Solicitar Liberação&quot;, você será redirecionado para o WhatsApp do suporte.
-        </p>
       </div>
     </div>
   );

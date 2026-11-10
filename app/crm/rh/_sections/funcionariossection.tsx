@@ -449,7 +449,7 @@ export function FuncionariosSection() {
                     style={{
                       background: `${st.cor}15`,
                       color: st.cor,
-                      fontSize: 10,
+                      fontSize: 12,
                       padding: "3px 8px",
                       borderRadius: 8,
                       fontWeight: 700,

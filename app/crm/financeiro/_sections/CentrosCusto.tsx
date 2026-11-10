@@ -64,7 +64,7 @@ export default function CentrosCusto() {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Centros de Custo</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Agrupe receitas e despesas por setor, projeto ou unidade</p></div>
         </div>
-        <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(5,150,105,0.4)" }}>+ Novo centro</button>
+        <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Novo centro</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
@@ -98,7 +98,7 @@ export default function CentrosCusto() {
                   <td style={{ ...td, fontFamily: "monospace", color: "#64748B" }}>{c.codigo || "—"}</td>
                   <td style={{ ...td, fontWeight: 700 }}>{c.nome}</td>
                   <td style={{ ...td, color: "#64748B" }}>{c.descricao || "—"}</td>
-                  <td style={td}><span style={{ background: c.ativo ? "#ECFDF5" : "#F1F5F4", color: c.ativo ? "#059669" : "#64748B", border: `1px solid ${c.ativo ? "#A7F3D0" : "#E6ECEA"}`, fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{c.ativo ? "Ativo" : "Inativo"}</span></td>
+                  <td style={td}><span style={{ background: c.ativo ? "#ECFDF5" : "#F1F5F4", color: c.ativo ? "#059669" : "#64748B", border: `1px solid ${c.ativo ? "#A7F3D0" : "#E6ECEA"}`, fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{c.ativo ? "Ativo" : "Inativo"}</span></td>
                   <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
                     <button onClick={() => abrirEdicao(c)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}><Icone nome="editar" tamanho={15} /></button>
                     <button onClick={() => remover(c)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer", marginLeft: 5 }}><Icone nome="lixeira" tamanho={15} /></button>
