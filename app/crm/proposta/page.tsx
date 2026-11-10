@@ -831,7 +831,7 @@ function PropostaForm() {
             {arquivos.map((a, i) => (
               <div key={i} style={{
                 display: "flex", alignItems: "center", gap: 10,
-                padding: "8px 12px", background: "#ffffff", border: "1px solid #E6ECEA",
+                padding: "8px 12px", background: "#F7FAF9",
                 borderRadius: 8, fontSize: 12,
               }}>
                 <span style={{ fontSize: 20 }}>{iconeArquivo(a.tipo)}</span>

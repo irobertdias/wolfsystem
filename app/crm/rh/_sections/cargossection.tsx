@@ -200,7 +200,7 @@ export function CargosSection() {
               </div>
             </div>
             <div style={{ padding: "14px 24px", borderTop: "1px solid #E6ECEA", display: "flex", gap: 10, justifyContent: "flex-end", background: "#F7FAF9" }}>
-              <button onClick={fechar} style={{ background: "#ffffff", color: "#334155", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 18px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
+              <button onClick={fechar} style={{ background: "#F3F6F5", color: "#334155", borderRadius: 10, padding: "9px 18px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
               <button onClick={salvar} disabled={salvando} style={{ background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`, color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 13, cursor: salvando ? "wait" : "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", opacity: salvando ? 0.7 : 1 }}>{salvando ? "Salvando..." : editando ? "Salvar" : "+ Cadastrar"}</button>
             </div>
           </div>

@@ -1249,7 +1249,7 @@ export default function Funil() {
 
           {/* Histograma de valor */}
           {histogramaEtapa.length > 0 && metricasEtapa.total > 0 && (
-            <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16 }}>
+            <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 16 }}>
               <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: "0 0 12px" }}>Distribuição por faixa de valor ({campoValor?.label})</p>
               <ResponsiveContainer width="100%" height={190}>
                 <BarChart data={histogramaEtapa} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
@@ -1268,7 +1268,7 @@ export default function Funil() {
           {/* Quebras por dimensão + por vendedor */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
             {/* Por vendedor */}
-            <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 14 }}>
+            <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 14 }}>
               <p style={{ color: "#0F172A", fontSize: 12, fontWeight: 700, margin: "0 0 10px" }}>Por vendedor</p>
               {etapaPorVendedor.length === 0 ? <p style={{ color: "#94A3B8", fontSize: 11, fontStyle: "italic", margin: 0 }}>Sem dados.</p> :
                 etapaPorVendedor.slice(0, 6).map((v, i) => (
@@ -1282,7 +1282,7 @@ export default function Funil() {
                 ))}
             </div>
             {/* Por primeira dimensão disponível */}
-            <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 14 }}>
+            <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 14 }}>
               <p style={{ color: "#0F172A", fontSize: 12, fontWeight: 700, margin: "0 0 10px" }}>
                 Por {dimensoesDisponiveis[0]?.label || "dimensão"}
               </p>
@@ -1402,7 +1402,7 @@ export default function Funil() {
               Como ler este funil neste workspace
             </h3>
             <button onClick={() => { const auto = autoDetectarConfig(campos); salvarConfigFunil(auto); }}
-              style={{ background: "#F7FAF9", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 8, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+              style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 8, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
               Auto-detectar
             </button>
           </div>
@@ -1487,7 +1487,7 @@ export default function Funil() {
                   const isP = config.statusPerdido.includes(opt);
                   const val = isG ? 100 : isP ? 0 : (config.probabilidades[opt] ?? 0);
                   return (
-                    <div key={opt} style={{ display: "flex", alignItems: "center", gap: 10, background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 8, padding: "8px 12px" }}>
+                    <div key={opt} style={{ display: "flex", alignItems: "center", gap: 10, background: "#F7FAF9", borderRadius: 8, padding: "8px 12px" }}>
                       <span style={{ color: "#0F172A", fontSize: 12, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {isG ? "✅ " : isP ? "❌ " : "▸ "}{opt}
                       </span>
@@ -1571,7 +1571,7 @@ export default function Funil() {
                   { l: "Este ano", calc: () => { const n = new Date(); return [new Date(n.getFullYear(), 0, 1), new Date(n.getFullYear(), 11, 31)] as [Date, Date]; } },
                 ]).map(a => (
                   <button key={a.l} onClick={() => { const [i, f] = a.calc(); setDataInicio(i.toISOString().slice(0, 10)); setDataFim(f.toISOString().slice(0, 10)); }}
-                    style={{ background: "#ffffff", color: "#047857", border: "1px solid #E6ECEA", borderRadius: 8, padding: "7px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                    style={{ background: "#F3F6F5", color: "#047857", borderRadius: 8, padding: "7px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
                     {a.l}
                   </button>
                 ))}
@@ -1994,7 +1994,7 @@ export default function Funil() {
                     ].map(f => (
                       <div key={f.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: isMobile ? 130 : 200, fontSize: 13, color: "#0F172A", fontWeight: 700, flexShrink: 0 }}>{f.label}</div>
-                        <div style={{ flex: 1, height: 32, background: "#F7FAF9", borderRadius: 8, overflow: "hidden", position: "relative", border: "1px solid #E6ECEA" }}>
+                        <div style={{ flex: 1, height: 32, background: "#F7FAF9", borderRadius: 8, overflow: "hidden", position: "relative" }}>
                           <div style={{ width: `${Math.max(2, f.pct)}%`, height: "100%", background: `linear-gradient(90deg, ${f.cor} 0%, ${f.cor}dd 100%)`, transition: "width 0.4s", display: "flex", alignItems: "center", paddingLeft: 10 }}>
                             <span style={{ color: "white", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>{f.qtd} ({f.pct}%)</span>
                           </div>
@@ -2064,7 +2064,7 @@ export default function Funil() {
                       const bgCat = e.categoria === "venda" ? "#ECFDF5" : e.categoria === "inviavel" ? "#fef2f2" : "#FFF7ED";
                       const labelCat = e.categoria === "venda" ? "Venda" : e.categoria === "inviavel" ? "Inviável" : "Andamento";
                       return (
-                        <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 10 }}>
+                        <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "#F7FAF9", borderRadius: 10 }}>
                           <span style={{ width: 12, height: 12, borderRadius: 4, background: cor, flexShrink: 0 }}></span>
                           <span style={{ fontSize: 13, color: "#0F172A", fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                             {e.icone ? `${e.icone} ` : ""}{e.nome}
@@ -2153,7 +2153,7 @@ export default function Funil() {
                     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
                       {/* Meta de Receita */}
                       {metas.metaReceita > 0 && (
-                        <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 18 }}>
+                        <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 18 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
                             <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700 }}>Receita</span>
                             <span style={{ color: metas.pctReceita >= 100 ? "#059669" : "#64748B", fontSize: 20, fontWeight: 800 }}>{metas.pctReceita}%</span>
@@ -2167,11 +2167,11 @@ export default function Funil() {
                             <b style={{ color: "#059669" }}>{formatBRL(metas.receitaMes)}</b> de <b>{formatBRL(metas.metaReceita)}</b>
                           </p>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                            <div style={{ background: "#ffffff", border: "1px solid #F1F5F4", borderRadius: 8, padding: 10 }}>
+                            <div style={{ background: "#F7FAF9", borderRadius: 8, padding: 10 }}>
                               <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontWeight: 600 }}>Falta</p>
                               <p style={{ color: "#dc2626", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{formatBRLCompacto(metas.faltaReceita)}</p>
                             </div>
-                            <div style={{ background: "#ffffff", border: "1px solid #F1F5F4", borderRadius: 8, padding: 10 }}>
+                            <div style={{ background: "#F7FAF9", borderRadius: 8, padding: 10 }}>
                               <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontWeight: 600 }}>Projeção</p>
                               <p style={{ color: metas.projReceita >= metas.metaReceita ? "#059669" : "#C2410C", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{formatBRLCompacto(metas.projReceita)}</p>
                             </div>
@@ -2184,7 +2184,7 @@ export default function Funil() {
 
                       {/* Meta de Ganhos */}
                       {metas.metaGanhos > 0 && (
-                        <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 18 }}>
+                        <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 18 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
                             <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700 }}>Ganhos (quantidade)</span>
                             <span style={{ color: metas.pctGanhos >= 100 ? "#059669" : "#64748B", fontSize: 20, fontWeight: 800 }}>{metas.pctGanhos}%</span>
@@ -2197,11 +2197,11 @@ export default function Funil() {
                             <b style={{ color: "#059669" }}>{metas.qtdMes}</b> de <b>{metas.metaGanhos}</b> ganhos
                           </p>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                            <div style={{ background: "#ffffff", border: "1px solid #F1F5F4", borderRadius: 8, padding: 10 }}>
+                            <div style={{ background: "#F7FAF9", borderRadius: 8, padding: 10 }}>
                               <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontWeight: 600 }}>Falta</p>
                               <p style={{ color: "#dc2626", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{metas.faltaGanhos}</p>
                             </div>
-                            <div style={{ background: "#ffffff", border: "1px solid #F1F5F4", borderRadius: 8, padding: 10 }}>
+                            <div style={{ background: "#F7FAF9", borderRadius: 8, padding: 10 }}>
                               <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontWeight: 600 }}>Projeção</p>
                               <p style={{ color: metas.projGanhos >= metas.metaGanhos ? "#059669" : "#C2410C", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{metas.projGanhos}</p>
                             </div>

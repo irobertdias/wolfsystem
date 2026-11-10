@@ -626,13 +626,11 @@ export default function BaterPontoPage() {
                       flex: 1,
                       background: "#fff",
                       color: "#334155",
-                      border: "1px solid #E6ECEA",
-                      borderRadius: 14,
+                      borderRadius: 16,
                       padding: "15px",
                       fontSize: 14,
                       fontWeight: 700,
-                      cursor: enviando ? "not-allowed" : "pointer",
-                    }}
+                      cursor: enviando ? "not-allowed" : "pointer", boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" }}
                   >
                     De novo
                   </button>

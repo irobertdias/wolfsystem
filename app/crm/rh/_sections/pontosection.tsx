@@ -736,7 +736,7 @@ export function PontoSection() {
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button onClick={() => setEditModal(null)} disabled={salvandoEdit}
-                style={{ background: "#fff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                 Cancelar
               </button>
               <button onClick={salvarEdit} disabled={salvandoEdit}

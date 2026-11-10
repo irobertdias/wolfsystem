@@ -494,9 +494,8 @@ export function ContratosSection() {
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#ffffff",
+                  background: "#F3F6F5",
                   color: "#334155",
-                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,

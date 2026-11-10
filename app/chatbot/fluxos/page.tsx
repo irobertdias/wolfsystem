@@ -1879,7 +1879,7 @@ function saida(obj) {
                   Marcar todos
                 </button>
                 <button type="button" onClick={limparVendedores}
-                  style={{background:"#fff",border:"1px solid #E6ECEA",color:"#64748B",borderRadius:7,padding:"6px 9px",fontSize: 12,fontWeight:700,cursor:"pointer"}}>
+                  style={{background: "#F3F6F5",color:"#64748B",borderRadius:7,padding:"6px 9px",fontSize: 12,fontWeight:700,cursor:"pointer"}}>
                   Limpar
                 </button>
               </div>
@@ -2831,7 +2831,7 @@ export default function FluxosPage() {
         <button onClick={()=>router.push("/chatbot")}
           style={{
             display:"flex",alignItems:"center",gap:10,
-            background:"#ffffff",border:"1px solid #E6ECEA",borderRadius:10,
+            background: "#F3F6F5",borderRadius:10,
             padding:"10px 12px",color:"#334155",fontSize:13,fontWeight:"600",cursor:"pointer",
             textAlign:"left",
             boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
@@ -2865,7 +2865,7 @@ export default function FluxosPage() {
         <button onClick={()=>router.push("/crm")}
           style={{
             display:"flex",alignItems:"center",gap:8,
-            background:"#ffffff",border:"1px solid #E6ECEA",borderRadius:10,
+            background: "#F3F6F5",borderRadius:10,
             padding:"10px 12px",color:"#64748B",fontSize:12,fontWeight:"600",cursor:"pointer",
             textAlign:"left",
             boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
@@ -2885,7 +2885,7 @@ export default function FluxosPage() {
       <div style={{flex:1,padding:32,overflowY:"auto"}}>
         {showNovo && (
           <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.4)",backdropFilter:"blur(2px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <div style={{background:"#ffffff",borderRadius:16,padding:28,width:500,border:"1px solid #E6ECEA",display:"flex",flexDirection:"column",gap:16,boxShadow:"0 20px 60px rgba(0,0,0,0.15)"}}>
+            <div style={{background:"#ffffff",borderRadius: 16,padding:28,width:500,display:"flex",flexDirection:"column",gap:16,boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   <div style={{
@@ -2946,7 +2946,7 @@ export default function FluxosPage() {
                 );
               })()}
               <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
-                <button onClick={()=>setShowNovo(false)} style={{background:"#ffffff",color:"#64748B",border:"1px solid #E6ECEA",borderRadius:10,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"600"}}>Cancelar</button>
+                <button onClick={()=>setShowNovo(false)} style={{background: "#F3F6F5",color:"#64748B",borderRadius:10,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"600"}}>Cancelar</button>
                 <button onClick={criarFluxo} disabled={criando} style={{
                   background:criando?"linear-gradient(135deg, #94A3B8 0%, #64748B 100%)":"linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                   color:"#ffffff",border:"none",borderRadius:10,padding:"10px 24px",fontSize:13,
@@ -3121,7 +3121,7 @@ export default function FluxosPage() {
                       <button key={tipo} onClick={()=>adicionarNo(tipo)}
                         style={{
                           display:"flex",alignItems:"center",gap:10,width:"100%",
-                          background:"#ffffff", border:"1px solid #E6ECEA", borderRadius:8,
+                          background: "#F3F6F5", borderRadius:8,
                           padding:"7px 10px", color:"#0F172A", fontSize:12, fontWeight:"500",
                           cursor:"pointer",
                           textAlign:"left", boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
@@ -3140,7 +3140,7 @@ export default function FluxosPage() {
           })}
         </div>
         <div style={{padding:12,borderTop:"1px solid #E6ECEA",background:"#F7FAF9"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#ffffff",border:"1px solid #E6ECEA",borderRadius:10,padding:"9px 12px",marginBottom:10,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background: "#F7FAF9",borderRadius:10,padding:"9px 12px",marginBottom:10,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
             <span style={{color:fluxoAtivo?.ativo?"#059669":"#64748B",fontSize:12,fontWeight:"600",display:"flex",alignItems:"center",gap:6}}>
               <span style={{width:8,height:8,borderRadius:"50%",background:fluxoAtivo?.ativo?"#10B981":"#94A3B8",boxShadow:fluxoAtivo?.ativo?"0 0 0 3px #22c55e22":"none"}}/>
               {fluxoAtivo?.ativo?"Ativo":"Inativo"}

@@ -839,11 +839,11 @@ export default function EditorProposta() {
                       {g.meta.descricao && <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{g.meta.descricao}</p>}
                     </div>
                     {g.key.startsWith("custom:") && <>
-                      <label title="Escolher cor da se\u00e7\u00e3o" style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #E6ECEA", background: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden" }}>
+                      <label title="Escolher cor da se\u00e7\u00e3o" style={{ width: 32, height: 32, borderRadius: 8, background: "#F3F6F5", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden" }}>
                         <input type="color" value={g.meta.cor} onChange={evento => alterarCorSecao(g.label, evento.target.value)} style={{ width: 42, height: 42, border: 0, padding: 0, background: "transparent", cursor: "pointer" }} />
                       </label>
                       <button type="button" onClick={() => adicionarCustom(g.label, g.meta.cor)} style={{ background: "#fff", color: g.meta.cor, borderRadius: 8, padding: "6px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>+ Campo</button>
-                      <button type="button" onClick={() => renomearSecao(g.label)} title="Renomear se\u00e7\u00e3o" style={{ background: "#fff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 8, padding: "6px 9px", fontSize: 12, cursor: "pointer" }}>{"✏️"}</button>
+                      <button type="button" onClick={() => renomearSecao(g.label)} title="Renomear se\u00e7\u00e3o" style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 8, padding: "6px 9px", fontSize: 12, cursor: "pointer" }}>{"✏️"}</button>
                     </>}
                     <span style={{
                       background: `${g.meta.cor}10`,
@@ -893,7 +893,7 @@ export default function EditorProposta() {
               </div>
               {removidosAbertos && <div style={{ padding: isMobile ? 12 : 16, display: "flex", flexDirection: "column", gap: 8 }}>
                 {camposRemovidos.map(campo => (
-                  <div key={`removido-${campo.origem}-${campo.slug}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #E6ECEA", borderRadius: 9, padding: "10px 12px" }}>
+                  <div key={`removido-${campo.origem}-${campo.slug}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#F7FAF9", borderRadius: 9, padding: "10px 12px" }}>
                     <div style={{ minWidth: 0 }}>
                       <span style={{ display: "block", color: "#334155", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{campo.label}</span>
                       <span style={{ color: "#94A3B8", fontSize: 12 }}>{campo.origem === "fixo" ? "Campo padrão removido neste workspace" : "Campo personalizado removido"}</span>
@@ -959,7 +959,6 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
     <div style={{
       background: "#F7FAF9",
       borderRadius: 10,
-      border: "1px solid #E6ECEA",
       padding: 14,
       opacity: opacidade,
       transition: "opacity 0.15s",
@@ -968,17 +967,15 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
           <button onClick={() => mover(idx, -1)} disabled={ehPrimeiroGlobal} title={ehPrimeiroGlobal ? "Já é o primeiro" : "Mover pra cima"}
             style={{
-              background: "#ffffff",
+              background: "#F3F6F5",
               color: ehPrimeiroGlobal ? "#CBD5E1" : "#64748B",
-              border: "1px solid #E6ECEA",
               borderRadius: 6, width: 26, height: 20, fontSize: 11,
               cursor: ehPrimeiroGlobal ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
             }}>▲</button>
           <button onClick={() => mover(idx, 1)} disabled={ehUltimoGlobal} title={ehUltimoGlobal ? "Já é o último" : "Mover pra baixo"}
             style={{
-              background: "#ffffff",
+              background: "#F3F6F5",
               color: ehUltimoGlobal ? "#CBD5E1" : "#64748B",
-              border: "1px solid #E6ECEA",
               borderRadius: 6, width: 26, height: 20, fontSize: 11,
               cursor: ehUltimoGlobal ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
             }}>▼</button>
@@ -1114,7 +1111,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
       </div>
 
       {campo.tipo === "dropdown" && (
-        <div style={{ marginTop: 12, padding: 12, background: "#ffffff", borderRadius: 10, border: "1px solid #E6ECEA" }}>
+        <div style={{ marginTop: 12, padding: 12, background: "#F7FAF9", borderRadius: 10 }}>
           <p style={{ color: "#64748B", fontSize: 11, margin: "0 0 8px", fontWeight: 700 }}>
             Opções do dropdown
             {ehFixo && (

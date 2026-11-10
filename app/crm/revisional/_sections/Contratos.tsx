@@ -234,7 +234,7 @@ export function Secao({ titulo, children }: { titulo: string; children: React.Re
 export function PreviaCalculo({ calc }: { calc: ReturnType<typeof calcular> }) {
   if (!calc.valido) return <div style={{ fontSize: 12, color: "#94A3B8" }}>Informe valor financiado, prazo e parcela (ou taxa) para ver o cálculo.</div>;
   const item = (l: string, v: string, cor = "#0F172A") => (
-    <div style={{ flex: "1 1 130px", background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "8px 12px" }}>
+    <div style={{ flex: "1 1 130px", background: "#F7FAF9", borderRadius: 10, padding: "8px 12px" }}>
       <div style={{ fontSize: 12, color: "#64748B", fontWeight: 700 }}>{l}</div>
       <div style={{ fontSize: 15, fontWeight: 800, color: cor }}>{v}</div>
     </div>
@@ -341,7 +341,7 @@ function FichaContrato({ c, cfg, wsId, usuario, onClose, onEditar, onExcluir, on
             {parcelas.map((p, k) => {
               const atraso = !p.pago_em && p.vencimento < hoje();
               return (
-                <div key={k} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10 }}>
+                <div key={k} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "#F7FAF9", borderRadius: 10 }}>
                   <span style={{ fontWeight: 700, color: "#334155", width: 80 }}>Parcela {p.n}</span>
                   <span style={{ color: "#64748B", fontSize: 13, flex: 1 }}>vence {dataBR(p.vencimento)}{p.pago_em ? ` · paga em ${dataBR(p.pago_em)}` : ""}</span>
                   <b>{brl(p.valor)}</b>

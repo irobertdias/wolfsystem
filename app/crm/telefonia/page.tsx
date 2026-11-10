@@ -21,9 +21,8 @@ export default function TelefoniaPage() {
       }}>
         <div style={{
           background: "#ffffff",
-          border: "1px solid #E6ECEA",
-          borderRadius: 14,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+          borderRadius: 16,
+          boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
           padding: "20px 28px",
           display: "flex", alignItems: "center", gap: 12,
         }}>
@@ -52,9 +51,8 @@ export default function TelefoniaPage() {
       }}>
         <div style={{
           background: "#ffffff",
-          border: "1px solid #E6ECEA",
-          borderRadius: 14,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+          borderRadius: 16,
+          boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
           padding: 48, textAlign: "center", maxWidth: 480,
         }}>
           <div style={{ width: 80, height: 80, borderRadius: 18, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🔒"} tamanho={28} /></div>

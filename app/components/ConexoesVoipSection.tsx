@@ -524,7 +524,7 @@ export default function ConexoesVoipSection() {
                         <input value={twilioNumeroDid} onChange={e => setTwilioNumeroDid(e.target.value)} placeholder="+5511999999999" style={IS} />
                         <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>Número comprado na Twilio que aparece no celular de quem recebe.</p>
                       </div>
-                      <details open style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "12px 16px" }}>
+                      <details open style={{ background: "#F7FAF9", borderRadius: 12, padding: "12px 16px" }}>
                         <summary style={{ cursor: "pointer", color: "#EA580C", fontSize: 12, fontWeight: 700 }}>Credenciais para ligações no navegador (obrigatório)</summary>
                         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
                           <div style={{ background: "#ffffff", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
@@ -589,7 +589,7 @@ export default function ConexoesVoipSection() {
                         <div><label style={{ color: "#64748B", fontSize: 11, display: "block", marginBottom: 6, fontWeight: 700 }}>USUARIO DE AUTENTICACAO *</label><input value={sipAuthUser} onChange={e => setSipAuthUser(e.target.value)} placeholder="1001" style={IS} /></div>
                         <div><label style={{ color: "#64748B", fontSize: 11, display: "block", marginBottom: 6, fontWeight: 700 }}>SENHA SIP * {modoEdicao && <span style={{ color: "#EA580C", fontWeight: 500 }}>(vazio mantem)</span>}</label><input type="password" value={sipPassword} onChange={e => setSipPassword(e.target.value)} style={IS} /></div>
                       </div>
-                      <details style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "12px 16px" }}>
+                      <details style={{ background: "#F7FAF9", borderRadius: 12, padding: "12px 16px" }}>
                         <summary style={{ cursor: "pointer", color: "#047857", fontSize: 12, fontWeight: 700 }}>Configuracoes avancadas WebRTC</summary>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
                           <input value={sipOutboundProxy} onChange={e => setSipOutboundProxy(e.target.value)} placeholder="Outbound proxy SIP (opcional)" style={IS} />
@@ -663,7 +663,7 @@ export default function ConexoesVoipSection() {
             {providerEscolhido && (
               <div style={{ padding: "14px 24px", borderTop: "1px solid #E6ECEA", display: "flex", justifyContent: "flex-end", gap: 10, background: "#F7FAF9" }}>
                 <button onClick={() => setShowModal(false)} disabled={enviando}
-                  style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: enviando ? "not-allowed" : "pointer", fontWeight: 600 }}>
+                  style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: enviando ? "not-allowed" : "pointer", fontWeight: 600 }}>
                   Cancelar
                 </button>
                 <button onClick={salvar} disabled={enviando}

@@ -2107,7 +2107,7 @@ export default function CobrancaPage() {
                   <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px" }}>Detalhes</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {feedback.detalhes.map((d, i) => (
-                      <div key={i} style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#334155" }}>{d}</div>
+                      <div key={i} style={{ background: "#F7FAF9", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#334155" }}>{d}</div>
                     ))}
                   </div>
                 </div>

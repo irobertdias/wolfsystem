@@ -425,7 +425,6 @@ export function DashboardSection() {
                       padding: "13px 14px",
                       background: "#F7FAF9",
                       borderRadius: 10,
-                      border: "1px solid #F1F5F4",
                     }}
                   >
                     <div

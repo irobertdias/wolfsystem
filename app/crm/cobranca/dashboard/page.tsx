@@ -795,7 +795,7 @@ export default function CobrancaDashboard() {
               { titulo: "E 'em negociação'?", desc: "Quando o cliente fez uma promessa, fechou acordo ou está em conversa ativa. Acompanhe pra garantir que cumpre o combinado." },
               { titulo: "Taxa de inadimplência saudável?", desc: "Abaixo de 10% é considerada saudável. Entre 10% e 25% pede atenção. Acima de 25%, é crítico — revise a operação." },
             ].map((q, i) => (
-              <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #E6ECEA" }}>
+              <div key={i} style={{ background: "#F7FAF9", borderRadius: 10, padding: "12px 14px" }}>
                 <p style={{ color: "#0F172A", fontSize: 12.5, margin: "0 0 4px", fontWeight: 700 }}>{q.titulo}</p>
                 <p style={{ color: "#64748B", fontSize: 11.5, margin: 0, lineHeight: 1.5 }}>{q.desc}</p>
               </div>

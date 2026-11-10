@@ -309,7 +309,7 @@ export function EtiquetasSection() {
 
           {/* BOTÕES */}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
-            <button onClick={cancelar} style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+            <button onClick={cancelar} style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
               Cancelar
             </button>
             <button onClick={salvar} disabled={salvando}

@@ -1146,7 +1146,7 @@ export default function Clientes() {
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#92400e" }}>Telas liberadas no Financeiro</span>
                       <div style={{ display: "flex", gap: 6 }}>
                         <button type="button" onClick={() => setTodasFin(true)} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #C2410C", background: "#fff", color: "#b45309", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Marcar todas</button>
-                        <button type="button" onClick={() => setTodasFin(false)} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #E6ECEA", background: "#fff", color: "#94A3B8", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Limpar</button>
+                        <button type="button" onClick={() => setTodasFin(false)} style={{ padding: "4px 10px", borderRadius: 8, background: "#F3F6F5", color: "#94A3B8", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Limpar</button>
                       </div>
                     </div>
                     {FIN_GRUPOS.map((g) => (
@@ -1173,7 +1173,7 @@ export default function Clientes() {
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
               <button onClick={() => setShowModalCliente(false)}
-                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={salvarCadastro} disabled={salvandoCliente || !testeCliente}
@@ -1249,7 +1249,7 @@ export default function Clientes() {
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 14 }}>
               <button onClick={() => setShowModalPagamento(false)}
-                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={salvarPagamento} disabled={salvandoPagamento}
@@ -1315,7 +1315,7 @@ export default function Clientes() {
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 14 }}>
               <button onClick={() => setShowModalConfianca(false)}
-                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={async () => { await darConfianca(diasConfianca); setShowModalConfianca(false); }}
@@ -1362,7 +1362,7 @@ export default function Clientes() {
 
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
               {[{ label: "Email", value: cadastroSelecionado.email, icon: "✉️" }, { label: "WhatsApp", value: cadastroSelecionado.whatsapp, icon: "📱" }, { label: "Plano", value: cadastroSelecionado.plano, icon: "📦" }, { label: "IA", value: cadastroSelecionado.ia, icon: "🤖" }].filter(i => i.value).map(info => (
-                <div key={info.label} style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 10, padding: 12 }}>
+                <div key={info.label} style={{ background: "#F7FAF9", borderRadius: 10, padding: 12 }}>
                   <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: "0 0 4px 0" }}>{<IconeEmoji e={info.icon} />} {info.label}</p>
                   <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0 }}>{info.value}</p>
                 </div>
@@ -1419,7 +1419,7 @@ export default function Clientes() {
             </div>
 
             {/* 🆕 HISTÓRICO DE PAGAMENTOS */}
-            <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16 }}>
+            <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 16 }}>
               <p style={{ color: "#0F172A", fontSize: 12, fontWeight: 700, margin: "0 0 12px" }}>Histórico de Pagamentos</p>
               {carregandoPagamentos ? (
                 <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontStyle: "italic" }}>Carregando...</p>
@@ -1457,21 +1457,21 @@ export default function Clientes() {
               )}
             </div>
 
-            <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 18 }}>
+            <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 18 }}>
               <p style={{ color: "#C2410C", fontSize: 11, fontWeight: 700, margin: "0 0 14px" }}>Limites do Plano</p>
               <div style={{ display: "flex", gap: 14 }}>
-                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 14 }}>
+                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" }}>
                   <p style={{ color: "#C2410C", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{cadastroSelecionado.usuarios_liberados || 1}</p>
                   <p style={{ color: "#64748B", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>Usuários</p>
                 </div>
-                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 14 }}>
+                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" }}>
                   <p style={{ color: "#059669", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{cadastroSelecionado.conexoes_liberadas || 1}</p>
                   <p style={{ color: "#64748B", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>Conexões</p>
                 </div>
               </div>
             </div>
 
-            <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 18 }}>
+            <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 18 }}>
               <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, margin: "0 0 12px" }}>Módulos Liberados</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_roleta} icone="🎯" label="Roleta" cor="#14B8A6" />

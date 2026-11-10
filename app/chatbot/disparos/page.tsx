@@ -841,7 +841,7 @@ export default function DisparosPage() {
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <button onClick={() => router.push("/chatbot")}
-          style={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 14px", color: "#475569", fontSize: 12, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          style={{ background: "#F3F6F5", borderRadius: 10, padding: "9px 14px", color: "#475569", fontSize: 12, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           Voltar ao Chatbot
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1 }}>
@@ -947,7 +947,7 @@ export default function DisparosPage() {
               <button
                 onClick={() => fetchIntegridadeApi(true)}
                 disabled={atualizandoIntegridade || !canalSelecionado}
-                style={{ background: "#ffffff", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 800, cursor: atualizandoIntegridade ? "wait" : !canalSelecionado ? "not-allowed" : "pointer", opacity: !canalSelecionado ? 0.6 : 1, boxShadow: "0 1px 3px rgba(15,23,42,0.08)" }}
+                style={{ background: "#F3F6F5", color: "#0f172a", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 800, cursor: atualizandoIntegridade ? "wait" : !canalSelecionado ? "not-allowed" : "pointer", opacity: !canalSelecionado ? 0.6 : 1, boxShadow: "0 1px 3px rgba(15,23,42,0.08)" }}
               >
                 {atualizandoIntegridade ? "Atualizando..." : "Atualizar agora"}
               </button>
@@ -997,7 +997,7 @@ export default function DisparosPage() {
               </div>
             </div>
 
-            <div style={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 12, padding: 14 }}>
+            <div style={{ background: "#ffffff", borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" }}>
               {integridadeApi.erro ? (
                 <p style={{ color: "#dc2626", fontSize: 12, margin: 0, fontWeight: 700 }}>Erro ao atualizar: {integridadeApi.erro}</p>
               ) : integridadeApi.alertas.length > 0 ? (
@@ -1091,7 +1091,7 @@ export default function DisparosPage() {
             <button
               onClick={() => fetchIntegridadeApi(true)}
               disabled={atualizandoIntegridade}
-              style={{ background: "#ffffff", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 10, padding: "8px 12px", fontSize: 11, fontWeight: 800, cursor: atualizandoIntegridade ? "wait" : "pointer" }}
+              style={{ background: "#F3F6F5", color: "#0f172a", borderRadius: 10, padding: "8px 12px", fontSize: 11, fontWeight: 800, cursor: atualizandoIntegridade ? "wait" : "pointer" }}
             >
               {atualizandoIntegridade ? "Atualizando..." : "Atualizar"}
             </button>
@@ -1165,7 +1165,7 @@ export default function DisparosPage() {
         )}
 
         {tipoDisparo === "waba" && templateEscolhido && (
-          <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px" }}>Prévia do modelo</p>
             {(templateEscolhido.componentes || []).map((c: any, i: number) => {
               if (c.type === "HEADER" && c.format === "TEXT") return <p key={i} style={{ color: "#059669", fontSize: 12, margin: "0 0 6px", fontWeight: 700 }}>{c.text}</p>;
@@ -1183,7 +1183,7 @@ export default function DisparosPage() {
         )}
 
         {tipoDisparo === "waba" && templateEscolhido && varsTemplate.length > 0 && (
-          <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 4px" }}>Variáveis Fixas (valor pra TODOS)</p>
             <p style={{ color: "#94A3B8", fontSize: 11, margin: "0 0 12px" }}>Deixe vazio se quer definir por contato no CSV (última coluna por variável).</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
@@ -1232,7 +1232,7 @@ export default function DisparosPage() {
           </label>
 
           {tipoDisparo === "waba" && contatosWaba.length > 0 ? (
-            <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 14, maxHeight: 240, overflowY: "auto" }}>
+            <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 14, maxHeight: 240, overflowY: "auto" }}>
               <p style={{ color: "#059669", fontSize: 12, margin: "0 0 8px", fontWeight: 700 }}>{contatosWaba.length} contato(s) importado(s) via CSV</p>
               <div style={{ fontSize: 11, color: "#0F172A", fontFamily: "monospace" }}>
                 {contatosWaba.slice(0, 5).map((c, i) => (

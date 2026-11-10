@@ -154,7 +154,7 @@ export default function PopupCobranca() {
 
           {/* Dados de contato + PIX */}
           <div style={{
-            background: "#F7FAF9", border: "1px solid #E6ECEA",
+            background: "#F7FAF9",
             borderRadius: 12, padding: 18, marginBottom: 18, textAlign: "left",
           }}>
             <p style={{ color: "#334155", fontSize: 11, fontWeight: 700, margin: "0 0 12px" }}>Para regularizar</p>
@@ -295,8 +295,7 @@ export default function PopupCobranca() {
           <button onClick={cobranca.fecharPopup}
             style={{
               width: "100%",
-              background: "white", color: "#64748B",
-              border: "1px solid #E6ECEA", borderRadius: 10,
+              background: "white", color: "#64748B", borderRadius: 10,
               padding: "9px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600,
               marginBottom: 10,
             }}>
@@ -401,8 +400,7 @@ export default function PopupCobranca() {
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={cobranca.fecharPopup}
             style={{
-              flex: 1, background: "white", color: "#64748B",
-              border: "1px solid #E6ECEA", borderRadius: 10,
+              flex: 1, background: "white", color: "#64748B", borderRadius: 10,
               padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600,
             }}>
             Lembrar daqui 3h

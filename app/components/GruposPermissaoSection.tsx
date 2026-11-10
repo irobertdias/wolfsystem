@@ -332,7 +332,6 @@ export default function GruposPermissaoSection({
           padding: "12px 14px",
           background: "#F7FAF9",
           borderRadius: 10,
-          border: "1px solid #E6ECEA",
         }}
       >
         <div

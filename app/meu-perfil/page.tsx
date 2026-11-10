@@ -480,8 +480,7 @@ export default function MeuPerfilPage() {
             <button
               onClick={() => router.back()}
               style={{
-                background: "#fff", color: "#64748B",
-                border: "1px solid #E6ECEA", borderRadius: 10,
+                background: "#F3F6F5", color: "#64748B", borderRadius: 10,
                 padding: "11px 20px", fontSize: 13, fontWeight: 700,
                 cursor: "pointer",
               }}>

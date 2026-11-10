@@ -111,7 +111,7 @@ export default function Conciliacao() {
                     {cand.map((l) => <option key={l.id} value={l.id}>{l.descricao} — {dataBR(l.vencimento)}</option>)}
                   </select>
                   <button onClick={() => conciliar(ex)} disabled={!sel[ex.id]} style={{ background: sel[ex.id] ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)" : "#E6ECEA", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: sel[ex.id] ? "pointer" : "default", boxShadow: sel[ex.id] ? "0 4px 12px rgba(5,150,105,0.3)" : "none" }}>Conciliar</button>
-                  <button onClick={() => ignorar(ex)} style={{ background: "#fff", border: "1px solid #E6ECEA", color: "#94A3B8", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Ignorar</button>
+                  <button onClick={() => ignorar(ex)} style={{ background: "#F3F6F5", color: "#94A3B8", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Ignorar</button>
                 </div>
               );
             })}

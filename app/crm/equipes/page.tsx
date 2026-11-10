@@ -263,7 +263,7 @@ export default function EquipesPage() {
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 24px", borderTop: "1px solid #E6ECEA", background: "#F7FAF9" }}>
               <button onClick={() => setModalAberto(false)}
-                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={salvar} disabled={salvando}
@@ -359,7 +359,7 @@ export default function EquipesPage() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <div style={{ flex: 1, background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
+                  <div style={{ flex: 1, background: "#F7FAF9", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
                     <p style={{ color: "#94A3B8", fontSize: 11, margin: 0, fontWeight: 700 }}>Vendedores</p>
                     <p style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{eq.qtdUsuarios}</p>
                   </div>
@@ -409,7 +409,7 @@ export default function EquipesPage() {
                       }}>{mapaEquipes.get(u.equipe_id) || "—"}</span>
                     ) : (
                       <span style={{
-                        background: "#F7FAF9", color: "#94A3B8", border: "1px solid #E6ECEA",
+                        background: "#F7FAF9", color: "#94A3B8",
                         padding: "3px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
                       }}>Sem equipe</span>
                     )}

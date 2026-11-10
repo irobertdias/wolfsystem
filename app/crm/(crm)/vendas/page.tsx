@@ -857,7 +857,7 @@ export default function Vendas() {
             {anexos.length > 0 && (
               <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
                 {anexos.map((a, idx) => (
-                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 10px", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 8 }}>
+                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 10px", background: "#F7FAF9", borderRadius: 8 }}>
                     <a href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ color: "#047857", fontSize: 12, fontWeight: 700, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {iconeArquivo(a.tipo)} · {a.nome} · {formatarTamanhoArquivo(a.tamanho)}
                     </a>
@@ -1026,7 +1026,7 @@ export default function Vendas() {
   if (esc === "none") {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>
-        <div style={{ background: "white", borderRadius: 14, padding: 48, textAlign: "center", maxWidth: 480, border: "1px solid #E6ECEA" }}>
+        <div style={{ background: "white", borderRadius: 16, padding: 48, textAlign: "center", maxWidth: 480, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" }}>
           <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="cadeado" tamanho={24} /></span>
           <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Sem acesso a Vendas</h1>
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 8px" }}>
@@ -1070,7 +1070,7 @@ export default function Vendas() {
               </div>
             </div>
             <div style={{ padding: "14px 20px", borderTop: "1px solid #E6ECEA", background: "#F3F6F5", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button onClick={() => setShowExportModal(false)} style={{ background: "#ffffff", color: "#64748b", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Cancelar</button>
+              <button onClick={() => setShowExportModal(false)} style={{ background: "#F3F6F5", color: "#64748b", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Cancelar</button>
               <button onClick={exportarExcel} disabled={exportando || exportCampos.length === 0} style={{ background: exportCampos.length === 0 ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #047857 100%)", color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, fontWeight: 800, cursor: exportCampos.length === 0 ? "not-allowed" : "pointer", boxShadow: "0 6px 16px rgba(5,150,105,0.25)" }}>
                 {exportando ? "Exportando..." : "Baixar Excel"}
               </button>
@@ -1114,7 +1114,7 @@ export default function Vendas() {
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 24px", borderTop: "1px solid #E6ECEA", background: "#F7FAF9" }}>
               <button onClick={() => { setShowModal(false); setPropostaEditando(null); }}
-                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={salvar} disabled={salvando}
@@ -1637,7 +1637,6 @@ function ViewSection({ titulo, campos }: { titulo: string; campos: [string, any]
         <div style={{
           display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           gap: 14, background: "#F7FAF9", padding: 16, borderRadius: 12,
-          border: "1px solid #E6ECEA",
         }}>
           {campos.map(([label, valor]) => (
             <div key={label}>

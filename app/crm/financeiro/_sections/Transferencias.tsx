@@ -124,7 +124,7 @@ export default function Transferencias() {
                   <td style={{ ...td, color: "#64748B" }}>{dataBR(t.vencimento)}</td>
                   <td style={td}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, flexWrap: "wrap" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 8, padding: "4px 10px" }}>{TIPO_CONTA[o?.tipo] || "🏦"} {nome(t.conta_id)}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#F7FAF9", borderRadius: 8, padding: "4px 10px" }}>{TIPO_CONTA[o?.tipo] || "🏦"} {nome(t.conta_id)}</span>
                       <span style={{ color: "#047857", fontSize: 16, fontWeight: 800 }}>→</span>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8, padding: "4px 10px", color: "#065F46" }}>{TIPO_CONTA[d?.tipo] || "🏦"} {nome(t.conta_destino_id)}</span>
                     </div>

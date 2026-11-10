@@ -512,9 +512,8 @@ export function FeriasSection() {
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#ffffff",
+                  background: "#F3F6F5",
                   color: "#334155",
-                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -618,9 +617,8 @@ export function FeriasSection() {
               <button
                 onClick={() => setAgendar(null)}
                 style={{
-                  background: "#ffffff",
+                  background: "#F3F6F5",
                   color: "#334155",
-                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,

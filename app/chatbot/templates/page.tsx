@@ -448,7 +448,7 @@ export default function TemplatesPage() {
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <button onClick={() => router.push("/chatbot")}
-          style={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 14px", color: "#475569", fontSize: 12, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          style={{ background: "#F3F6F5", borderRadius: 10, padding: "9px 14px", color: "#475569", fontSize: 12, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           Voltar
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 280 }}>
@@ -611,7 +611,6 @@ export default function TemplatesPage() {
                       color: "#334155", fontSize: 12, margin: "0 0 12px",
                       background: "#F7FAF9", padding: 12, borderRadius: 8,
                       whiteSpace: "pre-wrap", lineHeight: 1.5,
-                      border: "1px solid #E6ECEA",
                     }}>
                       {bodyPreview}
                     </p>
@@ -703,7 +702,7 @@ export default function TemplatesPage() {
               </div>
 
               {/* HEADER */}
-              <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16 }}>
+              <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 16 }}>
                 <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px" }}>HEADER (opcional)</p>
                 <select value={form.headerTipo} onChange={e => setForm(p => ({ ...p, headerTipo: e.target.value as any }))} style={{ ...IS, marginBottom: 10 }}>
                   <option value="none">Sem cabeçalho</option>
@@ -738,7 +737,7 @@ export default function TemplatesPage() {
               </div>
 
               {/* BUTTONS */}
-              <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16 }}>
+              <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: 0 }}>BOTÕES (até 3, opcional)</p>
                   <button onClick={adicionarBotao} disabled={form.botoes.length >= 3}
@@ -747,7 +746,7 @@ export default function TemplatesPage() {
                   </button>
                 </div>
                 {form.botoes.map((b, i) => (
-                  <div key={i} style={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 12, marginBottom: 8 }}>
+                  <div key={i} style={{ background: "#F7FAF9", borderRadius: 10, padding: 12, marginBottom: 8 }}>
                     <div style={{ display: "grid", gridTemplateColumns: "140px 1fr auto", gap: 8, alignItems: "center" }}>
                       <select value={b.type} onChange={e => atualizarBotao(i, "type", e.target.value)} style={{ ...IS, fontSize: 12, padding: "8px 10px" }}>
                         <option value="QUICK_REPLY">Resposta Rápida</option>
@@ -772,7 +771,7 @@ export default function TemplatesPage() {
 
             <div style={{ padding: "16px 22px", borderTop: "1px solid #E6ECEA", display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button onClick={() => setShowModal(false)}
-                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={enviarParaMeta} disabled={enviando}
@@ -898,7 +897,7 @@ export default function TemplatesPage() {
                   <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px" }}>O que pode estar acontecendo</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {feedback.detalhes.map((d, i) => (
-                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 12px" }}>
+                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#F7FAF9", borderRadius: 10, padding: "10px 12px" }}>
                         <span style={{ width: 22, height: 22, borderRadius: 8, background: cores.iconBg, color: cores.icon, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
                         <p style={{ color: "#334155", fontSize: 12.5, margin: 0, lineHeight: 1.5, flex: 1 }}>{d}</p>
                       </div>
@@ -911,7 +910,7 @@ export default function TemplatesPage() {
               <div style={{ padding: "14px 24px", background: "#F7FAF9", display: "flex", justifyContent: "flex-end", gap: 8 }}>
                 {ehConfirmacao && (
                   <button onClick={() => setFeedback(null)}
-                    style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
+                    style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
                     Cancelar
                   </button>
                 )}

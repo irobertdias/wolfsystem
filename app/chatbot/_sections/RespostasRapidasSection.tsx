@@ -329,7 +329,7 @@ export function RespostasRapidasSection() {
           )}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 14 }}>
             <button onClick={() => { setShowForm(false); setForm({ atalho: "", mensagem: "", equipeId: "" }); limparMidia(); }}
-              style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
               Cancelar
             </button>
             <button onClick={salvar} disabled={salvando || uploadandoMidia}

@@ -195,7 +195,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
             const icone = iconeDoc(item.filename);
             return (
               <a key={item.chave} href={urlMidia(item.filename, item.canalId)} target="_blank" rel="noreferrer"
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", border: "1px solid #E6ECEA", borderRadius: 8, textDecoration: "none", background: "#ffffff" }}>
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8, textDecoration: "none", background: "#F7FAF9" }}>
                 <span style={{ width: 36, height: 42, borderRadius: 5, background: icone.cor, color: "#fff", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 5, flexShrink: 0 }}>{icone.rotulo}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", color: "#111b21", fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nomeExibicao(item.filename)}</span>
@@ -213,7 +213,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
           <p style={{ color: "#54656f", fontSize: 11, fontWeight: 700, margin: "4px 0 0" }}>{g.rotulo}</p>
           {g.itens.map(item => (
             <a key={item.chave} href={hrefLink(item.url)} target="_blank" rel="noreferrer noopener"
-              style={{ display: "flex", gap: 10, padding: "9px 10px", border: "1px solid #E6ECEA", borderRadius: 8, textDecoration: "none", background: "#ffffff" }}>
+              style={{ display: "flex", gap: 10, padding: "9px 10px", borderRadius: 8, textDecoration: "none", background: "#F7FAF9" }}>
               <span style={{ width: 36, height: 36, borderRadius: 6, background: "#e7fcf5", color: "#008069", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>🔗</span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", color: "#111b21", fontSize: 12.5, fontWeight: 700 }}>{dominio(item.url)}</span>
@@ -285,7 +285,7 @@ export function PreviaBiblioteca({ mensagens, urlMidia, onAbrir }: { mensagens: 
   const { midias, docs, links } = useMemo(() => extrairBiblioteca(mensagens), [mensagens]);
   const total = midias.length + docs.length + links.length;
   return (
-    <button onClick={onAbrir} style={{ width: "100%", textAlign: "left", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 12px", cursor: "pointer" }}>
+    <button onClick={onAbrir} style={{ width: "100%", textAlign: "left", background: "#F3F6F5", borderRadius: 10, padding: "10px 12px", cursor: "pointer" }}>
       <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ color: "#54656f", fontSize: 12, fontWeight: 700 }}>Mídia, links e docs</span>
         <span style={{ color: "#8696a0", fontSize: 12, fontWeight: 600 }}>{total} ›</span>

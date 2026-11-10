@@ -153,7 +153,7 @@ export default function PlanoContas() {
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 5 }}>
-                        <button onClick={() => abrirNovo(aba, c.id)} title="Subcategoria" style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 8, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, color: "#64748B" }}>+ sub</button>
+                        <button onClick={() => abrirNovo(aba, c.id)} title="Subcategoria" style={{ background: "#F3F6F5", borderRadius: 8, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, color: "#64748B" }}>+ sub</button>
                         <button onClick={() => abrirEdicao(c)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "4px 8px", fontSize: 13, cursor: "pointer" }}><Icone nome="editar" tamanho={15} /></button>
                         <button onClick={() => remover(c)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "4px 8px", fontSize: 13, cursor: "pointer" }}><Icone nome="lixeira" tamanho={15} /></button>
                       </div>

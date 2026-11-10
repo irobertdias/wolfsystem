@@ -345,7 +345,6 @@ function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNum
         marginBottom: 14, textAlign: "center",
         minHeight: 56,
         display: "flex", alignItems: "center", justifyContent: "center",
-        border: "1px solid #E6ECEA",
       }}>
         <span style={{
           color: numero ? "#0F172A" : "#94A3B8",
@@ -416,8 +415,7 @@ function TecladoNumerico({ adicionar, compacto = false }: { adicionar: (d: strin
         <button key={num} onClick={() => adicionar(num)}
           style={{
             height: tamanho,
-            background: "#ffffff",
-            border: "1px solid #E6ECEA",
+            background: "#F3F6F5",
             borderRadius: 12,
             color: "#0F172A",
             cursor: "pointer",

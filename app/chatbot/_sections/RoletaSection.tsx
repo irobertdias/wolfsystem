@@ -315,7 +315,7 @@ export function RoletaSection() {
                     {filtroEquipeUsuarios === "todas" ? "Desmarcar todos" : "Desmarcar a equipe"}
                   </button>
                   <button onClick={() => setShowDropdown(false)}
-                    style={{ flex: 1, background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                    style={{ flex: 1, background: "#F3F6F5", color: "#64748B", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
                     Fechar
                   </button>
                 </div>
@@ -382,7 +382,7 @@ export function RoletaSection() {
           </label>
 
           {config.apenas_horario_comercial && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginLeft: 28, padding: 14, background: "#F7FAF9", borderRadius: 12, border: "1px solid #E6ECEA" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginLeft: 28, padding: 14, background: "#F7FAF9", borderRadius: 12 }}>
               <div>
                 <label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 6, fontWeight: 700, letterSpacing: 0.5 }}>Início</label>
                 <input type="time" value={config.horario_inicio} onChange={e => setConfig(c => ({ ...c, horario_inicio: e.target.value }))}

@@ -199,7 +199,6 @@ export function SelecaoSection() {
                   style={{
                     background: "#F7FAF9",
                     borderRadius: 12,
-                    border: "1px solid #E6ECEA",
                     display: "flex",
                     flexDirection: "column",
                     minHeight: 200,

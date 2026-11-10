@@ -509,7 +509,7 @@ export default function Contatos() {
               {/* Histórico recente (últimos 5 atendimentos) */}
               <div>
                 <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 8 }}>Histórico de atendimentos</label>
-                <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 10, padding: 12, maxHeight: 240, overflowY: "auto" }}>
+                <div style={{ background: "#F7FAF9", borderRadius: 10, padding: 12, maxHeight: 240, overflowY: "auto" }}>
                   {contatoEditando.atendimentos
                     .slice()
                     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
