@@ -4,21 +4,21 @@ import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Configurações (CONECTADO — 'rh_config' id=1, coluna jsonb 'config')
-const COR = "#4f46e5";
+const COR = "#059669";
 const card = {
   background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
 };
 const inputStyle = {
   width: "100%",
-  background: "#ffffff",
+  background: "#F7FAF9",
   border: "1px solid #E6ECEA",
-  borderRadius: 10,
-  padding: "10px 14px",
+  borderRadius: 12,
+  padding: "11px 14px",
   color: "#0F172A",
-  fontSize: 13,
+  fontSize: 14,
+  fontWeight: 600,
   boxSizing: "border-box" as const,
   outline: "none",
 };
@@ -122,26 +122,11 @@ export function ConfigSection() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 24,
-              boxShadow: `0 8px 20px ${COR}30`,
-            }}
-          >
-            <span style={{ filter: "saturate(0) brightness(2)" }}>⚙️</span>
-          </div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
               Configurações do RH
             </h1>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               Parâmetros usados nos cálculos do módulo
             </p>
           </div>
@@ -150,7 +135,7 @@ export function ConfigSection() {
           onClick={salvar}
           disabled={salvando || carregando}
           style={{
-            background: ok ? "#ECFDF5" : `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+            background: ok ? "#ECFDF5" : `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
             color: ok ? "#059669" : "white",
             border: ok ? "1px solid #A7F3D0" : "none",
             borderRadius: 12,
@@ -199,8 +184,6 @@ export function ConfigSection() {
                         color: "#64748B",
                         fontSize: 11,
                         fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5,
                         display: "block",
                         marginBottom: 6,
                       }}

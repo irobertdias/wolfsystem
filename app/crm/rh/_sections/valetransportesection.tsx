@@ -2,24 +2,24 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Vale Transporte (CONECTADO — 'vale_transporte'; valorDiario↔valor_diario, diasUteis↔dias_uteis)
-const COR = "#4f46e5";
-const COR_TEXTO = "#4338ca";
+const COR = "#059669";
+const COR_TEXTO = "#065F46";
 const card = {
   background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
 };
 const inputStyle = {
   width: "100%",
-  background: "#ffffff",
+  background: "#F7FAF9",
   border: "1px solid #E6ECEA",
-  borderRadius: 10,
-  padding: "10px 14px",
+  borderRadius: 12,
+  padding: "11px 14px",
   color: "#0F172A",
-  fontSize: 13,
+  fontSize: 14,
+  fontWeight: 600,
   boxSizing: "border-box" as const,
   outline: "none",
 };
@@ -141,26 +141,11 @@ export function ValeTransporteSection() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 24,
-              boxShadow: `0 8px 20px ${COR}30`,
-            }}
-          >
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🚌</span>
-          </div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
               Vale Transporte
             </h1>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               Benefício de transporte (desconto limitado a 6% do salário)
             </p>
           </div>
@@ -171,7 +156,7 @@ export function ValeTransporteSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -179,7 +164,7 @@ export function ValeTransporteSection() {
             fontSize: 13,
             cursor: "pointer",
             fontWeight: 700,
-            boxShadow: `0 4px 12px ${COR}40`,
+            boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
             whiteSpace: "nowrap",
           }}
         >
@@ -188,11 +173,11 @@ export function ValeTransporteSection() {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
         {[
-          { label: "Beneficiários", value: String(lista.length), cor: "#6366f1", icon: "🚌" },
-          { label: "Custo empresa/mês", value: real(totalEmpresa), cor: "#f59e0b", icon: "💰" },
-          { label: "Valor total/mês", value: real(totalGeral), cor: "#0ea5e9", icon: "📊" },
+          { label: "Beneficiários", value: String(lista.length), cor: "#059669", icon: "🚌" },
+          { label: "Custo empresa/mês", value: real(totalEmpresa), cor: "#C2410C", icon: "💰" },
+          { label: "Valor total/mês", value: real(totalGeral), cor: "#0369A1", icon: "📊" },
         ].map((s) => (
-          <div key={s.label} style={{ ...card, padding: 16, borderTop: `3px solid ${s.cor}` }}>
+          <div key={s.label} style={{ ...card, padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <div
                 style={{
@@ -211,10 +196,9 @@ export function ValeTransporteSection() {
               <p
                 style={{
                   color: "#64748B",
-                  fontSize: 11,
+                  fontSize: 13,
                   margin: 0,
                   fontWeight: 700,
-                  textTransform: "uppercase",
                 }}
               >
                 {s.label}
@@ -232,7 +216,7 @@ export function ValeTransporteSection() {
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum vale transporte cadastrado.</p>
         </div>
       ) : (
@@ -258,8 +242,6 @@ export function ValeTransporteSection() {
                         color: "#64748B",
                         fontSize: 11,
                         textAlign: "left",
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5,
                         whiteSpace: "nowrap",
                         fontWeight: 700,
                         borderBottom: "1px solid #E6ECEA",
@@ -276,7 +258,7 @@ export function ValeTransporteSection() {
                     key={v.id}
                     style={{
                       borderTop: "1px solid #F1F5F4",
-                      background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
+                      background: "#ffffff",
                     }}
                   >
                     <td style={{ padding: "12px 16px" }}>
@@ -301,9 +283,9 @@ export function ValeTransporteSection() {
                       <button
                         onClick={() => excluir(v)}
                         style={{
-                          background: "#fef2f2",
-                          color: "#dc2626",
-                          border: "1px solid #fecaca",
+                          background: "#FEF2F2",
+                          color: "#B91C1C",
+                          border: "none",
                           borderRadius: 8,
                           padding: "5px 11px",
                           fontSize: 11,
@@ -311,7 +293,7 @@ export function ValeTransporteSection() {
                           fontWeight: 600,
                         }}
                       >
-                        🗑️
+                        <Icone nome="lixeira" tamanho={15} />
                       </button>
                     </td>
                   </tr>
@@ -349,23 +331,26 @@ export function ValeTransporteSection() {
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: 0 }}>
                 Adicionar Vale Transporte
               </h3>
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#F1F5F4",
+                  background: "#F3F6F5",
                   border: "none",
                   color: "#64748B",
                   fontSize: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: "pointer",
                   width: 32,
                   height: 32,
                   borderRadius: 8,
                 }}
               >
-                ✕
+                <Icone nome="x" tamanho={16} />
               </button>
             </div>
             <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -467,7 +452,7 @@ export function ValeTransporteSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -495,8 +480,6 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
           color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: 0.5,
           display: "block",
           marginBottom: 6,
         }}

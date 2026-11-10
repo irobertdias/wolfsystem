@@ -2,23 +2,22 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Encargos (WolfSystem — multi-tenant; lê 'folha_itens' do workspace; calcula com % fixos)
 // PORTADO DO UNITA → WOLF. Isolamento por workspace_id.
-const COR = "#4f46e5";
+const COR = "#059669";
 const card = {
   background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
 };
 const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const ENCARGOS = [
-  { nome: "INSS Patronal", pct: 20, cor: "#6366f1" },
-  { nome: "FGTS", pct: 8, cor: "#0ea5e9" },
-  { nome: "RAT (risco)", pct: 2, cor: "#f59e0b" },
-  { nome: "Terceiros (Sistema S)", pct: 5.8, cor: "#8b5cf6" },
-  { nome: "Provisão 13º", pct: 8.33, cor: "#ec4899" },
+  { nome: "INSS Patronal", pct: 20, cor: "#059669" },
+  { nome: "FGTS", pct: 8, cor: "#0369A1" },
+  { nome: "RAT (risco)", pct: 2, cor: "#C2410C" },
+  { nome: "Terceiros (Sistema S)", pct: 5.8, cor: "#0F766E" },
+  { nome: "Provisão 13º", pct: 8.33, cor: "#BE185D" },
   { nome: "Provisão Férias + 1/3", pct: 11.11, cor: "#14b8a6" },
 ];
 export function EncargosSection() {
@@ -81,26 +80,11 @@ export function EncargosSection() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 24,
-              boxShadow: `0 8px 20px ${COR}30`,
-            }}
-          >
-            <span style={{ filter: "saturate(0) brightness(2)" }}>📑</span>
-          </div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
               Encargos Trabalhistas
             </h1>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               Calculados sobre a folha bruta da competência
             </p>
           </div>
@@ -134,7 +118,7 @@ export function EncargosSection() {
         </div>
       ) : baseBruta === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>
             Sem folha lançada para calcular encargos. Lance itens na tela <b>Folha</b>.
           </p>
@@ -145,12 +129,12 @@ export function EncargosSection() {
             style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}
           >
             {[
-              { label: "Folha bruta", value: real(baseBruta), cor: "#6366f1", icon: "💼" },
+              { label: "Folha bruta", value: real(baseBruta), cor: "#059669", icon: "💼" },
               { label: "Total de encargos", value: real(totalEncargos), cor: "#dc2626", icon: "📑" },
               { label: "Custo total", value: real(custoTotal), cor: "#059669", icon: "💰" },
-              { label: "% sobre a folha", value: pctSobreFolha.toFixed(1) + "%", cor: "#f59e0b", icon: "📈" },
+              { label: "% sobre a folha", value: pctSobreFolha.toFixed(1) + "%", cor: "#C2410C", icon: "📈" },
             ].map((s) => (
-              <div key={s.label} style={{ ...card, padding: 16, borderTop: `3px solid ${s.cor}` }}>
+              <div key={s.label} style={{ ...card, padding: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <div
                     style={{
@@ -169,10 +153,9 @@ export function EncargosSection() {
                   <p
                     style={{
                       color: "#64748B",
-                      fontSize: 11,
+                      fontSize: 13,
                       margin: 0,
                       fontWeight: 700,
-                      textTransform: "uppercase",
                     }}
                   >
                     {s.label}

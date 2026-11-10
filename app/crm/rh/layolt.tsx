@@ -28,7 +28,7 @@ import { DocumentosSection } from "./_sections/documentossection";
 import { ContratosSection } from "./_sections/contratossection";
 import { ConfigSection } from "./_sections/configsection";
 
-import { IconeEmoji } from "../../components/a2/Icone";
+import Icone from "../../components/a2/Icone";
 // 🗂️ Registry de seções — cada key bate com a key do menu (GRUPOS).
 // Pra ligar uma nova section: importe acima e adicione uma linha aqui.
 const SECTIONS: Record<string, ComponentType> = {
@@ -58,125 +58,75 @@ const SECTIONS: Record<string, ComponentType> = {
   contratos: ContratosSection,
   config: ConfigSection,
 };
-
 // ═══════════════════════════════════════════════════════════════════════
-// 🧑‍💼 RH — Shell do módulo (UnitaSystem)
-// ───────────────────────────────────────────────────────────────────────
-// Sub-sidebar própria com TODAS as seções de um sistema de RH completo,
-// agrupadas em menus expansíveis. Aba ativa controlada por estado local.
-// Só o Dashboard está implementado; as demais mostram placeholder.
-//
-// Cor do módulo: ÍNDIGO (#6366f1 / #4338ca) — alinhado ao atalho.
+// RH — moldura do módulo no padrão A2: menu lateral branco agrupado à
+// esquerda e a seção ativa à direita. No celular o menu vira um botão.
 // ═══════════════════════════════════════════════════════════════════════
 
-const COR = "#4f46e5"; // índigo principal
-const COR_TEXTO = "#4338ca"; // índigo escuro (texto)
-const COR_BG = "#eef2ff"; // índigo bem claro (fundos)
-const COR_BORDA = "#c7d2fe"; // índigo borda
-
-type SubItem = { key: string; label: string };
-type Grupo = { key: string; icon: string; label: string; itens: SubItem[] };
+type SubItem = { key: string; label: string; icone: string };
+type Grupo = { key: string; label: string; itens: SubItem[] };
 
 const GRUPOS: Grupo[] = [
-  {
-    key: "visao",
-    icon: "📊",
-    label: "Visão Geral",
-    itens: [
-      { key: "dashboard", label: "Dashboard" },
-      { key: "indicadores", label: "Indicadores" },
-    ],
-  },
-  {
-    key: "pessoas",
-    icon: "👥",
-    label: "Pessoas",
-    itens: [
-      { key: "funcionarios", label: "Funcionários" },
-      { key: "departamentos", label: "Departamentos" },
-      { key: "cargos", label: "Cargos & Salários" },
-    ],
-  },
-  {
-    key: "folha",
-    icon: "💰",
-    label: "Folha de Pagamento",
-    itens: [
-      { key: "folha", label: "Folha do Mês" },
-      { key: "holerites", label: "Holerites" },
-      { key: "encargos", label: "Encargos & Impostos" },
-    ],
-  },
-  {
-    key: "tempo",
-    icon: "⏰",
-    label: "Jornada & Tempo",
-    itens: [
-      { key: "ponto", label: "Ponto / Frequência" },
-      { key: "ferias", label: "Férias" },
-      { key: "afastamentos", label: "Afastamentos" },
-      { key: "banco_horas", label: "Banco de Horas" },
-    ],
-  },
-  {
-    key: "beneficios",
-    icon: "🎁",
-    label: "Benefícios",
-    itens: [
-      { key: "beneficios", label: "Benefícios" },
-      { key: "vale_transporte", label: "Vale Transporte" },
-      { key: "vale_refeicao", label: "Vale Refeição" },
-      { key: "plano_saude", label: "Plano de Saúde" },
-    ],
-  },
-  {
-    key: "recrutamento",
-    icon: "📢",
-    label: "Recrutamento",
-    itens: [
-      { key: "vagas", label: "Vagas" },
-      { key: "candidatos", label: "Candidatos" },
-      { key: "selecao", label: "Processos Seletivos" },
-    ],
-  },
-  {
-    key: "desenvolvimento",
-    icon: "🎓",
-    label: "Desenvolvimento",
-    itens: [
-      { key: "treinamentos", label: "Treinamentos" },
-      { key: "avaliacoes", label: "Avaliações de Desempenho" },
-    ],
-  },
-  {
-    key: "documentos",
-    icon: "📁",
-    label: "Documentos",
-    itens: [
-      { key: "documentos", label: "Documentos" },
-      { key: "contratos", label: "Contratos" },
-    ],
-  },
-  { key: "config", icon: "⚙️", label: "Configurações", itens: [{ key: "config", label: "Geral" }] },
+  { key: "visao", label: "Visão geral", itens: [
+    { key: "dashboard", label: "Dashboard", icone: "grafico" },
+    { key: "indicadores", label: "Indicadores", icone: "alvo" },
+  ]},
+  { key: "pessoas", label: "Pessoas", itens: [
+    { key: "funcionarios", label: "Funcionários", icone: "usuarios" },
+    { key: "departamentos", label: "Departamentos", icone: "predio" },
+    { key: "cargos", label: "Cargos e salários", icone: "tag" },
+  ]},
+  { key: "folha", label: "Folha de pagamento", itens: [
+    { key: "folha", label: "Folha do mês", icone: "dinheiro" },
+    { key: "holerites", label: "Holerites", icone: "documento" },
+    { key: "encargos", label: "Encargos e impostos", icone: "balanca" },
+  ]},
+  { key: "tempo", label: "Jornada e tempo", itens: [
+    { key: "ponto", label: "Ponto e frequência", icone: "relogio" },
+    { key: "ferias", label: "Férias", icone: "estrela" },
+    { key: "afastamentos", label: "Afastamentos", icone: "alerta" },
+    { key: "banco_horas", label: "Banco de horas", icone: "atualizar" },
+  ]},
+  { key: "beneficios", label: "Benefícios", itens: [
+    { key: "beneficios", label: "Benefícios", icone: "carteira" },
+    { key: "vale_transporte", label: "Vale-transporte", icone: "seta" },
+    { key: "vale_refeicao", label: "Vale-refeição", icone: "carteira" },
+    { key: "plano_saude", label: "Plano de saúde", icone: "escudo" },
+  ]},
+  { key: "recrutamento", label: "Recrutamento", itens: [
+    { key: "vagas", label: "Vagas", icone: "alvo" },
+    { key: "candidatos", label: "Candidatos", icone: "usuario" },
+    { key: "selecao", label: "Processos seletivos", icone: "funil" },
+  ]},
+  { key: "desenvolvimento", label: "Desenvolvimento", itens: [
+    { key: "treinamentos", label: "Treinamentos", icone: "estrela" },
+    { key: "avaliacoes", label: "Avaliações de desempenho", icone: "check" },
+  ]},
+  { key: "documentos", label: "Documentos", itens: [
+    { key: "documentos", label: "Documentos", icone: "pasta" },
+    { key: "contratos", label: "Contratos", icone: "documento" },
+  ]},
+  { key: "config", label: "Configurações", itens: [{ key: "config", label: "Configurações", icone: "config" }] },
 ];
 
 const LABELS: Record<string, string> = Object.fromEntries(
   GRUPOS.flatMap((g) => g.itens.map((i) => [i.key, i.label]))
 );
 
+const SOMBRA = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)";
+
 export default function RHLayolt() {
   const { permissoes, isDono, isSuperAdmin, perfil } = usePermissao();
   const veTudoRH = isSuperAdmin || isDono || perfil === "Administrador";
   const [aba, setAba] = useState("dashboard");
-  const [grupoAberto, setGrupoAberto] = useState<string | null>("visao");
   const [isMobile, setIsMobile] = useState(false);
-  const [menuMobileAberto, setMenuMobileAberto] = useState(false);
+  const [menuMobile, setMenuMobile] = useState(false);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+    const ver = () => setIsMobile(window.innerWidth < 900);
+    ver();
+    window.addEventListener("resize", ver);
+    return () => window.removeEventListener("resize", ver);
   }, []);
 
   const gruposVisiveis = GRUPOS
@@ -189,326 +139,74 @@ export default function RHLayolt() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissoes, veTudoRH]);
 
-  const selecionar = (key: string) => {
-    setAba(key);
-    if (isMobile) setMenuMobileAberto(false);
+  const Comp = SECTIONS[aba];
+
+  const botao = (i: SubItem) => {
+    const sel = aba === i.key;
+    return (
+      <button key={i.key} onClick={() => { setAba(i.key); setMenuMobile(false); }}
+        className={`a2-menu-config${sel ? " ativo" : ""}`}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 10,
+          padding: "9px 12px", border: 0, borderRadius: 11, cursor: "pointer", textAlign: "left", whiteSpace: "nowrap",
+          background: sel ? "#ECFDF5" : "transparent", color: sel ? "#065F46" : "#475569",
+          fontSize: 13.5, fontWeight: sel ? 800 : 600, transition: "background .15s",
+        }}>
+        <Icone nome={i.icone as any} tamanho={16} cor={sel ? "#059669" : "#94A3B8"} />
+        {i.label}
+      </button>
+    );
   };
 
+  const grupos = gruposVisiveis.map((g) => (
+    <div key={g.key} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, padding: "12px 12px 4px" }}>{g.label}</span>
+      {g.itens.map(botao)}
+    </div>
+  ));
+
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100%",
-        minHeight: 0,
-        fontFamily: "var(--font-wolf), system-ui, sans-serif",
-        background: "#F3F6F5",
-        position: "relative",
-      }}
-    >
-      {/* BOTÃO SEÇÕES DO MÓDULO (mobile) — canto DIREITO p/ não bater no menu do CRM (esquerdo) */}
-      {isMobile && !menuMobileAberto && (
-        <button
-          onClick={() => setMenuMobileAberto(true)}
-          title="Abrir seções do RH"
-          style={{
-            position: "fixed",
-            top: 8,
-            right: 8,
-            zIndex: 65,
-            background: "#ECFDF5",
-            border: "1px solid #A7F3D0",
-            color: "#065F46",
-            borderRadius: 10,
-            padding: "7px 14px",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: "pointer",
-            lineHeight: 1,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            boxShadow: "0 4px 12px rgba(67,56,202,0.18)",
-          }}
-        >
-          Seções
-        </button>
-      )}
-      {isMobile && menuMobileAberto && (
-        <div
-          onClick={() => setMenuMobileAberto(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15,23,42,0.4)",
-            backdropFilter: "blur(2px)",
-            zIndex: 1090,
-          }}
-        />
-      )}
-
-      {/* SUB-SIDEBAR DO MÓDULO */}
-      <div
-        style={{
-          width: isMobile ? 260 : 224,
-          background: "#ffffff",
-          borderRight: "1px solid #E6ECEA",
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto",
-          flexShrink: 0,
-          position: isMobile ? "fixed" : "relative",
-          top: isMobile ? 0 : "auto",
-          left: isMobile ? 0 : "auto",
-          bottom: isMobile ? 0 : "auto",
-          height: isMobile ? "100vh" : "auto",
-          zIndex: isMobile ? 1100 : "auto",
-          transform: isMobile && !menuMobileAberto ? "translateX(-100%)" : "translateX(0)",
-          transition: "transform 0.25s ease",
-          boxShadow: isMobile ? "4px 0 16px rgba(0,0,0,0.1)" : "none",
-        }}
-      >
-        {/* Header do módulo */}
-        <div
-          style={{
-            padding: 16,
-            borderBottom: "1px solid #E6ECEA",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 18,
-              boxShadow: `0 4px 10px ${COR}40`,
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🧑‍💼</span>
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <span
-              style={{
-                color: "#0F172A",
-                fontWeight: 800,
-                fontSize: 14,
-                display: "block",
-                letterSpacing: -0.3,
-              }}
-            >
-              Recursos Humanos
-            </span>
-            <span
-              style={{
-                color: COR_TEXTO,
-                fontSize: 10,
-                fontWeight: 600,
-                letterSpacing: 0.5,
-                textTransform: "uppercase",
-              }}
-            >
-              Gestão de pessoas
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 22, alignItems: "flex-start", padding: isMobile ? "4px 0 20px" : "8px 4px 28px", maxWidth: 1440, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+      {isMobile ? (
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
+          <button onClick={() => setMenuMobile((v) => !v)}
+            style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: 0, borderRadius: 16, boxShadow: SOMBRA, padding: "12px 16px", fontSize: 14, fontWeight: 800, color: "#0F172A", cursor: "pointer" }}>
+            <Icone nome="usuarios" tamanho={18} cor="#059669" />
+            RH · {LABELS[aba] || ""}
+            <span style={{ marginLeft: "auto", display: "inline-flex", transform: menuMobile ? "rotate(180deg)" : "none", transition: "transform .15s" }}><Icone nome="baixo" tamanho={16} /></span>
+          </button>
+          {menuMobile && (
+            <nav aria-label="Seções do RH" style={{ background: "#fff", borderRadius: 16, boxShadow: SOMBRA, padding: 10, display: "flex", flexDirection: "column", gap: 2 }}>
+              {grupos}
+            </nav>
+          )}
+        </div>
+      ) : (
+        <nav aria-label="Seções do RH" style={{ flex: "0 0 250px", background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: 12, display: "flex", flexDirection: "column", gap: 2, position: "sticky", top: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 12px 4px" }}>
+            <span style={{ width: 32, height: 32, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="usuarios" tamanho={17} /></span>
+            <span style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontWeight: 800, color: "#0F172A", fontSize: 16 }}>Recursos humanos</span>
+              <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 600 }}>Gestão de pessoas</span>
             </span>
           </div>
-        </div>
+          {grupos}
+        </nav>
+      )}
 
-        {/* Menus agrupados */}
-        <div style={{ padding: 10, flex: 1 }}>
-          {gruposVisiveis.map((g) => {
-            const aberto = grupoAberto === g.key;
-            const temAtivo = g.itens.some((i) => i.key === aba);
-            return (
-              <div key={g.key} style={{ marginBottom: 4 }}>
-                <button
-                  onClick={() => setGrupoAberto(aberto ? null : g.key)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    width: "100%",
-                    padding: "10px 12px",
-                    background: aberto || temAtivo ? COR_BG : "transparent",
-                    border: "none",
-                    borderRadius: 10,
-                    cursor: "pointer",
-                    color: aberto || temAtivo ? COR_TEXTO : "#334155",
-                    fontSize: 13,
-                    fontWeight: aberto || temAtivo ? 700 : 600,
-                    textAlign: "left",
-                    transition: "background .15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!aberto && !temAtivo) e.currentTarget.style.background = "#F1F5F4";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!aberto && !temAtivo) e.currentTarget.style.background = "transparent";
-                  }}
-                >
-                  <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 26,
-                        height: 26,
-                        background: aberto || temAtivo ? COR : COR_BG,
-                        borderRadius: 7,
-                        fontSize: 13,
-                        filter: aberto || temAtivo ? "saturate(0) brightness(2)" : "none",
-                        boxShadow: aberto || temAtivo ? `0 2px 6px ${COR}40` : "none",
-                      }}
-                    >
-                      {<IconeEmoji e={g.icon} />}
-                    </span>
-                    {g.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 9,
-                      color: aberto || temAtivo ? COR : "#94A3B8",
-                      transform: aberto ? "rotate(0)" : "rotate(-90deg)",
-                      transition: "transform .2s",
-                    }}
-                  >
-                    ▼
-                  </span>
-                </button>
-                {aberto && (
-                  <div
-                    style={{
-                      paddingLeft: 8,
-                      marginTop: 2,
-                      marginBottom: 4,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 2,
-                    }}
-                  >
-                    {g.itens.map((sub) => {
-                      const sel = aba === sub.key;
-                      return (
-                        <button
-                          key={sub.key}
-                          onClick={() => selecionar(sub.key)}
-                          style={{
-                            display: "block",
-                            width: "100%",
-                            padding: "8px 12px 8px 34px",
-                            background: sel ? `${COR}18` : "transparent",
-                            border: "none",
-                            borderRadius: 8,
-                            cursor: "pointer",
-                            color: sel ? COR_TEXTO : "#64748B",
-                            fontSize: 12,
-                            textAlign: "left",
-                            fontWeight: sel ? 700 : 500,
-                            position: "relative",
-                            transition: "all .12s",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!sel) {
-                              e.currentTarget.style.background = "#F1F5F4";
-                              e.currentTarget.style.color = "#0F172A";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!sel) {
-                              e.currentTarget.style.background = "transparent";
-                              e.currentTarget.style.color = "#64748B";
-                            }
-                          }}
-                        >
-                          {sel && (
-                            <span
-                              style={{
-                                position: "absolute",
-                                left: 16,
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                width: 4,
-                                height: 4,
-                                borderRadius: "50%",
-                                background: COR,
-                              }}
-                            />
-                          )}
-                          {sub.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* CONTEÚDO */}
-      <div style={{ flex: 1, overflowY: "auto", minWidth: 0, padding: isMobile ? "56px 12px 16px" : 28 }}>
-        {(() => {
-          const Comp = SECTIONS[aba];
-          return Comp ? <Comp /> : <EmConstrucao titulo={LABELS[aba] || "Seção"} />;
-        })()}
-      </div>
+      <main style={{ flex: "999 1 560px", minWidth: 0, display: "flex", flexDirection: "column" }}>
+        {Comp ? <Comp /> : <EmConstrucao titulo={LABELS[aba] || "Seção"} />}
+      </main>
     </div>
   );
 }
 
-// Placeholder pras seções ainda não implementadas
 function EmConstrucao({ titulo }: { titulo: string }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 14,
-        minHeight: 360,
-        textAlign: "center",
-      }}
-    >
-      <div
-        style={{
-          width: 84,
-          height: 84,
-          borderRadius: 22,
-          background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 40,
-          boxShadow: `0 12px 24px ${COR}30`,
-        }}
-      >
-        <span style={{ filter: "saturate(0) brightness(2)" }}>🚧</span>
-      </div>
-      <h2 style={{ color: "#0F172A", fontSize: 20, fontWeight: 800, margin: 0 }}>{titulo}</h2>
-      <p style={{ color: "#64748B", fontSize: 14, margin: 0, maxWidth: 360 }}>
-        Esta seção faz parte do módulo de RH e será construída em seguida.
-      </p>
-      <span
-        style={{
-          background: COR_BG,
-          color: COR_TEXTO,
-          border: `1px solid ${COR_BORDA}`,
-          fontSize: 11,
-          fontWeight: 700,
-          padding: "5px 12px",
-          borderRadius: 20,
-        }}
-      >
-        Em construção
-      </span>
+    <div style={{ background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: "44px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="relogio" tamanho={24} /></span>
+      <h2 style={{ margin: 0, color: "#0F172A", fontSize: 18, fontWeight: 800 }}>{titulo}</h2>
+      <p style={{ margin: 0, fontSize: 14, color: "#64748B" }}>Tela em construção, chega em breve.</p>
     </div>
   );
 }

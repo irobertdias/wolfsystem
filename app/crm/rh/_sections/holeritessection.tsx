@@ -1,15 +1,15 @@
 "use client";
+import Icone from "../../../components/a2/Icone";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 // 🧑‍💼 RH · Holerites (CONECTADO — 'holerites'; proventos/descontos jsonb [{rotulo,valor}])
-const COR = "#4f46e5";
-const COR_TEXTO = "#4338ca";
+const COR = "#059669";
+const COR_TEXTO = "#065F46";
 const card = {
   background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
 };
 const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 // competência interna "AAAA-MM" → exibição "Mês/AAAA"
@@ -188,26 +188,11 @@ export function HoleritesSection() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 24,
-              boxShadow: `0 8px 20px ${COR}30`,
-            }}
-          >
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🧾</span>
-          </div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
               Holerites
             </h1>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               Demonstrativos de pagamento dos colaboradores
             </p>
           </div>
@@ -273,7 +258,7 @@ export function HoleritesSection() {
                 onClick={gerarHolerites}
                 disabled={gerando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
                   color: "white",
                   border: "none",
                   borderRadius: 8,
@@ -297,7 +282,7 @@ export function HoleritesSection() {
         </div>
       ) : itens.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>
             {todos.length === 0 ? "Nenhum holerite gerado ainda." : "Sem holerites nesta competência."}
           </p>
@@ -324,8 +309,6 @@ export function HoleritesSection() {
                           color: "#64748B",
                           fontSize: 11,
                           textAlign: "left",
-                          textTransform: "uppercase",
-                          letterSpacing: 0.5,
                           whiteSpace: "nowrap",
                           fontWeight: 700,
                           borderBottom: "1px solid #E6ECEA",
@@ -346,7 +329,7 @@ export function HoleritesSection() {
                       key={h.id}
                       style={{
                         borderTop: "1px solid #F1F5F4",
-                        background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
+                        background: "#ffffff",
                       }}
                     >
                       <td style={{ padding: "12px 16px" }}>
@@ -364,8 +347,8 @@ export function HoleritesSection() {
                       <td style={{ padding: "12px 16px" }}>
                         <span
                           style={{
-                            background: h.pago ? "#ECFDF5" : "#fffbeb",
-                            color: h.pago ? "#059669" : "#f59e0b",
+                            background: h.pago ? "#ECFDF5" : "#FFF7ED",
+                            color: h.pago ? "#059669" : "#C2410C",
                             border: `1px solid ${h.pago ? "#A7F3D0" : "#fde68a"}`,
                             fontSize: 11,
                             padding: "3px 10px",
@@ -439,27 +422,30 @@ export function HoleritesSection() {
               }}
             >
               <div>
-                <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
+                <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: 0 }}>
                   Holerite · {ver.competencia}
                 </h3>
-                <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+                <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
                   {ver.nome} — {ver.cargo}
                 </p>
               </div>
               <button
                 onClick={() => setVer(null)}
                 style={{
-                  background: "#F1F5F4",
+                  background: "#F3F6F5",
                   border: "none",
                   color: "#64748B",
                   fontSize: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: "pointer",
                   width: 32,
                   height: 32,
                   borderRadius: 8,
                 }}
               >
-                ✕
+                <Icone nome="x" tamanho={16} />
               </button>
             </div>
             <div style={{ padding: 24, overflowY: "auto" }}>
@@ -468,7 +454,6 @@ export function HoleritesSection() {
                   color: "#059669",
                   fontSize: 12,
                   fontWeight: 800,
-                  textTransform: "uppercase",
                   margin: "0 0 8px",
                 }}
               >
@@ -493,7 +478,6 @@ export function HoleritesSection() {
                   color: "#dc2626",
                   fontSize: 12,
                   fontWeight: 800,
-                  textTransform: "uppercase",
                   margin: "16px 0 8px",
                 }}
               >

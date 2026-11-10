@@ -3,22 +3,21 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🧑‍💼 RH · Dashboard  (CONECTADO — agrega funcionarios, vagas, afastamentos,
 // ferias, contratos, documentos). Campos sem coluna no banco (aniversariantes,
 // idade) foram trocados por equivalentes reais (novas admissões, vagas).
 // ═══════════════════════════════════════════════════════════════════════
 
-const COR = "#4f46e5";
-const COR_TEXTO = "#4338ca";
-const PALETA = ["#6366f1", "#0ea5e9", "#f59e0b", "#10b981", "#ec4899", "#8b5cf6", "#ef4444", "#14b8a6"];
+const COR = "#059669";
+const COR_TEXTO = "#065F46";
+const PALETA = ["#059669", "#0369A1", "#C2410C", "#10b981", "#BE185D", "#0F766E", "#ef4444", "#14b8a6"];
 
 const card = {
   background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
 };
 const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (iso: string) => {
@@ -151,29 +150,29 @@ export function DashboardSection() {
       label: "Funcionários",
       valor: String(headcount),
       sub: `${desligados} desligado(s)`,
-      cor: "#6366f1",
+      cor: "#059669",
       icon: "👥",
     },
     { label: `Admissões`, valor: String(admissoesPeriodo), sub: labelPeriodo, cor: "#059669", icon: "✅" },
-    { label: "Turnover", valor: turnover.toFixed(1) + "%", sub: "acumulado", cor: "#0ea5e9", icon: "🔄" },
-    { label: "Custo da Folha", valor: real(custoFolha), sub: "ativos", cor: "#f59e0b", icon: "💰" },
-    { label: "Vagas abertas", valor: String(pend.vagas), sub: "recrutando", cor: "#8b5cf6", icon: "📢" },
+    { label: "Turnover", valor: turnover.toFixed(1) + "%", sub: "acumulado", cor: "#0369A1", icon: "🔄" },
+    { label: "Custo da Folha", valor: real(custoFolha), sub: "ativos", cor: "#C2410C", icon: "💰" },
+    { label: "Vagas abertas", valor: String(pend.vagas), sub: "recrutando", cor: "#0F766E", icon: "📢" },
     { label: "Afastados", valor: String(pend.afastamentos), sub: "agora", cor: "#dc2626", icon: "🏥" },
   ];
 
   const pendencias = [
-    { texto: `${pend.contratos} contrato(s) a renovar`, icon: "📄", cor: "#f59e0b", n: pend.contratos },
+    { texto: `${pend.contratos} contrato(s) a renovar`, icon: "📄", cor: "#C2410C", n: pend.contratos },
     {
       texto: `${pend.afastamentos} afastamento(s) em andamento`,
       icon: "🏥",
       cor: "#dc2626",
       n: pend.afastamentos,
     },
-    { texto: `${pend.ferias} período(s) de férias vencendo`, icon: "🌴", cor: "#0ea5e9", n: pend.ferias },
+    { texto: `${pend.ferias} período(s) de férias vencendo`, icon: "🌴", cor: "#0369A1", n: pend.ferias },
     {
       texto: `${pend.documentos} documento(s) vencendo/vencidos`,
       icon: "🩺",
-      cor: "#8b5cf6",
+      cor: "#0F766E",
       n: pend.documentos,
     },
   ].filter((p) => p.n > 0);
@@ -191,26 +190,11 @@ export function DashboardSection() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 24,
-              boxShadow: `0 8px 20px ${COR}30`,
-            }}
-          >
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🧑‍💼</span>
-          </div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
               Visão Geral de RH
             </h1>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               Acompanhe o quadro de pessoal, folha e movimentações
             </p>
           </div>
@@ -245,7 +229,7 @@ export function DashboardSection() {
         </div>
       ) : headcount === 0 ? (
         <div style={{ ...card, padding: 50, textAlign: "center" }}>
-          <p style={{ fontSize: 40, margin: "0 0 8px" }}>📊</p>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="grafico" tamanho={24} /></span>
           <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
             Sem dados ainda
           </p>
@@ -259,44 +243,21 @@ export function DashboardSection() {
           <div
             style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}
           >
-            {kpis.map((k) => (
-              <div key={k.label} style={{ ...card, padding: 18, borderTop: `3px solid ${k.cor}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 9,
-                      background: `${k.cor}15`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 15,
-                    }}
-                  >
-                    {<IconeEmoji e={k.icon} />}
+            {kpis.map((k, i) => {
+              const hero = i === 0;
+              return (
+                <div key={k.label} style={{ ...card, padding: 18, position: "relative", overflow: "hidden", ...(hero ? { background: "linear-gradient(140deg, #10B981 0%, #059669 45%, #065F46 100%)", boxShadow: "0 18px 34px -18px rgba(5,150,105,.75)" } : {}) }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 10, background: hero ? "rgba(255,255,255,.18)" : `${k.cor}14`, color: hero ? "#fff" : k.cor, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <IconeEmoji e={k.icon} tamanho={17} />
+                    </span>
+                    <span style={{ color: hero ? "rgba(255,255,255,.85)" : "#64748B", fontSize: 13, fontWeight: 700 }}>{k.label}</span>
                   </div>
-                  <p
-                    style={{
-                      color: "#64748B",
-                      fontSize: 11,
-                      margin: 0,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.3,
-                    }}
-                  >
-                    {k.label}
-                  </p>
+                  <p style={{ color: hero ? "#fff" : "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>{k.valor}</p>
+                  <p style={{ color: hero ? "rgba(255,255,255,.75)" : "#94A3B8", fontSize: 12, margin: "4px 0 0", fontWeight: 600 }}>{k.sub}</p>
                 </div>
-                <p
-                  style={{ color: "#0F172A", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}
-                >
-                  {k.valor}
-                </p>
-                <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>{k.sub}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* HEADCOUNT + NOVAS ADMISSÕES */}
@@ -374,7 +335,7 @@ export function DashboardSection() {
                           width: 38,
                           height: 38,
                           borderRadius: "50%",
-                          background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+                          background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -441,7 +402,7 @@ export function DashboardSection() {
             </h3>
             {pendencias.length === 0 ? (
               <div style={{ textAlign: "center", padding: "10px 0" }}>
-                <p style={{ fontSize: 28, margin: "0 0 4px" }}>🎉</p>
+                <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="check" tamanho={24} /></span>
                 <p style={{ color: "#059669", fontSize: 13, fontWeight: 700, margin: 0 }}>
                   Tudo em dia, nenhuma pendência!
                 </p>

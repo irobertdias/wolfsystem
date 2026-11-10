@@ -1,4 +1,5 @@
 "use client";
+import Icone from "../../../components/a2/Icone";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
@@ -12,19 +13,18 @@ import { useWorkspace } from "../../../hooks/useWorkspace";
 // só no console (F12) pra quem administra.
 // ═══════════════════════════════════════════════════════════════════════
 
-const COR = "#4f46e5";
+const COR = "#059669";
 const card = {
   background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
 };
 const COLUNAS = ["Triagem", "Entrevista", "Teste", "Proposta", "Contratado"];
 const COL_COR: Record<string, string> = {
-  Triagem: "#0ea5e9",
-  Entrevista: "#6366f1",
-  Teste: "#8b5cf6",
-  Proposta: "#f59e0b",
+  Triagem: "#0369A1",
+  Entrevista: "#059669",
+  Teste: "#0F766E",
+  Proposta: "#C2410C",
   Contratado: "#059669",
 };
 type Candidato = { id: string; nome: string; vaga: string; etapa: string; reprovado: boolean };
@@ -159,26 +159,11 @@ export function SelecaoSection() {
       `}</style>
 
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 24,
-            boxShadow: `0 8px 20px ${COR}30`,
-          }}
-        >
-          <span style={{ filter: "saturate(0) brightness(2)" }}>🎯</span>
-        </div>
         <div>
-          <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+          <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
             Processo Seletivo
           </h1>
-          <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+          <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
             Mova com ‹ › entre as fases · ✕ reprova na fase atual
           </p>
         </div>
@@ -190,7 +175,7 @@ export function SelecaoSection() {
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>
             Nenhum candidato no pipeline. Cadastre em “Candidatos”.
           </p>
@@ -268,9 +253,9 @@ export function SelecaoSection() {
                               onClick={() => reprovar(c)}
                               title="Reprovar nesta fase"
                               style={{
-                                background: "#fef2f2",
-                                color: "#dc2626",
-                                border: "1px solid #fecaca",
+                                background: "#FEF2F2",
+                                color: "#B91C1C",
+                                border: "none",
                                 borderRadius: 7,
                                 padding: "2px 8px",
                                 fontSize: 12,
@@ -279,7 +264,7 @@ export function SelecaoSection() {
                                 flexShrink: 0,
                               }}
                             >
-                              ✕
+                              <Icone nome="x" tamanho={16} />
                             </button>
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -460,7 +445,7 @@ export function SelecaoSection() {
               flexShrink: 0,
             }}
           >
-            ✕
+            <Icone nome="x" tamanho={16} />
           </button>
         </div>
       )}

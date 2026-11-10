@@ -4,7 +4,7 @@ import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { usePermissao } from "../../../hooks/usePermissao";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🧑‍💼 RH · Ponto / Frequência  (CONECTADO — lê 'ponto_registros')
 // ───────────────────────────────────────────────────────────────────────
@@ -12,19 +12,18 @@ import { IconeEmoji } from "../../../components/a2/Icone";
 // tipo e link 📍 pro mapa de onde a pessoa bateu. Calcula horas por dia.
 // ═══════════════════════════════════════════════════════════════════════
 
-const COR = "#4f46e5";
-const COR_TEXTO = "#4338ca";
+const COR = "#059669";
+const COR_TEXTO = "#065F46";
 const card = {
   background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
 };
 
 const TIPO_COR: Record<string, string> = {
   Entrada: "#059669",
-  "Saída p/ almoço": "#f59e0b",
-  "Retorno do almoço": "#0ea5e9",
+  "Saída p/ almoço": "#C2410C",
+  "Retorno do almoço": "#0369A1",
   Saída: "#dc2626",
   Marcação: "#64748B",
 };
@@ -51,7 +50,7 @@ const AUSENCIA_COR: Record<string, { cor: string; bg: string }> = {
   "Folga":             { cor: "#0369a1", bg: "#e0f2fe" },
   "Falta":             { cor: "#b91c1c", bg: "#fee2e2" },
   "Falta justificada": { cor: "#a16207", bg: "#fef9c3" },
-  "Atestado":          { cor: "#7c3aed", bg: "#ede9fe" },
+  "Atestado":          { cor: "#0F766E", bg: "#ede9fe" },
 };
 
 function mesAtual() {
@@ -297,7 +296,7 @@ export function PontoSection() {
       if (ehFalta) faltas++;
 
       const corLinha = dow === 0 ? "background:#F7FAF9;color:#94A3B8;"
-        : ausenciaDoDia ? "background:#fffbeb;"
+        : ausenciaDoDia ? "background:#FFF7ED;"
         : ehFalta ? "background:#fef2f2;" : "";
       // marcação de ausência aparece no lugar do saldo (FOLGA/FALTA/ATESTADO)
       const saldoTxt = ausenciaDoDia ? ausenciaDoDia.tipo.toUpperCase()
@@ -338,7 +337,7 @@ export function PontoSection() {
         .assin div { flex: 1; border-top: 1px solid #0F172A; padding-top: 6px; text-align: center; font-size: 11px; color: #334155; }
         @media print { body { margin: 12mm; } .noprint { display: none; } }
       </style></head><body>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #4f46e5;padding-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #059669;padding-bottom:10px;">
         <div>
           <h1>Folha de Ponto</h1>
           <p class="sub">Grupo Unita · UnitaSystem</p>
@@ -403,26 +402,11 @@ export function PontoSection() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 24,
-              boxShadow: `0 8px 20px ${COR}30`,
-            }}
-          >
-            <span style={{ filter: "saturate(0) brightness(2)" }}>⏰</span>
-          </div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
               Ponto / Frequência
             </h1>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               Folha de ponto do mês com horários e localização
             </p>
           </div>
@@ -447,11 +431,11 @@ export function PontoSection() {
       {/* STATS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
         {[
-          { label: "Funcionários", value: String(stats.pessoas), cor: "#6366f1", icon: "👥" },
-          { label: "Batidas no mês", value: String(stats.batidas), cor: "#0ea5e9", icon: "🕐" },
+          { label: "Funcionários", value: String(stats.pessoas), cor: "#059669", icon: "👥" },
+          { label: "Batidas no mês", value: String(stats.batidas), cor: "#0369A1", icon: "🕐" },
           { label: "Horas trabalhadas", value: fmtHoras(stats.horas), cor: "#059669", icon: "⏱️" },
         ].map((s) => (
-          <div key={s.label} style={{ ...card, padding: 16, borderTop: `3px solid ${s.cor}` }}>
+          <div key={s.label} style={{ ...card, padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <div
                 style={{
@@ -470,16 +454,15 @@ export function PontoSection() {
               <p
                 style={{
                   color: "#64748B",
-                  fontSize: 11,
+                  fontSize: 13,
                   margin: 0,
                   fontWeight: 700,
-                  textTransform: "uppercase",
                 }}
               >
                 {s.label}
               </p>
             </div>
-            <p style={{ color: s.cor, fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>
+            <p style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
               {s.value}
             </p>
           </div>
@@ -492,7 +475,7 @@ export function PontoSection() {
         </div>
       ) : porFunc.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ fontSize: 36, margin: "0 0 8px" }}>🕐</p>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="relogio" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>Nenhuma batida de ponto neste mês.</p>
         </div>
       ) : (
@@ -518,7 +501,7 @@ export function PontoSection() {
                         width: 38,
                         height: 38,
                         borderRadius: "50%",
-                        background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+                        background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -600,16 +583,16 @@ export function PontoSection() {
                                 const am = AUSENCIA_COR[b.tipo] || { cor: "#64748B", bg: "#F1F5F4" };
                                 const temHora = !b.data_hora.endsWith("T00:00:00") && new Date(b.data_hora).getHours() !== 0;
                                 return (
-                                  <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 8, background: am.bg, border: `1px solid ${am.cor}40`, borderRadius: 10, padding: "6px 12px" }}>
+                                  <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 8, background: am.bg, borderRadius: 10, padding: "6px 12px" }}>
                                     <span style={{ fontSize: 13 }}>🏷️</span>
                                     <div>
                                       <p style={{ color: am.cor, fontSize: 13, fontWeight: 800, margin: 0 }}>{b.tipo}</p>
                                       <p style={{ color: am.cor, fontSize: 10, margin: 0, opacity: 0.8 }}>{temHora ? horaFmt(b.data_hora) : "dia inteiro"}</p>
                                     </div>
-                                    {b.ajuste_por && <span title={`Lançado por ${b.ajuste_por}`} style={{ fontSize: 11, marginLeft: 2 }}>✏️</span>}
+                                    {b.ajuste_por && <span title={`Lançado por ${b.ajuste_por}`} style={{ fontSize: 11, marginLeft: 2 }}><Icone nome="editar" tamanho={15} /></span>}
                                     {podeEditar && (
                                       <button onClick={() => excluirBatida(b)} title="Remover esta marcação"
-                                        style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, padding: "2px 4px", color: "#dc2626", marginLeft: 2 }}>🗑️</button>
+                                        style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, padding: "2px 4px", color: "#dc2626", marginLeft: 2 }}><Icone nome="lixeira" tamanho={15} /></button>
                                     )}
                                   </div>
                                 );
@@ -680,14 +663,14 @@ export function PontoSection() {
                                   )}
                                   {b.ajuste_manual && (
                                     <span title={`Ajuste manual${b.ajuste_por ? " por " + b.ajuste_por : ""}`}
-                                      style={{ fontSize: 12, marginLeft: 2 }}>✏️</span>
+                                      style={{ fontSize: 12, marginLeft: 2 }}><Icone nome="editar" tamanho={15} /></span>
                                   )}
                                   {podeEditar && (
                                     <>
                                       <button onClick={() => abrirEditar(b)} title="Editar horário/tipo"
-                                        style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, padding: "2px 4px", marginLeft: 2 }}>✏️</button>
+                                        style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, padding: "2px 4px", marginLeft: 2 }}><Icone nome="editar" tamanho={15} /></button>
                                       <button onClick={() => excluirBatida(b)} title="Excluir batida"
-                                        style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, padding: "2px 4px", color: "#dc2626" }}>🗑️</button>
+                                        style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 13, padding: "2px 4px", color: "#dc2626" }}><Icone nome="lixeira" tamanho={15} /></button>
                                     </>
                                   )}
                                 </div>
@@ -718,7 +701,7 @@ export function PontoSection() {
               {editModal.funcionario}{editModal.cargo ? ` · ${editModal.cargo}` : ""}
             </p>
 
-            <label style={{ fontSize: 11, fontWeight: 800, color: "#64748B", textTransform: "uppercase" }}>{editModal.ausencia ? "Tipo de ausência" : "Tipo"}</label>
+            <label style={{ fontSize: 11, fontWeight: 800, color: "#64748B" }}>{editModal.ausencia ? "Tipo de ausência" : "Tipo"}</label>
             <select value={editModal.tipo} onChange={(e) => setEditModal({ ...editModal, tipo: e.target.value })}
               style={{ width: "100%", padding: "10px 12px", fontSize: 14, borderRadius: 10, border: "1px solid #E6ECEA", marginBottom: 14, marginTop: 4 }}>
               {(editModal.ausencia ? TIPOS_AUSENCIA : TIPOS_BATIDA).map((t) => <option key={t} value={t}>{t}</option>)}
@@ -732,20 +715,20 @@ export function PontoSection() {
 
             <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 11, fontWeight: 800, color: "#64748B", textTransform: "uppercase" }}>Data</label>
+                <label style={{ fontSize: 11, fontWeight: 800, color: "#64748B" }}>Data</label>
                 <input type="date" value={editModal.data} onChange={(e) => setEditModal({ ...editModal, data: e.target.value })}
                   style={{ width: "100%", padding: "10px 12px", fontSize: 14, borderRadius: 10, border: "1px solid #E6ECEA", marginTop: 4 }} />
               </div>
               {!(editModal.ausencia && editModal.semHora) && (
                 <div style={{ width: 120 }}>
-                  <label style={{ fontSize: 11, fontWeight: 800, color: "#64748B", textTransform: "uppercase" }}>Hora</label>
+                  <label style={{ fontSize: 11, fontWeight: 800, color: "#64748B" }}>Hora</label>
                   <input type="time" value={editModal.hora} onChange={(e) => setEditModal({ ...editModal, hora: e.target.value })}
                     style={{ width: "100%", padding: "10px 12px", fontSize: 14, borderRadius: 10, border: "1px solid #E6ECEA", marginTop: 4 }} />
                 </div>
               )}
             </div>
 
-            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "8px 12px", marginBottom: 18 }}>
+            <div style={{ background: "#FFF7ED", border: "1px solid #fde68a", borderRadius: 10, padding: "8px 12px", marginBottom: 18 }}>
               <p style={{ margin: 0, fontSize: 11, color: "#92400e" }}>
                 {editModal.ausencia ? "Esta ausência" : "Esta batida"} será registrada manualmente (por: {meuEmail || "você"}).
               </p>
@@ -757,7 +740,7 @@ export function PontoSection() {
                 Cancelar
               </button>
               <button onClick={salvarEdit} disabled={salvandoEdit}
-                style={{ background: salvandoEdit ? "#a5b4fc" : COR, color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: salvandoEdit ? "wait" : "pointer" }}>
+                style={{ background: salvandoEdit ? "#6EE7B7" : COR, color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: salvandoEdit ? "wait" : "pointer" }}>
                 {salvandoEdit ? "Salvando..." : "Salvar"}
               </button>
             </div>

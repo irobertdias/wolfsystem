@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🧑‍💼 RH · Indicadores  (CONECTADO — calcula a partir de 'funcionarios')
 // Tempo de casa, turnover, custo médio e headcount: reais (via admissao,
@@ -11,12 +11,11 @@ import { IconeEmoji } from "../../../components/a2/Icone";
 // admissões/mês e distribuição por status.
 // ═══════════════════════════════════════════════════════════════════════
 
-const COR = "#4f46e5";
+const COR = "#059669";
 const card = {
   background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
 };
 const real = (v: number) =>
   (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -24,8 +23,8 @@ const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "O
 
 const STATUS_INFO: Record<string, { label: string; cor: string }> = {
   ativo: { label: "Ativos", cor: "#059669" },
-  ferias: { label: "Em férias", cor: "#0ea5e9" },
-  afastado: { label: "Afastados", cor: "#f59e0b" },
+  ferias: { label: "Em férias", cor: "#0369A1" },
+  afastado: { label: "Afastados", cor: "#C2410C" },
   desligado: { label: "Desligados", cor: "#64748B" },
 };
 
@@ -90,9 +89,9 @@ export function IndicadoresSection() {
   // distribuição por tempo de casa
   const tempoCasa = useMemo(() => {
     const faixas = [
-      { faixa: "< 1 ano", min: 0, max: 1, cor: "#0ea5e9", qtd: 0 },
-      { faixa: "1 a 3 anos", min: 1, max: 3, cor: "#6366f1", qtd: 0 },
-      { faixa: "3 a 5 anos", min: 3, max: 5, cor: "#8b5cf6", qtd: 0 },
+      { faixa: "< 1 ano", min: 0, max: 1, cor: "#0369A1", qtd: 0 },
+      { faixa: "1 a 3 anos", min: 1, max: 3, cor: "#059669", qtd: 0 },
+      { faixa: "3 a 5 anos", min: 3, max: 5, cor: "#0F766E", qtd: 0 },
       { faixa: "+ 5 anos", min: 5, max: 999, cor: "#059669", qtd: 0 },
     ];
     ativos.forEach((f) => {
@@ -135,37 +134,22 @@ export function IndicadoresSection() {
   const maxAdm = Math.max(1, ...admissoesMes.map((h) => h.qtd));
 
   const kpis = [
-    { label: "Headcount", valor: String(headcount), cor: "#8b5cf6", icon: "👥" },
-    { label: "Turnover", valor: turnover.toFixed(1) + "%", cor: "#0ea5e9", icon: "🔄" },
-    { label: "Tempo médio de casa", valor: tempoMedio.toFixed(1) + " anos", cor: "#6366f1", icon: "📆" },
+    { label: "Headcount", valor: String(headcount), cor: "#0F766E", icon: "👥" },
+    { label: "Turnover", valor: turnover.toFixed(1) + "%", cor: "#0369A1", icon: "🔄" },
+    { label: "Tempo médio de casa", valor: tempoMedio.toFixed(1) + " anos", cor: "#059669", icon: "📆" },
     { label: "Custo médio / func.", valor: real(custoMedio), cor: "#059669", icon: "💰" },
-    { label: "Admissões (ano)", valor: String(admissoesAno), cor: "#f59e0b", icon: "✅" },
-    { label: "Departamentos", valor: String(departamentos), cor: "#ec4899", icon: "🏢" },
+    { label: "Admissões (ano)", valor: String(admissoesAno), cor: "#C2410C", icon: "✅" },
+    { label: "Departamentos", valor: String(departamentos), cor: "#BE185D", icon: "🏢" },
   ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 24,
-            boxShadow: `0 8px 20px ${COR}30`,
-          }}
-        >
-          <span style={{ filter: "saturate(0) brightness(2)" }}>📈</span>
-        </div>
         <div>
-          <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+          <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
             Indicadores de RH
           </h1>
-          <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+          <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
             Métricas analíticas do quadro de pessoal
           </p>
         </div>
@@ -177,7 +161,7 @@ export function IndicadoresSection() {
         </div>
       ) : headcount === 0 ? (
         <div style={{ ...card, padding: 50, textAlign: "center" }}>
-          <p style={{ fontSize: 40, margin: "0 0 8px" }}>📈</p>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="grafico" tamanho={24} /></span>
           <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
             Sem dados ainda
           </p>
@@ -192,7 +176,7 @@ export function IndicadoresSection() {
             style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}
           >
             {kpis.map((k) => (
-              <div key={k.label} style={{ ...card, padding: 18, borderTop: `3px solid ${k.cor}` }}>
+              <div key={k.label} style={{ ...card, padding: 18 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   <div
                     style={{
@@ -211,18 +195,16 @@ export function IndicadoresSection() {
                   <p
                     style={{
                       color: "#64748B",
-                      fontSize: 11,
+                      fontSize: 13,
                       margin: 0,
                       fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.3,
                     }}
                   >
                     {k.label}
                   </p>
                 </div>
                 <p
-                  style={{ color: "#0F172A", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}
+                  style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}
                 >
                   {k.valor}
                 </p>

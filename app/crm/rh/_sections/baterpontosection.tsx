@@ -11,19 +11,18 @@ import { useWorkspace } from "../../../hooks/useWorkspace";
 // detectado pela contagem de batidas do dia.
 // ═══════════════════════════════════════════════════════════════════════
 
-const COR = "#4f46e5";
-const COR_TEXTO = "#4338ca";
+const COR = "#059669";
+const COR_TEXTO = "#065F46";
 const card = {
   background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
 };
 const inputStyle = {
   width: "100%",
-  background: "#ffffff",
+  background: "#F7FAF9",
   border: "1px solid #E6ECEA",
-  borderRadius: 10,
+  borderRadius: 12,
   padding: "12px 14px",
   color: "#0F172A",
   fontSize: 14,
@@ -34,8 +33,8 @@ const inputStyle = {
 const TIPOS = ["Entrada", "Saída p/ almoço", "Retorno do almoço", "Saída"];
 const TIPO_COR: Record<string, string> = {
   Entrada: "#059669",
-  "Saída p/ almoço": "#f59e0b",
-  "Retorno do almoço": "#0ea5e9",
+  "Saída p/ almoço": "#C2410C",
+  "Retorno do almoço": "#0369A1",
   Saída: "#dc2626",
   Marcação: "#64748B",
 };
@@ -192,26 +191,11 @@ export function BaterPontoSection() {
     >
       {/* HEADER */}
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 24,
-            boxShadow: `0 8px 20px ${COR}30`,
-          }}
-        >
-          <span style={{ filter: "saturate(0) brightness(2)" }}>🕐</span>
-        </div>
         <div>
-          <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+          <h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
             Bater Ponto
           </h1>
-          <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+          <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
             Registre sua entrada e saída — a localização é capturada automaticamente
           </p>
         </div>
@@ -267,7 +251,7 @@ export function BaterPontoSection() {
             onClick={bater}
             disabled={!nome || registrando}
             style={{
-              background: !nome ? "#E6ECEA" : `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+              background: !nome ? "#E6ECEA" : `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
               color: !nome ? "#94A3B8" : "white",
               border: "none",
               borderRadius: 16,
