@@ -490,3 +490,213 @@ body {
   .wolf-chat-shell select { font-size: 16px !important; }
   .wolf-chat-shell { position: fixed; inset: 0; width: 100%; }
 }
+
+/* =====================================================================
+   TEMA A2 — esmeralda, barra branca flutuante, sombras suaves.
+   Aplicado por cima do shell existente (CRM e Atendimento), sem mudar
+   comportamento. Cores e sombras centralizadas nas variáveis abaixo.
+   ===================================================================== */
+:root {
+  --a2-verde: #059669;
+  --a2-verde-escuro: #047857;
+  --a2-verde-profundo: #065F46;
+  --a2-verde-claro: #ECFDF5;
+  --a2-verde-borda: #A7F3D0;
+  --a2-fundo: #F3F6F5;
+  --a2-superficie: #FFFFFF;
+  --a2-texto: #0F172A;
+  --a2-texto-2: #475569;
+  --a2-texto-3: #64748B;
+  --a2-linha: #EEF2F1;
+  --a2-sombra-1: 0 1px 2px rgba(16,24,40,.05), 0 12px 32px -12px rgba(16,24,40,.14);
+  --a2-sombra-2: 0 2px 4px rgba(16,24,40,.04), 0 24px 48px -20px rgba(16,24,40,.18);
+  --a2-sombra-verde: 0 8px 18px -8px rgba(5,150,105,.7);
+  --wolf-shell-accent: #059669;
+  --wolf-shell-accent-strong: #047857;
+  --wolf-shell-muted: #F3F6F5;
+  --wolf-shell-border: #E6ECEA;
+  --wolf-shell-text: #0F172A;
+  --wolf-shell-subtle: #64748B;
+}
+
+/* ---------- CRM ---------- */
+.wolf-premium-shell {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  background: var(--a2-fundo);
+  font-family: var(--font-wolf), system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+.wolf-premium-header {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  margin: 16px 24px 0;
+  padding: 10px 14px 10px 18px;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--a2-sombra-1);
+}
+.wolf-premium-brand { gap: 10px; }
+.wolf-premium-brand-mark {
+  width: 38px; height: 38px; flex: 0 0 38px;
+  border-radius: 11px;
+  background: linear-gradient(140deg, var(--a2-verde) 0%, var(--a2-verde-profundo) 100%);
+  box-shadow: 0 6px 14px -4px rgba(5,150,105,.55);
+}
+.wolf-premium-brand-mark img { width: 24px; height: 24px; }
+.wolf-premium-brand-copy b { font-size: 15px; font-weight: 800; letter-spacing: .01em; }
+.wolf-premium-brand-copy small { font-size: 10.5px; font-weight: 600; letter-spacing: .02em; text-transform: none; color: var(--a2-texto-3); margin-top: 2px; }
+.wolf-premium-launcher {
+  justify-self: start;
+  gap: 4px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.wolf-premium-launcher button {
+  min-width: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-radius: 10px;
+  color: var(--a2-texto-2);
+}
+.wolf-premium-launcher button i { display: none; }
+.wolf-premium-launcher button span { font-size: 14px; font-weight: 600; letter-spacing: 0; }
+.wolf-premium-launcher button:hover { background: var(--a2-fundo); color: var(--a2-texto); transform: none; }
+.wolf-premium-launcher button.active {
+  color: #fff;
+  background: var(--a2-verde);
+  box-shadow: var(--a2-sombra-verde);
+}
+.wolf-premium-launcher button.active span { font-weight: 700; }
+.wolf-premium-user { gap: 8px; }
+.wolf-premium-user .avatar {
+  width: 40px; height: 40px; flex-basis: 40px;
+  border-radius: 12px;
+  color: var(--a2-verde-profundo);
+  background-color: #D1FAE5;
+  background-image: linear-gradient(140deg, #D1FAE5, #A7F3D0);
+  box-shadow: none;
+  font-size: 13px; font-weight: 800;
+}
+.wolf-premium-user .identity b { font-size: 13px; font-weight: 700; }
+.wolf-premium-user .identity small { font-size: 12px; margin-top: 1px; }
+.wolf-premium-user .logout {
+  width: 40px; height: 40px;
+  border: 0; border-radius: 11px;
+  background: var(--a2-fundo);
+  color: var(--a2-texto-2);
+}
+.wolf-premium-user .logout:hover { color: #DC2626; }
+.wolf-premium-context {
+  min-height: 0;
+  padding: 22px 30px 4px;
+  background: transparent;
+  border: 0;
+}
+.wolf-premium-context-title { flex-direction: column; align-items: flex-start; gap: 4px; }
+.wolf-premium-context-title span { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--a2-texto-3); }
+.wolf-premium-context-title b { font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
+.wolf-premium-context .context-actions span { font-size: 12.5px; font-weight: 600; color: var(--a2-texto-3); }
+.wolf-premium-context .context-actions button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 13px; font-weight: 700;
+  background: var(--a2-superficie);
+  box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25);
+}
+.wolf-premium-context .system-status i { background: #22C55E; box-shadow: 0 0 0 4px rgba(34,197,94,.18); }
+.wolf-premium-content { background: var(--a2-fundo); padding: 18px 28px 28px; }
+
+/* subnavegação comercial (Dashboard, Funil, Vendas…) */
+.wolf-commercial-navigation {
+  min-height: 64px;
+  border: 0 !important;
+  border-radius: 18px;
+  box-shadow: var(--a2-sombra-1);
+}
+.wolf-commercial-navigation > :first-child { border-right-color: var(--a2-linha); }
+
+/* ---------- Atendimento ---------- */
+.wolf-chat-shell {
+  background: var(--a2-fundo) !important;
+  font-family: var(--font-wolf), system-ui, sans-serif !important;
+}
+@media (min-width: 761px) {
+  .wolf-chat-navigation {
+    width: auto !important;
+    height: 64px !important;
+    min-height: 64px;
+    flex: 0 0 64px !important;
+    margin: 16px 24px 0;
+    border: 0 !important;
+    border-radius: 18px;
+    box-shadow: var(--a2-sombra-1) !important;
+  }
+  .wolf-chat-navigation > div:first-child { width: auto; padding: 0 8px 0 18px !important; }
+  .wolf-chat-navigation > div:first-child img { width: 30px !important; padding: 4px; border-radius: 10px; background: linear-gradient(140deg, var(--a2-verde), var(--a2-verde-profundo)); filter: none; box-shadow: 0 6px 14px -4px rgba(5,150,105,.55); }
+  .wolf-chat-navigation > div:first-child span { font-family: var(--font-wolf), system-ui, sans-serif; }
+  .wolf-chat-modules { gap: 4px; padding: 0 !important; }
+  .wolf-chat-modules > div > button {
+    min-width: 0 !important;
+    height: 40px;
+    padding: 0 14px !important;
+    border-radius: 10px !important;
+    color: var(--a2-texto-2) !important;
+    background: transparent !important;
+    font-family: var(--font-wolf), system-ui, sans-serif;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+  }
+  .wolf-chat-modules > div > button > span:first-child > span:first-child { display: none !important; }
+  .wolf-chat-modules > div > button:hover { background: var(--a2-fundo) !important; color: var(--a2-texto) !important; }
+  .wolf-chat-modules > div > button.ativo {
+    color: #fff !important;
+    background: var(--a2-verde) !important;
+    box-shadow: var(--a2-sombra-verde);
+  }
+  .wolf-chat-modules > div > button.ativo > span:last-child { color: #fff !important; }
+  .wolf-chat-modules > div > div {
+    top: 48px;
+    padding: 8px !important;
+    border: 0;
+    border-radius: 14px;
+    box-shadow: 0 2px 4px rgba(16,24,40,.06), 0 20px 40px -12px rgba(16,24,40,.25);
+  }
+  .wolf-chat-modules > div > div > button {
+    padding: 9px 12px !important;
+    border-radius: 9px !important;
+    font-family: var(--font-wolf), system-ui, sans-serif;
+    font-size: 13px !important;
+  }
+  .wolf-chat-return { padding: 0 14px !important; }
+  .wolf-chat-return button {
+    height: 40px;
+    border: 0 !important;
+    border-radius: 11px !important;
+    background: var(--a2-fundo) !important;
+    box-shadow: none !important;
+    font-family: var(--font-wolf), system-ui, sans-serif;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+  }
+  .wolf-chat-workspace { padding: 16px 24px 20px; box-sizing: border-box; }
+}
+
+@media (max-width: 1180px) {
+  .wolf-premium-header { grid-template-columns: auto minmax(0, 1fr) auto; margin: 12px 14px 0; }
+  .wolf-premium-content { padding: 14px 16px 20px; }
+  .wolf-premium-context { padding: 16px 18px 2px; }
+}
+@media (max-width: 760px) {
+  .wolf-premium-shell { grid-template-rows: auto auto minmax(0, 1fr); }
+  .wolf-premium-header { grid-template-columns: 38px minmax(0, 1fr) 40px; gap: 8px; margin: 8px 8px 0; padding: 8px; border-radius: 16px; }
+  .wolf-premium-launcher button { height: 38px; padding: 0 12px; }
+  .wolf-premium-launcher button span { font-size: 13px; }
+  .wolf-premium-context-title b { font-size: 20px; }
+  .wolf-premium-content { padding: 10px; }
+}

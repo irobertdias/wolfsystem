@@ -174,7 +174,7 @@ export default function AtendimentoShell({ children }: { children?: ReactNode })
             const ativo = menuAberto === menu.key;
             return (
               <div key={menu.key} style={{ marginBottom: 4 }}>
-                <button onClick={() => setMenuAberto(ativo ? null : menu.key)}
+                <button onClick={() => setMenuAberto(ativo ? null : menu.key)} className={ativo ? "ativo" : ""}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     width: "100%", padding: "10px 12px",
