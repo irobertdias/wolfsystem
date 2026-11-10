@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import Icone from "../../components/a2/Icone";
 import { PERFIS, PLANOS, brlOrc, calcularOrcamento, pctOrc, type DadosPagamento, type Implantacao, type ItemOrcamento, type UsuarioImplantacao } from "../../lib/orcamento";
 
 type Orcamento = {
@@ -26,7 +27,7 @@ const inputCls = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5
 const usuarioVazio = (): UsuarioImplantacao => ({ nome: "", email: "", telefone: "", perfil: "Atendente" });
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)] ${className}`}>{children}</div>;
+  return <div className={`rounded-[22px] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_14px_32px_-18px_rgba(16,24,40,.22)] ${className}`}>{children}</div>;
 }
 function Titulo({ n, children, sub }: { n: string; children: React.ReactNode; sub?: string }) {
   return (
@@ -42,14 +43,14 @@ function Titulo({ n, children, sub }: { n: string; children: React.ReactNode; su
 function Campo({ rotulo, children, className = "" }: { rotulo: string; children: React.ReactNode; className?: string }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">{rotulo}</span>
+      <span className="mb-1 block text-[11px] font-semibold text-slate-500">{rotulo}</span>
       {children}
     </label>
   );
 }
 function Check({ cor }: { cor: string }) {
   return (
-    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white" style={{ background: cor }}>✓</span>
+    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: cor }}>✓</span>
   );
 }
 
@@ -75,7 +76,7 @@ function Contador({ expiraEm, deslocamento, onExpirar }: { expiraEm: string; des
             {i > 0 && <span className="text-amber-400">:</span>}
             <div className="min-w-[42px] rounded-xl bg-white px-1.5 py-1 text-center shadow-sm ring-1 ring-amber-200">
               <div className="text-[18px] font-bold leading-none tabular-nums text-amber-700">{v}</div>
-              <div className="mt-0.5 font-sans text-[9px] uppercase text-amber-500">{u}</div>
+              <div className="mt-0.5 font-sans text-[11px] text-amber-500">{u}</div>
             </div>
           </div>
         ))}
@@ -186,7 +187,7 @@ export default function OrcamentoPage() {
   if (erro || !orc) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-        <Card className="max-w-sm text-center"><div className="text-3xl">🔒</div><div className="mt-2 text-lg font-bold text-slate-800">Orçamento indisponível</div><p className="mt-1 text-sm text-slate-500">{erro}</p></Card>
+        <Card className="max-w-sm text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600"><Icone nome="cadeado" tamanho={26} /></div><div className="mt-2 text-lg font-bold text-slate-800">Orçamento indisponível</div><p className="mt-1 text-sm text-slate-500">{erro}</p></Card>
       </main>
     );
   }
@@ -217,7 +218,7 @@ export default function OrcamentoPage() {
         <div className="mb-4 flex items-center justify-between text-[12px]">
           <div className="flex items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-[16px] font-black text-white shadow-md shadow-emerald-600/30">W</span>
-            <div className="leading-tight"><div className="text-[14px] font-bold text-slate-800">Wolf System</div><div className="text-[10px] text-slate-500">CRM, atendimento e automação</div></div>
+            <div className="leading-tight"><div className="text-[14px] font-bold text-slate-800">Wolf System</div><div className="text-[11.5px] text-slate-500">CRM, atendimento e automação</div></div>
           </div>
           <span className="rounded-full bg-white/80 px-2.5 py-1 font-mono text-[11px] text-slate-500 ring-1 ring-slate-200">{orc.numero}</span>
         </div>
@@ -235,19 +236,19 @@ export default function OrcamentoPage() {
               ))}
             </div>
             <div className="mt-6 grid grid-cols-2 gap-2 sm:max-w-md">
-              <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur"><div className="text-[10px] uppercase tracking-wider text-emerald-100">Agora</div><div className="text-[20px] font-black tabular-nums">{brlOrc(orc.configuracao)}</div><div className="text-[11px] text-emerald-100">configuração inicial</div></div>
-              <div className="rounded-2xl bg-white px-4 py-3 text-emerald-800"><div className="text-[10px] uppercase tracking-wider text-emerald-600">Mensalidade</div><div className="text-[20px] font-black tabular-nums">{brlOrc(orc.mensalidade)}</div><div className="text-[11px] text-emerald-600">a partir do mês seguinte</div></div>
+              <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur"><div className="text-[11.5px]r text-emerald-100">Agora</div><div className="text-[20px] font-black tabular-nums">{brlOrc(orc.configuracao)}</div><div className="text-[11px] text-emerald-100">configuração inicial</div></div>
+              <div className="rounded-2xl bg-white px-4 py-3 text-emerald-800"><div className="text-[11.5px]r text-emerald-600">Mensalidade</div><div className="text-[20px] font-black tabular-nums">{brlOrc(orc.mensalidade)}</div><div className="text-[11px] text-emerald-600">a partir do mês seguinte</div></div>
             </div>
           </div>
         </div>
 
         <div className="mt-4 space-y-4">
           {aberto && <Contador expiraEm={orc.expira_em} deslocamento={deslocamento} onExpirar={onExpirar} />}
-          {orc.status === "expirado" && <div className="rounded-3xl border border-slate-200 bg-white px-4 py-4 text-center text-[13px] text-slate-600">Este orçamento expirou em {new Date(orc.expira_em).toLocaleString("pt-BR")}. Fale com a Wolf System para renovar.</div>}
+          {orc.status === "expirado" && <div className="rounded-[22px] bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),0_14px_32px_-18px_rgba(16,24,40,.22)] px-4 py-4 text-center text-[13px] text-slate-600">Este orçamento expirou em {new Date(orc.expira_em).toLocaleString("pt-BR")}. Fale com a Wolf System para renovar.</div>}
 
           {aceito && (
             <div className="flex items-center gap-3 rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xl text-white shadow-lg shadow-emerald-600/30">✓</div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"><Icone nome="check" tamanho={24} espessura={2.6} /></div>
               <div>
                 <div className="text-[16px] font-extrabold text-emerald-700">Orçamento aceito!</div>
                 <div className="text-[13px] text-slate-600">Aceito em {orc.aceito_em ? new Date(orc.aceito_em).toLocaleString("pt-BR") : ""}. Agora é só fazer o pagamento e enviar os dados abaixo.</div>
@@ -261,13 +262,13 @@ export default function OrcamentoPage() {
               <Card>
                 <Titulo n="1" sub="Pague a configuração inicial para começarmos a implantação.">Dados para pagamento</Titulo>
                 <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 p-5 text-white">
-                  <div className="text-[11px] uppercase tracking-wider text-emerald-100">Valor a pagar agora</div>
+                  <div className="text-[11px]r text-emerald-100">Valor a pagar agora</div>
                   <div className="text-[34px] font-black tabular-nums">{brlOrc(orc.configuracao)}</div>
                   <div className="text-[12px] text-emerald-100">Configuração inicial · pagamento único</div>
                 </div>
                 <div className="mt-4 divide-y divide-slate-100 rounded-2xl border border-slate-200">
                   <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-                    <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{orc.pagamento.tipo}</div><div className="font-mono text-[18px] font-bold text-slate-800">{orc.pagamento.cnpj}</div></div>
+                    <div><div className="text-[11px] font-semibold text-slate-500">{orc.pagamento.tipo}</div><div className="font-mono text-[18px] font-bold text-slate-800">{orc.pagamento.cnpj}</div></div>
                     <Copiar valor={orc.pagamento.chave} rotulo="Copiar chave PIX" />
                   </div>
                   {[["Favorecido", orc.pagamento.favorecido], ["Banco", orc.pagamento.banco], ["CNPJ", orc.pagamento.cnpj]].map(([k, v]) => (
@@ -361,9 +362,9 @@ export default function OrcamentoPage() {
                   <div className="absolute inset-x-0 top-0 h-1" style={{ background: it.cor }} />
                   <div className="flex items-start justify-between gap-2">
                     <div className="text-[15px] font-bold text-slate-800">{it.nome}</div>
-                    {"tag" in it && it.tag && <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">{it.tag}</span>}
+                    {"tag" in it && it.tag && <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[11.5px] font-bold text-emerald-700 ring-1 ring-emerald-200">{it.tag}</span>}
                   </div>
-                  <div className="text-[11px] font-bold uppercase tracking-wide" style={{ color: it.cor }}>{it.sub === "usuários" ? `${orc.usuarios_incluidos} usuários` : it.sub}</div>
+                  <div className="text-[11px] font-bold" style={{ color: it.cor }}>{it.sub === "usuários" ? `${orc.usuarios_incluidos} usuários` : it.sub}</div>
                   <ul className="mt-3 space-y-1.5">
                     {it.linhas.map((l) => <li key={l} className="flex gap-2 text-[13px] text-slate-600"><Check cor={it.cor} />{l}</li>)}
                   </ul>
@@ -415,7 +416,7 @@ export default function OrcamentoPage() {
           <div className="mx-auto flex max-w-[760px] items-center gap-3">
             <div className="hidden leading-tight sm:block"><div className="text-[11px] text-slate-500">Agora</div><div className="text-[16px] font-black text-slate-800">{brlOrc(orc.configuracao)}</div></div>
             <button disabled={enviando} onClick={aceitar} className="flex-1 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-4 text-[15px] font-bold text-white shadow-lg shadow-emerald-600/30 transition hover:brightness-105 disabled:opacity-50">
-              {enviando ? "Registrando…" : "✓ Aceitar orçamento"}
+              <span className="inline-flex items-center justify-center gap-2">{!enviando && <Icone nome="check" tamanho={17} espessura={2.5} />}{enviando ? "Registrando…" : "Aceitar orçamento"}</span>
             </button>
           </div>
         </div>
