@@ -15,7 +15,7 @@ import {
   type CampoCustom,
 } from "../../lib/campos_proposta_definicao";
 
-import { IconeEmoji } from "../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🎯 NOVA PROPOSTA — Wolf CRM PREMIUM
 // ───────────────────────────────────────────────────────────────────────
@@ -111,11 +111,11 @@ const iconeArquivo = (tipo: string): string => {
 
 // ═══ SEÇÃO META — pra agrupar e ordenar visualmente ═══
 const SECAO_META: Record<string, { icone: string; cor: string; descricao: string; ordem: number }> = {
-  pessoal:        { icone: "👤", cor: "#3b82f6", descricao: "Identificação do cliente",        ordem: 1 },
+  pessoal:        { icone: "👤", cor: "#14B8A6", descricao: "Identificação do cliente",        ordem: 1 },
   endereco:       { icone: "📍", cor: "#06b6d4", descricao: "Onde será a instalação",           ordem: 2 },
-  contato:        { icone: "📱", cor: "#8b5cf6", descricao: "Como falar com o cliente",         ordem: 3 },
-  plano:          { icone: "📦", cor: "#f59e0b", descricao: "Serviço contratado",               ordem: 4 },
-  agendamento:    { icone: "📅", cor: "#ec4899", descricao: "Quando instalar",                  ordem: 5 },
+  contato:        { icone: "📱", cor: "#0F766E", descricao: "Como falar com o cliente",         ordem: 3 },
+  plano:          { icone: "📦", cor: "#C2410C", descricao: "Serviço contratado",               ordem: 4 },
+  agendamento:    { icone: "📅", cor: "#BE185D", descricao: "Quando instalar",                  ordem: 5 },
   vendedor:       { icone: "👨‍💼", cor: "#059669", descricao: "Atribuição interna",              ordem: 6 },
   status:         { icone: "🎯", cor: "#dc2626", descricao: "Situação atual da proposta",       ordem: 7 },
   personalizado:  { icone: "⚙️", cor: "#a855f7", descricao: "Campos customizados pelo workspace", ordem: 8 },
@@ -728,21 +728,14 @@ function PropostaForm() {
   };
   const labelStyle = {
     color: "#64748B",
-    fontSize: 11,
-    textTransform: "uppercase" as const,
-    letterSpacing: 0.5,
+    fontSize: 12.5,
     marginBottom: 6,
     display: "flex" as const,
     alignItems: "center" as const,
     gap: 6,
     fontWeight: 700,
   };
-  const cardStyle = {
-    background: "#ffffff",
-    borderRadius: 14,
-    border: "1px solid #E6ECEA",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-  };
+  const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
   const inputStyleParaCampo = (c: CampoUnificado): React.CSSProperties => {
     const ok = isCampoPreenchido(c);
@@ -819,7 +812,7 @@ function PropostaForm() {
           textAlign: "center",
           transition: "all 0.15s",
         }}
-          onMouseEnter={(e) => { if (!loading) e.currentTarget.style.borderColor = "#3b82f6"; }}
+          onMouseEnter={(e) => { if (!loading) e.currentTarget.style.borderColor = "#14B8A6"; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; }}
         >
           <input type="file" multiple
@@ -852,8 +845,8 @@ function PropostaForm() {
                   👁️
                 </a>
                 <button type="button" onClick={() => removerAnexo(c.slug, i)}
-                  style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
-                  ✕
+                  style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                  <Icone nome="x" tamanho={16} />
                 </button>
               </div>
             ))}
@@ -1044,15 +1037,7 @@ function PropostaForm() {
     return (
       <div style={{ minHeight: "100vh", background: "#F3F6F5", padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
-          </div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🔒"} tamanho={28} /></div>
           <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>Você não tem permissão para criar propostas.</p>
           <button onClick={() => router.back()}
@@ -1060,7 +1045,7 @@ function PropostaForm() {
               background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+              boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
             }}>Voltar</button>
         </div>
       </div>
@@ -1076,45 +1061,35 @@ function PropostaForm() {
       {/* ═══ HEADER STICKY ═══ */}
       <div style={{
         position: "sticky", top: 0, zIndex: 50,
-        background: "rgba(248,250,252,0.85)",
+        background: "rgba(243,246,245,0.88)",
         backdropFilter: "blur(12px)",
-        borderBottom: "1px solid #E6ECEA",
         padding: isMobile ? "10px 12px" : "12px 28px",
       }}>
         <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
-            <div style={{
-              width: isMobile ? 38 : 44, height: isMobile ? 38 : 44, borderRadius: 12,
-              background: "linear-gradient(135deg, #0F172A 0%, #0F172A 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 8px 20px rgba(31,41,55,0.25)",
-              flexShrink: 0, padding: 5,
-            }}>
-              <img src="/logo1.png" alt="Wolf" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
-            </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                <h1 style={{ color: "#0F172A", fontSize: isMobile ? 16 : 18, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Nova Proposta</h1>
+                <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Nova Proposta</h1>
                 {form.nome && <span style={{ color: "#059669", fontSize: isMobile ? 13 : 14, fontWeight: 600 }}>· {form.nome}</span>}
                 {form.valor_plano && <span style={{ color: "#059669", fontSize: isMobile ? 13 : 14, fontWeight: 800 }}>· R$ {form.valor_plano}</span>}
               </div>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
-                <p style={{ color: "#64748B", fontSize: 11, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <p style={{ color: "#64748B", fontSize: 13, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   Wolf CRM · <b>{workspace?.nome}</b>
                 </p>
                 {camposObrig.length > 0 && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 5,
-                    fontSize: 11, fontWeight: 700,
-                    color: pctTotal === 100 ? "#059669" : pctTotal >= 50 ? "#f59e0b" : "#dc2626",
+                    fontSize: 13, fontWeight: 700,
+                    color: pctTotal === 100 ? "#059669" : pctTotal >= 50 ? "#C2410C" : "#dc2626",
                   }}>
                     {pctTotal === 100 ? "✓" : "●"} {camposObrigPreenchidos}/{camposObrig.length} obrigatórios ({pctTotal}%)
                   </span>
                 )}
                 {salvandoRascunho ? (
-                  <span style={{ fontSize: 10, color: "#94A3B8", fontStyle: "italic" }}>salvando rascunho...</span>
+                  <span style={{ fontSize: 12, color: "#94A3B8", fontStyle: "italic" }}>salvando rascunho...</span>
                 ) : dirty ? (
-                  <span style={{ fontSize: 10, color: "#94A3B8", fontStyle: "italic" }}>rascunho salvo</span>
+                  <span style={{ fontSize: 12, color: "#94A3B8", fontStyle: "italic" }}>rascunho salvo</span>
                 ) : null}
               </div>
             </div>
@@ -1122,8 +1097,8 @@ function PropostaForm() {
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
             <button onClick={handleCancelar}
               style={{
-                background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA",
-                borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer",
+                background: "#ffffff", color: "#334155", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25)",
+                borderRadius: 12, padding: "8px 14px", fontSize: 13.5, cursor: "pointer",
                 whiteSpace: "nowrap", fontWeight: 600,
               }}>
               Voltar
@@ -1131,14 +1106,14 @@ function PropostaForm() {
             <button onClick={handleSubmit} disabled={loading}
               title="Ctrl+S"
               style={{
-                background: loading ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
-                color: "white", border: "none", borderRadius: 10,
-                padding: "8px 18px", fontSize: 12, fontWeight: 700,
+                background: loading ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                color: "white", border: "none", borderRadius: 12,
+                padding: "10px 20px", fontSize: 13.5, fontWeight: 800,
                 cursor: loading ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
                 whiteSpace: "nowrap",
               }}>
-              {loading ? "⏳ Salvando..." : "Salvar Proposta"}
+              {loading ? "Salvando…" : "Salvar Proposta"}
             </button>
           </div>
         </div>
@@ -1158,10 +1133,9 @@ function PropostaForm() {
       {rascunhoDisponivel && (
         <div style={{ padding: isMobile ? "12px 12px 0" : "16px 28px 0" }}>
           <div style={{
-            background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
-            border: "1px solid #fde68a",
-            borderLeft: "4px solid #f59e0b",
-            borderRadius: 12,
+            background: "#FFF7ED",
+            boxShadow: "inset 0 0 0 1.5px #FED7AA",
+            borderRadius: 16,
             padding: "12px 18px",
             display: "flex",
             alignItems: "center",
@@ -1178,7 +1152,7 @@ function PropostaForm() {
               </p>
             </div>
             <button onClick={recuperarRascunho}
-              style={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(245,158,11,0.3)" }}>
+              style={{ background: "#C2410C", color: "white", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: 800 }}>
               Recuperar
             </button>
             <button onClick={descartarRascunho}
@@ -1203,7 +1177,7 @@ function PropostaForm() {
         {!isMobile && (
           <aside style={{ position: "sticky", top: 100, alignSelf: "start", display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ ...cardStyle, padding: 14 }}>
-              <p style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 10px", fontWeight: 800 }}>
+              <p style={{ color: "#94A3B8", fontSize: 12, margin: "0 0 10px", fontWeight: 700 }}>
                 Seções do formulário
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1228,22 +1202,21 @@ function PropostaForm() {
                         if (primeira) sectionsRef.current[primeira.keyUnica]?.scrollIntoView({ behavior: "smooth", block: "start" });
                       }}
                         style={{
-                          background: ativa ? `${s.meta.cor}10` : "transparent",
-                          border: `1px solid ${ativa ? `${s.meta.cor}30` : "transparent"}`,
-                          borderLeft: `3px solid ${ativa ? s.meta.cor : "transparent"}`,
-                          borderRadius: 8, padding: "8px 10px",
+                          background: ativa ? "#ECFDF5" : "transparent",
+                          border: "none",
+                          borderRadius: 11, padding: "9px 11px",
                           cursor: "pointer", textAlign: "left",
                           transition: "all 0.15s",
                         }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                          <span style={{ fontSize: 14 }}>{<IconeEmoji e={s.meta.icone} />}</span>
-                          <span style={{ color: ativa ? s.meta.cor : "#334155", fontSize: 12, fontWeight: ativa ? 800 : 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {s.label}
+                          <span style={{ display: "flex", color: ativa ? "#059669" : "#94A3B8" }}><IconeEmoji e={s.meta.icone} tamanho={16} /></span>
+                          <span style={{ color: ativa ? "#065F46" : "#475569", fontSize: 13.5, fontWeight: ativa ? 800 : 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {semEmojiTxt(s.label)}
                           </span>
                           {prog.obrig > 0 && (
                             <span style={{
-                              fontSize: 9, fontWeight: 800,
-                              color: prog.pct === 100 ? "#059669" : prog.pct === 0 ? "#94A3B8" : s.meta.cor,
+                              fontSize: 12, fontWeight: 800,
+                              color: prog.pct === 100 ? "#059669" : "#94A3B8",
                             }}>
                               {prog.preench}/{prog.obrig}
                             </span>
@@ -1251,7 +1224,7 @@ function PropostaForm() {
                         </div>
                         <div style={{ background: "#E6ECEA", borderRadius: 2, height: 3, overflow: "hidden" }}>
                           <div style={{
-                            background: prog.pct === 100 ? "#059669" : s.meta.cor,
+                            background: "#10B981",
                             height: "100%", width: `${prog.obrig > 0 ? prog.pct : (prog.preench / Math.max(prog.total, 1)) * 100}%`,
                             transition: "width 0.3s",
                           }} />
@@ -1264,8 +1237,8 @@ function PropostaForm() {
             </div>
 
             {/* Card de atalhos */}
-            <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #F7FAF9 0%, #F1F5F4 100%)" }}>
-              <p style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px", fontWeight: 800 }}>
+            <div style={{ ...cardStyle, padding: 14, background: "#ffffff" }}>
+              <p style={{ color: "#94A3B8", fontSize: 12, margin: "0 0 8px", fontWeight: 700 }}>
                 Atalhos
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1302,7 +1275,7 @@ function PropostaForm() {
             </>
           ) : camposUnificados.length === 0 ? (
             <div style={{ ...cardStyle, padding: 40, textAlign: "center" }}>
-              <p style={{ fontSize: 36, margin: "0 0 8px" }}>📋</p>
+              <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
               <p style={{ color: "#64748B", fontSize: 13 }}>
                 Nenhum campo configurado pra proposta deste workspace.
                 <br /><a href="/crm/editor-proposta" style={{ color: "#059669", fontWeight: 600 }}>Ir para o Editor de Proposta</a>
@@ -1320,36 +1293,27 @@ function PropostaForm() {
                   {/* Header da seção */}
                   <div style={{
                     padding: "14px 20px",
-                    borderBottom: "1px solid #F1F5F4",
-                    background: `${s.meta.cor}05`,
-                    borderLeft: `4px solid ${s.meta.cor}`,
+                    borderBottom: "1px solid #EEF2F1",
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
                   }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 10,
-                      background: `linear-gradient(135deg, ${s.meta.cor} 0%, ${s.meta.cor}cc 100%)`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 18, boxShadow: `0 4px 10px ${s.meta.cor}40`,
-                      flexShrink: 0,
-                    }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={s.meta.icone} />}</span></div>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${s.meta.cor}14`, color: s.meta.cor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={s.meta.icone} tamanho={16} /></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <h2 style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: -0.2 }}>{s.label}</h2>
-                      {s.meta.descricao && <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{s.meta.descricao}</p>}
+                      <h2 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: 0, letterSpacing: "-.01em" }}>{semEmojiTxt(s.label)}</h2>
+                      {s.meta.descricao && <p style={{ color: "#94A3B8", fontSize: 12.5, margin: "2px 0 0" }}>{s.meta.descricao}</p>}
                     </div>
                     {prog.obrig > 0 && (
                       <span style={{
-                        background: prog.pct === 100 ? "#ECFDF5" : `${s.meta.cor}10`,
-                        color: prog.pct === 100 ? "#059669" : s.meta.cor,
-                        border: `1px solid ${prog.pct === 100 ? "#A7F3D0" : `${s.meta.cor}30`}`,
+                        background: prog.pct === 100 ? "#ECFDF5" : "#F3F6F5",
+                        color: prog.pct === 100 ? "#047857" : "#475569",
                         padding: "4px 10px",
                         borderRadius: 10,
                         fontSize: 11,
                         fontWeight: 800,
                         whiteSpace: "nowrap",
                       }}>
-                        {prog.pct === 100 ? "✓ Completo" : `${prog.preench}/${prog.obrig}`}
+                        {prog.pct === 100 ? "Completo" : `${prog.preench}/${prog.obrig}`}
                       </span>
                     )}
                   </div>
@@ -1375,20 +1339,14 @@ function PropostaForm() {
 
           {/* Resumo final + botões */}
           {!carregandoCampos && camposUnificados.length > 0 && (
-            <div style={{ ...cardStyle, padding: isMobile ? 16 : 22, background: "linear-gradient(135deg, #F7FAF9 0%, #F1F5F4 100%)" }}>
+            <div style={{ ...cardStyle, padding: isMobile ? 16 : 22, background: "#ffffff" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 10,
-                  background: pctTotal === 100 ? "linear-gradient(135deg, #059669 0%, #10B981 100%)" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 20,
-                  boxShadow: pctTotal === 100 ? "0 4px 10px rgba(5,150,105,0.3)" : "0 4px 10px rgba(5,150,105,0.3)",
-                }}><span style={{ filter: "saturate(0) brightness(2)" }}>{pctTotal === 100 ? "✅" : "📋"}</span></div>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={pctTotal === 100 ? "✅" : "📋"} tamanho={18} /></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: 0 }}>
                     {pctTotal === 100 ? "Tudo pronto pra salvar!" : `Faltam ${camposObrig.length - camposObrigPreenchidos} campo(s) obrigatório(s)`}
                   </p>
-                  <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+                  <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
                     {pctTotal}% completo · {form.nome || "(sem nome)"}{form.valor_plano ? ` · R$ ${form.valor_plano}` : ""}
                   </p>
                 </div>
@@ -1396,20 +1354,20 @@ function PropostaForm() {
               <div style={{ display: "flex", flexDirection: isMobile ? "column-reverse" : "row", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={handleCancelar}
                   style={{
-                    background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA",
-                    borderRadius: 10, padding: "11px 24px", fontSize: 13, cursor: "pointer", fontWeight: 600,
+                    background: "#ffffff", color: "#334155", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25)",
+                    borderRadius: 12, padding: "11px 24px", fontSize: 13.5, cursor: "pointer", fontWeight: 600,
                   }}>
                   Cancelar
                 </button>
                 <button onClick={handleSubmit} disabled={loading}
                   style={{
-                    background: loading ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+                    background: loading ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                     color: "white", border: "none", borderRadius: 10,
                     padding: "11px 32px", fontSize: 14, fontWeight: 700,
                     cursor: loading ? "not-allowed" : "pointer",
-                    boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                    boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
                   }}>
-                  {loading ? "⏳ Salvando..." : "Salvar Proposta"}
+                  {loading ? "Salvando…" : "Salvar Proposta"}
                 </button>
               </div>
             </div>
@@ -1419,6 +1377,9 @@ function PropostaForm() {
     </div>
   );
 }
+
+// Tira emoji do começo de nomes vindos do banco (só na exibição).
+const semEmojiTxt = (s: string) => String(s || "").replace(/^(?:[\u2600-\u27BF]|[\u{1F000}-\u{1FAFF}])(?:\uFE0F|\u200D(?:[\u2600-\u27BF]|[\u{1F000}-\u{1FAFF}])\uFE0F?)*\s*/u, "");
 
 export default function NovaProposta() {
   return (
