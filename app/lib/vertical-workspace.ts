@@ -7,6 +7,7 @@ export type Vertical = "telecom" | "consignado" | "revisional";
 const VERTICAL_POR_WORKSPACE: Record<string, Vertical> = {
   blennerjuridico: "consignado",
   teste1: "revisional",
+  aproveconsultoria: "revisional", // Aprove Consultoria: escritório de revisão de contratos financeiros
 };
 
 export function verticalDoWorkspace(workspaceId?: string | number | null): Vertical {
