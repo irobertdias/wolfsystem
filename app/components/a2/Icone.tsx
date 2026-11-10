@@ -75,6 +75,7 @@ const DE_EMOJI: Record<string, string> = {
   "⚠️": "alerta", "🚨": "alerta", "❗": "alerta", "ℹ️": "info", "💡": "info", "❓": "info",
   "📁": "pasta", "📂": "pasta", "🗂️": "pasta", "🏷️": "tag", "⚖️": "balanca", "📎": "link", "📦": "pasta",
   "🏠": "predio", "🏡": "predio", "📐": "balanca", "🧮": "grafico", "🤝": "usuarios", "🏥": "escudo", "🩺": "escudo",
+  "📸": "olho", "🔌": "link", "🎫": "tag", "⏸️": "relogio", "🔤": "tag", "🌐": "link",
   "🌴": "estrela", "🎁": "estrela", "🎓": "estrela", "🚧": "relogio", "🔴": "alerta", "🟢": "check",
   "➕": "mais", "🧬": "grafico", "♾️": "atualizar", "🎉": "estrela", "👋": "usuario", "🙋": "usuario",
 };
