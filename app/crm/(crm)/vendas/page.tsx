@@ -159,10 +159,10 @@ const statusMeta = (s: any): MetaStatusVenda => {
   }
 
   if (/AGUARDANDO AUDITORIA|AUDITORIA/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#6EE7B7", emoji: "🔎", grupo: "andamento" };
-  if (/PENDENTE DE INSTALACAO/.test(t)) return { cor: "#d97706", bg: "#fffbeb", border: "#fcd34d", emoji: "🛠", grupo: "andamento" };
+  if (/PENDENTE DE INSTALACAO/.test(t)) return { cor: "#C2410C", bg: "#FFF7ED", border: "#FDBA74", emoji: "🛠", grupo: "andamento" };
   if (/AGUARDANDO INSTALACAO/.test(t)) return { cor: "#059669", bg: "#ECFDF5", border: "#67e8f9", emoji: "⌛", grupo: "andamento" };
   if (/GERAD/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#6EE7B7", emoji: "◆", grupo: "andamento" };
-  if (/BIOMETR/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#a5b4fc", emoji: "◎", grupo: "andamento" };
+  if (/BIOMETR/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#6EE7B7", emoji: "◎", grupo: "andamento" };
   if (/ANALIS|ANALISE/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#d8b4fe", emoji: "◈", grupo: "andamento" };
   if (/VALIDA/.test(t)) return { cor: "#c026d3", bg: "#fdf4ff", border: "#f0abfc", emoji: "✓", grupo: "andamento" };
   if (/PROCESS/.test(t)) return { cor: "#047857", bg: "#f0fdfa", border: "#5eead4", emoji: "↻", grupo: "andamento" };
@@ -329,16 +329,11 @@ export default function Vendas() {
 
   // 🎨 ESTILOS LIGHT TECH
   const inputStyle = {
-    width: "100%", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10,
-    padding: "9px 12px", color: "#0F172A", fontSize: 13, boxSizing: "border-box" as const,
+    width: "100%", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12,
+    padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, boxSizing: "border-box" as const,
     outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
   };
-  const cardStyle = {
-    background: "#ffffff",
-    borderRadius: 14,
-    border: "1px solid #E6ECEA",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-  };
+  const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
   const nomeVendedor = (v: string): string => {
     if (!v) return "—";
@@ -799,7 +794,7 @@ export default function Vendas() {
       </>
     );
     const lab = (
-      <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5, fontWeight: 700 }}>
+      <label style={{ color: "#64748B", fontSize: 10, display: "block", marginBottom: 5, fontWeight: 700 }}>
         {labelComObr}
       </label>
     );
@@ -866,7 +861,7 @@ export default function Vendas() {
                     <a href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ color: "#047857", fontSize: 12, fontWeight: 700, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {iconeArquivo(a.tipo)} · {a.nome} · {formatarTamanhoArquivo(a.tamanho)}
                     </a>
-                    <button type="button" onClick={() => removerArquivoCampo(c.slug, idx)} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Remover</button>
+                    <button type="button" onClick={() => removerArquivoCampo(c.slug, idx)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Remover</button>
                   </div>
                 ))}
               </div>
@@ -1032,7 +1027,7 @@ export default function Vendas() {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>
         <div style={{ background: "white", borderRadius: 14, padding: 48, textAlign: "center", maxWidth: 480, border: "1px solid #E6ECEA" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="cadeado" tamanho={24} /></span>
           <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Sem acesso a Vendas</h1>
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 8px" }}>
             Teu grupo de permissão não tem acesso às vendas.
@@ -1055,10 +1050,10 @@ export default function Vendas() {
           <div onClick={e => e.stopPropagation()} style={{ ...cardStyle, width: "100%", maxWidth: 720, maxHeight: "88vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ padding: "18px 22px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 900, margin: 0 }}>Exportar vendas</h2>
-                <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>{propostasFiltradas.length.toLocaleString("pt-BR")} venda(s) filtrada(s) neste workspace</p>
+                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 800, margin: 0 }}>Exportar vendas</h2>
+                <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>{propostasFiltradas.length.toLocaleString("pt-BR")} venda(s) filtrada(s) neste workspace</p>
               </div>
-              <button onClick={() => setShowExportModal(false)} style={{ background: "#F3F6F5", border: "1px solid #E6ECEA", color: "#64748b", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontWeight: 900 }}>x</button>
+              <button onClick={() => setShowExportModal(false)} style={{ background: "#F3F6F5", border: "1px solid #E6ECEA", color: "#64748b", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontWeight: 800 }}>x</button>
             </div>
             <div style={{ padding: 20, overflowY: "auto" }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
@@ -1076,7 +1071,7 @@ export default function Vendas() {
             </div>
             <div style={{ padding: "14px 20px", borderTop: "1px solid #E6ECEA", background: "#F3F6F5", display: "flex", justifyContent: "flex-end", gap: 10 }}>
               <button onClick={() => setShowExportModal(false)} style={{ background: "#ffffff", color: "#64748b", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={exportarExcel} disabled={exportando || exportCampos.length === 0} style={{ background: exportCampos.length === 0 ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #047857 100%)", color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, fontWeight: 900, cursor: exportCampos.length === 0 ? "not-allowed" : "pointer", boxShadow: "0 6px 16px rgba(5,150,105,0.25)" }}>
+              <button onClick={exportarExcel} disabled={exportando || exportCampos.length === 0} style={{ background: exportCampos.length === 0 ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #047857 100%)", color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, fontWeight: 800, cursor: exportCampos.length === 0 ? "not-allowed" : "pointer", boxShadow: "0 6px 16px rgba(5,150,105,0.25)" }}>
                 {exportando ? "Exportando..." : "Baixar Excel"}
               </button>
             </div>
@@ -1097,11 +1092,14 @@ export default function Vendas() {
             }}>
             <div style={{ padding: "18px 24px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✏️</div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}><Icone nome="editar" tamanho={15} /></div>
                 <h2 style={{ color: "#0F172A", fontSize: 17, fontWeight: 700, margin: 0 }}>Editar Proposta <span style={{ color: "#94A3B8", fontWeight: 500 }}>#{propostaEditando.id}</span></h2>
               </div>
               <button onClick={() => { setShowModal(false); setPropostaEditando(null); }}
-                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
+                style={{ background: "#F3F6F5", border: "none", color: "#64748B", fontSize: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center", cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}><Icone nome="x" tamanho={16} /></button>
             </div>
 
             <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
@@ -1121,12 +1119,12 @@ export default function Vendas() {
               </button>
               <button onClick={salvar} disabled={salvando}
                 style={{
-                  background: salvando ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+                  background: salvando ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                  boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
                 }}>
-                {salvando ? "⏳ Salvando..." : "Salvar"}
+                {salvando ? "Salvando…" : "Salvar"}
               </button>
             </div>
           </div>
@@ -1134,21 +1132,12 @@ export default function Vendas() {
       )}
 
       {/* ═══ HEADER ═══ */}
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 18, padding: isMobile ? 16 : "18px 20px", borderRadius: 20, border: "1px solid #D1FAE5", background: "radial-gradient(circle at 10% 0%, rgba(34,197,94,0.10), transparent 34%), linear-gradient(135deg, #ffffff 0%, #f8fbff 58%, #ECFDF5 100%)", boxShadow: "0 16px 40px rgba(15,23,42,0.07)" }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", gap: 18, alignItems: isMobile ? "stretch" : "flex-end" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{
-            width: 54, height: 54, borderRadius: 17,
-            background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 26, boxShadow: "0 12px 26px rgba(5,150,105,0.28)",
-            flexShrink: 0,
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>💰</span>
-          </div>
           <div>
-            <p style={{ color: "#059669", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 3px" }}>Central comercial</p>
-            <h1 style={{ color: "#0f172a", fontSize: isMobile ? 22 : 28, fontWeight: 900, margin: 0, letterSpacing: -0.8 }}>Vendas</h1>
-            <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>
+            <p style={{ color: "#059669", fontSize: 12.5, fontWeight: 700, margin: "0 0 4px" }}>Central comercial</p>
+            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Vendas</h1>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               {podeVerTudo
                 ? <><b style={{ color: "#059669" }}>{totalGeral}</b> proposta(s) cadastrada(s){totalVisivel !== totalGeral && <> · <b>{totalVisivel}</b> filtradas</>}</>
                 : travadoEquipe
@@ -1167,7 +1156,7 @@ export default function Vendas() {
               borderRadius: 12, padding: "6px 14px",
             }}>
               <IconeEmoji e="👥" tamanho={15} />
-              <span style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Equipe</span>
+              <span style={{ color: "#64748B", fontSize: 10, fontWeight: 700 }}>Equipe</span>
               <span style={{ color: "#047857", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
             </div>
           )}
@@ -1175,8 +1164,8 @@ export default function Vendas() {
           <button onClick={abrirExportacao} title="Exportar vendas filtradas"
             style={{
               flex: isMobile ? 1 : "0 0 auto",
-              background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0",
-              borderRadius: 10, padding: "10px 18px", fontSize: 13,
+              background: "#ffffff", color: "#334155", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25)",
+              borderRadius: 12, padding: "11px 18px", fontSize: 13.5,
               cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap",
             }}>
             Exportar
@@ -1186,8 +1175,8 @@ export default function Vendas() {
             <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos da proposta"
               style={{
                 flex: isMobile ? 1 : "0 0 auto",
-                background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0",
-                borderRadius: 10, padding: "10px 18px", fontSize: 13,
+                background: "#ffffff", color: "#334155", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25)",
+                borderRadius: 12, padding: "11px 18px", fontSize: 13.5,
                 cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap",
               }}>
               Editar Campos
@@ -1196,10 +1185,10 @@ export default function Vendas() {
           <button onClick={() => router.push("/crm/proposta")}
             style={{
               flex: isMobile ? 1 : "0 0 auto",
-              background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
-              color: "white", border: "none", borderRadius: 10,
-              padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-              whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              color: "white", border: "none", borderRadius: 12,
+              padding: "11px 22px", fontSize: 13.5, cursor: "pointer", fontWeight: 800,
+              whiteSpace: "nowrap", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
             }}>
             Nova Proposta
           </button>
@@ -1208,37 +1197,36 @@ export default function Vendas() {
 
 
       {/* Resumo operacional */}
-      <section style={{ ...cardStyle, padding: isMobile ? 14 : 18, borderRadius: 20, border: "1px solid #e2e8f0", background: "linear-gradient(180deg, #ffffff 0%, #fbfdff 100%)", boxShadow: "0 18px 42px rgba(15,23,42,0.06)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, minmax(0, 1fr))", gap: 10 }}>
+      <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, minmax(0, 1fr))", gap: 14 }}>
           {[
-            { label: "Visiveis", valor: totalVisivel, detalhe: `${totalGeral} no workspace`, cor: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
-            { label: vocabularioDoWorkspace(workspaceId).concluidas, valor: kpis.instaladas, detalhe: `R$ ${kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#059669", bg: "#ecfdf5", border: "#A7F3D0" },
-            { label: "Em andamento", valor: kpis.andamento, detalhe: "aguardando/geradas", cor: "#f59e0b", bg: "#fffbeb", border: "#fde68a" },
-            { label: "Canceladas", valor: kpis.canceladas, detalhe: "canceladas/reprovadas", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-            { label: "Ticket", valor: `R$ ${kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, detalhe: vocabularioDoWorkspace(workspaceId).ticketDetalhe, cor: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-          ].map(card => (
-            <button key={card.label} type="button" style={{
-              textAlign: "left",
-              background: card.bg,
-              border: `1px solid ${card.border}`,
-              borderRadius: 15,
-              padding: "14px 15px",
-              cursor: "default",
-              minHeight: 94,
-              boxShadow: "inset 3px 0 0 " + card.cor + ", 0 8px 22px rgba(15,23,42,0.04)",
+            { label: "Propostas visíveis", icone: "documento", valor: totalVisivel, detalhe: `${totalGeral} no workspace`, cor: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
+            { label: vocabularioDoWorkspace(workspaceId).concluidas, valor: kpis.instaladas, detalhe: `R$ ${kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#059669", bg: "#ecfdf5", border: "#A7F3D0", icone: "check" },
+            { label: "Em andamento", valor: kpis.andamento, detalhe: "aguardando ou geradas", cor: "#C2410C", bg: "#FFF7ED", border: "#fde68a", icone: "relogio" },
+            { label: "Canceladas", valor: kpis.canceladas, detalhe: "canceladas ou reprovadas", cor: "#B91C1C", bg: "#fef2f2", border: "#fecaca", icone: "x" },
+            { label: "Ticket", valor: `R$ ${kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, detalhe: vocabularioDoWorkspace(workspaceId).ticketDetalhe, cor: "#059669", bg: "#ECFDF5", border: "#A7F3D0", icone: "dinheiro" },
+          ].map((card, idx) => (
+            <div key={card.label} style={{
+              textAlign: "left", borderRadius: 20, padding: 18, minHeight: 104,
+              background: idx === 0 ? "linear-gradient(140deg, #10B981 0%, #059669 45%, #065F46 100%)" : "#ffffff",
+              boxShadow: idx === 0 ? "0 18px 34px -18px rgba(5,150,105,.75)" : "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
+              color: idx === 0 ? "#fff" : "#0F172A", display: "flex", flexDirection: "column", gap: 8,
             }}>
-              <p style={{ color: "#64748b", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>{card.label}</p>
-              <p style={{ color: card.cor, fontSize: 24, fontWeight: 900, margin: "6px 0 0", letterSpacing: -0.5 }}>{typeof card.valor === "number" ? card.valor.toLocaleString("pt-BR") : card.valor}</p>
-              <p style={{ color: "#64748b", fontSize: 11, margin: "2px 0 0", fontWeight: 700 }}>{card.detalhe}</p>
-            </button>
+              <span style={{ display: "flex", alignItems: "center", gap: 10, color: idx === 0 ? "rgba(255,255,255,.85)" : "#64748B", fontSize: 13, fontWeight: 700 }}>
+                <span style={{ width: 32, height: 32, borderRadius: 10, background: idx === 0 ? "rgba(255,255,255,.18)" : card.bg, color: idx === 0 ? "#fff" : card.cor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome={card.icone as any} tamanho={16} /></span>
+                {card.label}
+              </span>
+              <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-.02em" }}>{typeof card.valor === "number" ? card.valor.toLocaleString("pt-BR") : card.valor}</span>
+              <span style={{ color: idx === 0 ? "rgba(255,255,255,.78)" : "#94A3B8", fontSize: 12, fontWeight: 600 }}>{card.detalhe}</span>
+            </div>
           ))}
         </div>
 
         <details style={{
-          marginTop: 14,
-          borderRadius: 15,
-          border: filtroStatus === "todos" ? "1px solid #e2e8f0" : "1px solid #6EE7B7",
-          background: filtroStatus === "todos" ? "#F3F6F5" : "#ECFDF5",
+          borderRadius: 20,
+          border: 0,
+          boxShadow: filtroStatus === "todos" ? "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" : "inset 0 0 0 1.5px #6EE7B7, 0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
+          background: "#ffffff",
           overflow: "hidden",
         }}>
           <summary style={{
@@ -1255,19 +1243,19 @@ export default function Vendas() {
               <span style={{
                 width: 32, height: 32, borderRadius: 10,
                 display: "grid", placeItems: "center",
-                background: "#ffffff", border: "1px solid #D1FAE5",
-                color: "#047857", fontSize: 15, flexShrink: 0,
-              }}>◫</span>
+                background: "#ECFDF5", border: 0,
+                color: "#059669", flexShrink: 0,
+              }}><Icone nome="grafico" tamanho={16} /></span>
               <span style={{ minWidth: 0 }}>
-                <strong style={{ display: "block", color: "#0f172a", fontSize: 12 }}>Distribuição por status</strong>
-                <span style={{ display: "block", color: "#64748b", fontSize: 10, marginTop: 2 }}>
+                <strong style={{ display: "block", color: "#0F172A", fontSize: 14 }}>Distribuição por status</strong>
+                <span style={{ display: "block", color: "#64748B", fontSize: 12.5, marginTop: 2 }}>
                   {filtroStatus === "todos"
                     ? statusOpcoesFiltro.length + " status disponíveis · clique para visualizar"
                     : "Filtro ativo: " + filtroStatus}
                 </span>
               </span>
             </span>
-            <span style={{ color: "#047857", fontSize: 11, fontWeight: 900, whiteSpace: "nowrap" }}>Ver status ▾</span>
+            <span style={{ color: "#047857", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 4 }}>Ver status <Icone nome="baixo" tamanho={15} /></span>
           </summary>
 
           <div style={{
@@ -1284,7 +1272,7 @@ export default function Vendas() {
               borderRadius: 12,
               padding: "10px 12px",
               fontSize: 11,
-              fontWeight: 900,
+              fontWeight: 800,
               cursor: "pointer",
             }}>Todos os status · {totalVisivel.toLocaleString("pt-BR")}</button>
             {kpis.statusResumo.map(item => {
@@ -1299,7 +1287,7 @@ export default function Vendas() {
                     borderRadius: 12,
                     padding: "10px 12px",
                     fontSize: 11,
-                    fontWeight: 900,
+                    fontWeight: 800,
                     cursor: "pointer",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -1402,12 +1390,12 @@ export default function Vendas() {
               <tr style={{ background: "#F7FAF9" }}>
                 {colunasTabela.map(c => (
                   <th key={`th-${c.origem}-${c.slug}`}
-                    style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>
+                    style={{ padding: "12px 16px", color: "#64748B", fontSize: 12.5, textAlign: "left", whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>
                     {c.label}
                   </th>
                 ))}
                 <th key="th-acoes"
-                  style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>
+                  style={{ padding: "12px 16px", color: "#64748B", fontSize: 12.5, textAlign: "left", whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>
                   Ações
                 </th>
               </tr>
@@ -1428,7 +1416,7 @@ export default function Vendas() {
                 <tr><td colSpan={colunasTabela.length + 1} style={{ padding: 48, textAlign: "center" }}>
                   <div style={{
                     width: 72, height: 72, borderRadius: 18,
-                    background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+                    background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 36, margin: "0 auto 14px",
                     boxShadow: "0 12px 24px rgba(5,150,105,0.25)",
@@ -1450,11 +1438,11 @@ export default function Vendas() {
                   <tr key={v.id}
                     style={{
                       borderTop: "1px solid #F1F5F4",
-                      background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
+                      background: "#ffffff",
                       transition: "background 0.1s",
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "#F1F5F4"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#F7FAF9"}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "#F7FAF9"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "#ffffff"}
                   >
                     {colunasTabela.map(c => (
                       <td key={`td-${c.origem}-${c.slug}`} style={{ padding: "12px 16px" }}>
@@ -1466,10 +1454,10 @@ export default function Vendas() {
                         <button onClick={() => setPropostaVisualizando(v)} title="Visualizar"
                           style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>👁️</button>
                         <button onClick={() => abrirEditar(v)} title="Editar"
-                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
+                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="editar" tamanho={15} /></button>
                         {podeExcluir && (
                           <button onClick={() => excluir(v)} title="Excluir"
-                            style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
+                            style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="lixeira" tamanho={15} /></button>
                         )}
                       </div>
                     </td>
@@ -1501,12 +1489,12 @@ export default function Vendas() {
             style={{ ...cardStyle, width: "100%", maxWidth: 920, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.15)" }}>
             <div style={{ padding: "18px 24px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#ffffff", gap: 12 }}>
               <div>
-                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 900, margin: 0 }}>Venda #{propostaVisualizando.id}</h2>
-                <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>{propostaVisualizando.nome || "Sem nome"} · {nomeVendedor(propostaVisualizando.vendedor)}</p>
+                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 800, margin: 0 }}>Venda #{propostaVisualizando.id}</h2>
+                <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>{propostaVisualizando.nome || "Sem nome"} · {nomeVendedor(propostaVisualizando.vendedor)}</p>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <button onClick={() => { const p = propostaVisualizando; setPropostaVisualizando(null); abrirEditar(p); }}
-                  style={{ background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 12px rgba(5,150,105,0.28)" }}>Editar</button>
+                  style={{ background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Editar</button>
                 <button onClick={() => setPropostaVisualizando(null)}
                   style={{ background: "#F3F6F5", color: "#64748b", border: "1px solid #E6ECEA", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 800 }}>Fechar</button>
               </div>
@@ -1516,13 +1504,13 @@ export default function Vendas() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
                 {[
                   { label: "Status", value: propostaVisualizando.status_venda || "-", cor: statusMeta(propostaVisualizando.status_venda).cor, bg: statusMeta(propostaVisualizando.status_venda).bg, border: statusMeta(propostaVisualizando.status_venda).border },
-                  { label: "Valor", value: propostaVisualizando.valor_plano == null || String(propostaVisualizando.valor_plano).trim() === "" ? "A conferir" : `R$ ${Number(propostaVisualizando.valor_plano).toFixed(2).replace(".", ",")}`, cor: "#059669", bg: "#ecfdf5", border: "#A7F3D0" },
+                  { label: "Valor", value: propostaVisualizando.valor_plano == null || String(propostaVisualizando.valor_plano).trim() === "" ? "A conferir" : `R$ ${Number(propostaVisualizando.valor_plano).toFixed(2).replace(".", ",")}`, cor: "#059669", bg: "#ecfdf5", border: "#A7F3D0", icone: "check" },
                   { label: "Data proposta", value: propostaVisualizando.data_proposta ? new Date(propostaVisualizando.data_proposta + "T00:00:00").toLocaleDateString("pt-BR") : "-", cor: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
                   { label: "Modificado", value: propostaVisualizando.updated_at ? new Date(propostaVisualizando.updated_at).toLocaleString("pt-BR") : "-", cor: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
                 ].map(card => (
                   <div key={card.label} style={{ background: card.bg, border: `1px solid ${card.border}`, borderRadius: 10, padding: 13 }}>
-                    <p style={{ color: "#64748b", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: 900, letterSpacing: 0.5 }}>{card.label}</p>
-                    <p style={{ color: card.cor, fontSize: 14, margin: "5px 0 0", fontWeight: 900, wordBreak: "break-word" }}>{card.value}</p>
+                    <p style={{ color: "#64748b", fontSize: 10, margin: 0, fontWeight: 800, letterSpacing: 0.5 }}>{card.label}</p>
+                    <p style={{ color: card.cor, fontSize: 14, margin: "5px 0 0", fontWeight: 800, wordBreak: "break-word" }}>{card.value}</p>
                   </div>
                 ))}
               </div>
@@ -1531,7 +1519,7 @@ export default function Vendas() {
                 let itens: unknown = propostaVisualizando.dados_customizados?.pendencias_bko;
                 try { if (typeof itens === "string") itens = JSON.parse(itens); } catch { itens = []; }
                 if (!Array.isArray(itens) || !itens.length) return null;
-                return <aside style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 14 }}>
+                return <aside style={{ background: "#FFF7ED", border: "1px solid #fde68a", borderRadius: 10, padding: 14 }}>
                   <h3 style={{ color: "#92400e", fontSize: 13, margin: "0 0 8px" }}>Conferência do BKO</h3>
                   <p style={{ color: "#78350f", fontSize: 12, margin: "0 0 8px" }}>Pedido recebido com estas informações para conferir:</p>
                   <ul style={{ color: "#78350f", fontSize: 12, margin: 0, paddingLeft: 20 }}>{itens.map((item, i) => <li key={i}>{String(item)}</li>)}</ul>
@@ -1553,7 +1541,7 @@ export default function Vendas() {
               />
 
               <div>
-                <h3 style={{ color: "#334155", fontSize: 12, fontWeight: 900, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>Anexos e arquivos</h3>
+                <h3 style={{ color: "#334155", fontSize: 12, fontWeight: 800, margin: "0 0 10px" }}>Anexos e arquivos</h3>
                 {(() => {
                   const anexos = camposUnificados
                     .filter(c => c.tipo === "arquivo")
@@ -1582,9 +1570,9 @@ export default function Vendas() {
               </div>
 
               <div>
-                <h3 style={{ color: "#334155", fontSize: 12, fontWeight: 900, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>Historico</h3>
+                <h3 style={{ color: "#334155", fontSize: 12, fontWeight: 800, margin: "0 0 10px" }}>Historico</h3>
                 {logsTabelaFalta ? (
-                  <p style={{ color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 12, fontSize: 12, margin: 0 }}>A tabela proposta_logs ainda nao existe neste banco. Crie essa tabela para salvar o historico das alteracoes.</p>
+                  <p style={{ color: "#b45309", background: "#FFF7ED", border: "1px solid #fde68a", borderRadius: 10, padding: 12, fontSize: 12, margin: 0 }}>A tabela proposta_logs ainda nao existe neste banco. Crie essa tabela para salvar o historico das alteracoes.</p>
                 ) : carregandoLogs ? (
                   <p style={{ color: "#64748b", fontSize: 12, margin: 0 }}>Carregando historico...</p>
                 ) : logsProposta.length === 0 ? (
@@ -1624,7 +1612,7 @@ export default function Vendas() {
             title="Ir para o topo"
             style={{
               width: 42, height: 42, borderRadius: "50%",
-              background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
               color: "white", border: "none", cursor: "pointer", fontSize: 18,
               boxShadow: "0 6px 16px rgba(5,150,105,0.35)",
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -1650,7 +1638,7 @@ function ViewSection({ titulo, campos }: { titulo: string; campos: [string, any]
   const todosVazios = campos.every(([, v]) => !v && v !== false);
   return (
     <div>
-      <h3 style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</h3>
+      <h3 style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px" }}>{titulo}</h3>
       {todosVazios ? (
         <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontStyle: "italic" }}>Nenhuma informação cadastrada</p>
       ) : (
@@ -1661,7 +1649,7 @@ function ViewSection({ titulo, campos }: { titulo: string; campos: [string, any]
         }}>
           {campos.map(([label, valor]) => (
             <div key={label}>
-              <p style={{ color: "#94A3B8", fontSize: 10, margin: 0, textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 700 }}>{label}</p>
+              <p style={{ color: "#94A3B8", fontSize: 10, margin: 0, fontWeight: 700 }}>{label}</p>
               <p style={{
                 color: valor || valor === false ? "#0F172A" : "#CBD5E1",
                 fontSize: 13, margin: "3px 0 0", wordBreak: "break-word",
