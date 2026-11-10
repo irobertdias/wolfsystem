@@ -6,7 +6,7 @@ import { usePermissao } from "../../../hooks/usePermissao";
 import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 import * as XLSX from "xlsx";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 type Atendimento = {
   id: number; created_at: string; numero: string; nome: string;
   mensagem: string; status: string; fila: string; atendente: string;
@@ -28,6 +28,26 @@ type Contato = {
   etiquetasIds: number[];
   atendimentos: Atendimento[]; // pra histórico no modal
 };
+
+
+// A2: iniciais e cor do avatar do contato.
+function iniciaisContato(t?: string | null) {
+  const p = String(t || "").replace(/[^\p{L}\p{N} ]/gu, " ").trim().split(/\s+/).filter(Boolean);
+  return ((p[0]?.[0] || "?") + (p[1]?.[0] || "")).toUpperCase();
+}
+const CORES_AVATAR_CONTATO = [
+  { bg: "linear-gradient(140deg, #D1FAE5, #A7F3D0)", fg: "#065F46" },
+  { bg: "#FFF7ED", fg: "#C2410C" },
+  { bg: "#ECFDF5", fg: "#047857" },
+  { bg: "#F1F5F9", fg: "#334155" },
+  { bg: "#FEF3C7", fg: "#92400E" },
+  { bg: "#E0F2F1", fg: "#0F766E" },
+];
+function corAvatarContato(t?: string | null) {
+  let h = 0; for (const c of String(t || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return CORES_AVATAR_CONTATO[h % CORES_AVATAR_CONTATO.length];
+}
+const filtroSel: React.CSSProperties = { height: 42, borderRadius: 12, border: 0, background: "#F3F6F5", color: "#334155", fontSize: 13, fontWeight: 600, padding: "0 12px", cursor: "pointer", maxWidth: 200 };
 
 export default function Contatos() {
   const router = useRouter();
@@ -390,7 +410,7 @@ export default function Contatos() {
     resolvido: "#059669", aberto: "#3b82f6", em_atendimento: "#f59e0b", pendente: "#f59e0b",
   }[s] || "#64748B");
   const labelStatus = (s: string) => ({
-    resolvido: "✅ Resolvido", aberto: "💬 Aberto", em_atendimento: "👤 Em atendimento", pendente: "⏳ Pendente",
+    resolvido: "Resolvido", aberto: "Aberto", em_atendimento: "Em atendimento", pendente: "Pendente",
   }[s] || s);
 
   const limparFiltros = () => {
@@ -551,297 +571,203 @@ export default function Contatos() {
         </div>
       )}
 
-      {/* ═══ HEADER ═══ */}
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(5,150,105,0.25)",
-            flexShrink: 0,
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>👥</span>
-          </div>
-          <div>
-            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Meus Contatos</h1>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
-              Leads que chegaram pelo WhatsApp · <b style={{ color: "#059669" }}>{contatos.length}</b> contato(s) únicos
-            </p>
-          </div>
+      {/* ═══ CABEÇALHO (A2) ═══ */}
+      <section style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 16, padding: "4px 4px 0" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <h1 style={{ margin: 0, fontSize: isMobile ? 24 : 30, fontWeight: 800, letterSpacing: "-.02em", color: "#0F172A" }}>Contatos</h1>
+          <span style={{ color: "#64748B", fontSize: 14 }}>Todos os clientes e leads que chegaram pelas suas conexões · <b style={{ color: "#0F172A" }}>{contatos.length}</b> contato(s)</span>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          {/* 🔒 Equipe — admin escolhe; Diretor travado mostra rótulo fixo */}
+        <div style={{ marginLeft: isMobile ? 0 : "auto", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           {veTudo && <EquipeSelector />}
           {travadoEquipe && minhaEquipeNome && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "8px 14px" }}>
-              <span style={{ fontSize: 14, lineHeight: 1 }}>👥</span>
-              <span style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Equipe</span>
-              <span style={{ color: "#047857", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#FFFFFF", borderRadius: 13, height: 44, padding: "0 14px", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.2)" }}>
+              <Icone nome="usuarios" tamanho={16} cor="#059669" />
+              <span style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }}>Equipe</span>
+              <span style={{ color: "#047857", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
             </div>
           )}
           <button onClick={exportar} disabled={exportando || contatosFiltrados.length === 0}
             style={{
-              background: (exportando || contatosFiltrados.length === 0) ? "#F1F5F4" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
-              color: (exportando || contatosFiltrados.length === 0) ? "#94A3B8" : "white",
-              border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 13,
-              cursor: (exportando || contatosFiltrados.length === 0) ? "not-allowed" : "pointer", fontWeight: 700,
-              boxShadow: (exportando || contatosFiltrados.length === 0) ? "none" : "0 4px 12px rgba(5,150,105,0.3)",
-              whiteSpace: "nowrap",
+              height: 44, borderRadius: 13, border: 0, padding: "0 18px", fontSize: 14, fontWeight: 800, whiteSpace: "nowrap",
+              display: "flex", alignItems: "center", gap: 8,
+              background: (exportando || contatosFiltrados.length === 0) ? "#F1F5F4" : "linear-gradient(140deg, #10B981, #059669)",
+              color: (exportando || contatosFiltrados.length === 0) ? "#94A3B8" : "#FFFFFF",
+              cursor: (exportando || contatosFiltrados.length === 0) ? "not-allowed" : "pointer",
+              boxShadow: (exportando || contatosFiltrados.length === 0) ? "none" : "0 10px 22px -10px rgba(5,150,105,.75)",
             }}>
-            {exportando ? "⏳ Exportando..." : "📥 Exportar Excel"}
+            <Icone nome="download" tamanho={16} /> {exportando ? "Exportando..." : "Exportar Excel"}
           </button>
         </div>
-      </div>
+      </section>
 
       {/* Aviso de truncamento */}
       {truncado && (
-        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderLeft: "4px solid #f59e0b", borderRadius: 12, padding: "12px 16px" }}>
-          <p style={{ color: "#92400e", fontSize: 12, margin: 0, fontWeight: 600 }}>
+        <div style={{ background: "#FFFBEB", borderRadius: 14, padding: "12px 16px", display: "flex", gap: 10, alignItems: "center" }}>
+          <Icone nome="info" tamanho={16} cor="#B45309" />
+          <p style={{ color: "#92400E", fontSize: 13, margin: 0, fontWeight: 600 }}>
             Mostrando os 10.000 atendimentos mais recentes. Se você precisa de tudo, use os <b>Relatórios</b> com filtros de período.
           </p>
         </div>
       )}
 
-      {/* ═══ STATS ═══ */}
-      <div style={{ display: "flex", gap: isMobile ? 10 : 14, flexWrap: "wrap" }}>
+      {/* ═══ RESUMO ═══ */}
+      <section aria-label="Resumo" style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: isMobile ? 10 : 18 }}>
         {[
-          { label: "Total", value: stats.total, color: "#059669", icon: "👥" },
-          { label: "Últimos 7 dias", value: stats.novosSemana, color: "#059669", icon: "📅" },
-          { label: "Em aberto", value: stats.ativos, color: "#f59e0b", icon: "💬" },
-          { label: "Atendidos pelo bot", value: stats.bot, color: "#059669", icon: "🤖" },
+          { label: "Total de contatos", value: stats.total, icone: "usuarios", bg: "#ECFDF5", fg: "#059669" },
+          { label: "Novos nos últimos 7 dias", value: stats.novosSemana, icone: "calendario", bg: "#ECFDF5", fg: "#059669" },
+          { label: "Conversas em aberto", value: stats.ativos, icone: "chat", bg: "#FFF7ED", fg: "#EA580C" },
+          { label: "Atendidos pelo bot", value: stats.bot, icone: "robo", bg: "#ECFDF5", fg: "#059669" },
         ].map(card => (
-          <div key={card.label}
-            style={{
-              flex: isMobile ? "1 1 calc(50% - 5px)" : 1, minWidth: isMobile ? 0 : 140,
-              ...cardStyle,
-              padding: isMobile ? 14 : 18,
-              borderTop: `3px solid ${card.color}`,
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 20px ${card.color}20`; e.currentTarget.style.transform = "translateY(-2px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: `${card.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
-                {<IconeEmoji e={card.icon} />}
-              </div>
-              <p style={{ color: "#64748B", fontSize: isMobile ? 10 : 11, margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>{card.label}</p>
+          <div key={card.label} style={{ background: "#FFFFFF", borderRadius: 18, padding: isMobile ? "14px 16px" : "18px 20px", display: "flex", alignItems: "center", gap: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 12px 28px -16px rgba(16,24,40,.18)", minWidth: 0 }}>
+            <span style={{ width: 44, height: 44, borderRadius: 13, background: card.bg, color: card.fg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome={card.icone} tamanho={20} /></span>
+            <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{card.label}</span>
+              <span style={{ fontSize: 24, fontWeight: 800, color: "#0F172A" }}>{card.value.toLocaleString("pt-BR")}</span>
             </div>
-            <p style={{ color: card.color, fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{card.value}</p>
           </div>
         ))}
-      </div>
+      </section>
 
-      {/* ═══ FILTROS ═══ */}
-      <div style={{ ...cardStyle, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <input placeholder="Buscar por nome, número ou mensagem..." value={busca} onChange={e => setBusca(e.target.value)}
-            style={{ ...inputStyle, flex: "1 1 280px", maxWidth: 500, borderRadius: 20 }} />
-
-          <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={{ ...inputStyle, maxWidth: 160 }}>
-            <option value="todos">Status: Todos</option>
+      {/* ═══ LISTA (filtros + tabela num cartão só) ═══ */}
+      <section aria-label="Lista de contatos" style={{ background: "#FFFFFF", borderRadius: 22, boxShadow: "0 2px 4px rgba(16,24,40,.04), 0 24px 48px -24px rgba(16,24,40,.2)", overflow: "hidden" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, padding: isMobile ? 14 : "18px 22px" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, background: "#F3F6F5", borderRadius: 12, height: 42, padding: "0 12px", flex: "1 1 260px", maxWidth: isMobile ? "none" : 380, color: "#64748B" }}>
+            <Icone nome="busca" tamanho={16} />
+            <input aria-label="Buscar contato" className="a2-input-limpo" placeholder="Buscar por nome, número ou mensagem" value={busca} onChange={e => setBusca(e.target.value)}
+              style={{ border: 0, outline: "none", background: "transparent", fontSize: 14, width: "100%", minWidth: 0, color: "#0F172A", padding: 0 }} />
+          </label>
+          {[
+            { key: "todos", label: "Todos" },
+            { key: "hoje", label: "Hoje" },
+            { key: "semana", label: "7 dias" },
+            { key: "mes", label: "30 dias" },
+          ].map(p => {
+            const ativo = filtroPeriodo === p.key;
+            return (
+              <button key={p.key} onClick={() => setFiltroPeriodo(p.key as any)}
+                style={{ height: 42, borderRadius: 12, border: 0, background: ativo ? "#ECFDF5" : "#F3F6F5", color: ativo ? "#047857" : "#475569", fontSize: 13, fontWeight: ativo ? 800 : 600, padding: "0 14px", cursor: "pointer" }}>
+                {p.label}
+              </button>
+            );
+          })}
+          <select aria-label="Situação" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={filtroSel}>
+            <option value="todos">Situação: todas</option>
             <option value="aberto">Aberto</option>
             <option value="em_atendimento">Em atendimento</option>
             <option value="pendente">Pendente</option>
             <option value="resolvido">Resolvido</option>
           </select>
-
-          <select value={filtroEtiqueta} onChange={e => setFiltroEtiqueta(e.target.value)} style={{ ...inputStyle, maxWidth: 200 }}>
-            <option value="todas">Etiqueta: Todas</option>
-            {etiquetas.map(e => <option key={e.id} value={e.id.toString()}>{e.icone} {e.nome}</option>)}
+          <select aria-label="Etiqueta" value={filtroEtiqueta} onChange={e => setFiltroEtiqueta(e.target.value)} style={filtroSel}>
+            <option value="todas">Etiqueta: todas</option>
+            {etiquetas.map(e => <option key={e.id} value={e.id.toString()}>{e.nome}</option>)}
           </select>
-
-          <select value={filtroAtendente} onChange={e => setFiltroAtendente(e.target.value)} style={{ ...inputStyle, maxWidth: 180 }}>
-            <option value="todos">Atendente: Todos</option>
-            {atendentesUnicos.map(a => <option key={a} value={a}>{a === "BOT" ? "🤖 BOT" : `👤 ${a}`}</option>)}
+          <select aria-label="Atendente" value={filtroAtendente} onChange={e => setFiltroAtendente(e.target.value)} style={filtroSel}>
+            <option value="todos">Atendente: todos</option>
+            {atendentesUnicos.map(a => <option key={a} value={a}>{a === "BOT" ? "BOT" : a}</option>)}
           </select>
-        </div>
-
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[
-            { key: "todos", label: "Todos", color: "#059669" },
-            { key: "hoje", label: "Hoje", color: "#059669" },
-            { key: "semana", label: "7 dias", color: "#059669" },
-            { key: "mes", label: "30 dias", color: "#f59e0b" },
-          ].map(p => {
-            const ativo = filtroPeriodo === p.key;
-            return (
-              <button key={p.key} onClick={() => setFiltroPeriodo(p.key as any)}
-                style={{
-                  background: ativo ? `${p.color}15` : "#F7FAF9",
-                  color: ativo ? p.color : "#64748B",
-                  border: `1px solid ${ativo ? `${p.color}50` : "#E6ECEA"}`,
-                  borderRadius: 10, padding: "7px 14px", fontSize: 12,
-                  cursor: "pointer", fontWeight: ativo ? 700 : 600,
-                  boxShadow: ativo ? `0 2px 8px ${p.color}20` : "none",
-                  transition: "all 0.15s",
-                }}>
-                {p.label}
-              </button>
-            );
-          })}
           {(busca || filtroStatus !== "todos" || filtroEtiqueta !== "todas" || filtroAtendente !== "todos" || filtroPeriodo !== "todos") && (
-            <button onClick={limparFiltros}
-              style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700, marginLeft: "auto" }}>
+            <button onClick={limparFiltros} style={{ height: 42, borderRadius: 12, border: 0, background: "#FEF2F2", color: "#B91C1C", fontSize: 13, fontWeight: 700, padding: "0 14px", cursor: "pointer" }}>
               Limpar filtros
             </button>
           )}
+          <span style={{ marginLeft: "auto", color: "#64748B", fontSize: 13 }}>
+            {contatosFiltrados.length === contatos.length ? `${contatos.length} contato(s)` : `${contatosFiltrados.length} de ${contatos.length} contato(s)`}
+          </span>
         </div>
-        <p style={{ color: "#64748B", fontSize: 11, margin: 0 }}>
-          <b style={{ color: "#0F172A" }}>{contatosFiltrados.length}</b> contato(s) {contatosFiltrados.length !== contatos.length && `de ${contatos.length} `}encontrado(s)
-        </p>
-      </div>
 
-      {/* ═══ LISTA / TABELA ═══ */}
-      {loading ? (
-        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <p style={{ color: "#64748B" }}>Carregando contatos...</p>
-        </div>
-      ) : contatos.length === 0 ? (
-        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(5,150,105,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>👥</span>
+        {loading ? (
+          <div style={{ padding: 48, textAlign: "center", color: "#64748B", borderTop: "1px solid #EEF2F1" }}>Carregando contatos...</div>
+        ) : contatos.length === 0 ? (
+          <div style={{ padding: 48, textAlign: "center", borderTop: "1px solid #EEF2F1" }}>
+            <span style={{ width: 64, height: 64, borderRadius: 20, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><Icone nome="usuarios" tamanho={28} /></span>
+            <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: "0 0 6px" }}>Nenhum contato ainda</h3>
+            <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>Os leads que chegarem pelo WhatsApp aparecem aqui automaticamente.</p>
           </div>
-          <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 8px 0" }}>Nenhum contato ainda</h3>
-          <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>Os leads que chegarem pelo WhatsApp aparecerão aqui automaticamente.</p>
-        </div>
-      ) : contatosFiltrados.length === 0 ? (
-        <div style={{ ...cardStyle, padding: 40, textAlign: "center" }}>
-          <p style={{ fontSize: 36, margin: "0 0 8px" }}>🔍</p>
-          <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum contato com esses filtros</p>
-        </div>
-      ) : isMobile ? (
-        /* ═══ MOBILE: CARDS ═══ */
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {contatosPagina.map(c => {
-            const cor = corStatus(c.ultimoStatus);
-            const etiqs = c.etiquetasIds.map(id => etiquetas.find(e => e.id === id)).filter(Boolean) as Etiqueta[];
-            return (
-              <div key={c.numero} onClick={() => abrirEditar(c)}
-                style={{
-                  ...cardStyle, padding: 14, cursor: "pointer",
-                  borderLeft: `4px solid ${cor}`,
-                  display: "flex", flexDirection: "column", gap: 10,
-                  transition: "all 0.15s",
-                }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{
-                    width: 42, height: 42, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "white", fontSize: 16, fontWeight: 700, flexShrink: 0,
-                  }}>
-                    {c.nome.charAt(0).toUpperCase()}
+        ) : contatosFiltrados.length === 0 ? (
+          <div style={{ padding: 40, textAlign: "center", borderTop: "1px solid #EEF2F1" }}>
+            <span style={{ width: 52, height: 52, borderRadius: 16, background: "#F3F6F5", color: "#64748B", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={22} /></span>
+            <p style={{ color: "#64748B", fontSize: 13.5, margin: 0 }}>Nenhum contato com esses filtros.</p>
+          </div>
+        ) : isMobile ? (
+          /* ═══ CELULAR: CARTÕES ═══ */
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 12px 12px" }}>
+            {contatosPagina.map(c => {
+              const cor = corStatus(c.ultimoStatus);
+              const etiqs = c.etiquetasIds.map(id => etiquetas.find(e => e.id === id)).filter(Boolean) as Etiqueta[];
+              return (
+                <button key={c.numero} onClick={() => abrirEditar(c)} style={{ textAlign: "left", border: 0, background: "#F7FAF9", borderRadius: 16, padding: 14, cursor: "pointer", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
+                    <span style={{ width: 40, height: 40, borderRadius: 12, background: corAvatarContato(c.nome).bg, color: corAvatarContato(c.nome).fg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{iniciaisContato(c.nome)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</p>
+                      <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>{c.numero}</p>
+                    </div>
+                    <span style={{ background: `${cor}14`, color: cor, fontSize: 11, padding: "3px 9px", borderRadius: 999, fontWeight: 700, flexShrink: 0 }}>{labelStatus(c.ultimoStatus)}</span>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</p>
-                    <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0", fontFamily: "monospace" }}>{c.numero}</p>
-                  </div>
-                  <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 11, padding: "3px 8px", borderRadius: 8, fontWeight: 700, flexShrink: 0 }}>
-                    {c.totalAtendimentos}
-                  </span>
-                </div>
-                <p style={{ color: "#64748B", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ultimaMensagem || "—"}</p>
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                  {etiqs.slice(0, 3).map(e => (
-                    <span key={e.id} style={{ background: e.cor + "15", color: e.cor, border: `1px solid ${e.cor}40`, fontSize: 10, padding: "2px 8px", borderRadius: 8, fontWeight: 600 }}>
-                      {<IconeEmoji e={e.icone} />} {e.nome}
-                    </span>
-                  ))}
-                  {etiqs.length > 3 && <span style={{ color: "#94A3B8", fontSize: 10, padding: "2px 4px", fontStyle: "italic" }}>+{etiqs.length - 3}</span>}
-                  <span style={{ background: `${cor}15`, color: cor, border: `1px solid ${cor}40`, fontSize: 10, padding: "2px 8px", borderRadius: 8, fontWeight: 700, marginLeft: "auto" }}>
-                    {labelStatus(c.ultimoStatus)}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* ═══ DESKTOP: TABELA ═══ */
-        <div style={{ ...cardStyle, overflow: "hidden" }}>
+                  <p style={{ color: "#475569", fontSize: 12.5, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>{c.ultimaMensagem || "—"}</p>
+                  {etiqs.length > 0 && (
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {etiqs.slice(0, 3).map(e => (
+                        <span key={e.id} style={{ background: e.cor + "1A", color: e.cor, fontSize: 11, padding: "2px 9px", borderRadius: 999, fontWeight: 700 }}>{e.nome}</span>
+                      ))}
+                      {etiqs.length > 3 && <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 600 }}>+{etiqs.length - 3}</span>}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          /* ═══ COMPUTADOR: TABELA ═══ */
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 960 }}>
               <thead>
-                <tr style={{ background: "#F7FAF9" }}>
-                  {["Contato", "Telefone", "Etiquetas", "Última Interação", "Atendente", "Status", "Atendim.", ""].map(h => (
-                    <th key={h} style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>{h}</th>
+                <tr>
+                  {["Contato", "Telefone", "Etiquetas", "Atendente", "Situação", "Conversas", "Última conversa"].map((h, i) => (
+                    <th key={h} style={{ padding: "12px 22px", color: "#64748B", fontSize: 12, textAlign: i === 6 ? "right" : "left", whiteSpace: "nowrap", fontWeight: 700, background: "#F7FAF9", borderTop: "1px solid #EEF2F1", borderBottom: "1px solid #EEF2F1" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {contatosPagina.map((c, i) => {
+                {contatosPagina.map(c => {
                   const cor = corStatus(c.ultimoStatus);
                   const etiqs = c.etiquetasIds.map(id => etiquetas.find(e => e.id === id)).filter(Boolean) as Etiqueta[];
                   return (
-                    <tr key={c.numero} onClick={() => abrirEditar(c)}
-                      style={{
-                        borderTop: "1px solid #F1F5F4",
-                        background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
-                        cursor: "pointer", transition: "background 0.1s",
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#F1F5F4"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#F7FAF9"}
-                    >
-                      <td style={{ padding: "12px 16px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{
-                            width: 34, height: 34, borderRadius: "50%",
-                            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            color: "white", fontSize: 13, fontWeight: 700, flexShrink: 0,
-                          }}>
-                            {c.nome.charAt(0).toUpperCase()}
-                          </div>
+                    <tr key={c.numero} onClick={() => abrirEditar(c)} className="a2-linha-contato" style={{ borderTop: "1px solid #F1F5F4", cursor: "pointer" }}>
+                      <td style={{ padding: "14px 22px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <span style={{ width: 40, height: 40, borderRadius: 12, background: corAvatarContato(c.nome).bg, color: corAvatarContato(c.nome).fg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{iniciaisContato(c.nome)}</span>
                           <div style={{ minWidth: 0 }}>
-                            <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</p>
-                            <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ultimaMensagem || "—"}</p>
+                            <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</p>
+                            <p style={{ color: "#94A3B8", fontSize: 12.5, margin: "2px 0 0", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ultimaMensagem || "—"}</p>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12, fontFamily: "monospace", whiteSpace: "nowrap" }}>{c.numero}</td>
-                      <td style={{ padding: "12px 16px" }}>
-                        {etiqs.length === 0 ? <span style={{ color: "#CBD5E1", fontSize: 11 }}>—</span> : (
-                          <div style={{ display: "flex", gap: 3, flexWrap: "wrap", maxWidth: 180 }}>
+                      <td style={{ padding: "14px 22px", color: "#334155", fontSize: 13.5, whiteSpace: "nowrap" }}>{c.numero}</td>
+                      <td style={{ padding: "14px 22px" }}>
+                        {etiqs.length === 0 ? <span style={{ color: "#CBD5E1", fontSize: 13 }}>—</span> : (
+                          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", maxWidth: 220 }}>
                             {etiqs.slice(0, 2).map(e => (
-                              <span key={e.id} style={{ background: e.cor + "15", color: e.cor, border: `1px solid ${e.cor}40`, fontSize: 10, padding: "2px 7px", borderRadius: 8, fontWeight: 600, whiteSpace: "nowrap" }}>
-                                {<IconeEmoji e={e.icone} />} {e.nome}
-                              </span>
+                              <span key={e.id} style={{ background: e.cor + "1A", color: e.cor, fontSize: 11.5, padding: "3px 10px", borderRadius: 999, fontWeight: 700, whiteSpace: "nowrap" }}>{e.nome}</span>
                             ))}
-                            {etiqs.length > 2 && <span style={{ color: "#94A3B8", fontSize: 10, padding: "2px 4px", fontStyle: "italic" }}>+{etiqs.length - 2}</span>}
+                            {etiqs.length > 2 && <span style={{ color: "#94A3B8", fontSize: 11.5, fontWeight: 600, padding: "3px 2px" }}>+{etiqs.length - 2}</span>}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, whiteSpace: "nowrap" }}>
+                      <td style={{ padding: "14px 22px", color: "#334155", fontSize: 13 }}>
+                        {c.ultimoAtendente ? (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", fontSize: 10, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{c.ultimoAtendente === "BOT" ? <Icone nome="robo" tamanho={14} /> : iniciaisContato(c.ultimoAtendente)}</span>
+                            <span style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ultimoAtendente === "BOT" ? "Bot" : c.ultimoAtendente}</span>
+                          </span>
+                        ) : <span style={{ color: "#CBD5E1" }}>—</span>}
+                      </td>
+                      <td style={{ padding: "14px 22px" }}>
+                        <span style={{ background: `${cor}14`, color: cor, fontSize: 12, padding: "3px 10px", borderRadius: 999, fontWeight: 700, whiteSpace: "nowrap" }}>{labelStatus(c.ultimoStatus)}</span>
+                      </td>
+                      <td style={{ padding: "14px 22px", color: "#0F172A", fontSize: 13.5, fontWeight: 700 }}>{c.totalAtendimentos}</td>
+                      <td style={{ padding: "14px 22px", color: "#64748B", fontSize: 12.5, whiteSpace: "nowrap", textAlign: "right" }}>
                         {new Date(c.ultimaData).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                      </td>
-                      <td style={{ padding: "12px 16px", color: "#475569", fontSize: 12 }}>
-                        {c.ultimoAtendente ? (c.ultimoAtendente === "BOT" ? "🤖 BOT" : `👤 ${c.ultimoAtendente}`) : <span style={{ color: "#CBD5E1" }}>—</span>}
-                      </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <span style={{
-                          background: `${cor}15`, color: cor,
-                          border: `1px solid ${cor}40`,
-                          fontSize: 11, padding: "3px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap",
-                        }}>{labelStatus(c.ultimoStatus)}</span>
-                      </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 11, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>
-                          {c.totalAtendimentos}
-                        </span>
-                      </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <button onClick={(e) => { e.stopPropagation(); abrirEditar(c); }}
-                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
-                          ✏️
-                        </button>
                       </td>
                     </tr>
                   );
@@ -849,8 +775,8 @@ export default function Contatos() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
       {/* ═══ PAGINAÇÃO ═══ */}
       {totalPaginas > 1 && (
@@ -859,8 +785,8 @@ export default function Contatos() {
             style={{
               background: paginaAtual === 1 ? "#F1F5F4" : "#ffffff",
               color: paginaAtual === 1 ? "#94A3B8" : "#334155",
-              border: "1px solid #E6ECEA", borderRadius: 10,
-              padding: "8px 14px", fontSize: 12,
+              border: "none", borderRadius: 11, boxShadow: "inset 0 0 0 1px #EEF2F1",
+              padding: "9px 16px", fontSize: 13,
               cursor: paginaAtual === 1 ? "not-allowed" : "pointer", fontWeight: 600,
             }}>
             Anterior
@@ -872,8 +798,8 @@ export default function Contatos() {
             style={{
               background: paginaAtual === totalPaginas ? "#F1F5F4" : "#ffffff",
               color: paginaAtual === totalPaginas ? "#94A3B8" : "#334155",
-              border: "1px solid #E6ECEA", borderRadius: 10,
-              padding: "8px 14px", fontSize: 12,
+              border: "none", borderRadius: 11, boxShadow: "inset 0 0 0 1px #EEF2F1",
+              padding: "9px 16px", fontSize: 13,
               cursor: paginaAtual === totalPaginas ? "not-allowed" : "pointer", fontWeight: 600,
             }}>
             Próxima

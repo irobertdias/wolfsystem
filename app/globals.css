@@ -798,3 +798,5 @@ select:focus, textarea:not(.a2-input-limpo):focus {
 .a2-input-limpo:focus { outline: none; }
 label:has(> .a2-input-limpo:focus), div:has(> .a2-input-limpo:focus) { box-shadow: 0 0 0 4px rgba(16,185,129,.14), inset 0 0 0 1px #10B981 !important; }
 .a2-chat-item:hover { background: rgba(255,255,255,.7); }
+/* ---------- A2: Contatos ---------- */
+.a2-linha-contato:hover { background: #F7FAF9; }
