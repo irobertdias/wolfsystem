@@ -422,7 +422,7 @@ export default function UraDiscadorSection() {
         }}
       >
         <div className={styles.heroCopy}>
-          <span className={styles.eyebrow}>WOLF VOICE INTELLIGENCE</span>
+          <span className={styles.eyebrow}>URA e discador</span>
           <h1 style={{ margin: 0, fontSize: 25 }}>Central de voz e automação</h1>
           <p style={{ color: "#64748b" }}>
             Crie jornadas inteligentes, acompanhe campanhas e conecte cada chamada
@@ -1026,7 +1026,7 @@ export default function UraDiscadorSection() {
                         )}
                         {c.status === "executando" && (
                           <button
-                            style={btn("#d97706")}
+                            style={btn("#C2410C")}
                             onClick={() => acao(c.id, "pausar")}
                           >
                             Pausar
