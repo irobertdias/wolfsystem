@@ -83,7 +83,7 @@ export default function EmitirNota() {
       </div>
 
       <div style={{ background: provedor ? "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)" : "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)", border: `1px solid ${provedor ? "#A7F3D0" : "#fde68a"}`, borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 38, height: 38, borderRadius: 10, background: provedor ? "#A7F3D0" : "#fde68a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{provedor ? "🔌" : "⚠️"}</div>
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: provedor ? "#ECFDF5" : "#FFF7ED", color: provedor ? "#059669" : "#C2410C", display: "flex", alignItems: "center", justifyContent: "center" }}>{provedor ? <Icone nome="link" tamanho={18} /> : <Icone nome="alerta" tamanho={18} />}</div>
         <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.5 }}>
           {provedor ? <>Provedor configurado: <b>{provedor}</b>. A emissão ao-vivo na SEFAZ entra quando ligarmos a integração.</>
             : <>Sem provedor de NF-e. Aqui você <b>registra</b> as notas e gera o "a receber"; a <b>emissão automática na SEFAZ</b> precisa de um provedor (PlugNotas, Focus, eNotas) — configure em <b>Configurações</b>.</>}

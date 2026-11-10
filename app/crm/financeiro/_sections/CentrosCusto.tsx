@@ -100,7 +100,7 @@ export default function CentrosCusto() {
                   <td style={{ ...td, color: "#64748B" }}>{c.descricao || "—"}</td>
                   <td style={td}><span style={{ background: c.ativo ? "#ECFDF5" : "#F1F5F4", color: c.ativo ? "#059669" : "#64748B", border: `1px solid ${c.ativo ? "#A7F3D0" : "#E6ECEA"}`, fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{c.ativo ? "Ativo" : "Inativo"}</span></td>
                   <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
-                    <button onClick={() => abrirEdicao(c)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}>✏️</button>
+                    <button onClick={() => abrirEdicao(c)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}><Icone nome="editar" tamanho={15} /></button>
                     <button onClick={() => remover(c)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer", marginLeft: 5 }}><Icone nome="lixeira" tamanho={15} /></button>
                   </td>
                 </tr>

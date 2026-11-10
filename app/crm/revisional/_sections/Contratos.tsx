@@ -305,7 +305,7 @@ function FichaContrato({ c, cfg, wsId, usuario, onClose, onEditar, onExcluir, on
       footer={<><Btn variante="danger" onClick={onExcluir}>Excluir</Btn><Btn variante="ghost" onClick={onCalculo}>Cálculo detalhado</Btn><Btn onClick={onEditar}>Editar</Btn></>}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <Pill texto={`${e.icone} ${e.label}`} cor={e.cor} />
-        {calc.abusiva && <Pill texto={`🚩 Taxa ${calc.vezesMedia.toFixed(1)}× a média`} cor={C.red} />}
+        {calc.abusiva && <Pill texto={`Taxa ${calc.vezesMedia.toFixed(1)}× a média`} cor={C.red} />}
         <span style={{ flex: 1 }} />
         <select value={c.status_venda || "NOVO"} disabled={ocupado} onChange={(ev) => trocarEtapa(ev.target.value)} style={{ ...inputSm, width: 230 }}>
           {ETAPAS.map((x) => <option key={x.key} value={x.key}>Mover para: {x.icone} {x.label}</option>)}

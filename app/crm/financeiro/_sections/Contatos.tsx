@@ -126,7 +126,7 @@ export default function Contatos() {
             {carregando ? <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               : filtrada.length === 0 ? (
                 <tr><td colSpan={7} style={{ padding: "48px 24px", textAlign: "center" }}>
-                  <div style={{ fontSize: 38 }}>🧑‍🤝‍🧑</div>
+                  <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="🧑‍🤝‍🧑" tamanho={26} /></div>
                   <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhum contato</p>
                   <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 14px" }}>Cadastre clientes e fornecedores pra usar nos lançamentos.</p>
                   <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, #059669 0%, #2dd4bf 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Novo contato</button>
@@ -147,7 +147,7 @@ export default function Contatos() {
                     <td style={{ ...td, textAlign: "right", fontWeight: 800, color: rec > 0 ? "#059669" : "#CBD5E1" }}>{rec > 0 ? brl(rec) : "—"}</td>
                     <td style={{ ...td, textAlign: "right", fontWeight: 800, color: pag > 0 ? "#dc2626" : "#CBD5E1" }}>{pag > 0 ? brl(pag) : "—"}</td>
                     <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
-                      <button onClick={() => abrirEdicao(c)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}>✏️</button>
+                      <button onClick={() => abrirEdicao(c)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}><Icone nome="editar" tamanho={15} /></button>
                       <button onClick={() => remover(c)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer", marginLeft: 5 }}><Icone nome="lixeira" tamanho={15} /></button>
                     </td>
                   </tr>

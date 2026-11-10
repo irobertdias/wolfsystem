@@ -158,7 +158,7 @@ export default function Transferencias() {
             <div style={{ marginBottom: 20 }}><label style={lbl}>Descrição</label><input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} style={input} placeholder="opcional" /></div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando ? 0.6 : 1, boxShadow: "0 4px 12px rgba(5,150,105,0.4)" }}>{salvando ? "Salvando…" : "💸 Transferir"}</button>
+              <button onClick={salvar} disabled={salvando} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando ? 0.6 : 1, boxShadow: "0 4px 12px rgba(5,150,105,0.4)" }}>{salvando ? "Salvando…" : "Transferir"}</button>
             </div>
           </div>
         </div>

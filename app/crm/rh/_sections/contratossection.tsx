@@ -198,7 +198,7 @@ export function ContratosSection() {
             gap: 10,
           }}
         >
-          <span style={{ fontSize: 18 }}>⚠️</span>
+          <IconeEmoji e="⚠️" tamanho={16} />
           <p style={{ color: "#92400e", fontSize: 13, margin: 0, fontWeight: 600 }}>
             <b>{stats.renovar}</b> contrato(s) a renovar — verifique as datas de término.
           </p>

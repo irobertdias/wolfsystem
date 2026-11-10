@@ -435,7 +435,7 @@ export default function CobrancaAtualizacao() {
             <p style={{ color: feedback.tipo === "ok" ? "#047857" : feedback.tipo === "erro" ? "#991b1b" : "#92400e", fontSize: 13.5, margin: 0, fontWeight: 700 }}>{feedback.titulo}</p>
             <p style={{ color: feedback.tipo === "ok" ? "#059669" : feedback.tipo === "erro" ? "#dc2626" : "#b45309", fontSize: 12, margin: "2px 0 0" }}>{feedback.msg}</p>
           </div>
-          <button onClick={() => setFeedback(null)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 16, color: "#94A3B8" }}>✕</button>
+          <button onClick={() => setFeedback(null)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 16, color: "#94A3B8" }}><Icone nome="x" tamanho={16} /></button>
         </div>
       )}
 
@@ -522,7 +522,7 @@ export default function CobrancaAtualizacao() {
               <div><p style={{ color: "#94A3B8", fontSize: 11, margin: 0, fontWeight: 600 }}>Custcodes a preencher</p><p style={{ color: "#059669", fontSize: 20, fontWeight: 800, margin: "2px 0 0" }}>{formatNum(res.custPreencher)}</p></div>
               {res.semVenda.length > 0 && <div><p style={{ color: "#94A3B8", fontSize: 11, margin: 0, fontWeight: 600 }}>Ordens sem venda</p><p style={{ color: "#dc2626", fontSize: 20, fontWeight: 800, margin: "2px 0 0" }}>{formatNum(res.semVenda.length)}</p></div>}
             </div>
-            <button onClick={gravar} disabled={gravando} style={{ ...btnPri, opacity: gravando ? 0.6 : 1, cursor: gravando ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{gravando ? "⏳ Gravando..." : "💾 Atualizar faturas no sistema"}</button>
+            <button onClick={gravar} disabled={gravando} style={{ ...btnPri, opacity: gravando ? 0.6 : 1, cursor: gravando ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{gravando ? "⏳ Gravando..." : "Atualizar faturas no sistema"}</button>
           </div>
 
           {/* tabela: nome | custcode | dias p/ próximo vencimento */}
@@ -532,7 +532,7 @@ export default function CobrancaAtualizacao() {
               <input placeholder="ordem, custcode ou nome..." value={busca} onChange={e => setBusca(e.target.value)} style={{ ...input, marginLeft: "auto", padding: "7px 12px", fontSize: 12, borderRadius: 20, width: isMobile ? "100%" : 260 }} />
             </div>
             <div style={{ padding: "10px 18px", borderBottom: "1px solid #F1F5F4", display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {([{ k: "todos", l: "Todos" }, { k: "inadimplente", l: "🔴 Inadimplentes" }, { k: "pendente", l: "⏳ Pendentes" }, { k: "paga", l: "✅ Pagas" }, { k: "sem_venda", l: "❓ Sem venda" }] as { k: typeof filtro; l: string }[]).map(f => (
+              {([{ k: "todos", l: "Todos" }, { k: "inadimplente", l: "Inadimplentes" }, { k: "pendente", l: "⏳ Pendentes" }, { k: "paga", l: "Pagas" }, { k: "sem_venda", l: "Sem venda" }] as { k: typeof filtro; l: string }[]).map(f => (
                 <button key={f.k} onClick={() => setFiltro(f.k)} style={{ borderRadius: 20, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600, border: `1px solid ${filtro === f.k ? "#059669" : "#E6ECEA"}`, background: filtro === f.k ? "#ECFDF5" : "#fff", color: filtro === f.k ? "#059669" : "#64748B" }}>{f.l}</button>
               ))}
             </div>

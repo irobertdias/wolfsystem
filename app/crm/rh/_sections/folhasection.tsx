@@ -387,7 +387,7 @@ export function FolhaSection() {
                   whiteSpace: "nowrap",
                 }}
               >
-                {salvando ? "Salvando..." : "💾 Salvar alterações"}
+                {salvando ? "Salvando..." : "Salvar alterações"}
               </button>
               <button
                 onClick={marcarPagas}
@@ -404,7 +404,7 @@ export function FolhaSection() {
                   whiteSpace: "nowrap",
                 }}
               >
-                {todosPagos ? "✅ Folha paga" : processando ? "..." : "💸 Marcar como paga"}
+                {todosPagos ? "Folha paga" : processando ? "..." : "Marcar como paga"}
               </button>
             </>
           )}
@@ -506,7 +506,7 @@ export function FolhaSection() {
                 boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
               }}
             >
-              {gerando ? "Gerando..." : "⚙️ Gerar folha"}
+              {gerando ? "Gerando..." : "Gerar folha"}
             </button>
           </div>
         </div>

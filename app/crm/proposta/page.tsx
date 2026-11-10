@@ -555,7 +555,7 @@ function PropostaForm() {
   // ═══════════════════════════════════════════════════════════════════
   const handleSubmit = async () => {
     if (!isDono && !isSuperAdmin && !permissoes.proposta_criar) {
-      alert("❌ Você não tem permissão para criar propostas.");
+      alert("Você não tem permissão para criar propostas.");
       return;
     }
 
@@ -638,7 +638,7 @@ function PropostaForm() {
     // Limpa rascunho
     if (rascunhoKey) localStorage.removeItem(rascunhoKey);
     setDirty(false);
-    alert("✅ Proposta cadastrada com sucesso!");
+    alert("Proposta cadastrada com sucesso!");
     router.push("/crm/vendas");
   };
 
@@ -827,7 +827,7 @@ function PropostaForm() {
             disabled={loading}
             style={{ display: "none" }} />
           <p style={{ color: loading ? "#94A3B8" : "#059669", fontSize: 13, margin: 0, fontWeight: 700 }}>
-            {loading ? "⏳ Enviando arquivos..." : "📎 Clique pra anexar arquivos"}
+            {loading ? "⏳ Enviando arquivos..." : "Clique pra anexar arquivos"}
           </p>
           <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0" }}>
             Múltiplos arquivos · Máx 20 MB cada
@@ -1138,7 +1138,7 @@ function PropostaForm() {
                 boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 whiteSpace: "nowrap",
               }}>
-              {loading ? "⏳ Salvando..." : "💾 Salvar Proposta"}
+              {loading ? "⏳ Salvando..." : "Salvar Proposta"}
             </button>
           </div>
         </div>
@@ -1168,7 +1168,7 @@ function PropostaForm() {
             gap: 12,
             flexWrap: "wrap",
           }}>
-            <span style={{ fontSize: 24 }}>💾</span>
+            <IconeEmoji e="💾" tamanho={22} />
             <div style={{ flex: 1, minWidth: 200 }}>
               <p style={{ color: "#92400e", fontSize: 13.5, margin: 0, fontWeight: 700 }}>
                 Rascunho encontrado · {new Date(rascunhoDisponivel.salvoEm).toLocaleString("pt-BR")}
@@ -1409,7 +1409,7 @@ function PropostaForm() {
                     cursor: loading ? "not-allowed" : "pointer",
                     boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                   }}>
-                  {loading ? "⏳ Salvando..." : "💾 Salvar Proposta"}
+                  {loading ? "⏳ Salvando..." : "Salvar Proposta"}
                 </button>
               </div>
             </div>

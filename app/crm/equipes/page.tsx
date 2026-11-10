@@ -1,4 +1,5 @@
 "use client";
+import Icone from "../../components/a2/Icone";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -245,7 +246,7 @@ export default function EquipesPage() {
                 </h2>
               </div>
               <button onClick={() => setModalAberto(false)}
-                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
@@ -280,7 +281,7 @@ export default function EquipesPage() {
                   padding: "10px 28px", fontSize: 13, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
                   boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
                 }}>
-                {salvando ? "⏳ Salvando..." : "💾 Salvar"}
+                {salvando ? "⏳ Salvando..." : "Salvar"}
               </button>
             </div>
           </div>

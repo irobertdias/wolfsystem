@@ -220,7 +220,7 @@ export default function Lancamentos({ secKey }: any) {
                   <td style={td}><span style={{ background: st.bg, color: st.c, border: `1px solid ${st.bd}`, fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{st.l}</span></td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 800, color: ehRec ? "#059669" : "#dc2626", whiteSpace: "nowrap" }}>{ehRec ? "+" : "-"}{brl(l.valor)}</td>
                   <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
-                    <button onClick={() => abrirEdicao(l)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}>✏️</button>
+                    <button onClick={() => abrirEdicao(l)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}><Icone nome="editar" tamanho={15} /></button>
                     <button onClick={() => remover(l)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer", marginLeft: 5 }}><Icone nome="lixeira" tamanho={15} /></button>
                   </td>
                 </tr>

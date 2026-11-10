@@ -1,5 +1,5 @@
 "use client";
-import Icone from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
@@ -327,7 +327,7 @@ export function SelecaoSection() {
           {reprovados.length > 0 && (
             <div style={{ ...card, padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <span style={{ fontSize: 16 }}>🚫</span>
+                <IconeEmoji e="🚫" tamanho={15} />
                 <h3 style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: 0 }}>Reprovados</h3>
                 <span
                   style={{

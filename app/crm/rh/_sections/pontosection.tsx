@@ -584,7 +584,7 @@ export function PontoSection() {
                                 const temHora = !b.data_hora.endsWith("T00:00:00") && new Date(b.data_hora).getHours() !== 0;
                                 return (
                                   <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 8, background: am.bg, borderRadius: 10, padding: "6px 12px" }}>
-                                    <span style={{ fontSize: 13 }}>🏷️</span>
+                                    <IconeEmoji e="🏷️" tamanho={15} />
                                     <div>
                                       <p style={{ color: am.cor, fontSize: 13, fontWeight: 800, margin: 0 }}>{b.tipo}</p>
                                       <p style={{ color: am.cor, fontSize: 10, margin: 0, opacity: 0.8 }}>{temHora ? horaFmt(b.data_hora) : "dia inteiro"}</p>
@@ -695,7 +695,7 @@ export function PontoSection() {
           <div onClick={(e) => e.stopPropagation()}
             style={{ ...card, width: "100%", maxWidth: 420, padding: 24 }}>
             <h3 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 800, color: "#0F172A" }}>
-              {editModal.ausencia ? "🏷️ Lançar ausência" : editModal.modo === "editar" ? "✏️ Editar batida" : "➕ Adicionar batida"}
+              {editModal.ausencia ? "Lançar ausência" : editModal.modo === "editar" ? "Editar batida" : "Adicionar batida"}
             </h3>
             <p style={{ margin: "0 0 18px", fontSize: 12, color: "#64748B" }}>
               {editModal.funcionario}{editModal.cargo ? ` · ${editModal.cargo}` : ""}

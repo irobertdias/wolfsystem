@@ -345,7 +345,7 @@ export default function Contatos() {
 
       await carregarDados(wsId);
       fecharModal();
-      alert("✅ Contato atualizado!");
+      alert("Contato atualizado!");
     } catch (e: any) {
       alert("Erro: " + e.message);
     }
@@ -355,7 +355,7 @@ export default function Contatos() {
   // ═══ EXCLUIR CONTATO (todos atendimentos do número) ═══
   const excluirContato = async (c: Contato) => {
     if (!wsId) return;
-    if (!confirm(`⚠️ Excluir TODOS os ${c.totalAtendimentos} atendimento(s) do contato "${c.nome}"?\n\nNúmero: ${c.numero}\n\nEsta ação NÃO pode ser desfeita.`)) return;
+    if (!confirm(`Excluir TODOS os ${c.totalAtendimentos} atendimento(s) do contato "${c.nome}"?\n\nNúmero: ${c.numero}\n\nEsta ação NÃO pode ser desfeita.`)) return;
     try {
       const ids = c.atendimentos.map(a => a.id);
       // Apaga relações de etiquetas primeiro
@@ -371,7 +371,7 @@ export default function Contatos() {
       if (error) { alert("Erro ao excluir: " + error.message); return; }
       await carregarDados(wsId);
       fecharModal();
-      alert("✅ Contato excluído!");
+      alert("Contato excluído!");
     } catch (e: any) { alert("Erro: " + e.message); }
   };
 
@@ -446,7 +446,7 @@ export default function Contatos() {
                 </div>
               </div>
               <button onClick={fecharModal}
-                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
             </div>
 
             <div style={{ padding: 24, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 18 }}>
@@ -532,7 +532,7 @@ export default function Contatos() {
                         <p style={{ color: "#334155", fontSize: 12, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.mensagem || "—"}</p>
                         <p style={{ color: "#94A3B8", fontSize: 10, margin: "3px 0 0" }}>
                           {a.fila && <>{a.fila} · </>}
-                          {a.atendente && (a.atendente === "BOT" ? "🤖 BOT" : `👤 ${a.atendente}`)}
+                          {a.atendente && (a.atendente === "BOT" ? "BOT" : `${a.atendente}`)}
                         </p>
                       </div>
                     ))}
@@ -563,7 +563,7 @@ export default function Contatos() {
                     cursor: salvandoContato ? "not-allowed" : "pointer", fontWeight: 700,
                     boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                   }}>
-                  {salvandoContato ? "Salvando..." : "💾 Salvar"}
+                  {salvandoContato ? "Salvando..." : "Salvar"}
                 </button>
               </div>
             </div>

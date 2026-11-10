@@ -217,14 +217,14 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const crmRotaAtiva = crmItems.some((i) => isActive(i.path));
 
   const perfilLabel = isSuperAdmin
-    ? "👑 Super Admin Wolf"
+    ? "Super Admin Wolf"
     : isDono
-      ? "🏢 Dono do Workspace"
+      ? "Dono do Workspace"
       : perfil === "Supervisor"
-        ? "🔍 Supervisor"
+        ? "Supervisor"
         : perfil === "Administrador"
-          ? "👔 Administrador"
-          : "👤 Atendente";
+          ? "Administrador"
+          : "Atendente";
 
   const botaoMenu = (ativo: boolean, bg: string, bgAtivo: string, border: string, borderAtivo: string, color: string): React.CSSProperties => ({
     display: "flex",
@@ -370,7 +370,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               </span>
               <span className="identity">
                 <b>{userNome || userEmail.split("@")[0] || "Usuário"}</b>
-                <small>{perfilLabel.replace(/^\S+\s*/, "")}</small>
+                <small>{perfilLabel}</small>
               </span>
             </button>
             <button className="logout" onClick={signOut} title="Sair">↗</button>

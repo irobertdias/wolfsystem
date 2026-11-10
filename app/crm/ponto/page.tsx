@@ -1,4 +1,5 @@
 "use client";
+import { IconeEmoji } from "../../components/a2/Icone";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
@@ -415,7 +416,7 @@ export default function BaterPontoPage() {
                   boxShadow: `0 8px 24px ${COR}50`,
                 }}
               >
-                {exigeSelfie ? "📸 Bater Ponto com selfie" : "📍 Bater Ponto"}
+                {exigeSelfie ? "Bater Ponto com selfie" : "Bater Ponto"}
               </button>
             </div>
 
@@ -432,13 +433,13 @@ export default function BaterPontoPage() {
                   gap: 10,
                 }}
               >
-                <span style={{ fontSize: 22 }}>✅</span>
+                <IconeEmoji e="✅" tamanho={20} />
                 <div style={{ textAlign: "left" }}>
                   <p style={{ color: "#059669", fontSize: 14, fontWeight: 800, margin: 0 }}>
                     {ultima.tipo} registrada às {ultima.hora}
                   </p>
                   <p style={{ color: "#64748b", fontSize: 11, margin: "2px 0 0" }}>
-                    {ultima.comGps ? "📍 Localização capturada" : "⚠️ Registrado sem localização"}
+                    {ultima.comGps ? "Localização capturada" : "Registrado sem localização"}
                   </p>
                 </div>
               </div>
@@ -488,7 +489,7 @@ export default function BaterPontoPage() {
                             {b.tipo}
                           </p>
                           <p style={{ color: "#94a3b8", fontSize: 11, margin: "1px 0 0" }}>
-                            {temGps ? "📍 com localização" : "sem localização"}
+                            {temGps ? "com localização" : "sem localização"}
                           </p>
                         </div>
                       </div>
@@ -659,7 +660,7 @@ export default function BaterPontoPage() {
                       cursor: enviando ? "wait" : "pointer",
                     }}
                   >
-                    {enviando ? "Registrando..." : "✅ Confirmar e bater"}
+                    {enviando ? "Registrando..." : "Confirmar e bater"}
                   </button>
                 </div>
               )}

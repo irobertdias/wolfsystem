@@ -17,7 +17,7 @@ import {
   type CampoCustom,
 } from "../../lib/campos_proposta_definicao";
 
-import { IconeEmoji } from "../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🛠️ EDITOR DE CAMPOS DA PROPOSTA — Wolf PREMIUM v2
 // ───────────────────────────────────────────────────────────────────────
@@ -522,7 +522,7 @@ export default function EditorProposta() {
         }
       }
 
-      alert("✅ Configurações salvas com sucesso!");
+      alert("Configurações salvas com sucesso!");
       await fetchCampos();
     } catch (e: any) {
       alert("Erro ao salvar: " + e.message);
@@ -701,7 +701,7 @@ export default function EditorProposta() {
                 boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 whiteSpace: "nowrap",
               }}>
-              {salvando ? "⏳ Salvando..." : "💾 Salvar Tudo"}
+              {salvando ? "⏳ Salvando..." : "Salvar Tudo"}
             </button>
           </div>
         </div>
@@ -807,7 +807,7 @@ export default function EditorProposta() {
           </div>
 
           <div style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)", border: "1px solid #A7F3D0", borderLeft: "4px solid #059669", borderRadius: 12, padding: "10px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <span style={{ fontSize: 20, lineHeight: 1 }}>💡</span>
+            <IconeEmoji e="💡" tamanho={18} />
             <div style={{ flex: 1 }}>
               <p style={{ color: "#065F46", fontSize: 12, fontWeight: 700, margin: 0 }}>Setas ↑▼ movem livremente</p>
               <p style={{ color: "#059669", fontSize: 11, margin: "2px 0 0", lineHeight: 1.5 }}>
@@ -957,7 +957,7 @@ export default function EditorProposta() {
                     cursor: salvando || loading ? "not-allowed" : "pointer",
                     boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                     whiteSpace: "nowrap",
-                  }}>{salvando ? "⏳ Salvando..." : "💾 Salvar Tudo"}</button>
+                  }}>{salvando ? "⏳ Salvando..." : "Salvar Tudo"}</button>
               </div>
             </div>
           )}
@@ -981,7 +981,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
   const corBadge = ehFixo ? "#3b82f6" : "#a855f7";
   const bgBadge = ehFixo ? "#eff6ff" : "#f3e8ff";
   const borderBadge = ehFixo ? "#bfdbfe" : "#ddd6fe";
-  const labelBadge = ehFixo ? "🔒 Padrão" : "✨ Personalizado";
+  const labelBadge = ehFixo ? "Padrão" : "Personalizado";
   const opacidade = !campo.visivel ? 0.55 : 1;
 
   // 🆕 Move globalmente: só desabilita nos extremos da lista
@@ -1044,7 +1044,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
         {!isMobile && (ehFixo ? (
           <div style={{ minWidth: 160 }}>
             <span style={{ background: "#F1F5F4", color: "#475569", border: "1px solid #E6ECEA", padding: "9px 14px", borderRadius: 10, fontSize: 12, display: "block", textAlign: "center", fontWeight: 600 }}>
-              {campo.tipo === "vendedor" ? "👤 Vendedor" : campo.tipo === "telefone" ? "📞 Telefone" : campo.tipo === "email" ? "📧 E-mail" : campo.tipo === "data" ? "📅 Data" : campo.tipo === "moeda" ? "💰 Valor (R$)" : campo.tipo === "dropdown" ? "📋 Seleção" : "📝 Texto"}
+              {campo.tipo === "vendedor" ? "Vendedor" : campo.tipo === "telefone" ? "Telefone" : campo.tipo === "email" ? "E-mail" : campo.tipo === "data" ? "Data" : campo.tipo === "moeda" ? "Valor (R$)" : campo.tipo === "dropdown" ? "Seleção" : "Texto"}
             </span>
           </div>
         ) : (
@@ -1081,7 +1081,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
           }}>{labelBadge}</span>
           {ehFixo ? (
             <span style={{ background: "#F1F5F4", color: "#475569", border: "1px solid #E6ECEA", padding: "5px 10px", borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
-              {campo.tipo === "vendedor" ? "👤 Vendedor" : campo.tipo === "telefone" ? "📞 Telefone" : campo.tipo === "email" ? "📧 E-mail" : campo.tipo === "data" ? "📅 Data" : campo.tipo === "moeda" ? "💰 Valor" : campo.tipo === "dropdown" ? "📋 Seleção" : "📝 Texto"}
+              {campo.tipo === "vendedor" ? "Vendedor" : campo.tipo === "telefone" ? "Telefone" : campo.tipo === "email" ? "E-mail" : campo.tipo === "data" ? "Data" : campo.tipo === "moeda" ? "Valor" : campo.tipo === "dropdown" ? "Seleção" : "Texto"}
             </span>
           ) : (
             <select value={campo.tipo}
@@ -1163,7 +1163,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
                 onChange={(e) => atualizarOpcao(idx, opIdx, e.target.value)}
                 style={{ ...inputStyle, padding: "6px 12px", fontSize: 12 }} />
               <button onClick={() => removerOpcao(idx, opIdx)}
-                style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✕</button>
+                style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}><Icone nome="x" tamanho={16} /></button>
             </div>
           ))}
           <button onClick={() => adicionarOpcao(idx)}

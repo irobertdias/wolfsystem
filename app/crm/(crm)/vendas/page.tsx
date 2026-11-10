@@ -15,7 +15,7 @@ import {
   type CampoCustom,
 } from "../../../lib/campos_proposta_definicao";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════════
 // 💰 VENDAS — Wolf CRM (multi-tenant)
 // ───────────────────────────────────────────────────────────────────────────
@@ -778,7 +778,7 @@ export default function Vendas() {
 
   const excluir = async (p: Proposta) => {
     if (!podeExcluir) { alert("Você não tem permissão para excluir!"); return; }
-    if (!confirm(`⚠️ Excluir a proposta de ${p.nome}?\n\nEsta ação NÃO pode ser desfeita.`)) return;
+    if (!confirm(`Excluir a proposta de ${p.nome}?\n\nEsta ação NÃO pode ser desfeita.`)) return;
     if (!workspaceId) { alert("Workspace não carregado."); return; }
     try {
       await registrarLogProposta(p.id, "exclusao", "proposta", p.nome, "Proposta excluida");
@@ -786,7 +786,7 @@ export default function Vendas() {
         .eq("id", p.id).eq("workspace_id", workspaceId);
       if (error) { alert("Erro ao excluir: " + error.message); return; }
       await fetchPropostas(workspaceId);
-      alert("✅ Proposta excluída!");
+      alert("Proposta excluída!");
     } catch (e: any) { alert("Erro: " + e.message); }
   };
 
@@ -1101,7 +1101,7 @@ export default function Vendas() {
                 <h2 style={{ color: "#0F172A", fontSize: 17, fontWeight: 700, margin: 0 }}>Editar Proposta <span style={{ color: "#94A3B8", fontWeight: 500 }}>#{propostaEditando.id}</span></h2>
               </div>
               <button onClick={() => { setShowModal(false); setPropostaEditando(null); }}
-                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
             </div>
 
             <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
@@ -1126,7 +1126,7 @@ export default function Vendas() {
                   padding: "10px 28px", fontSize: 13, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
                   boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 }}>
-                {salvando ? "⏳ Salvando..." : "💾 Salvar"}
+                {salvando ? "⏳ Salvando..." : "Salvar"}
               </button>
             </div>
           </div>
@@ -1166,7 +1166,7 @@ export default function Vendas() {
               background: "#ECFDF5", border: "1px solid #A7F3D0",
               borderRadius: 12, padding: "6px 14px",
             }}>
-              <span style={{ fontSize: 14, lineHeight: 1 }}>👥</span>
+              <IconeEmoji e="👥" tamanho={15} />
               <span style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Equipe</span>
               <span style={{ color: "#047857", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
             </div>

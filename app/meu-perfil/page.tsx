@@ -102,11 +102,11 @@ export default function MeuPerfilPage() {
 
     // Validações
     if (arquivo.size > 5 * 1024 * 1024) {
-      alert("⚠️ Arquivo muito grande. Máximo 5 MB.");
+      alert("Arquivo muito grande. Máximo 5 MB.");
       return;
     }
     if (!arquivo.type.startsWith("image/")) {
-      alert("⚠️ Selecione uma imagem (PNG, JPG, JPEG ou WebP).");
+      alert("Selecione uma imagem (PNG, JPG, JPEG ou WebP).");
       return;
     }
 
@@ -121,7 +121,7 @@ export default function MeuPerfilPage() {
         .upload(caminho, arquivo, { upsert: true, contentType: arquivo.type });
 
       if (uploadErr) {
-        alert("❌ Falha ao subir foto: " + uploadErr.message);
+        alert("Falha ao subir foto: " + uploadErr.message);
         return;
       }
 
@@ -134,7 +134,7 @@ export default function MeuPerfilPage() {
       const urlComCache = `${publicUrl}?t=${Date.now()}`;
       setFotoUrl(urlComCache);
     } catch (e: any) {
-      alert("❌ Erro: " + e.message);
+      alert("Erro: " + e.message);
     } finally {
       setUploadando(false);
     }
@@ -175,9 +175,9 @@ export default function MeuPerfilPage() {
         });
       }
 
-      alert("✅ Foto removida!");
+      alert("Foto removida!");
     } catch (e: any) {
-      alert("❌ Erro ao remover foto: " + e.message);
+      alert("Erro ao remover foto: " + e.message);
     } finally {
       setRemovendoFoto(false);
     }
@@ -188,19 +188,19 @@ export default function MeuPerfilPage() {
     // Validações de senha (se preencheu)
     if (novaSenha || confirmaSenha || senhaAtual) {
       if (!senhaAtual) {
-        alert("⚠️ Informe sua senha atual pra trocar de senha");
+        alert("Informe sua senha atual pra trocar de senha");
         return;
       }
       if (!novaSenha) {
-        alert("⚠️ Informe a nova senha");
+        alert("Informe a nova senha");
         return;
       }
       if (novaSenha.length < 6) {
-        alert("⚠️ Nova senha deve ter no mínimo 6 caracteres");
+        alert("Nova senha deve ter no mínimo 6 caracteres");
         return;
       }
       if (novaSenha !== confirmaSenha) {
-        alert("⚠️ Confirmação de senha não bate com a nova senha");
+        alert("Confirmação de senha não bate com a nova senha");
         return;
       }
     }
@@ -209,12 +209,12 @@ export default function MeuPerfilPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert("⚠️ Sessão expirou. Faça login novamente.");
+        alert("Sessão expirou. Faça login novamente.");
         return;
       }
 
       if (!workspaceId) {
-        alert("⚠️ Workspace não identificado. Recarregue a página.");
+        alert("Workspace não identificado. Recarregue a página.");
         return;
       }
 
@@ -246,7 +246,7 @@ export default function MeuPerfilPage() {
       setNovaSenha("");
       setConfirmaSenha("");
 
-      alert("✅ Perfil atualizado!");
+      alert("Perfil atualizado!");
 
       // Se trocou senha, faz logout pra forçar novo login com a senha nova
       if (novaSenha) {
@@ -359,7 +359,7 @@ export default function MeuPerfilPage() {
                 padding: "4px 8px",
               }}
               title="Remover foto de perfil">
-              {removendoFoto ? "⏳ Removendo..." : "🗑️ Remover foto de perfil"}
+              {removendoFoto ? "⏳ Removendo..." : "Remover foto de perfil"}
             </button>
           </div>
         )}
@@ -497,7 +497,7 @@ export default function MeuPerfilPage() {
                 cursor: salvando ? "wait" : "pointer",
                 boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
               }}>
-              {salvando ? "Salvando..." : "💾 Salvar Alterações"}
+              {salvando ? "Salvando..." : "Salvar Alterações"}
             </button>
           </div>
         </div>

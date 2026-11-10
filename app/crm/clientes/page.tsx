@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
-import { IconeEmoji } from "../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../components/a2/Icone";
 // ⚠️ Só este email tem acesso à tela de clientes
 const ADMIN_EMAIL = "robert.dias@live.com";
 const CONTRATOS_PLANOS = {
@@ -423,7 +423,7 @@ export default function Clientes() {
     await supabase.from("cadastros").update({ status_pagamento: "suspenso" }).eq("id", c.id);
     await fetchCadastros();
     setCadastroSelecionado(prev => prev ? { ...prev, status_pagamento: "suspenso" } : prev);
-    alert("✅ Cliente suspenso!");
+    alert("Cliente suspenso!");
   };
 
   // 🆕 Liberar (volta pra ativo SEM marcar pagamento)
@@ -432,11 +432,11 @@ export default function Clientes() {
     await supabase.from("cadastros").update({ status_pagamento: "ativo" }).eq("id", c.id);
     await fetchCadastros();
     setCadastroSelecionado(prev => prev ? { ...prev, status_pagamento: "ativo" } : prev);
-    alert("✅ Cliente liberado!");
+    alert("Cliente liberado!");
   };
 
   const excluirCadastro = async (c: Cadastro) => {
-    if (!confirm(`⚠️ ATENÇÃO: Isso vai apagar PERMANENTEMENTE:\n\n• A conta de login de ${c.email}\n• O workspace "${c.empresa || c.nome}"\n• Todas as conexões, fluxos, atendimentos e mensagens\n\nEsta ação NÃO pode ser desfeita.\n\nTem certeza?`)) return;
+    if (!confirm(`ATENÇÃO: Isso vai apagar PERMANENTEMENTE:\n\n• A conta de login de ${c.email}\n• O workspace "${c.empresa || c.nome}"\n• Todas as conexões, fluxos, atendimentos e mensagens\n\nEsta ação NÃO pode ser desfeita.\n\nTem certeza?`)) return;
     const token = await getToken();
     if (!token) { alert("Sessão expirou. Faça login novamente."); return; }
     try {
@@ -449,7 +449,7 @@ export default function Clientes() {
       if (!result.success) { alert("Erro ao excluir: " + (result.error || "desconhecido")); return; }
       await fetchCadastros();
       setShowModalDetalhe(false);
-      alert("✅ Cliente excluído completamente!");
+      alert("Cliente excluído completamente!");
     } catch (e: any) { alert("Erro ao excluir: " + e.message); }
   };
 
@@ -515,7 +515,7 @@ export default function Clientes() {
       await carregarPagamentos(cadastroSelecionado.id);
       setCadastroSelecionado(prev => prev ? { ...prev, ...updates } : prev);
       setShowModalPagamento(false);
-      alert(`✅ Pagamento registrado!${novoVencimento ? `\n\nPróximo vencimento: ${formatarData(novoVencimento)}` : ""}`);
+      alert(`Pagamento registrado!${novoVencimento ? `\n\nPróximo vencimento: ${formatarData(novoVencimento)}` : ""}`);
     } catch (e: any) {
       alert("Erro: " + e.message);
     }
@@ -540,7 +540,7 @@ export default function Clientes() {
     await fetchCadastros();
     setCadastroSelecionado(prev => prev ? { ...prev, bloqueio_postergado_ate: ateIso, status_pagamento: "ativo" } : prev);
     setFormCadastro(prev => ({ ...prev, bloqueio_postergado_ate: ateIso, status_pagamento: "ativo" }));
-    alert(`✅ Desbloqueado em confiança por ${dias} dia(s)!\nVolta a bloquear automaticamente em ${ate.toLocaleDateString("pt-BR")}.`);
+    alert(`Desbloqueado em confiança por ${dias} dia(s)!\nVolta a bloquear automaticamente em ${ate.toLocaleDateString("pt-BR")}.`);
   };
 
   const removerConfianca = async () => {
@@ -556,7 +556,7 @@ export default function Clientes() {
     await fetchCadastros();
     setCadastroSelecionado(prev => prev ? { ...prev, bloqueio_postergado_ate: null } : prev);
     setFormCadastro(prev => ({ ...prev, bloqueio_postergado_ate: null }));
-    alert("✅ Postergação removida.");
+    alert("Postergação removida.");
   };
 
   const abrirNovo = () => {
@@ -676,8 +676,8 @@ export default function Clientes() {
           });
           const renameResult = await respRename.json();
           if (!renameResult.success) {
-            if (renameResult.error === "email_exists") alert("❌ Este e-mail já está em uso por outro cliente!");
-            else if (renameResult.error === "username_exists") alert("❌ Este username já está em uso!");
+            if (renameResult.error === "email_exists") alert("Este e-mail já está em uso por outro cliente!");
+            else if (renameResult.error === "username_exists") alert("Este username já está em uso!");
             else alert("Erro ao atualizar os dados de acesso: " + renameResult.error);
             setSalvandoCliente(false);
             return;
@@ -726,7 +726,7 @@ export default function Clientes() {
         });
         const resultModulo = await respModulo.json();
         if (!resultModulo.success) { alert("Erro ao salvar Contratos e Assinaturas: " + resultModulo.error); setSalvandoCliente(false); return; }
-        alert("✅ Cliente atualizado!");
+        alert("Cliente atualizado!");
       } else {
         if (!formCadastro.senha || formCadastro.senha.length < 6) { alert("Senha obrigatória (mínimo 6 caracteres)"); setSalvandoCliente(false); return; }
         if (!formCadastro.username || !/^[a-z0-9_]{3,30}$/.test(formCadastro.username)) {
@@ -742,13 +742,13 @@ export default function Clientes() {
         });
         const result = await resp.json();
         if (!result.success) {
-          if (result.error === "email_exists") alert("❌ Este e-mail já está cadastrado!");
-          else if (result.error === "username_exists") alert("❌ Este username já está em uso!");
+          if (result.error === "email_exists") alert("Este e-mail já está cadastrado!");
+          else if (result.error === "username_exists") alert("Este username já está em uso!");
           else alert("Erro: " + result.error);
           setSalvandoCliente(false);
           return;
         }
-        alert("✅ Cliente criado! O cliente já pode fazer login com o email e senha.");
+        alert("Cliente criado! O cliente já pode fazer login com o email e senha.");
       }
       await fetchCadastros();
       setShowModalCliente(false);
@@ -867,9 +867,9 @@ export default function Clientes() {
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 740, display: "flex", flexDirection: "column", gap: 20, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: 0 }}>{cadastroSelecionado ? "✏️ Editar Cliente" : "➕ Novo Cliente Wolf"}</h2>
+              <h2 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: 0 }}>{cadastroSelecionado ? "Editar Cliente" : "Novo Cliente Wolf"}</h2>
               <button onClick={() => setShowModalCliente(false)}
-                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
             </div>
 
             {/* Dados pessoais */}
@@ -1023,7 +1023,7 @@ export default function Clientes() {
                     {/* 💰 MARCAR PAGO */}
                     <button onClick={() => { abrirMarcarPago(cadastroSelecionado); setShowModalCliente(false); }}
                       style={{ background: "linear-gradient(135deg, #059669 0%, #10B981 100%)", color: "white", border: "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(5,150,105,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                      <span style={{ fontSize: 18 }}>💰</span>
+                      <IconeEmoji e="💰" tamanho={16} />
                       <span>Marcar como Pago</span>
                     </button>
 
@@ -1037,7 +1037,7 @@ export default function Clientes() {
                     ) : (
                       <button onClick={() => suspenderCliente(cadastroSelecionado)}
                         style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                        <span style={{ fontSize: 18 }}>🔒</span>
+                        <IconeEmoji e="🔒" tamanho={16} />
                         <span>Bloquear por falta de pagamento</span>
                       </button>
                     )}
@@ -1045,7 +1045,7 @@ export default function Clientes() {
                     {/* 🤝 CONFIANÇA */}
                     <button onClick={() => setShowModalConfianca(true)}
                       style={{ background: temConfianca ? "#ECFDF5" : "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: temConfianca ? "#047857" : "white", border: temConfianca ? "1px solid #A7F3D0" : "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: temConfianca ? "none" : "0 4px 12px rgba(5,150,105,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                      <span style={{ fontSize: 18 }}>🤝</span>
+                      <IconeEmoji e="🤝" tamanho={16} />
                       <span>{temConfianca ? "Alterar confiança" : "Desbloquear por X dias"}</span>
                     </button>
                   </div>
@@ -1191,7 +1191,7 @@ export default function Clientes() {
                   padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
                   boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 }}>
-                {salvandoCliente ? "Salvando..." : cadastroSelecionado ? "💾 Salvar" : "➕ Criar Cliente"}
+                {salvandoCliente ? "Salvando..." : cadastroSelecionado ? "Salvar" : "Criar Cliente"}
               </button>
             </div>
           </div>
@@ -1199,7 +1199,7 @@ export default function Clientes() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          🆕 MODAL "MARCAR COMO PAGO"
+          MODAL "MARCAR COMO PAGO"
       ═══════════════════════════════════════════════════════════════ */}
       {showModalPagamento && cadastroSelecionado && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -1207,7 +1207,7 @@ export default function Clientes() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h2 style={{ color: "#059669", fontSize: 18, fontWeight: 700, margin: 0 }}>Marcar como Pago</h2>
               <button onClick={() => setShowModalPagamento(false)}
-                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
               <p style={{ color: "#047857", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
@@ -1263,14 +1263,14 @@ export default function Clientes() {
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
                   boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
-                }}>{salvandoPagamento ? "Registrando..." : "✅ Registrar Pagamento"}</button>
+                }}>{salvandoPagamento ? "Registrando..." : "Registrar Pagamento"}</button>
             </div>
           </div>
         </div>
       )}
 
 {/* ═══════════════════════════════════════════════════════════════
-          🆕 v3 — MODAL "DESBLOQUEIO EM CONFIANÇA"
+          v3 — MODAL "DESBLOQUEIO EM CONFIANÇA"
       ═══════════════════════════════════════════════════════════════ */}
       {showModalConfianca && cadastroSelecionado && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -1278,7 +1278,7 @@ export default function Clientes() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h2 style={{ color: "#047857", fontSize: 18, fontWeight: 700, margin: 0 }}>Desbloqueio em Confiança</h2>
               <button onClick={() => setShowModalConfianca(false)}
-                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
               <p style={{ color: "#065F46", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
@@ -1361,11 +1361,11 @@ export default function Clientes() {
                     color: cadastroSelecionado.autorizado ? "#059669" : "#f59e0b",
                     border: `1px solid ${cadastroSelecionado.autorizado ? "#A7F3D0" : "#fde68a"}`,
                     fontSize: 11, padding: "3px 12px", borderRadius: 20, fontWeight: 700,
-                  }}>{cadastroSelecionado.autorizado ? "✅ Ativo" : "⏳ Pendente"}</span>
+                  }}>{cadastroSelecionado.autorizado ? "Ativo" : "⏳ Pendente"}</span>
                 </div>
               </div>
               <button onClick={() => setShowModalDetalhe(false)}
-                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
@@ -1644,7 +1644,7 @@ export default function Clientes() {
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1300 }}>
             <thead>
               <tr style={{ background: "#F7FAF9" }}>
-                {["", "Cliente", "Plano", "👥", "📱", "Conexões", "🎁 Módulos", "💰 Cobrança", "Status", "Ações"].map((h, i) => (
+                {["", "Cliente", "Plano", "👥", "📱", "Conexões", "Módulos", "Cobrança", "Status", "Ações"].map((h, i) => (
                   <th key={i} style={{ padding: "13px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>{h}</th>
                 ))}
               </tr>
@@ -1743,7 +1743,7 @@ export default function Clientes() {
                           border: `1px solid ${c.autorizado ? "#A7F3D0" : "#fde68a"}`,
                           fontSize: 11, padding: "3px 12px", borderRadius: 12, fontWeight: 700,
                         }}>
-                          {c.autorizado ? "✅ Ativo" : "⏳ Pendente"}
+                          {c.autorizado ? "Ativo" : "⏳ Pendente"}
                         </span>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
@@ -1819,7 +1819,7 @@ export default function Clientes() {
                                             border: `1px solid ${s.status === "online" ? "#A7F3D0" : "#E6ECEA"}`,
                                             padding: "2px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700,
                                           }}>
-                                            {s.status === "online" ? "🟢 Online" : "⚫ Offline"}
+                                            {s.status === "online" ? "Online" : "Offline"}
                                           </span>
                                         </td>
                                       </tr>

@@ -1226,7 +1226,7 @@ export default function Funil() {
     if (!etapaAberta) return null;
     const e = etapas.find(x => x.opcao === etapaAberta);
     const cor = e?.cor || "#3b82f6";
-    const tipoLabel = e?.tipo === "ganho" ? "✅ Ganho" : e?.tipo === "perdido" ? "❌ Perdido" : "▸ Em pipeline";
+    const tipoLabel = e?.tipo === "ganho" ? "Ganho" : e?.tipo === "perdido" ? "Perdido" : "▸ Em pipeline";
 
     return (
       <div id="drill-etapa" style={{ ...cardStyle, borderTop: `4px solid ${cor}`, overflow: "hidden", boxShadow: `0 4px 20px ${cor}15` }}>
@@ -1314,10 +1314,10 @@ export default function Funil() {
             <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
               <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700 }}>Ordenar:</span>
               {([
-                { k: "recente", l: "📅 Recente" },
-                { k: "valor_desc", l: "💰 Maior valor" },
-                { k: "valor_asc", l: "💸 Menor valor" },
-                { k: "nome_az", l: "🔤 Nome" },
+                { k: "recente", l: "Recente" },
+                { k: "valor_desc", l: "Maior valor" },
+                { k: "valor_asc", l: "Menor valor" },
+                { k: "nome_az", l: "Nome" },
               ] as { k: OrdemLista; l: string }[]).map(o => (
                 <button key={o.k} onClick={() => setListaOrdem(o.k)}
                   style={{ ...chipStyle, fontSize: 11, background: listaOrdem === o.k ? `${cor}15` : "#F7FAF9", color: listaOrdem === o.k ? cor : "#64748B", borderColor: listaOrdem === o.k ? cor : "#E6ECEA", fontWeight: listaOrdem === o.k ? 700 : 600 }}>
@@ -2023,7 +2023,7 @@ export default function Funil() {
                     <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>👤</span>
                     Performance por atendente
                   </h3>
-                  <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0" }}>Baseado nas etiquetas marcadas no chat. Reclassifique em "⚙️ Mapear etiquetas".</p>
+                  <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0" }}>Baseado nas etiquetas marcadas no chat. Reclassifique em "Mapear etiquetas".</p>
                 </div>
                 {performanceAtendentes.length === 0 ? (
                   <p style={{ color: "#94A3B8", fontSize: 13, fontStyle: "italic", padding: 24, textAlign: "center" }}>Sem atendimentos no período.</p>
@@ -2032,7 +2032,7 @@ export default function Funil() {
                     <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
                       <thead>
                         <tr style={{ background: "#F7FAF9" }}>
-                          {["#", "Atendente", "Total", "✅ Venda", "❌ Inviável", "🔄 Andamento", "Conv.", "Perda"].map(h => (
+                          {["#", "Atendente", "Total", "Venda", "Inviável", "Andamento", "Conv.", "Perda"].map(h => (
                             <th key={h} style={{ padding: "12px 14px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
                           ))}
                         </tr>
@@ -2073,7 +2073,7 @@ export default function Funil() {
                       const cor = e.cor || "#64748B";
                       const corCat = e.categoria === "venda" ? "#059669" : e.categoria === "inviavel" ? "#dc2626" : "#f59e0b";
                       const bgCat = e.categoria === "venda" ? "#ECFDF5" : e.categoria === "inviavel" ? "#fef2f2" : "#fffbeb";
-                      const labelCat = e.categoria === "venda" ? "✅ Venda" : e.categoria === "inviavel" ? "❌ Inviável" : "🔄 Andamento";
+                      const labelCat = e.categoria === "venda" ? "Venda" : e.categoria === "inviavel" ? "Inviável" : "Andamento";
                       return (
                         <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 10 }}>
                           <span style={{ width: 12, height: 12, borderRadius: 4, background: cor, flexShrink: 0 }}></span>
@@ -2098,7 +2098,7 @@ export default function Funil() {
                         <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: 0 }}>Mapear etiquetas do funil</h3>
                         <p style={{ color: "#94A3B8", fontSize: 11, margin: "3px 0 0" }}>Defina o que cada etiqueta significa no funil. Padrão = auto-detectado pelo nome.</p>
                       </div>
-                      <button onClick={() => setShowMapearEtq(false)} style={{ background: "#F1F5F4", color: "#64748B", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>✕</button>
+                      <button onClick={() => setShowMapearEtq(false)} style={{ background: "#F1F5F4", color: "#64748B", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}><Icone nome="x" tamanho={16} /></button>
                     </div>
                     <div style={{ overflowY: "auto", padding: 18, flex: 1 }}>
                       {etiquetasComCategoria.length === 0 ? (
@@ -2106,9 +2106,9 @@ export default function Funil() {
                       ) : etiquetasComCategoria.map(e => {
                         const cor = e.cor || "#64748B";
                         const opts: { v: CategoriaEtiqueta; l: string; c: string; bg: string }[] = [
-                          { v: "venda",     l: "✅ Venda",     c: "#059669", bg: "#ECFDF5" },
-                          { v: "inviavel",  l: "❌ Inviável",  c: "#dc2626", bg: "#fef2f2" },
-                          { v: "andamento", l: "🔄 Andamento", c: "#f59e0b", bg: "#fffbeb" },
+                          { v: "venda",     l: "Venda",     c: "#059669", bg: "#ECFDF5" },
+                          { v: "inviavel",  l: "Inviável",  c: "#dc2626", bg: "#fef2f2" },
+                          { v: "andamento", l: "Andamento", c: "#f59e0b", bg: "#fffbeb" },
                         ];
                         return (
                           <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: "1px solid #F1F5F4", flexWrap: "wrap" }}>
@@ -2188,7 +2188,7 @@ export default function Funil() {
                             </div>
                           </div>
                           <p style={{ color: metas.projReceita >= metas.metaReceita ? "#059669" : "#dc2626", fontSize: 11, fontWeight: 700, margin: "10px 0 0", textAlign: "center" }}>
-                            {metas.projReceita >= metas.metaReceita ? "✅ No ritmo pra bater a meta" : "⚠️ Abaixo do ritmo necessário"}
+                            {metas.projReceita >= metas.metaReceita ? "No ritmo pra bater a meta" : "Abaixo do ritmo necessário"}
                           </p>
                         </div>
                       )}
@@ -2332,7 +2332,7 @@ export default function Funil() {
                   <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 640 : "auto" }}>
                     <thead>
                       <tr style={{ background: "#F7FAF9" }}>
-                        {["Semana de", "Entraram", "✅ Ganho", "❌ Perdido", "⏳ Aberto", "Receita", "Taxa Ganho"].map(h => (
+                        {["Semana de", "Entraram", "Ganho", "Perdido", "⏳ Aberto", "Receita", "Taxa Ganho"].map(h => (
                           <th key={h} style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
                         ))}
                       </tr>
@@ -2452,10 +2452,10 @@ export default function Funil() {
                 <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700 }}>{listaOrdenada.length} registro(s)</span>
                 <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {([
-                    { k: "recente", l: "📅 Recente" },
-                    { k: "valor_desc", l: "💰 Maior" },
-                    { k: "valor_asc", l: "💸 Menor" },
-                    { k: "nome_az", l: "🔤 Nome" },
+                    { k: "recente", l: "Recente" },
+                    { k: "valor_desc", l: "Maior" },
+                    { k: "valor_asc", l: "Menor" },
+                    { k: "nome_az", l: "Nome" },
                   ] as { k: OrdemLista; l: string }[]).map(o => (
                     <button key={o.k} onClick={() => setListaOrdem(o.k)}
                       style={{ ...chipStyle, fontSize: 11, background: listaOrdem === o.k ? "#ECFDF5" : "#F7FAF9", color: listaOrdem === o.k ? "#059669" : "#64748B", borderColor: listaOrdem === o.k ? "#059669" : "#E6ECEA", fontWeight: listaOrdem === o.k ? 700 : 600 }}>

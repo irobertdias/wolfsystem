@@ -940,7 +940,7 @@ export default function Dashboard() {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: T.soft }}>
-                    {["Vendedor", `✅ ${voc.abrev.charAt(0).toUpperCase()}${voc.abrev.slice(1)}`, `${grupoMeta.AGUARDANDO_INST.icone} Aguard.`, "🪪 Biometria", "⏳ Pendentes", "🔍 Auditoria", "❌ Cancel."].map((h) => (
+                    {["Vendedor", `${voc.abrev.charAt(0).toUpperCase()}${voc.abrev.slice(1)}`, `${grupoMeta.AGUARDANDO_INST.icone} Aguard.`, "Biometria", "⏳ Pendentes", "Auditoria", "Cancel."].map((h) => (
                       <th key={h} style={{ padding: "12px 14px", color: T.sub, fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 800, borderBottom: `1px solid ${T.line}`, whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>

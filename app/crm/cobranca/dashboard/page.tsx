@@ -412,18 +412,18 @@ export default function CobrancaDashboard() {
 
     if (kpisAnt.recebidas > 0 && kpis.recebidas > 0) {
       const varRecebidas = Math.round(((kpis.recebidas - kpisAnt.recebidas) / kpisAnt.recebidas) * 100);
-      if (varRecebidas >= 10) out.push({ tipo: "ok", texto: `📈 As faturas recebidas subiram ${varRecebidas}% comparado ao período anterior. Bom trabalho do time!` });
-      else if (varRecebidas <= -10) out.push({ tipo: "alerta", texto: `📉 As faturas recebidas caíram ${Math.abs(varRecebidas)}% comparado ao período anterior. Vale revisar a estratégia.` });
+      if (varRecebidas >= 10) out.push({ tipo: "ok", texto: `As faturas recebidas subiram ${varRecebidas}% comparado ao período anterior. Bom trabalho do time!` });
+      else if (varRecebidas <= -10) out.push({ tipo: "alerta", texto: `As faturas recebidas caíram ${Math.abs(varRecebidas)}% comparado ao período anterior. Vale revisar a estratégia.` });
     }
 
     if (kpisAnt.inadimplentes > 0 && kpis.inadimplentes > 0) {
       const varInad = Math.round(((kpis.inadimplentes - kpisAnt.inadimplentes) / kpisAnt.inadimplentes) * 100);
-      if (varInad <= -10) out.push({ tipo: "ok", texto: `✅ A inadimplência caiu ${Math.abs(varInad)}% — o esforço de recuperação está dando resultado.` });
-      else if (varInad >= 20) out.push({ tipo: "alerta", texto: `🚨 A inadimplência subiu ${varInad}%. Priorize as cobranças mais antigas.` });
+      if (varInad <= -10) out.push({ tipo: "ok", texto: `A inadimplência caiu ${Math.abs(varInad)}% — o esforço de recuperação está dando resultado.` });
+      else if (varInad >= 20) out.push({ tipo: "alerta", texto: `A inadimplência subiu ${varInad}%. Priorize as cobranças mais antigas.` });
     }
 
     if (kpis.negociacao > 0) {
-      out.push({ tipo: "info", texto: `🤝 Você tem ${kpis.negociacao} fatura(s) em negociação ativa. Acompanhe de perto — promessas e acordos precisam de follow-up.` });
+      out.push({ tipo: "info", texto: `Você tem ${kpis.negociacao} fatura(s) em negociação ativa. Acompanhe de perto — promessas e acordos precisam de follow-up.` });
     }
 
     if (alertas.atrasadasMais30d > 0) {
@@ -431,9 +431,9 @@ export default function CobrancaDashboard() {
     }
 
     if (kpis.pctRecebida >= 80) {
-      out.push({ tipo: "ok", texto: `🏆 ${kpis.pctRecebida}% das suas faturas no período foram recebidas. Excelente performance!` });
+      out.push({ tipo: "ok", texto: `${kpis.pctRecebida}% das suas faturas no período foram recebidas. Excelente performance!` });
     } else if (kpis.pctRecebida < 50 && kpis.totalFaturas > 10) {
-      out.push({ tipo: "alerta", texto: `⚠️ Apenas ${kpis.pctRecebida}% das faturas foram recebidas. Foque nas inadimplências mais antigas e nas negociações em andamento.` });
+      out.push({ tipo: "alerta", texto: `Apenas ${kpis.pctRecebida}% das faturas foram recebidas. Foque nas inadimplências mais antigas e nas negociações em andamento.` });
     }
 
     return out;
@@ -472,7 +472,7 @@ export default function CobrancaDashboard() {
       {ultimaAtualizacao.quando && (
         <div style={{ background: "#F7FFFB", border: "none", boxShadow: "inset 0 0 0 1.5px #A7F3D0", borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ fontSize: 26 }}>🔄</div>
+            <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="🔄" tamanho={26} /></div>
             <div>
               <p style={{ color: "#047857", fontSize: 13, margin: 0, fontWeight: 700 }}>
                 Última atualização da planilha: {formatTempo(ultimaAtualizacao.quando)}
@@ -609,7 +609,7 @@ export default function CobrancaDashboard() {
           )}
           {alertas.promessasHoje > 0 && (
             <div style={{ ...card, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 28 }}>🤝</div>
+              <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="🤝" tamanho={26} /></div>
               <div>
                 <p style={{ color: "#047857", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.promessasHoje)}</p>
                 <p style={{ color: "#065F46", fontSize: 12, margin: 0, fontWeight: 600 }}>promessa(s) de pagamento pra hoje</p>
@@ -618,7 +618,7 @@ export default function CobrancaDashboard() {
           )}
           {alertas.atrasadasMais30d > 0 && (
             <div style={{ ...card, padding: 16, borderLeft: "4px solid #dc2626", display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 28 }}>🚨</div>
+              <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="🚨" tamanho={26} /></div>
               <div>
                 <p style={{ color: "#dc2626", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.atrasadasMais30d)}</p>
                 <p style={{ color: "#991b1b", fontSize: 12, margin: 0, fontWeight: 600 }}>atrasadas há mais de 30 dias</p>
@@ -671,7 +671,7 @@ export default function CobrancaDashboard() {
             </div>
             <div style={{ display: "flex", gap: 4 }}>
               {(["barras", "linha"] as const).map(t => (
-                <button key={t} onClick={() => setTipoGrafico(t)} style={{ borderRadius: 20, padding: "6px 13px", fontSize: 12, cursor: "pointer", fontWeight: tipoGrafico === t ? 700 : 600, border: `1px solid ${tipoGrafico === t ? "#047857" : "#E6ECEA"}`, background: tipoGrafico === t ? "#ECFDF5" : "#fff", color: tipoGrafico === t ? "#047857" : "#64748B" }}>{t === "barras" ? "📊 Barras" : "📈 Linha"}</button>
+                <button key={t} onClick={() => setTipoGrafico(t)} style={{ borderRadius: 20, padding: "6px 13px", fontSize: 12, cursor: "pointer", fontWeight: tipoGrafico === t ? 700 : 600, border: `1px solid ${tipoGrafico === t ? "#047857" : "#E6ECEA"}`, background: tipoGrafico === t ? "#ECFDF5" : "#fff", color: tipoGrafico === t ? "#047857" : "#64748B" }}>{t === "barras" ? "Barras" : "Linha"}</button>
               ))}
             </div>
           </div>
@@ -704,7 +704,7 @@ export default function CobrancaDashboard() {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ ...card, padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ fontSize: 24 }}>👥</div>
+                <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="👥" tamanho={24} /></div>
                 <div>
                   <p style={{ color: "#047857", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.totalClientes)}</p>
                   <p style={{ color: "#64748B", fontSize: 11.5, margin: 0, fontWeight: 600 }}>clientes c/ faturas no período</p>
@@ -713,7 +713,7 @@ export default function CobrancaDashboard() {
             </div>
             <div style={{ ...card, padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ fontSize: 24 }}>📑</div>
+                <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="📑" tamanho={24} /></div>
                 <div>
                   <p style={{ color: "#059669", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.totalFaturas)}</p>
                   <p style={{ color: "#64748B", fontSize: 11.5, margin: 0, fontWeight: 600 }}>faturas analisadas no período</p>
@@ -722,7 +722,7 @@ export default function CobrancaDashboard() {
             </div>
             <div style={{ ...card, padding: 16, borderLeft: `4px solid ${kpis.perdidas > 0 ? "#94A3B8" : "#E6ECEA"}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ fontSize: 24 }}>❌</div>
+                <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="❌" tamanho={24} /></div>
                 <div>
                   <p style={{ color: "#64748B", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.perdidas)}</p>
                   <p style={{ color: "#64748B", fontSize: 11.5, margin: 0, fontWeight: 600 }}>marcadas como "não vai pagar"</p>
@@ -790,7 +790,7 @@ export default function CobrancaDashboard() {
           </h3>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
             {[
-              { titulo: "De onde vêm os dados?", desc: "Sua equipe atualiza pela página '📤 Atualizar planilha' subindo o arquivo da operadora. Este dashboard mostra o resultado disso." },
+              { titulo: "De onde vêm os dados?", desc: "Sua equipe atualiza pela página 'Atualizar planilha' subindo o arquivo da operadora. Este dashboard mostra o resultado disso." },
               { titulo: "O que significa 'em risco'?", desc: "São faturas atrasadas mas que ainda podem ser recuperadas. Quanto antes negociar, melhor a chance de pagamento." },
               { titulo: "E 'em negociação'?", desc: "Quando o cliente fez uma promessa, fechou acordo ou está em conversa ativa. Acompanhe pra garantir que cumpre o combinado." },
               { titulo: "Taxa de inadimplência saudável?", desc: "Abaixo de 10% é considerada saudável. Entre 10% e 25% pede atenção. Acima de 25%, é crítico — revise a operação." },

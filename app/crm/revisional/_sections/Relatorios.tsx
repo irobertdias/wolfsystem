@@ -94,7 +94,7 @@ export default function Relatorios({ dados }: any) {
             <td style={{ ...tdStyle, textAlign: "center" }}>{g.qtd}</td>
             <td style={{ ...tdStyle, textAlign: "right" }}>{brl(g.financiado)}</td>
             <td style={{ ...tdStyle, textAlign: "center" }}>{g.comTaxa ? `${pctBR(g.somaTaxa / g.comTaxa)} a.m.` : "—"}</td>
-            <td style={{ ...tdStyle, textAlign: "center" }}>{g.abusivos ? <Pill texto={`🚩 ${g.abusivos}`} cor={C.red} /> : "—"}</td>
+            <td style={{ ...tdStyle, textAlign: "center" }}>{g.abusivos ? <Pill texto={`${g.abusivos}`} cor={C.red} /> : "—"}</td>
             <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800, color: C.green }}>{brl(g.beneficio)}</td>
             <td style={{ ...tdStyle, textAlign: "right" }}>{brl(g.honorarios)}</td>
           </tr>

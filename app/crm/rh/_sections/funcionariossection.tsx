@@ -822,7 +822,7 @@ export function FuncionariosSection() {
                   opacity: salvando ? 0.7 : 1,
                 }}
               >
-                {salvando ? "Salvando..." : editando ? "💾 Salvar" : "+ Cadastrar"}
+                {salvando ? "Salvando..." : editando ? "Salvar" : "+ Cadastrar"}
               </button>
             </div>
           </div>

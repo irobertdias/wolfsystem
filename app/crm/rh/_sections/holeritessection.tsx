@@ -166,7 +166,7 @@ export function HoleritesSection() {
     }
     setComp(compGerar);
     await carregar();
-    alert(`✅ ${novos.length} holerite(s) gerado(s) para ${fmtComp(compGerar)}!`);
+    alert(`${novos.length} holerite(s) gerado(s) para ${fmtComp(compGerar)}!`);
   };
   const competencias = useMemo(
     () =>
@@ -270,7 +270,7 @@ export function HoleritesSection() {
                   opacity: gerando ? 0.7 : 1,
                 }}
               >
-                {gerando ? "Gerando..." : "⚙️ Gerar"}
+                {gerando ? "Gerando..." : "Gerar"}
               </button>
             </div>
           )}
@@ -289,7 +289,7 @@ export function HoleritesSection() {
           {todos.length === 0 && (
             <p style={{ color: "#94A3B8", fontSize: 12, margin: "6px 0 0", lineHeight: 1.5 }}>
               {compsFolha.length > 0
-                ? 'Use o botão "⚙️ Gerar" lá em cima pra criar os contracheques a partir da folha do mês.'
+                ? 'Use o botão "Gerar" lá em cima pra criar os contracheques a partir da folha do mês.'
                 : "Gere uma folha primeiro no módulo Folha de Pagamento — depois volte aqui pra emitir os holerites."}
             </p>
           )}

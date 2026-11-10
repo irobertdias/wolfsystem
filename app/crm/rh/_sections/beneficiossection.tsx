@@ -484,7 +484,7 @@ export function BeneficiosSection() {
                   opacity: salvando ? 0.7 : 1,
                 }}
               >
-                {salvando ? "Salvando..." : editando ? "💾 Salvar" : "+ Cadastrar"}
+                {salvando ? "Salvando..." : editando ? "Salvar" : "+ Cadastrar"}
               </button>
             </div>
           </div>

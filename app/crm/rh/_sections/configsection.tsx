@@ -146,7 +146,7 @@ export function ConfigSection() {
             whiteSpace: "nowrap",
           }}
         >
-          {ok ? "✅ Salvo!" : salvando ? "Salvando..." : "💾 Salvar"}
+          {ok ? "Salvo!" : salvando ? "Salvando..." : "Salvar"}
         </button>
       </div>
       {carregando ? (

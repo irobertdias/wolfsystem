@@ -37,7 +37,7 @@ export default function ConfigRevisionalSection({ dados }: any) {
 
   return (
     <Page>
-      <PageHeader icone="⚙️" titulo="Taxas e honorários" subtitulo="Parâmetros usados nos cálculos de todos os contratos" acao={<Btn onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "💾 Salvar"}</Btn>} />
+      <PageHeader icone="⚙️" titulo="Taxas e honorários" subtitulo="Parâmetros usados nos cálculos de todos os contratos" acao={<Btn onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Btn>} />
       {aviso && <Banner tipo={aviso.startsWith("Erro") ? "warn" : "ok"}>{aviso}</Banner>}
 
       <Card titulo="Critérios do cálculo">

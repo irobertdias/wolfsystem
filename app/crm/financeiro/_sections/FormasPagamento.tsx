@@ -130,11 +130,11 @@ export default function FormasPagamento() {
                 <div key={f.id} style={{ ...card, padding: 18, opacity: f.ativo ? 1 : 0.6 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 12, background: `${COR}12`, border: `1px solid ${COR}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{t.i}</div>
+                      <div style={{ width: 42, height: 42, borderRadius: 12, background: `${COR}12`, border: `1px solid ${COR}33`, display: "flex", alignItems: "center", justifyContent: "center", color: COR }}><IconeEmoji e={t.i} tamanho={20} /></div>
                       <div><div style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>{f.nome}</div><div style={{ fontSize: 11.5, color: "#94A3B8" }}>{t.l}{!f.ativo ? " · inativa" : ""}</div></div>
                     </div>
                     <div style={{ display: "flex", gap: 5 }}>
-                      <button onClick={() => abrirEdicao(f)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "5px 8px", fontSize: 13, cursor: "pointer" }}>✏️</button>
+                      <button onClick={() => abrirEdicao(f)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "5px 8px", fontSize: 13, cursor: "pointer" }}><Icone nome="editar" tamanho={15} /></button>
                       <button onClick={() => remover(f)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 8px", fontSize: 13, cursor: "pointer" }}><Icone nome="lixeira" tamanho={15} /></button>
                     </div>
                   </div>
@@ -162,7 +162,7 @@ export default function FormasPagamento() {
             <div style={{ marginBottom: 16 }}>
               <label style={lbl}>Tipo</label>
               <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-                {TIPOS.map((t) => { const on = form.tipo === t.v; return <button key={t.v} onClick={() => setForm({ ...form, tipo: t.v })} style={{ padding: "8px 12px", borderRadius: 9, border: on ? `2px solid ${COR}` : "1px solid #E6ECEA", background: on ? `${COR}12` : "#fff", color: on ? COR : "#64748B", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{t.i} {t.l}</button>; })}
+                {TIPOS.map((t) => { const on = form.tipo === t.v; return <button key={t.v} onClick={() => setForm({ ...form, tipo: t.v })} style={{ padding: "8px 12px", borderRadius: 9, border: on ? `2px solid ${COR}` : "1px solid #E6ECEA", background: on ? `${COR}12` : "#fff", color: on ? COR : "#64748B", fontSize: 12.5, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><IconeEmoji e={t.i} tamanho={15} /> {t.l}</button>; })}
               </div>
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer", fontSize: 14, color: "#334155" }}><input type="checkbox" checked={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.target.checked })} /> Ativa</label>

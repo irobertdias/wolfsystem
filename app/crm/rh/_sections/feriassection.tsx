@@ -223,7 +223,7 @@ export function FeriasSection() {
             gap: 10,
           }}
         >
-          <span style={{ fontSize: 18 }}>⚠️</span>
+          <IconeEmoji e="⚠️" tamanho={16} />
           <p style={{ color: "#991b1b", fontSize: 13, margin: 0, fontWeight: 600 }}>
             <b>{stats.vencendo}</b> período(s) de férias vencendo — agende o quanto antes.
           </p>

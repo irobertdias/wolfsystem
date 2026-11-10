@@ -1,4 +1,5 @@
 "use client";
+import { IconeEmoji } from "../../../components/a2/Icone";
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
@@ -262,7 +263,7 @@ export function BaterPontoSection() {
               boxShadow: !nome ? "none" : `0 8px 24px ${COR}50`,
             }}
           >
-            {registrando ? "📍 Registrando..." : "🕐 Bater Ponto"}
+            {registrando ? "Registrando..." : "Bater Ponto"}
           </button>
         </div>
 
@@ -279,13 +280,13 @@ export function BaterPontoSection() {
               gap: 10,
             }}
           >
-            <span style={{ fontSize: 22 }}>✅</span>
+            <IconeEmoji e="✅" tamanho={20} />
             <div style={{ textAlign: "left" }}>
               <p style={{ color: "#059669", fontSize: 14, fontWeight: 800, margin: 0 }}>
                 {ultima.tipo} registrada às {ultima.hora}
               </p>
               <p style={{ color: "#64748B", fontSize: 11, margin: "2px 0 0" }}>
-                {ultima.comGps ? "📍 Localização capturada" : "⚠️ Registrado sem localização"}
+                {ultima.comGps ? "Localização capturada" : "Registrado sem localização"}
               </p>
             </div>
           </div>
@@ -328,7 +329,7 @@ export function BaterPontoSection() {
                       <div>
                         <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0 }}>{b.tipo}</p>
                         <p style={{ color: "#94A3B8", fontSize: 11, margin: "1px 0 0" }}>
-                          {temGps ? "📍 com localização" : "sem localização"}
+                          {temGps ? "com localização" : "sem localização"}
                         </p>
                       </div>
                     </div>

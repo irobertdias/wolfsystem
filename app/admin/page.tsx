@@ -81,12 +81,12 @@ export default function Admin() {
       });
       const result = await response.json();
       if (result.success) {
-        alert(`✅ ${cadastro.nome} foi autorizado com sucesso!`);
+        alert(`${cadastro.nome} foi autorizado com sucesso!`);
         fetchCadastros();
       } else {
         if (result.error?.includes("already been registered")) {
           await supabase.from("cadastros").update({ autorizado: true }).eq("id", cadastro.id);
-          alert(`✅ ${cadastro.nome} foi autorizado!`);
+          alert(`${cadastro.nome} foi autorizado!`);
           fetchCadastros();
         } else {
           alert("Erro ao autorizar: " + result.error);
@@ -134,7 +134,7 @@ export default function Admin() {
       });
       const result = await response.json();
       if (result.success) {
-        alert(`✅ Usuário ${formUsuario.nome} criado com sucesso!`);
+        alert(`Usuário ${formUsuario.nome} criado com sucesso!`);
         setShowFormUsuario(false);
         setFormUsuario({ nome: "", email: "", telefone: "", senha: "", confirmarSenha: "", perfil: "Atendente", grupo: "", workspace_id: "" });
       } else {

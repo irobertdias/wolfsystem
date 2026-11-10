@@ -1,5 +1,5 @@
 "use client";
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
@@ -43,7 +43,7 @@ export default function IntegracaoBanco() {
 
       {/* STATUS */}
       <div style={{ ...card, padding: 24, borderLeft: `5px solid ${conectado ? "#059669" : "#94A3B8"}`, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-        <div style={{ width: 60, height: 60, borderRadius: 16, background: conectado ? "linear-gradient(135deg, #059669 0%, #10B981 100%)" : "linear-gradient(135deg, #94a3b8 0%, #cbd5e1 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, boxShadow: `0 6px 16px ${conectado ? "rgba(5,150,105,0.3)" : "rgba(148,163,184,0.3)"}` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{conectado ? "✅" : "🔌"}</span></div>
+        <div style={{ width: 60, height: 60, borderRadius: 16, background: conectado ? "#ECFDF5" : "#F3F6F5", color: conectado ? "#059669" : "#94A3B8", display: "flex", alignItems: "center", justifyContent: "center" }}>{conectado ? <Icone nome="check" tamanho={28} espessura={2.4} /> : <Icone nome="link" tamanho={26} />}</div>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 10, height: 10, borderRadius: "50%", background: conectado ? "#059669" : "#94A3B8" }} />

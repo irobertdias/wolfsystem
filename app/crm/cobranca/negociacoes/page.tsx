@@ -1340,7 +1340,7 @@ export default function CobrancaPage() {
           borderRadius: 12, padding: "12px 16px",
           display: "flex", gap: 12, alignItems: "flex-start",
         }}>
-          <span style={{ fontSize: 22 }}>⚠️</span>
+          <IconeEmoji e="⚠️" tamanho={20} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ color: "#92400e", fontSize: 13, margin: 0, fontWeight: 700 }}>Algumas tabelas não foram encontradas no Supabase</p>
             <p style={{ color: "#78350f", fontSize: 12, margin: "4px 0 0", lineHeight: 1.5 }}>
@@ -1391,7 +1391,7 @@ export default function CobrancaPage() {
                 </div>
                 <button onClick={fetchRespostasCobranca} disabled={carregandoResp}
                   style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  {carregandoResp ? "⏳ Buscando..." : "🔄 Atualizar"}
+                  {carregandoResp ? "⏳ Buscando..." : "Atualizar"}
                 </button>
               </div>
               {carregandoResp ? (
@@ -1464,7 +1464,7 @@ export default function CobrancaPage() {
                 {/* botão que abre/fecha o menu lateral de clientes */}
                 <button onClick={() => setShowSidebar(s => !s)}
                   style={{ background: showSidebar ? "#047857" : "#ECFDF5", color: showSidebar ? "#fff" : "#047857", border: `1px solid ${showSidebar ? "#047857" : "#A7F3D0"}`, borderRadius: 10, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap" }}>
-                  {showSidebar ? "✕ Fechar clientes" : "👥 Clientes"}
+                  {showSidebar ? "Fechar clientes" : "Clientes"}
                 </button>
 
                 {/* 🆕 MENU SUSPENSO de vencimentos detectados */}
@@ -1496,11 +1496,11 @@ export default function CobrancaPage() {
                 {/* atalhos rápidos de janela de vencimento */}
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {([
-                    { k: "todos",       l: "🌐 Todos",          cor: "#64748B" },
-                    { k: "vencendo_7d", l: "🟡 Próx. 7 dias",   cor: "#EA580C" },
+                    { k: "todos",       l: "Todos",          cor: "#64748B" },
+                    { k: "vencendo_7d", l: "Próx. 7 dias",   cor: "#EA580C" },
                     { k: "hoje",        l: "⏰ Hoje",            cor: "#ea580c" },
-                    { k: "vencidos",    l: "🔴 Vencidos",        cor: "#dc2626" },
-                    { k: "este_mes",    l: "📆 Este mês",        cor: "#0F766E" },
+                    { k: "vencidos",    l: "Vencidos",        cor: "#dc2626" },
+                    { k: "este_mes",    l: "Este mês",        cor: "#0F766E" },
                   ] as { k: FiltroVenc; l: string; cor: string }[]).map(f => {
                     const at = filtroVenc === f.k;
                     return (
@@ -1520,11 +1520,11 @@ export default function CobrancaPage() {
               <div style={{ ...cardStyle, padding: isMobile ? 10 : 12, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                 <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginRight: 4 }}>Status:</span>
                 {([
-                  { k: "todas",     l: "🌐 Todas",          cor: "#334155" },
-                  { k: "pagas",     l: "✅ Pagas",           cor: "#059669" },
-                  { k: "atrasadas", l: "🔴 Em aberto",      cor: "#dc2626" },
+                  { k: "todas",     l: "Todas",          cor: "#334155" },
+                  { k: "pagas",     l: "Pagas",           cor: "#059669" },
+                  { k: "atrasadas", l: "Em aberto",      cor: "#dc2626" },
                   { k: "pendentes", l: "⏳ Em vencer",      cor: "#C2410C" },
-                  { k: "negociacao",l: "📞 Em negociação",  cor: "#0F766E" },
+                  { k: "negociacao",l: "Em negociação",  cor: "#0F766E" },
                 ] as { k: string; l: string; cor: string }[]).map(f => {
                   const at = filtroStatus === f.k;
                   return (
@@ -1741,7 +1741,7 @@ export default function CobrancaPage() {
                   <div onClick={e => e.stopPropagation()} style={{ width: isMobile ? "88%" : 380, maxWidth: "92vw", height: "100%", background: "#fff", boxShadow: "4px 0 24px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column" }}>
                     <div style={{ padding: "14px 16px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <span style={{ fontSize: 14, fontWeight: 800, color: "#0F172A" }}>Clientes</span>
-                      <button onClick={() => setShowSidebar(false)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 18, color: "#94A3B8" }}>✕</button>
+                      <button onClick={() => setShowSidebar(false)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 18, color: "#94A3B8" }}><Icone nome="x" tamanho={16} /></button>
                     </div>
                     <div style={{ display: "flex", gap: 6, padding: 10, borderBottom: "1px solid #f1f5f9" }}>
                       {([
@@ -1832,7 +1832,7 @@ export default function CobrancaPage() {
                       {campanhas.map((c, i) => (
                         <tr key={c.id} style={{ borderTop: "1px solid #F1F5F4", background: i % 2 === 0 ? "#ffffff" : "#F7FAF9" }}>
                           <td style={{ padding: "12px", color: "#0F172A", fontSize: 13, fontWeight: 700 }}>{c.nome}</td>
-                          <td style={{ padding: "12px", color: "#64748B", fontSize: 12 }}>{c.modo === "planilha" ? "📤 Planilha" : "📅 CRM"}</td>
+                          <td style={{ padding: "12px", color: "#64748B", fontSize: 12 }}>{c.modo === "planilha" ? "Planilha" : "CRM"}</td>
                           <td style={{ padding: "12px" }}>
                             <span style={{ background: c.status === "concluida" ? "#ECFDF5" : c.status === "rodando" ? "#fffbeb" : "#fef2f2", color: c.status === "concluida" ? "#059669" : c.status === "rodando" ? "#EA580C" : "#dc2626", border: "1px solid", borderRadius: 8, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
                               {c.status}
@@ -1860,9 +1860,9 @@ export default function CobrancaPage() {
             <div style={{ padding: "18px 22px", borderBottom: "1px solid #E6ECEA", background: "linear-gradient(135deg, #ECFDF5 0%, #ffffff 100%)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: 0 }}>Disparar cobrança</h3>
-                <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>{envioContatos.length} contato(s) · fonte: {envioFonte === "crm" ? "📅 CRM" : "📤 Planilha"}</p>
+                <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>{envioContatos.length} contato(s) · fonte: {envioFonte === "crm" ? "CRM" : "Planilha"}</p>
               </div>
-              <button onClick={() => setShowEnvio(false)} disabled={envioEnviando} style={{ background: "#F1F5F4", color: "#64748B", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>✕</button>
+              <button onClick={() => setShowEnvio(false)} disabled={envioEnviando} style={{ background: "#F1F5F4", color: "#64748B", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}><Icone nome="x" tamanho={16} /></button>
             </div>
 
             <div style={{ padding: 22, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -1877,8 +1877,8 @@ export default function CobrancaPage() {
                   <label style={labelStyle}>Como disparar</label>
                   <div style={{ display: "flex", gap: 8 }}>
                     {([
-                      { v: "cliente", l: "👤 1 mensagem por cliente", sub: "resumo das faturas em aberto" },
-                      { v: "fatura",  l: "📄 1 mensagem por fatura", sub: "uma msg para cada fatura em aberto" },
+                      { v: "cliente", l: "1 mensagem por cliente", sub: "resumo das faturas em aberto" },
+                      { v: "fatura",  l: "1 mensagem por fatura", sub: "uma msg para cada fatura em aberto" },
                     ] as { v: "cliente" | "fatura"; l: string; sub: string }[]).map(o => (
                       <button key={o.v} onClick={() => { setEnvioModo(o.v); setEnvioContatos(montarContatosClientes(envioOrigemClientes, o.v)); }}
                         style={{ flex: 1, padding: "10px 12px", borderRadius: 10, textAlign: "left", border: envioModo === o.v ? "2px solid #047857" : "1px solid #E6ECEA", background: envioModo === o.v ? "#ECFDF5" : "#ffffff", color: envioModo === o.v ? "#047857" : "#64748B", cursor: "pointer" }}>
@@ -1897,8 +1897,8 @@ export default function CobrancaPage() {
                 <label style={labelStyle}>Tipo de envio</label>
                 <div style={{ display: "flex", gap: 8 }}>
                   {([
-                    { v: "webjs", l: "📱 WhatsApp comum (texto livre)" },
-                    { v: "waba",  l: "📨 WABA (template aprovado)" },
+                    { v: "webjs", l: "WhatsApp comum (texto livre)" },
+                    { v: "waba",  l: "WABA (template aprovado)" },
                   ] as { v: "webjs" | "waba"; l: string }[]).map(o => (
                     <button key={o.v} onClick={() => setEnvioTipo(o.v)}
                       style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: envioTipo === o.v ? "2px solid #047857" : "1px solid #E6ECEA", background: envioTipo === o.v ? "#ECFDF5" : "#ffffff", color: envioTipo === o.v ? "#047857" : "#64748B", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
@@ -1966,7 +1966,7 @@ export default function CobrancaPage() {
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => setShowEnvio(false)} disabled={envioEnviando} style={btnSecundario}>Cancelar</button>
                 <button onClick={dispararCobranca} disabled={envioEnviando} style={{ ...btnPrimario, opacity: envioEnviando ? 0.7 : 1, cursor: envioEnviando ? "wait" : "pointer" }}>
-                  {envioEnviando ? "⏳ Enviando..." : "🚀 Disparar agora"}
+                  {envioEnviando ? "⏳ Enviando..." : "Disparar agora"}
                 </button>
               </div>
             </div>
@@ -2167,7 +2167,7 @@ export default function CobrancaPage() {
                     <span style={{ color: "#64748B" }}>Tel: <b style={{ fontFamily: "monospace", color: "#334155" }}>{c.proposta.telefone1 || "—"}</b></span>
                   </div>
                 </div>
-                <button onClick={() => setModalCliente(null)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 20, color: "#94A3B8" }}>✕</button>
+                <button onClick={() => setModalCliente(null)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 20, color: "#94A3B8" }}><Icone nome="x" tamanho={16} /></button>
               </div>
 
               {/* resumo rápido */}
@@ -2293,7 +2293,7 @@ export default function CobrancaPage() {
           <div onClick={ev => ev.stopPropagation()} style={{ ...cardStyle, width: "100%", maxWidth: 620, padding: 24, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
               <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: 0 }}>Editar cliente</h3>
-              <button onClick={() => setEditCliente(null)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 18, color: "#94A3B8" }}>✕</button>
+              <button onClick={() => setEditCliente(null)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 18, color: "#94A3B8" }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <p style={{ color: "#64748B", fontSize: 12, margin: "0 0 16px" }}>Alterações salvam direto na venda do CRM.</p>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
@@ -2345,7 +2345,7 @@ export default function CobrancaPage() {
             <p style={{ color: "#94A3B8", fontSize: 11, margin: "14px 0 0", lineHeight: 1.5 }}>A <b>OS</b> é como a planilha de pagamento acha esse cliente. O <b>custcode</b> preenche sozinho quando você sobe a planilha na Atualização — aqui é só pra ajuste manual.</p>
             <div style={{ display: "flex", gap: 8, marginTop: 18, justifyContent: "flex-end" }}>
               <button onClick={() => setEditCliente(null)} style={btnSecundario}>Cancelar</button>
-              <button onClick={salvarEdicaoCliente} disabled={salvandoEdit} style={{ ...btnPrimario, opacity: salvandoEdit ? 0.6 : 1 }}>{salvandoEdit ? "⏳ Salvando..." : "💾 Salvar alterações"}</button>
+              <button onClick={salvarEdicaoCliente} disabled={salvandoEdit} style={{ ...btnPrimario, opacity: salvandoEdit ? 0.6 : 1 }}>{salvandoEdit ? "⏳ Salvando..." : "Salvar alterações"}</button>
             </div>
           </div>
         </div>

@@ -307,7 +307,7 @@ export function DocumentosSection() {
             gap: 10,
           }}
         >
-          <span style={{ fontSize: 18 }}>⚠️</span>
+          <IconeEmoji e="⚠️" tamanho={16} />
           <p style={{ color: "#92400e", fontSize: 13, margin: 0, fontWeight: 600 }}>
             <b>{stats.vencidos}</b> vencido(s) e <b>{stats.vencendo}</b> vencendo em 30 dias.
           </p>
@@ -483,7 +483,7 @@ export function DocumentosSection() {
                               marginRight: 6,
                             }}
                           >
-                            {abrindo === d.id ? "Abrindo..." : "👁️ Ver / Baixar"}
+                            {abrindo === d.id ? "Abrindo..." : "Ver / Baixar"}
                           </button>
                         )}
                         <button
@@ -611,7 +611,7 @@ export function DocumentosSection() {
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                      <span style={{ fontSize: 20 }}>📎</span>
+                      <IconeEmoji e="📎" tamanho={18} />
                       <div style={{ minWidth: 0 }}>
                         <p
                           style={{

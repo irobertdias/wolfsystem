@@ -176,7 +176,7 @@ type Equipe = {
 type Aba = "usuarios" | "equipes" | "filas" | "permissoes" | "geral";
 
 const CATEGORIAS_PERMISSAO = [
-  { nome: "🎯 CRM", cor: "#059669", permissoes: [
+  { nome: "CRM", cor: "#059669", permissoes: [
     { key: "crm_acessar", label: "Acessar o CRM" },
     { key: "dashboard", label: "Dashboard de vendas" },
     { key: "funil", label: "Ver funil de vendas" },
@@ -187,7 +187,7 @@ const CATEGORIAS_PERMISSAO = [
     { key: "contatos_editar", label: "Editar cadastro de contatos" },
     { key: "etiquetas", label: "Gerenciar etiquetas" },
   ]},
-  { nome: "📄 Contratos", cor: "#155eef", permissoes: [
+  { nome: "Contratos", cor: "#155eef", permissoes: [
     { key: "contratos_acessar", label: "Acessar contratos e assinaturas" },
     { key: "contratos_criar", label: "Criar e enviar contratos para assinatura" },
     { key: "contratos_editar", label: "Editar contratos e criar novas versões" },
@@ -196,11 +196,11 @@ const CATEGORIAS_PERMISSAO = [
     { key: "contratos_baixar", label: "Baixar contratos assinados" },
     { key: "contratos_configurar", label: "Configurar empresa e representantes" },
   ]},
-  { nome: "⚖️ Revisional", cor: "#059669", permissoes: [
+  { nome: "Revisional", cor: "#059669", permissoes: [
     { key: "revisional_acessar", label: "Acessar o Revisional (simular e enviar propostas)" },
     { key: "revisional_todas", label: "Ver propostas de todos os consultores" },
   ]},
-  { nome: "💬 Chatbot", cor: "#3b82f6", permissoes: [
+  { nome: "Chatbot", cor: "#3b82f6", permissoes: [
     { key: "chatbot_acessar", label: "Acessar o Chatbot" },
     { key: "chat_proprio", label: "Ver próprios atendimentos" },
     { key: "chat_todos", label: "Ver todos atendimentos" },
@@ -211,16 +211,16 @@ const CATEGORIAS_PERMISSAO = [
     { key: "disparo_enviar", label: "Enviar disparos em massa" },
     { key: "templates_waba", label: "Gerenciar templates WABA" },
   ]},
-  { nome: "📞 Telefonia", cor: "#14b8a6", mod: "voip", permissoes: [
+  { nome: "Telefonia", cor: "#14b8a6", mod: "voip", permissoes: [
     { key: "telefonia_acessar", label: "Acessar a Telefonia" },
     { key: "voip_usar", label: "Usar softphone (fazer ligações)" },
     { key: "voip_conexoes", label: "Gerenciar conexões VOIP" },
     { key: "voip_campanhas", label: "Criar campanhas VOIP" },
   ]},
-  { nome: "💰 Cobrança", cor: "#dc2626", mod: "cobranca", permissoes: [
+  { nome: "Cobrança", cor: "#dc2626", mod: "cobranca", permissoes: [
     { key: "cobranca", label: "Acessar a Cobrança" },
   ]},
-  { nome: "🧑‍💼 RH", cor: "#4f46e5", mod: "rh", permissoes: [
+  { nome: "RH", cor: "#4f46e5", mod: "rh", permissoes: [
     { key: "rh", label: "Acessar o RH" },
     { key: "rh_dashboard", label: "Dashboard" },
     { key: "rh_indicadores", label: "Indicadores" },
@@ -247,10 +247,10 @@ const CATEGORIAS_PERMISSAO = [
     { key: "rh_contratos", label: "Contratos" },
     { key: "rh_config", label: "Configurações (Geral)" },
   ]},
-  { nome: "🕐 Bater Ponto", cor: "#0891b2", mod: "bater_ponto", permissoes: [
+  { nome: "Bater Ponto", cor: "#0891b2", mod: "bater_ponto", permissoes: [
     { key: "bater_ponto", label: "Acessar o Bater Ponto" },
   ]},
-  { nome: "⚙️ Configurações", cor: "#64748b", permissoes: [
+  { nome: "Configurações", cor: "#64748b", permissoes: [
     { key: "conexoes", label: "Gerenciar conexões WhatsApp" },
     { key: "filas", label: "Gerenciar filas" },
     { key: "usuarios_gerenciar", label: "Gerenciar usuários" },
@@ -258,11 +258,11 @@ const CATEGORIAS_PERMISSAO = [
     { key: "roleta_gerenciar", label: "Gerenciar roleta de distribuição" },
     { key: "configuracoes_workspace", label: "Configurações do workspace" },
   ]},
-  { nome: "📊 Relatórios", cor: "#8b5cf6", permissoes: [
+  { nome: "Relatórios", cor: "#8b5cf6", permissoes: [
     { key: "relatorios", label: "Relatórios de atendimento" },
     { key: "relatorios_voip", label: "Relatórios de telefonia" },
   ]},
-  { nome: "👤 Pessoal", cor: "#64748B", permissoes: [
+  { nome: "Pessoal", cor: "#64748B", permissoes: [
     { key: "config_proprio", label: "Editar próprio perfil" },
   ]},
 ];
@@ -717,7 +717,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
 
   const abrirNovo = () => {
     if (!podeGerenciar) { alert("Sem permissão."); return; }
-    if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); return; }
+    if (limiteAtingido) { alert(`Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); return; }
     setEditandoUsuario(null);
     setFormUsuario({
       nome: "", email: "", telefone: "", senha: "",
@@ -839,13 +839,13 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
         const msgsExtras = [];
         if (formUsuario.novo_email && formUsuario.novo_email !== editandoUsuario.email) msgsExtras.push("e-mail trocado");
         if (formUsuario.nova_senha) msgsExtras.push("senha atualizada");
-        alert(`✅ Usuário atualizado!${msgsExtras.length ? " (" + msgsExtras.join(", ") + ")" : ""}`);
+        alert(`Usuário atualizado!${msgsExtras.length ? " (" + msgsExtras.join(", ") + ")" : ""}`);
         setSalvando(false);
         return;
       }
       if (!formUsuario.senha) { alert("Preencha a Senha!"); setSalvando(false); return; }
       if (formUsuario.senha.length < 6) { alert("Senha deve ter no mínimo 6 caracteres!"); setSalvando(false); return; }
-      if (limiteAtingido) { alert(`❌ Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); setSalvando(false); return; }
+      if (limiteAtingido) { alert(`Limite de ${limites.usuarios_liberados} usuário(s) atingido!`); setSalvando(false); return; }
 
       const token = await getToken();
       if (!token) { alert("Sessão expirou."); setSalvando(false); return; }
@@ -873,7 +873,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
       });
       const data = await resp.json();
       if (!data.success) {
-        if (data.error === "email_exists") alert("❌ E-mail já cadastrado!");
+        if (data.error === "email_exists") alert("E-mail já cadastrado!");
         else if (data.error === "limite_atingido") alert("❌ " + (data.detalhes || "Limite atingido!"));
         else alert("Erro: " + data.error);
         setSalvando(false);
@@ -886,7 +886,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
       }
       await onRefetch();
       setShowForm(false);
-      alert("✅ Usuário adicionado!");
+      alert("Usuário adicionado!");
     } catch (e: any) {
       alert("Erro: " + e.message);
     }
@@ -907,7 +907,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
       const data = await resp.json();
       if (!data.success) { alert("Erro: " + data.error); return; }
       await onRefetch();
-      alert("✅ Usuário excluído!");
+      alert("Usuário excluído!");
     } catch (e: any) { alert("Erro: " + e.message); }
   };
 
@@ -1228,7 +1228,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                             display: "flex", alignItems: "center", gap: 5,
                           }}>
                           {ativa && <span>✓</span>}
-                          📞 {conexao.nome} · {provider}{identificador ? ` · ${identificador}` : ""}
+                          {conexao.nome} · {provider}{identificador ? ` · ${identificador}` : ""}
                         </button>
                       );
                     })}
@@ -1726,7 +1726,7 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
         error = resposta.error;
       }
       if (error) {
-        if (error.code === "23505") alert("❌ Já existe uma fila com esse nome neste workspace!");
+        if (error.code === "23505") alert("Já existe uma fila com esse nome neste workspace!");
         else alert("Erro: " + error.message);
         setSalvando(false); return;
       }
