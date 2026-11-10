@@ -69,7 +69,7 @@ export default function AcessoTeste({ children }: { children: React.ReactNode })
           <h1 style={{ fontSize: 26, fontWeight: 750, color: "#0f172a" }}>{estado.encerrado ? "Seu teste encerrou" : estado.erro ? "Não foi possível verificar seu acesso" : "Verificando acesso…"}</h1>
           {!estado.carregando && <>
             <p style={{ margin: "16px 0", color: "#475569" }}>{estado.encerrado ? "Seu período de avaliação terminou. Entre em contato para contratar o sistema ou solicitar um novo período de teste." : estado.erro}</p>
-            {estado.encerrado && <a href="https://wa.me/5562981519991?text=Olá!%20Meu%20teste%20encerrou%20e%20gostaria%20de%20continuar%20usando%20o%20Wolf%20System." target="_blank" rel="noopener noreferrer" style={{ display: "block", padding: 12, borderRadius: 8, background: "#16a34a", color: "white", marginBottom: 12 }}>Falar com a equipe</a>}
+            {estado.encerrado && <a href="https://wa.me/5562981519991?text=Olá!%20Meu%20teste%20encerrou%20e%20gostaria%20de%20continuar%20usando%20o%20Wolf%20System." target="_blank" rel="noopener noreferrer" style={{ display: "block", padding: 12, borderRadius: 8, background: "#059669", color: "white", marginBottom: 12 }}>Falar com a equipe</a>}
             <button onClick={() => atualizarRef.current()} style={{ padding: 10, cursor: "pointer" }}>Verificar novamente</button>
             <button onClick={async () => { await supabase.auth.signOut(); window.location.assign("/login"); }} style={{ padding: 10, cursor: "pointer" }}>Sair da conta</button>
           </>}

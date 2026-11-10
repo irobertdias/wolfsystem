@@ -68,7 +68,7 @@ const input: React.CSSProperties = {
   borderRadius: 8,
   boxSizing: "border-box",
 };
-const btn = (cor = "#16a34a"): React.CSSProperties => ({
+const btn = (cor = "#059669"): React.CSSProperties => ({
   border: 0,
   borderRadius: 8,
   padding: "10px 14px",
@@ -406,7 +406,7 @@ export default function UraDiscadorSection() {
       className={styles.page}
       style={{
         padding: 32,
-        fontFamily: "Arial,sans-serif",
+        fontFamily: "var(--font-wolf), system-ui, sans-serif",
         maxWidth: 1500,
         margin: "0 auto",
       }}
@@ -437,14 +437,14 @@ export default function UraDiscadorSection() {
         <div className={styles.tabs} style={{ display: "flex", gap: 8 }}>
           <button
             className={aba === "campanhas" ? styles.tabActive : styles.tab}
-            style={btn(aba === "campanhas" ? "#16a34a" : "#64748b")}
+            style={btn(aba === "campanhas" ? "#059669" : "#64748b")}
             onClick={() => setAba("campanhas")}
           >
             Campanhas
           </button>
           <button
             className={aba === "fluxos" ? styles.tabActive : styles.tab}
-            style={btn(aba === "fluxos" ? "#16a34a" : "#64748b")}
+            style={btn(aba === "fluxos" ? "#059669" : "#64748b")}
             onClick={() => setAba("fluxos")}
           >
             Editor de URA
@@ -476,7 +476,7 @@ export default function UraDiscadorSection() {
             marginBottom: 12,
           }}
         >
-          ❌ {erro}
+          {erro}
         </div>
       )}
       {ok && (
@@ -489,7 +489,7 @@ export default function UraDiscadorSection() {
             marginBottom: 12,
           }}
         >
-          ✅ {ok}
+          {ok}
         </div>
       )}
       {aba === "fluxos" ? (

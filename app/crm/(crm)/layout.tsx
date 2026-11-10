@@ -5,10 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { ehRevisional } from "../../lib/vertical-workspace";
+import Icone from "../../components/a2/Icone";
 
-const COR = "#16a34a";
-const COR_TEXTO = "#15803d";
-const COR_BG = "#f0fdf4";
+const COR = "#059669";
+const COR_TEXTO = "#047857";
+const COR_BG = "#ECFDF5";
 
 type Item = {
   path: string;
@@ -51,16 +52,16 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
 
   const itensTodos: Item[] = [
     ...((isSuperAdmin || isDono || permissoes.dashboard)
-      ? [{ path: "/crm/dashboard", icon: "📈", label: "Dashboard de Vendas" }]
+      ? [{ path: "/crm/dashboard", icon: "grafico", label: "Dashboard de Vendas" }]
       : []),
     ...((isSuperAdmin || isDono || permissoes.funil || permissoes.vendas_proprio || permissoes.vendas_equipe)
-      ? [{ path: "/crm/funil", icon: "🎯", label: "Funil de Vendas" }]
+      ? [{ path: "/crm/funil", icon: "funil", label: "Funil de Vendas" }]
       : []),
     ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe)
-      ? [{ path: "/crm/vendas", icon: "💰", label: "Vendas" }]
+      ? [{ path: "/crm/vendas", icon: "dinheiro", label: "Vendas" }]
       : []),
     ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos)
-      ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos" }]
+      ? [{ path: "/crm/contatos", icon: "usuarios", label: "Contatos" }]
       : []),
   ];
   // Workspace revisional: nada de vendas aqui, só a lista de contatos.
@@ -82,8 +83,8 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
         display: "flex",
         height: "100%",
         minHeight: 0,
-        fontFamily: "Arial, sans-serif",
-        background: "#f8fafc",
+        fontFamily: "var(--font-wolf), system-ui, sans-serif",
+        background: "#F3F6F5",
         position: "relative",
       }}
     >
@@ -108,10 +109,10 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
             display: "flex",
             alignItems: "center",
             gap: 6,
-            boxShadow: "0 4px 12px rgba(22,163,74,0.18)",
+            boxShadow: "0 4px 12px rgba(5,150,105,0.18)",
           }}
         >
-          ☰ Seções
+          <Icone nome="menu" tamanho={15} /> Seções
         </button>
       )}
 
@@ -134,7 +135,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
           style={{
             width: isMobile ? 260 : 224,
             background: "#ffffff",
-            borderRight: "1px solid #e5e7eb",
+            borderRight: "1px solid #E6ECEA",
             display: "flex",
             flexDirection: "column",
             overflowY: "auto",
@@ -153,7 +154,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
           <div
             style={{
               padding: 16,
-              borderBottom: "1px solid #e5e7eb",
+              borderBottom: "1px solid #E6ECEA",
               display: "flex",
               alignItems: "center",
               gap: 10,
@@ -164,22 +165,22 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: `linear-gradient(135deg, ${COR} 0%, #22c55e 100%)`,
+                background: "linear-gradient(140deg, #059669 0%, #065F46 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: 18,
-                boxShadow: `0 4px 10px ${COR}40`,
+                boxShadow: "0 6px 14px -4px rgba(5,150,105,.55)",
                 flexShrink: 0,
               }}
             >
-              <span style={{ filter: "saturate(0) brightness(2)" }}>🎯</span>
+              <Icone nome="alvo" tamanho={19} cor="#fff" />
             </div>
 
             <div style={{ minWidth: 0 }}>
               <span
                 style={{
-                  color: "#1f2937",
+                  color: "#0F172A",
                   fontWeight: 800,
                   fontSize: 14,
                   display: "block",
@@ -211,7 +212,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
                   key={item.path}
                   onClick={() => ir(item.path)}
                   onMouseEnter={(e) => {
-                    if (!selecionado) e.currentTarget.style.background = "#f3f4f6";
+                    if (!selecionado) e.currentTarget.style.background = "#F3F6F5";
                   }}
                   onMouseLeave={(e) => {
                     if (!selecionado) e.currentTarget.style.background = "transparent";
@@ -219,38 +220,25 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 10,
-                    width: "100%",
-                    padding: "10px 12px",
+                    gap: 8,
+                    width: isMobile ? "100%" : "auto",
+                    whiteSpace: "nowrap",
+                    height: 40,
+                    padding: "0 14px",
                     background: selecionado ? COR_BG : "transparent",
                     border: "none",
-                    borderLeft: selecionado ? `3px solid ${COR}` : "3px solid transparent",
-                    borderRadius: selecionado ? "0 8px 8px 0" : 8,
+                    borderRadius: 11,
                     cursor: "pointer",
-                    color: selecionado ? COR_TEXTO : "#374151",
-                    fontSize: 13,
-                    fontWeight: selecionado ? 700 : 500,
+                    color: selecionado ? COR_TEXTO : "#475569",
+                    fontFamily: "inherit",
+                    fontSize: 13.5,
+                    fontWeight: selecionado ? 700 : 600,
                     textAlign: "left",
+                    boxShadow: selecionado ? "inset 0 0 0 1px #A7F3D0" : "none",
                     transition: "background .12s",
                   }}
                 >
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: 26,
-                      height: 26,
-                      borderRadius: 7,
-                      background: selecionado ? COR : COR_BG,
-                      fontSize: 13,
-                      filter: selecionado ? "saturate(0) brightness(2)" : "none",
-                      boxShadow: selecionado ? `0 2px 6px ${COR}40` : "none",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {item.icon}
-                  </span>
+                  <Icone nome={item.icon} tamanho={17} cor={selecionado ? COR : "#94A3B8"} />
                   {item.label}
                 </button>
               );

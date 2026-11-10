@@ -167,7 +167,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
       {embutido ? (
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pt-5">
           <div>
-            <div className="text-[18px] font-extrabold leading-tight">⚖️ Revisional</div>
+            <div className="text-[18px] font-extrabold leading-tight">Revisional</div>
             <div className="text-[12px] text-slate-500">Simule a revisão de juros e envie a proposta com link para o cliente</div>
           </div>
           {abas}

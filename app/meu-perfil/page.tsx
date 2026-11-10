@@ -262,8 +262,8 @@ export default function MeuPerfilPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
-        <p style={{ color: "#6b7280", fontSize: 14 }}>⏳ Carregando...</p>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F3F6F5" }}>
+        <p style={{ color: "#64748B", fontSize: 14 }}>Carregando...</p>
       </div>
     );
   }
@@ -274,7 +274,7 @@ export default function MeuPerfilPage() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+      background: "linear-gradient(135deg, #F3F6F5 0%, #e2e8f0 100%)",
       padding: "32px 16px",
     }}>
       <div style={{
@@ -285,7 +285,7 @@ export default function MeuPerfilPage() {
       }}>
         {/* Header roxo */}
         <div style={{
-          background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+          background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
           padding: "28px 32px 60px",
           position: "relative",
         }}>
@@ -297,7 +297,7 @@ export default function MeuPerfilPage() {
               fontSize: 12, fontWeight: 700, cursor: "pointer",
               marginBottom: 12,
             }}>
-            ← Voltar
+            Voltar
           </button>
           <h1 style={{ color: "#fff", fontSize: 22, fontWeight: 800, margin: 0 }}>
             Meu Perfil
@@ -327,7 +327,7 @@ export default function MeuPerfilPage() {
               style={{
                 position: "absolute", bottom: 4, right: 4,
                 width: 34, height: 34, borderRadius: "50%",
-                background: "#fff", border: "2px solid #6366f1",
+                background: "#fff", border: "2px solid #059669",
                 cursor: uploadando ? "wait" : "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 14, boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
@@ -374,25 +374,25 @@ export default function MeuPerfilPage() {
           }}>
             {workspaceNome && (
               <span style={{
-                background: "#f3f4f6", color: "#4b5563",
+                background: "#F1F5F4", color: "#475569",
                 padding: "5px 12px", borderRadius: 999,
                 fontSize: 11, fontWeight: 700,
               }}>
-                🏢 {workspaceNome}
+                {workspaceNome}
               </span>
             )}
             <span style={{
-              background: "#ede9fe", color: "#7c3aed",
+              background: "#D1FAE5", color: "#047857",
               padding: "5px 12px", borderRadius: 999,
               fontSize: 11, fontWeight: 700,
             }}>
-              👤 {perfil}
+              {perfil}
             </span>
           </div>
 
           {/* ──────── DADOS PESSOAIS ──────── */}
-          <h2 style={{ fontSize: 13, fontWeight: 800, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>
-            📋 Dados Pessoais
+          <h2 style={{ fontSize: 13, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>
+            Dados Pessoais
           </h2>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12, marginBottom: 24 }}>
@@ -405,10 +405,10 @@ export default function MeuPerfilPage() {
                 type="email"
                 value={email}
                 disabled
-                style={{ ...INPUT_STYLE, background: "#f3f4f6", color: "#9ca3af", cursor: "not-allowed" }}
+                style={{ ...INPUT_STYLE, background: "#F1F5F4", color: "#94A3B8", cursor: "not-allowed" }}
               />
-              <p style={{ color: "#9ca3af", fontSize: 11, margin: "4px 0 0", fontStyle: "italic" }}>
-                💡 Pra trocar de e-mail, fale com o administrador do seu workspace.
+              <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0", fontStyle: "italic" }}>
+                Pra trocar de e-mail, fale com o administrador do seu workspace.
               </p>
             </Campo>
 
@@ -418,9 +418,9 @@ export default function MeuPerfilPage() {
           </div>
 
           {/* ──────── SENHA ──────── */}
-          <h2 style={{ fontSize: 13, fontWeight: 800, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
-            🔒 Trocar Senha
-            <span style={{ color: "#9ca3af", fontWeight: 500, fontSize: 11, textTransform: "none", letterSpacing: 0 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+            Trocar Senha
+            <span style={{ color: "#94A3B8", fontWeight: 500, fontSize: 11, textTransform: "none", letterSpacing: 0 }}>
               (opcional — deixe em branco pra não trocar)
             </span>
           </h2>
@@ -459,7 +459,7 @@ export default function MeuPerfilPage() {
               />
             </Campo>
 
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6b7280", cursor: "pointer" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#64748B", cursor: "pointer" }}>
               <input type="checkbox" checked={mostrarSenhas} onChange={e => setMostrarSenhas(e.target.checked)} />
               Mostrar senhas
             </label>
@@ -470,7 +470,7 @@ export default function MeuPerfilPage() {
                 borderRadius: 8, padding: "10px 14px",
                 fontSize: 11.5, color: "#92400e",
               }}>
-                ⚠️ Após trocar a senha, você será deslogado e precisará fazer login de novo com a nova senha.
+                Após trocar a senha, você será deslogado e precisará fazer login de novo com a nova senha.
               </div>
             )}
           </div>
@@ -480,8 +480,8 @@ export default function MeuPerfilPage() {
             <button
               onClick={() => router.back()}
               style={{
-                background: "#fff", color: "#6b7280",
-                border: "1px solid #e5e7eb", borderRadius: 10,
+                background: "#fff", color: "#64748B",
+                border: "1px solid #E6ECEA", borderRadius: 10,
                 padding: "11px 20px", fontSize: 13, fontWeight: 700,
                 cursor: "pointer",
               }}>
@@ -491,11 +491,11 @@ export default function MeuPerfilPage() {
               onClick={salvar}
               disabled={salvando}
               style={{
-                background: salvando ? "#a5b4fc" : "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                background: salvando ? "#a5b4fc" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                 color: "#fff", border: "none", borderRadius: 10,
                 padding: "11px 26px", fontSize: 13, fontWeight: 800,
                 cursor: salvando ? "wait" : "pointer",
-                boxShadow: "0 4px 12px rgba(99,102,241,0.3)",
+                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
               }}>
               {salvando ? "Salvando..." : "💾 Salvar Alterações"}
             </button>
@@ -510,11 +510,11 @@ export default function MeuPerfilPage() {
 const INPUT_STYLE: React.CSSProperties = {
   width: "100%",
   padding: "11px 14px",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   fontSize: 13.5,
   background: "#fff",
-  color: "#1f2937",
+  color: "#0F172A",
   outline: "none",
   fontFamily: "inherit",
 };
@@ -524,7 +524,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label style={{
         display: "block", fontSize: 11, fontWeight: 700,
-        color: "#374151", textTransform: "uppercase",
+        color: "#334155", textTransform: "uppercase",
         letterSpacing: 0.5, marginBottom: 6,
       }}>
         {label}

@@ -2,21 +2,22 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
+import { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Configurações (CONECTADO — 'rh_config' id=1, coluna jsonb 'config')
 const COR = "#4f46e5";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -126,7 +127,7 @@ export function ConfigSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -137,10 +138,10 @@ export function ConfigSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>⚙️</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Configurações do RH
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Parâmetros usados nos cálculos do módulo
             </p>
           </div>
@@ -149,9 +150,9 @@ export function ConfigSection() {
           onClick={salvar}
           disabled={salvando || carregando}
           style={{
-            background: ok ? "#f0fdf4" : `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
-            color: ok ? "#16a34a" : "white",
-            border: ok ? "1px solid #bbf7d0" : "none",
+            background: ok ? "#ECFDF5" : `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+            color: ok ? "#059669" : "white",
+            border: ok ? "1px solid #A7F3D0" : "none",
             borderRadius: 12,
             padding: "11px 20px",
             fontSize: 13,
@@ -165,7 +166,7 @@ export function ConfigSection() {
       </div>
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando configurações...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando configurações...</p>
         </div>
       ) : (
         <div
@@ -179,23 +180,23 @@ export function ConfigSection() {
                     width: 36,
                     height: 36,
                     borderRadius: 10,
-                    background: "#eef2ff",
+                    background: "#ECFDF5",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontSize: 18,
                   }}
                 >
-                  {g.icon}
+                  {<IconeEmoji e={g.icon} />}
                 </div>
-                <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: 800, margin: 0 }}>{g.titulo}</h3>
+                <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: 0 }}>{g.titulo}</h3>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {g.campos.map((c) => (
                   <div key={c.k}>
                     <label
                       style={{
-                        color: "#6b7280",
+                        color: "#64748B",
                         fontSize: 11,
                         fontWeight: 700,
                         textTransform: "uppercase",
@@ -221,7 +222,7 @@ export function ConfigSection() {
                             right: 14,
                             top: "50%",
                             transform: "translateY(-50%)",
-                            color: "#9ca3af",
+                            color: "#94A3B8",
                             fontSize: 12,
                             fontWeight: 600,
                             pointerEvents: "none",

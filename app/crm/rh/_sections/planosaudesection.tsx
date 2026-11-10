@@ -2,22 +2,23 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
+import { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Plano de Saúde (CONECTADO — 'plano_saude'; custoMensal↔custo_mensal)
 const COR = "#4f46e5";
 const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -155,7 +156,7 @@ export function PlanoSaudeSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -166,10 +167,10 @@ export function PlanoSaudeSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>🏥</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Plano de Saúde
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Convênios médicos e dependentes
             </p>
           </div>
@@ -180,7 +181,7 @@ export function PlanoSaudeSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -198,7 +199,7 @@ export function PlanoSaudeSection() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14 }}>
         {[
           { label: "Titulares", value: String(lista.length), cor: "#6366f1", icon: "👤" },
-          { label: "Vidas totais", value: String(totalVidas), cor: "#16a34a", icon: "👨‍👩‍👧" },
+          { label: "Vidas totais", value: String(totalVidas), cor: "#059669", icon: "👨‍👩‍👧" },
           { label: "Custo mensal", value: real(custoTotal), cor: "#f59e0b", icon: "💰" },
         ].map((s) => (
           <div key={s.label} style={{ ...card, padding: 16, borderTop: `3px solid ${s.cor}` }}>
@@ -215,11 +216,11 @@ export function PlanoSaudeSection() {
                   fontSize: 14,
                 }}
               >
-                {s.icon}
+                {<IconeEmoji e={s.icon} />}
               </div>
               <p
                 style={{
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 11,
                   margin: 0,
                   fontWeight: 700,
@@ -237,33 +238,33 @@ export function PlanoSaudeSection() {
       </div>
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum plano cadastrado.</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum plano cadastrado.</p>
         </div>
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#F7FAF9" }}>
                   {["Titular", "Operadora", "Plano", "Dependentes", "Custo/mês", "Coparticip.", ""].map(
                     (h) => (
                       <th
                         key={h}
                         style={{
                           padding: "12px 16px",
-                          color: "#6b7280",
+                          color: "#64748B",
                           fontSize: 11,
                           textAlign: "left",
                           textTransform: "uppercase",
                           letterSpacing: 0.5,
                           whiteSpace: "nowrap",
                           fontWeight: 700,
-                          borderBottom: "1px solid #e5e7eb",
+                          borderBottom: "1px solid #E6ECEA",
                         }}
                       >
                         {h}
@@ -277,25 +278,25 @@ export function PlanoSaudeSection() {
                   <tr
                     key={p.id}
                     style={{
-                      borderTop: "1px solid #f3f4f6",
-                      background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                      borderTop: "1px solid #F1F5F4",
+                      background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
                     }}
                   >
                     <td style={{ padding: "12px 16px" }}>
-                      <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{p.nome}</p>
-                      <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{p.cargo}</p>
+                      <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{p.nome}</p>
+                      <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{p.cargo}</p>
                     </td>
-                    <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>{p.operadora}</td>
-                    <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>{p.plano}</td>
-                    <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12 }}>{p.dependentes}</td>
-                    <td style={{ padding: "12px 16px", color: "#1f2937", fontSize: 12, fontWeight: 700 }}>
+                    <td style={{ padding: "12px 16px", color: "#475569", fontSize: 12 }}>{p.operadora}</td>
+                    <td style={{ padding: "12px 16px", color: "#475569", fontSize: 12 }}>{p.plano}</td>
+                    <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12 }}>{p.dependentes}</td>
+                    <td style={{ padding: "12px 16px", color: "#0F172A", fontSize: 12, fontWeight: 700 }}>
                       {real(p.custoMensal)}
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       <span
                         style={{
-                          background: p.coparticipacao ? "#fffbeb" : "#f0fdf4",
-                          color: p.coparticipacao ? "#f59e0b" : "#16a34a",
+                          background: p.coparticipacao ? "#fffbeb" : "#ECFDF5",
+                          color: p.coparticipacao ? "#f59e0b" : "#059669",
                           fontSize: 11,
                           padding: "3px 10px",
                           borderRadius: 10,
@@ -351,21 +352,21 @@ export function PlanoSaudeSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
                 Adicionar Plano de Saúde
               </h3>
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -446,25 +447,25 @@ export function PlanoSaudeSection() {
                   checked={form.coparticipacao}
                   onChange={(e) => set("coparticipacao", e.target.checked)}
                 />
-                <span style={{ color: "#374151", fontSize: 13, fontWeight: 600 }}>Com coparticipação</span>
+                <span style={{ color: "#334155", fontSize: 13, fontWeight: 600 }}>Com coparticipação</span>
               </label>
             </div>
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={() => setModal(false)}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -478,7 +479,7 @@ export function PlanoSaudeSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -503,7 +504,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label
         style={{
-          color: "#6b7280",
+          color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",

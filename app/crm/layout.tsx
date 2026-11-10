@@ -10,6 +10,7 @@ import { ehRevisional } from "../lib/vertical-workspace";
 import AuthGuard from "../components/AuthGuard";
 import PontoGuard from "../components/PontoGuard";
 
+import { IconeEmoji } from "../components/a2/Icone";
 export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -310,7 +311,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
                 onClick={() => navegarPara(item.path)}
                 title={item.label}
               >
-                <i>{item.icon}</i>
+                <i>{<IconeEmoji e={item.icon} />}</i>
                 <span>{item.label}</span>
               </button>
             ))}
@@ -340,7 +341,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="context-actions">
             {ehDonoOuAdmin && !isSuperAdmin && (
-              <span className="plan-info">👥 {usuariosCount}/{limiteUsuarios} usuários</span>
+              <span className="plan-info">{usuariosCount}/{limiteUsuarios} usuários</span>
             )}
             <span className="system-status"><i /> Sistema operacional</span>
             <button onClick={() => navegarPara(inicio)}>{revisional ? "Painel revisional" : "Visão executiva"}</button>

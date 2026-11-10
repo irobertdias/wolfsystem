@@ -76,7 +76,7 @@ function montarItens(r: Rascunho): ItemOrcamento[] {
   const usuariosExtra = Math.max(0, inteiro(r.usuarios) - (plano?.usuarios || 0));
   if (usuariosExtra) itens.push({ tipo: "usuarios", id: "usuarios", nome: plano ? "Usuários adicionais" : "Usuários", sub: "Acesso individual ao sistema", cor: "#059669", linhas: [], preco: PRECO_USUARIO, qtd: usuariosExtra, desconto: d("usuarios") });
   const whatsExtra = Math.max(0, inteiro(r.whatsapps) - (plano?.whatsapps || 0));
-  if (whatsExtra) itens.push({ tipo: "whatsapp", id: "whatsapp", nome: plano ? "Conexões de WhatsApp adicionais" : "Conexões de WhatsApp", sub: "Números conectados ao atendimento", cor: "#16a34a", linhas: [], preco: PRECO_WHATSAPP, qtd: whatsExtra, desconto: d("whatsapp") });
+  if (whatsExtra) itens.push({ tipo: "whatsapp", id: "whatsapp", nome: plano ? "Conexões de WhatsApp adicionais" : "Conexões de WhatsApp", sub: "Números conectados ao atendimento", cor: "#059669", linhas: [], preco: PRECO_WHATSAPP, qtd: whatsExtra, desconto: d("whatsapp") });
   MODULOS.forEach((m) => {
     const noPlano = !!plano?.inclui.includes(m.id);
     if (noPlano || r.modulos.includes(m.id)) itens.push({ tipo: "modulo", id: m.id, nome: m.nome, sub: m.sub, cor: m.cor, linhas: m.linhas, preco: m.preco, qtd: 1, incluso: noPlano, desconto: noPlano ? 0 : d(`mod:${m.id}`) });
@@ -347,7 +347,7 @@ export default function OrcamentosPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-4 py-5 text-slate-800">
       <div>
-        <div className="text-[20px] font-extrabold">💼 Orçamentos</div>
+        <div className="text-[20px] font-extrabold">Orçamentos</div>
         <div className="text-[13px] text-slate-500">Monte o orçamento com a tabela de preços, dê desconto por item, envie o link e acompanhe o aceite.</div>
       </div>
       {erro && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</div>}
@@ -370,7 +370,7 @@ export default function OrcamentosPage() {
               <div key={o.id} className="p-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-[220px] flex-1">
-                    <div className="flex flex-wrap items-center gap-2"><b>{o.cliente_nome}</b><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${cls}`}>{rotulo}</span>{o.criado_por === "site" && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-700">🌐 Site</span>}{o.implantacao_em && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">Dados recebidos</span>}{imp?.pagamento_realizado && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Diz que pagou</span>}</div>
+                    <div className="flex flex-wrap items-center gap-2"><b>{o.cliente_nome}</b><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ${cls}`}>{rotulo}</span>{o.criado_por === "site" && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-700">Site</span>}{o.implantacao_em && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">Dados recebidos</span>}{imp?.pagamento_realizado && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Diz que pagou</span>}</div>
                     <div className="text-[12px] text-slate-500">{o.numero} · {o.usuarios_incluidos} usuários{tot.whatsapps ? ` · ${tot.whatsapps} WhatsApp${tot.whatsapps > 1 ? "s" : ""}` : ""} · {brlOrc(o.configuracao)} agora + {brlOrc(o.mensalidade)}/mês{tot.mensalDesconto > 0 ? ` (tabela ${brlOrc(tot.mensalTabela)})` : ""}</div>
                     <div className="mt-1 flex flex-wrap gap-1">{nomes.map((n) => <span key={n} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{n}</span>)}</div>
                     <div className="mt-1 text-[11px] text-slate-400">

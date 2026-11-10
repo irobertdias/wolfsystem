@@ -2,21 +2,22 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
+import { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Treinamentos (CONECTADO — 'treinamentos'; cargaHoraria↔carga_horaria)
 const COR = "#4f46e5";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -44,7 +45,7 @@ type Treinamento = {
 const SI: Record<StatusT, { label: string; cor: string }> = {
   planejado: { label: "Planejado", cor: "#0ea5e9" },
   em_andamento: { label: "Em andamento", cor: "#f59e0b" },
-  concluido: { label: "Concluído", cor: "#16a34a" },
+  concluido: { label: "Concluído", cor: "#059669" },
 };
 const FORM_VAZIO: Treinamento = {
   id: "",
@@ -168,7 +169,7 @@ export function TreinamentosSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -179,10 +180,10 @@ export function TreinamentosSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>🎓</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Treinamentos
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Capacitação e desenvolvimento da equipe
             </p>
           </div>
@@ -193,7 +194,7 @@ export function TreinamentosSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -212,7 +213,7 @@ export function TreinamentosSection() {
         {[
           { label: "Treinamentos", value: String(stats.total), cor: "#6366f1", icon: "🎓" },
           { label: "Em andamento", value: String(stats.andamento), cor: "#f59e0b", icon: "🔄" },
-          { label: "Concluídos", value: String(stats.concluidos), cor: "#16a34a", icon: "✅" },
+          { label: "Concluídos", value: String(stats.concluidos), cor: "#059669", icon: "✅" },
           { label: "Horas totais", value: stats.horas + "h", cor: "#0ea5e9", icon: "⏱️" },
         ].map((s) => (
           <div key={s.label} style={{ ...card, padding: 16, borderTop: `3px solid ${s.cor}` }}>
@@ -229,11 +230,11 @@ export function TreinamentosSection() {
                   fontSize: 14,
                 }}
               >
-                {s.icon}
+                {<IconeEmoji e={s.icon} />}
               </div>
               <p
                 style={{
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 11,
                   margin: 0,
                   fontWeight: 700,
@@ -251,12 +252,12 @@ export function TreinamentosSection() {
       </div>
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum treinamento cadastrado.</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum treinamento cadastrado.</p>
         </div>
       ) : (
         <div
@@ -288,7 +289,7 @@ export function TreinamentosSection() {
                     gap: 10,
                   }}
                 >
-                  <p style={{ color: "#1f2937", fontSize: 15, fontWeight: 800, margin: 0 }}>{t.titulo}</p>
+                  <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: 0 }}>{t.titulo}</p>
                   <span
                     style={{
                       background: `${st.cor}15`,
@@ -305,22 +306,22 @@ export function TreinamentosSection() {
                     {st.label}
                   </span>
                 </div>
-                <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>
-                  👨‍🏫 {t.instrutor} · {t.modalidade}
+                <p style={{ color: "#64748B", fontSize: 12, margin: 0 }}>
+                  {t.instrutor} · {t.modalidade}
                 </p>
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    borderTop: "1px solid #f3f4f6",
+                    borderTop: "1px solid #F1F5F4",
                     paddingTop: 12,
                   }}
                 >
-                  <span style={{ color: "#6b7280", fontSize: 12 }}>
-                    👥 {t.participantes} · ⏱️ {t.cargaHoraria}h
+                  <span style={{ color: "#64748B", fontSize: 12 }}>
+                    {t.participantes} · ⏱️ {t.cargaHoraria}h
                   </span>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ color: "#4338ca", fontSize: 12, fontWeight: 700 }}>{dataBR(t.data)}</span>
+                    <span style={{ color: "#065F46", fontSize: 12, fontWeight: 700 }}>{dataBR(t.data)}</span>
                     <button
                       onClick={() => excluir(t)}
                       style={{
@@ -365,19 +366,19 @@ export function TreinamentosSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>Novo Treinamento</h3>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>Novo Treinamento</h3>
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -462,19 +463,19 @@ export function TreinamentosSection() {
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={() => setModal(false)}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -488,7 +489,7 @@ export function TreinamentosSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -513,7 +514,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label
         style={{
-          color: "#6b7280",
+          color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",

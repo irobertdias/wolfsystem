@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { brl, pctBR } from "../../../lib/revisional";
 import { baixarPdfProposta } from "../../../lib/revisional-pdf";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 type Proposta = {
   numero: string;
   tipo: "imovel" | "veiculo";
@@ -48,7 +49,7 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 function Titulo({ icone, children }: { icone: string; children: React.ReactNode }) {
   return (
     <div className="mb-4 flex items-center gap-2.5">
-      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-[16px]">{icone}</span>
+      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-[16px]">{<IconeEmoji e={icone} />}</span>
       <h2 className="text-[15px] font-bold text-slate-800">{children}</h2>
     </div>
   );
@@ -120,7 +121,7 @@ function Rosca({ partes }: { partes: { rotulo: string; valor: number; cor: strin
 function Linha({ icone, rotulo, valor, destaque }: { icone: string; rotulo: string; valor: string; destaque?: string }) {
   return (
     <div className="flex items-center gap-3 py-2.5">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-[14px]">{icone}</span>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-[14px]">{<IconeEmoji e={icone} />}</span>
       <span className="flex-1 text-[13px] text-slate-600">{rotulo}</span>
       <span className={`text-[14px] font-bold tabular-nums ${destaque || "text-slate-800"}`}>{valor}</span>
     </div>
@@ -227,7 +228,7 @@ export default function PropostaRevisionalPage() {
   const primeiroNome = proposta.cliente_nome.trim().split(/\s+/)[0] || "";
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#d1fae5_0%,_#f8fafc_45%)] text-slate-800 print:bg-white">
+    <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#d1fae5_0%,_#F3F6F5_45%)] text-slate-800 print:bg-white">
       <div className={`mx-auto max-w-[640px] px-4 pt-5 ${aberta ? "pb-36" : "pb-10"} print:pb-4`}>
         {/* topo */}
         <div className="mb-4 flex items-center justify-between text-[12px]">
@@ -266,7 +267,7 @@ export default function PropostaRevisionalPage() {
           {aberta && <Contador expiraEm={proposta.expira_em} deslocamento={deslocamento} onExpirar={onExpirar} />}
           {proposta.status === "expirada" && (
             <div className="rounded-3xl border border-slate-200 bg-white px-4 py-4 text-center text-[13px] text-slate-600">
-              ⏱️ Esta proposta expirou em {new Date(proposta.expira_em).toLocaleString("pt-BR")}. Fale com seu consultor para renovar.
+              Esta proposta expirou em {new Date(proposta.expira_em).toLocaleString("pt-BR")}. Fale com seu consultor para renovar.
             </div>
           )}
 
@@ -324,7 +325,7 @@ export default function PropostaRevisionalPage() {
                 { rotulo: "Juros", valor: Number(d.juros) || 0, cor: "#ef4444" },
                 { rotulo: "Amortização", valor: Number(d.amortizacao) || 0, cor: "#10b981" },
                 { rotulo: "Tarifa administrativa", valor: Number(d.tarifa_adm) || 0, cor: "#f59e0b" },
-                { rotulo: "Seguros", valor: Number(d.seguros) || 0, cor: "#8b5cf6" },
+                { rotulo: "Seguros", valor: Number(d.seguros) || 0, cor: "#059669" },
               ]} />
               <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                 {[["Já pago em juros", r.juros_pagos, "text-red-500"], ["Em amortização", r.amortizacao_corrigida, "text-emerald-600"], ["Total pago", r.media_total, "text-slate-800"]].map(([k, v, cor]) => (

@@ -18,17 +18,17 @@ const COR = "#2563eb";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 
 const TIPOS = ["Entrada", "Saída p/ almoço", "Retorno do almoço", "Saída"];
 const TIPO_COR: Record<string, string> = {
-  Entrada: "#16a34a",
+  Entrada: "#059669",
   "Saída p/ almoço": "#f59e0b",
   "Retorno do almoço": "#0ea5e9",
   Saída: "#dc2626",
-  Marcação: "#6b7280",
+  Marcação: "#64748B",
 };
 
 type Func = { nome: string; cargo: string };
@@ -311,7 +311,7 @@ export default function BaterPontoPage() {
             width: 48,
             height: 48,
             borderRadius: 14,
-            background: `linear-gradient(135deg, ${COR} 0%, #3b82f6 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -350,7 +350,7 @@ export default function BaterPontoPage() {
             style={{
               marginTop: 18,
               padding: "10px 14px",
-              background: "#f8fafc",
+              background: "#F3F6F5",
               border: "1px dashed #cbd5e1",
               borderRadius: 10,
               display: "inline-block",
@@ -369,7 +369,7 @@ export default function BaterPontoPage() {
               ...card,
               padding: 32,
               textAlign: "center",
-              background: "linear-gradient(180deg, #ffffff 0%, #eff6ff 100%)",
+              background: "linear-gradient(180deg, #ffffff 0%, #ECFDF5 100%)",
             }}
           >
             <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, margin: "0 0 2px" }}>
@@ -404,7 +404,7 @@ export default function BaterPontoPage() {
                 onClick={exigeSelfie ? abrirCamera : baterDireto}
                 style={{
                   width: "100%",
-                  background: `linear-gradient(135deg, ${COR} 0%, #3b82f6 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 16,
@@ -424,8 +424,8 @@ export default function BaterPontoPage() {
                 style={{
                   marginTop: 20,
                   padding: "14px 18px",
-                  background: "#f0fdf4",
-                  border: "1px solid #bbf7d0",
+                  background: "#ECFDF5",
+                  border: "1px solid #A7F3D0",
                   borderRadius: 12,
                   display: "inline-flex",
                   alignItems: "center",
@@ -434,7 +434,7 @@ export default function BaterPontoPage() {
               >
                 <span style={{ fontSize: 22 }}>✅</span>
                 <div style={{ textAlign: "left" }}>
-                  <p style={{ color: "#16a34a", fontSize: 14, fontWeight: 800, margin: 0 }}>
+                  <p style={{ color: "#059669", fontSize: 14, fontWeight: 800, margin: 0 }}>
                     {ultima.tipo} registrada às {ultima.hora}
                   </p>
                   <p style={{ color: "#64748b", fontSize: 11, margin: "2px 0 0" }}>
@@ -457,7 +457,7 @@ export default function BaterPontoPage() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {batidasHoje.map((b) => {
-                  const cor = TIPO_COR[b.tipo] || "#6b7280";
+                  const cor = TIPO_COR[b.tipo] || "#64748B";
                   const temGps = b.latitude != null && b.longitude != null;
                   return (
                     <div
@@ -468,7 +468,7 @@ export default function BaterPontoPage() {
                         justifyContent: "space-between",
                         gap: 12,
                         padding: "12px 14px",
-                        background: "#f8fafc",
+                        background: "#F3F6F5",
                         borderRadius: 10,
                         border: "1px solid #f1f5f9",
                       }}
@@ -530,21 +530,21 @@ export default function BaterPontoPage() {
             <div
               style={{
                 padding: "16px 20px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
-                📸 Selfie para o ponto
+                Selfie para o ponto
               </h3>
               <button
                 onClick={fecharCamera}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -613,7 +613,7 @@ export default function BaterPontoPage() {
                   disabled={!!erroCam}
                   style={{
                     width: "100%",
-                    background: erroCam ? "#cbd5e1" : `linear-gradient(135deg, ${COR} 0%, #3b82f6 100%)`,
+                    background: erroCam ? "#cbd5e1" : `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                     color: "#fff",
                     border: "none",
                     borderRadius: 14,
@@ -623,7 +623,7 @@ export default function BaterPontoPage() {
                     cursor: erroCam ? "not-allowed" : "pointer",
                   }}
                 >
-                  📸 Tirar selfie
+                  Tirar selfie
                 </button>
               ) : (
                 <div style={{ display: "flex", gap: 10 }}>
@@ -633,8 +633,8 @@ export default function BaterPontoPage() {
                     style={{
                       flex: 1,
                       background: "#fff",
-                      color: "#374151",
-                      border: "1px solid #e5e7eb",
+                      color: "#334155",
+                      border: "1px solid #E6ECEA",
                       borderRadius: 14,
                       padding: "15px",
                       fontSize: 14,
@@ -642,14 +642,14 @@ export default function BaterPontoPage() {
                       cursor: enviando ? "not-allowed" : "pointer",
                     }}
                   >
-                    🔄 De novo
+                    De novo
                   </button>
                   <button
                     onClick={confirmar}
                     disabled={enviando}
                     style={{
                       flex: 2,
-                      background: enviando ? "#86efac" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                      background: enviando ? "#6EE7B7" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                       color: "#fff",
                       border: "none",
                       borderRadius: 14,

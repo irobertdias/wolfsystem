@@ -12,18 +12,18 @@ export default function ExcluirDadosPage() {
   };
 
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", background: "#0a0a0a", minHeight: "100vh", color: "white" }}>
+    <div style={{ fontFamily: "var(--font-wolf), system-ui, sans-serif", background: "#0a0a0a", minHeight: "100vh", color: "white" }}>
 
       {/* NAVBAR */}
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, background: "#0a0a0acc", backdropFilter: "blur(10px)", borderBottom: "1px solid #1f2937", padding: "0 32px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, background: "#0a0a0acc", backdropFilter: "blur(10px)", borderBottom: "1px solid #0F172A", padding: "0 32px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <img src="/logo1.png" alt="Wolf" style={{ width: 36, filter: "brightness(0) invert(1)" }} />
           <span style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>Wolf System</span>
         </Link>
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <Link href="/" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>← Voltar</Link>
-          <Link href="/privacidade" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>Privacidade</Link>
-          <Link href="/termos" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>Termos</Link>
+          <Link href="/" style={{ color: "#94A3B8", fontSize: 14, textDecoration: "none" }}>Voltar</Link>
+          <Link href="/privacidade" style={{ color: "#94A3B8", fontSize: 14, textDecoration: "none" }}>Privacidade</Link>
+          <Link href="/termos" style={{ color: "#94A3B8", fontSize: 14, textDecoration: "none" }}>Termos</Link>
         </div>
       </nav>
 
@@ -33,23 +33,23 @@ export default function ExcluirDadosPage() {
         {/* Título */}
         <div style={{ marginBottom: 40 }}>
           <div style={{ display: "inline-block", background: "#dc262622", border: "1px solid #dc262644", borderRadius: 20, padding: "6px 16px", marginBottom: 16 }}>
-            <span style={{ color: "#fca5a5", fontSize: 13, fontWeight: "bold" }}>🗑️ DIREITO À EXCLUSÃO</span>
+            <span style={{ color: "#fca5a5", fontSize: 13, fontWeight: "bold" }}>DIREITO À EXCLUSÃO</span>
           </div>
           <h1 style={{ fontSize: 36, fontWeight: "bold", margin: "0 0 12px 0", lineHeight: 1.2 }}>Excluir Meus Dados</h1>
-          <p style={{ color: "#9ca3af", fontSize: 15, margin: 0 }}>
+          <p style={{ color: "#94A3B8", fontSize: 15, margin: 0 }}>
             Conforme Lei Geral de Proteção de Dados (LGPD) e políticas da Meta, você tem o direito de solicitar a exclusão dos seus dados pessoais.
           </p>
         </div>
 
         {/* Box explicativo */}
-        <div style={{ background: "#1f2937", borderRadius: 12, padding: "24px 28px", marginBottom: 32, border: "1px solid #374151" }}>
+        <div style={{ background: "#0F172A", borderRadius: 12, padding: "24px 28px", marginBottom: 32, border: "1px solid #334155" }}>
           <h2 style={{ color: "white", fontSize: 18, fontWeight: "bold", margin: "0 0 12px 0" }}>
-            📋 Como solicitar a exclusão
+            Como solicitar a exclusão
           </h2>
-          <p style={{ color: "#d1d5db", fontSize: 14, margin: "0 0 20px 0" }}>
-            Envie um e-mail para o endereço abaixo com o assunto <strong style={{ color: "#16a34a" }}>"Exclusão de Dados"</strong> e os seguintes dados:
+          <p style={{ color: "#CBD5E1", fontSize: 14, margin: "0 0 20px 0" }}>
+            Envie um e-mail para o endereço abaixo com o assunto <strong style={{ color: "#059669" }}>"Exclusão de Dados"</strong> e os seguintes dados:
           </p>
-          <ul style={{ color: "#d1d5db", fontSize: 14, paddingLeft: 24, margin: "0 0 24px 0" }}>
+          <ul style={{ color: "#CBD5E1", fontSize: 14, paddingLeft: 24, margin: "0 0 24px 0" }}>
             <li>Seu nome completo</li>
             <li>E-mail de cadastro no Wolf System (se aplicável)</li>
             <li>CPF ou CNPJ usado no cadastro (para confirmar identidade)</li>
@@ -57,20 +57,20 @@ export default function ExcluirDadosPage() {
           </ul>
 
           {/* Email + botão de copiar */}
-          <div style={{ background: "#0a0a0a", borderRadius: 8, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, border: "1px solid #1f2937" }}>
+          <div style={{ background: "#0a0a0a", borderRadius: 8, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, border: "1px solid #0F172A" }}>
             <div>
-              <p style={{ color: "#6b7280", fontSize: 11, margin: "0 0 4px 0", textTransform: "uppercase", letterSpacing: 1, fontWeight: "bold" }}>
+              <p style={{ color: "#64748B", fontSize: 11, margin: "0 0 4px 0", textTransform: "uppercase", letterSpacing: 1, fontWeight: "bold" }}>
                 E-mail para solicitação
               </p>
-              <p style={{ color: "#16a34a", fontSize: 17, fontWeight: "bold", margin: 0, fontFamily: "monospace" }}>
+              <p style={{ color: "#059669", fontSize: 17, fontWeight: "bold", margin: 0, fontFamily: "monospace" }}>
                 privacidade@wolfgyn.com.br
               </p>
             </div>
             <button
               onClick={copiarEmail}
               style={{
-                background: copiouEmail ? "#16a34a" : "#16a34a22",
-                color: copiouEmail ? "white" : "#16a34a",
+                background: copiouEmail ? "#059669" : "#16a34a22",
+                color: copiouEmail ? "white" : "#059669",
                 border: "1px solid #16a34a44",
                 borderRadius: 8,
                 padding: "10px 16px",
@@ -116,7 +116,7 @@ export default function ExcluirDadosPage() {
         {/* Prazo */}
         <H2>Prazo de resposta</H2>
         <Section>
-          <p>Nos termos do art. 19 da LGPD, atendemos à sua solicitação em até <strong style={{ color: "#16a34a" }}>15 dias corridos</strong> contados a partir do recebimento do pedido com identidade confirmada.</p>
+          <p>Nos termos do art. 19 da LGPD, atendemos à sua solicitação em até <strong style={{ color: "#059669" }}>15 dias corridos</strong> contados a partir do recebimento do pedido com identidade confirmada.</p>
           <p>Você receberá um e-mail de confirmação assim que a exclusão for concluída.</p>
         </Section>
 
@@ -144,27 +144,27 @@ export default function ExcluirDadosPage() {
         </Section>
 
         {/* CTA final */}
-        <div style={{ marginTop: 48, paddingTop: 32, borderTop: "1px solid #1f2937", textAlign: "center" }}>
-          <Link href="/privacidade" style={{ color: "#16a34a", fontSize: 14, textDecoration: "none", fontWeight: "bold" }}>← Voltar para a Política de Privacidade</Link>
+        <div style={{ marginTop: 48, paddingTop: 32, borderTop: "1px solid #0F172A", textAlign: "center" }}>
+          <Link href="/privacidade" style={{ color: "#059669", fontSize: 14, textDecoration: "none", fontWeight: "bold" }}>Voltar para a Política de Privacidade</Link>
         </div>
 
       </article>
 
       {/* FOOTER */}
-      <footer style={{ padding: "32px", textAlign: "center", borderTop: "1px solid #1f2937" }}>
-        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>© {new Date().getFullYear()} Wolf System (ABC CALL E SERVICOS DIGITAIS LTDA — CNPJ 62.007.374/0001-96). Todos os direitos reservados.</p>
+      <footer style={{ padding: "32px", textAlign: "center", borderTop: "1px solid #0F172A" }}>
+        <p style={{ color: "#64748B", fontSize: 12, margin: 0 }}>{new Date().getFullYear()} Wolf System (ABC CALL E SERVICOS DIGITAIS LTDA — CNPJ 62.007.374/0001-96). Todos os direitos reservados.</p>
       </footer>
     </div>
   );
 }
 
 // ─── Helpers de estilo ────────────────────────────────────────────────
-const linkVerde: React.CSSProperties = { color: "#16a34a", textDecoration: "none" };
-const listaStyle: React.CSSProperties = { color: "#d1d5db", fontSize: 15, paddingLeft: 24, margin: "12px 0" };
+const linkVerde: React.CSSProperties = { color: "#059669", textDecoration: "none" };
+const listaStyle: React.CSSProperties = { color: "#CBD5E1", fontSize: 15, paddingLeft: 24, margin: "12px 0" };
 
 function Section({ children }: { children: React.ReactNode }) {
-  return <div style={{ color: "#d1d5db", fontSize: 15, marginBottom: 24 }}>{children}</div>;
+  return <div style={{ color: "#CBD5E1", fontSize: 15, marginBottom: 24 }}>{children}</div>;
 }
 function H2({ children }: { children: React.ReactNode }) {
-  return <h2 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: "36px 0 14px 0", paddingBottom: 8, borderBottom: "1px solid #1f2937" }}>{children}</h2>;
+  return <h2 style={{ color: "white", fontSize: 22, fontWeight: "bold", margin: "36px 0 14px 0", paddingBottom: 8, borderBottom: "1px solid #0F172A" }}>{children}</h2>;
 }

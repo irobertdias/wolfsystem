@@ -30,12 +30,12 @@ export function RespostasRapidasSection() {
   const [midiaPreview, setMidiaPreview] = useState<string>("");
   const [uploadandoMidia, setUploadandoMidia] = useState(false);
 
-  const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
+  const IS = { width: "100%", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 14px", color: "#0F172A", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
 
   const cardStyle = {
     background: "#ffffff",
     borderRadius: 14,
-    border: "1px solid #e5e7eb",
+    border: "1px solid #E6ECEA",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
@@ -218,7 +218,7 @@ export function RespostasRapidasSection() {
   const respostasFiltradas = respostas.filter(r => filtroEquipe === "todas" || (r.equipe_id || "") === filtroEquipe);
 
   return (
-    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#f8fafc", minHeight: "100vh" }}>
+    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#F3F6F5", minHeight: "100vh" }}>
 
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
@@ -232,18 +232,18 @@ export function RespostasRapidasSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>⚡</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Respostas Rápidas</h1>
-            <p style={{ color: "#6b7280", fontSize: 13, margin: "2px 0 0" }}>
-              Digite <code style={{ background: "#f3f4f6", color: "#3b82f6", padding: "1px 6px", borderRadius: 4, fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}>/</code> no chat para usar
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Respostas Rápidas</h1>
+            <p style={{ color: "#64748B", fontSize: 13, margin: "2px 0 0" }}>
+              Digite <code style={{ background: "#F1F5F4", color: "#059669", padding: "1px 6px", borderRadius: 4, fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}>/</code> no chat para usar
             </p>
           </div>
         </div>
         <button onClick={() => setShowForm(!showForm)}
           style={{
-            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-            boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+            boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
           }}>
           + Nova Resposta
         </button>
@@ -252,10 +252,10 @@ export function RespostasRapidasSection() {
       {/* ═══ FILTRO DE EQUIPE ═══ */}
       {equipes.length > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "#a855f7", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>👥 Equipe</span>
+          <span style={{ color: "#059669", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>Equipe</span>
           <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)} style={{ ...IS, width: "auto", minWidth: 200, cursor: "pointer" }}>
             <option value="todas">Todas as equipes</option>
-            <option value="">⚪ Geral (sem equipe)</option>
+            <option value="">Geral (sem equipe)</option>
             {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
           </select>
         </div>
@@ -266,23 +266,23 @@ export function RespostasRapidasSection() {
         <div style={{ ...cardStyle, padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 9, background: "#3b82f615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>➕</div>
-            <p style={{ color: "#3b82f6", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Nova Resposta Rápida</p>
+            <p style={{ color: "#059669", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Nova Resposta Rápida</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 12 }}>
             <div>
-              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Atalho *</label>
+              <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Atalho *</label>
               <input placeholder="/oi" value={form.atalho} onChange={e => setForm({ ...form, atalho: e.target.value })} style={{ ...IS, fontFamily: "monospace", fontWeight: 600 }} />
             </div>
             <div>
-              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Mensagem *</label>
+              <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Mensagem *</label>
               <textarea placeholder={"Olá! Como posso te ajudar?\nDigite ou cole sua mensagem com as quebras de linha desejadas."} value={form.mensagem} onChange={e => setForm({ ...form, mensagem: e.target.value })} rows={6} style={{ ...IS, resize: "vertical", minHeight: 140, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }} />
-              <p style={{ color: "#6b7280", fontSize: 11, margin: "6px 0 0" }}>Use Enter para quebrar a linha. Os parágrafos serão mantidos no envio.</p>
+              <p style={{ color: "#64748B", fontSize: 11, margin: "6px 0 0" }}>Use Enter para quebrar a linha. Os parágrafos serão mantidos no envio.</p>
             </div>
           </div>
           {/* 🆕 MÍDIA */}
           <div>
-            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>
-              📎 Mídia (opcional — imagem, vídeo, áudio ou documento)
+            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>
+              Mídia (opcional — imagem, vídeo, áudio ou documento)
             </label>
             <input
               ref={midiaInputRef}
@@ -294,16 +294,16 @@ export function RespostasRapidasSection() {
             {!midiaArquivo ? (
               <button type="button" onClick={() => midiaInputRef.current?.click()}
                 style={{
-                  background: "#f8fafc", border: "2px dashed #e5e7eb", borderRadius: 10,
-                  padding: "14px 20px", cursor: "pointer", color: "#6b7280", fontSize: 13,
+                  background: "#F3F6F5", border: "2px dashed #E6ECEA", borderRadius: 10,
+                  padding: "14px 20px", cursor: "pointer", color: "#64748B", fontSize: 13,
                   fontWeight: 600, width: "100%", textAlign: "center" as const, transition: "all 0.15s",
                 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.color = "#3b82f6"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#6b7280"; }}>
-                📎 Clique para anexar uma mídia
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#E6ECEA"; e.currentTarget.style.color = "#64748B"; }}>
+                Clique para anexar uma mídia
               </button>
             ) : (
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 12, background: "#f8fafc", display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ border: "1px solid #E6ECEA", borderRadius: 10, padding: 12, background: "#F3F6F5", display: "flex", alignItems: "center", gap: 12 }}>
                 {/* Preview: imagem inline, outros como ícone */}
                 {midiaPreview && midiaArquivo.type.startsWith("image/") ? (
                   <img src={midiaPreview} alt="preview" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
@@ -315,40 +315,40 @@ export function RespostasRapidasSection() {
                   </div>
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{midiaArquivo.name}</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "#6b7280" }}>{(midiaArquivo.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{midiaArquivo.name}</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "#64748B" }}>{(midiaArquivo.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
                 <button type="button" onClick={limparMidia}
                   style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>
-                  ✕ Remover
+                  Remover
                 </button>
               </div>
             )}
-            <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Imagem: máx 5MB · Vídeo/Áudio: máx 16MB · Documento: máx 100MB</p>
+            <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Imagem: máx 5MB · Vídeo/Áudio: máx 16MB · Documento: máx 100MB</p>
           </div>
 
           {/* 👥 EQUIPE */}
           {equipes.length > 0 && (
             <div>
-              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>👥 Equipe</label>
+              <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Equipe</label>
               <select value={form.equipeId} onChange={e => setForm({ ...form, equipeId: e.target.value })} style={IS}>
-                <option value="">⚪ Geral (todas as equipes)</option>
+                <option value="">Geral (todas as equipes)</option>
                 {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
               </select>
-              <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Deixe "Geral" pra valer pra todas as equipes, ou escolha uma equipe específica.</p>
+              <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Deixe "Geral" pra valer pra todas as equipes, ou escolha uma equipe específica.</p>
             </div>
           )}
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 14 }}>
             <button onClick={() => { setShowForm(false); setForm({ atalho: "", mensagem: "", equipeId: "" }); limparMidia(); }}
-              style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
               Cancelar
             </button>
             <button onClick={salvar} disabled={salvando || uploadandoMidia}
               style={{
-                background: (salvando || uploadandoMidia) ? "#2563eb" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                background: (salvando || uploadandoMidia) ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "9px 22px", fontSize: 12, cursor: "pointer", fontWeight: 700,
-                boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
               }}>
               {uploadandoMidia ? "⏳ Enviando mídia..." : salvando ? "⏳ Salvando..." : "💾 Salvar"}
             </button>
@@ -360,7 +360,7 @@ export function RespostasRapidasSection() {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {carregando ? (
           <div style={{ ...cardStyle, padding: 32, textAlign: "center" }}>
-            <p style={{ color: "#6b7280", fontSize: 13 }}>⏳ Carregando...</p>
+            <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
           </div>
         ) : respostasFiltradas.length === 0 ? (
           <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
@@ -373,10 +373,10 @@ export function RespostasRapidasSection() {
             }}>
               <span style={{ filter: "saturate(0) brightness(2)" }}>⚡</span>
             </div>
-            <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>
+            <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>
               {filtroEquipe !== "todas" ? "Nenhuma resposta nessa equipe" : "Nenhuma resposta rápida cadastrada ainda"}
             </h3>
-            <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Clique em <b>+ Nova Resposta</b> pra criar a primeira</p>
+            <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>Clique em <b>+ Nova Resposta</b> pra criar a primeira</p>
           </div>
         ) : respostasFiltradas.map((r, i) => (
           <div key={r.id || i}
@@ -386,12 +386,12 @@ export function RespostasRapidasSection() {
               display: "flex", alignItems: "center", gap: 16,
               transition: "all 0.15s",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(59,130,246,0.10)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(5,150,105,0.10)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}
           >
             <span style={{
               background: "#3b82f615",
-              color: "#3b82f6",
+              color: "#059669",
               border: "1px solid #3b82f630",
               fontSize: 12, padding: "5px 12px",
               borderRadius: 8, fontWeight: 700,
@@ -400,14 +400,14 @@ export function RespostasRapidasSection() {
             }}>
               {r.atalho}
             </span>
-            <p style={{ color: "#4b5563", fontSize: 13, margin: 0, flex: 1, minWidth: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{r.mensagem}</p>
+            <p style={{ color: "#475569", fontSize: 13, margin: 0, flex: 1, minWidth: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{r.mensagem}</p>
             {/* 🆕 preview de mídia anexada */}
             {r.midia_url && (
               <a href={r.midia_url} target="_blank" rel="noopener noreferrer"
                 style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", flexShrink: 0 }}
                 title={r.midia_nome || "Mídia anexada"}>
                 {r.midia_url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) ? (
-                  <img src={r.midia_url} alt={r.midia_nome || "imagem"} style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6, border: "1px solid #e5e7eb" }} />
+                  <img src={r.midia_url} alt={r.midia_nome || "imagem"} style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6, border: "1px solid #E6ECEA" }} />
                 ) : r.midia_url.match(/\.(mp4|mov|webm)(\?|$)/i) ? (
                   <span style={{ fontSize: 24 }} title={r.midia_nome || "vídeo"}>🎬</span>
                 ) : r.midia_url.match(/\.(mp3|ogg|wav|m4a|oga)(\?|$)/i) ? (
@@ -415,13 +415,13 @@ export function RespostasRapidasSection() {
                 ) : (
                   <span style={{ fontSize: 24 }} title={r.midia_nome || "documento"}>📄</span>
                 )}
-                <span style={{ fontSize: 10, color: "#6b7280", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
+                <span style={{ fontSize: 10, color: "#64748B", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
                   {r.midia_nome || "mídia"}
                 </span>
               </a>
             )}
             {equipeNomeDe(r.equipe_id) && (
-              <span style={{ background: "#a855f715", color: "#a855f7", border: "1px solid #a855f730", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>👥 {equipeNomeDe(r.equipe_id)}</span>
+              <span style={{ background: "#a855f715", color: "#059669", border: "1px solid #a855f730", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>{equipeNomeDe(r.equipe_id)}</span>
             )}
             <button onClick={() => remover(r)}
               style={{

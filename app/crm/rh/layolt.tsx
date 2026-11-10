@@ -28,6 +28,7 @@ import { DocumentosSection } from "./_sections/documentossection";
 import { ContratosSection } from "./_sections/contratossection";
 import { ConfigSection } from "./_sections/configsection";
 
+import { IconeEmoji } from "../../components/a2/Icone";
 // 🗂️ Registry de seções — cada key bate com a key do menu (GRUPOS).
 // Pra ligar uma nova section: importe acima e adicione uma linha aqui.
 const SECTIONS: Record<string, ComponentType> = {
@@ -199,8 +200,8 @@ export default function RHLayolt() {
         display: "flex",
         height: "100%",
         minHeight: 0,
-        fontFamily: "Arial, sans-serif",
-        background: "#f8fafc",
+        fontFamily: "var(--font-wolf), system-ui, sans-serif",
+        background: "#F3F6F5",
         position: "relative",
       }}
     >
@@ -214,9 +215,9 @@ export default function RHLayolt() {
             top: 8,
             right: 8,
             zIndex: 65,
-            background: "#eef2ff",
-            border: "1px solid #c7d2fe",
-            color: "#4338ca",
+            background: "#ECFDF5",
+            border: "1px solid #A7F3D0",
+            color: "#065F46",
             borderRadius: 10,
             padding: "7px 14px",
             fontSize: 13,
@@ -229,7 +230,7 @@ export default function RHLayolt() {
             boxShadow: "0 4px 12px rgba(67,56,202,0.18)",
           }}
         >
-          ☰ Seções
+          Seções
         </button>
       )}
       {isMobile && menuMobileAberto && (
@@ -250,7 +251,7 @@ export default function RHLayolt() {
         style={{
           width: isMobile ? 260 : 224,
           background: "#ffffff",
-          borderRight: "1px solid #e5e7eb",
+          borderRight: "1px solid #E6ECEA",
           display: "flex",
           flexDirection: "column",
           overflowY: "auto",
@@ -270,7 +271,7 @@ export default function RHLayolt() {
         <div
           style={{
             padding: 16,
-            borderBottom: "1px solid #e5e7eb",
+            borderBottom: "1px solid #E6ECEA",
             display: "flex",
             alignItems: "center",
             gap: 10,
@@ -281,7 +282,7 @@ export default function RHLayolt() {
               width: 36,
               height: 36,
               borderRadius: 10,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -295,7 +296,7 @@ export default function RHLayolt() {
           <div style={{ minWidth: 0 }}>
             <span
               style={{
-                color: "#1f2937",
+                color: "#0F172A",
                 fontWeight: 800,
                 fontSize: 14,
                 display: "block",
@@ -337,14 +338,14 @@ export default function RHLayolt() {
                     border: "none",
                     borderRadius: 10,
                     cursor: "pointer",
-                    color: aberto || temAtivo ? COR_TEXTO : "#374151",
+                    color: aberto || temAtivo ? COR_TEXTO : "#334155",
                     fontSize: 13,
                     fontWeight: aberto || temAtivo ? 700 : 600,
                     textAlign: "left",
                     transition: "background .15s",
                   }}
                   onMouseEnter={(e) => {
-                    if (!aberto && !temAtivo) e.currentTarget.style.background = "#f3f4f6";
+                    if (!aberto && !temAtivo) e.currentTarget.style.background = "#F1F5F4";
                   }}
                   onMouseLeave={(e) => {
                     if (!aberto && !temAtivo) e.currentTarget.style.background = "transparent";
@@ -365,14 +366,14 @@ export default function RHLayolt() {
                         boxShadow: aberto || temAtivo ? `0 2px 6px ${COR}40` : "none",
                       }}
                     >
-                      {g.icon}
+                      {<IconeEmoji e={g.icon} />}
                     </span>
                     {g.label}
                   </span>
                   <span
                     style={{
                       fontSize: 9,
-                      color: aberto || temAtivo ? COR : "#9ca3af",
+                      color: aberto || temAtivo ? COR : "#94A3B8",
                       transform: aberto ? "rotate(0)" : "rotate(-90deg)",
                       transition: "transform .2s",
                     }}
@@ -405,7 +406,7 @@ export default function RHLayolt() {
                             border: "none",
                             borderRadius: 8,
                             cursor: "pointer",
-                            color: sel ? COR_TEXTO : "#6b7280",
+                            color: sel ? COR_TEXTO : "#64748B",
                             fontSize: 12,
                             textAlign: "left",
                             fontWeight: sel ? 700 : 500,
@@ -414,14 +415,14 @@ export default function RHLayolt() {
                           }}
                           onMouseEnter={(e) => {
                             if (!sel) {
-                              e.currentTarget.style.background = "#f3f4f6";
-                              e.currentTarget.style.color = "#1f2937";
+                              e.currentTarget.style.background = "#F1F5F4";
+                              e.currentTarget.style.color = "#0F172A";
                             }
                           }}
                           onMouseLeave={(e) => {
                             if (!sel) {
                               e.currentTarget.style.background = "transparent";
-                              e.currentTarget.style.color = "#6b7280";
+                              e.currentTarget.style.color = "#64748B";
                             }
                           }}
                         >
@@ -481,7 +482,7 @@ function EmConstrucao({ titulo }: { titulo: string }) {
           width: 84,
           height: 84,
           borderRadius: 22,
-          background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+          background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -491,8 +492,8 @@ function EmConstrucao({ titulo }: { titulo: string }) {
       >
         <span style={{ filter: "saturate(0) brightness(2)" }}>🚧</span>
       </div>
-      <h2 style={{ color: "#1f2937", fontSize: 20, fontWeight: 800, margin: 0 }}>{titulo}</h2>
-      <p style={{ color: "#6b7280", fontSize: 14, margin: 0, maxWidth: 360 }}>
+      <h2 style={{ color: "#0F172A", fontSize: 20, fontWeight: 800, margin: 0 }}>{titulo}</h2>
+      <p style={{ color: "#64748B", fontSize: 14, margin: 0, maxWidth: 360 }}>
         Esta seção faz parte do módulo de RH e será construída em seguida.
       </p>
       <span

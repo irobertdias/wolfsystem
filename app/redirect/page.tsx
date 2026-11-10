@@ -31,7 +31,7 @@ export default function RedirectPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: "var(--font-wolf), system-ui, sans-serif",
       }}
     >
       <div style={{ textAlign: "center" }}>
@@ -39,14 +39,14 @@ export default function RedirectPage() {
           style={{
             width: 40,
             height: 40,
-            border: "3px solid #1f2937",
-            borderTopColor: "#16a34a",
+            border: "3px solid #0F172A",
+            borderTopColor: "#059669",
             borderRadius: "50%",
             margin: "0 auto 16px",
             animation: "spin 0.8s linear infinite",
           }}
         />
-        <p style={{ color: "#9ca3af", fontSize: 14, margin: 0 }}>Carregando...</p>
+        <p style={{ color: "#94A3B8", fontSize: 14, margin: 0 }}>Carregando...</p>
         <style>{`
           @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>

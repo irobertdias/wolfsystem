@@ -22,21 +22,21 @@ export type PlanoWolf = {
 
 export const PLANOS_WOLF: PlanoWolf[] = [
   {
-    id: "basico", nome: "Básico", preco: 597, usuarios: 5, whatsapps: 1, cor: "#16a34a",
+    id: "basico", nome: "Básico", preco: 597, usuarios: 5, whatsapps: 1, cor: "#059669",
     inclui: ["crm", "chatbot"],
     descricao: "Para organizar atendimento e vendas com uma operação profissional.",
     recursos: ["Até 5 usuários", "1 conexão WhatsApp", "Chat unificado", "CRM de vendas", "ChatBot visual", "Filas e departamentos", "Protocolos e etiquetas", "Dashboard operacional"],
     resumo: ["5 usuários e 1 conexão de WhatsApp", "CRM de vendas e Chatbot visual", "Filas, etiquetas e dashboard"],
   },
   {
-    id: "intermediario", nome: "Intermediário", preco: 1097, usuarios: 12, whatsapps: 2, cor: "#2563eb", destaque: true,
+    id: "intermediario", nome: "Intermediário", preco: 1097, usuarios: 12, whatsapps: 2, cor: "#047857", destaque: true,
     inclui: ["crm", "chatbot", "roleta", "disparos_web", "equipes", "api"],
     descricao: "Para equipes comerciais que precisam automatizar, distribuir e medir.",
     recursos: ["Até 12 usuários", "2 conexões WhatsApp", "Tudo do Básico", "Roleta de distribuição", "Disparos via WhatsApp Web", "Equipes e permissões", "API de integração", "Indicadores comerciais"],
     resumo: ["12 usuários e 2 conexões de WhatsApp", "Tudo do Básico", "Roleta, disparos, equipes e API de integração"],
   },
   {
-    id: "ultra", nome: "Ultra", preco: 1997, usuarios: 25, whatsapps: 3, cor: "#7c3aed",
+    id: "ultra", nome: "Ultra", preco: 1997, usuarios: 25, whatsapps: 3, cor: "#047857",
     inclui: ["crm", "chatbot", "roleta", "disparos_web", "equipes", "api", "disparos_api", "cobranca", "voip", "automacao_crm", "instagram"],
     descricao: "Para operações multicanal que querem automação completa e escala.",
     recursos: ["Até 25 usuários", "3 conexões WhatsApp", "Tudo do Intermediário", "API Oficial da Meta", "Cobrança automatizada", "Ligações VoIP", "Automação de CRM", "Instagram Direct"],

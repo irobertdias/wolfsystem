@@ -6,6 +6,7 @@ import { usePermissao } from "../../../hooks/usePermissao";
 import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 import * as XLSX from "xlsx";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 type Atendimento = {
   id: number; created_at: string; numero: string; nome: string;
   mensagem: string; status: string; fila: string; atendente: string;
@@ -79,12 +80,12 @@ export default function Contatos() {
 
   // 🎨 ESTILOS
   const inputStyle = {
-    width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10,
-    padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const,
+    width: "100%", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10,
+    padding: "10px 14px", color: "#0F172A", fontSize: 13, boxSizing: "border-box" as const,
     outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
   };
   const cardStyle = {
-    background: "#ffffff", borderRadius: 14, border: "1px solid #e5e7eb",
+    background: "#ffffff", borderRadius: 14, border: "1px solid #E6ECEA",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
@@ -386,8 +387,8 @@ export default function Contatos() {
   };
 
   const corStatus = (s: string) => ({
-    resolvido: "#16a34a", aberto: "#3b82f6", em_atendimento: "#f59e0b", pendente: "#f59e0b",
-  }[s] || "#6b7280");
+    resolvido: "#059669", aberto: "#3b82f6", em_atendimento: "#f59e0b", pendente: "#f59e0b",
+  }[s] || "#64748B");
   const labelStatus = (s: string) => ({
     resolvido: "✅ Resolvido", aberto: "💬 Aberto", em_atendimento: "👤 Em atendimento", pendente: "⏳ Pendente",
   }[s] || s);
@@ -408,56 +409,56 @@ export default function Contatos() {
             style={{ ...cardStyle, width: "100%", maxWidth: 680, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
             {/* Header do modal */}
-            <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "18px 24px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: "50%",
-                  background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                  background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   color: "white", fontSize: 18, fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(59,130,246,0.25)",
+                  boxShadow: "0 4px 12px rgba(5,150,105,0.25)",
                 }}>
                   {contatoEditando.nome.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>{contatoEditando.nome}</h3>
-                  <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0", fontFamily: "monospace" }}>📱 {contatoEditando.numero}</p>
+                  <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>{contatoEditando.nome}</h3>
+                  <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0", fontFamily: "monospace" }}>{contatoEditando.numero}</p>
                 </div>
               </div>
               <button onClick={fecharModal}
-                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
 
             <div style={{ padding: 24, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 18 }}>
 
               {/* Nome editável */}
               <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome do Contato</label>
+                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome do Contato</label>
                 <input value={nomeEditado} onChange={e => setNomeEditado(e.target.value)} style={inputStyle} placeholder="Nome do contato" />
-                <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>Alterar aqui atualiza o nome em TODOS os atendimentos deste número.</p>
+                <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Alterar aqui atualiza o nome em TODOS os atendimentos deste número.</p>
               </div>
 
               {/* Stats do contato */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-                <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: 12, textAlign: "center" }}>
-                  <p style={{ color: "#3b82f6", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.totalAtendimentos}</p>
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: "3px 0 0", fontWeight: 600, textTransform: "uppercase" }}>Atendimentos</p>
+                <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12, textAlign: "center" }}>
+                  <p style={{ color: "#059669", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.totalAtendimentos}</p>
+                  <p style={{ color: "#64748B", fontSize: 10, margin: "3px 0 0", fontWeight: 600, textTransform: "uppercase" }}>Atendimentos</p>
                 </div>
-                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12, textAlign: "center" }}>
-                  <p style={{ color: "#16a34a", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.atendimentos.filter(a => a.status === "resolvido").length}</p>
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: "3px 0 0", fontWeight: 600, textTransform: "uppercase" }}>Resolvidos</p>
+                <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12, textAlign: "center" }}>
+                  <p style={{ color: "#059669", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.atendimentos.filter(a => a.status === "resolvido").length}</p>
+                  <p style={{ color: "#64748B", fontSize: 10, margin: "3px 0 0", fontWeight: 600, textTransform: "uppercase" }}>Resolvidos</p>
                 </div>
                 <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 12, textAlign: "center" }}>
                   <p style={{ color: "#f59e0b", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.atendimentos.filter(a => a.status === "aberto" || a.status === "em_atendimento" || a.status === "pendente").length}</p>
-                  <p style={{ color: "#6b7280", fontSize: 10, margin: "3px 0 0", fontWeight: 600, textTransform: "uppercase" }}>Em aberto</p>
+                  <p style={{ color: "#64748B", fontSize: 10, margin: "3px 0 0", fontWeight: 600, textTransform: "uppercase" }}>Em aberto</p>
                 </div>
               </div>
 
               {/* Etiquetas */}
               <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 8 }}>🏷️ Etiquetas</label>
+                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 8 }}>Etiquetas</label>
                 {etiquetas.length === 0 ? (
-                  <p style={{ color: "#9ca3af", fontSize: 12, fontStyle: "italic", margin: 0 }}>Nenhuma etiqueta cadastrada. Vá em Chatbot → Etiquetas para criar.</p>
+                  <p style={{ color: "#94A3B8", fontSize: 12, fontStyle: "italic", margin: 0 }}>Nenhuma etiqueta cadastrada. Vá em Chatbot → Etiquetas para criar.</p>
                 ) : (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {etiquetas.map(e => {
@@ -470,15 +471,15 @@ export default function Contatos() {
                         }}
                           style={{
                             background: marcada ? `${e.cor}15` : "#ffffff",
-                            border: `1.5px solid ${marcada ? e.cor : "#e5e7eb"}`,
-                            color: marcada ? e.cor : "#6b7280",
+                            border: `1.5px solid ${marcada ? e.cor : "#E6ECEA"}`,
+                            color: marcada ? e.cor : "#64748B",
                             borderRadius: 20, padding: "6px 12px", fontSize: 12,
                             cursor: "pointer", fontWeight: 600,
                             display: "inline-flex", alignItems: "center", gap: 6,
                             transition: "all 0.15s",
                             boxShadow: marcada ? `0 2px 6px ${e.cor}25` : "none",
                           }}>
-                          <span>{e.icone}</span>
+                          <span>{<IconeEmoji e={e.icone} />}</span>
                           <span>{e.nome}</span>
                           {marcada && <span style={{ marginLeft: 2 }}>✓</span>}
                         </button>
@@ -490,8 +491,8 @@ export default function Contatos() {
 
               {/* Histórico recente (últimos 5 atendimentos) */}
               <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 8 }}>📜 Histórico de atendimentos</label>
-                <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12, maxHeight: 240, overflowY: "auto" }}>
+                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 8 }}>Histórico de atendimentos</label>
+                <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 10, padding: 12, maxHeight: 240, overflowY: "auto" }}>
                   {contatoEditando.atendimentos
                     .slice()
                     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -506,17 +507,17 @@ export default function Contatos() {
                         }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
                           <span style={{ color: corStatus(a.status), fontSize: 11, fontWeight: 700 }}>{labelStatus(a.status)}</span>
-                          <span style={{ color: "#9ca3af", fontSize: 10 }}>{new Date(a.created_at).toLocaleString("pt-BR")}</span>
+                          <span style={{ color: "#94A3B8", fontSize: 10 }}>{new Date(a.created_at).toLocaleString("pt-BR")}</span>
                         </div>
-                        <p style={{ color: "#374151", fontSize: 12, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.mensagem || "—"}</p>
-                        <p style={{ color: "#9ca3af", fontSize: 10, margin: "3px 0 0" }}>
-                          {a.fila && <>📋 {a.fila} · </>}
+                        <p style={{ color: "#334155", fontSize: 12, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.mensagem || "—"}</p>
+                        <p style={{ color: "#94A3B8", fontSize: 10, margin: "3px 0 0" }}>
+                          {a.fila && <>{a.fila} · </>}
                           {a.atendente && (a.atendente === "BOT" ? "🤖 BOT" : `👤 ${a.atendente}`)}
                         </p>
                       </div>
                     ))}
                   {contatoEditando.atendimentos.length > 10 && (
-                    <p style={{ color: "#9ca3af", fontSize: 11, textAlign: "center", margin: "8px 0 0", fontStyle: "italic" }}>
+                    <p style={{ color: "#94A3B8", fontSize: 11, textAlign: "center", margin: "8px 0 0", fontStyle: "italic" }}>
                       +{contatoEditando.atendimentos.length - 10} atendimentos mais antigos
                     </p>
                   )}
@@ -525,22 +526,22 @@ export default function Contatos() {
             </div>
 
             {/* Footer com ações */}
-            <div style={{ padding: "14px 24px", borderTop: "1px solid #e5e7eb", display: "flex", gap: 10, justifyContent: "space-between", background: "#f9fafb", flexWrap: "wrap" }}>
+            <div style={{ padding: "14px 24px", borderTop: "1px solid #E6ECEA", display: "flex", gap: 10, justifyContent: "space-between", background: "#F7FAF9", flexWrap: "wrap" }}>
               <button onClick={() => excluirContato(contatoEditando)}
                 style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
-                🗑️ Excluir contato
+                Excluir contato
               </button>
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => { fecharModal(); router.push("/chatbot"); }}
-                  style={{ background: "#ffffff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
-                  💬 Abrir chat
+                  style={{ background: "#ffffff", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+                  Abrir chat
                 </button>
                 <button onClick={salvarContato} disabled={salvandoContato}
                   style={{
-                    background: salvandoContato ? "#2563eb" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                    background: salvandoContato ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                     color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 12,
                     cursor: salvandoContato ? "not-allowed" : "pointer", fontWeight: 700,
-                    boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+                    boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                   }}>
                   {salvandoContato ? "Salvando..." : "💾 Salvar"}
                 </button>
@@ -555,17 +556,17 @@ export default function Contatos() {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(59,130,246,0.25)",
+            fontSize: 24, boxShadow: "0 8px 20px rgba(5,150,105,0.25)",
             flexShrink: 0,
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>👥</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Meus Contatos</h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
-              Leads que chegaram pelo WhatsApp · <b style={{ color: "#3b82f6" }}>{contatos.length}</b> contato(s) únicos
+            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Meus Contatos</h1>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+              Leads que chegaram pelo WhatsApp · <b style={{ color: "#059669" }}>{contatos.length}</b> contato(s) únicos
             </p>
           </div>
         </div>
@@ -573,19 +574,19 @@ export default function Contatos() {
           {/* 🔒 Equipe — admin escolhe; Diretor travado mostra rótulo fixo */}
           {veTudo && <EquipeSelector />}
           {travadoEquipe && minhaEquipeNome && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "8px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "8px 14px" }}>
               <span style={{ fontSize: 14, lineHeight: 1 }}>👥</span>
-              <span style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Equipe</span>
-              <span style={{ color: "#2563eb", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
+              <span style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Equipe</span>
+              <span style={{ color: "#047857", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
             </div>
           )}
           <button onClick={exportar} disabled={exportando || contatosFiltrados.length === 0}
             style={{
-              background: (exportando || contatosFiltrados.length === 0) ? "#f3f4f6" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-              color: (exportando || contatosFiltrados.length === 0) ? "#9ca3af" : "white",
+              background: (exportando || contatosFiltrados.length === 0) ? "#F1F5F4" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+              color: (exportando || contatosFiltrados.length === 0) ? "#94A3B8" : "white",
               border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 13,
               cursor: (exportando || contatosFiltrados.length === 0) ? "not-allowed" : "pointer", fontWeight: 700,
-              boxShadow: (exportando || contatosFiltrados.length === 0) ? "none" : "0 4px 12px rgba(22,163,74,0.3)",
+              boxShadow: (exportando || contatosFiltrados.length === 0) ? "none" : "0 4px 12px rgba(5,150,105,0.3)",
               whiteSpace: "nowrap",
             }}>
             {exportando ? "⏳ Exportando..." : "📥 Exportar Excel"}
@@ -597,7 +598,7 @@ export default function Contatos() {
       {truncado && (
         <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderLeft: "4px solid #f59e0b", borderRadius: 12, padding: "12px 16px" }}>
           <p style={{ color: "#92400e", fontSize: 12, margin: 0, fontWeight: 600 }}>
-            ⚠️ Mostrando os 10.000 atendimentos mais recentes. Se você precisa de tudo, use os <b>Relatórios</b> com filtros de período.
+            Mostrando os 10.000 atendimentos mais recentes. Se você precisa de tudo, use os <b>Relatórios</b> com filtros de período.
           </p>
         </div>
       )}
@@ -605,10 +606,10 @@ export default function Contatos() {
       {/* ═══ STATS ═══ */}
       <div style={{ display: "flex", gap: isMobile ? 10 : 14, flexWrap: "wrap" }}>
         {[
-          { label: "Total", value: stats.total, color: "#8b5cf6", icon: "👥" },
-          { label: "Últimos 7 dias", value: stats.novosSemana, color: "#3b82f6", icon: "📅" },
+          { label: "Total", value: stats.total, color: "#059669", icon: "👥" },
+          { label: "Últimos 7 dias", value: stats.novosSemana, color: "#059669", icon: "📅" },
           { label: "Em aberto", value: stats.ativos, color: "#f59e0b", icon: "💬" },
-          { label: "Atendidos pelo bot", value: stats.bot, color: "#16a34a", icon: "🤖" },
+          { label: "Atendidos pelo bot", value: stats.bot, color: "#059669", icon: "🤖" },
         ].map(card => (
           <div key={card.label}
             style={{
@@ -623,9 +624,9 @@ export default function Contatos() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <div style={{ width: 28, height: 28, borderRadius: 8, background: `${card.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
-                {card.icon}
+                {<IconeEmoji e={card.icon} />}
               </div>
-              <p style={{ color: "#6b7280", fontSize: isMobile ? 10 : 11, margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>{card.label}</p>
+              <p style={{ color: "#64748B", fontSize: isMobile ? 10 : 11, margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>{card.label}</p>
             </div>
             <p style={{ color: card.color, fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{card.value}</p>
           </div>
@@ -635,19 +636,19 @@ export default function Contatos() {
       {/* ═══ FILTROS ═══ */}
       <div style={{ ...cardStyle, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <input placeholder="🔍 Buscar por nome, número ou mensagem..." value={busca} onChange={e => setBusca(e.target.value)}
+          <input placeholder="Buscar por nome, número ou mensagem..." value={busca} onChange={e => setBusca(e.target.value)}
             style={{ ...inputStyle, flex: "1 1 280px", maxWidth: 500, borderRadius: 20 }} />
 
           <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={{ ...inputStyle, maxWidth: 160 }}>
             <option value="todos">Status: Todos</option>
-            <option value="aberto">💬 Aberto</option>
-            <option value="em_atendimento">👤 Em atendimento</option>
-            <option value="pendente">⏳ Pendente</option>
-            <option value="resolvido">✅ Resolvido</option>
+            <option value="aberto">Aberto</option>
+            <option value="em_atendimento">Em atendimento</option>
+            <option value="pendente">Pendente</option>
+            <option value="resolvido">Resolvido</option>
           </select>
 
           <select value={filtroEtiqueta} onChange={e => setFiltroEtiqueta(e.target.value)} style={{ ...inputStyle, maxWidth: 200 }}>
-            <option value="todas">🏷️ Etiqueta: Todas</option>
+            <option value="todas">Etiqueta: Todas</option>
             {etiquetas.map(e => <option key={e.id} value={e.id.toString()}>{e.icone} {e.nome}</option>)}
           </select>
 
@@ -659,18 +660,18 @@ export default function Contatos() {
 
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {[
-            { key: "todos", label: "📅 Todos", color: "#8b5cf6" },
-            { key: "hoje", label: "📆 Hoje", color: "#16a34a" },
-            { key: "semana", label: "🗓️ 7 dias", color: "#3b82f6" },
-            { key: "mes", label: "📊 30 dias", color: "#f59e0b" },
+            { key: "todos", label: "Todos", color: "#059669" },
+            { key: "hoje", label: "Hoje", color: "#059669" },
+            { key: "semana", label: "7 dias", color: "#059669" },
+            { key: "mes", label: "30 dias", color: "#f59e0b" },
           ].map(p => {
             const ativo = filtroPeriodo === p.key;
             return (
               <button key={p.key} onClick={() => setFiltroPeriodo(p.key as any)}
                 style={{
-                  background: ativo ? `${p.color}15` : "#f9fafb",
-                  color: ativo ? p.color : "#6b7280",
-                  border: `1px solid ${ativo ? `${p.color}50` : "#e5e7eb"}`,
+                  background: ativo ? `${p.color}15` : "#F7FAF9",
+                  color: ativo ? p.color : "#64748B",
+                  border: `1px solid ${ativo ? `${p.color}50` : "#E6ECEA"}`,
                   borderRadius: 10, padding: "7px 14px", fontSize: 12,
                   cursor: "pointer", fontWeight: ativo ? 700 : 600,
                   boxShadow: ativo ? `0 2px 8px ${p.color}20` : "none",
@@ -683,38 +684,38 @@ export default function Contatos() {
           {(busca || filtroStatus !== "todos" || filtroEtiqueta !== "todas" || filtroAtendente !== "todos" || filtroPeriodo !== "todos") && (
             <button onClick={limparFiltros}
               style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700, marginLeft: "auto" }}>
-              ✕ Limpar filtros
+              Limpar filtros
             </button>
           )}
         </div>
-        <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
-          <b style={{ color: "#1f2937" }}>{contatosFiltrados.length}</b> contato(s) {contatosFiltrados.length !== contatos.length && `de ${contatos.length} `}encontrado(s)
+        <p style={{ color: "#64748B", fontSize: 11, margin: 0 }}>
+          <b style={{ color: "#0F172A" }}>{contatosFiltrados.length}</b> contato(s) {contatosFiltrados.length !== contatos.length && `de ${contatos.length} `}encontrado(s)
         </p>
       </div>
 
       {/* ═══ LISTA / TABELA ═══ */}
       {loading ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <p style={{ color: "#6b7280" }}>Carregando contatos...</p>
+          <p style={{ color: "#64748B" }}>Carregando contatos...</p>
         </div>
       ) : contatos.length === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
           <div style={{
             width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(59,130,246,0.25)",
+            boxShadow: "0 12px 24px rgba(5,150,105,0.25)",
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>👥</span>
           </div>
-          <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px 0" }}>Nenhum contato ainda</h3>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Os leads que chegarem pelo WhatsApp aparecerão aqui automaticamente.</p>
+          <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 8px 0" }}>Nenhum contato ainda</h3>
+          <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>Os leads que chegarem pelo WhatsApp aparecerão aqui automaticamente.</p>
         </div>
       ) : contatosFiltrados.length === 0 ? (
         <div style={{ ...cardStyle, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>🔍</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum contato com esses filtros</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum contato com esses filtros</p>
         </div>
       ) : isMobile ? (
         /* ═══ MOBILE: CARDS ═══ */
@@ -733,28 +734,28 @@ export default function Contatos() {
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{
                     width: 42, height: 42, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                    background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     color: "white", fontSize: 16, fontWeight: 700, flexShrink: 0,
                   }}>
                     {c.nome.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</p>
-                    <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0", fontFamily: "monospace" }}>📱 {c.numero}</p>
+                    <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</p>
+                    <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0", fontFamily: "monospace" }}>{c.numero}</p>
                   </div>
-                  <span style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", fontSize: 11, padding: "3px 8px", borderRadius: 8, fontWeight: 700, flexShrink: 0 }}>
+                  <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 11, padding: "3px 8px", borderRadius: 8, fontWeight: 700, flexShrink: 0 }}>
                     {c.totalAtendimentos}
                   </span>
                 </div>
-                <p style={{ color: "#6b7280", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ultimaMensagem || "—"}</p>
+                <p style={{ color: "#64748B", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ultimaMensagem || "—"}</p>
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                   {etiqs.slice(0, 3).map(e => (
                     <span key={e.id} style={{ background: e.cor + "15", color: e.cor, border: `1px solid ${e.cor}40`, fontSize: 10, padding: "2px 8px", borderRadius: 8, fontWeight: 600 }}>
-                      {e.icone} {e.nome}
+                      {<IconeEmoji e={e.icone} />} {e.nome}
                     </span>
                   ))}
-                  {etiqs.length > 3 && <span style={{ color: "#9ca3af", fontSize: 10, padding: "2px 4px", fontStyle: "italic" }}>+{etiqs.length - 3}</span>}
+                  {etiqs.length > 3 && <span style={{ color: "#94A3B8", fontSize: 10, padding: "2px 4px", fontStyle: "italic" }}>+{etiqs.length - 3}</span>}
                   <span style={{ background: `${cor}15`, color: cor, border: `1px solid ${cor}40`, fontSize: 10, padding: "2px 8px", borderRadius: 8, fontWeight: 700, marginLeft: "auto" }}>
                     {labelStatus(c.ultimoStatus)}
                   </span>
@@ -769,9 +770,9 @@ export default function Contatos() {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#F7FAF9" }}>
                   {["Contato", "Telefone", "Etiquetas", "Última Interação", "Atendente", "Status", "Atendim.", ""].map(h => (
-                    <th key={h} style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                    <th key={h} style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -782,47 +783,47 @@ export default function Contatos() {
                   return (
                     <tr key={c.numero} onClick={() => abrirEditar(c)}
                       style={{
-                        borderTop: "1px solid #f3f4f6",
-                        background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                        borderTop: "1px solid #F1F5F4",
+                        background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
                         cursor: "pointer", transition: "background 0.1s",
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc"}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#F1F5F4"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#F7FAF9"}
                     >
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{
                             width: 34, height: 34, borderRadius: "50%",
-                            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                             display: "flex", alignItems: "center", justifyContent: "center",
                             color: "white", fontSize: 13, fontWeight: 700, flexShrink: 0,
                           }}>
                             {c.nome.charAt(0).toUpperCase()}
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</p>
-                            <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ultimaMensagem || "—"}</p>
+                            <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</p>
+                            <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ultimaMensagem || "—"}</p>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12, fontFamily: "monospace", whiteSpace: "nowrap" }}>{c.numero}</td>
+                      <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12, fontFamily: "monospace", whiteSpace: "nowrap" }}>{c.numero}</td>
                       <td style={{ padding: "12px 16px" }}>
-                        {etiqs.length === 0 ? <span style={{ color: "#d1d5db", fontSize: 11 }}>—</span> : (
+                        {etiqs.length === 0 ? <span style={{ color: "#CBD5E1", fontSize: 11 }}>—</span> : (
                           <div style={{ display: "flex", gap: 3, flexWrap: "wrap", maxWidth: 180 }}>
                             {etiqs.slice(0, 2).map(e => (
                               <span key={e.id} style={{ background: e.cor + "15", color: e.cor, border: `1px solid ${e.cor}40`, fontSize: 10, padding: "2px 7px", borderRadius: 8, fontWeight: 600, whiteSpace: "nowrap" }}>
-                                {e.icone} {e.nome}
+                                {<IconeEmoji e={e.icone} />} {e.nome}
                               </span>
                             ))}
-                            {etiqs.length > 2 && <span style={{ color: "#9ca3af", fontSize: 10, padding: "2px 4px", fontStyle: "italic" }}>+{etiqs.length - 2}</span>}
+                            {etiqs.length > 2 && <span style={{ color: "#94A3B8", fontSize: 10, padding: "2px 4px", fontStyle: "italic" }}>+{etiqs.length - 2}</span>}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, whiteSpace: "nowrap" }}>
+                      <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, whiteSpace: "nowrap" }}>
                         {new Date(c.ultimaData).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>
-                        {c.ultimoAtendente ? (c.ultimoAtendente === "BOT" ? "🤖 BOT" : `👤 ${c.ultimoAtendente}`) : <span style={{ color: "#d1d5db" }}>—</span>}
+                      <td style={{ padding: "12px 16px", color: "#475569", fontSize: 12 }}>
+                        {c.ultimoAtendente ? (c.ultimoAtendente === "BOT" ? "🤖 BOT" : `👤 ${c.ultimoAtendente}`) : <span style={{ color: "#CBD5E1" }}>—</span>}
                       </td>
                       <td style={{ padding: "12px 16px" }}>
                         <span style={{
@@ -832,13 +833,13 @@ export default function Contatos() {
                         }}>{labelStatus(c.ultimoStatus)}</span>
                       </td>
                       <td style={{ padding: "12px 16px" }}>
-                        <span style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", fontSize: 11, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>
+                        <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 11, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>
                           {c.totalAtendimentos}
                         </span>
                       </td>
                       <td style={{ padding: "12px 16px" }}>
                         <button onClick={(e) => { e.stopPropagation(); abrirEditar(c); }}
-                          style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
                           ✏️
                         </button>
                       </td>
@@ -856,26 +857,26 @@ export default function Contatos() {
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, padding: "12px 0", flexWrap: "wrap" }}>
           <button onClick={() => setPaginaAtual(p => Math.max(1, p - 1))} disabled={paginaAtual === 1}
             style={{
-              background: paginaAtual === 1 ? "#f3f4f6" : "#ffffff",
-              color: paginaAtual === 1 ? "#9ca3af" : "#374151",
-              border: "1px solid #e5e7eb", borderRadius: 10,
+              background: paginaAtual === 1 ? "#F1F5F4" : "#ffffff",
+              color: paginaAtual === 1 ? "#94A3B8" : "#334155",
+              border: "1px solid #E6ECEA", borderRadius: 10,
               padding: "8px 14px", fontSize: 12,
               cursor: paginaAtual === 1 ? "not-allowed" : "pointer", fontWeight: 600,
             }}>
-            ← Anterior
+            Anterior
           </button>
-          <span style={{ color: "#6b7280", fontSize: 13, padding: "0 12px", fontWeight: 600 }}>
-            Página <b style={{ color: "#1f2937" }}>{paginaAtual}</b> de <b style={{ color: "#1f2937" }}>{totalPaginas}</b>
+          <span style={{ color: "#64748B", fontSize: 13, padding: "0 12px", fontWeight: 600 }}>
+            Página <b style={{ color: "#0F172A" }}>{paginaAtual}</b> de <b style={{ color: "#0F172A" }}>{totalPaginas}</b>
           </span>
           <button onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))} disabled={paginaAtual === totalPaginas}
             style={{
-              background: paginaAtual === totalPaginas ? "#f3f4f6" : "#ffffff",
-              color: paginaAtual === totalPaginas ? "#9ca3af" : "#374151",
-              border: "1px solid #e5e7eb", borderRadius: 10,
+              background: paginaAtual === totalPaginas ? "#F1F5F4" : "#ffffff",
+              color: paginaAtual === totalPaginas ? "#94A3B8" : "#334155",
+              border: "1px solid #E6ECEA", borderRadius: 10,
               padding: "8px 14px", fontSize: 12,
               cursor: paginaAtual === totalPaginas ? "not-allowed" : "pointer", fontWeight: 600,
             }}>
-            Próxima →
+            Próxima
           </button>
         </div>
       )}

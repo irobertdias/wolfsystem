@@ -2,13 +2,14 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
+import { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Encargos (WolfSystem — multi-tenant; lê 'folha_itens' do workspace; calcula com % fixos)
 // PORTADO DO UNITA → WOLF. Isolamento por workspace_id.
 const COR = "#4f46e5";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -85,7 +86,7 @@ export function EncargosSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -96,10 +97,10 @@ export function EncargosSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>📑</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Encargos Trabalhistas
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Calculados sobre a folha bruta da competência
             </p>
           </div>
@@ -110,12 +111,12 @@ export function EncargosSection() {
             onChange={(e) => setComp(e.target.value)}
             style={{
               background: "#ffffff",
-              border: "1px solid #e5e7eb",
+              border: "1px solid #E6ECEA",
               borderRadius: 10,
               padding: "9px 14px",
               fontSize: 13,
               fontWeight: 600,
-              color: "#1f2937",
+              color: "#0F172A",
               outline: "none",
             }}
           >
@@ -129,12 +130,12 @@ export function EncargosSection() {
       </div>
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : baseBruta === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>
+          <p style={{ color: "#64748B", fontSize: 13 }}>
             Sem folha lançada para calcular encargos. Lance itens na tela <b>Folha</b>.
           </p>
         </div>
@@ -146,7 +147,7 @@ export function EncargosSection() {
             {[
               { label: "Folha bruta", value: real(baseBruta), cor: "#6366f1", icon: "💼" },
               { label: "Total de encargos", value: real(totalEncargos), cor: "#dc2626", icon: "📑" },
-              { label: "Custo total", value: real(custoTotal), cor: "#16a34a", icon: "💰" },
+              { label: "Custo total", value: real(custoTotal), cor: "#059669", icon: "💰" },
               { label: "% sobre a folha", value: pctSobreFolha.toFixed(1) + "%", cor: "#f59e0b", icon: "📈" },
             ].map((s) => (
               <div key={s.label} style={{ ...card, padding: 16, borderTop: `3px solid ${s.cor}` }}>
@@ -163,11 +164,11 @@ export function EncargosSection() {
                       fontSize: 14,
                     }}
                   >
-                    {s.icon}
+                    {<IconeEmoji e={s.icon} />}
                   </div>
                   <p
                     style={{
-                      color: "#6b7280",
+                      color: "#64748B",
                       fontSize: 11,
                       margin: 0,
                       fontWeight: 700,
@@ -184,7 +185,7 @@ export function EncargosSection() {
             ))}
           </div>
           <div style={{ ...card, padding: 20 }}>
-            <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: "0 0 16px" }}>
+            <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: "0 0 16px" }}>
               Composição dos encargos
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -193,10 +194,10 @@ export function EncargosSection() {
                 return (
                   <div key={l.nome}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                      <span style={{ color: "#4b5563", fontSize: 13, fontWeight: 600 }}>
-                        {l.nome} <span style={{ color: "#9ca3af", fontWeight: 400 }}>({l.pct}%)</span>
+                      <span style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
+                        {l.nome} <span style={{ color: "#94A3B8", fontWeight: 400 }}>({l.pct}%)</span>
                       </span>
-                      <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 700 }}>{real(l.valor)}</span>
+                      <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700 }}>{real(l.valor)}</span>
                     </div>
                     <div style={{ height: 8, background: "#f1f5f9", borderRadius: 5, overflow: "hidden" }}>
                       <div

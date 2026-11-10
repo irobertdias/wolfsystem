@@ -15,6 +15,6 @@ export default function ConclusaoUniversal({dados:d,onChange:u,campos=[],variave
  <label>Mensagem para o BKO <AjudaCampo texto="Deixe em branco para usar a configuração de Vendas. Inclua {{resumo}} para apresentar os dados que foram salvos." exemplo="📋 Pedido #{{proposta_id}}\n{{resumo}}"/><textarea rows={5} style={input} value={d.mensagem_bko||''} onChange={e=>u({mensagem_bko:e.target.value})}/></label>
  <label>Mensagem ao cliente após registrar <AjudaCampo texto="Enviada após o CRM confirmar a gravação. Enfileirar o envio não significa que o WhatsApp já entregou a mensagem." exemplo="✅ Pedido #{{proposta_id}} registrado. Obrigado, {{nome}}!"/><textarea rows={4} style={input} value={d.mensagem_sucesso||''} onChange={e=>u({mensagem_sucesso:e.target.value})}/></label>
  <label><input type="checkbox" checked={d.continuar_fluxo!==false} onChange={e=>u({continuar_fluxo:e.target.checked})}/> Executar blocos conectados após concluir <AjudaCampo texto="Libera os blocos seguintes com proposta_id e as variáveis da coleta. Não conecte outro Enviar venda se já marcou Cadastrar no CRM, pois esse bloco cria um novo pedido." exemplo="Conclusão → Aplicar etiqueta → mensagem de acompanhamento."/></label>
- <a href="/chatbot/vendas?aba=configuracoes" target="_blank" rel="noreferrer">Abrir configuração de canais e retornos do BKO ↗</a>
+ <a href="/chatbot/vendas?aba=configuracoes" target="_blank" rel="noreferrer">Abrir configuração de canais e retornos do BKO</a>
  </div>;
 }

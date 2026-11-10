@@ -481,7 +481,7 @@ export default function AssinarWolfPage() {
           <div style={styles.brand}>WOLF SIGN</div>
           <div style={styles.brandSub}>Assinatura eletrônica segura</div>
         </div>
-        <div style={styles.secure}>🔒 Conexão segura</div>
+        <div style={styles.secure}>Conexão segura</div>
       </header>
 
       <section style={styles.hero}>
@@ -663,8 +663,8 @@ export default function AssinarWolfPage() {
 }
 
 const styles: Record<string, CSSProperties> = {
-  page: { minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", boxSizing: "border-box", background: "#f3f6fb", color: "#101828", padding: "24px 16px 50px", fontFamily: "Arial, sans-serif" },
-  center: { minHeight: "100vh", background: "#f3f6fb", color: "#101828", padding: 24, display: "grid", placeContent: "center", justifyItems: "center", textAlign: "center", fontFamily: "Arial, sans-serif" },
+  page: { minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", boxSizing: "border-box", background: "#f3f6fb", color: "#101828", padding: "24px 16px 50px", fontFamily: "var(--font-wolf), system-ui, sans-serif" },
+  center: { minHeight: "100vh", background: "#f3f6fb", color: "#101828", padding: 24, display: "grid", placeContent: "center", justifyItems: "center", textAlign: "center", fontFamily: "var(--font-wolf), system-ui, sans-serif" },
   header: { width: "100%", maxWidth: 980, boxSizing: "border-box", margin: "0 auto 22px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 },
   brand: { fontSize: 21, fontWeight: 900, letterSpacing: 1.5, color: "#155eef" },
   brandSub: { fontSize: 12, color: "#667085", marginTop: 2 },
@@ -686,7 +686,7 @@ const styles: Record<string, CSSProperties> = {
   cardHeader: { display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10 },
   number: { display: "inline-grid", placeItems: "center", width: 27, height: 27, borderRadius: 9, background: "#155eef", color: "#fff", fontSize: 12, marginRight: 9 },
   link: { color: "#155eef", fontSize: 12, fontWeight: 700, textDecoration: "none" },
-  pdfHint: { margin: "0 0 10px", fontSize: 11, lineHeight: 1.45, color: "#475467", background: "#f8fafc", borderRadius: 8, padding: "8px 10px" },
+  pdfHint: { margin: "0 0 10px", fontSize: 11, lineHeight: 1.45, color: "#475467", background: "#F3F6F5", borderRadius: 8, padding: "8px 10px" },
   pdf: { display: "block", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", height: "min(70vh,680px)", border: "1px solid #d0d5dd", borderRadius: 10, background: "#f2f4f7" },
   row: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 12 },
   otp: { width: 170, maxWidth: "100%", boxSizing: "border-box", padding: "13px 15px", border: "1px solid #98a2b3", borderRadius: 10, fontSize: 22, letterSpacing: 7, textAlign: "center", color: "#101828", background: "#fff" },
@@ -710,7 +710,7 @@ const styles: Record<string, CSSProperties> = {
   signature: { display: "block", width: "100%", maxWidth: "100%", boxSizing: "border-box", height: 180, border: "1px dashed #667085", borderRadius: 12, background: "#fff", touchAction: "none", cursor: "crosshair" },
   signatureLine: { maxWidth: 420, borderTop: "1px solid #344054", marginTop: 10, paddingTop: 6, textAlign: "center", fontSize: 12, color: "#475467" },
   check: { display: "flex", alignItems: "flex-start", gap: 10, padding: "11px 0", fontSize: 13, lineHeight: 1.45, color: "#344054", cursor: "pointer" },
-  legal: { fontSize: 10, lineHeight: 1.5, color: "#667085", background: "#f9fafb", border: "1px solid #eaecf0", borderRadius: 9, padding: 10 },
+  legal: { fontSize: 10, lineHeight: 1.5, color: "#667085", background: "#F7FAF9", border: "1px solid #eaecf0", borderRadius: 9, padding: 10 },
   alert: { maxWidth: 980, margin: "0 auto 16px", padding: 13, borderRadius: 10, border: "1px solid #fda29b", background: "#fef3f2", color: "#b42318", fontSize: 13, fontWeight: 700 },
   finishButton: { display: "block", width: "min(100%,980px)", margin: "0 auto", padding: "16px 20px", border: 0, borderRadius: 13, background: "#155eef", color: "#fff", fontSize: 16, fontWeight: 900, cursor: "pointer", boxShadow: "0 8px 20px rgba(21,94,239,.25)" },
   footer: { maxWidth: 980, margin: "24px auto 0", textAlign: "center", fontSize: 10, color: "#667085" },

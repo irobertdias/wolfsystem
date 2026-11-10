@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 
+import { IconeEmoji } from "../../components/a2/Icone";
 type Etiqueta = {
   id: number;
   nome: string;
@@ -19,9 +20,9 @@ type Equipe = { id: string; nome: string; };
 // Paleta de cores pré-definidas
 const CORES_PADRAO = [
   "#dc2626", "#ef4444", "#f97316", "#f59e0b",
-  "#eab308", "#84cc16", "#16a34a", "#10b981",
+  "#eab308", "#84cc16", "#059669", "#10b981",
   "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6",
-  "#a855f7", "#ec4899", "#f43f5e", "#6b7280",
+  "#a855f7", "#ec4899", "#f43f5e", "#64748B",
 ];
 
 // Emojis mais comuns pra etiquetas
@@ -46,12 +47,12 @@ export function EtiquetasSection() {
 
   const [form, setForm] = useState({ nome: "", cor: "#3b82f6", icone: "🏷️", equipeId: "" });
 
-  const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 14, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
+  const IS = { width: "100%", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 14px", color: "#0F172A", fontSize: 14, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
 
   const cardStyle = {
     background: "#ffffff",
     borderRadius: 14,
-    border: "1px solid #e5e7eb",
+    border: "1px solid #E6ECEA",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
@@ -177,30 +178,30 @@ export function EtiquetasSection() {
   );
 
   return (
-    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#f8fafc", minHeight: "100vh" }}>
+    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#F3F6F5", minHeight: "100vh" }}>
 
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(59, 130, 246, 0.25)",
+            fontSize: 24, boxShadow: "0 8px 20px rgba(5,150,105, 0.25)",
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>🏷️</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Etiquetas</h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>{etiquetas.length} etiqueta(s) cadastrada(s)</p>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Etiquetas</h1>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>{etiquetas.length} etiqueta(s) cadastrada(s)</p>
           </div>
         </div>
         <button onClick={abrirNovo}
           style={{
-            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-            boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+            boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
           }}>
           + Nova Etiqueta
         </button>
@@ -210,19 +211,19 @@ export function EtiquetasSection() {
       {(etiquetas.length > 5 || equipes.length > 0) && (
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           {etiquetas.length > 5 && (
-            <input placeholder="🔍 Buscar etiqueta..." value={busca} onChange={e => setBusca(e.target.value)}
+            <input placeholder="Buscar etiqueta..." value={busca} onChange={e => setBusca(e.target.value)}
               style={{ ...IS, maxWidth: 360, padding: "10px 16px", fontSize: 13, borderRadius: 20 }}
               onFocus={(e) => { e.currentTarget.style.borderColor = "#3b82f680"; e.currentTarget.style.boxShadow = "0 0 0 3px #3b82f620"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#E6ECEA"; e.currentTarget.style.boxShadow = "none"; }}
             />
           )}
           {/* 👥 Filtro de equipe */}
           {equipes.length > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: "#a855f7", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>👥 Equipe</span>
+              <span style={{ color: "#059669", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>Equipe</span>
               <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)} style={{ ...IS, width: "auto", minWidth: 180, padding: "9px 14px", fontSize: 13, cursor: "pointer" }}>
                 <option value="todas">Todas as equipes</option>
-                <option value="">⚪ Geral (sem equipe)</option>
+                <option value="">Geral (sem equipe)</option>
                 {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
               </select>
             </div>
@@ -234,23 +235,23 @@ export function EtiquetasSection() {
       {showForm && (
         <div style={{ ...cardStyle, padding: 24, display: "flex", flexDirection: "column", gap: 18, maxWidth: 640 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+            <h2 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
               {editando ? "✏️ Editar Etiqueta" : "➕ Nova Etiqueta"}
             </h2>
-            <button onClick={cancelar} style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            <button onClick={cancelar} style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
           </div>
 
           {/* PRÉVIA DA ETIQUETA */}
-          <div style={{ background: "#f9fafb", borderRadius: 12, padding: 16, display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed #d1d5db" }}>
+          <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 16, display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed #CBD5E1" }}>
             <div style={{ background: form.cor + "15", border: `2px solid ${form.cor}`, borderRadius: 20, padding: "8px 18px", display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 16 }}>{form.icone}</span>
+              <span style={{ fontSize: 16 }}>{<IconeEmoji e={form.icone} />}</span>
               <span style={{ color: form.cor, fontSize: 13, fontWeight: 700 }}>{form.nome || "Prévia da etiqueta"}</span>
             </div>
           </div>
 
           {/* NOME */}
           <div>
-            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Nome *</label>
+            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Nome *</label>
             <input placeholder="Ex: Lead Quente" value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })}
               style={IS} maxLength={40} />
           </div>
@@ -258,33 +259,33 @@ export function EtiquetasSection() {
           {/* 👥 EQUIPE */}
           {equipes.length > 0 && (
             <div>
-              <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>👥 Equipe</label>
+              <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Equipe</label>
               <select value={form.equipeId} onChange={e => setForm({ ...form, equipeId: e.target.value })} style={IS}>
-                <option value="">⚪ Geral (todas as equipes)</option>
+                <option value="">Geral (todas as equipes)</option>
                 {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
               </select>
-              <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Deixe "Geral" pra a etiqueta valer pra todas as equipes, ou escolha uma equipe específica.</p>
+              <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4 }}>Deixe "Geral" pra a etiqueta valer pra todas as equipes, ou escolha uma equipe específica.</p>
             </div>
           )}
 
           {/* ÍCONE (EMOJI) */}
           <div>
-            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Ícone (emoji)</label>
+            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Ícone (emoji)</label>
             <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
               <input value={form.icone} onChange={e => setForm({ ...form, icone: e.target.value })}
                 style={{ ...IS, width: 60, textAlign: "center", fontSize: 20 }} maxLength={2} />
-              <span style={{ color: "#9ca3af", fontSize: 11 }}>Digite um emoji ou escolha abaixo</span>
+              <span style={{ color: "#94A3B8", fontSize: 11 }}>Digite um emoji ou escolha abaixo</span>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 4 }}>
               {EMOJIS_COMUNS.map(emoji => (
                 <button key={emoji} onClick={() => setForm({ ...form, icone: emoji })}
                   style={{
-                    background: form.icone === emoji ? "#3b82f615" : "#f9fafb",
-                    border: `1px solid ${form.icone === emoji ? "#3b82f6" : "#e5e7eb"}`,
+                    background: form.icone === emoji ? "#3b82f615" : "#F7FAF9",
+                    border: `1px solid ${form.icone === emoji ? "#059669" : "#E6ECEA"}`,
                     borderRadius: 8, padding: "6px 0", fontSize: 16, cursor: "pointer",
                     transition: "all 0.1s",
                   }}>
-                  {emoji}
+                  {<IconeEmoji e={emoji} />}
                 </button>
               ))}
             </div>
@@ -292,13 +293,13 @@ export function EtiquetasSection() {
 
           {/* COR */}
           <div>
-            <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Cor</label>
+            <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Cor</label>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 6, marginBottom: 10 }}>
               {CORES_PADRAO.map(cor => (
                 <button key={cor} onClick={() => setForm({ ...form, cor })}
                   style={{
                     background: cor,
-                    border: form.cor === cor ? "3px solid #1f2937" : "2px solid #e5e7eb",
+                    border: form.cor === cor ? "3px solid #0F172A" : "2px solid #E6ECEA",
                     borderRadius: 8, height: 34, cursor: "pointer",
                     boxShadow: form.cor === cor ? `0 0 0 2px white, 0 0 0 4px ${cor}` : "0 1px 2px rgba(0,0,0,0.1)",
                     transition: "all 0.15s",
@@ -308,24 +309,24 @@ export function EtiquetasSection() {
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input type="color" value={form.cor} onChange={e => setForm({ ...form, cor: e.target.value })}
-                style={{ width: 40, height: 34, borderRadius: 8, border: "1px solid #e5e7eb", cursor: "pointer", background: "#ffffff" }} />
+                style={{ width: 40, height: 34, borderRadius: 8, border: "1px solid #E6ECEA", cursor: "pointer", background: "#ffffff" }} />
               <input value={form.cor} onChange={e => setForm({ ...form, cor: e.target.value })}
                 style={{ ...IS, maxWidth: 120, fontFamily: "monospace", padding: "6px 10px", fontSize: 12 }} maxLength={7} />
-              <span style={{ color: "#9ca3af", fontSize: 10 }}>Código hex ou picker</span>
+              <span style={{ color: "#94A3B8", fontSize: 10 }}>Código hex ou picker</span>
             </div>
           </div>
 
           {/* BOTÕES */}
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
-            <button onClick={cancelar} style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
+            <button onClick={cancelar} style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
               Cancelar
             </button>
             <button onClick={salvar} disabled={salvando}
               style={{
-                background: salvando ? "#2563eb" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                background: salvando ? "#047857" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-                boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
               }}>
               {salvando ? "Salvando..." : editando ? "💾 Atualizar" : "➕ Criar Etiqueta"}
             </button>
@@ -335,30 +336,30 @@ export function EtiquetasSection() {
 
       {/* ═══ LISTA ═══ */}
       {loading ? (
-        <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+        <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
       ) : etiquetasFiltradas.length === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
           <div style={{
             width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(59,130,246,0.25)",
+            boxShadow: "0 12px 24px rgba(5,150,105,0.25)",
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>🏷️</span>
           </div>
-          <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>
+          <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>
             {busca || filtroEquipe !== "todas" ? "Nenhuma etiqueta encontrada" : "Nenhuma etiqueta cadastrada ainda"}
           </h3>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 16px" }}>
+          <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 16px" }}>
             {busca || filtroEquipe !== "todas" ? "Tente outro termo ou equipe" : "Crie etiquetas pra organizar seus atendimentos"}
           </p>
           {!busca && filtroEquipe === "todas" && (
             <button onClick={abrirNovo} style={{
-              background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
               color: "white", border: "none", borderRadius: 12,
               padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-              boxShadow: "0 4px 12px rgba(59,130,246,0.25)",
+              boxShadow: "0 4px 12px rgba(5,150,105,0.25)",
             }}>
               + Nova Etiqueta
             </button>
@@ -386,15 +387,15 @@ export function EtiquetasSection() {
                 {e.icone || "🏷️"}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, display: "block" }}>{e.nome}</span>
+                <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, display: "block" }}>{e.nome}</span>
                 {equipeNomeDe(e.equipe_id) && (
-                  <span style={{ display: "inline-block", marginTop: 3, background: "#a855f715", color: "#a855f7", fontSize: 10, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>👥 {equipeNomeDe(e.equipe_id)}</span>
+                  <span style={{ display: "inline-block", marginTop: 3, background: "#a855f715", color: "#059669", fontSize: 10, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>{equipeNomeDe(e.equipe_id)}</span>
                 )}
               </div>
               <div style={{ display: "flex", gap: 4 }}>
                 <button onClick={() => abrirEditar(e)} title="Editar"
                   style={{
-                    background: "#3b82f610", color: "#3b82f6",
+                    background: "#3b82f610", color: "#059669",
                     border: "1px solid #3b82f630", borderRadius: 8,
                     padding: "5px 9px", fontSize: 11, cursor: "pointer",
                     transition: "all 0.15s",

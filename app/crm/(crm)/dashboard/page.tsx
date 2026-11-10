@@ -21,6 +21,7 @@ import { supabase } from "../../../lib/supabase";
 import { vocabularioDoWorkspace } from "../../../lib/vertical-workspace";
 import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 type Proposta = {
   id: number;
   created_at: string;
@@ -63,7 +64,7 @@ const T = {
   sub: "#64748b",
   faint: "#94a3b8",
   line: "#e2e8f0",
-  soft: "#f8fafc",
+  soft: "#F3F6F5",
   green: "#059669",
   greenLt: "#10b981",
   brand: "#2563eb",
@@ -622,11 +623,11 @@ export default function Dashboard() {
     if (stats.taxaInstalacao >= 50) {
       lista.push({ icon: "🎯", text: `${voc.taxaTitulo} em ${stats.taxaInstalacao.toFixed(1)}%`, color: T.green });
     } else if (stats.grupos.PENDENTE > 0) {
-      lista.push({ icon: "💪", text: `${stats.grupos.PENDENTE} proposta(s) pendentes esperando ação`, color: "#7c3aed" });
+      lista.push({ icon: "💪", text: `${stats.grupos.PENDENTE} proposta(s) pendentes esperando ação`, color: "#047857" });
     }
 
     if (operadorasData.length > 0) {
-      lista.push({ icon: voc.iconeFornecedor, text: `${operadorasData[0].name} é o(a) ${voc.fornecedorSing} mais recorrente`, color: "#0284c7" });
+      lista.push({ icon: voc.iconeFornecedor, text: `${operadorasData[0].name} é o(a) ${voc.fornecedorSing} mais recorrente`, color: "#047857" });
     }
 
     return lista.slice(0, 4);
@@ -731,7 +732,7 @@ export default function Dashboard() {
             {kpisHero.map((kpi) => (
               <div key={kpi.label} className="lift" style={{ ...surface, padding: isMobile ? 16 : 20, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 9, background: `${kpi.cor}15`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{kpi.icone}</span>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, background: `${kpi.cor}15`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{<IconeEmoji e={kpi.icone} />}</span>
                   <p style={{ ...eyebrow, fontSize: 10.5 }}>{kpi.label}</p>
                 </div>
                 <p style={{ color: T.ink, fontSize: isMobile ? 26 : 34, fontWeight: 900, margin: 0, letterSpacing: -1, ...numStyle }}>
@@ -747,7 +748,7 @@ export default function Dashboard() {
           <div className="fu" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : `repeat(${insights.length}, 1fr)`, gap: 10 }}>
             {insights.map((item, i) => (
               <div key={i} style={{ ...surface, padding: "13px 15px", display: "flex", alignItems: "center", gap: 10, borderLeft: `4px solid ${item.color}` }}>
-                <span style={{ fontSize: 18 }}>{item.icon}</span>
+                <span style={{ fontSize: 18 }}>{<IconeEmoji e={item.icon} />}</span>
                 <p style={{ color: T.ink, fontSize: 12.5, lineHeight: 1.35, margin: 0, fontWeight: 700 }}>{item.text}</p>
               </div>
             ))}
@@ -762,7 +763,7 @@ export default function Dashboard() {
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 28 }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                <p style={{ color: "#334155", fontSize: 13, margin: 0, fontWeight: 800 }}>✅ {voc.concluidas}</p>
+                <p style={{ color: "#334155", fontSize: 13, margin: 0, fontWeight: 800 }}>{voc.concluidas}</p>
                 <p style={{ color: T.ink, fontSize: 14, margin: 0, fontWeight: 900, ...numStyle }}>{instaladas} <span style={{ color: T.faint, fontWeight: 600 }}>/ {META_INSTALADAS}</span></p>
               </div>
               <BarraProg pct={pctMeta} cor={`linear-gradient(90deg, #34d399, ${T.green})`} />
@@ -770,7 +771,7 @@ export default function Dashboard() {
             </div>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                <p style={{ color: "#334155", fontSize: 13, margin: 0, fontWeight: 800 }}>{grupoMeta.AGUARDANDO_INST.icone} {voc.aguardandoParaConcluida}</p>
+                <p style={{ color: "#334155", fontSize: 13, margin: 0, fontWeight: 800 }}>{<IconeEmoji e={grupoMeta.AGUARDANDO_INST.icone} />} {voc.aguardandoParaConcluida}</p>
                 <p style={{ color: T.ink, fontSize: 14, margin: 0, fontWeight: 900, ...numStyle }}>{aguardandoInst} <span style={{ color: T.faint, fontWeight: 600 }}>na fila</span></p>
               </div>
               <BarraProg pct={Math.min(100, (aguardandoInst / Math.max(1, faltam)) * 100)} cor={`linear-gradient(90deg, #38bdf8, ${grupoMeta.AGUARDANDO_INST.cor})`} />
@@ -790,7 +791,7 @@ export default function Dashboard() {
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <span style={{ background: "#ecfdf5", color: T.green, fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{vendasPorDia.reduce((a, d) => a + d.instaladas, 0)} {voc.abrev}</span>
-                <span style={{ background: "#f0f9ff", color: grupoMeta.AGUARDANDO_INST.cor, fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{vendasPorDia.reduce((a, d) => a + d.aguardando, 0)} aguard.</span>
+                <span style={{ background: "#ECFDF5", color: grupoMeta.AGUARDANDO_INST.cor, fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{vendasPorDia.reduce((a, d) => a + d.aguardando, 0)} aguard.</span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
@@ -946,7 +947,7 @@ export default function Dashboard() {
                 </thead>
                 <tbody>
                   {funilVendedores.map((v, i) => (
-                    <tr key={`${v.vendedor}-${i}`} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafbfc" }}>
+                    <tr key={`${v.vendedor}-${i}`} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#F7FAF9" }}>
                       <td style={{ padding: "12px 14px", color: T.ink, fontSize: 13, fontWeight: 800, whiteSpace: "nowrap" }}>{v.vendedor}</td>
                       {(["INSTALADA", "AGUARDANDO_INST", "BIOMETRIA", "PENDENTE", "AUDITORIA", "CANCELADA"] as Grupo[]).map((g) => (
                         <td key={g} style={{ padding: "12px 14px" }}>

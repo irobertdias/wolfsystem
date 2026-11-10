@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🧑‍💼 RH · Indicadores  (CONECTADO — calcula a partir de 'funcionarios')
 // Tempo de casa, turnover, custo médio e headcount: reais (via admissao,
@@ -14,7 +15,7 @@ const COR = "#4f46e5";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const real = (v: number) =>
@@ -22,10 +23,10 @@ const real = (v: number) =>
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 const STATUS_INFO: Record<string, { label: string; cor: string }> = {
-  ativo: { label: "Ativos", cor: "#16a34a" },
+  ativo: { label: "Ativos", cor: "#059669" },
   ferias: { label: "Em férias", cor: "#0ea5e9" },
   afastado: { label: "Afastados", cor: "#f59e0b" },
-  desligado: { label: "Desligados", cor: "#6b7280" },
+  desligado: { label: "Desligados", cor: "#64748B" },
 };
 
 type Func = { departamento: string; salario: number; status: string; admissao: string };
@@ -92,7 +93,7 @@ export function IndicadoresSection() {
       { faixa: "< 1 ano", min: 0, max: 1, cor: "#0ea5e9", qtd: 0 },
       { faixa: "1 a 3 anos", min: 1, max: 3, cor: "#6366f1", qtd: 0 },
       { faixa: "3 a 5 anos", min: 3, max: 5, cor: "#8b5cf6", qtd: 0 },
-      { faixa: "+ 5 anos", min: 5, max: 999, cor: "#16a34a", qtd: 0 },
+      { faixa: "+ 5 anos", min: 5, max: 999, cor: "#059669", qtd: 0 },
     ];
     ativos.forEach((f) => {
       if (!f.admissao) return;
@@ -137,7 +138,7 @@ export function IndicadoresSection() {
     { label: "Headcount", valor: String(headcount), cor: "#8b5cf6", icon: "👥" },
     { label: "Turnover", valor: turnover.toFixed(1) + "%", cor: "#0ea5e9", icon: "🔄" },
     { label: "Tempo médio de casa", valor: tempoMedio.toFixed(1) + " anos", cor: "#6366f1", icon: "📆" },
-    { label: "Custo médio / func.", valor: real(custoMedio), cor: "#16a34a", icon: "💰" },
+    { label: "Custo médio / func.", valor: real(custoMedio), cor: "#059669", icon: "💰" },
     { label: "Admissões (ano)", valor: String(admissoesAno), cor: "#f59e0b", icon: "✅" },
     { label: "Departamentos", valor: String(departamentos), cor: "#ec4899", icon: "🏢" },
   ];
@@ -150,7 +151,7 @@ export function IndicadoresSection() {
             width: 48,
             height: 48,
             borderRadius: 14,
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -161,10 +162,10 @@ export function IndicadoresSection() {
           <span style={{ filter: "saturate(0) brightness(2)" }}>📈</span>
         </div>
         <div>
-          <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+          <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
             Indicadores de RH
           </h1>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+          <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
             Métricas analíticas do quadro de pessoal
           </p>
         </div>
@@ -172,15 +173,15 @@ export function IndicadoresSection() {
 
       {carregando ? (
         <div style={{ ...card, padding: 50, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Calculando indicadores...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Calculando indicadores...</p>
         </div>
       ) : headcount === 0 ? (
         <div style={{ ...card, padding: 50, textAlign: "center" }}>
           <p style={{ fontSize: 40, margin: "0 0 8px" }}>📈</p>
-          <p style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
+          <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
             Sem dados ainda
           </p>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>
+          <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>
             Cadastre funcionários para os indicadores serem calculados.
           </p>
         </div>
@@ -205,11 +206,11 @@ export function IndicadoresSection() {
                       fontSize: 15,
                     }}
                   >
-                    {k.icon}
+                    {<IconeEmoji e={k.icon} />}
                   </div>
                   <p
                     style={{
-                      color: "#6b7280",
+                      color: "#64748B",
                       fontSize: 11,
                       margin: 0,
                       fontWeight: 700,
@@ -221,7 +222,7 @@ export function IndicadoresSection() {
                   </p>
                 </div>
                 <p
-                  style={{ color: "#1f2937", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}
+                  style={{ color: "#0F172A", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}
                 >
                   {k.valor}
                 </p>
@@ -231,10 +232,10 @@ export function IndicadoresSection() {
 
           {/* Admissões por mês */}
           <div style={{ ...card, padding: 22 }}>
-            <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
+            <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
               Admissões por Mês
             </h3>
-            <p style={{ color: "#9ca3af", fontSize: 12, margin: "0 0 18px" }}>Últimos 6 meses</p>
+            <p style={{ color: "#94A3B8", fontSize: 12, margin: "0 0 18px" }}>Últimos 6 meses</p>
             <div
               style={{
                 display: "flex",
@@ -257,17 +258,17 @@ export function IndicadoresSection() {
                     justifyContent: "flex-end",
                   }}
                 >
-                  <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 800 }}>{h.qtd}</span>
+                  <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 800 }}>{h.qtd}</span>
                   <div
                     style={{
                       width: "55%",
                       height: `${(h.qtd / maxAdm) * 100}%`,
-                      background: `linear-gradient(180deg, ${COR} 0%, #6366f1 100%)`,
+                      background: `linear-gradient(180deg, ${COR} 0%, #059669 100%)`,
                       borderRadius: "6px 6px 0 0",
                       minHeight: 4,
                     }}
                   />
-                  <span style={{ color: "#9ca3af", fontSize: 11, fontWeight: 600 }}>{h.mes}</span>
+                  <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 600 }}>{h.mes}</span>
                 </div>
               ))}
             </div>
@@ -276,7 +277,7 @@ export function IndicadoresSection() {
           {/* Distribuições */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
             <div style={{ ...card, padding: 22 }}>
-              <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 18px" }}>
+              <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 18px" }}>
                 Por tempo de casa
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -285,8 +286,8 @@ export function IndicadoresSection() {
                   return (
                     <div key={t.faixa}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                        <span style={{ color: "#374151", fontSize: 12, fontWeight: 600 }}>{t.faixa}</span>
-                        <span style={{ color: "#1f2937", fontSize: 12, fontWeight: 700 }}>
+                        <span style={{ color: "#334155", fontSize: 12, fontWeight: 600 }}>{t.faixa}</span>
+                        <span style={{ color: "#0F172A", fontSize: 12, fontWeight: 700 }}>
                           {t.qtd} ({pct}%)
                         </span>
                       </div>
@@ -302,7 +303,7 @@ export function IndicadoresSection() {
             </div>
 
             <div style={{ ...card, padding: 22 }}>
-              <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 18px" }}>
+              <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 18px" }}>
                 Por situação
               </h3>
               <div
@@ -327,7 +328,7 @@ export function IndicadoresSection() {
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
-                        color: "#374151",
+                        color: "#334155",
                         fontSize: 12,
                         fontWeight: 600,
                       }}
@@ -335,7 +336,7 @@ export function IndicadoresSection() {
                       <span style={{ width: 12, height: 12, borderRadius: 4, background: g.cor }} />{" "}
                       {g.rotulo}
                     </span>
-                    <span style={{ color: "#1f2937", fontSize: 12, fontWeight: 700 }}>
+                    <span style={{ color: "#0F172A", fontSize: 12, fontWeight: 700 }}>
                       {g.qtd} ({Math.round((g.qtd / totalStatus) * 100)}%)
                     </span>
                   </div>

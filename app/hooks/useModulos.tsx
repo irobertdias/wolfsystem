@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "./useWorkspace";
 
+import { IconeEmoji } from "../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🎁 useModulos — descobre quais módulos estão liberados pro workspace atual
 // ═══════════════════════════════════════════════════════════════════════
@@ -218,7 +219,7 @@ const INFO_MODULOS: Record<ModuloKey, { icone: string; nome: string; desc: strin
     nome: "Cobran\u00e7a",
     desc: "Acompanhe faturas, pagamentos, inadimpl\u00eancia e negocia\u00e7\u00f5es do seu workspace.",
     planoNecessario: "Libera\u00e7\u00e3o comercial",
-    cor: "#16a34a",
+    cor: "#059669",
   },
   meta_ads: {
     icone: "📊",
@@ -279,7 +280,7 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 48,
         }}>
-          {info.icone}
+          {<IconeEmoji e={info.icone} />}
         </div>
 
         {/* Badge do plano */}
@@ -292,7 +293,7 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
           marginBottom: 16,
         }}>
           <span style={{ color: info.cor, fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 0.5 }}>
-            🔒 Plano {info.planoNecessario}
+            Plano {info.planoNecessario}
           </span>
         </div>
 
@@ -300,14 +301,14 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
           {info.nome}
         </h1>
 
-        <p style={{ color: "#9ca3af", fontSize: 15, lineHeight: 1.6, margin: "0 0 32px" }}>
+        <p style={{ color: "#94A3B8", fontSize: 15, lineHeight: 1.6, margin: "0 0 32px" }}>
           {info.desc}
         </p>
 
         {/* Aviso de bloqueio */}
         <div style={{
           background: "#0a0a0a",
-          border: "1px solid #1f2937",
+          border: "1px solid #0F172A",
           borderRadius: 10,
           padding: "16px 20px",
           marginBottom: 24,
@@ -315,7 +316,7 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
           display: "flex", gap: 12, alignItems: "center",
         }}>
           <span style={{ fontSize: 24 }}>⚠️</span>
-          <p style={{ color: "#d1d5db", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+          <p style={{ color: "#CBD5E1", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
             Este módulo <strong>não está disponível no seu plano atual</strong>.
             Solicite a liberação para o administrador para começar a usar.
           </p>
@@ -337,14 +338,14 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
               display: "flex", alignItems: "center", gap: 8,
             }}
           >
-            💬 Solicitar Liberação
+            Solicitar Liberação
           </button>
           <button
             onClick={() => router.push("/crm/dashboard")}
             style={{
               background: "none",
-              color: "#9ca3af",
-              border: "1px solid #374151",
+              color: "#94A3B8",
+              border: "1px solid #334155",
               borderRadius: 10,
               padding: "14px 28px",
               fontSize: 14,
@@ -352,11 +353,11 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
               cursor: "pointer",
             }}
           >
-            ← Voltar
+            Voltar
           </button>
         </div>
 
-        <p style={{ color: "#6b7280", fontSize: 11, margin: "24px 0 0", fontStyle: "italic" }}>
+        <p style={{ color: "#64748B", fontSize: 11, margin: "24px 0 0", fontStyle: "italic" }}>
           Ao clicar em &quot;Solicitar Liberação&quot;, você será redirecionado para o WhatsApp do suporte.
         </p>
       </div>

@@ -34,7 +34,7 @@ export type CategoriaPermissao = {
 export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
   {
     nome: "🎯 CRM",
-    cor: "#16a34a",
+    cor: "#059669",
     permissoes: [
       { key: "crm_acessar", label: "Acessar o CRM" },
       { key: "dashboard", label: "Dashboard de vendas" },
@@ -52,7 +52,7 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
     cor: "#059669",
     permissoes: [
       { key: "revisional_acessar", label: "Acessar o Revisional (simular e enviar propostas)" },
-      { key: "revisional_todas", label: "↳ Ver propostas de todos os consultores" },
+      { key: "revisional_todas", label: "Ver propostas de todos os consultores" },
     ],
   },
   {
@@ -115,38 +115,38 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
     permissoes: [
       { key: "rh", label: "Acessar o RH (tudo)" },
       // Visão Geral
-      { key: "rh_dashboard", label: "↳ Dashboard" },
-      { key: "rh_indicadores", label: "↳ Indicadores" },
+      { key: "rh_dashboard", label: "Dashboard" },
+      { key: "rh_indicadores", label: "Indicadores" },
       // Pessoas
-      { key: "rh_funcionarios", label: "↳ Funcionários" },
-      { key: "rh_departamentos", label: "↳ Departamentos" },
-      { key: "rh_cargos", label: "↳ Cargos & Salários" },
+      { key: "rh_funcionarios", label: "Funcionários" },
+      { key: "rh_departamentos", label: "Departamentos" },
+      { key: "rh_cargos", label: "Cargos & Salários" },
       // Folha
-      { key: "rh_folha", label: "↳ Folha do Mês" },
-      { key: "rh_holerites", label: "↳ Holerites" },
-      { key: "rh_encargos", label: "↳ Encargos & Impostos" },
+      { key: "rh_folha", label: "Folha do Mês" },
+      { key: "rh_holerites", label: "Holerites" },
+      { key: "rh_encargos", label: "Encargos & Impostos" },
       // Jornada
-      { key: "rh_ponto", label: "↳ Ponto / Frequência" },
-      { key: "rh_ferias", label: "↳ Férias" },
-      { key: "rh_afastamentos", label: "↳ Afastamentos" },
-      { key: "rh_banco_horas", label: "↳ Banco de Horas" },
+      { key: "rh_ponto", label: "Ponto / Frequência" },
+      { key: "rh_ferias", label: "Férias" },
+      { key: "rh_afastamentos", label: "Afastamentos" },
+      { key: "rh_banco_horas", label: "Banco de Horas" },
       // Benefícios
-      { key: "rh_beneficios", label: "↳ Benefícios" },
-      { key: "rh_vale_transporte", label: "↳ Vale Transporte" },
-      { key: "rh_vale_refeicao", label: "↳ Vale Refeição" },
-      { key: "rh_plano_saude", label: "↳ Plano de Saúde" },
+      { key: "rh_beneficios", label: "Benefícios" },
+      { key: "rh_vale_transporte", label: "Vale Transporte" },
+      { key: "rh_vale_refeicao", label: "Vale Refeição" },
+      { key: "rh_plano_saude", label: "Plano de Saúde" },
       // Recrutamento
-      { key: "rh_vagas", label: "↳ Vagas" },
-      { key: "rh_candidatos", label: "↳ Candidatos" },
-      { key: "rh_selecao", label: "↳ Processos Seletivos" },
+      { key: "rh_vagas", label: "Vagas" },
+      { key: "rh_candidatos", label: "Candidatos" },
+      { key: "rh_selecao", label: "Processos Seletivos" },
       // Desenvolvimento
-      { key: "rh_treinamentos", label: "↳ Treinamentos" },
-      { key: "rh_avaliacoes", label: "↳ Avaliações de Desempenho" },
+      { key: "rh_treinamentos", label: "Treinamentos" },
+      { key: "rh_avaliacoes", label: "Avaliações de Desempenho" },
       // Documentos
-      { key: "rh_documentos", label: "↳ Documentos" },
-      { key: "rh_contratos", label: "↳ Contratos" },
+      { key: "rh_documentos", label: "Documentos" },
+      { key: "rh_contratos", label: "Contratos" },
       // Config
-      { key: "rh_config", label: "↳ Configurações do RH" },
+      { key: "rh_config", label: "Configurações do RH" },
     ],
   },
   {
@@ -154,27 +154,27 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
     cor: "#d97706",
     permissoes: [
       { key: "financeiro_acessar", label: "Acessar o Financeiro" },
-      { key: "fin_dashboard", label: "↳ Dashboard" },
-      { key: "fin_indicadores", label: "↳ Indicadores" },
-      { key: "fin_contas_receber", label: "↳ Contas a Receber" },
-      { key: "fin_contas_pagar", label: "↳ Contas a Pagar" },
-      { key: "fin_caixa", label: "↳ Caixa" },
-      { key: "fin_transferencias", label: "↳ Transferências" },
-      { key: "fin_contas_bancarias", label: "↳ Contas Bancárias" },
-      { key: "fin_conciliacao", label: "↳ Conciliação" },
-      { key: "fin_extrato", label: "↳ Extrato" },
-      { key: "fin_integracao_banco", label: "↳ Integração Banco" },
-      { key: "fin_emitir_nota", label: "↳ Emitir Nota Fiscal" },
-      { key: "fin_notas_recebidas", label: "↳ Notas Recebidas" },
-      { key: "fin_boletos", label: "↳ Boletos" },
-      { key: "fin_plano_contas", label: "↳ Plano de Contas" },
-      { key: "fin_centros_custo", label: "↳ Centros de Custo" },
-      { key: "fin_contatos", label: "↳ Contatos Financeiros" },
-      { key: "fin_formas_pagamento", label: "↳ Formas de Pagamento" },
-      { key: "fin_dre", label: "↳ DRE" },
-      { key: "fin_fluxo_caixa", label: "↳ Fluxo de Caixa" },
-      { key: "fin_relatorios", label: "↳ Relatórios" },
-      { key: "fin_config", label: "↳ Configurações do Financeiro" },
+      { key: "fin_dashboard", label: "Dashboard" },
+      { key: "fin_indicadores", label: "Indicadores" },
+      { key: "fin_contas_receber", label: "Contas a Receber" },
+      { key: "fin_contas_pagar", label: "Contas a Pagar" },
+      { key: "fin_caixa", label: "Caixa" },
+      { key: "fin_transferencias", label: "Transferências" },
+      { key: "fin_contas_bancarias", label: "Contas Bancárias" },
+      { key: "fin_conciliacao", label: "Conciliação" },
+      { key: "fin_extrato", label: "Extrato" },
+      { key: "fin_integracao_banco", label: "Integração Banco" },
+      { key: "fin_emitir_nota", label: "Emitir Nota Fiscal" },
+      { key: "fin_notas_recebidas", label: "Notas Recebidas" },
+      { key: "fin_boletos", label: "Boletos" },
+      { key: "fin_plano_contas", label: "Plano de Contas" },
+      { key: "fin_centros_custo", label: "Centros de Custo" },
+      { key: "fin_contatos", label: "Contatos Financeiros" },
+      { key: "fin_formas_pagamento", label: "Formas de Pagamento" },
+      { key: "fin_dre", label: "DRE" },
+      { key: "fin_fluxo_caixa", label: "Fluxo de Caixa" },
+      { key: "fin_relatorios", label: "Relatórios" },
+      { key: "fin_config", label: "Configurações do Financeiro" },
     ],
   },
   {
@@ -330,9 +330,9 @@ export default function GruposPermissaoSection({
           gap: 10,
           flexWrap: "wrap",
           padding: "12px 14px",
-          background: "#f9fafb",
+          background: "#F7FAF9",
           borderRadius: 10,
-          border: "1px solid #e5e7eb",
+          border: "1px solid #E6ECEA",
         }}
       >
         <div
@@ -350,16 +350,16 @@ export default function GruposPermissaoSection({
                 margin: 0,
                 fontSize: 12.5,
                 fontWeight: 700,
-                color: "#1f2937",
+                color: "#0F172A",
               }}
             >
-              {totalAtivas} <span style={{ color: "#9ca3af" }}>de</span>{" "}
+              {totalAtivas} <span style={{ color: "#94A3B8" }}>de</span>{" "}
               {totalGeral}{" "}
-              <span style={{ color: "#6b7280", fontWeight: 600 }}>
+              <span style={{ color: "#64748B", fontWeight: 600 }}>
                 permissões ativas
               </span>
             </p>
-            <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9ca3af" }}>
+            <p style={{ margin: "2px 0 0", fontSize: 11, color: "#94A3B8" }}>
               {readOnly
                 ? "Modo somente leitura"
                 : "Marque o que esse grupo pode fazer"}
@@ -370,11 +370,11 @@ export default function GruposPermissaoSection({
         {/* Busca */}
         <input
           type="text"
-          placeholder="🔍 buscar permissão..."
+          placeholder="buscar permissão..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           style={{
-            border: "1px solid #e5e7eb",
+            border: "1px solid #E6ECEA",
             borderRadius: 8,
             padding: "7px 12px",
             fontSize: 12.5,
@@ -389,15 +389,15 @@ export default function GruposPermissaoSection({
           <div style={{ display: "flex", gap: 6 }}>
             <button
               onClick={() => setarTudo(true)}
-              style={btnGlobal("#16a34a", "#f0fdf4", "#bbf7d0")}
+              style={btnGlobal("#059669", "#ECFDF5", "#A7F3D0")}
             >
-              ✓ Tudo
+              Tudo
             </button>
             <button
               onClick={() => setarTudo(false)}
               style={btnGlobal("#dc2626", "#fef2f2", "#fecaca")}
             >
-              ✕ Nada
+              Nada
             </button>
           </div>
         )}
@@ -409,10 +409,10 @@ export default function GruposPermissaoSection({
           style={{
             padding: 40,
             textAlign: "center",
-            color: "#9ca3af",
+            color: "#94A3B8",
             fontSize: 13,
             background: "#fff",
-            border: "1px dashed #e5e7eb",
+            border: "1px dashed #E6ECEA",
             borderRadius: 10,
           }}
         >
@@ -427,7 +427,7 @@ export default function GruposPermissaoSection({
               key={cat.nome}
               style={{
                 background: "#fff",
-                border: "1px solid #e5e7eb",
+                border: "1px solid #E6ECEA",
                 borderRadius: 12,
                 overflow: "hidden",
               }}
@@ -465,7 +465,7 @@ export default function GruposPermissaoSection({
                     margin: 0,
                     fontSize: 13.5,
                     fontWeight: 800,
-                    color: "#1f2937",
+                    color: "#0F172A",
                     flex: 1,
                   }}
                 >
@@ -477,9 +477,9 @@ export default function GruposPermissaoSection({
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: ativas > 0 ? cat.cor : "#9ca3af",
-                    background: ativas > 0 ? `${cat.cor}15` : "#f3f4f6",
-                    border: `1px solid ${ativas > 0 ? `${cat.cor}40` : "#e5e7eb"}`,
+                    color: ativas > 0 ? cat.cor : "#94A3B8",
+                    background: ativas > 0 ? `${cat.cor}15` : "#F1F5F4",
+                    border: `1px solid ${ativas > 0 ? `${cat.cor}40` : "#E6ECEA"}`,
                     borderRadius: 12,
                     padding: "2px 10px",
                   }}
@@ -496,7 +496,7 @@ export default function GruposPermissaoSection({
                     <button
                       onClick={() => setarCategoria(cat, true)}
                       title={`Marcar tudo de ${cat.nome}`}
-                      style={btnPequeno("#16a34a")}
+                      style={btnPequeno("#059669")}
                     >
                       ✓
                     </button>
@@ -565,7 +565,7 @@ export default function GruposPermissaoSection({
                           if (!readOnly)
                             e.currentTarget.style.background = ativo
                               ? `${cat.cor}15`
-                              : "#f9fafb";
+                              : "#F7FAF9";
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = ativo
@@ -589,7 +589,7 @@ export default function GruposPermissaoSection({
                         <span
                           style={{
                             fontSize: 12.5,
-                            color: ativo ? "#1f2937" : "#4b5563",
+                            color: ativo ? "#0F172A" : "#475569",
                             fontWeight: ativo ? 600 : 500,
                             flex: 1,
                           }}
@@ -600,9 +600,9 @@ export default function GruposPermissaoSection({
                         <code
                           style={{
                             fontSize: 10,
-                            color: "#9ca3af",
+                            color: "#94A3B8",
                             fontFamily: "monospace",
-                            background: "#f3f4f6",
+                            background: "#F1F5F4",
                             padding: "1px 6px",
                             borderRadius: 4,
                             display: ativo ? "inline-block" : "none",

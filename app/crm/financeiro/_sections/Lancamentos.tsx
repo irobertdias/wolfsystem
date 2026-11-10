@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 💰 LANÇAMENTOS — motor de fin_lancamentos
 //   secKey "contas_receber" → receitas | "contas_pagar" → despesas | senão → tudo (caixa)
@@ -21,17 +22,17 @@ function addMonths(iso: string, n: number) {
   return alvo.toISOString().slice(0, 10);
 }
 
-const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
-const input: any = { width: "100%", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 13px", color: "#1f2937", fontSize: 13.5, boxSizing: "border-box", outline: "none" };
-const lbl: any = { color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 };
-const th: any = { padding: "12px 18px", color: "#6b7280", fontSize: 10.5, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" };
-const td: any = { padding: "12px 18px", fontSize: 13.5, color: "#1f2937", borderTop: "1px solid #f3f4f6", verticalAlign: "middle" };
+const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
+const input: any = { width: "100%", background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 13px", color: "#0F172A", fontSize: 13.5, boxSizing: "border-box", outline: "none" };
+const lbl: any = { color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 };
+const th: any = { padding: "12px 18px", color: "#64748B", fontSize: 10.5, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" };
+const td: any = { padding: "12px 18px", fontSize: 13.5, color: "#0F172A", borderTop: "1px solid #F1F5F4", verticalAlign: "middle" };
 
 const ST: any = {
-  pago: { l: "Pago", c: "#16a34a", bg: "#f0fdf4", bd: "#bbf7d0" },
+  pago: { l: "Pago", c: "#059669", bg: "#ECFDF5", bd: "#A7F3D0" },
   pendente: { l: "Pendente", c: "#d97706", bg: "#fffbeb", bd: "#fde68a" },
   atrasado: { l: "Atrasado", c: "#dc2626", bg: "#fef2f2", bd: "#fecaca" },
-  cancelado: { l: "Cancelado", c: "#6b7280", bg: "#f3f4f6", bd: "#e5e7eb" },
+  cancelado: { l: "Cancelado", c: "#64748B", bg: "#F1F5F4", bd: "#E6ECEA" },
 };
 
 export default function Lancamentos({ secKey }: any) {
@@ -39,7 +40,7 @@ export default function Lancamentos({ secKey }: any) {
   const modo = secKey === "contas_receber" ? "receber" : secKey === "contas_pagar" ? "pagar" : "todos";
   const tipoFixo = modo === "receber" ? "receita" : modo === "pagar" ? "despesa" : null;
   const meta = modo === "receber"
-    ? { titulo: "Contas a Receber", sub: "Tudo o que entra", icone: "📥", cor: "#16a34a", g2: "#22c55e" }
+    ? { titulo: "Contas a Receber", sub: "Tudo o que entra", icone: "📥", cor: "#059669", g2: "#10B981" }
     : modo === "pagar"
       ? { titulo: "Contas a Pagar", sub: "Tudo o que sai", icone: "📤", cor: "#dc2626", g2: "#f87171" }
       : { titulo: "Lançamentos / Caixa", sub: "Entradas e saídas", icone: "💵", cor: "#d97706", g2: "#f59e0b" };
@@ -142,23 +143,23 @@ export default function Lancamentos({ secKey }: any) {
 
   const kpis = [
     { label: modo === "receber" ? "A receber" : modo === "pagar" ? "A pagar" : "Em aberto", valor: brl(somaPend), cor: "#d97706", g2: "#f59e0b", icone: "🕐" },
-    { label: modo === "receber" ? "Recebido" : modo === "pagar" ? "Pago" : "Liquidado", valor: brl(somaPago), cor: "#16a34a", g2: "#22c55e", icone: "✅" },
+    { label: modo === "receber" ? "Recebido" : modo === "pagar" ? "Pago" : "Liquidado", valor: brl(somaPago), cor: "#059669", g2: "#10B981", icone: "✅" },
     { label: "Atrasado", valor: brl(somaAtraso), cor: "#dc2626", g2: "#f87171", icone: "⚠️" },
     { label: "Lançamentos no mês", valor: String(noMes.length), cor: "#2563eb", g2: "#60a5fa", icone: "📋" },
   ];
 
   return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
 
       {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg, ${meta.cor} 0%, ${meta.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: `0 8px 20px ${meta.cor}40` }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>{meta.icone}</span>
+            <span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={meta.icone} />}</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{meta.titulo}</h1>
-            <p style={{ color: "#6b7280", fontSize: 13, margin: "3px 0 0" }}>{meta.sub} · {new Date(mes + "-01T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</p>
+            <h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{meta.titulo}</h1>
+            <p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>{meta.sub} · {new Date(mes + "-01T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</p>
           </div>
         </div>
         <button onClick={abrirNovo} style={{ background: `linear-gradient(135deg, ${meta.cor} 0%, ${meta.g2} 100%)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 12px ${meta.cor}40` }}>+ Novo lançamento</button>
@@ -171,8 +172,8 @@ export default function Lancamentos({ secKey }: any) {
             onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 24px ${k.cor}22`; e.currentTarget.style.transform = "translateY(-3px)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.cor} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, boxShadow: `0 4px 10px ${k.cor}30` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{k.icone}</span></div>
-              <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.cor} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, boxShadow: `0 4px 10px ${k.cor}30` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={k.icone} />}</span></div>
+              <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
             </div>
             <div style={{ color: k.cor, fontSize: 26, fontWeight: 800, letterSpacing: -1 }}>{k.valor}</div>
           </div>
@@ -185,16 +186,16 @@ export default function Lancamentos({ secKey }: any) {
         <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
           {FILTROS.map((f) => {
             const on = fStatus === f.k;
-            return <button key={f.k} onClick={() => setFStatus(f.k)} style={{ padding: "8px 16px", borderRadius: 9, border: `1px solid ${on ? `${meta.cor}55` : "#e5e7eb"}`, background: on ? `${meta.cor}14` : "#fff", color: on ? meta.cor : "#6b7280", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{f.l}</button>;
+            return <button key={f.k} onClick={() => setFStatus(f.k)} style={{ padding: "8px 16px", borderRadius: 9, border: `1px solid ${on ? `${meta.cor}55` : "#E6ECEA"}`, background: on ? `${meta.cor}14` : "#fff", color: on ? meta.cor : "#64748B", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{f.l}</button>;
           })}
         </div>
-        <input placeholder="🔍 Buscar descrição..." value={busca} onChange={(e) => setBusca(e.target.value)} style={{ ...input, flex: 1, minWidth: 180, borderRadius: 20 }} />
+        <input placeholder="Buscar descrição..." value={busca} onChange={(e) => setBusca(e.target.value)} style={{ ...input, flex: 1, minWidth: 180, borderRadius: 20 }} />
       </div>
 
       {/* TABELA */}
       <div style={{ ...card, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr style={{ background: "#f9fafb" }}>
+          <thead><tr style={{ background: "#F7FAF9" }}>
             <th style={{ ...th, width: 50, textAlign: "center" }}>✓</th>
             <th style={th}>Descrição</th><th style={th}>Vencimento</th><th style={th}>Categoria</th>
             <th style={th}>Forma</th><th style={th}>Status</th>
@@ -202,29 +203,29 @@ export default function Lancamentos({ secKey }: any) {
           </tr></thead>
           <tbody>
             {carregando ? (
-              <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando…</td></tr>
+              <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
             ) : visiveis.length === 0 ? (
               <tr><td colSpan={8} style={{ padding: "48px 24px", textAlign: "center" }}>
-                <div style={{ fontSize: 38 }}>{meta.icone}</div>
-                <p style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhum lançamento neste mês</p>
-                <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 14px" }}>Troque o mês no filtro ou crie um novo.</p>
+                <div style={{ fontSize: 38 }}>{<IconeEmoji e={meta.icone} />}</div>
+                <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhum lançamento neste mês</p>
+                <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 14px" }}>Troque o mês no filtro ou crie um novo.</p>
                 <button onClick={abrirNovo} style={{ background: `linear-gradient(135deg, ${meta.cor} 0%, ${meta.g2} 100%)`, color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Novo lançamento</button>
               </td></tr>
             ) : visiveis.map((l, i) => {
               const st = ST[statusReal(l)] || ST.pendente; const ehRec = l.tipo === "receita";
               return (
-                <tr key={l.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafbfc" }}>
+                <tr key={l.id} style={{ background: i % 2 === 0 ? "#fff" : "#F7FAF9" }}>
                   <td style={{ ...td, textAlign: "center" }}>
-                    <button onClick={() => alternarPago(l)} title={l.status === "pago" ? "Desmarcar" : "Marcar como pago"} style={{ width: 26, height: 26, borderRadius: 8, cursor: "pointer", border: `2px solid ${l.status === "pago" ? "#16a34a" : "#d1d5db"}`, background: l.status === "pago" ? "#16a34a" : "#fff", color: "#fff", fontSize: 14, lineHeight: "22px" }}>{l.status === "pago" ? "✓" : ""}</button>
+                    <button onClick={() => alternarPago(l)} title={l.status === "pago" ? "Desmarcar" : "Marcar como pago"} style={{ width: 26, height: 26, borderRadius: 8, cursor: "pointer", border: `2px solid ${l.status === "pago" ? "#059669" : "#CBD5E1"}`, background: l.status === "pago" ? "#059669" : "#fff", color: "#fff", fontSize: 14, lineHeight: "22px" }}>{l.status === "pago" ? "✓" : ""}</button>
                   </td>
-                  <td style={{ ...td, fontWeight: 600 }}>{l.descricao}{l.contato_id ? <div style={{ fontSize: 11.5, color: "#9ca3af", fontWeight: 400 }}>{nomeDe(contatos, l.contato_id)}</div> : null}</td>
-                  <td style={{ ...td, color: "#6b7280" }}>{dataBR(l.vencimento)}</td>
-                  <td style={{ ...td, color: "#6b7280" }}>{nomeDe(categorias, l.categoria_id) || "—"}</td>
-                  <td style={{ ...td, color: "#6b7280" }}>{l.forma_pagamento || "—"}</td>
+                  <td style={{ ...td, fontWeight: 600 }}>{l.descricao}{l.contato_id ? <div style={{ fontSize: 11.5, color: "#94A3B8", fontWeight: 400 }}>{nomeDe(contatos, l.contato_id)}</div> : null}</td>
+                  <td style={{ ...td, color: "#64748B" }}>{dataBR(l.vencimento)}</td>
+                  <td style={{ ...td, color: "#64748B" }}>{nomeDe(categorias, l.categoria_id) || "—"}</td>
+                  <td style={{ ...td, color: "#64748B" }}>{l.forma_pagamento || "—"}</td>
                   <td style={td}><span style={{ background: st.bg, color: st.c, border: `1px solid ${st.bd}`, fontSize: 10.5, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{st.l}</span></td>
-                  <td style={{ ...td, textAlign: "right", fontWeight: 800, color: ehRec ? "#16a34a" : "#dc2626", whiteSpace: "nowrap" }}>{ehRec ? "+" : "-"}{brl(l.valor)}</td>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 800, color: ehRec ? "#059669" : "#dc2626", whiteSpace: "nowrap" }}>{ehRec ? "+" : "-"}{brl(l.valor)}</td>
                   <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
-                    <button onClick={() => abrirEdicao(l)} style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}>✏️</button>
+                    <button onClick={() => abrirEdicao(l)} style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}>✏️</button>
                     <button onClick={() => remover(l)} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer", marginLeft: 5 }}>🗑️</button>
                   </td>
                 </tr>
@@ -240,13 +241,13 @@ export default function Lancamentos({ secKey }: any) {
           <div onClick={(e) => e.stopPropagation()} style={{ ...card, padding: 28, width: "100%", maxWidth: 540, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
               <h2 style={{ color: meta.cor, fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "✏️ Editar lançamento" : "➕ Novo lançamento"}</h2>
-              <button onClick={() => setModal(false)} style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+              <button onClick={() => setModal(false)} style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
             </div>
 
             {!tipoFixo && (
               <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
                 {["receita", "despesa"].map((t) => (
-                  <button key={t} onClick={() => setForm({ ...form, tipo: t, categoria_id: "" })} style={{ flex: 1, padding: "12px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13.5, border: form.tipo === t ? `2px solid ${t === "receita" ? "#16a34a" : "#dc2626"}` : "1px solid #e5e7eb", background: form.tipo === t ? (t === "receita" ? "#f0fdf4" : "#fef2f2") : "#fff", color: t === "receita" ? "#16a34a" : "#dc2626" }}>{t === "receita" ? "📥 Receita" : "📤 Despesa"}</button>
+                  <button key={t} onClick={() => setForm({ ...form, tipo: t, categoria_id: "" })} style={{ flex: 1, padding: "12px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13.5, border: form.tipo === t ? `2px solid ${t === "receita" ? "#059669" : "#dc2626"}` : "1px solid #E6ECEA", background: form.tipo === t ? (t === "receita" ? "#ECFDF5" : "#fef2f2") : "#fff", color: t === "receita" ? "#059669" : "#dc2626" }}>{t === "receita" ? "📥 Receita" : "📤 Despesa"}</button>
                 ))}
               </div>
             )}
@@ -269,15 +270,15 @@ export default function Lancamentos({ secKey }: any) {
             </div>
             {!editando && (
               <div style={{ marginBottom: 14, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 12 }}>
-                <label style={lbl}>🔁 Parcelar em (nº de meses)</label>
+                <label style={lbl}>Parcelar em (nº de meses)</label>
                 <input type="number" min={1} max={360} value={form.parcelas} onChange={(e) => setForm({ ...form, parcelas: e.target.value })} style={{ ...input, maxWidth: 120 }} />
                 <span style={{ fontSize: 11, color: "#92400e", marginLeft: 10 }}>{(parseInt(form.parcelas) || 1) > 1 ? `Gera ${parseInt(form.parcelas)} lançamentos mensais.` : "1 = lançamento único."}</span>
               </div>
             )}
             <div style={{ marginBottom: 20 }}><label style={lbl}>Observação</label><input value={form.observacao} onChange={(e) => setForm({ ...form, observacao: e.target.value })} style={input} /></div>
 
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
-              <button onClick={() => setModal(false)} style={{ background: "#fff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
+              <button onClick={() => setModal(false)} style={{ background: "#fff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
               <button onClick={salvar} disabled={salvando || !form.descricao.trim()} style={{ background: `linear-gradient(135deg, ${meta.cor} 0%, ${meta.g2} 100%)`, color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.descricao.trim() ? 0.6 : 1, boxShadow: `0 4px 12px ${meta.cor}40` }}>{salvando ? "Salvando…" : "💾 Salvar"}</button>
             </div>
           </div>

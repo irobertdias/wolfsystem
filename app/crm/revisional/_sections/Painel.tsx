@@ -2,6 +2,7 @@
 import { Page, PageHeader, Stats, Stat, Card, Btn, Banner, Vazio, Pill, C } from "../../financeiro/_sections/_ui";
 import { ETAPAS, ETAPAS_ATIVAS, etapa, rev, calcular, honorariosPrevistos, brl, dataBR, hoje } from "../_dados";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 export default function Painel({ dados, ir }: any) {
   const { contratos, cfg, carregando, erro, carregar } = dados;
 
@@ -47,7 +48,7 @@ export default function Painel({ dados, ir }: any) {
         icone="📊"
         titulo="Painel revisional"
         subtitulo={`Contratos, cálculos e honorários · ${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`}
-        acao={<div style={{ display: "flex", gap: 8 }}><Btn variante="ghost" onClick={carregar}>🔄 Atualizar</Btn><Btn onClick={() => ir("contratos", { novo: true })}>＋ Novo contrato</Btn></div>}
+        acao={<div style={{ display: "flex", gap: 8 }}><Btn variante="ghost" onClick={carregar}>Atualizar</Btn><Btn onClick={() => ir("contratos", { novo: true })}>＋ Novo contrato</Btn></div>}
       />
 
       {erro && <Banner tipo="warn">Não foi possível carregar os contratos: {erro}</Banner>}
@@ -75,10 +76,10 @@ export default function Painel({ dados, ir }: any) {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {porEtapa.map((e) => (
               <button key={e.key} onClick={() => ir("andamento", { etapa: e.key })} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#374151", marginBottom: 4 }}>
-                  <span>{e.icone} {e.label}</span><b style={{ color: e.cor }}>{e.qtd}</b>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#334155", marginBottom: 4 }}>
+                  <span>{<IconeEmoji e={e.icone} />} {e.label}</span><b style={{ color: e.cor }}>{e.qtd}</b>
                 </div>
-                <div style={{ height: 8, background: "#f3f4f6", borderRadius: 6, overflow: "hidden" }}>
+                <div style={{ height: 8, background: "#F1F5F4", borderRadius: 6, overflow: "hidden" }}>
                   <div style={{ width: `${(e.qtd / maxEtapa) * 100}%`, height: "100%", background: e.cor, borderRadius: 6, transition: "width .3s" }} />
                 </div>
               </button>
@@ -91,10 +92,10 @@ export default function Painel({ dados, ir }: any) {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {bancos.map((b) => (
                 <div key={b.nome}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#374151", marginBottom: 4 }}>
-                    <span>🏦 {b.nome}</span><span><b>{b.qtd}</b> · <span style={{ color: C.green }}>{brl(b.beneficio)}</span></span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#334155", marginBottom: 4 }}>
+                    <span>{b.nome}</span><span><b>{b.qtd}</b> · <span style={{ color: C.green }}>{brl(b.beneficio)}</span></span>
                   </div>
-                  <div style={{ height: 8, background: "#f3f4f6", borderRadius: 6, overflow: "hidden" }}>
+                  <div style={{ height: 8, background: "#F1F5F4", borderRadius: 6, overflow: "hidden" }}>
                     <div style={{ width: `${(b.qtd / maxBanco) * 100}%`, height: "100%", background: `linear-gradient(90deg, ${C.amber}, #fbbf24)`, borderRadius: 6 }} />
                   </div>
                 </div>
@@ -111,13 +112,13 @@ export default function Painel({ dados, ir }: any) {
               {proximas.map((p: any, k: number) => {
                 const atraso = p.vencimento < hoje();
                 return (
-                  <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderTop: k ? "1px solid #f3f4f6" : "none", gap: 10 }}>
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderTop: k ? "1px solid #F1F5F4" : "none", gap: 10 }}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.contrato.nome}</div>
-                      <div style={{ fontSize: 12, color: "#9ca3af" }}>Parcela {p.n} · vence {dataBR(p.vencimento)}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.contrato.nome}</div>
+                      <div style={{ fontSize: 12, color: "#94A3B8" }}>Parcela {p.n} · vence {dataBR(p.vencimento)}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 800, color: atraso ? C.red : "#1f2937" }}>{brl(p.valor)}</div>
+                      <div style={{ fontWeight: 800, color: atraso ? C.red : "#0F172A" }}>{brl(p.valor)}</div>
                       {atraso && <Pill texto="Atrasada" cor={C.red} />}
                     </div>
                   </div>
@@ -135,10 +136,10 @@ export default function Painel({ dados, ir }: any) {
               {recentes.map((l: any, k: number) => {
                 const e = etapa(l.c.status_venda);
                 return (
-                  <button key={l.c.id} onClick={() => ir("contratos", { contratoId: l.c.id })} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", gap: 10, background: "none", borderLeft: 0, borderRight: 0, borderBottom: 0, borderTop: k ? "1px solid #f3f4f6" : "0", cursor: "pointer", textAlign: "left", width: "100%" }}>
+                  <button key={l.c.id} onClick={() => ir("contratos", { contratoId: l.c.id })} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", gap: 10, background: "none", borderLeft: 0, borderRight: 0, borderBottom: 0, borderTop: k ? "1px solid #F1F5F4" : "0", cursor: "pointer", textAlign: "left", width: "100%" }}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "#1f2937" }}>{l.c.nome}</div>
-                      <div style={{ fontSize: 12, color: "#9ca3af" }}>{l.c.operadora || "Sem banco"} · {l.calc.valido ? `benefício ${brl(l.calc.beneficio)}` : "cálculo pendente"}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A" }}>{l.c.nome}</div>
+                      <div style={{ fontSize: 12, color: "#94A3B8" }}>{l.c.operadora || "Sem banco"} · {l.calc.valido ? `benefício ${brl(l.calc.beneficio)}` : "cálculo pendente"}</div>
                     </div>
                     <Pill texto={`${e.icone} ${e.label}`} cor={e.cor} />
                   </button>

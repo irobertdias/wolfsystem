@@ -22,6 +22,7 @@ import Conciliacao from "./_sections/Conciliacao";
 import ImportarExtrato from "./_sections/ImportarExtrato";
 import IntegracaoBanco from "./_sections/IntegracaoBanco";
 
+import { IconeEmoji } from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 💰 Financeiro — SHELL (registro de seções + menu interno)
 // ───────────────────────────────────────────────────────────────────────
@@ -81,9 +82,9 @@ const COR = "#d97706"; // âmbar — identidade do Financeiro (bate com o botão
 // 🚧 Fallback pras telas ainda não construídas
 function EmConstrucao({ titulo }: { titulo: string }) {
   return (
-    <div style={{ padding: 48, textAlign: "center", color: "#6b7280" }}>
+    <div style={{ padding: 48, textAlign: "center", color: "#64748B" }}>
       <div style={{ fontSize: 44, marginBottom: 12 }}>🚧</div>
-      <h2 style={{ margin: "0 0 6px", color: "#111827", fontSize: 20 }}>{titulo}</h2>
+      <h2 style={{ margin: "0 0 6px", color: "#0F172A", fontSize: 20 }}>{titulo}</h2>
       <p style={{ margin: 0, fontSize: 14 }}>Tela em construção — chega em breve.</p>
     </div>
   );
@@ -151,14 +152,14 @@ export default function FinanceiroLayolt() {
   }, [permissoes, modulos, isSuperAdmin]);
 
   if (!carregado) {
-    return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando…</div>;
+    return <div style={{ padding: 48, textAlign: "center", color: "#94A3B8" }}>Carregando…</div>;
   }
 
   if (!temAcessoModulo) {
     return (
-      <div style={{ padding: 48, textAlign: "center", color: "#6b7280" }}>
+      <div style={{ padding: 48, textAlign: "center", color: "#64748B" }}>
         <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
-        <h2 style={{ margin: "0 0 6px", color: "#111827", fontSize: 20 }}>Financeiro</h2>
+        <h2 style={{ margin: "0 0 6px", color: "#0F172A", fontSize: 20 }}>Financeiro</h2>
         <p style={{ margin: 0, fontSize: 14 }}>Você não tem acesso a este módulo.</p>
       </div>
     );
@@ -167,13 +168,13 @@ export default function FinanceiroLayolt() {
   const Comp = SECTIONS[aba] || (() => <EmConstrucao titulo={LABELS[aba] || "Financeiro"} />);
 
   return (
-    <div style={{ display: "flex", minHeight: "calc(100vh - 64px)", background: "#f8fafc" }}>
+    <div style={{ display: "flex", minHeight: "calc(100vh - 64px)", background: "#F3F6F5" }}>
       {/* Sidebar interna */}
       <aside
         style={{
           width: 248,
           background: "#fff",
-          borderRight: "1px solid #e5e7eb",
+          borderRight: "1px solid #E6ECEA",
           padding: "16px 10px",
           flexShrink: 0,
           display: menuMobile ? "block" : undefined,
@@ -192,7 +193,7 @@ export default function FinanceiroLayolt() {
               style={{
                 width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
                 background: "none", border: "none", cursor: "pointer",
-                padding: "6px 8px", color: "#6b7280", fontSize: 11, fontWeight: 700,
+                padding: "6px 8px", color: "#64748B", fontSize: 11, fontWeight: 700,
                 textTransform: "uppercase", letterSpacing: 0.5,
               }}
             >
@@ -212,11 +213,11 @@ export default function FinanceiroLayolt() {
                     background: sel ? `${COR}14` : "transparent",
                     border: sel ? `1px solid ${COR}55` : "1px solid transparent",
                     borderRadius: 8, cursor: "pointer", textAlign: "left",
-                    color: sel ? COR : "#374151", fontSize: 13.5,
+                    color: sel ? COR : "#334155", fontSize: 13.5,
                     fontWeight: sel ? 700 : 500,
                   }}
                 >
-                  <span style={{ fontSize: 16 }}>{i.icone}</span>
+                  <span style={{ fontSize: 16 }}>{<IconeEmoji e={i.icone} />}</span>
                   {i.label}
                 </button>
               );

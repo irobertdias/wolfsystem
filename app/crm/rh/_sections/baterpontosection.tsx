@@ -16,16 +16,16 @@ const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "12px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 14,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -33,11 +33,11 @@ const inputStyle = {
 
 const TIPOS = ["Entrada", "Saída p/ almoço", "Retorno do almoço", "Saída"];
 const TIPO_COR: Record<string, string> = {
-  Entrada: "#16a34a",
+  Entrada: "#059669",
   "Saída p/ almoço": "#f59e0b",
   "Retorno do almoço": "#0ea5e9",
   Saída: "#dc2626",
-  Marcação: "#6b7280",
+  Marcação: "#64748B",
 };
 
 type Func = { nome: string; cargo: string };
@@ -197,7 +197,7 @@ export function BaterPontoSection() {
             width: 48,
             height: 48,
             borderRadius: 14,
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -208,10 +208,10 @@ export function BaterPontoSection() {
           <span style={{ filter: "saturate(0) brightness(2)" }}>🕐</span>
         </div>
         <div>
-          <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+          <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
             Bater Ponto
           </h1>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+          <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
             Registre sua entrada e saída — a localização é capturada automaticamente
           </p>
         </div>
@@ -223,10 +223,10 @@ export function BaterPontoSection() {
           ...card,
           padding: 32,
           textAlign: "center",
-          background: "linear-gradient(180deg, #ffffff 0%, #f5f3ff 100%)",
+          background: "linear-gradient(180deg, #ffffff 0%, #ECFDF5 100%)",
         }}
       >
-        <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 4px", textTransform: "capitalize" }}>
+        <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 4px", textTransform: "capitalize" }}>
           {relogio.toLocaleDateString("pt-BR", {
             weekday: "long",
             day: "2-digit",
@@ -236,7 +236,7 @@ export function BaterPontoSection() {
         </p>
         <p
           style={{
-            color: "#1f2937",
+            color: "#0F172A",
             fontSize: 56,
             fontWeight: 800,
             margin: "0 0 20px",
@@ -258,7 +258,7 @@ export function BaterPontoSection() {
           </select>
 
           {nome && (
-            <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>
+            <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>
               Próxima batida: <b style={{ color: TIPO_COR[proximoTipo] || COR_TEXTO }}>{proximoTipo}</b>
             </p>
           )}
@@ -267,8 +267,8 @@ export function BaterPontoSection() {
             onClick={bater}
             disabled={!nome || registrando}
             style={{
-              background: !nome ? "#e5e7eb" : `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
-              color: !nome ? "#9ca3af" : "white",
+              background: !nome ? "#E6ECEA" : `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+              color: !nome ? "#94A3B8" : "white",
               border: "none",
               borderRadius: 16,
               padding: "18px 24px",
@@ -287,8 +287,8 @@ export function BaterPontoSection() {
             style={{
               marginTop: 20,
               padding: "14px 18px",
-              background: "#f0fdf4",
-              border: "1px solid #bbf7d0",
+              background: "#ECFDF5",
+              border: "1px solid #A7F3D0",
               borderRadius: 12,
               display: "inline-flex",
               alignItems: "center",
@@ -297,10 +297,10 @@ export function BaterPontoSection() {
           >
             <span style={{ fontSize: 22 }}>✅</span>
             <div style={{ textAlign: "left" }}>
-              <p style={{ color: "#16a34a", fontSize: 14, fontWeight: 800, margin: 0 }}>
+              <p style={{ color: "#059669", fontSize: 14, fontWeight: 800, margin: 0 }}>
                 {ultima.tipo} registrada às {ultima.hora}
               </p>
-              <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>
+              <p style={{ color: "#64748B", fontSize: 11, margin: "2px 0 0" }}>
                 {ultima.comGps ? "📍 Localização capturada" : "⚠️ Registrado sem localização"}
               </p>
             </div>
@@ -311,17 +311,17 @@ export function BaterPontoSection() {
       {/* BATIDAS DE HOJE */}
       {nome && (
         <div style={{ ...card, padding: 22 }}>
-          <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 16px" }}>
+          <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 16px" }}>
             Suas batidas de hoje
           </h3>
           {batidasHoje.length === 0 ? (
-            <p style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", padding: "12px 0" }}>
+            <p style={{ color: "#94A3B8", fontSize: 13, textAlign: "center", padding: "12px 0" }}>
               Nenhuma batida registrada hoje ainda.
             </p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {batidasHoje.map((b) => {
-                const cor = TIPO_COR[b.tipo] || "#6b7280";
+                const cor = TIPO_COR[b.tipo] || "#64748B";
                 const temGps = b.latitude != null && b.longitude != null;
                 return (
                   <div
@@ -332,9 +332,9 @@ export function BaterPontoSection() {
                       justifyContent: "space-between",
                       gap: 12,
                       padding: "12px 14px",
-                      background: "#f9fafb",
+                      background: "#F7FAF9",
                       borderRadius: 10,
-                      border: "1px solid #f3f4f6",
+                      border: "1px solid #F1F5F4",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -342,15 +342,15 @@ export function BaterPontoSection() {
                         style={{ width: 10, height: 10, borderRadius: "50%", background: cor, flexShrink: 0 }}
                       />
                       <div>
-                        <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: 0 }}>{b.tipo}</p>
-                        <p style={{ color: "#9ca3af", fontSize: 11, margin: "1px 0 0" }}>
+                        <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0 }}>{b.tipo}</p>
+                        <p style={{ color: "#94A3B8", fontSize: 11, margin: "1px 0 0" }}>
                           {temGps ? "📍 com localização" : "sem localização"}
                         </p>
                       </div>
                     </div>
                     <span
                       style={{
-                        color: "#1f2937",
+                        color: "#0F172A",
                         fontSize: 18,
                         fontWeight: 800,
                         fontVariantNumeric: "tabular-nums",

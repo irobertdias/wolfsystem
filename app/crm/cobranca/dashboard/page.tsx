@@ -13,6 +13,7 @@ import {
   carregarPropostas, carregarFaturasStatus,
 } from "../../../lib/cobranca_lib";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════════
 // 📊 DASHBOARD DE COBRANÇA — Wolf System (multi-tenant)
 // ───────────────────────────────────────────────────────────────────────────
@@ -31,9 +32,9 @@ import {
 const ADMIN_EMAIL = "robert.dias@live.com";
 
 // ─── estilos ──────────────────────────────────────────────────────────────
-const card = { background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
-const btnSec = { background: "#fff", color: "#374151", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600 };
-const sectionTitle = { color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 18px 0", display: "flex", alignItems: "center", gap: 8 };
+const card = { background: "#fff", borderRadius: 14, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
+const btnSec = { background: "#fff", color: "#334155", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600 };
+const sectionTitle = { color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 18px 0", display: "flex", alignItems: "center", gap: 8 };
 
 // ─── 12 STATUS AGRUPADOS EM 6 BUCKETS VISUAIS ─────────────────────────────
 type GrupoStatus = "recebidas" | "negociacao" | "risco" | "pendentes" | "perdidas" | "juridico";
@@ -54,11 +55,11 @@ const GRUPO_DE_STATUS: Record<string, GrupoStatus> = {
 };
 
 const META_GRUPO: Record<GrupoStatus, { label: string; icone: string; cor: string; bg: string; border: string; desc: string }> = {
-  recebidas:   { label: "Recebidas",       icone: "✅", cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0", desc: "Faturas pagas (no prazo, com atraso ou parcial)" },
-  negociacao:  { label: "Em Negociação",   icone: "🤝", cor: "#2563eb", bg: "#eff6ff", border: "#bfdbfe", desc: "Promessa de pagamento, acordo ou negociação ativa" },
+  recebidas:   { label: "Recebidas",       icone: "✅", cor: "#059669", bg: "#ECFDF5", border: "#A7F3D0", desc: "Faturas pagas (no prazo, com atraso ou parcial)" },
+  negociacao:  { label: "Em Negociação",   icone: "🤝", cor: "#047857", bg: "#ECFDF5", border: "#A7F3D0", desc: "Promessa de pagamento, acordo ou negociação ativa" },
   risco:       { label: "Em Risco",        icone: "⚠️", cor: "#d97706", bg: "#fffbeb", border: "#fde68a", desc: "Atrasadas — precisam de ação imediata" },
-  pendentes:   { label: "A Vencer",        icone: "⏳", cor: "#6366f1", bg: "#eef2ff", border: "#c7d2fe", desc: "Ainda não venceram, dentro do prazo" },
-  perdidas:    { label: "Perdidas",        icone: "❌", cor: "#9ca3af", bg: "#f9fafb", border: "#e5e7eb", desc: "Marcadas como 'não vai pagar' ou canceladas" },
+  pendentes:   { label: "A Vencer",        icone: "⏳", cor: "#059669", bg: "#ECFDF5", border: "#A7F3D0", desc: "Ainda não venceram, dentro do prazo" },
+  perdidas:    { label: "Perdidas",        icone: "❌", cor: "#94A3B8", bg: "#F7FAF9", border: "#E6ECEA", desc: "Marcadas como 'não vai pagar' ou canceladas" },
   juridico:    { label: "Jurídico",        icone: "⚖️", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca", desc: "Em cobrança judicial ou protestadas" },
 };
 
@@ -92,7 +93,7 @@ function GraficoBarras({ data, mobile }: { data: Serie[]; mobile: boolean }) {
   const passos = 4, plotH = H - padT - padB, plotW = W - padL - padR;
   const bw = Math.min(mobile ? 22 : 34, (plotW / data.length) * 0.6);
   const y = (v: number) => padT + plotH * (1 - v / maxV);
-  const cores: [keyof Serie, string][] = [["Pagas", "#16a34a"], ["Pendentes", "#d97706"], ["Inadimplentes", "#dc2626"]];
+  const cores: [keyof Serie, string][] = [["Pagas", "#059669"], ["Pendentes", "#d97706"], ["Inadimplentes", "#dc2626"]];
   return (
     <div style={{ width: "100%", overflowX: "auto" }}>
       <svg width={W} height={H} style={{ minWidth: "100%", display: "block" }}>
@@ -100,8 +101,8 @@ function GraficoBarras({ data, mobile }: { data: Serie[]; mobile: boolean }) {
           const v = (maxV / passos) * i, yy = y(v);
           return (
             <g key={i}>
-              <line x1={padL} y1={yy} x2={W - padR} y2={yy} stroke="#e5e7eb" strokeDasharray="3 3" />
-              <text x={padL - 6} y={yy + 3} textAnchor="end" fontSize={10} fill="#9ca3af">{Math.round(v)}</text>
+              <line x1={padL} y1={yy} x2={W - padR} y2={yy} stroke="#E6ECEA" strokeDasharray="3 3" />
+              <text x={padL - 6} y={yy + 3} textAnchor="end" fontSize={10} fill="#94A3B8">{Math.round(v)}</text>
             </g>
           );
         })}
@@ -117,7 +118,7 @@ function GraficoBarras({ data, mobile }: { data: Serie[]; mobile: boolean }) {
                 const yTop = y(acc + val); acc += val;
                 return <rect key={k} x={cx - bw / 2} y={yTop} width={bw} height={Math.max(hSeg, 0)} fill={cor} rx={2}><title>{`${d.mes} — ${k}: ${val}`}</title></rect>;
               })}
-              <text x={cx} y={H - padB + 14} textAnchor="middle" fontSize={10} fill="#6b7280">{d.mes}</text>
+              <text x={cx} y={H - padB + 14} textAnchor="middle" fontSize={10} fill="#64748B">{d.mes}</text>
             </g>
           );
         })}
@@ -140,8 +141,8 @@ function GraficoLinha({ data, mobile, series, height, pct }: { data: Serie[]; mo
           const v = (maxV / passos) * i, yy = y(v);
           return (
             <g key={i}>
-              <line x1={padL} y1={yy} x2={W - padR} y2={yy} stroke="#e5e7eb" strokeDasharray="3 3" />
-              <text x={padL - 6} y={yy + 3} textAnchor="end" fontSize={10} fill="#9ca3af">{Math.round(v)}{pct ? "%" : ""}</text>
+              <line x1={padL} y1={yy} x2={W - padR} y2={yy} stroke="#E6ECEA" strokeDasharray="3 3" />
+              <text x={padL - 6} y={yy + 3} textAnchor="end" fontSize={10} fill="#94A3B8">{Math.round(v)}{pct ? "%" : ""}</text>
             </g>
           );
         })}
@@ -154,7 +155,7 @@ function GraficoLinha({ data, mobile, series, height, pct }: { data: Serie[]; mo
             </g>
           );
         })}
-        {data.map((d, i) => <text key={d.mes} x={x(i)} y={H - padB + 14} textAnchor="middle" fontSize={10} fill="#6b7280">{d.mes}</text>)}
+        {data.map((d, i) => <text key={d.mes} x={x(i)} y={H - padB + 14} textAnchor="middle" fontSize={10} fill="#64748B">{d.mes}</text>)}
       </svg>
     </div>
   );
@@ -162,15 +163,15 @@ function GraficoLinha({ data, mobile, series, height, pct }: { data: Serie[]; mo
 
 // ─── Componente: Variação % vs período anterior ───────────────────────────
 function Variacao({ atual, anterior, invertido }: { atual: number; anterior: number; invertido?: boolean }) {
-  if (anterior === 0 && atual === 0) return <span style={{ color: "#9ca3af", fontSize: 11, fontWeight: 600 }}>—</span>;
-  if (anterior === 0) return <span style={{ color: "#16a34a", fontSize: 11, fontWeight: 700 }}>NOVO</span>;
+  if (anterior === 0 && atual === 0) return <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 600 }}>—</span>;
+  if (anterior === 0) return <span style={{ color: "#059669", fontSize: 11, fontWeight: 700 }}>NOVO</span>;
   const variacao = Math.round(((atual - anterior) / anterior) * 100);
   const subiu = variacao > 0;
   // Se "invertido", inadimplência subir é ruim (vermelho); caso normal, subir é bom (verde)
   const bom = invertido ? !subiu : subiu;
-  if (variacao === 0) return <span style={{ color: "#9ca3af", fontSize: 11, fontWeight: 600 }}>= 0%</span>;
+  if (variacao === 0) return <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 600 }}>= 0%</span>;
   return (
-    <span style={{ color: bom ? "#16a34a" : "#dc2626", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3 }}>
+    <span style={{ color: bom ? "#059669" : "#dc2626", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3 }}>
       {subiu ? "↗" : "↘"} {Math.abs(variacao)}%
     </span>
   );
@@ -440,7 +441,7 @@ export default function CobrancaDashboard() {
 
   // ─── GATES ────────────────────────────────────────────────────────────────
   if (!wsPronto || !modulosCarregados || loading) {
-    return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "#6b7280" }}>Carregando dashboard...</div>;
+    return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "#64748B" }}>Carregando dashboard...</div>;
   }
   if (!temAcesso) {
     return <ModuloBloqueado modulo="cobranca" />;
@@ -454,44 +455,44 @@ export default function CobrancaDashboard() {
       {/* ════════ HEADER ════════ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(37,99,235,0.3)" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #047857 0%, #065F46 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(5,150,105,0.3)" }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>📊</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Dashboard de Cobrança</h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Dashboard de Cobrança</h1>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Acompanhe o resultado do que sua equipe atualiza · <b>{formatNum(kpis.totalFaturas)}</b> faturas analisadas
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => router.push("/crm/cobranca/negociacoes")} style={btnSec}>🤝 Negociações</button>
-          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ ...btnSec, background: "linear-gradient(135deg,#2563eb,#1d4ed8)", color: "#fff", border: "none" }}>📤 Atualizar planilha</button>
+          <button onClick={() => router.push("/crm/cobranca/negociacoes")} style={btnSec}>Negociações</button>
+          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ ...btnSec, background: "linear-gradient(135deg,#047857,#065F46)", color: "#fff", border: "none" }}>Atualizar planilha</button>
         </div>
       </div>
 
       {/* ════════ BANNER: ÚLTIMA ATUALIZAÇÃO ════════ */}
       {ultimaAtualizacao.quando && (
-        <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", borderLeft: "4px solid #16a34a", borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)", border: "1px solid #A7F3D0", borderLeft: "4px solid #059669", borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ fontSize: 26 }}>🔄</div>
             <div>
-              <p style={{ color: "#15803d", fontSize: 13, margin: 0, fontWeight: 700 }}>
+              <p style={{ color: "#047857", fontSize: 13, margin: 0, fontWeight: 700 }}>
                 Última atualização da planilha: {formatTempo(ultimaAtualizacao.quando)}
                 {ultimaAtualizacao.porQuem && <> por <b>{ultimaAtualizacao.porQuem}</b></>}
               </p>
-              <p style={{ color: "#16a34a", fontSize: 11.5, margin: "2px 0 0", fontWeight: 600 }}>
+              <p style={{ color: "#059669", fontSize: 11.5, margin: "2px 0 0", fontWeight: 600 }}>
                 {formatNum(ultimaAtualizacao.totalNoDia)} fatura(s) foram atualizadas nessa carga
               </p>
             </div>
           </div>
-          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ ...btnSec, padding: "8px 14px", fontSize: 12, background: "#fff", color: "#16a34a", borderColor: "#86efac" }}>Atualizar agora →</button>
+          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ ...btnSec, padding: "8px 14px", fontSize: 12, background: "#fff", color: "#059669", borderColor: "#6EE7B7" }}>Atualizar agora</button>
         </div>
       )}
 
       {/* ════════ SELETOR DE PERÍODO ════════ */}
       <div style={{ ...card, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <span style={{ color: "#6b7280", fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>📅 Período:</span>
+        <span style={{ color: "#64748B", fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Período:</span>
         <div style={{ display: "flex", gap: 4 }}>
           {([
             { k: "mes" as const, l: "Este mês" },
@@ -499,21 +500,21 @@ export default function CobrancaDashboard() {
             { k: "3m" as const, l: "Últimos 3 meses" },
             { k: "tudo" as const, l: "Tudo" },
           ]).map(p => (
-            <button key={p.k} onClick={() => setPeriodo(p.k)} style={{ borderRadius: 20, padding: "6px 13px", fontSize: 12, cursor: "pointer", fontWeight: periodo === p.k ? 700 : 600, border: `1px solid ${periodo === p.k ? "#2563eb" : "#e5e7eb"}`, background: periodo === p.k ? "#eff6ff" : "#fff", color: periodo === p.k ? "#2563eb" : "#6b7280" }}>{p.l}</button>
+            <button key={p.k} onClick={() => setPeriodo(p.k)} style={{ borderRadius: 20, padding: "6px 13px", fontSize: 12, cursor: "pointer", fontWeight: periodo === p.k ? 700 : 600, border: `1px solid ${periodo === p.k ? "#047857" : "#E6ECEA"}`, background: periodo === p.k ? "#ECFDF5" : "#fff", color: periodo === p.k ? "#047857" : "#64748B" }}>{p.l}</button>
           ))}
         </div>
         {periodo !== "tudo" && (
-          <span style={{ color: "#9ca3af", fontSize: 11, marginLeft: "auto", fontStyle: "italic" }}>
+          <span style={{ color: "#94A3B8", fontSize: 11, marginLeft: "auto", fontStyle: "italic" }}>
             Comparando com o período anterior pra mostrar variações
           </span>
         )}
       </div>
 
       {vazio && (
-        <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", borderLeft: "4px solid #2563eb", borderRadius: 12, padding: "16px 20px" }}>
-          <p style={{ color: "#1e40af", fontSize: 14, margin: 0, fontWeight: 700 }}>💡 Ainda não há faturas no período selecionado</p>
-          <p style={{ color: "#3b82f6", fontSize: 12.5, margin: "4px 0 0" }}>
-            Suba a planilha de pagamento em <b>📤 Atualizar planilha</b> ou amplie o período pra "Tudo".
+        <div style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)", border: "1px solid #A7F3D0", borderLeft: "4px solid #047857", borderRadius: 12, padding: "16px 20px" }}>
+          <p style={{ color: "#065F46", fontSize: 14, margin: 0, fontWeight: 700 }}>Ainda não há faturas no período selecionado</p>
+          <p style={{ color: "#059669", fontSize: 12.5, margin: "4px 0 0" }}>
+            Suba a planilha de pagamento em <b>Atualizar planilha</b> ou amplie o período pra "Tudo".
           </p>
         </div>
       )}
@@ -522,31 +523,31 @@ export default function CobrancaDashboard() {
       {!vazio && (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 10 : 14 }}>
           {/* Recebidas */}
-          <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #16a34a" }}>
+          <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #059669" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>✅</div>
-                <p style={{ color: "#6b7280", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Recebidas</p>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>✅</div>
+                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Recebidas</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.recebidas} anterior={kpisAnt.recebidas} />}
             </div>
-            <p style={{ color: "#16a34a", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{formatNum(kpis.recebidas)}</p>
-            <p style={{ color: "#9ca3af", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
+            <p style={{ color: "#059669", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{formatNum(kpis.recebidas)}</p>
+            <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
               {kpis.pctRecebida}% do total · faturas pagas
             </p>
           </div>
 
           {/* Em Negociação */}
-          <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #2563eb" }}>
+          <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #047857" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: "#eff6ff", border: "1px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🤝</div>
-                <p style={{ color: "#6b7280", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Em negociação</p>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🤝</div>
+                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Em negociação</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.negociacao} anterior={kpisAnt.negociacao} />}
             </div>
-            <p style={{ color: "#2563eb", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{formatNum(kpis.negociacao)}</p>
-            <p style={{ color: "#9ca3af", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
+            <p style={{ color: "#047857", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{formatNum(kpis.negociacao)}</p>
+            <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
               promessa, acordo ou em conversa
             </p>
           </div>
@@ -556,24 +557,24 @@ export default function CobrancaDashboard() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🔴</div>
-                <p style={{ color: "#6b7280", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Inadimplentes</p>
+                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Inadimplentes</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.inadimplentes} anterior={kpisAnt.inadimplentes} invertido />}
             </div>
             <p style={{ color: "#dc2626", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{formatNum(kpis.inadimplentes)}</p>
-            <p style={{ color: "#9ca3af", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
+            <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
               atrasadas + jurídico/protesto
             </p>
           </div>
 
           {/* Taxa de Inadimplência */}
-          <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #4f46e5" }}>
+          <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #047857" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: "#eef2ff", border: "1px solid #c7d2fe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>📉</div>
-              <p style={{ color: "#6b7280", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Tx. Inadimplência</p>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>📉</div>
+              <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Tx. Inadimplência</p>
             </div>
-            <p style={{ color: kpis.pctInad < 10 ? "#16a34a" : kpis.pctInad < 25 ? "#d97706" : "#dc2626", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{kpis.pctInad}%</p>
-            <p style={{ color: "#9ca3af", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
+            <p style={{ color: kpis.pctInad < 10 ? "#059669" : kpis.pctInad < 25 ? "#d97706" : "#dc2626", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{kpis.pctInad}%</p>
+            <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
               {kpis.pctInad < 10 ? "✓ saudável" : kpis.pctInad < 25 ? "atenção" : "crítico"} · inad/total
             </p>
           </div>
@@ -582,15 +583,15 @@ export default function CobrancaDashboard() {
 
       {/* ════════ INSIGHTS AUTOMÁTICOS ════════ */}
       {!vazio && insights.length > 0 && (
-        <div style={{ ...card, padding: isMobile ? 16 : 20, background: "linear-gradient(135deg, #fefefe 0%, #f9fafb 100%)" }}>
+        <div style={{ ...card, padding: isMobile ? 16 : 20, background: "linear-gradient(135deg, #fefefe 0%, #F7FAF9 100%)" }}>
           <h3 style={{ ...sectionTitle, margin: "0 0 12px" }}>
-            <span style={{ width: 28, height: 28, borderRadius: 8, background: "#eff6ff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>💡</span>
+            <span style={{ width: 28, height: 28, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>💡</span>
             O que esses números te dizem
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {insights.map((ins, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", borderRadius: 8, background: ins.tipo === "ok" ? "#f0fdf4" : ins.tipo === "alerta" ? "#fef2f2" : "#eff6ff", borderLeft: `3px solid ${ins.tipo === "ok" ? "#16a34a" : ins.tipo === "alerta" ? "#dc2626" : "#2563eb"}` }}>
-                <p style={{ color: ins.tipo === "ok" ? "#15803d" : ins.tipo === "alerta" ? "#991b1b" : "#1e40af", fontSize: 13, margin: 0, fontWeight: 600, lineHeight: 1.5 }}>{ins.texto}</p>
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", borderRadius: 8, background: ins.tipo === "ok" ? "#ECFDF5" : ins.tipo === "alerta" ? "#fef2f2" : "#ECFDF5", borderLeft: `3px solid ${ins.tipo === "ok" ? "#059669" : ins.tipo === "alerta" ? "#dc2626" : "#047857"}` }}>
+                <p style={{ color: ins.tipo === "ok" ? "#047857" : ins.tipo === "alerta" ? "#991b1b" : "#065F46", fontSize: 13, margin: 0, fontWeight: 600, lineHeight: 1.5 }}>{ins.texto}</p>
               </div>
             ))}
           </div>
@@ -610,11 +611,11 @@ export default function CobrancaDashboard() {
             </div>
           )}
           {alertas.promessasHoje > 0 && (
-            <div style={{ ...card, padding: 16, borderLeft: "4px solid #2563eb", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ ...card, padding: 16, borderLeft: "4px solid #047857", display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontSize: 28 }}>🤝</div>
               <div>
-                <p style={{ color: "#2563eb", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.promessasHoje)}</p>
-                <p style={{ color: "#1e40af", fontSize: 12, margin: 0, fontWeight: 600 }}>promessa(s) de pagamento pra hoje</p>
+                <p style={{ color: "#047857", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.promessasHoje)}</p>
+                <p style={{ color: "#065F46", fontSize: 12, margin: 0, fontWeight: 600 }}>promessa(s) de pagamento pra hoje</p>
               </div>
             </div>
           )}
@@ -634,10 +635,10 @@ export default function CobrancaDashboard() {
       {!vazio && (
         <div style={{ ...card, padding: isMobile ? 16 : 22 }}>
           <h3 style={{ ...sectionTitle, margin: "0 0 4px" }}>
-            <span style={{ width: 28, height: 28, borderRadius: 8, background: "#f9fafb", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🗂️</span>
+            <span style={{ width: 28, height: 28, borderRadius: 8, background: "#F7FAF9", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🗂️</span>
             Distribuição dos 12 status agrupados
           </h3>
-          <p style={{ color: "#9ca3af", fontSize: 11.5, margin: "0 0 16px" }}>Os 12 status que sua equipe usa estão organizados aqui em 6 grupos visuais</p>
+          <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "0 0 16px" }}>Os 12 status que sua equipe usa estão organizados aqui em 6 grupos visuais</p>
 
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>
             {(Object.keys(META_GRUPO) as GrupoStatus[]).map(g => {
@@ -647,12 +648,12 @@ export default function CobrancaDashboard() {
               return (
                 <div key={g} style={{ background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: 12, padding: 14 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fff", border: `1px solid ${meta.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{meta.icone}</div>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fff", border: `1px solid ${meta.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{<IconeEmoji e={meta.icone} />}</div>
                     <p style={{ color: meta.cor, fontSize: 12, fontWeight: 800, margin: 0 }}>{meta.label}</p>
                   </div>
                   <p style={{ color: meta.cor, fontSize: 24, fontWeight: 800, margin: 0, lineHeight: 1 }}>{formatNum(qtd)}</p>
-                  <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 6px", fontWeight: 600 }}>{pct}% do total</p>
-                  <p style={{ color: "#6b7280", fontSize: 10.5, margin: 0, lineHeight: 1.4, fontStyle: "italic" }}>{meta.desc}</p>
+                  <p style={{ color: "#64748B", fontSize: 11, margin: "2px 0 6px", fontWeight: 600 }}>{pct}% do total</p>
+                  <p style={{ color: "#64748B", fontSize: 10.5, margin: 0, lineHeight: 1.4, fontStyle: "italic" }}>{meta.desc}</p>
                 </div>
               );
             })}
@@ -666,23 +667,23 @@ export default function CobrancaDashboard() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
             <div>
               <h3 style={{ ...sectionTitle, margin: 0 }}>
-                <span style={{ width: 32, height: 32, borderRadius: 8, background: "#eff6ff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📈</span>
+                <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📈</span>
                 Evolução mês a mês
               </h3>
-              <p style={{ color: "#9ca3af", fontSize: 11.5, margin: "4px 0 0 40px" }}>Como a cobrança evoluiu ao longo do tempo</p>
+              <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "4px 0 0 40px" }}>Como a cobrança evoluiu ao longo do tempo</p>
             </div>
             <div style={{ display: "flex", gap: 4 }}>
               {(["barras", "linha"] as const).map(t => (
-                <button key={t} onClick={() => setTipoGrafico(t)} style={{ borderRadius: 20, padding: "6px 13px", fontSize: 12, cursor: "pointer", fontWeight: tipoGrafico === t ? 700 : 600, border: `1px solid ${tipoGrafico === t ? "#2563eb" : "#e5e7eb"}`, background: tipoGrafico === t ? "#eff6ff" : "#fff", color: tipoGrafico === t ? "#2563eb" : "#6b7280" }}>{t === "barras" ? "📊 Barras" : "📈 Linha"}</button>
+                <button key={t} onClick={() => setTipoGrafico(t)} style={{ borderRadius: 20, padding: "6px 13px", fontSize: 12, cursor: "pointer", fontWeight: tipoGrafico === t ? 700 : 600, border: `1px solid ${tipoGrafico === t ? "#047857" : "#E6ECEA"}`, background: tipoGrafico === t ? "#ECFDF5" : "#fff", color: tipoGrafico === t ? "#047857" : "#64748B" }}>{t === "barras" ? "📊 Barras" : "📈 Linha"}</button>
               ))}
             </div>
           </div>
           {tipoGrafico === "barras"
             ? <GraficoBarras data={serieMensal} mobile={isMobile} />
-            : <GraficoLinha data={serieMensal} mobile={isMobile} series={[["Pagas", "#16a34a"], ["Pendentes", "#d97706"], ["Inadimplentes", "#dc2626"]]} />}
+            : <GraficoLinha data={serieMensal} mobile={isMobile} series={[["Pagas", "#059669"], ["Pendentes", "#d97706"], ["Inadimplentes", "#dc2626"]]} />}
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 10, justifyContent: "center" }}>
-            {([["Pagas", "#16a34a"], ["Pendentes", "#d97706"], ["Inadimplentes", "#dc2626"]] as [string, string][]).map(([l, cor]) => (
-              <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#6b7280", fontSize: 11.5, fontWeight: 600 }}>
+            {([["Pagas", "#059669"], ["Pendentes", "#d97706"], ["Inadimplentes", "#dc2626"]] as [string, string][]).map(([l, cor]) => (
+              <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#64748B", fontSize: 11.5, fontWeight: 600 }}>
                 <span style={{ width: 12, height: 4, borderRadius: 2, background: cor }} /> {l}
               </span>
             ))}
@@ -695,39 +696,39 @@ export default function CobrancaDashboard() {
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: 14 }}>
           <div style={{ ...card, padding: isMobile ? 16 : 24 }}>
             <h3 style={{ ...sectionTitle, fontSize: 14 }}>
-              <span style={{ width: 28, height: 28, borderRadius: 8, background: "#f0fdf4", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>✅</span>
+              <span style={{ width: 28, height: 28, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>✅</span>
               % de faturas pagas por mês
             </h3>
-            <GraficoLinha data={serieMensal} mobile={isMobile} height={200} pct series={[["pctPago", "#16a34a"]]} />
-            <p style={{ color: "#9ca3af", fontSize: 11.5, margin: "10px 0 0", textAlign: "center", fontStyle: "italic" }}>
+            <GraficoLinha data={serieMensal} mobile={isMobile} height={200} pct series={[["pctPago", "#059669"]]} />
+            <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "10px 0 0", textAlign: "center", fontStyle: "italic" }}>
               Quanto maior, melhor — quer dizer que sua cobrança está mais eficiente nesse mês
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ ...card, padding: 16, borderLeft: "4px solid #2563eb" }}>
+            <div style={{ ...card, padding: 16, borderLeft: "4px solid #047857" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ fontSize: 24 }}>👥</div>
                 <div>
-                  <p style={{ color: "#2563eb", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.totalClientes)}</p>
-                  <p style={{ color: "#6b7280", fontSize: 11.5, margin: 0, fontWeight: 600 }}>clientes c/ faturas no período</p>
+                  <p style={{ color: "#047857", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.totalClientes)}</p>
+                  <p style={{ color: "#64748B", fontSize: 11.5, margin: 0, fontWeight: 600 }}>clientes c/ faturas no período</p>
                 </div>
               </div>
             </div>
-            <div style={{ ...card, padding: 16, borderLeft: "4px solid #16a34a" }}>
+            <div style={{ ...card, padding: 16, borderLeft: "4px solid #059669" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ fontSize: 24 }}>📑</div>
                 <div>
-                  <p style={{ color: "#16a34a", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.totalFaturas)}</p>
-                  <p style={{ color: "#6b7280", fontSize: 11.5, margin: 0, fontWeight: 600 }}>faturas analisadas no período</p>
+                  <p style={{ color: "#059669", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.totalFaturas)}</p>
+                  <p style={{ color: "#64748B", fontSize: 11.5, margin: 0, fontWeight: 600 }}>faturas analisadas no período</p>
                 </div>
               </div>
             </div>
-            <div style={{ ...card, padding: 16, borderLeft: `4px solid ${kpis.perdidas > 0 ? "#9ca3af" : "#e5e7eb"}` }}>
+            <div style={{ ...card, padding: 16, borderLeft: `4px solid ${kpis.perdidas > 0 ? "#94A3B8" : "#E6ECEA"}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ fontSize: 24 }}>❌</div>
                 <div>
-                  <p style={{ color: "#6b7280", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.perdidas)}</p>
-                  <p style={{ color: "#6b7280", fontSize: 11.5, margin: 0, fontWeight: 600 }}>marcadas como "não vai pagar"</p>
+                  <p style={{ color: "#64748B", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.perdidas)}</p>
+                  <p style={{ color: "#64748B", fontSize: 11.5, margin: 0, fontWeight: 600 }}>marcadas como "não vai pagar"</p>
                 </div>
               </div>
             </div>
@@ -738,41 +739,41 @@ export default function CobrancaDashboard() {
       {/* ════════ TOP 10 INADIMPLENTES ════════ */}
       {topDevedores.length > 0 && (
         <div style={{ ...card, overflow: "hidden" }}>
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid #e5e7eb" }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid #E6ECEA" }}>
             <h3 style={{ ...sectionTitle, margin: 0 }}>
               <span style={{ width: 28, height: 28, borderRadius: 8, background: "#fef2f2", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🚨</span>
               Top 10 clientes inadimplentes
             </h3>
-            <p style={{ color: "#9ca3af", fontSize: 11.5, margin: "4px 0 0 36px" }}>Esses clientes precisam de atenção prioritária</p>
+            <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "4px 0 0 36px" }}>Esses clientes precisam de atenção prioritária</p>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 600 : "auto" }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#F7FAF9" }}>
                   {["#", "Cliente", "Faturas em risco", "Jurídico", "Total devido", "Ação"].map(h => (
-                    <th key={h} style={{ padding: "11px 14px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                    <th key={h} style={{ padding: "11px 14px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {topDevedores.map((c, i) => (
-                  <tr key={c.proposta?.id || i} style={{ borderTop: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "12px 14px", color: "#9ca3af", fontSize: 12, fontWeight: 700 }}>#{i + 1}</td>
+                  <tr key={c.proposta?.id || i} style={{ borderTop: "1px solid #F1F5F4" }}>
+                    <td style={{ padding: "12px 14px", color: "#94A3B8", fontSize: 12, fontWeight: 700 }}>#{i + 1}</td>
                     <td style={{ padding: "12px 14px" }}>
-                      <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{c.proposta?.nome || "—"}</p>
-                      {c.proposta?.dados_customizados?.custcode && <p style={{ color: "#9ca3af", fontSize: 10.5, margin: "2px 0 0", fontFamily: "monospace" }}>{c.proposta.dados_customizados.custcode}</p>}
+                      <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{c.proposta?.nome || "—"}</p>
+                      {c.proposta?.dados_customizados?.custcode && <p style={{ color: "#94A3B8", fontSize: 10.5, margin: "2px 0 0", fontFamily: "monospace" }}>{c.proposta.dados_customizados.custcode}</p>}
                     </td>
                     <td style={{ padding: "12px 14px" }}>
-                      {c.emRisco > 0 ? <span style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", borderRadius: 10, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>⚠️ {c.emRisco}</span> : <span style={{ color: "#d1d5db", fontSize: 13 }}>—</span>}
+                      {c.emRisco > 0 ? <span style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", borderRadius: 10, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{c.emRisco}</span> : <span style={{ color: "#CBD5E1", fontSize: 13 }}>—</span>}
                     </td>
                     <td style={{ padding: "12px 14px" }}>
-                      {c.emJuridico > 0 ? <span style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>⚖️ {c.emJuridico}</span> : <span style={{ color: "#d1d5db", fontSize: 13 }}>—</span>}
+                      {c.emJuridico > 0 ? <span style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{c.emJuridico}</span> : <span style={{ color: "#CBD5E1", fontSize: 13 }}>—</span>}
                     </td>
                     <td style={{ padding: "12px 14px", color: "#dc2626", fontSize: 14, fontWeight: 800 }}>{c.total} fat.</td>
                     <td style={{ padding: "12px 14px" }}>
                       <button onClick={() => c.proposta && router.push(`/crm/cobranca/negociacoes?proposta=${c.proposta.id}`)}
-                        style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
-                        🤝 Negociar
+                        style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+                        Negociar
                       </button>
                     </td>
                   </tr>
@@ -785,9 +786,9 @@ export default function CobrancaDashboard() {
 
       {/* ════════ COMO LER ESTE DASHBOARD ════════ */}
       {!vazio && (
-        <div style={{ ...card, padding: isMobile ? 16 : 22, background: "linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%)" }}>
-          <h3 style={{ ...sectionTitle, margin: "0 0 12px", color: "#374151" }}>
-            <span style={{ width: 28, height: 28, borderRadius: 8, background: "#fff", border: "1px solid #e5e7eb", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>📖</span>
+        <div style={{ ...card, padding: isMobile ? 16 : 22, background: "linear-gradient(135deg, #F7FAF9 0%, #F1F5F4 100%)" }}>
+          <h3 style={{ ...sectionTitle, margin: "0 0 12px", color: "#334155" }}>
+            <span style={{ width: 28, height: 28, borderRadius: 8, background: "#fff", border: "1px solid #E6ECEA", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>📖</span>
             Como ler este dashboard
           </h3>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
@@ -797,9 +798,9 @@ export default function CobrancaDashboard() {
               { titulo: "E 'em negociação'?", desc: "Quando o cliente fez uma promessa, fechou acordo ou está em conversa ativa. Acompanhe pra garantir que cumpre o combinado." },
               { titulo: "Taxa de inadimplência saudável?", desc: "Abaixo de 10% é considerada saudável. Entre 10% e 25% pede atenção. Acima de 25%, é crítico — revise a operação." },
             ].map((q, i) => (
-              <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #e5e7eb" }}>
-                <p style={{ color: "#1f2937", fontSize: 12.5, margin: "0 0 4px", fontWeight: 700 }}>{q.titulo}</p>
-                <p style={{ color: "#6b7280", fontSize: 11.5, margin: 0, lineHeight: 1.5 }}>{q.desc}</p>
+              <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #E6ECEA" }}>
+                <p style={{ color: "#0F172A", fontSize: 12.5, margin: "0 0 4px", fontWeight: 700 }}>{q.titulo}</p>
+                <p style={{ color: "#64748B", fontSize: 11.5, margin: 0, lineHeight: 1.5 }}>{q.desc}</p>
               </div>
             ))}
           </div>

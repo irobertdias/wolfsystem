@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
+import { IconeEmoji } from "../../components/a2/Icone";
 // ⚠️ Só este email tem acesso à tela de clientes
 const ADMIN_EMAIL = "robert.dias@live.com";
 const CONTRATOS_PLANOS = {
@@ -169,7 +170,7 @@ function getStatusCobranca(c: Cadastro): {
   dias: number | null;
 } {
   if (c.status_pagamento === "suspenso") {
-    return { fase: "suspenso", label: "Suspenso", cor: "#6b7280", bg: "#f3f4f6", borda: "#e5e7eb", icone: "⏸️", dias: null };
+    return { fase: "suspenso", label: "Suspenso", cor: "#64748B", bg: "#F1F5F4", borda: "#E6ECEA", icone: "⏸️", dias: null };
   }
 
   // 🆕 v3: Postergação ativa (desbloqueio em confiança) — tem prioridade visual
@@ -189,17 +190,17 @@ function getStatusCobranca(c: Cadastro): {
   }
 
   if (!c.dia_vencimento || !c.proximo_vencimento) {
-    return { fase: "sem_config", label: "Sem cobrança", cor: "#9ca3af", bg: "#f9fafb", borda: "#e5e7eb", icone: "○", dias: null };
+    return { fase: "sem_config", label: "Sem cobrança", cor: "#94A3B8", bg: "#F7FAF9", borda: "#E6ECEA", icone: "○", dias: null };
   }
 
   const dias = calcularDiasAteVencimento(c.proximo_vencimento);
-  if (dias === null) return { fase: "sem_config", label: "Sem cobrança", cor: "#9ca3af", bg: "#f9fafb", borda: "#e5e7eb", icone: "○", dias: null };
+  if (dias === null) return { fase: "sem_config", label: "Sem cobrança", cor: "#94A3B8", bg: "#F7FAF9", borda: "#E6ECEA", icone: "○", dias: null };
 
   if (dias <= -2) return { fase: "bloqueado", label: `Bloqueado ${Math.abs(dias)}d`, cor: "#7f1d1d", bg: "#fef2f2", borda: "#fecaca", icone: "🔒", dias };
   if (dias < 0) return { fase: "atrasado", label: `Atrasado ${Math.abs(dias)}d`, cor: "#dc2626", bg: "#fef2f2", borda: "#fecaca", icone: "🔴", dias };
   if (dias === 0) return { fase: "vence_hoje", label: "Vence hoje", cor: "#dc2626", bg: "#fffbeb", borda: "#fde68a", icone: "⚠️", dias };
   if (dias <= 2) return { fase: "vence_breve", label: `Vence em ${dias}d`, cor: "#f59e0b", bg: "#fffbeb", borda: "#fde68a", icone: "🟡", dias };
-  return { fase: "em_dia", label: `Em dia (${dias}d)`, cor: "#16a34a", bg: "#f0fdf4", borda: "#bbf7d0", icone: "🟢", dias };
+  return { fase: "em_dia", label: `Em dia (${dias}d)`, cor: "#059669", bg: "#ECFDF5", borda: "#A7F3D0", icone: "🟢", dias };
 }
 
 function formatarData(iso: string | null | undefined): string {
@@ -309,18 +310,18 @@ export default function Clientes() {
 
   // 🎨 ESTILOS
   const inputStyle = {
-    width: "100%", background: "#ffffff", border: "1px solid #e5e7eb",
-    borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 14,
+    width: "100%", background: "#ffffff", border: "1px solid #E6ECEA",
+    borderRadius: 10, padding: "10px 14px", color: "#0F172A", fontSize: 14,
     boxSizing: "border-box" as const, outline: "none",
     transition: "border-color 0.15s, box-shadow 0.15s",
   };
   const inputSm = { ...inputStyle, padding: "9px 12px", fontSize: 13 };
   const cardStyle = {
-    background: "#ffffff", borderRadius: 14, border: "1px solid #e5e7eb",
+    background: "#ffffff", borderRadius: 14, border: "1px solid #E6ECEA",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
   const labelStyle = {
-    color: "#6b7280", fontSize: 11, fontWeight: 700,
+    color: "#64748B", fontSize: 11, fontWeight: 700,
     textTransform: "uppercase" as const, letterSpacing: 0.5,
     display: "block" as const, marginBottom: 6,
   };
@@ -755,22 +756,22 @@ export default function Clientes() {
     setSalvandoCliente(false);
   };
 
-  const Toggle = ({ value, onChange, label, desc, color = "#16a34a" }: { value: boolean; onChange: () => void; label: string; desc?: string; color?: string }) => (
+  const Toggle = ({ value, onChange, label, desc, color = "#059669" }: { value: boolean; onChange: () => void; label: string; desc?: string; color?: string }) => (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      background: value ? `${color}10` : "#f9fafb",
+      background: value ? `${color}10` : "#F7FAF9",
       borderRadius: 10, padding: "12px 16px",
-      border: `1px solid ${value ? `${color}40` : "#e5e7eb"}`,
+      border: `1px solid ${value ? `${color}40` : "#E6ECEA"}`,
       transition: "all 0.15s",
     }}>
       <div>
-        <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{label}</p>
-        {desc && <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0 0" }}>{desc}</p>}
+        <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{label}</p>
+        {desc && <p style={{ color: "#64748B", fontSize: 11, margin: "2px 0 0 0" }}>{desc}</p>}
       </div>
       <button onClick={onChange}
         style={{
           width: 44, height: 24,
-          background: value ? color : "#d1d5db",
+          background: value ? color : "#CBD5E1",
           borderRadius: 12, cursor: "pointer", border: "none",
           position: "relative", flexShrink: 0, transition: "background 0.2s",
           boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
@@ -787,13 +788,13 @@ export default function Clientes() {
   const BadgeModulo = ({ ativo, icone, label, cor }: { ativo: boolean; icone: string; label: string; cor: string }) => (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      background: ativo ? `${cor}15` : "#f3f4f6",
-      color: ativo ? cor : "#9ca3af",
-      border: `1px solid ${ativo ? `${cor}40` : "#e5e7eb"}`,
+      background: ativo ? `${cor}15` : "#F1F5F4",
+      color: ativo ? cor : "#94A3B8",
+      border: `1px solid ${ativo ? `${cor}40` : "#E6ECEA"}`,
       fontSize: 10, padding: "3px 10px", borderRadius: 10, fontWeight: 700,
       opacity: ativo ? 1 : 0.5,
     }} title={label}>
-      {icone} {label}
+      {<IconeEmoji e={icone} />} {label}
     </span>
   );
 
@@ -826,7 +827,7 @@ export default function Clientes() {
   }).length;
 
   if (permissaoLoading) {
-    return <div style={{ padding: 48, textAlign: "center", color: "#6b7280" }}>Carregando...</div>;
+    return <div style={{ padding: 48, textAlign: "center", color: "#64748B" }}>Carregando...</div>;
   }
 
   if (!temAcesso) {
@@ -840,17 +841,17 @@ export default function Clientes() {
         }}>
           <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
         </div>
-        <h2 style={{ color: "#1f2937", fontSize: 20, fontWeight: 700, margin: 0 }}>Acesso Restrito</h2>
-        <p style={{ color: "#6b7280", fontSize: 14, margin: 0, textAlign: "center" }}>Esta área é exclusiva do administrador master do sistema.</p>
-        <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>Logado como: <b>{emailUsuario}</b></p>
+        <h2 style={{ color: "#0F172A", fontSize: 20, fontWeight: 700, margin: 0 }}>Acesso Restrito</h2>
+        <p style={{ color: "#64748B", fontSize: 14, margin: 0, textAlign: "center" }}>Esta área é exclusiva do administrador master do sistema.</p>
+        <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>Logado como: <b>{emailUsuario}</b></p>
         <button onClick={() => router.push("/crm")}
           style={{
-            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, marginTop: 8,
-            boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+            boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
           }}>
-          ← Voltar ao CRM
+          Voltar ao CRM
         </button>
       </div>
     );
@@ -866,14 +867,14 @@ export default function Clientes() {
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 740, display: "flex", flexDirection: "column", gap: 20, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: 0 }}>{cadastroSelecionado ? "✏️ Editar Cliente" : "➕ Novo Cliente Wolf"}</h2>
+              <h2 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: 0 }}>{cadastroSelecionado ? "✏️ Editar Cliente" : "➕ Novo Cliente Wolf"}</h2>
               <button onClick={() => setShowModalCliente(false)}
-                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
 
             {/* Dados pessoais */}
             <div>
-              <p style={{ color: "#16a34a", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>👤 Dados Pessoais</p>
+              <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>Dados Pessoais</p>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                 <div><label style={labelStyle}>Nome *</label><input placeholder="Nome completo" value={formCadastro.nome || ""} onChange={e => setFormCadastro({ ...formCadastro, nome: e.target.value })} style={inputSm} /></div>
                 <div><label style={labelStyle}>Empresa</label><input placeholder="Nome da empresa" value={formCadastro.empresa || ""} onChange={e => setFormCadastro({ ...formCadastro, empresa: e.target.value })} style={inputSm} /></div>
@@ -883,7 +884,7 @@ export default function Clientes() {
                   </label>
                   <input placeholder="email@empresa.com" value={formCadastro.email || ""} onChange={e => setFormCadastro({ ...formCadastro, email: e.target.value })} style={inputSm} />
                   {cadastroSelecionado && formCadastro.email !== cadastroSelecionado.email && (
-                    <p style={{ color: "#f59e0b", fontSize: 10, margin: "4px 0 0" }}>⚠️ Ao salvar, o cliente passa a logar com esse novo e-mail.</p>
+                    <p style={{ color: "#f59e0b", fontSize: 10, margin: "4px 0 0" }}>Ao salvar, o cliente passa a logar com esse novo e-mail.</p>
                   )}
                 </div>
                 <div><label style={labelStyle}>WhatsApp</label><input placeholder="(62) 99999-9999" value={formCadastro.whatsapp || ""} onChange={e => setFormCadastro({ ...formCadastro, whatsapp: e.target.value })} style={inputSm} /></div>
@@ -892,9 +893,9 @@ export default function Clientes() {
                   <input placeholder="ex: abc_company" value={formCadastro.username || ""}
                     onChange={e => setFormCadastro({ ...formCadastro, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
                     style={{ ...inputSm, fontFamily: "monospace" }} maxLength={30} />
-                  <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>a-z, 0-9, _ — 3 a 30 chars</p>
+                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>a-z, 0-9, _ — 3 a 30 chars</p>
                   {cadastroSelecionado && formCadastro.username !== cadastroSelecionado.username && (
-                    <p style={{ color: "#f59e0b", fontSize: 10, margin: "4px 0 0" }}>⚠️ Isso renomeia o workspace inteiro (conversas, fluxos, financeiro etc). Só salve se tiver certeza.</p>
+                    <p style={{ color: "#f59e0b", fontSize: 10, margin: "4px 0 0" }}>Isso renomeia o workspace inteiro (conversas, fluxos, financeiro etc). Só salve se tiver certeza.</p>
                   )}
                 </div>
                 {!cadastroSelecionado && (
@@ -908,47 +909,47 @@ export default function Clientes() {
 
             {/* Plano */}
             <div>
-              <p style={{ color: "#3b82f6", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>📦 Plano</p>
+              <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>Plano</p>
               <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
                 {[
-                  { key: "basico", label: "Básico", color: "#16a34a", usuarios: 5, conexoes: 1, preco: "R$ 444,27" },
-                  { key: "intermediario", label: "Intermediário", color: "#3b82f6", usuarios: 15, conexoes: 3, preco: "R$ 744,27" },
-                  { key: "ultra", label: "Ultra", color: "#8b5cf6", usuarios: 50, conexoes: 10, preco: "R$ 1.044,27" },
+                  { key: "basico", label: "Básico", color: "#059669", usuarios: 5, conexoes: 1, preco: "R$ 444,27" },
+                  { key: "intermediario", label: "Intermediário", color: "#059669", usuarios: 15, conexoes: 3, preco: "R$ 744,27" },
+                  { key: "ultra", label: "Ultra", color: "#059669", usuarios: 50, conexoes: 10, preco: "R$ 1.044,27" },
                 ].map(p => {
                   const ativo = formCadastro.plano === p.key;
                   return (
                     <button key={p.key} onClick={() => aplicarPresetPlano(p.key)}
                       style={{
                         flex: 1,
-                        background: ativo ? `${p.color}10` : "#f9fafb",
-                        border: `2px solid ${ativo ? p.color : "#e5e7eb"}`,
+                        background: ativo ? `${p.color}10` : "#F7FAF9",
+                        border: `2px solid ${ativo ? p.color : "#E6ECEA"}`,
                         borderRadius: 12, padding: "14px 10px",
                         cursor: "pointer", textAlign: "center",
                         transition: "all 0.15s",
                         boxShadow: ativo ? `0 4px 12px ${p.color}25` : "none",
                       }}>
-                      <p style={{ color: ativo ? p.color : "#1f2937", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>{p.label}</p>
-                      <p style={{ color: ativo ? p.color : "#374151", fontSize: 12, margin: "0 0 4px", fontWeight: 700 }}>{p.preco}</p>
-                      <p style={{ color: "#6b7280", fontSize: 10, margin: 0 }}>{p.usuarios} usuários · {p.conexoes} conexões</p>
+                      <p style={{ color: ativo ? p.color : "#0F172A", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>{p.label}</p>
+                      <p style={{ color: ativo ? p.color : "#334155", fontSize: 12, margin: "0 0 4px", fontWeight: 700 }}>{p.preco}</p>
+                      <p style={{ color: "#64748B", fontSize: 10, margin: 0 }}>{p.usuarios} usuários · {p.conexoes} conexões</p>
                     </button>
                   );
                 })}
               </div>
-              <p style={{ color: "#9ca3af", fontSize: 10, margin: "10px 0 0", fontStyle: "italic" }}>
-                💡 Ao selecionar o plano, os limites e módulos abaixo são preenchidos automaticamente. Você pode ajustar individualmente.
+              <p style={{ color: "#94A3B8", fontSize: 10, margin: "10px 0 0", fontStyle: "italic" }}>
+                Ao selecionar o plano, os limites e módulos abaixo são preenchidos automaticamente. Você pode ajustar individualmente.
               </p>
             </div>
 
             {/* 🆕 SEÇÃO COBRANÇA */}
             <ConfiguracaoTesteCliente cadastroId={cadastroSelecionado?.id} value={testeCliente} onChange={setTesteCliente} />
             {testeCliente?.modo !== "teste" && <div style={{ background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)", border: "1px solid #fcd34d", borderRadius: 12, padding: 18 }}>
-              <p style={{ color: "#92400e", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 4px" }}>💰 Cobrança Automática</p>
+              <p style={{ color: "#92400e", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 4px" }}>Cobrança Automática</p>
               <p style={{ color: "#78350f", fontSize: 11, margin: "0 0 14px", lineHeight: 1.4 }}>
                 Pré-pago. Cliente paga antes de usar. 2 dias antes do venc o sistema começa a mostrar popup; 2 dias após vence, bloqueia.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={labelStyle}>📅 Dia do vencimento</label>
+                  <label style={labelStyle}>Dia do vencimento</label>
                   <select value={formCadastro.dia_vencimento || ""} onChange={e => {
                     const dia = e.target.value ? parseInt(e.target.value) : null;
                     setFormCadastro(prev => ({
@@ -965,7 +966,7 @@ export default function Clientes() {
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>💵 Valor mensal (R$)</label>
+                  <label style={labelStyle}>Valor mensal (R$)</label>
                   <input type="text" placeholder="999,90" value={formCadastro.valor_mensalidade != null ? String(formCadastro.valor_mensalidade).replace(".", ",") : ""}
                     onChange={e => {
                       const v = e.target.value.replace(/[^0-9,.]/g, "").replace(",", ".");
@@ -975,7 +976,7 @@ export default function Clientes() {
                   <p style={{ color: "#78350f", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>Permite valor diferente por cliente (pra descontos)</p>
                 </div>
                 <div>
-                  <label style={labelStyle}>📆 Próximo vencimento</label>
+                  <label style={labelStyle}>Próximo vencimento</label>
                   <input type="date" value={formCadastro.proximo_vencimento || ""}
                     onChange={e => setFormCadastro({ ...formCadastro, proximo_vencimento: e.target.value || null })}
                     style={inputSm} />
@@ -990,9 +991,9 @@ export default function Clientes() {
               const ehSuspenso = cadastroSelecionado.status_pagamento === "suspenso";
               const temConfianca = !!cadastroSelecionado.bloqueio_postergado_ate;
               return (
-                <div style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)", border: "1px solid #ddd6fe", borderRadius: 12, padding: 18 }}>
-                  <p style={{ color: "#6d28d9", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 4px" }}>⚙️ Controle de Pagamento</p>
-                  <p style={{ color: "#5b21b6", fontSize: 11, margin: "0 0 14px", lineHeight: 1.4 }}>
+                <div style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)", border: "1px solid #A7F3D0", borderRadius: 12, padding: 18 }}>
+                  <p style={{ color: "#065F46", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 4px" }}>Controle de Pagamento</p>
+                  <p style={{ color: "#065F46", fontSize: 11, margin: "0 0 14px", lineHeight: 1.4 }}>
                     Ações rápidas pra cobrar, bloquear ou dar tolerância ao cliente.
                   </p>
 
@@ -1000,19 +1001,19 @@ export default function Clientes() {
                   <div style={{ background: "white", borderRadius: 10, padding: 12, marginBottom: 14, border: `1px solid ${st.borda}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                       <div>
-                        <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Status atual</p>
-                        <p style={{ color: st.cor, fontSize: 14, fontWeight: 800, margin: "2px 0 0" }}>{st.icone} {st.label}</p>
+                        <p style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Status atual</p>
+                        <p style={{ color: st.cor, fontSize: 14, fontWeight: 800, margin: "2px 0 0" }}>{<IconeEmoji e={st.icone} />} {st.label}</p>
                       </div>
                       {temConfianca && (
                         <button onClick={removerConfianca}
                           style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
-                          ✕ Remover postergação
+                          Remover postergação
                         </button>
                       )}
                     </div>
                     {temConfianca && (
-                      <p style={{ color: "#7c3aed", fontSize: 11, margin: "8px 0 0", fontStyle: "italic" }}>
-                        🤝 Cliente em confiança até <b>{formatarData(cadastroSelecionado.bloqueio_postergado_ate)}</b>. Bloqueio automático suspenso até lá.
+                      <p style={{ color: "#047857", fontSize: 11, margin: "8px 0 0", fontStyle: "italic" }}>
+                        Cliente em confiança até <b>{formatarData(cadastroSelecionado.bloqueio_postergado_ate)}</b>. Bloqueio automático suspenso até lá.
                       </p>
                     )}
                   </div>
@@ -1021,7 +1022,7 @@ export default function Clientes() {
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 8 }}>
                     {/* 💰 MARCAR PAGO */}
                     <button onClick={() => { abrirMarcarPago(cadastroSelecionado); setShowModalCliente(false); }}
-                      style={{ background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      style={{ background: "linear-gradient(135deg, #059669 0%, #10B981 100%)", color: "white", border: "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(5,150,105,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                       <span style={{ fontSize: 18 }}>💰</span>
                       <span>Marcar como Pago</span>
                     </button>
@@ -1029,7 +1030,7 @@ export default function Clientes() {
                     {/* 🔒 BLOQUEAR */}
                     {ehSuspenso ? (
                       <button onClick={() => liberarCliente(cadastroSelecionado)}
-                        style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                        style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                         <span style={{ fontSize: 18 }}>▶️</span>
                         <span>Liberar</span>
                       </button>
@@ -1043,7 +1044,7 @@ export default function Clientes() {
 
                     {/* 🤝 CONFIANÇA */}
                     <button onClick={() => setShowModalConfianca(true)}
-                      style={{ background: temConfianca ? "#f5f3ff" : "linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)", color: temConfianca ? "#7c3aed" : "white", border: temConfianca ? "1px solid #ddd6fe" : "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: temConfianca ? "none" : "0 4px 12px rgba(139,92,246,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      style={{ background: temConfianca ? "#ECFDF5" : "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: temConfianca ? "#047857" : "white", border: temConfianca ? "1px solid #A7F3D0" : "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: temConfianca ? "none" : "0 4px 12px rgba(5,150,105,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                       <span style={{ fontSize: 18 }}>🤝</span>
                       <span>{temConfianca ? "Alterar confiança" : "Desbloquear por X dias"}</span>
                     </button>
@@ -1054,19 +1055,19 @@ export default function Clientes() {
 
             {/* Limites Personalizados */}
             <div>
-              <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>⚙️ Limites Personalizados</p>
+              <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>Limites Personalizados</p>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
                 <div>
-                  <label style={labelStyle}>👥 Usuários Liberados</label>
+                  <label style={labelStyle}>Usuários Liberados</label>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {[1, 3, 5, 7, 10, 15, 20, 50].map(n => {
                       const ativo = formCadastro.usuarios_liberados === n;
                       return (
                         <button key={n} onClick={() => setFormCadastro({ ...formCadastro, usuarios_liberados: n })}
                           style={{
-                            background: ativo ? "#f59e0b" : "#f9fafb",
-                            color: ativo ? "white" : "#6b7280",
-                            border: `1px solid ${ativo ? "#f59e0b" : "#e5e7eb"}`,
+                            background: ativo ? "#f59e0b" : "#F7FAF9",
+                            color: ativo ? "white" : "#64748B",
+                            border: `1px solid ${ativo ? "#f59e0b" : "#E6ECEA"}`,
                             borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700,
                             boxShadow: ativo ? "0 2px 6px rgba(245,158,11,0.3)" : "none",
                           }}>{n}</button>
@@ -1075,18 +1076,18 @@ export default function Clientes() {
                   </div>
                 </div>
                 <div>
-                  <label style={labelStyle}>📱 Conexões Liberadas</label>
+                  <label style={labelStyle}>Conexões Liberadas</label>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {[1, 2, 3, 5, 10, 15, 20].map(n => {
                       const ativo = formCadastro.conexoes_liberadas === n;
                       return (
                         <button key={n} onClick={() => setFormCadastro({ ...formCadastro, conexoes_liberadas: n })}
                           style={{
-                            background: ativo ? "#3b82f6" : "#f9fafb",
-                            color: ativo ? "white" : "#6b7280",
-                            border: `1px solid ${ativo ? "#3b82f6" : "#e5e7eb"}`,
+                            background: ativo ? "#059669" : "#F7FAF9",
+                            color: ativo ? "white" : "#64748B",
+                            border: `1px solid ${ativo ? "#059669" : "#E6ECEA"}`,
                             borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700,
-                            boxShadow: ativo ? "0 2px 6px rgba(59,130,246,0.3)" : "none",
+                            boxShadow: ativo ? "0 2px 6px rgba(5,150,105,0.3)" : "none",
                           }}>{n}</button>
                       );
                     })}
@@ -1097,38 +1098,38 @@ export default function Clientes() {
 
             {/* Tipos de Conexão permitidos */}
             <div>
-              <p style={{ color: "#ec4899", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>🔌 Tipos de Conexão Permitidos</p>
+              <p style={{ color: "#ec4899", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>Tipos de Conexão Permitidos</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Toggle value={!!formCadastro.permite_webjs} onChange={() => setFormCadastro({ ...formCadastro, permite_webjs: !formCadastro.permite_webjs })} label="📱 WhatsApp Web (QR Code)" desc="Conexão via QR Code — gratuita" color="#16a34a" />
-                <Toggle value={!!formCadastro.permite_waba} onChange={() => setFormCadastro({ ...formCadastro, permite_waba: !formCadastro.permite_waba })} label="🔗 API Meta (WABA)" desc="API oficial do WhatsApp Business" color="#3b82f6" />
-                <Toggle value={!!formCadastro.permite_instagram} onChange={() => setFormCadastro({ ...formCadastro, permite_instagram: !formCadastro.permite_instagram })} label="📸 Instagram Direct" desc="Mensagens do Instagram Direct" color="#ec4899" />
+                <Toggle value={!!formCadastro.permite_webjs} onChange={() => setFormCadastro({ ...formCadastro, permite_webjs: !formCadastro.permite_webjs })} label="WhatsApp Web (QR Code)" desc="Conexão via QR Code — gratuita" color="#059669" />
+                <Toggle value={!!formCadastro.permite_waba} onChange={() => setFormCadastro({ ...formCadastro, permite_waba: !formCadastro.permite_waba })} label="API Meta (WABA)" desc="API oficial do WhatsApp Business" color="#3b82f6" />
+                <Toggle value={!!formCadastro.permite_instagram} onChange={() => setFormCadastro({ ...formCadastro, permite_instagram: !formCadastro.permite_instagram })} label="Instagram Direct" desc="Mensagens do Instagram Direct" color="#ec4899" />
               </div>
             </div>
 
             {/* MÓDULOS LIBERADOS */}
             <div>
-              <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 6px" }}>🎁 Módulos Liberados</p>
-              <p style={{ color: "#9ca3af", fontSize: 11, margin: "0 0 12px", fontStyle: "italic" }}>
+              <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 6px" }}>Módulos Liberados</p>
+              <p style={{ color: "#94A3B8", fontSize: 11, margin: "0 0 12px", fontStyle: "italic" }}>
                 Controle quais módulos o cliente pode acessar. Módulos não liberados aparecem no menu mas mostram tela de upsell ao clicar.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
-                <Toggle value={!!formCadastro.modulo_roleta} onChange={() => setFormCadastro({ ...formCadastro, modulo_roleta: !formCadastro.modulo_roleta })} label="🎯 Roleta de Distribuição" desc="Intermediário, Ultra" color="#3b82f6" />
-                <Toggle value={!!formCadastro.modulo_disparos_web} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_web: !formCadastro.modulo_disparos_web })} label="📤 Disparos Web" desc="Intermediário, Ultra" color="#3b82f6" />
+                <Toggle value={!!formCadastro.modulo_roleta} onChange={() => setFormCadastro({ ...formCadastro, modulo_roleta: !formCadastro.modulo_roleta })} label="Roleta de Distribuição" desc="Intermediário, Ultra" color="#3b82f6" />
+                <Toggle value={!!formCadastro.modulo_disparos_web} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_web: !formCadastro.modulo_disparos_web })} label="Disparos Web" desc="Intermediário, Ultra" color="#3b82f6" />
                 <Toggle value={!!formCadastro.modulo_validacao_numeros} onChange={() => setFormCadastro({ ...formCadastro, modulo_validacao_numeros: !formCadastro.modulo_validacao_numeros })} label={"\u2705 Valida\u00e7\u00e3o de n\u00fameros"} desc={"Higieniza\u00e7\u00e3o de listas com canal exclusivo"} color="#0891b2" />
-                <Toggle value={!!formCadastro.modulo_revisional} onChange={() => setFormCadastro({ ...formCadastro, modulo_revisional: !formCadastro.modulo_revisional })} label="⚖️ Revisional" desc="Simulação de juros e propostas com link" color="#059669" />
-                <Toggle value={!!formCadastro.modulo_contratos_assinaturas} onChange={() => setFormCadastro({ ...formCadastro, modulo_contratos_assinaturas: !formCadastro.modulo_contratos_assinaturas })} label="📄 Contratos e Assinaturas" desc="Planos Essencial, Profissional e Empresarial" color="#155eef" />
+                <Toggle value={!!formCadastro.modulo_revisional} onChange={() => setFormCadastro({ ...formCadastro, modulo_revisional: !formCadastro.modulo_revisional })} label="Revisional" desc="Simulação de juros e propostas com link" color="#059669" />
+                <Toggle value={!!formCadastro.modulo_contratos_assinaturas} onChange={() => setFormCadastro({ ...formCadastro, modulo_contratos_assinaturas: !formCadastro.modulo_contratos_assinaturas })} label="Contratos e Assinaturas" desc="Planos Essencial, Profissional e Empresarial" color="#155eef" />
                 {formCadastro.modulo_contratos_assinaturas && (() => {
                   const chave = (formCadastro.modulo_contratos_plano || "essencial") as PlanoContratos;
                   const planoContrato = CONTRATOS_PLANOS[chave];
                   const comCrm = formCadastro.modulo_contratos_com_crm !== false;
                   const preco = comCrm ? planoContrato.comCrm : planoContrato.semCrm;
-                  return <div style={{ gridColumn: "1 / -1", border: "1px solid #bfdbfe", background: "#eff6ff", borderRadius: 12, padding: 14, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr auto", gap: 12, alignItems: "end" }}>
-                    <label style={{ display: "grid", gap: 6, color: "#1e3a8a", fontSize: 11, fontWeight: 800 }}>PLANO DE CONTRATOS
+                  return <div style={{ gridColumn: "1 / -1", border: "1px solid #A7F3D0", background: "#ECFDF5", borderRadius: 12, padding: 14, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr auto", gap: 12, alignItems: "end" }}>
+                    <label style={{ display: "grid", gap: 6, color: "#065F46", fontSize: 11, fontWeight: 800 }}>PLANO DE CONTRATOS
                       <select value={chave} onChange={e => setFormCadastro({ ...formCadastro, modulo_contratos_plano: e.target.value as PlanoContratos })} style={inputStyle}>
                         {Object.entries(CONTRATOS_PLANOS).map(([id, item]) => <option key={id} value={id}>{item.nome} — {item.limite}</option>)}
                       </select>
                     </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 9, minHeight: 42, color: "#1e3a8a", fontSize: 12, fontWeight: 750 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 9, minHeight: 42, color: "#065F46", fontSize: 12, fontWeight: 750 }}>
                       <input type="checkbox" checked={comCrm} onChange={e => setFormCadastro({ ...formCadastro, modulo_contratos_com_crm: e.target.checked })}/>
                       Cliente possui CRM Wolf contratado
                     </label>
@@ -1136,24 +1137,24 @@ export default function Clientes() {
                   </div>;
                 })()}
 
-                <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="📊 Central Ads" desc="Central de campanhas e resultados de mídia paga" color="#7e22ce" />
-                <Toggle value={!!formCadastro.modulo_disparos_api} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_api: !formCadastro.modulo_disparos_api })} label="📨 Disparos API" desc="Apenas Ultra" color="#8b5cf6" />
-                <Toggle value={!!formCadastro.modulo_voip} onChange={() => setFormCadastro({ ...formCadastro, modulo_voip: !formCadastro.modulo_voip })} label="📞 Ligações VOIP" desc="Apenas Ultra" color="#8b5cf6" />
-                <Toggle value={!!formCadastro.modulo_api_integracao} onChange={() => setFormCadastro({ ...formCadastro, modulo_api_integracao: !formCadastro.modulo_api_integracao })} label="🔌 API de Integração" desc="Intermediário, Ultra" color="#3b82f6" />
-                <Toggle value={!!formCadastro.modulo_instagram} onChange={() => setFormCadastro({ ...formCadastro, modulo_instagram: !formCadastro.modulo_instagram })} label="📸 Instagram Direct (Módulo)" desc="Apenas Ultra" color="#ec4899" />
-                <Toggle value={!!formCadastro.modulo_equipes} onChange={() => setFormCadastro({ ...formCadastro, modulo_equipes: !formCadastro.modulo_equipes })} label="👥 Equipes Multi-time" desc="Intermediário, Ultra" color="#a855f7" />
-                <Toggle value={!!formCadastro.modulo_funil_avancado} onChange={() => setFormCadastro({ ...formCadastro, modulo_funil_avancado: !formCadastro.modulo_funil_avancado })} label="📊 Funil Avançado" desc="Intermediário, Ultra" color="#3b82f6" />
-                <Toggle value={!!formCadastro.modulo_cobranca} onChange={() => setFormCadastro({ ...formCadastro, modulo_cobranca: !formCadastro.modulo_cobranca })} label="💰 Cobrança Automatizada" desc="Apenas Ultra" color="#dc2626" />
-                <Toggle value={!!formCadastro.modulo_rh} onChange={() => setFormCadastro({ ...formCadastro, modulo_rh: !formCadastro.modulo_rh })} label="🧑‍💼 RH — Recursos Humanos" desc="Gestão de pessoas, folha, férias" color="#4f46e5" />
-                <Toggle value={!!formCadastro.modulo_bater_ponto} onChange={() => setFormCadastro({ ...formCadastro, modulo_bater_ponto: !formCadastro.modulo_bater_ponto })} label="🕐 Bater Ponto" desc="Ponto com selfie e GPS" color="#0891b2" />
-                <Toggle value={!!formCadastro.modulo_financeiro} onChange={toggleFinanceiroMaster} label="💰 Financeiro" desc="Caixa, contas, DRE, notas, conciliação" color="#d97706" />
+                <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="Central Ads" desc="Central de campanhas e resultados de mídia paga" color="#7e22ce" />
+                <Toggle value={!!formCadastro.modulo_disparos_api} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_api: !formCadastro.modulo_disparos_api })} label="Disparos API" desc="Apenas Ultra" color="#8b5cf6" />
+                <Toggle value={!!formCadastro.modulo_voip} onChange={() => setFormCadastro({ ...formCadastro, modulo_voip: !formCadastro.modulo_voip })} label="Ligações VOIP" desc="Apenas Ultra" color="#8b5cf6" />
+                <Toggle value={!!formCadastro.modulo_api_integracao} onChange={() => setFormCadastro({ ...formCadastro, modulo_api_integracao: !formCadastro.modulo_api_integracao })} label="API de Integração" desc="Intermediário, Ultra" color="#3b82f6" />
+                <Toggle value={!!formCadastro.modulo_instagram} onChange={() => setFormCadastro({ ...formCadastro, modulo_instagram: !formCadastro.modulo_instagram })} label="Instagram Direct (Módulo)" desc="Apenas Ultra" color="#ec4899" />
+                <Toggle value={!!formCadastro.modulo_equipes} onChange={() => setFormCadastro({ ...formCadastro, modulo_equipes: !formCadastro.modulo_equipes })} label="Equipes Multi-time" desc="Intermediário, Ultra" color="#a855f7" />
+                <Toggle value={!!formCadastro.modulo_funil_avancado} onChange={() => setFormCadastro({ ...formCadastro, modulo_funil_avancado: !formCadastro.modulo_funil_avancado })} label="Funil Avançado" desc="Intermediário, Ultra" color="#3b82f6" />
+                <Toggle value={!!formCadastro.modulo_cobranca} onChange={() => setFormCadastro({ ...formCadastro, modulo_cobranca: !formCadastro.modulo_cobranca })} label="Cobrança Automatizada" desc="Apenas Ultra" color="#dc2626" />
+                <Toggle value={!!formCadastro.modulo_rh} onChange={() => setFormCadastro({ ...formCadastro, modulo_rh: !formCadastro.modulo_rh })} label="RH — Recursos Humanos" desc="Gestão de pessoas, folha, férias" color="#4f46e5" />
+                <Toggle value={!!formCadastro.modulo_bater_ponto} onChange={() => setFormCadastro({ ...formCadastro, modulo_bater_ponto: !formCadastro.modulo_bater_ponto })} label="Bater Ponto" desc="Ponto com selfie e GPS" color="#0891b2" />
+                <Toggle value={!!formCadastro.modulo_financeiro} onChange={toggleFinanceiroMaster} label="Financeiro" desc="Caixa, contas, DRE, notas, conciliação" color="#d97706" />
                 {formCadastro.modulo_financeiro && (
                   <div style={{ border: "1px solid #fde68a", background: "#fffbeb", borderRadius: 10, padding: 14 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: 0.5 }}>Telas liberadas no Financeiro</span>
                       <div style={{ display: "flex", gap: 6 }}>
                         <button type="button" onClick={() => setTodasFin(true)} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d97706", background: "#fff", color: "#b45309", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Marcar todas</button>
-                        <button type="button" onClick={() => setTodasFin(false)} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", color: "#9ca3af", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Limpar</button>
+                        <button type="button" onClick={() => setTodasFin(false)} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #E6ECEA", background: "#fff", color: "#94A3B8", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Limpar</button>
                       </div>
                     </div>
                     {FIN_GRUPOS.map((g) => (
@@ -1163,8 +1164,8 @@ export default function Clientes() {
                           {g.itens.map((it) => {
                             const on = !!(formCadastro.financeiro_opcoes || {})[it.key];
                             return (
-                              <button key={it.key} type="button" onClick={() => toggleFinOpcao(it.key)} style={{ padding: "5px 10px", borderRadius: 8, border: on ? "1px solid #d97706" : "1px solid #e5e7eb", background: on ? "#fef3c7" : "#fff", color: on ? "#92400e" : "#9ca3af", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
-                                {it.icone} {it.label}{on ? " ✓" : ""}
+                              <button key={it.key} type="button" onClick={() => toggleFinOpcao(it.key)} style={{ padding: "5px 10px", borderRadius: 8, border: on ? "1px solid #d97706" : "1px solid #E6ECEA", background: on ? "#fef3c7" : "#fff", color: on ? "#92400e" : "#94A3B8", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+                                {<IconeEmoji e={it.icone} />} {it.label}{on ? " ✓" : ""}
                               </button>
                             );
                           })}
@@ -1176,19 +1177,19 @@ export default function Clientes() {
               </div>
             </div>
 
-            <Toggle value={!!formCadastro.autorizado} onChange={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} label="✅ Autorizado — Permitir acesso ao sistema" color="#16a34a" />
+            <Toggle value={!!formCadastro.autorizado} onChange={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} label="Autorizado — Permitir acesso ao sistema" color="#059669" />
 
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
               <button onClick={() => setShowModalCliente(false)}
-                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={salvarCadastro} disabled={salvandoCliente || !testeCliente}
                 style={{
-                  background: salvandoCliente ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                  background: salvandoCliente ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                  boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 }}>
                 {salvandoCliente ? "Salvando..." : cadastroSelecionado ? "💾 Salvar" : "➕ Criar Cliente"}
               </button>
@@ -1204,64 +1205,64 @@ export default function Clientes() {
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 500, display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ color: "#16a34a", fontSize: 18, fontWeight: 700, margin: 0 }}>💰 Marcar como Pago</h2>
+              <h2 style={{ color: "#059669", fontSize: 18, fontWeight: 700, margin: 0 }}>Marcar como Pago</h2>
               <button onClick={() => setShowModalPagamento(false)}
-                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
             </div>
-            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12 }}>
-              <p style={{ color: "#15803d", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
-              <p style={{ color: "#16a34a", fontSize: 11, margin: "2px 0 0" }}>{cadastroSelecionado.email}</p>
+            <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "#047857", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
+              <p style={{ color: "#059669", fontSize: 11, margin: "2px 0 0" }}>{cadastroSelecionado.email}</p>
               {cadastroSelecionado.proximo_vencimento && (
-                <p style={{ color: "#15803d", fontSize: 11, margin: "6px 0 0" }}>
+                <p style={{ color: "#047857", fontSize: 11, margin: "6px 0 0" }}>
                   Vencimento atual: <b>{formatarData(cadastroSelecionado.proximo_vencimento)}</b>
                   {" → "}próximo: <b>{formatarData(avancarUmMes(cadastroSelecionado.proximo_vencimento))}</b>
                 </p>
               )}
             </div>
             <div>
-              <label style={labelStyle}>💵 Valor pago *</label>
+              <label style={labelStyle}>Valor pago *</label>
               <input type="text" placeholder="999,90" value={formPagamento.valor}
                 onChange={e => setFormPagamento({ ...formPagamento, valor: e.target.value.replace(/[^0-9,.]/g, "") })}
                 style={inputStyle} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <label style={labelStyle}>📅 Data pagamento *</label>
+                <label style={labelStyle}>Data pagamento *</label>
                 <input type="date" value={formPagamento.data_pagamento}
                   onChange={e => setFormPagamento({ ...formPagamento, data_pagamento: e.target.value })}
                   style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>💳 Forma</label>
+                <label style={labelStyle}>Forma</label>
                 <select value={formPagamento.forma_pagamento}
                   onChange={e => setFormPagamento({ ...formPagamento, forma_pagamento: e.target.value as any })}
                   style={inputStyle}>
-                  <option value="pix">💸 PIX</option>
-                  <option value="boleto">🧾 Boleto</option>
-                  <option value="cartao">💳 Cartão</option>
-                  <option value="dinheiro">💵 Dinheiro</option>
-                  <option value="transferencia">🏦 Transferência</option>
-                  <option value="outro">📋 Outro</option>
+                  <option value="pix">PIX</option>
+                  <option value="boleto">Boleto</option>
+                  <option value="cartao">Cartão</option>
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="transferencia">Transferência</option>
+                  <option value="outro">Outro</option>
                 </select>
               </div>
             </div>
             <div>
-              <label style={labelStyle}>📝 Observação (opcional)</label>
+              <label style={labelStyle}>Observação (opcional)</label>
               <input placeholder="Ex: Desconto promocional, pago via terceiro, etc" value={formPagamento.observacao}
                 onChange={e => setFormPagamento({ ...formPagamento, observacao: e.target.value })}
                 style={inputStyle} />
             </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 14 }}>
               <button onClick={() => setShowModalPagamento(false)}
-                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={salvarPagamento} disabled={salvandoPagamento}
                 style={{
-                  background: salvandoPagamento ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                  background: salvandoPagamento ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                  boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 }}>{salvandoPagamento ? "Registrando..." : "✅ Registrar Pagamento"}</button>
             </div>
           </div>
@@ -1275,13 +1276,13 @@ export default function Clientes() {
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 500, display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ color: "#7c3aed", fontSize: 18, fontWeight: 700, margin: 0 }}>🤝 Desbloqueio em Confiança</h2>
+              <h2 style={{ color: "#047857", fontSize: 18, fontWeight: 700, margin: 0 }}>Desbloqueio em Confiança</h2>
               <button onClick={() => setShowModalConfianca(false)}
-                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}>✕</button>
             </div>
-            <div style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: 10, padding: 12 }}>
-              <p style={{ color: "#5b21b6", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
-              <p style={{ color: "#7c3aed", fontSize: 11, margin: "2px 0 0" }}>{cadastroSelecionado.email}</p>
+            <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "#065F46", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
+              <p style={{ color: "#047857", fontSize: 11, margin: "2px 0 0" }}>{cadastroSelecionado.email}</p>
             </div>
             <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 12 }}>
               <p style={{ color: "#92400e", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
@@ -1290,17 +1291,17 @@ export default function Clientes() {
               </p>
             </div>
             <div>
-              <label style={labelStyle}>📅 Quantos dias de confiança?</label>
+              <label style={labelStyle}>Quantos dias de confiança?</label>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
                 {[3, 5, 7, 10, 15, 30].map(d => (
                   <button key={d} onClick={() => setDiasConfianca(d)}
                     style={{
                       flex: 1, minWidth: 60,
-                      background: diasConfianca === d ? "linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)" : "#f9fafb",
-                      color: diasConfianca === d ? "white" : "#6b7280",
-                      border: diasConfianca === d ? "none" : "1px solid #e5e7eb",
+                      background: diasConfianca === d ? "linear-gradient(135deg, #10B981 0%, #059669 100%)" : "#F7FAF9",
+                      color: diasConfianca === d ? "white" : "#64748B",
+                      border: diasConfianca === d ? "none" : "1px solid #E6ECEA",
                       borderRadius: 10, padding: "8px 0", fontSize: 13, cursor: "pointer", fontWeight: 700,
-                      boxShadow: diasConfianca === d ? "0 4px 12px rgba(139,92,246,0.3)" : "none",
+                      boxShadow: diasConfianca === d ? "0 4px 12px rgba(5,150,105,0.3)" : "none",
                     }}>{d}d</button>
                 ))}
               </div>
@@ -1309,24 +1310,24 @@ export default function Clientes() {
                 placeholder="Ou digite outro valor (1-90)"
                 style={inputStyle} />
             </div>
-            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12 }}>
-              <p style={{ color: "#15803d", fontSize: 11, margin: 0 }}>
-                🗓️ Bloqueio automático volta em: <b>{new Date(Date.now() + diasConfianca * 86400000).toLocaleDateString("pt-BR")}</b>
+            <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "#047857", fontSize: 11, margin: 0 }}>
+                Bloqueio automático volta em: <b>{new Date(Date.now() + diasConfianca * 86400000).toLocaleDateString("pt-BR")}</b>
               </p>
             </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 14 }}>
               <button onClick={() => setShowModalConfianca(false)}
-                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={async () => { await darConfianca(diasConfianca); setShowModalConfianca(false); }}
                 disabled={diasConfianca < 1 || diasConfianca > 90}
                 style={{
-                  background: (diasConfianca < 1 || diasConfianca > 90) ? "#a78bfa" : "linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)",
+                  background: (diasConfianca < 1 || diasConfianca > 90) ? "#34D399" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(139,92,246,0.3)",
-                }}>🤝 Dar {diasConfianca}d de confiança</button>
+                  boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+                }}>Dar {diasConfianca}d de confiança</button>
             </div>
           </div>
         </div>
@@ -1345,33 +1346,33 @@ export default function Clientes() {
                 <div style={{
                   width: 56, height: 56, borderRadius: 16,
                   background: cadastroSelecionado.autorizado
-                    ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
+                    ? "linear-gradient(135deg, #059669 0%, #10B981 100%)"
                     : "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
                   display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26,
-                  boxShadow: cadastroSelecionado.autorizado ? "0 8px 20px rgba(22,163,74,0.25)" : "0 8px 20px rgba(245,158,11,0.25)",
+                  boxShadow: cadastroSelecionado.autorizado ? "0 8px 20px rgba(5,150,105,0.25)" : "0 8px 20px rgba(245,158,11,0.25)",
                 }}>
                   <span style={{ filter: "saturate(0) brightness(2)" }}>🏢</span>
                 </div>
                 <div>
-                  <h2 style={{ color: "#1f2937", fontSize: 20, fontWeight: 700, margin: 0 }}>{cadastroSelecionado.nome}</h2>
-                  <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 6px 0" }}>{cadastroSelecionado.empresa || "Sem empresa"}{cadastroSelecionado.username && ` · @${cadastroSelecionado.username}`}</p>
+                  <h2 style={{ color: "#0F172A", fontSize: 20, fontWeight: 700, margin: 0 }}>{cadastroSelecionado.nome}</h2>
+                  <p style={{ color: "#64748B", fontSize: 13, margin: "4px 0 6px 0" }}>{cadastroSelecionado.empresa || "Sem empresa"}{cadastroSelecionado.username && ` · @${cadastroSelecionado.username}`}</p>
                   <span style={{
-                    background: cadastroSelecionado.autorizado ? "#f0fdf4" : "#fffbeb",
-                    color: cadastroSelecionado.autorizado ? "#16a34a" : "#f59e0b",
-                    border: `1px solid ${cadastroSelecionado.autorizado ? "#bbf7d0" : "#fde68a"}`,
+                    background: cadastroSelecionado.autorizado ? "#ECFDF5" : "#fffbeb",
+                    color: cadastroSelecionado.autorizado ? "#059669" : "#f59e0b",
+                    border: `1px solid ${cadastroSelecionado.autorizado ? "#A7F3D0" : "#fde68a"}`,
                     fontSize: 11, padding: "3px 12px", borderRadius: 20, fontWeight: 700,
                   }}>{cadastroSelecionado.autorizado ? "✅ Ativo" : "⏳ Pendente"}</span>
                 </div>
               </div>
               <button onClick={() => setShowModalDetalhe(false)}
-                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
               {[{ label: "Email", value: cadastroSelecionado.email, icon: "✉️" }, { label: "WhatsApp", value: cadastroSelecionado.whatsapp, icon: "📱" }, { label: "Plano", value: cadastroSelecionado.plano, icon: "📦" }, { label: "IA", value: cadastroSelecionado.ia, icon: "🤖" }].filter(i => i.value).map(info => (
-                <div key={info.label} style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12 }}>
-                  <p style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 4px 0" }}>{info.icon} {info.label}</p>
-                  <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: 0 }}>{info.value}</p>
+                <div key={info.label} style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 10, padding: 12 }}>
+                  <p style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 4px 0" }}>{<IconeEmoji e={info.icon} />} {info.label}</p>
+                  <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0 }}>{info.value}</p>
                 </div>
               ))}
             </div>
@@ -1379,59 +1380,59 @@ export default function Clientes() {
             {/* 🆕 CARD DE COBRANÇA */}
             <div style={{ background: stCobranca.bg, border: `1px solid ${stCobranca.borda}`, borderLeft: `4px solid ${stCobranca.cor}`, borderRadius: 12, padding: 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 10, flexWrap: "wrap" }}>
-                <p style={{ color: stCobranca.cor, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>💰 Cobrança</p>
+                <p style={{ color: stCobranca.cor, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Cobrança</p>
                 <span style={{ background: "white", color: stCobranca.cor, border: `1px solid ${stCobranca.borda}`, fontSize: 12, padding: "4px 12px", borderRadius: 10, fontWeight: 700 }}>
-                  {stCobranca.icone} {stCobranca.label}
+                  {<IconeEmoji e={stCobranca.icone} />} {stCobranca.label}
                 </span>
               </div>
 
               {cadastroSelecionado.dia_vencimento ? (
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
                   <div style={{ background: "white", border: `1px solid ${stCobranca.borda}`, borderRadius: 10, padding: 10, textAlign: "center" }}>
-                    <p style={{ color: "#6b7280", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>📅 Dia venc</p>
+                    <p style={{ color: "#64748B", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Dia venc</p>
                     <p style={{ color: stCobranca.cor, fontSize: 18, fontWeight: 800, margin: "2px 0 0" }}>{cadastroSelecionado.dia_vencimento}</p>
                   </div>
                   <div style={{ background: "white", border: `1px solid ${stCobranca.borda}`, borderRadius: 10, padding: 10, textAlign: "center" }}>
-                    <p style={{ color: "#6b7280", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>💵 Mensal</p>
+                    <p style={{ color: "#64748B", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Mensal</p>
                     <p style={{ color: stCobranca.cor, fontSize: 14, fontWeight: 800, margin: "2px 0 0" }}>{formatarReais(cadastroSelecionado.valor_mensalidade)}</p>
                   </div>
                   <div style={{ background: "white", border: `1px solid ${stCobranca.borda}`, borderRadius: 10, padding: 10, textAlign: "center", gridColumn: isMobile ? "span 2" : "auto" }}>
-                    <p style={{ color: "#6b7280", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>📆 Próximo</p>
+                    <p style={{ color: "#64748B", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Próximo</p>
                     <p style={{ color: stCobranca.cor, fontSize: 13, fontWeight: 800, margin: "2px 0 0" }}>{formatarData(cadastroSelecionado.proximo_vencimento)}</p>
                   </div>
                 </div>
               ) : (
-                <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 14px", fontStyle: "italic" }}>
+                <p style={{ color: "#64748B", fontSize: 12, margin: "0 0 14px", fontStyle: "italic" }}>
                   Cliente sem cobrança automática configurada. Edite pra definir dia e valor.
                 </p>
               )}
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => { abrirMarcarPago(cadastroSelecionado); setShowModalDetalhe(false); }}
-                  style={{ flex: 1, background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)", whiteSpace: "nowrap" }}>
-                  💰 Marcar como Pago
+                  style={{ flex: 1, background: "linear-gradient(135deg, #059669 0%, #10B981 100%)", color: "white", border: "none", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(5,150,105,0.3)", whiteSpace: "nowrap" }}>
+                  Marcar como Pago
                 </button>
                 {cadastroSelecionado.status_pagamento === "suspenso" ? (
                   <button onClick={() => liberarCliente(cadastroSelecionado)}
-                    style={{ flex: 1, background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
-                    ▶️ Liberar
+                    style={{ flex: 1, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                    Liberar
                   </button>
                 ) : (
                   <button onClick={() => suspenderCliente(cadastroSelecionado)}
                     style={{ flex: 1, background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
-                    ⏸️ Suspender
+                    Suspender
                   </button>
                 )}
               </div>
             </div>
 
             {/* 🆕 HISTÓRICO DE PAGAMENTOS */}
-            <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-              <p style={{ color: "#1f2937", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>📜 Histórico de Pagamentos</p>
+            <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16 }}>
+              <p style={{ color: "#0F172A", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>Histórico de Pagamentos</p>
               {carregandoPagamentos ? (
-                <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, fontStyle: "italic" }}>Carregando...</p>
+                <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontStyle: "italic" }}>Carregando...</p>
               ) : pagamentosHist.length === 0 ? (
-                <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, fontStyle: "italic" }}>
+                <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontStyle: "italic" }}>
                   Nenhum pagamento registrado ainda. Use o botão "Marcar como Pago" acima.
                 </p>
               ) : (
@@ -1440,22 +1441,22 @@ export default function Clientes() {
                     <thead>
                       <tr style={{ background: "#ffffff" }}>
                         {["Data", "Mês ref", "Valor", "Forma", "Obs"].map(h => (
-                          <th key={h} style={{ padding: "8px 10px", color: "#6b7280", fontSize: 10, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                          <th key={h} style={{ padding: "8px 10px", color: "#64748B", fontSize: 10, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {pagamentosHist.map(p => (
-                        <tr key={p.id} style={{ borderTop: "1px solid #f3f4f6", background: "#ffffff" }}>
-                          <td style={{ padding: "8px 10px", color: "#1f2937", fontWeight: 600 }}>{formatarData(p.data_pagamento)}</td>
-                          <td style={{ padding: "8px 10px", color: "#6b7280" }}>
+                        <tr key={p.id} style={{ borderTop: "1px solid #F1F5F4", background: "#ffffff" }}>
+                          <td style={{ padding: "8px 10px", color: "#0F172A", fontWeight: 600 }}>{formatarData(p.data_pagamento)}</td>
+                          <td style={{ padding: "8px 10px", color: "#64748B" }}>
                             {new Date(p.mes_referencia + "T00:00:00").toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
                           </td>
-                          <td style={{ padding: "8px 10px", color: "#16a34a", fontWeight: 700 }}>{formatarReais(Number(p.valor))}</td>
+                          <td style={{ padding: "8px 10px", color: "#059669", fontWeight: 700 }}>{formatarReais(Number(p.valor))}</td>
                           <td style={{ padding: "8px 10px" }}>
-                            <span style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", padding: "2px 8px", borderRadius: 8, fontSize: 10, fontWeight: 700 }}>{p.forma_pagamento}</span>
+                            <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 8px", borderRadius: 8, fontSize: 10, fontWeight: 700 }}>{p.forma_pagamento}</span>
                           </td>
-                          <td style={{ padding: "8px 10px", color: "#6b7280", fontSize: 11 }}>{p.observacao || "—"}</td>
+                          <td style={{ padding: "8px 10px", color: "#64748B", fontSize: 11 }}>{p.observacao || "—"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1464,22 +1465,22 @@ export default function Clientes() {
               )}
             </div>
 
-            <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>
-              <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>⚙️ Limites do Plano</p>
+            <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 18 }}>
+              <p style={{ color: "#f59e0b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 14px" }}>Limites do Plano</p>
               <div style={{ display: "flex", gap: 14 }}>
-                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, borderTop: "3px solid #f59e0b" }}>
+                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 14, borderTop: "3px solid #f59e0b" }}>
                   <p style={{ color: "#f59e0b", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{cadastroSelecionado.usuarios_liberados || 1}</p>
-                  <p style={{ color: "#6b7280", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>👥 Usuários</p>
+                  <p style={{ color: "#64748B", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>Usuários</p>
                 </div>
-                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, borderTop: "3px solid #3b82f6" }}>
-                  <p style={{ color: "#3b82f6", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{cadastroSelecionado.conexoes_liberadas || 1}</p>
-                  <p style={{ color: "#6b7280", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>📱 Conexões</p>
+                <div style={{ flex: 1, textAlign: "center", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 14, borderTop: "3px solid #059669" }}>
+                  <p style={{ color: "#059669", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{cadastroSelecionado.conexoes_liberadas || 1}</p>
+                  <p style={{ color: "#64748B", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>Conexões</p>
                 </div>
               </div>
             </div>
 
-            <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>
-              <p style={{ color: "#8b5cf6", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>🎁 Módulos Liberados</p>
+            <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 18 }}>
+              <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>Módulos Liberados</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_roleta} icone="🎯" label="Roleta" cor="#3b82f6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_revisional} icone="⚖️" label="Revisional" cor="#059669" />
@@ -1504,21 +1505,21 @@ export default function Clientes() {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {!cadastroSelecionado.autorizado
                 ? <button onClick={() => { autorizarCadastro(cadastroSelecionado); setShowModalDetalhe(false); }}
-                    style={{ flex: 1, background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)", color: "white", border: "none", borderRadius: 10, padding: "11px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(22,163,74,0.3)" }}>
-                    ✅ Autorizar Acesso
+                    style={{ flex: 1, background: "linear-gradient(135deg, #059669 0%, #10B981 100%)", color: "white", border: "none", borderRadius: 10, padding: "11px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(5,150,105,0.3)" }}>
+                    Autorizar Acesso
                   </button>
                 : <button onClick={() => { desautorizarCadastro(cadastroSelecionado); setShowModalDetalhe(false); }}
                     style={{ flex: 1, background: "#fffbeb", color: "#f59e0b", border: "1px solid #fde68a", borderRadius: 10, padding: "11px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
-                    🚫 Desautorizar
+                    Desautorizar
                   </button>
               }
               <button onClick={() => abrirEditar(cadastroSelecionado)}
-                style={{ flex: 1, background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 10, padding: "11px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
-                ✏️ Editar
+                style={{ flex: 1, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "11px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
+                Editar
               </button>
               <button onClick={() => excluirCadastro(cadastroSelecionado)}
                 style={{ flex: 1, background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "11px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
-                🗑️ Excluir
+                Excluir
               </button>
             </div>
           </div>
@@ -1530,27 +1531,27 @@ export default function Clientes() {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(139,92,246,0.25)",
+            fontSize: 24, boxShadow: "0 8px 20px rgba(5,150,105,0.25)",
             flexShrink: 0,
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>🏢</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Clientes Wolf System</h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0 0" }}>
-              <b style={{ color: "#16a34a" }}>{cadastros.filter(c => c.autorizado).length}</b> ativos · <b style={{ color: "#f59e0b" }}>{cadastros.filter(c => !c.autorizado).length}</b> pendentes · <b>{cadastros.length}</b> total
+            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Clientes Wolf System</h1>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0 0" }}>
+              <b style={{ color: "#059669" }}>{cadastros.filter(c => c.autorizado).length}</b> ativos · <b style={{ color: "#f59e0b" }}>{cadastros.filter(c => !c.autorizado).length}</b> pendentes · <b>{cadastros.length}</b> total
             </p>
           </div>
         </div>
         <button onClick={abrirNovo}
           style={{
-            background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+            background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
             whiteSpace: "nowrap",
-            boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+            boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
           }}>
           + Novo Cliente
         </button>
@@ -1559,8 +1560,8 @@ export default function Clientes() {
       {/* ═══ STATS (com 2 cards novos de cobrança) ═══ */}
       <div style={{ display: "flex", gap: isMobile ? 10 : 16, flexWrap: "wrap" }}>
         {[
-          { label: "Total", value: cadastros.length, color: "#8b5cf6", icon: "📊" },
-          { label: "Ativos", value: cadastros.filter(c => c.autorizado).length, color: "#16a34a", icon: "✅" },
+          { label: "Total", value: cadastros.length, color: "#059669", icon: "📊" },
+          { label: "Ativos", value: cadastros.filter(c => c.autorizado).length, color: "#059669", icon: "✅" },
           { label: "Pendentes", value: cadastros.filter(c => !c.autorizado).length, color: "#f59e0b", icon: "⏳" },
           { label: "Em Atraso", value: qtdAtrasados, color: "#dc2626", icon: "🔴" },
           { label: "Bloqueados", value: qtdBloqueados, color: "#7f1d1d", icon: "🔒" },
@@ -1577,9 +1578,9 @@ export default function Clientes() {
             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <div style={{ width: 28, height: 28, borderRadius: 8, background: `${card.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
-                {card.icon}
+                {<IconeEmoji e={card.icon} />}
               </div>
-              <p style={{ color: "#6b7280", fontSize: isMobile ? 10 : 11, margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>{card.label}</p>
+              <p style={{ color: "#64748B", fontSize: isMobile ? 10 : 11, margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>{card.label}</p>
             </div>
             <p style={{ color: card.color, fontSize: isMobile ? 26 : 32, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{card.value}</p>
           </div>
@@ -1588,25 +1589,25 @@ export default function Clientes() {
 
       {/* ═══ BUSCA E FILTROS (com 2 filtros novos) ═══ */}
       <div style={{ display: "flex", gap: 12, alignItems: isMobile ? "stretch" : "center", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
-        <input placeholder="🔍 Buscar por nome, email, empresa, WhatsApp..." value={buscaCliente} onChange={e => setBuscaCliente(e.target.value)}
+        <input placeholder="Buscar por nome, email, empresa, WhatsApp..." value={buscaCliente} onChange={e => setBuscaCliente(e.target.value)}
           style={{ ...inputStyle, maxWidth: isMobile ? "100%" : 400, padding: "9px 14px", fontSize: 13, borderRadius: 20 }} />
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {[
-            { key: "todos", label: "Todos", color: "#8b5cf6" },
-            { key: "ativos", label: "✅ Ativos", color: "#16a34a" },
-            { key: "pendentes", label: "⏳ Pendentes", color: "#f59e0b" },
-            { key: "atrasados", label: "🔴 Em Atraso", color: "#dc2626" },
-            { key: "bloqueados", label: "🔒 Bloqueados", color: "#7f1d1d" },
+            { key: "todos", label: "Todos", color: "#059669" },
+            { key: "ativos", label: "Ativos", color: "#059669" },
+            { key: "pendentes", label: "Pendentes", color: "#f59e0b" },
+            { key: "atrasados", label: "Em Atraso", color: "#dc2626" },
+            { key: "bloqueados", label: "Bloqueados", color: "#7f1d1d" },
           ].map(f => {
             const ativo = filtroStatus === f.key;
             return (
               <button key={f.key} onClick={() => setFiltroStatus(f.key)}
                 style={{
                   flex: isMobile ? 1 : "0 0 auto", padding: "8px 18px",
-                  borderRadius: 10, border: `1px solid ${ativo ? `${f.color}50` : "#e5e7eb"}`,
+                  borderRadius: 10, border: `1px solid ${ativo ? `${f.color}50` : "#E6ECEA"}`,
                   cursor: "pointer", fontSize: 12, fontWeight: 700,
                   background: ativo ? `${f.color}15` : "#ffffff",
-                  color: ativo ? f.color : "#6b7280",
+                  color: ativo ? f.color : "#64748B",
                   boxShadow: ativo ? `0 2px 8px ${f.color}25` : "none",
                   transition: "all 0.15s",
                 }}>{f.label}</button>
@@ -1616,24 +1617,24 @@ export default function Clientes() {
       </div>
 
       {/* ═══ LISTA / TABELA (com coluna 💰 Cobrança) ═══ */}
-      {loadingCadastros ? <p style={{ color: "#6b7280" }}>Carregando...</p> : cadastrosFiltrados.length === 0 ? (
+      {loadingCadastros ? <p style={{ color: "#64748B" }}>Carregando...</p> : cadastrosFiltrados.length === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
           <div style={{
             width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(139,92,246,0.25)",
+            boxShadow: "0 12px 24px rgba(5,150,105,0.25)",
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>🏢</span>
           </div>
-          <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 8px 0" }}>Nenhum cliente encontrado</h3>
+          <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 8px 0" }}>Nenhum cliente encontrado</h3>
           <button onClick={abrirNovo}
             style={{
-              background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+              background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
               color: "white", border: "none", borderRadius: 12,
               padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, marginTop: 12,
-              boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+              boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
             }}>
             + Novo Cliente
           </button>
@@ -1642,9 +1643,9 @@ export default function Clientes() {
         <div style={{ ...cardStyle, overflow: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1300 }}>
             <thead>
-              <tr style={{ background: "#f9fafb" }}>
+              <tr style={{ background: "#F7FAF9" }}>
                 {["", "Cliente", "Plano", "👥", "📱", "Conexões", "🎁 Módulos", "💰 Cobrança", "Status", "Ações"].map((h, i) => (
-                  <th key={i} style={{ padding: "13px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                  <th key={i} style={{ padding: "13px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1661,29 +1662,29 @@ export default function Clientes() {
                   <>
                     <tr key={c.id}
                       style={{
-                        borderTop: "1px solid #f3f4f6",
-                        background: expandida ? "#f0fdf4" : (i % 2 === 0 ? "#ffffff" : "#fafbfc"),
+                        borderTop: "1px solid #F1F5F4",
+                        background: expandida ? "#ECFDF5" : (i % 2 === 0 ? "#ffffff" : "#F7FAF9"),
                         transition: "background 0.1s",
                       }}>
                       <td style={{ padding: "14px 10px 14px 16px", width: 30 }}>
                         <button onClick={() => toggleExpandir(username)} disabled={!username}
-                          style={{ background: "none", border: "none", color: expandida ? "#16a34a" : "#9ca3af", cursor: username ? "pointer" : "not-allowed", fontSize: 14, opacity: username ? 1 : 0.3, fontWeight: 700 }}
+                          style={{ background: "none", border: "none", color: expandida ? "#059669" : "#94A3B8", cursor: username ? "pointer" : "not-allowed", fontSize: 14, opacity: username ? 1 : 0.3, fontWeight: 700 }}
                           title={username ? (expandida ? "Ocultar sub-usuários" : "Ver sub-usuários") : "Cliente sem workspace"}>
                           {expandida ? "▼" : "▶"}
                         </button>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div>
-                          <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{c.nome}</p>
-                          <p style={{ color: "#6b7280", fontSize: 11, margin: "3px 0 0" }}>{c.email}</p>
-                          {c.empresa && <p style={{ color: "#9ca3af", fontSize: 10, margin: "2px 0 0" }}>{c.empresa}{c.username && ` · @${c.username}`}</p>}
+                          <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{c.nome}</p>
+                          <p style={{ color: "#64748B", fontSize: 11, margin: "3px 0 0" }}>{c.email}</p>
+                          {c.empresa && <p style={{ color: "#94A3B8", fontSize: 10, margin: "2px 0 0" }}>{c.empresa}{c.username && ` · @${c.username}`}</p>}
                         </div>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <span style={{
-                          background: c.plano === "ultra" ? "#f3e8ff" : c.plano === "intermediario" ? "#eff6ff" : "#f0fdf4",
-                          color: c.plano === "ultra" ? "#8b5cf6" : c.plano === "intermediario" ? "#3b82f6" : "#16a34a",
-                          border: `1px solid ${c.plano === "ultra" ? "#ddd6fe" : c.plano === "intermediario" ? "#bfdbfe" : "#bbf7d0"}`,
+                          background: c.plano === "ultra" ? "#ECFDF5" : c.plano === "intermediario" ? "#ECFDF5" : "#ECFDF5",
+                          color: c.plano === "ultra" ? "#059669" : c.plano === "intermediario" ? "#059669" : "#059669",
+                          border: `1px solid ${c.plano === "ultra" ? "#A7F3D0" : c.plano === "intermediario" ? "#A7F3D0" : "#A7F3D0"}`,
                           fontSize: 11, padding: "3px 12px", borderRadius: 10, fontWeight: 700,
                         }}>
                           {c.plano === "intermediario" ? "Intermediário" : c.plano === "ultra" ? "Ultra" : "Básico"}
@@ -1693,7 +1694,7 @@ export default function Clientes() {
                         <span style={{ background: "#fffbeb", color: "#f59e0b", border: "1px solid #fde68a", fontSize: 12, padding: "3px 12px", borderRadius: 10, fontWeight: 700 }}>{c.usuarios_liberados || 1}</span>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                        <span style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", fontSize: 12, padding: "3px 12px", borderRadius: 10, fontWeight: 700 }}>{c.conexoes_liberadas || 1}</span>
+                        <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 12px", borderRadius: 10, fontWeight: 700 }}>{c.conexoes_liberadas || 1}</span>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
@@ -1721,7 +1722,7 @@ export default function Clientes() {
                           {c.modulo_rh && <span style={{ fontSize: 14 }} title="RH">🧑‍💼</span>}
                           {c.modulo_bater_ponto && <span style={{ fontSize: 14 }} title="Bater Ponto">🕐</span>}
                           {c.modulo_financeiro && <span style={{ fontSize: 14 }} title="Financeiro">💰</span>}
-                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_validacao_numeros && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && !c.modulo_financeiro && !c.modulo_meta_ads && !c.modulo_contratos_assinaturas && !c.modulo_revisional && <span style={{ color: "#d1d5db", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
+                          {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_validacao_numeros && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && !c.modulo_financeiro && !c.modulo_meta_ads && !c.modulo_contratos_assinaturas && !c.modulo_revisional && <span style={{ color: "#CBD5E1", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
                         </div>
                       </td>
 
@@ -1731,15 +1732,15 @@ export default function Clientes() {
                           background: stCobranca.bg, color: stCobranca.cor, border: `1px solid ${stCobranca.borda}`,
                           fontSize: 10, padding: "3px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap",
                         }} title={c.proximo_vencimento ? `Próx. venc: ${formatarData(c.proximo_vencimento)}` : "Sem cobrança configurada"}>
-                          {stCobranca.icone} {stCobranca.label}
+                          {<IconeEmoji e={stCobranca.icone} />} {stCobranca.label}
                         </span>
                       </td>
 
                       <td style={{ padding: "14px 16px" }}>
                         <span style={{
-                          background: c.autorizado ? "#f0fdf4" : "#fffbeb",
-                          color: c.autorizado ? "#16a34a" : "#f59e0b",
-                          border: `1px solid ${c.autorizado ? "#bbf7d0" : "#fde68a"}`,
+                          background: c.autorizado ? "#ECFDF5" : "#fffbeb",
+                          color: c.autorizado ? "#059669" : "#f59e0b",
+                          border: `1px solid ${c.autorizado ? "#A7F3D0" : "#fde68a"}`,
                           fontSize: 11, padding: "3px 12px", borderRadius: 12, fontWeight: 700,
                         }}>
                           {c.autorizado ? "✅ Ativo" : "⏳ Pendente"}
@@ -1748,17 +1749,17 @@ export default function Clientes() {
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 6 }}>
                           <button onClick={() => abrirDetalhe(c)}
-                            style={{ background: "#f3f4f6", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>👁️</button>
+                            style={{ background: "#F1F5F4", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>👁️</button>
                           <button onClick={() => abrirMarcarPago(c)} title="Marcar como pago"
-                            style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>💰</button>
+                            style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>💰</button>
                           {!c.autorizado
                             ? <button onClick={() => autorizarCadastro(c)}
-                                style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>✅</button>
+                                style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>✅</button>
                             : <button onClick={() => desautorizarCadastro(c)}
                                 style={{ background: "#fffbeb", color: "#f59e0b", border: "1px solid #fde68a", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🚫</button>
                           }
                           <button onClick={() => abrirEditar(c)}
-                            style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
+                            style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
                           <button onClick={() => excluirCadastro(c)}
                             style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
                         </div>
@@ -1767,55 +1768,55 @@ export default function Clientes() {
 
                     {/* LINHA EXPANDIDA — SUB-USUÁRIOS */}
                     {expandida && (
-                      <tr key={`${c.id}-expandido`} style={{ background: "#f0fdf4" }}>
+                      <tr key={`${c.id}-expandido`} style={{ background: "#ECFDF5" }}>
                         <td colSpan={10} style={{ padding: "0 24px 18px 50px" }}>
-                          <div style={{ borderLeft: "3px solid #16a34a", paddingLeft: 18, paddingTop: 10 }}>
-                            <p style={{ color: "#16a34a", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>
-                              👥 Sub-usuários do workspace <span style={{ fontFamily: "monospace" }}>@{username}</span>
+                          <div style={{ borderLeft: "3px solid #059669", paddingLeft: 18, paddingTop: 10 }}>
+                            <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>
+                              Sub-usuários do workspace <span style={{ fontFamily: "monospace" }}>@{username}</span>
                             </p>
 
                             {carregando ? (
-                              <p style={{ color: "#9ca3af", fontSize: 12, fontStyle: "italic", margin: "8px 0" }}>Carregando...</p>
+                              <p style={{ color: "#94A3B8", fontSize: 12, fontStyle: "italic", margin: "8px 0" }}>Carregando...</p>
                             ) : subs.length === 0 ? (
-                              <p style={{ color: "#9ca3af", fontSize: 12, fontStyle: "italic", margin: "8px 0" }}>
+                              <p style={{ color: "#94A3B8", fontSize: 12, fontStyle: "italic", margin: "8px 0" }}>
                                 Nenhum sub-usuário cadastrado neste workspace ainda
                               </p>
                             ) : (
-                              <div style={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden", marginTop: 6 }}>
+                              <div style={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, overflow: "hidden", marginTop: 6 }}>
                                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                                   <thead>
-                                    <tr style={{ background: "#f9fafb" }}>
+                                    <tr style={{ background: "#F7FAF9" }}>
                                       {["Nome", "Email", "Perfil", "Fila", "Grupo", "Status"].map(h => (
-                                        <th key={h} style={{ padding: "9px 12px", color: "#6b7280", fontSize: 10, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                                        <th key={h} style={{ padding: "9px 12px", color: "#64748B", fontSize: 10, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>{h}</th>
                                       ))}
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {subs.map(s => (
-                                      <tr key={s.id} style={{ borderTop: "1px solid #f3f4f6" }}>
-                                        <td style={{ padding: "9px 12px", color: "#1f2937", fontSize: 12, fontWeight: 600 }}>{s.nome}</td>
-                                        <td style={{ padding: "9px 12px", color: "#6b7280", fontSize: 12 }}>{s.email}</td>
+                                      <tr key={s.id} style={{ borderTop: "1px solid #F1F5F4" }}>
+                                        <td style={{ padding: "9px 12px", color: "#0F172A", fontSize: 12, fontWeight: 600 }}>{s.nome}</td>
+                                        <td style={{ padding: "9px 12px", color: "#64748B", fontSize: 12 }}>{s.email}</td>
                                         <td style={{ padding: "9px 12px" }}>
                                           <span style={{
-                                            background: s.perfil === "Administrador" ? "#fffbeb" : s.perfil === "Supervisor" ? "#f3e8ff" : "#eff6ff",
-                                            color: s.perfil === "Administrador" ? "#f59e0b" : s.perfil === "Supervisor" ? "#8b5cf6" : "#3b82f6",
-                                            border: `1px solid ${s.perfil === "Administrador" ? "#fde68a" : s.perfil === "Supervisor" ? "#ddd6fe" : "#bfdbfe"}`,
+                                            background: s.perfil === "Administrador" ? "#fffbeb" : s.perfil === "Supervisor" ? "#ECFDF5" : "#ECFDF5",
+                                            color: s.perfil === "Administrador" ? "#f59e0b" : s.perfil === "Supervisor" ? "#059669" : "#059669",
+                                            border: `1px solid ${s.perfil === "Administrador" ? "#fde68a" : s.perfil === "Supervisor" ? "#A7F3D0" : "#A7F3D0"}`,
                                             padding: "2px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700,
                                           }}>{s.perfil}</span>
                                         </td>
-                                        <td style={{ padding: "9px 12px", color: "#6b7280", fontSize: 12 }}>{s.fila || <span style={{ color: "#d1d5db" }}>—</span>}</td>
+                                        <td style={{ padding: "9px 12px", color: "#64748B", fontSize: 12 }}>{s.fila || <span style={{ color: "#CBD5E1" }}>—</span>}</td>
                                         <td style={{ padding: "9px 12px" }}>
                                           {s.grupo_id ? (
-                                            <span style={{ background: "#f3e8ff", color: "#8b5cf6", border: "1px solid #ddd6fe", padding: "2px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>
+                                            <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>
                                               {grupos.find(g => g.id === s.grupo_id)?.nome || "—"}
                                             </span>
-                                          ) : <span style={{ color: "#d1d5db", fontSize: 11 }}>—</span>}
+                                          ) : <span style={{ color: "#CBD5E1", fontSize: 11 }}>—</span>}
                                         </td>
                                         <td style={{ padding: "9px 12px" }}>
                                           <span style={{
-                                            background: s.status === "online" ? "#f0fdf4" : "#f3f4f6",
-                                            color: s.status === "online" ? "#16a34a" : "#6b7280",
-                                            border: `1px solid ${s.status === "online" ? "#bbf7d0" : "#e5e7eb"}`,
+                                            background: s.status === "online" ? "#ECFDF5" : "#F1F5F4",
+                                            color: s.status === "online" ? "#059669" : "#64748B",
+                                            border: `1px solid ${s.status === "online" ? "#A7F3D0" : "#E6ECEA"}`,
                                             padding: "2px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700,
                                           }}>
                                             {s.status === "online" ? "🟢 Online" : "⚫ Offline"}

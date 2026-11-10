@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 
+import { IconeEmoji } from "../components/a2/Icone";
 export default function Login() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -92,7 +93,7 @@ export default function Login() {
         .slide-up-d3 { animation: slideUp 0.6s ease-out 0.3s backwards; }
         .slide-up-d4 { animation: slideUp 0.6s ease-out 0.4s backwards; }
         .wolf-input:focus {
-          border-color: #22c55e !important;
+          border-color: #10B981 !important;
           box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15) !important;
           background: #ffffff !important;
         }
@@ -101,11 +102,11 @@ export default function Login() {
           box-shadow: 0 12px 30px rgba(34, 197, 94, 0.45) !important;
         }
         .wolf-btn-secondary:hover {
-          background: #f0fdf4 !important;
-          border-color: #16a34a !important;
+          background: #ECFDF5 !important;
+          border-color: #059669 !important;
         }
         .wolf-link:hover {
-          color: #16a34a !important;
+          color: #059669 !important;
         }
         @media (max-width: 900px) {
           .wolf-hero { display: none !important; }
@@ -182,11 +183,11 @@ export default function Login() {
             }}>
               <span style={{
                 width: 8, height: 8, borderRadius: "50%",
-                background: "#22c55e",
-                boxShadow: "0 0 12px #22c55e",
+                background: "#10B981",
+                boxShadow: "0 0 12px #10B981",
                 animation: "pulseDot 2s ease-in-out infinite",
               }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#86efac", letterSpacing: 0.3 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#6EE7B7", letterSpacing: 0.3 }}>
                 Sistema 100% online — milhares de atendimentos por dia
               </span>
             </div>
@@ -199,7 +200,7 @@ export default function Login() {
               letterSpacing: -1.5,
             }}>
               Atendimento que <span style={{
-                background: "linear-gradient(135deg, #22c55e 0%, #4ade80 100%)",
+                background: "linear-gradient(135deg, #10B981 0%, #4ade80 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -234,7 +235,7 @@ export default function Login() {
                   padding: "8px 14px",
                   backdropFilter: "blur(10px)",
                 }}>
-                  <span style={{ fontSize: 16 }}>{f.icone}</span>
+                  <span style={{ fontSize: 16 }}>{<IconeEmoji e={f.icone} />}</span>
                   <span style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.9)", fontWeight: 500 }}>
                     {f.texto}
                   </span>
@@ -252,7 +253,7 @@ export default function Login() {
             borderTop: "1px solid rgba(255, 255, 255, 0.08)",
           }}>
             <span style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.5)" }}>
-              © {new Date().getFullYear()} Wolf System
+              {new Date().getFullYear()} Wolf System
             </span>
             <span style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.4)", letterSpacing: 1, textTransform: "uppercase" }}>
               wolfgyn.com.br
@@ -288,7 +289,7 @@ export default function Login() {
               margin: "0 0 8px",
               letterSpacing: -0.5,
             }}>
-              Bem-vindo de volta 👋
+              Bem-vindo de volta
             </h2>
             <p style={{ fontSize: 14, color: "#64748b", margin: 0, lineHeight: 1.5 }}>
               Acesse sua conta e continue de onde parou.
@@ -346,7 +347,7 @@ export default function Login() {
                   style={{
                     width: "100%",
                     boxSizing: "border-box",
-                    background: "#f8fafc",
+                    background: "#F3F6F5",
                     border: "1px solid #e2e8f0",
                     borderRadius: 10,
                     padding: "12px 14px 12px 44px",
@@ -381,7 +382,7 @@ export default function Login() {
                   style={{
                     background: "none",
                     border: "none",
-                    color: "#22c55e",
+                    color: "#10B981",
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: "pointer",
@@ -411,7 +412,7 @@ export default function Login() {
                   style={{
                     width: "100%",
                     boxSizing: "border-box",
-                    background: "#f8fafc",
+                    background: "#F3F6F5",
                     border: "1px solid #e2e8f0",
                     borderRadius: 10,
                     padding: "12px 44px 12px 44px",
@@ -454,8 +455,8 @@ export default function Login() {
               width: "100%",
               marginTop: 24,
               background: loading
-                ? "linear-gradient(135deg, #86efac 0%, #4ade80 100%)"
-                : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                ? "linear-gradient(135deg, #6EE7B7 0%, #4ade80 100%)"
+                : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
               color: "#ffffff",
               border: "none",
               borderRadius: 10,
@@ -511,8 +512,8 @@ export default function Login() {
             style={{
               width: "100%",
               background: "#ffffff",
-              color: "#16a34a",
-              border: "2px solid #22c55e",
+              color: "#059669",
+              border: "2px solid #10B981",
               borderRadius: 10,
               padding: "12px 20px",
               fontSize: 13,

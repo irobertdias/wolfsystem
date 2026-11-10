@@ -123,7 +123,7 @@ export default function ConfiguracoesContratosPage() {
   return <main className={styles.page}>
     <header className={styles.header}>
       <div><span>WOLF SIGN</span><h1>Empresas e representantes</h1><p>Defina os dados jurídicos e quem pode assinar contratos em nome do workspace.</p></div>
-      <button onClick={() => router.push("/crm/contratos")}>← Voltar aos contratos</button>
+      <button onClick={() => router.push("/crm/contratos")}>Voltar aos contratos</button>
     </header>
     {erro && <div className={styles.error}>{erro}</div>}
     {sucesso && <div className={styles.success}>{sucesso}</div>}

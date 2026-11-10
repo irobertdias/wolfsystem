@@ -14,13 +14,13 @@ export default function TelefoniaPage() {
   if (!carregado) {
     return (
       <div style={{
-        padding: 32, fontFamily: "Arial, sans-serif",
+        padding: 32, fontFamily: "var(--font-wolf), system-ui, sans-serif",
         display: "flex", alignItems: "center", justifyContent: "center",
         minHeight: "60vh",
       }}>
         <div style={{
           background: "#ffffff",
-          border: "1px solid #e5e7eb",
+          border: "1px solid #E6ECEA",
           borderRadius: 14,
           boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
           padding: "20px 28px",
@@ -28,11 +28,11 @@ export default function TelefoniaPage() {
         }}>
           <div style={{
             width: 18, height: 18, borderRadius: "50%",
-            border: "3px solid #e5e7eb",
-            borderTopColor: "#16a34a",
+            border: "3px solid #E6ECEA",
+            borderTopColor: "#059669",
             animation: "wolf-spin 0.8s linear infinite",
           }} />
-          <span style={{ color: "#6b7280", fontSize: 13, fontWeight: 600 }}>Carregando módulo de telefonia...</span>
+          <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>Carregando módulo de telefonia...</span>
           <style>{`@keyframes wolf-spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
@@ -46,12 +46,12 @@ export default function TelefoniaPage() {
   if (!isDono && !isSuperAdmin && !permissoes.voip_conexoes && !permissoes.voip_campanhas && !permissoes.voip_usar) {
     return (
       <div style={{
-        minHeight: "100vh", padding: 32, fontFamily: "Arial, sans-serif",
+        minHeight: "100vh", padding: 32, fontFamily: "var(--font-wolf), system-ui, sans-serif",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
         <div style={{
           background: "#ffffff",
-          border: "1px solid #e5e7eb",
+          border: "1px solid #E6ECEA",
           borderRadius: 14,
           boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
           padding: 48, textAlign: "center", maxWidth: 480,
@@ -65,8 +65,8 @@ export default function TelefoniaPage() {
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
           </div>
-          <h1 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+          <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
+          <p style={{ color: "#64748B", fontSize: 13, margin: 0, lineHeight: 1.5 }}>
             Você não tem permissão para acessar a telefonia. Entre em contato com o administrador do workspace.
           </p>
         </div>

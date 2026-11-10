@@ -276,7 +276,7 @@ export default function SimuladorOrcamento() {
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
         <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 38px" }}>
           <span style={kicker}>ORÇAMENTO PERSONALIZADO</span>
-          <h2 style={{ color: "#17233b", fontSize: "clamp(34px,5vw,54px)", letterSpacing: -2, lineHeight: 1.06, margin: "15px 0" }}>Monte a Wolf ideal para sua empresa</h2>
+          <h2 style={{ color: "#0F172A", fontSize: "clamp(34px,5vw,54px)", letterSpacing: -2, lineHeight: 1.06, margin: "15px 0" }}>Monte a Wolf ideal para sua empresa</h2>
           <p style={{ color: "#64748b", fontSize: 17, lineHeight: 1.65, margin: 0 }}>Escolha o plano, ajuste usuários e canais e adicione somente os módulos que sua operação precisa. No final, gere seu PDF na hora.</p>
         </div>
 
@@ -287,9 +287,9 @@ export default function SimuladorOrcamento() {
                 {PLANOS.map((item) => {
                   const ativo = item.id === plano.id;
                   return (
-                    <button key={item.id} type="button" onClick={() => escolherPlano(item)} style={{ ...cardPlano, borderColor: ativo ? "#2563eb" : "#dfe7f3", background: ativo ? "#eff6ff" : "#fff", boxShadow: ativo ? "0 14px 34px rgba(37,99,235,.14)" : "none" }}>
-                      <span style={{ color: "#17233b", fontSize: 18, fontWeight: 900 }}>{item.nome}</span>
-                      <strong style={{ color: "#2563eb", fontSize: 26 }}>{moeda(item.mensalidade)}</strong>
+                    <button key={item.id} type="button" onClick={() => escolherPlano(item)} style={{ ...cardPlano, borderColor: ativo ? "#047857" : "#dfe7f3", background: ativo ? "#ECFDF5" : "#fff", boxShadow: ativo ? "0 14px 34px rgba(5,150,105,.14)" : "none" }}>
+                      <span style={{ color: "#0F172A", fontSize: 18, fontWeight: 900 }}>{item.nome}</span>
+                      <strong style={{ color: "#047857", fontSize: 26 }}>{moeda(item.mensalidade)}</strong>
                       <small style={{ color: "#64748b" }}>{item.usuarios} usuários • {item.canais} canal(is)</small>
                     </button>
                   );
@@ -311,10 +311,10 @@ export default function SimuladorOrcamento() {
                   const ativo = incluso || modulos.includes(item.id);
                   const preco = incluso ? "incluso no plano" : item.mensalidade ? `${moeda(item.mensalidade)}/mês` : `${moeda(item.implantacao)} único`;
                   return (
-                    <button key={item.id} type="button" disabled={incluso} onClick={() => alternarModulo(item.id)} style={{ ...cardModulo, borderColor: ativo ? "#7c3aed" : "#dfe7f3", background: ativo ? "#faf5ff" : "#fff", cursor: incluso ? "default" : cardModulo.cursor }}>
-                      <span style={{ ...check, background: ativo ? "#7c3aed" : "#eef2f7", color: ativo ? "#fff" : "#94a3b8" }}>{ativo ? "✓" : "+"}</span>
-                      <span style={{ flex: 1 }}><strong style={{ display: "block", color: "#17233b", marginBottom: 5 }}>{item.nome}</strong><small style={{ color: "#64748b", lineHeight: 1.45 }}>{item.descricao}</small></span>
-                      <strong style={{ color: "#6d28d9", fontSize: 12 }}>{preco}</strong>
+                    <button key={item.id} type="button" disabled={incluso} onClick={() => alternarModulo(item.id)} style={{ ...cardModulo, borderColor: ativo ? "#047857" : "#dfe7f3", background: ativo ? "#ECFDF5" : "#fff", cursor: incluso ? "default" : cardModulo.cursor }}>
+                      <span style={{ ...check, background: ativo ? "#047857" : "#eef2f7", color: ativo ? "#fff" : "#94a3b8" }}>{ativo ? "✓" : "+"}</span>
+                      <span style={{ flex: 1 }}><strong style={{ display: "block", color: "#0F172A", marginBottom: 5 }}>{item.nome}</strong><small style={{ color: "#64748b", lineHeight: 1.45 }}>{item.descricao}</small></span>
+                      <strong style={{ color: "#065F46", fontSize: 12 }}>{preco}</strong>
                     </button>
                   );
                 })}
@@ -335,14 +335,14 @@ export default function SimuladorOrcamento() {
 
           <aside style={{ ...resumo, ...(mobile ? { position: "static", top: "auto" } : {}) }}>
             <span style={kicker}>SEU ORÇAMENTO</span>
-            <h3 style={{ color: "#17233b", fontSize: 26, margin: "10px 0 4px" }}>Wolf {plano.nome}</h3>
+            <h3 style={{ color: "#0F172A", fontSize: 26, margin: "10px 0 4px" }}>Wolf {plano.nome}</h3>
             <p style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5, margin: "0 0 22px" }}>{plano.descricao}</p>
             <div style={linha}><span>Usuários</span><strong>{usuarios}</strong></div>
             <div style={linha}><span>Canais</span><strong>{canais}</strong></div>
             <div style={linha}><span>Módulos adicionais</span><strong>{selecionados.length}</strong></div>
-            <div style={{ height: 1, background: "#e5ebf5", margin: "18px 0" }} />
+            <div style={{ height: 1, background: "#E6ECEA", margin: "18px 0" }} />
             {itens.map((item, indice) => <div key={`${item.descricao}-${indice}`} style={{ ...linha, fontSize: 12 }}><span>{item.descricao}</span><strong>{moeda(item.valor)}</strong></div>)}
-            <div style={{ padding: 18, borderRadius: 18, background: "linear-gradient(135deg,#1d4ed8,#7c3aed)", color: "#fff", marginTop: 20 }}>
+            <div style={{ padding: 18, borderRadius: 18, background: "linear-gradient(135deg,#065F46,#047857)", color: "#fff", marginTop: 20 }}>
               <small style={{ opacity: .8 }}>mensalidade estimada</small>
               <strong style={{ display: "block", fontSize: 31, marginTop: 3 }}>{moeda(totalMensal)}<span style={{ fontSize: 12, fontWeight: 500 }}>/mês</span></strong>
               <small style={{ display: "block", marginTop: 8, opacity: .85 }}>Investimento inicial: {moeda(totalImplantacao)}</small>
@@ -360,32 +360,32 @@ export default function SimuladorOrcamento() {
 }
 
 function Bloco({ numero, titulo, children }: { numero: string; titulo: string; children: ReactNode }) {
-  return <div style={bloco}><div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 18 }}><span style={numeroStyle}>{numero}</span><h3 style={{ color: "#17233b", margin: 0, fontSize: 19 }}>{titulo}</h3></div>{children}</div>;
+  return <div style={bloco}><div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 18 }}><span style={numeroStyle}>{numero}</span><h3 style={{ color: "#0F172A", margin: 0, fontSize: 19 }}>{titulo}</h3></div>{children}</div>;
 }
 
 function Contador({ titulo, texto, valor, minimo, onChange }: { titulo: string; texto: string; valor: number; minimo: number; onChange: (valor: number) => void }) {
-  return <div style={contador}><div><strong style={{ color: "#17233b", display: "block" }}>{titulo}</strong><small style={{ color: "#64748b" }}>{texto}</small></div><div style={{ display: "flex", alignItems: "center", gap: 10 }}><button type="button" style={botaoContador} onClick={() => onChange(Math.max(minimo, valor - 1))}>−</button><strong style={{ minWidth: 28, textAlign: "center", fontSize: 20 }}>{valor}</strong><button type="button" style={botaoContador} onClick={() => onChange(valor + 1)}>+</button></div></div>;
+  return <div style={contador}><div><strong style={{ color: "#0F172A", display: "block" }}>{titulo}</strong><small style={{ color: "#64748b" }}>{texto}</small></div><div style={{ display: "flex", alignItems: "center", gap: 10 }}><button type="button" style={botaoContador} onClick={() => onChange(Math.max(minimo, valor - 1))}>−</button><strong style={{ minWidth: 28, textAlign: "center", fontSize: 20 }}>{valor}</strong><button type="button" style={botaoContador} onClick={() => onChange(valor + 1)}>+</button></div></div>;
 }
 
 function Campo({ label, value, type = "text", onChange }: { label: string; value: string; type?: string; onChange: (valor: string) => void }) {
   return <label style={{ display: "grid", gap: 7, color: "#475569", fontSize: 12, fontWeight: 800 }}>{label}<input type={type} value={value} onChange={(evento) => onChange(evento.target.value)} style={input} placeholder={`Informe ${label.toLowerCase()}`} /></label>;
 }
 
-const kicker: CSSProperties = { color: "#2563eb", fontSize: 11, fontWeight: 950, letterSpacing: 1.7 };
+const kicker: CSSProperties = { color: "#047857", fontSize: 11, fontWeight: 950, letterSpacing: 1.7 };
 const layout: CSSProperties = { display: "grid", gridTemplateColumns: "minmax(0,1.65fr) minmax(300px,.75fr)", gap: 24, alignItems: "start" };
 const bloco: CSSProperties = { background: "#fff", border: "1px solid #e2e9f4", borderRadius: 24, padding: "clamp(20px,3vw,30px)", boxShadow: "0 14px 44px rgba(15,23,42,.055)" };
-const numeroStyle: CSSProperties = { width: 32, height: 32, borderRadius: 10, background: "#eff6ff", color: "#2563eb", display: "grid", placeItems: "center", fontWeight: 950 };
+const numeroStyle: CSSProperties = { width: 32, height: 32, borderRadius: 10, background: "#ECFDF5", color: "#047857", display: "grid", placeItems: "center", fontWeight: 950 };
 const gridPlanos: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12 };
 const cardPlano: CSSProperties = { border: "2px solid", borderRadius: 18, padding: 18, display: "grid", gap: 8, textAlign: "left", cursor: "pointer", transition: ".2s" };
 const gridDois: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 14 };
 const contador: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 18, border: "1px solid #dfe7f3", borderRadius: 17, padding: 17 };
-const botaoContador: CSSProperties = { width: 34, height: 34, borderRadius: 10, border: "1px solid #d8e1ef", background: "#f8fafc", color: "#2563eb", fontSize: 20, cursor: "pointer" };
+const botaoContador: CSSProperties = { width: 34, height: 34, borderRadius: 10, border: "1px solid #d8e1ef", background: "#F3F6F5", color: "#047857", fontSize: 20, cursor: "pointer" };
 const gridModulos: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 12 };
 const cardModulo: CSSProperties = { border: "1.5px solid", borderRadius: 17, padding: 16, display: "flex", gap: 12, alignItems: "center", textAlign: "left", cursor: "pointer" };
 const check: CSSProperties = { width: 28, height: 28, flex: "0 0 28px", borderRadius: 9, display: "grid", placeItems: "center", fontWeight: 950 };
-const input: CSSProperties = { width: "100%", boxSizing: "border-box", border: "1px solid #dbe4f1", borderRadius: 12, padding: "13px 14px", background: "#fbfdff", color: "#17233b", outline: "none" };
+const input: CSSProperties = { width: "100%", boxSizing: "border-box", border: "1px solid #dbe4f1", borderRadius: 12, padding: "13px 14px", background: "#fbfdff", color: "#0F172A", outline: "none" };
 const resumo: CSSProperties = { position: "sticky", top: 88, background: "#fff", border: "1px solid #dce5f2", borderRadius: 25, padding: 24, boxShadow: "0 22px 60px rgba(15,23,42,.1)" };
-const linha: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, color: "#52627a", margin: "10px 0" };
-const botaoOnline: CSSProperties = { width: "100%", border: 0, borderRadius: 13, padding: "16px 12px", marginTop: 16, background: "linear-gradient(135deg,#059669,#0d9488)", color: "#fff", fontWeight: 900, fontSize: 15, cursor: "pointer", boxShadow: "0 12px 28px rgba(5,150,105,.28)" };
-const botaoPdf: CSSProperties = { width: "100%", border: 0, borderRadius: 13, padding: "14px 12px", marginTop: 10, background: "#17233b", color: "#fff", fontWeight: 900, cursor: "pointer" };
-const botaoWhats: CSSProperties = { width: "100%", border: "1px solid #16a34a", borderRadius: 13, padding: "14px 12px", marginTop: 10, background: "#ecfdf3", color: "#15803d", fontWeight: 900, cursor: "pointer" };
+const linha: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, color: "#475569", margin: "10px 0" };
+const botaoOnline: CSSProperties = { width: "100%", border: 0, borderRadius: 13, padding: "16px 12px", marginTop: 16, background: "linear-gradient(135deg, #10B981, #059669)", color: "#fff", fontWeight: 900, fontSize: 15, cursor: "pointer", boxShadow: "0 12px 28px rgba(5,150,105,.28)" };
+const botaoPdf: CSSProperties = { width: "100%", border: 0, borderRadius: 13, padding: "14px 12px", marginTop: 10, background: "#0F172A", color: "#fff", fontWeight: 900, cursor: "pointer" };
+const botaoWhats: CSSProperties = { width: "100%", border: "1px solid #059669", borderRadius: 13, padding: "14px 12px", marginTop: 10, background: "#ecfdf3", color: "#047857", fontWeight: 900, cursor: "pointer" };

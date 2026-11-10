@@ -2,22 +2,23 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
+import { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Vale Refeição/Alimentação (CONECTADO — 'vale_refeicao'; valorDiario↔valor_diario)
 const COR = "#4f46e5";
 const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -152,7 +153,7 @@ export function ValeRefeicaoSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -163,10 +164,10 @@ export function ValeRefeicaoSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>🍽️</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Vale Refeição / Alimentação
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>VR e VA dos colaboradores</p>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>VR e VA dos colaboradores</p>
           </div>
         </div>
         <button
@@ -175,7 +176,7 @@ export function ValeRefeicaoSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -209,11 +210,11 @@ export function ValeRefeicaoSection() {
                   fontSize: 14,
                 }}
               >
-                {s.icon}
+                {<IconeEmoji e={s.icon} />}
               </div>
               <p
                 style={{
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 11,
                   margin: 0,
                   fontWeight: 700,
@@ -231,32 +232,32 @@ export function ValeRefeicaoSection() {
       </div>
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum VR/VA cadastrado.</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum VR/VA cadastrado.</p>
         </div>
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#F7FAF9" }}>
                   {["Colaborador", "Modalidade", "Operadora", "Diário", "Dias", "Total/mês", ""].map((h) => (
                     <th
                       key={h}
                       style={{
                         padding: "12px 16px",
-                        color: "#6b7280",
+                        color: "#64748B",
                         fontSize: 11,
                         textAlign: "left",
                         textTransform: "uppercase",
                         letterSpacing: 0.5,
                         whiteSpace: "nowrap",
                         fontWeight: 700,
-                        borderBottom: "1px solid #e5e7eb",
+                        borderBottom: "1px solid #E6ECEA",
                       }}
                     >
                       {h}
@@ -269,18 +270,18 @@ export function ValeRefeicaoSection() {
                   <tr
                     key={v.id}
                     style={{
-                      borderTop: "1px solid #f3f4f6",
-                      background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                      borderTop: "1px solid #F1F5F4",
+                      background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
                     }}
                   >
                     <td style={{ padding: "12px 16px" }}>
-                      <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{v.nome}</p>
-                      <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{v.cargo}</p>
+                      <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{v.nome}</p>
+                      <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{v.cargo}</p>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       <span
                         style={{
-                          background: "#eef2ff",
+                          background: "#ECFDF5",
                           color: COR_TEXTO,
                           fontSize: 11,
                           padding: "3px 10px",
@@ -291,12 +292,12 @@ export function ValeRefeicaoSection() {
                         {v.modalidade}
                       </span>
                     </td>
-                    <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>{v.operadora}</td>
-                    <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12 }}>
+                    <td style={{ padding: "12px 16px", color: "#475569", fontSize: 12 }}>{v.operadora}</td>
+                    <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12 }}>
                       {real(v.valorDiario)}
                     </td>
-                    <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12 }}>{v.dias}</td>
-                    <td style={{ padding: "12px 16px", color: "#1f2937", fontSize: 12, fontWeight: 700 }}>
+                    <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12 }}>{v.dias}</td>
+                    <td style={{ padding: "12px 16px", color: "#0F172A", fontSize: 12, fontWeight: 700 }}>
                       {real(mensal(v))}
                     </td>
                     <td style={{ padding: "12px 16px" }}>
@@ -345,21 +346,21 @@ export function ValeRefeicaoSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
                 Adicionar VR / VA
               </h3>
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -443,19 +444,19 @@ export function ValeRefeicaoSection() {
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={() => setModal(false)}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -469,7 +470,7 @@ export function ValeRefeicaoSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -494,7 +495,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label
         style={{
-          color: "#6b7280",
+          color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",

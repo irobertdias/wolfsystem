@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
@@ -255,7 +255,7 @@ function diasAteVenc(iso: string | null): number | null {
 const shell: React.CSSProperties = {
   minHeight: "100%",
   color: "#0f172a",
-  fontFamily: "Arial, sans-serif",
+  fontFamily: "var(--font-wolf), system-ui, sans-serif",
 };
 
 const panel: React.CSSProperties = {
@@ -473,7 +473,7 @@ export default function VisaoGeralPage() {
 
   const modulosAtivos = useMemo(() => {
     const items = [
-      { key: "crm", nome: "CRM", ativo: temCRM, cor: "#16a34a" },
+      { key: "crm", nome: "CRM", ativo: temCRM, cor: "#059669" },
       { key: "cobranca", nome: "Cobranca", ativo: temCobranca, cor: "#dc2626" },
       { key: "rh", nome: "RH", ativo: temRH, cor: "#4f46e5" },
       { key: "ponto", nome: "Ponto", ativo: temPonto, cor: "#0891b2" },
@@ -534,7 +534,7 @@ export default function VisaoGeralPage() {
             `${canaisResumo.conectados}/${canaisResumo.total} canais conectados`,
           ]}
           pulse={[
-            ["Receita instalada total", real(vendas.receitaMes), "#16a34a"],
+            ["Receita instalada total", real(vendas.receitaMes), "#059669"],
             ["Clientes ativos", num(adminStats.ativos), "#2563eb"],
             ["Workspaces ativos", num(adminStats.wsAtivos), "#7c3aed"],
             ["Canais WABA/API", num(canaisResumo.waba), "#0891b2"],
@@ -546,14 +546,14 @@ export default function VisaoGeralPage() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <Section title="Plataforma" subtitle="Saude comercial e operacional do Wolf System." accent="#0f172a">
-              <Metric label="Clientes ativos" value={num(adminStats.ativos)} color="#16a34a" note="autorizados e nao suspensos" />
+              <Metric label="Clientes ativos" value={num(adminStats.ativos)} color="#059669" note="autorizados e nao suspensos" />
               <Metric label="Suspensos" value={num(adminStats.suspensos)} color="#dc2626" note="bloqueio financeiro" />
               <Metric label="Workspaces ativos" value={num(adminStats.wsAtivos)} color="#2563eb" note="ambientes operacionais" />
               <Metric label="Usuarios vinculados" value={num(usuarios)} color="#7c3aed" note="usuarios_workspace" />
             </Section>
 
             <Section title="Planos e modulos" subtitle="Distribuicao do que esta vendido e liberado por cliente." accent="#7c3aed">
-              <Metric label="Basico" value={num(adminStats.basico)} color="#16a34a" note="clientes no plano" />
+              <Metric label="Basico" value={num(adminStats.basico)} color="#059669" note="clientes no plano" />
               <Metric label="Intermediario" value={num(adminStats.intermediario)} color="#2563eb" note="clientes no plano" />
               <Metric label="Ultra" value={num(adminStats.ultra)} color="#7c3aed" note="clientes no plano" />
               <Metric label="Cobranca" value={num(adminStats.clientesComCobranca)} color="#dc2626" note="modulo liberado" />
@@ -563,9 +563,9 @@ export default function VisaoGeralPage() {
               <Metric label="API oficial" value={num(adminStats.clientesComApi)} color="#0f766e" note="disparos api" />
             </Section>
 
-            <Section title="Operacao global" subtitle="Movimento agregado de vendas e canais de todos os tenants visiveis." accent="#16a34a">
+            <Section title="Operacao global" subtitle="Movimento agregado de vendas e canais de todos os tenants visiveis." accent="#059669">
               <Metric label="Propostas totais" value={num(propostas.length)} color="#2563eb" note="todos os workspaces" />
-              <Metric label="Instaladas" value={num(vendas.instaladas)} color="#16a34a" note="status instalados" />
+              <Metric label="Instaladas" value={num(vendas.instaladas)} color="#059669" note="status instalados" />
               <Metric label="Em andamento" value={num(vendas.emAndamento)} color="#f59e0b" note="pendentes e geradas" />
               <Metric label="Canceladas" value={num(vendas.canceladas)} color="#dc2626" note="perdas e reprovas" />
               <Metric label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#0891b2" note="webjs + waba" />
@@ -592,7 +592,7 @@ export default function VisaoGeralPage() {
           `Workspace ${tenantWsIds[0] || wsId || "-"}`,
         ]}
         pulse={[
-          [`${vocabularioDoWorkspace(wsId).receitaConcluida} no mes`, real(vendas.receitaMes), "#16a34a"],
+          [`${vocabularioDoWorkspace(wsId).receitaConcluida} no mes`, real(vendas.receitaMes), "#059669"],
           ["Propostas totais", num(vendas.total), "#2563eb"],
           ["Conversao acumulada", `${vendas.conversao}%`, "#7c3aed"],
           ...(temTelefonia ? [["Canais conectados", `${canaisResumo.conectados}/${canaisResumo.total}`, "#0891b2"] as [string, string, string]] : []),
@@ -606,8 +606,8 @@ export default function VisaoGeralPage() {
           <ModuleStrip items={modulosAtivos} />
 
           {temVendas && (
-            <Section title="Vendas" subtitle="Receita, propostas e velocidade comercial do workspace." accent="#16a34a">
-              <Metric label={vocabularioDoWorkspace(wsId).receitaConcluida === "Receita instalada" ? "Receita do mes" : `${vocabularioDoWorkspace(wsId).receitaConcluida} no mes`} value={real(vendas.receitaMes)} color="#16a34a" note={`${vocabularioDoWorkspace(wsId).concluidasMin} no periodo`} />
+            <Section title="Vendas" subtitle="Receita, propostas e velocidade comercial do workspace." accent="#059669">
+              <Metric label={vocabularioDoWorkspace(wsId).receitaConcluida === "Receita instalada" ? "Receita do mes" : `${vocabularioDoWorkspace(wsId).receitaConcluida} no mes`} value={real(vendas.receitaMes)} color="#059669" note={`${vocabularioDoWorkspace(wsId).concluidasMin} no periodo`} />
               <Metric label="Propostas totais" value={num(vendas.total)} color="#2563eb" note={`${num(vendas.criadasMes)} criada(s) no mes`} />
               <Metric label={vocabularioDoWorkspace(wsId).concluidas} value={num(vendas.instaladas)} color="#0ea5e9" note="total visivel" />
               <Metric label="Em andamento" value={num(vendas.emAndamento)} color="#f59e0b" note="pendentes, geradas, aguardando" />
@@ -618,7 +618,7 @@ export default function VisaoGeralPage() {
 
           {temCobranca && (
             <Section title="Cobranca" subtitle="Somente aparece para planos com modulo de cobranca ativo." accent="#dc2626">
-              <Metric label="Em dia" value={num(cobranca.emDia)} color="#16a34a" note="sem risco imediato" />
+              <Metric label="Em dia" value={num(cobranca.emDia)} color="#059669" note="sem risco imediato" />
               <Metric label="Vencendo" value={num(cobranca.vencendo)} color="#f59e0b" note="proximos 2 dias" />
               <Metric label="Atrasado" value={num(cobranca.atrasado)} color="#dc2626" note="vencimento passou" />
               <Metric label="Bloqueado" value={num(cobranca.bloqueado)} color="#7f1d1d" note="2+ dias vencido" />
@@ -635,9 +635,9 @@ export default function VisaoGeralPage() {
 
           {temFinanceiro && (
             <Section title="Financeiro" subtitle="Resumo do modulo financeiro liberado para este workspace." accent="#d97706">
-              <Metric label="Receitas do mes" value={real(financeiro.receitas)} color="#16a34a" note="lancamentos do periodo" />
+              <Metric label="Receitas do mes" value={real(financeiro.receitas)} color="#059669" note="lancamentos do periodo" />
               <Metric label="Despesas do mes" value={real(financeiro.despesas)} color="#dc2626" note="lancamentos do periodo" />
-              <Metric label="Saldo projetado" value={real(financeiro.saldo)} color={financeiro.saldo >= 0 ? "#16a34a" : "#dc2626"} note="receitas - despesas" />
+              <Metric label="Saldo projetado" value={real(financeiro.saldo)} color={financeiro.saldo >= 0 ? "#059669" : "#dc2626"} note="receitas - despesas" />
               <Metric label="Pendencias" value={num(financeiro.pendentes)} color="#f59e0b" note="nao pagos" />
             </Section>
           )}
@@ -645,7 +645,7 @@ export default function VisaoGeralPage() {
           {(temTelefonia || temDisparos || temIntegracoes) && (
             <Section title="Canais e automacao" subtitle="Mostra apenas recursos liberados: telefonia, disparos, API, Instagram e roleta." accent="#0891b2">
               {temTelefonia && <Metric label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#0891b2" note="conexoes ativas" />}
-              {temTelefonia && <Metric label="WebJS" value={num(canaisResumo.webjs)} color="#16a34a" note="canais QR" />}
+              {temTelefonia && <Metric label="WebJS" value={num(canaisResumo.webjs)} color="#059669" note="canais QR" />}
               {temDisparos && <Metric label="WABA/API" value={num(canaisResumo.waba)} color="#2563eb" note="API oficial" />}
               {modulos.roleta && <Metric label="Roleta" value="Ativa no plano" color="#7c3aed" note="distribuicao de leads" />}
               {modulos.instagram && <Metric label="Instagram" value="Liberado" color="#db2777" note="atendimento social" />}
@@ -674,18 +674,18 @@ export default function VisaoGeralPage() {
 
 function Hero({ badge, title, subtitle, pills, pulse }: { badge: string; title: string; subtitle: string; pills: string[]; pulse: Array<[string, string, string]> }) {
   return (
-    <div style={{ position: "relative", overflow: "hidden", borderRadius: 16, marginBottom: 18, border: "1px solid #dbeafe", background: "linear-gradient(135deg, #f8fafc 0%, #eefdf4 42%, #eff6ff 100%)" }}>
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 12% 20%, rgba(22,163,74,0.18), transparent 28%), radial-gradient(circle at 85% 25%, rgba(14,165,233,0.18), transparent 28%), linear-gradient(120deg, rgba(255,255,255,0.72), rgba(255,255,255,0.36))" }} />
+    <div style={{ position: "relative", overflow: "hidden", borderRadius: 16, marginBottom: 18, border: "1px solid #D1FAE5", background: "linear-gradient(135deg, #F3F6F5 0%, #eefdf4 42%, #ECFDF5 100%)" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 12% 20%, rgba(5,150,105,0.18), transparent 28%), radial-gradient(circle at 85% 25%, rgba(5,150,105,0.18), transparent 28%), linear-gradient(120deg, rgba(255,255,255,0.72), rgba(255,255,255,0.36))" }} />
       <div style={{ position: "relative", padding: "24px 26px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18, alignItems: "stretch" }}>
         <div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 999, background: "rgba(15,23,42,0.06)", border: "1px solid rgba(15,23,42,0.08)", marginBottom: 12 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 999, background: "#16a34a", boxShadow: "0 0 0 5px rgba(22,163,74,0.12)" }} />
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: "#059669", boxShadow: "0 0 0 5px rgba(5,150,105,0.12)" }} />
             <span style={{ color: "#334155", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.6 }}>{badge}</span>
           </div>
           <h1 style={{ color: "#07111f", fontSize: 34, lineHeight: 1.05, fontWeight: 950, margin: 0, letterSpacing: -1.2 }}>{title}</h1>
           <p style={{ color: "#475569", fontSize: 13, lineHeight: 1.55, margin: "10px 0 0", maxWidth: 780 }}>{subtitle}</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
-            {pills.map((p, i) => <Pill key={i} label={p} color={i === 0 ? "#0f172a" : i === 1 ? "#16a34a" : i === 2 ? "#2563eb" : "#64748b"} />)}
+            {pills.map((p, i) => <Pill key={i} label={p} color={i === 0 ? "#0f172a" : i === 1 ? "#059669" : i === 2 ? "#2563eb" : "#64748b"} />)}
           </div>
         </div>
 
@@ -701,7 +701,7 @@ function Hero({ badge, title, subtitle, pills, pulse }: { badge: string; title: 
 function LoadingBox({ text }: { text: string }) {
   return (
     <div style={{ ...panel, padding: 44, textAlign: "center" }}>
-      <div style={{ width: 40, height: 40, borderRadius: 12, margin: "0 auto 12px", background: "linear-gradient(135deg,#16a34a,#0ea5e9)", boxShadow: "0 12px 24px rgba(14,165,233,0.18)" }} />
+      <div style={{ width: 40, height: 40, borderRadius: 12, margin: "0 auto 12px", background: "linear-gradient(135deg, #10B981, #059669)", boxShadow: "0 12px 24px rgba(5,150,105,0.18)" }} />
       <p style={{ color: "#64748b", fontSize: 13, margin: 0, fontWeight: 700 }}>{text}</p>
     </div>
   );
@@ -741,7 +741,7 @@ function ModuleStrip({ items }: { items: Array<{ key: string; nome: string; cor:
 function Section({ title, subtitle, accent, children }: { title: string; subtitle: string; accent: string; children: React.ReactNode }) {
   return (
     <section style={{ ...panel, overflow: "hidden" }}>
-      <div style={{ padding: "16px 18px", borderBottom: "1px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: `linear-gradient(90deg, ${accent}10, rgba(255,255,255,0.9))` }}>
+      <div style={{ padding: "16px 18px", borderBottom: "1px solid #E6ECEA", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: `linear-gradient(90deg, ${accent}10, rgba(255,255,255,0.9))` }}>
         <div>
           <h2 style={{ color: "#0f172a", fontSize: 16, fontWeight: 950, margin: 0, letterSpacing: -0.2 }}>{title}</h2>
           <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>{subtitle}</p>
@@ -757,7 +757,7 @@ function Section({ title, subtitle, accent, children }: { title: string; subtitl
 
 function Metric({ label, value, color, note }: { label: string; value: string; color: string; note: string }) {
   return (
-    <div style={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, minHeight: 96, position: "relative", overflow: "hidden" }}>
+    <div style={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 14, minHeight: 96, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${color}12, transparent 55%)`, pointerEvents: "none" }} />
       <div style={{ position: "relative" }}>
         <p style={{ color: "#64748b", fontSize: 10, fontWeight: 950, textTransform: "uppercase", letterSpacing: 0.55, margin: 0 }}>{label}</p>
@@ -771,16 +771,16 @@ function Metric({ label, value, color, note }: { label: string; value: string; c
 function TenantTable({ rows }: { rows: Array<{ workspace: string; vendas: number; receita: number; canais: number }> }) {
   return (
     <section style={{ ...panel, overflow: "hidden" }}>
-      <div style={{ padding: "16px 18px", borderBottom: "1px solid #e5e7eb", background: "linear-gradient(90deg, rgba(15,23,42,0.08), rgba(255,255,255,0.9))" }}>
+      <div style={{ padding: "16px 18px", borderBottom: "1px solid #E6ECEA", background: "linear-gradient(90deg, rgba(15,23,42,0.08), rgba(255,255,255,0.9))" }}>
         <h2 style={{ color: "#0f172a", fontSize: 16, fontWeight: 950, margin: 0 }}>Tenants em destaque</h2>
         <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>Ranking por receita instalada e volume de propostas.</p>
       </div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
           <thead>
-            <tr style={{ background: "#f8fafc" }}>
+            <tr style={{ background: "#F3F6F5" }}>
               {["Workspace", "Propostas", "Receita instalada", "Canais"].map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: "12px 16px", color: "#64748b", fontSize: 11, fontWeight: 950, textTransform: "uppercase", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                <th key={h} style={{ textAlign: "left", padding: "12px 16px", color: "#64748b", fontSize: 11, fontWeight: 950, textTransform: "uppercase", borderBottom: "1px solid #E6ECEA" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -790,9 +790,9 @@ function TenantTable({ rows }: { rows: Array<{ workspace: string; vendas: number
             ) : rows.map((r, i) => (
               <tr key={r.workspace} style={{ borderTop: "1px solid #f1f5f9", background: i % 2 === 0 ? "#ffffff" : "#fbfdff" }}>
                 <td style={{ padding: "12px 16px", color: "#0f172a", fontSize: 13, fontWeight: 900 }}>{r.workspace}</td>
-                <td style={{ padding: "12px 16px", color: "#2563eb", fontSize: 13, fontWeight: 900 }}>{num(r.vendas)}</td>
-                <td style={{ padding: "12px 16px", color: "#16a34a", fontSize: 13, fontWeight: 900 }}>{real(r.receita)}</td>
-                <td style={{ padding: "12px 16px", color: "#7c3aed", fontSize: 13, fontWeight: 900 }}>{num(r.canais)}</td>
+                <td style={{ padding: "12px 16px", color: "#047857", fontSize: 13, fontWeight: 900 }}>{num(r.vendas)}</td>
+                <td style={{ padding: "12px 16px", color: "#059669", fontSize: 13, fontWeight: 900 }}>{real(r.receita)}</td>
+                <td style={{ padding: "12px 16px", color: "#047857", fontSize: 13, fontWeight: 900 }}>{num(r.canais)}</td>
               </tr>
             ))}
           </tbody>

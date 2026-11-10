@@ -50,13 +50,13 @@ export function Softphone() {
   const corStatus = (s: string) => ({
     iniciando: "#f59e0b",
     chamando: "#f59e0b",
-    conectado: "#16a34a",
+    conectado: "#059669",
     encerrando: "#dc2626",
-    sem_resposta: "#6b7280",
+    sem_resposta: "#64748B",
     ocupado: "#dc2626",
     falha: "#dc2626",
-    caixa_postal: "#6b7280",
-  }[s] || "#6b7280");
+    caixa_postal: "#64748B",
+  }[s] || "#64748B");
 
   const formatTempo = (seg: number) => {
     const m = Math.floor(seg / 60);
@@ -109,16 +109,16 @@ export function Softphone() {
           height: tamanho,
           borderRadius: "50%",
           background: temChamada
-            ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
+            ? "linear-gradient(135deg, #059669 0%, #10B981 100%)"
             : "#ffffff",
-          border: temChamada ? "none" : "1px solid #e5e7eb",
+          border: temChamada ? "none" : "1px solid #E6ECEA",
           cursor: "pointer",
           boxShadow: temChamada
-            ? "0 8px 24px rgba(22,163,74,0.45), 0 0 0 4px rgba(22,163,74,0.15)"
+            ? "0 8px 24px rgba(5,150,105,0.45), 0 0 0 4px rgba(5,150,105,0.15)"
             : "0 4px 16px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06)",
           zIndex: 9000,
           fontSize: isMobile ? 18 : 24,
-          color: temChamada ? "white" : "#16a34a",
+          color: temChamada ? "white" : "#059669",
           opacity,
           animation: temChamada ? "pulse 1.5s infinite" : "none",
           transition: "opacity 0.2s, transform 0.15s",
@@ -158,16 +158,16 @@ export function Softphone() {
         right: rightFinal,
         width: isMobile ? "min(320px, calc(100vw - 24px))" : 320,
         background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        border: "1px solid #E6ECEA",
         borderRadius: 18,
         boxShadow: "0 20px 50px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.06)",
         zIndex: 9000,
         overflow: "hidden",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: "var(--font-wolf), system-ui, sans-serif",
       }}>
         {/* HEADER */}
         <div style={{
-          background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+          background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
           padding: "12px 16px",
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
@@ -196,8 +196,8 @@ export function Softphone() {
         {/* ÁREA DE CHAMADA ATIVA ou TECLADO */}
         {!temChamada && canais.length > 0 && (
           <div style={{ padding: "10px 14px 0", background: "#fff" }}>
-            <label style={{ display: "block", fontSize: 9, color: "#6b7280", fontWeight: 700, marginBottom: 4, textTransform: "uppercase" }}>Canal de sa?da</label>
-            <select value={canalSelecionadoId || ""} onChange={e => setCanalSelecionadoId(Number(e.target.value) || null)} style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 8, padding: "8px 10px", fontSize: 11, background: "white", color: "#1f2937" }}>
+            <label style={{ display: "block", fontSize: 9, color: "#64748B", fontWeight: 700, marginBottom: 4, textTransform: "uppercase" }}>Canal de sa?da</label>
+            <select value={canalSelecionadoId || ""} onChange={e => setCanalSelecionadoId(Number(e.target.value) || null)} style={{ width: "100%", border: "1px solid #CBD5E1", borderRadius: 8, padding: "8px 10px", fontSize: 11, background: "white", color: "#0F172A" }}>
               {canais.map(c => <option key={c.id} value={c.id}>{c.nome} - {c.provider === "sip_manual" ? `PABX/SIP ramal ${c.sip_extension || ""}` : c.provider}</option>)}
             </select>
           </div>
@@ -253,10 +253,10 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
         {chamada.nome?.charAt(0).toUpperCase() || "?"}
       </div>
 
-      <p style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: "0 0 4px" }}>
+      <p style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 4px" }}>
         {chamada.nome || "Sem nome"}
       </p>
-      <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 14px", fontFamily: "monospace" }}>
+      <p style={{ color: "#64748B", fontSize: 12, margin: "0 0 14px", fontFamily: "monospace" }}>
         {formatarNumero(chamada.numero)}
       </p>
 
@@ -291,9 +291,9 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
                 width: 50, height: 50, borderRadius: "50%",
                 background: chamada.mudo
                   ? "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)"
-                  : "#f3f4f6",
-                border: chamada.mudo ? "none" : "1px solid #e5e7eb",
-                color: chamada.mudo ? "white" : "#1f2937",
+                  : "#F1F5F4",
+                border: chamada.mudo ? "none" : "1px solid #E6ECEA",
+                color: chamada.mudo ? "white" : "#0F172A",
                 fontSize: 18, cursor: "pointer",
                 boxShadow: chamada.mudo ? "0 4px 12px rgba(220,38,38,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
                 transition: "all 0.15s",
@@ -304,12 +304,12 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
               style={{
                 width: 50, height: 50, borderRadius: "50%",
                 background: mostrarTeclado
-                  ? "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"
-                  : "#f3f4f6",
-                border: mostrarTeclado ? "none" : "1px solid #e5e7eb",
-                color: mostrarTeclado ? "white" : "#1f2937",
+                  ? "linear-gradient(135deg, #10B981 0%, #059669 100%)"
+                  : "#F1F5F4",
+                border: mostrarTeclado ? "none" : "1px solid #E6ECEA",
+                color: mostrarTeclado ? "white" : "#0F172A",
                 fontSize: 18, cursor: "pointer",
-                boxShadow: mostrarTeclado ? "0 4px 12px rgba(59,130,246,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
+                boxShadow: mostrarTeclado ? "0 4px 12px rgba(5,150,105,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
                 transition: "all 0.15s",
               }}>
               🔢
@@ -340,15 +340,15 @@ function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNum
     <div style={{ padding: 18, background: "#ffffff" }}>
       {/* Display do número */}
       <div style={{
-        background: "#f9fafb",
+        background: "#F7FAF9",
         borderRadius: 12, padding: "16px 14px",
         marginBottom: 14, textAlign: "center",
         minHeight: 56,
         display: "flex", alignItems: "center", justifyContent: "center",
-        border: "1px solid #e5e7eb",
+        border: "1px solid #E6ECEA",
       }}>
         <span style={{
-          color: numero ? "#1f2937" : "#9ca3af",
+          color: numero ? "#0F172A" : "#94A3B8",
           fontSize: numero ? 21 : 13,
           fontFamily: "monospace",
           letterSpacing: numero ? 1 : 0,
@@ -365,11 +365,11 @@ function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNum
         <button onClick={apagar} disabled={!numero}
           style={{
             flex: 1, padding: 13,
-            background: numero ? "#f3f4f6" : "#f9fafb",
-            border: `1px solid ${numero ? "#e5e7eb" : "#f3f4f6"}`,
+            background: numero ? "#F1F5F4" : "#F7FAF9",
+            border: `1px solid ${numero ? "#E6ECEA" : "#F1F5F4"}`,
             borderRadius: 12,
             cursor: numero ? "pointer" : "not-allowed",
-            color: numero ? "#374151" : "#9ca3af",
+            color: numero ? "#334155" : "#94A3B8",
             fontSize: 14, fontWeight: 600,
             opacity: numero ? 1 : 0.5,
             transition: "all 0.15s",
@@ -380,17 +380,17 @@ function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNum
           style={{
             flex: 2, padding: 13,
             background: numero
-              ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
-              : "#f3f4f6",
+              ? "linear-gradient(135deg, #059669 0%, #10B981 100%)"
+              : "#F1F5F4",
             border: "none", borderRadius: 12,
             cursor: numero ? "pointer" : "not-allowed",
-            color: numero ? "white" : "#9ca3af",
+            color: numero ? "white" : "#94A3B8",
             fontSize: 14, fontWeight: 700,
             opacity: numero ? 1 : 0.5,
-            boxShadow: numero ? "0 4px 12px rgba(22,163,74,0.3)" : "none",
+            boxShadow: numero ? "0 4px 12px rgba(5,150,105,0.3)" : "none",
             transition: "all 0.15s",
           }}>
-          📞 Ligar
+          Ligar
         </button>
       </div>
     </div>
@@ -417,32 +417,32 @@ function TecladoNumerico({ adicionar, compacto = false }: { adicionar: (d: strin
           style={{
             height: tamanho,
             background: "#ffffff",
-            border: "1px solid #e5e7eb",
+            border: "1px solid #E6ECEA",
             borderRadius: 12,
-            color: "#1f2937",
+            color: "#0F172A",
             cursor: "pointer",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             transition: "all 0.1s",
             boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
           }}
           onMouseDown={e => {
-            e.currentTarget.style.background = "#f0fdf4";
-            e.currentTarget.style.borderColor = "#16a34a";
+            e.currentTarget.style.background = "#ECFDF5";
+            e.currentTarget.style.borderColor = "#059669";
             e.currentTarget.style.transform = "scale(0.96)";
           }}
           onMouseUp={e => {
             e.currentTarget.style.background = "#ffffff";
-            e.currentTarget.style.borderColor = "#e5e7eb";
+            e.currentTarget.style.borderColor = "#E6ECEA";
             e.currentTarget.style.transform = "scale(1)";
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = "#ffffff";
-            e.currentTarget.style.borderColor = "#e5e7eb";
+            e.currentTarget.style.borderColor = "#E6ECEA";
             e.currentTarget.style.transform = "scale(1)";
           }}
         >
-          <span style={{ fontSize: fontePrimaria, fontWeight: 700, color: "#1f2937" }}>{num}</span>
-          {letras && <span style={{ fontSize: fonteSecundaria, color: "#9ca3af", marginTop: -2, fontWeight: 600, letterSpacing: 0.5 }}>{letras}</span>}
+          <span style={{ fontSize: fontePrimaria, fontWeight: 700, color: "#0F172A" }}>{num}</span>
+          {letras && <span style={{ fontSize: fonteSecundaria, color: "#94A3B8", marginTop: -2, fontWeight: 600, letterSpacing: 0.5 }}>{letras}</span>}
         </button>
       ))}
     </div>

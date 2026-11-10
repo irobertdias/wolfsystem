@@ -140,7 +140,7 @@ export default function Register() {
   };
 
   const inputStyle = {
-    width: "100%", border: "1px solid #d1d5db", borderRadius: 10,
+    width: "100%", border: "1px solid #CBD5E1", borderRadius: 10,
     padding: "12px 16px", fontSize: 14, background: "white",
     boxSizing: "border-box" as const, color: "#111",
   };
@@ -156,14 +156,14 @@ export default function Register() {
   // ✅ Borda do input username muda conforme status
   const usernameBorderColor =
     usernameStatus === "taken" || usernameStatus === "invalid" ? "#dc2626" :
-    usernameStatus === "available" ? "#16a34a" :
+    usernameStatus === "available" ? "#059669" :
     usernameStatus === "checking" ? "#f59e0b" :
-    "#d1d5db";
+    "#CBD5E1";
 
   const submitDisabled = loading || usernameStatus !== "available";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
 
       {/* ESQUERDA */}
       <div style={{ width: "40%", background: "linear-gradient(160deg, #064e3b, #000)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px", gap: "32px" }}>
@@ -171,7 +171,7 @@ export default function Register() {
         <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}>
           {["Integração com Claude, ChatGPT e Typebot", "CRM completo para sua equipe", "Conexão com WhatsApp e API Meta", "Teste grátis sem cartão de crédito"].map((item) => (
             <div key={item} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-              <span style={{ background: "#16a34a", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 12, flexShrink: 0, marginTop: 1 }}>✓</span>
+              <span style={{ background: "#059669", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 12, flexShrink: 0, marginTop: 1 }}>✓</span>
               <p style={{ color: "#d1fae5", fontSize: 13, margin: 0, lineHeight: 1.5 }}>{item}</p>
             </div>
           ))}
@@ -184,7 +184,7 @@ export default function Register() {
 
           <div>
             <h2 style={{ fontSize: 26, fontWeight: "bold", color: "#111", margin: 0 }}>Crie sua conta grátis</h2>
-            <p style={{ color: "#9ca3af", fontSize: 13, marginTop: 6 }}>Preencha os dados abaixo para começar</p>
+            <p style={{ color: "#94A3B8", fontSize: 13, marginTop: 6 }}>Preencha os dados abaixo para começar</p>
           </div>
 
           <input placeholder="Nome completo *" value={form.nome}
@@ -230,7 +230,7 @@ export default function Register() {
 
           <div>
             <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 14, top: 13, color: "#9ca3af", fontSize: 14, pointerEvents: "none" }}>@</span>
+              <span style={{ position: "absolute", left: 14, top: 13, color: "#94A3B8", fontSize: 14, pointerEvents: "none" }}>@</span>
               <input
                 placeholder="Nome de usuário * (ex: minha_empresa)"
                 value={form.username}
@@ -249,31 +249,31 @@ export default function Register() {
             {/* MENSAGEM DE STATUS */}
             {usernameStatus === "checking" && (
               <p style={{ color: "#f59e0b", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
-                ⏳ Verificando disponibilidade...
+                Verificando disponibilidade...
               </p>
             )}
             {usernameStatus === "available" && (
-              <p style={{ color: "#16a34a", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
-                ✅ Disponível! Pode usar este nome
+              <p style={{ color: "#059669", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
+                Disponível! Pode usar este nome
               </p>
             )}
             {usernameStatus === "taken" && (
               <p style={{ color: "#dc2626", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
-                ❌ Este nome já está em uso. Escolha outro
+                Este nome já está em uso. Escolha outro
               </p>
             )}
             {usernameStatus === "invalid" && usernameError && (
               <p style={{ color: "#dc2626", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
-                ⚠️ {usernameError}
+                {usernameError}
               </p>
             )}
-            <p style={{ color: "#9ca3af", fontSize: 11, margin: "4px 0 0 4px" }}>Apenas letras minúsculas, números e _ (underline) — 3 a 30 caracteres</p>
+            <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0 4px" }}>Apenas letras minúsculas, números e _ (underline) — 3 a 30 caracteres</p>
           </div>
 
           <select
             value={form.plano}
             onChange={(e) => setForm({ ...form, plano: e.target.value })}
-            style={{ ...inputStyle, cursor: "pointer", color: form.plano ? "#111" : "#9ca3af" }}
+            style={{ ...inputStyle, cursor: "pointer", color: form.plano ? "#111" : "#94A3B8" }}
           >
             {planos.map((p) => (
               <option key={p.value} value={p.value} disabled={p.value === ""}>{p.label}</option>
@@ -281,7 +281,7 @@ export default function Register() {
           </select>
 
           <button onClick={handleSubmit} disabled={submitDisabled} style={{
-            width: "100%", background: submitDisabled ? "#86efac" : "#16a34a", color: "white", border: "none",
+            width: "100%", background: submitDisabled ? "#6EE7B7" : "#059669", color: "white", border: "none",
             borderRadius: 10, padding: 14, fontSize: 14, fontWeight: "bold",
             cursor: submitDisabled ? "not-allowed" : "pointer", letterSpacing: 1, textTransform: "uppercase",
             opacity: submitDisabled ? 0.6 : 1,
@@ -290,8 +290,8 @@ export default function Register() {
           </button>
 
           <button onClick={() => router.push("/")} style={{
-            width: "100%", background: "white", color: "#9ca3af",
-            border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, fontSize: 14, cursor: "pointer"
+            width: "100%", background: "white", color: "#94A3B8",
+            border: "1px solid #E6ECEA", borderRadius: 10, padding: 14, fontSize: 14, cursor: "pointer"
           }}>
             Já tenho conta? Fazer login
           </button>

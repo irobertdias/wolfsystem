@@ -2,22 +2,23 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
+import { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Férias (CONECTADO — 'ferias'; agendar = update status/inicio_agendado)
 const COR = "#4f46e5";
 const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -45,7 +46,7 @@ type Ferias = {
 const SI: Record<StatusF, { label: string; cor: string }> = {
   em_gozo: { label: "Em gozo", cor: "#0ea5e9" },
   agendada: { label: "Agendada", cor: "#8b5cf6" },
-  disponivel: { label: "Disponível", cor: "#16a34a" },
+  disponivel: { label: "Disponível", cor: "#059669" },
   vencendo: { label: "Vencendo", cor: "#dc2626" },
 };
 const FORM_VAZIO: Ferias = {
@@ -184,7 +185,7 @@ export function FeriasSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -195,10 +196,10 @@ export function FeriasSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>🌴</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Férias
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Controle de períodos aquisitivos e agendamentos
             </p>
           </div>
@@ -209,7 +210,7 @@ export function FeriasSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -263,11 +264,11 @@ export function FeriasSection() {
                   fontSize: 14,
                 }}
               >
-                {s.icon}
+                {<IconeEmoji e={s.icon} />}
               </div>
               <p
                 style={{
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 11,
                   margin: 0,
                   fontWeight: 700,
@@ -285,32 +286,32 @@ export function FeriasSection() {
       </div>
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum registro de férias.</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum registro de férias.</p>
         </div>
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#F7FAF9" }}>
                   {["Colaborador", "Aquisitivo", "Dias", "Vence em", "Status", "Ações"].map((h) => (
                     <th
                       key={h}
                       style={{
                         padding: "12px 16px",
-                        color: "#6b7280",
+                        color: "#64748B",
                         fontSize: 11,
                         textAlign: "left",
                         textTransform: "uppercase",
                         letterSpacing: 0.5,
                         whiteSpace: "nowrap",
                         fontWeight: 700,
-                        borderBottom: "1px solid #e5e7eb",
+                        borderBottom: "1px solid #E6ECEA",
                       }}
                     >
                       {h}
@@ -326,21 +327,21 @@ export function FeriasSection() {
                     <tr
                       key={f.id}
                       style={{
-                        borderTop: "1px solid #f3f4f6",
-                        background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                        borderTop: "1px solid #F1F5F4",
+                        background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
                       }}
                     >
                       <td style={{ padding: "12px 16px" }}>
-                        <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{f.nome}</p>
-                        <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{f.cargo}</p>
+                        <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{f.nome}</p>
+                        <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{f.cargo}</p>
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12 }}>{f.aquisitivo}</td>
+                      <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12 }}>{f.aquisitivo}</td>
                       <td style={{ padding: "12px 16px", fontSize: 12 }}>
-                        <span style={{ color: "#16a34a", fontWeight: 700 }}>{restantes}</span>{" "}
-                        <span style={{ color: "#9ca3af" }}>de {f.diasDireito}</span>
+                        <span style={{ color: "#059669", fontWeight: 700 }}>{restantes}</span>{" "}
+                        <span style={{ color: "#94A3B8" }}>de {f.diasDireito}</span>
                       </td>
                       <td
-                        style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12, whiteSpace: "nowrap" }}
+                        style={{ padding: "12px 16px", color: "#64748B", fontSize: 12, whiteSpace: "nowrap" }}
                       >
                         {f.venceEm}
                         {f.inicioAgendado ? ` · início ${dataBR(f.inicioAgendado)}` : ""}
@@ -368,9 +369,9 @@ export function FeriasSection() {
                             setDataAg(f.inicioAgendado || "");
                           }}
                           style={{
-                            background: "#eef2ff",
+                            background: "#ECFDF5",
                             color: COR_TEXTO,
-                            border: "1px solid #c7d2fe",
+                            border: "1px solid #A7F3D0",
                             borderRadius: 8,
                             padding: "5px 11px",
                             fontSize: 11,
@@ -379,7 +380,7 @@ export function FeriasSection() {
                             marginRight: 6,
                           }}
                         >
-                          📅 Agendar
+                          Agendar
                         </button>
                         <button
                           onClick={() => excluir(f)}
@@ -427,21 +428,21 @@ export function FeriasSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
                 Novo Registro de Férias
               </h3>
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -518,19 +519,19 @@ export function FeriasSection() {
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={() => setModal(false)}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -544,7 +545,7 @@ export function FeriasSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -583,21 +584,21 @@ export function FeriasSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
                 Agendar férias de {agendar.nome}
               </h3>
               <button
                 onClick={() => setAgendar(null)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -621,19 +622,19 @@ export function FeriasSection() {
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={() => setAgendar(null)}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -646,7 +647,7 @@ export function FeriasSection() {
               <button
                 onClick={confirmarAgendamento}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -656,7 +657,7 @@ export function FeriasSection() {
                   fontWeight: 700,
                 }}
               >
-                📅 Confirmar
+                Confirmar
               </button>
             </div>
           </div>
@@ -670,7 +671,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label
         style={{
-          color: "#6b7280",
+          color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",

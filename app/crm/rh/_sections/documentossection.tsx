@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🧑‍💼 RH · Documentos  (CONECTADO — tabela 'documentos' + Storage 'documentos-rh')
 // ───────────────────────────────────────────────────────────────────────
@@ -19,16 +20,16 @@ const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -69,14 +70,14 @@ function statusDoc(validade: string): {
   label: string;
   cor: string;
 } {
-  if (!validade) return { key: "permanente", label: "Permanente", cor: "#6b7280" };
+  if (!validade) return { key: "permanente", label: "Permanente", cor: "#64748B" };
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const v = new Date(validade + "T00:00:00");
   const dias = Math.round((v.getTime() - hoje.getTime()) / 86400000);
   if (dias < 0) return { key: "vencido", label: "Vencido", cor: "#dc2626" };
   if (dias <= 30) return { key: "vencendo", label: `Vence em ${dias}d`, cor: "#f59e0b" };
-  return { key: "valido", label: "Válido", cor: "#16a34a" };
+  return { key: "valido", label: "Válido", cor: "#059669" };
 }
 
 // transforma "João Silva" → "joao-silva" pra usar no caminho do arquivo
@@ -269,7 +270,7 @@ export function DocumentosSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -280,10 +281,10 @@ export function DocumentosSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>📁</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Documentos
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Arquivos dos colaboradores — upload, validade e download
             </p>
           </div>
@@ -291,7 +292,7 @@ export function DocumentosSection() {
         <button
           onClick={abrirNovo}
           style={{
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -332,7 +333,7 @@ export function DocumentosSection() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14 }}>
         {[
           { label: "Documentos", value: String(stats.total), cor: "#6366f1", icon: "📁" },
-          { label: "Com arquivo", value: String(stats.comArquivo), cor: "#16a34a", icon: "📎" },
+          { label: "Com arquivo", value: String(stats.comArquivo), cor: "#059669", icon: "📎" },
           { label: "Vencendo", value: String(stats.vencendo), cor: "#f59e0b", icon: "⏳" },
           { label: "Vencidos", value: String(stats.vencidos), cor: "#dc2626", icon: "🚨" },
         ].map((s) => (
@@ -350,11 +351,11 @@ export function DocumentosSection() {
                   fontSize: 14,
                 }}
               >
-                {s.icon}
+                {<IconeEmoji e={s.icon} />}
               </div>
               <p
                 style={{
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 11,
                   margin: 0,
                   fontWeight: 700,
@@ -374,7 +375,7 @@ export function DocumentosSection() {
       {/* FILTROS */}
       <div style={{ ...card, padding: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <input
-          placeholder="🔍 Buscar por colaborador ou tipo..."
+          placeholder="Buscar por colaborador ou tipo..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           style={{ ...inputStyle, flex: "1 1 280px", maxWidth: 460, borderRadius: 20 }}
@@ -393,12 +394,12 @@ export function DocumentosSection() {
       {/* LISTA */}
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : filtrados.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>{lista.length === 0 ? "📭" : "🔍"}</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>
+          <p style={{ color: "#64748B", fontSize: 13 }}>
             {lista.length === 0 ? "Nenhum documento cadastrado." : "Nada encontrado"}
           </p>
         </div>
@@ -407,20 +408,20 @@ export function DocumentosSection() {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#F7FAF9" }}>
                   {["Colaborador", "Documento", "Arquivo", "Validade", "Status", ""].map((h) => (
                     <th
                       key={h}
                       style={{
                         padding: "12px 16px",
-                        color: "#6b7280",
+                        color: "#64748B",
                         fontSize: 11,
                         textAlign: "left",
                         textTransform: "uppercase",
                         letterSpacing: 0.5,
                         whiteSpace: "nowrap",
                         fontWeight: 700,
-                        borderBottom: "1px solid #e5e7eb",
+                        borderBottom: "1px solid #E6ECEA",
                       }}
                     >
                       {h}
@@ -435,21 +436,21 @@ export function DocumentosSection() {
                     <tr
                       key={d.id}
                       style={{
-                        borderTop: "1px solid #f3f4f6",
-                        background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                        borderTop: "1px solid #F1F5F4",
+                        background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
                       }}
                     >
-                      <td style={{ padding: "12px 16px", color: "#1f2937", fontSize: 13, fontWeight: 700 }}>
+                      <td style={{ padding: "12px 16px", color: "#0F172A", fontSize: 13, fontWeight: 700 }}>
                         {d.funcionario}
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>📄 {d.tipo}</td>
+                      <td style={{ padding: "12px 16px", color: "#475569", fontSize: 12 }}>{d.tipo}</td>
                       <td style={{ padding: "12px 16px" }}>
                         {d.arquivoUrl ? (
                           <span
                             style={{
-                              background: "#f0fdf4",
-                              color: "#16a34a",
-                              border: "1px solid #bbf7d0",
+                              background: "#ECFDF5",
+                              color: "#059669",
+                              border: "1px solid #A7F3D0",
                               fontSize: 11,
                               padding: "3px 10px",
                               borderRadius: 10,
@@ -457,14 +458,14 @@ export function DocumentosSection() {
                               whiteSpace: "nowrap",
                             }}
                           >
-                            📎 Anexado
+                            Anexado
                           </span>
                         ) : (
                           <span style={{ color: "#cbd5e1", fontSize: 12 }}>— sem arquivo</span>
                         )}
                       </td>
                       <td
-                        style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12, whiteSpace: "nowrap" }}
+                        style={{ padding: "12px 16px", color: "#64748B", fontSize: 12, whiteSpace: "nowrap" }}
                       >
                         {dataBR(d.validade)}
                       </td>
@@ -490,9 +491,9 @@ export function DocumentosSection() {
                             onClick={() => verArquivo(d)}
                             disabled={abrindo === d.id}
                             style={{
-                              background: "#eef2ff",
+                              background: "#ECFDF5",
                               color: COR_TEXTO,
-                              border: "1px solid #c7d2fe",
+                              border: "1px solid #A7F3D0",
                               borderRadius: 8,
                               padding: "5px 11px",
                               fontSize: 11,
@@ -552,21 +553,21 @@ export function DocumentosSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
                 Adicionar Documento
               </h3>
               <button
                 onClick={fechar}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -615,8 +616,8 @@ export function DocumentosSection() {
                 {arquivo ? (
                   <div
                     style={{
-                      border: "1px solid #c7d2fe",
-                      background: "#eef2ff",
+                      border: "1px solid #A7F3D0",
+                      background: "#ECFDF5",
                       borderRadius: 12,
                       padding: "12px 14px",
                       display: "flex",
@@ -630,7 +631,7 @@ export function DocumentosSection() {
                       <div style={{ minWidth: 0 }}>
                         <p
                           style={{
-                            color: "#1f2937",
+                            color: "#0F172A",
                             fontSize: 13,
                             fontWeight: 700,
                             margin: 0,
@@ -641,7 +642,7 @@ export function DocumentosSection() {
                         >
                           {arquivo.name}
                         </p>
-                        <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>
+                        <p style={{ color: "#64748B", fontSize: 11, margin: "2px 0 0" }}>
                           {tamanhoLegivel(arquivo.size)}
                         </p>
                       </div>
@@ -670,11 +671,11 @@ export function DocumentosSection() {
                   <div
                     onClick={() => inputArquivoRef.current?.click()}
                     style={{
-                      border: "2px dashed #c7d2fe",
+                      border: "2px dashed #A7F3D0",
                       borderRadius: 12,
                       padding: 20,
                       textAlign: "center",
-                      background: "#f9fafb",
+                      background: "#F7FAF9",
                       cursor: "pointer",
                     }}
                   >
@@ -682,7 +683,7 @@ export function DocumentosSection() {
                     <p style={{ color: COR_TEXTO, fontSize: 13, margin: 0, fontWeight: 700 }}>
                       Clique para escolher o arquivo
                     </p>
-                    <p style={{ color: "#9ca3af", fontSize: 11, margin: "4px 0 0" }}>
+                    <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0" }}>
                       PDF, imagem ou documento
                     </p>
                   </div>
@@ -692,19 +693,19 @@ export function DocumentosSection() {
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={fechar}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -718,7 +719,7 @@ export function DocumentosSection() {
                 onClick={salvar}
                 disabled={enviando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -744,7 +745,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label
         style={{
-          color: "#6b7280",
+          color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",

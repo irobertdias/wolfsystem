@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 
+import { IconeEmoji } from "../../components/a2/Icone";
 type Canal = { id: number; nome: string; tipo: string; waba_id: string; };
 type Template = {
   id: number; workspace_id: string; canal_id: number; waba_id: string;
@@ -26,9 +27,9 @@ const IDIOMAS = [
   { v: "es_ES", l: "🇪🇸 Espanhol" }
 ];
 const STATUS_COLORS: Record<string, string> = {
-  rascunho: "#6b7280", pendente: "#f59e0b", aprovado: "#16a34a",
-  rejeitado: "#dc2626", pausado: "#f59e0b", desativado: "#6b7280",
-  em_recurso: "#3b82f6", deletando: "#6b7280", deletado: "#6b7280"
+  rascunho: "#64748B", pendente: "#f59e0b", aprovado: "#059669",
+  rejeitado: "#dc2626", pausado: "#f59e0b", desativado: "#64748B",
+  em_recurso: "#3b82f6", deletando: "#64748B", deletado: "#64748B"
 };
 const STATUS_LABELS: Record<string, string> = {
   rascunho: "📝 Rascunho", pendente: "⏳ Pendente", aprovado: "✅ Aprovado",
@@ -418,17 +419,17 @@ export default function TemplatesPage() {
   const contarTemplatesCanal = (id: number) => templates.filter(t => t.canal_id === id).length;
 
   // 🎨 ESTILOS LIGHT TECH
-  const IS = { width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
+  const IS = { width: "100%", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 14px", color: "#0F172A", fontSize: 13, boxSizing: "border-box" as const, outline: "none", transition: "border-color 0.15s, box-shadow 0.15s" };
   const cardStyle = {
     background: "#ffffff",
     borderRadius: 14,
-    border: "1px solid #e5e7eb",
+    border: "1px solid #E6ECEA",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
   if (!podeAcessar) {
     return (
-      <div style={{ padding: 32, minHeight: "100vh", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ padding: 32, minHeight: "100vh", background: "#F3F6F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
           <div style={{
             width: 80, height: 80, borderRadius: 20,
@@ -439,8 +440,8 @@ export default function TemplatesPage() {
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
           </div>
-          <h1 style={{ color: "#1f2937", fontSize: 20, fontWeight: 700, margin: "0 0 8px" }}>Acesso Restrito</h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Apenas o dono do workspace pode gerenciar templates.</p>
+          <h1 style={{ color: "#0F172A", fontSize: 20, fontWeight: 700, margin: "0 0 8px" }}>Acesso Restrito</h1>
+          <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>Apenas o dono do workspace pode gerenciar templates.</p>
         </div>
       </div>
     );
@@ -455,49 +456,49 @@ export default function TemplatesPage() {
     : templates.filter(t => canaisSelecionados.includes(t.canal_id));
 
   return (
-    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#f8fafc", minHeight: "100vh" }}>
+    <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, background: "#F3F6F5", minHeight: "100vh" }}>
 
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <button onClick={() => router.push("/chatbot")}
-          style={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "9px 14px", color: "#4b5563", fontSize: 12, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-          ← Voltar
+          style={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 14px", color: "#475569", fontSize: 12, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          Voltar
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 280 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(59,130,246,0.25)",
+            fontSize: 24, boxShadow: "0 8px 20px rgba(5,150,105,0.25)",
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>📨</span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Templates WABA</h1>
-            <p style={{ color: "#6b7280", fontSize: 13, margin: "2px 0 0", lineHeight: 1.5 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Templates WABA</h1>
+            <p style={{ color: "#64748B", fontSize: 13, margin: "2px 0 0", lineHeight: 1.5 }}>
               Cadastre templates e envie pra aprovação da Meta. Aprovados podem ser usados em disparos.
             </p>
           </div>
         </div>
         <button onClick={sincronizarAgora} disabled={sincronizando}
-          style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: sincronizando ? "wait" : "pointer", fontWeight: 700 }}>
+          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: sincronizando ? "wait" : "pointer", fontWeight: 700 }}>
           {sincronizando ? "⏳ Sincronizando..." : "🔄 Sincronizar agora"}
         </button>
         <button onClick={() => { setForm({ ...formInicial, canalId: canaisSelecionados.length === 1 ? String(canaisSelecionados[0]) : "" }); setShowModal(true); }}
           style={{
-            background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+            background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-            boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+            boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
           }}>
           + Novo Template
         </button>
       </div>
 
       {/* ═══ INFO ═══ */}
-      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderLeft: "4px solid #3b82f6", borderRadius: 12, padding: "14px 18px" }}>
-        <p style={{ color: "#1e40af", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
-          <b>ℹ️ Como funciona:</b> Você cadastra aqui, o sistema envia pra Meta revisar.
+      <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderLeft: "4px solid #059669", borderRadius: 12, padding: "14px 18px" }}>
+        <p style={{ color: "#065F46", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
+          <b>Como funciona:</b> Você cadastra aqui, o sistema envia pra Meta revisar.
           A Meta leva em média 15 a 60 minutos pra aprovar (pode levar até 24h).
           O sistema verifica o status a cada 30 minutos automaticamente.
           Você recebe notificação quando for aprovado ou rejeitado.
@@ -508,7 +509,7 @@ export default function TemplatesPage() {
       {canais.length === 0 && (
         <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626", borderRadius: 12, padding: "14px 18px" }}>
           <p style={{ color: "#991b1b", fontSize: 13, margin: 0, fontWeight: 600 }}>
-            ⚠️ Nenhum canal WABA conectado. Conecte um canal WABA em <b>Conexões</b> antes de criar templates.
+            Nenhum canal WABA conectado. Conecte um canal WABA em <b>Conexões</b> antes de criar templates.
           </p>
         </div>
       )}
@@ -517,9 +518,9 @@ export default function TemplatesPage() {
       {canais.length > 1 && (
         <div style={{ ...cardStyle, padding: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-            <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>📡 Filtrar por canal</span>
+            <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Filtrar por canal</span>
             {canaisSelecionados.length > 0 && (
-              <span style={{ color: "#3b82f6", fontSize: 11, fontWeight: 600 }}>
+              <span style={{ color: "#059669", fontSize: 11, fontWeight: 600 }}>
                 · mostrando {templatesFiltrados.length} de {templates.length} template(s)
               </span>
             )}
@@ -528,16 +529,16 @@ export default function TemplatesPage() {
             {/* Todos */}
             <button onClick={() => setCanaisSelecionados([])}
               style={{
-                background: canaisSelecionados.length === 0 ? "#3b82f615" : "#f9fafb",
-                color: canaisSelecionados.length === 0 ? "#3b82f6" : "#6b7280",
-                border: `1px solid ${canaisSelecionados.length === 0 ? "#3b82f650" : "#e5e7eb"}`,
+                background: canaisSelecionados.length === 0 ? "#3b82f615" : "#F7FAF9",
+                color: canaisSelecionados.length === 0 ? "#059669" : "#64748B",
+                border: `1px solid ${canaisSelecionados.length === 0 ? "#3b82f650" : "#E6ECEA"}`,
                 borderRadius: 10, padding: "8px 16px", fontSize: 12,
                 fontWeight: canaisSelecionados.length === 0 ? 700 : 600, cursor: "pointer",
                 display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
                 transition: "all 0.15s",
                 boxShadow: canaisSelecionados.length === 0 ? "0 2px 8px #3b82f625" : "none",
               }}>
-              📡 Todos ({templates.length})
+              Todos ({templates.length})
             </button>
             {/* Um por canal */}
             {canais.map(c => {
@@ -546,9 +547,9 @@ export default function TemplatesPage() {
               return (
                 <button key={c.id} onClick={() => toggleCanalFiltro(c.id)}
                   style={{
-                    background: ativo ? "#16a34a15" : "#f9fafb",
-                    color: ativo ? "#16a34a" : "#6b7280",
-                    border: `1px solid ${ativo ? "#16a34a50" : "#e5e7eb"}`,
+                    background: ativo ? "#16a34a15" : "#F7FAF9",
+                    color: ativo ? "#059669" : "#64748B",
+                    border: `1px solid ${ativo ? "#16a34a50" : "#E6ECEA"}`,
                     borderRadius: 10, padding: "8px 16px", fontSize: 12,
                     fontWeight: ativo ? 700 : 600, cursor: "pointer",
                     display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
@@ -565,32 +566,32 @@ export default function TemplatesPage() {
 
       {/* ═══ LISTA DE TEMPLATES ═══ */}
       <div style={{ ...cardStyle, padding: 24 }}>
-        <h2 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 18px" }}>
-          📋 Meus Templates ({canaisSelecionados.length === 0 ? templates.length : `${templatesFiltrados.length} de ${templates.length}`})
+        <h2 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 18px" }}>
+          Meus Templates ({canaisSelecionados.length === 0 ? templates.length : `${templatesFiltrados.length} de ${templates.length}`})
         </h2>
         {templates.length === 0 ? (
           <div style={{ textAlign: "center", padding: 32 }}>
             <p style={{ fontSize: 40, margin: "0 0 10px" }}>📭</p>
-            <p style={{ color: "#9ca3af", fontSize: 13 }}>
+            <p style={{ color: "#94A3B8", fontSize: 13 }}>
               Nenhum template cadastrado ainda. Clique em <b>+ Novo Template</b> pra começar.
             </p>
           </div>
         ) : templatesFiltrados.length === 0 ? (
           <div style={{ textAlign: "center", padding: 32 }}>
             <p style={{ fontSize: 40, margin: "0 0 10px" }}>🔍</p>
-            <p style={{ color: "#9ca3af", fontSize: 13, margin: "0 0 14px" }}>
+            <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 14px" }}>
               Nenhum template nos canais selecionados.
             </p>
             <button onClick={() => setCanaisSelecionados([])}
-              style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 10, padding: "8px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
-              📡 Ver todos os canais
+              style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "8px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+              Ver todos os canais
             </button>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {templatesFiltrados.map(t => {
               const canal = canais.find(c => c.id === t.canal_id);
-              const color = STATUS_COLORS[t.status] || "#6b7280";
+              const color = STATUS_COLORS[t.status] || "#64748B";
               const bodyComp = (t.componentes || []).find((c: any) => c.type === "BODY");
               const bodyPreview = bodyComp?.text ? (bodyComp.text.length > 120 ? bodyComp.text.slice(0, 120) + "..." : bodyComp.text) : "";
               // 🆕 Traduz motivo da rejeição (retorna null pra "NONE"/""/null → não exibe nada)
@@ -599,7 +600,7 @@ export default function TemplatesPage() {
                 <div key={t.id}
                   style={{
                     background: "#ffffff", borderRadius: 12, padding: 18,
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid #E6ECEA",
                     borderLeft: `4px solid ${color}`,
                     transition: "all 0.15s",
                   }}
@@ -608,14 +609,14 @@ export default function TemplatesPage() {
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 10 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: 0 }}>
+                      <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0 }}>
                         {t.nome_amigavel || t.meta_template_name}
                       </p>
-                      <p style={{ color: "#6b7280", fontSize: 11, margin: "4px 0 0", fontFamily: "monospace" }}>
+                      <p style={{ color: "#64748B", fontSize: 11, margin: "4px 0 0", fontFamily: "monospace" }}>
                         {t.meta_template_name} · {t.idioma} · {t.categoria}
                       </p>
-                      <p style={{ color: "#9ca3af", fontSize: 11, margin: "4px 0 0" }}>
-                        📱 {canal?.nome || "Canal removido"} · 👤 {t.criado_por}
+                      <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0" }}>
+                        {canal?.nome || "Canal removido"} · 👤 {t.criado_por}
                       </p>
                     </div>
                     <span style={{
@@ -628,10 +629,10 @@ export default function TemplatesPage() {
                   </div>
                   {bodyPreview && (
                     <p style={{
-                      color: "#374151", fontSize: 12, margin: "0 0 12px",
-                      background: "#f9fafb", padding: 12, borderRadius: 8,
+                      color: "#334155", fontSize: 12, margin: "0 0 12px",
+                      background: "#F7FAF9", padding: 12, borderRadius: 8,
                       whiteSpace: "pre-wrap", lineHeight: 1.5,
-                      border: "1px solid #e5e7eb",
+                      border: "1px solid #E6ECEA",
                     }}>
                       {bodyPreview}
                     </p>
@@ -644,7 +645,7 @@ export default function TemplatesPage() {
                       borderRadius: 8, padding: "10px 14px", marginBottom: 12,
                     }}>
                       <p style={{ color: "#991b1b", fontSize: 10, margin: 0, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>
-                        ❌ Motivo da rejeição
+                        Motivo da rejeição
                       </p>
                       <p style={{ color: "#dc2626", fontSize: 12, margin: "4px 0 0", fontWeight: 600, lineHeight: 1.4 }}>
                         {motivoTraduzido}
@@ -653,12 +654,12 @@ export default function TemplatesPage() {
                   )}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <button onClick={() => setDetalhe(t)}
-                      style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
-                      👁️ Detalhes
+                      style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                      Detalhes
                     </button>
                     <button onClick={() => deletarTemplate(t)}
                       style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
-                      🗑️ Deletar
+                      Deletar
                     </button>
                   </div>
                 </div>
@@ -674,46 +675,46 @@ export default function TemplatesPage() {
           style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={e => e.stopPropagation()}
             style={{ ...cardStyle, width: "100%", maxWidth: 720, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>➕ Novo Template</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>Novo Template</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
 
             <div style={{ padding: 22, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 18 }}>
 
               {/* Canal */}
               <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Canal WABA *</label>
+                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Canal WABA *</label>
                 <select value={form.canalId} onChange={e => setForm(p => ({ ...p, canalId: e.target.value }))} style={IS}>
                   <option value="">Selecione o canal</option>
                   {canais.map(c => (<option key={c.id} value={c.id}>{c.nome} (WABA: {c.waba_id})</option>))}
                 </select>
-                <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>O template será cadastrado neste WABA específico.</p>
+                <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>O template será cadastrado neste WABA específico.</p>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div>
-                  <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome Técnico *</label>
+                  <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome Técnico *</label>
                   <input value={form.metaTemplateName} onChange={e => setForm(p => ({ ...p, metaTemplateName: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }))} placeholder="boas_vindas_cliente" style={{ ...IS, fontFamily: "monospace" }} />
-                  <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>Só minúsculas, números e _</p>
+                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Só minúsculas, números e _</p>
                 </div>
                 <div>
-                  <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome Amigável</label>
+                  <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Nome Amigável</label>
                   <input value={form.nomeAmigavel} onChange={e => setForm(p => ({ ...p, nomeAmigavel: e.target.value }))} placeholder="Boas-vindas ao cliente" style={IS} />
-                  <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>Pra aparecer no sistema</p>
+                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>Pra aparecer no sistema</p>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div>
-                  <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Categoria *</label>
+                  <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Categoria *</label>
                   <select value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))} style={IS}>
                     {CATEGORIAS.map(c => (<option key={c.v} value={c.v}>{c.l}</option>))}
                   </select>
-                  <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0" }}>{CATEGORIAS.find(c => c.v === form.categoria)?.d}</p>
+                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0" }}>{CATEGORIAS.find(c => c.v === form.categoria)?.d}</p>
                 </div>
                 <div>
-                  <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Idioma *</label>
+                  <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Idioma *</label>
                   <select value={form.idioma} onChange={e => setForm(p => ({ ...p, idioma: e.target.value }))} style={IS}>
                     {IDIOMAS.map(i => (<option key={i.v} value={i.v}>{i.l}</option>))}
                   </select>
@@ -721,14 +722,14 @@ export default function TemplatesPage() {
               </div>
 
               {/* HEADER */}
-              <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-                <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>HEADER (opcional)</p>
+              <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16 }}>
+                <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>HEADER (opcional)</p>
                 <select value={form.headerTipo} onChange={e => setForm(p => ({ ...p, headerTipo: e.target.value as any }))} style={{ ...IS, marginBottom: 10 }}>
                   <option value="none">Sem cabeçalho</option>
-                  <option value="text">📝 Texto</option>
-                  <option value="image">🖼️ Imagem</option>
-                  <option value="video">🎬 Vídeo</option>
-                  <option value="document">📄 Documento</option>
+                  <option value="text">Texto</option>
+                  <option value="image">Imagem</option>
+                  <option value="video">Vídeo</option>
+                  <option value="document">Documento</option>
                 </select>
                 {form.headerTipo === "text" && (
                   <input value={form.headerTexto} onChange={e => setForm(p => ({ ...p, headerTexto: e.target.value }))} placeholder="Ex: Olá, {{1}}!" maxLength={60} style={IS} />
@@ -740,32 +741,32 @@ export default function TemplatesPage() {
 
               {/* BODY */}
               <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Mensagem (BODY) *</label>
+                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Mensagem (BODY) *</label>
                 <textarea value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} rows={5}
                   placeholder="Olá {{1}}, seu pedido {{2}} foi confirmado!"
                   style={{ ...IS, resize: "vertical", minHeight: 120, fontFamily: "monospace" }} />
-                <p style={{ color: varsBody > 0 ? "#16a34a" : "#9ca3af", fontSize: 10, margin: "4px 0 0", fontWeight: varsBody > 0 ? 700 : 400 }}>
+                <p style={{ color: varsBody > 0 ? "#059669" : "#94A3B8", fontSize: 10, margin: "4px 0 0", fontWeight: varsBody > 0 ? 700 : 400 }}>
                   {form.body.length}/1024 caracteres · {varsBody} variável(is) detectada(s) — use {"{{1}}"}, {"{{2}}"}, etc
                 </p>
               </div>
 
               {/* FOOTER */}
               <div>
-                <label style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Rodapé (opcional)</label>
+                <label style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Rodapé (opcional)</label>
                 <input value={form.footer} onChange={e => setForm(p => ({ ...p, footer: e.target.value }))} maxLength={60} placeholder="Ex: Responda STOP pra descadastrar" style={IS} />
               </div>
 
               {/* BUTTONS */}
-              <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
+              <div style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>BOTÕES (até 3, opcional)</p>
+                  <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>BOTÕES (até 3, opcional)</p>
                   <button onClick={adicionarBotao} disabled={form.botoes.length >= 3}
-                    style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: form.botoes.length >= 3 ? "not-allowed" : "pointer", fontWeight: 600, opacity: form.botoes.length >= 3 ? 0.5 : 1 }}>
+                    style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: form.botoes.length >= 3 ? "not-allowed" : "pointer", fontWeight: 600, opacity: form.botoes.length >= 3 ? 0.5 : 1 }}>
                     + Adicionar
                   </button>
                 </div>
                 {form.botoes.map((b, i) => (
-                  <div key={i} style={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12, marginBottom: 8 }}>
+                  <div key={i} style={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: 12, marginBottom: 8 }}>
                     <div style={{ display: "grid", gridTemplateColumns: "140px 1fr auto", gap: 8, alignItems: "center" }}>
                       <select value={b.type} onChange={e => atualizarBotao(i, "type", e.target.value)} style={{ ...IS, fontSize: 12, padding: "8px 10px" }}>
                         <option value="QUICK_REPLY">Resposta Rápida</option>
@@ -784,21 +785,21 @@ export default function TemplatesPage() {
                     )}
                   </div>
                 ))}
-                {form.botoes.length === 0 && <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textAlign: "center", padding: 10 }}>Nenhum botão adicionado</p>}
+                {form.botoes.length === 0 && <p style={{ color: "#94A3B8", fontSize: 11, margin: 0, textAlign: "center", padding: 10 }}>Nenhum botão adicionado</p>}
               </div>
             </div>
 
-            <div style={{ padding: "16px 22px", borderTop: "1px solid #e5e7eb", display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <div style={{ padding: "16px 22px", borderTop: "1px solid #E6ECEA", display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button onClick={() => setShowModal(false)}
-                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={enviarParaMeta} disabled={enviando}
                 style={{
-                  background: enviando ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                  background: enviando ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 24px", fontSize: 13, cursor: enviando ? "wait" : "pointer", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                  boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 }}>
                 {enviando ? "⏳ Enviando..." : "📤 Enviar pra Meta"}
               </button>
@@ -813,27 +814,27 @@ export default function TemplatesPage() {
           style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={e => e.stopPropagation()}
             style={{ ...cardStyle, width: "100%", maxWidth: 600, maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>{detalhe.nome_amigavel || detalhe.meta_template_name}</h3>
-              <button onClick={() => setDetalhe(null)} style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>{detalhe.nome_amigavel || detalhe.meta_template_name}</h3>
+              <button onClick={() => setDetalhe(null)} style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
             <div style={{ padding: 22, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>Status</p>
+                <p style={{ color: "#94A3B8", fontSize: 11, fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>Status</p>
                 <p style={{ color: STATUS_COLORS[detalhe.status], fontSize: 14, fontWeight: 700, margin: 0 }}>{STATUS_LABELS[detalhe.status]}</p>
               </div>
               <div>
-                <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>Nome Técnico (Meta)</p>
-                <p style={{ color: "#1f2937", fontSize: 13, fontFamily: "monospace", margin: 0, background: "#f3f4f6", padding: "6px 10px", borderRadius: 6, border: "1px solid #e5e7eb" }}>{detalhe.meta_template_name}</p>
+                <p style={{ color: "#94A3B8", fontSize: 11, fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>Nome Técnico (Meta)</p>
+                <p style={{ color: "#0F172A", fontSize: 13, fontFamily: "monospace", margin: 0, background: "#F1F5F4", padding: "6px 10px", borderRadius: 6, border: "1px solid #E6ECEA" }}>{detalhe.meta_template_name}</p>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 <div>
-                  <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>Categoria</p>
-                  <p style={{ color: "#1f2937", fontSize: 13, margin: 0, fontWeight: 600 }}>{detalhe.categoria}</p>
+                  <p style={{ color: "#94A3B8", fontSize: 11, fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>Categoria</p>
+                  <p style={{ color: "#0F172A", fontSize: 13, margin: 0, fontWeight: 600 }}>{detalhe.categoria}</p>
                 </div>
                 <div>
-                  <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>Idioma</p>
-                  <p style={{ color: "#1f2937", fontSize: 13, margin: 0, fontWeight: 600 }}>{detalhe.idioma}</p>
+                  <p style={{ color: "#94A3B8", fontSize: 11, fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>Idioma</p>
+                  <p style={{ color: "#0F172A", fontSize: 13, margin: 0, fontWeight: 600 }}>{detalhe.idioma}</p>
                 </div>
               </div>
               {/* 🆕 Motivo só aparece se houver tradução real (NONE/vazio retorna null) */}
@@ -842,11 +843,11 @@ export default function TemplatesPage() {
                 if (!motivoTraduzido) return null;
                 return (
                   <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #dc2626", borderRadius: 10, padding: 14 }}>
-                    <p style={{ color: "#991b1b", fontSize: 11, margin: 0, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>❌ Motivo da rejeição</p>
+                    <p style={{ color: "#991b1b", fontSize: 11, margin: 0, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>Motivo da rejeição</p>
                     <p style={{ color: "#dc2626", fontSize: 13, margin: "5px 0 0", lineHeight: 1.5, fontWeight: 600 }}>{motivoTraduzido}</p>
                     {/* Mostra também o código original em pequeno quando for motivo desconhecido (fallback) */}
                     {detalhe.motivo_rejeicao && motivoTraduzido.startsWith("Motivo:") && (
-                      <p style={{ color: "#9ca3af", fontSize: 10, margin: "6px 0 0", fontFamily: "monospace" }}>
+                      <p style={{ color: "#94A3B8", fontSize: 10, margin: "6px 0 0", fontFamily: "monospace" }}>
                         Código Meta: {detalhe.motivo_rejeicao}
                       </p>
                     )}
@@ -854,26 +855,26 @@ export default function TemplatesPage() {
                 );
               })()}
               <div>
-                <p style={{ color: "#9ca3af", fontSize: 11, fontWeight: 700, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.5 }}>Componentes</p>
-                <div style={{ background: "#1f2937", borderRadius: 10, padding: 14, fontSize: 12, fontFamily: "monospace", color: "#e5e7eb", whiteSpace: "pre-wrap", maxHeight: 300, overflowY: "auto", border: "1px solid #374151" }}>
+                <p style={{ color: "#94A3B8", fontSize: 11, fontWeight: 700, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.5 }}>Componentes</p>
+                <div style={{ background: "#0F172A", borderRadius: 10, padding: 14, fontSize: 12, fontFamily: "monospace", color: "#E6ECEA", whiteSpace: "pre-wrap", maxHeight: 300, overflowY: "auto", border: "1px solid #334155" }}>
                   {JSON.stringify(detalhe.componentes, null, 2)}
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, fontSize: 11 }}>
                 <div>
-                  <p style={{ color: "#9ca3af", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: 0.5 }}>Criado em</p>
-                  <p style={{ color: "#374151", margin: 0, fontWeight: 500 }}>{new Date(detalhe.created_at).toLocaleString("pt-BR")}</p>
+                  <p style={{ color: "#94A3B8", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: 0.5 }}>Criado em</p>
+                  <p style={{ color: "#334155", margin: 0, fontWeight: 500 }}>{new Date(detalhe.created_at).toLocaleString("pt-BR")}</p>
                 </div>
                 {detalhe.aprovado_em && (
                   <div>
-                    <p style={{ color: "#9ca3af", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: 0.5 }}>Aprovado em</p>
-                    <p style={{ color: "#16a34a", margin: 0, fontWeight: 700 }}>{new Date(detalhe.aprovado_em).toLocaleString("pt-BR")}</p>
+                    <p style={{ color: "#94A3B8", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: 0.5 }}>Aprovado em</p>
+                    <p style={{ color: "#059669", margin: 0, fontWeight: 700 }}>{new Date(detalhe.aprovado_em).toLocaleString("pt-BR")}</p>
                   </div>
                 )}
                 {detalhe.ultima_sincronizacao && (
                   <div>
-                    <p style={{ color: "#9ca3af", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: 0.5 }}>Última sync</p>
-                    <p style={{ color: "#374151", margin: 0, fontWeight: 500 }}>{new Date(detalhe.ultima_sincronizacao).toLocaleString("pt-BR")}</p>
+                    <p style={{ color: "#94A3B8", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase", letterSpacing: 0.5 }}>Última sync</p>
+                    <p style={{ color: "#334155", margin: 0, fontWeight: 500 }}>{new Date(detalhe.ultima_sincronizacao).toLocaleString("pt-BR")}</p>
                   </div>
                 )}
               </div>
@@ -887,8 +888,8 @@ export default function TemplatesPage() {
         const cores = {
           erro:    { bg: "#fef2f2", border: "#fecaca", iconBg: "#fee2e2", icon: "#dc2626", titulo: "#991b1b", botao: "#dc2626", botaoHover: "#b91c1c", emoji: "⚠️" },
           aviso:   { bg: "#fffbeb", border: "#fde68a", iconBg: "#fef3c7", icon: "#d97706", titulo: "#92400e", botao: "#d97706", botaoHover: "#b45309", emoji: "🛡️" },
-          sucesso: { bg: "#f0fdf4", border: "#bbf7d0", iconBg: "#dcfce7", icon: "#16a34a", titulo: "#14532d", botao: "#16a34a", botaoHover: "#15803d", emoji: "✅" },
-          info:    { bg: "#eff6ff", border: "#bfdbfe", iconBg: "#dbeafe", icon: "#2563eb", titulo: "#1e3a8a", botao: "#2563eb", botaoHover: "#1d4ed8", emoji: "ℹ️" },
+          sucesso: { bg: "#ECFDF5", border: "#A7F3D0", iconBg: "#D1FAE5", icon: "#059669", titulo: "#14532d", botao: "#059669", botaoHover: "#047857", emoji: "✅" },
+          info:    { bg: "#ECFDF5", border: "#A7F3D0", iconBg: "#D1FAE5", icon: "#047857", titulo: "#065F46", botao: "#047857", botaoHover: "#065F46", emoji: "ℹ️" },
         }[feedback.tipo];
         const ehConfirmacao = !!feedback.onConfirmar;
         return (
@@ -899,23 +900,23 @@ export default function TemplatesPage() {
               {/* Topo colorido */}
               <div style={{ background: cores.bg, borderBottom: `1px solid ${cores.border}`, padding: "22px 24px", display: "flex", gap: 14, alignItems: "flex-start" }}>
                 <div style={{ width: 48, height: 48, borderRadius: 14, background: cores.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0, boxShadow: `0 4px 12px ${cores.icon}25` }}>
-                  {cores.emoji}
+                  {<IconeEmoji e={cores.emoji} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h3 style={{ color: cores.titulo, fontSize: 16, fontWeight: 800, margin: "2px 0 6px", letterSpacing: -0.2 }}>{feedback.titulo}</h3>
-                  <p style={{ color: "#374151", fontSize: 13, margin: 0, lineHeight: 1.55 }}>{feedback.mensagem}</p>
+                  <p style={{ color: "#334155", fontSize: 13, margin: 0, lineHeight: 1.55 }}>{feedback.mensagem}</p>
                 </div>
               </div>
 
               {/* Lista de detalhes (se houver) */}
               {feedback.detalhes && feedback.detalhes.length > 0 && (
-                <div style={{ padding: "16px 24px", overflowY: "auto", flex: 1, borderBottom: "1px solid #f3f4f6" }}>
-                  <p style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>O que pode estar acontecendo</p>
+                <div style={{ padding: "16px 24px", overflowY: "auto", flex: 1, borderBottom: "1px solid #F1F5F4" }}>
+                  <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>O que pode estar acontecendo</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {feedback.detalhes.map((d, i) => (
-                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 12px" }}>
+                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 12px" }}>
                         <span style={{ width: 22, height: 22, borderRadius: 8, background: cores.iconBg, color: cores.icon, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
-                        <p style={{ color: "#374151", fontSize: 12.5, margin: 0, lineHeight: 1.5, flex: 1 }}>{d}</p>
+                        <p style={{ color: "#334155", fontSize: 12.5, margin: 0, lineHeight: 1.5, flex: 1 }}>{d}</p>
                       </div>
                     ))}
                   </div>
@@ -923,10 +924,10 @@ export default function TemplatesPage() {
               )}
 
               {/* Botões */}
-              <div style={{ padding: "14px 24px", background: "#fafbfc", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <div style={{ padding: "14px 24px", background: "#F7FAF9", display: "flex", justifyContent: "flex-end", gap: 8 }}>
                 {ehConfirmacao && (
                   <button onClick={() => setFeedback(null)}
-                    style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
+                    style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
                     Cancelar
                   </button>
                 )}

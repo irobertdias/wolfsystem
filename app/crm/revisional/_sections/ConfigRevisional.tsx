@@ -51,7 +51,7 @@ export default function ConfigRevisionalSection({ dados }: any) {
               </select>
             </Field>
           </Row>
-          <div style={{ fontSize: 12, color: "#9ca3af" }}>Contratos com taxa igual ou acima desse múltiplo da taxa média ficam marcados com 🚩 no sistema.</div>
+          <div style={{ fontSize: 12, color: "#94A3B8" }}>Contratos com taxa igual ou acima desse múltiplo da taxa média ficam marcados com 🚩 no sistema.</div>
         </div>
       </Card>
 

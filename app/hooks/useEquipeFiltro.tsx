@@ -103,8 +103,8 @@ export function useEquipeFiltro(workspaceId: string) {
     return (
       <div style={{
         display: "flex", alignItems: "center", gap: 8,
-        background: equipeId ? "#f0fdf4" : "#ffffff",
-        border: `1px solid ${equipeId ? "#bbf7d0" : "#e5e7eb"}`,
+        background: equipeId ? "#ECFDF5" : "#ffffff",
+        border: `1px solid ${equipeId ? "#A7F3D0" : "#E6ECEA"}`,
         borderRadius: 12, padding: "6px 12px 6px 14px",
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         transition: "all 0.15s",
@@ -112,7 +112,7 @@ export function useEquipeFiltro(workspaceId: string) {
       }}>
         <span style={{ fontSize: 14, lineHeight: 1 }}>👥</span>
         <span style={{
-          color: "#6b7280", fontSize: 10, fontWeight: 700,
+          color: "#64748B", fontSize: 10, fontWeight: 700,
           textTransform: "uppercase", letterSpacing: 0.5,
           whiteSpace: "nowrap",
         }}>
@@ -123,14 +123,14 @@ export function useEquipeFiltro(workspaceId: string) {
           onChange={(e) => setEquipeId(e.target.value)}
           style={{
             background: "transparent", border: "none", outline: "none",
-            color: equipeId ? "#16a34a" : "#1f2937",
+            color: equipeId ? "#059669" : "#0F172A",
             fontSize: 13, fontWeight: 700,
             cursor: equipes.length === 0 ? "not-allowed" : "pointer",
             padding: "4px 0", minWidth: 140,
           }}
           disabled={equipes.length === 0}
         >
-          <option value="">🌐 Todas as equipes</option>
+          <option value="">Todas as equipes</option>
           {equipes.map(eq => (
             <option key={eq.id} value={eq.id}>{eq.nome}</option>
           ))}

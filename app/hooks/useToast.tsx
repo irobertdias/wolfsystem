@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useRef, useCallback, ReactNode } from "react";
 
+import { IconeEmoji } from "../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🍞 SISTEMA DE TOAST GLOBAL
 // ═══════════════════════════════════════════════════════════════════════
@@ -39,10 +40,10 @@ const DURACAO_POR_TIPO: Record<TipoToast, number> = {
 };
 
 const CORES_POR_TIPO: Record<TipoToast, { bg: string; border: string; icon: string }> = {
-  sucesso: { bg: "#16a34a", border: "#15803d", icon: "✅" },
+  sucesso: { bg: "#059669", border: "#047857", icon: "✅" },
   erro:    { bg: "#dc2626", border: "#b91c1c", icon: "❌" },
   aviso:   { bg: "#f59e0b", border: "#d97706", icon: "⚠️" },
-  info:    { bg: "#3b82f6", border: "#2563eb", icon: "ℹ️" },
+  info:    { bg: "#059669", border: "#047857", icon: "ℹ️" },
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -123,7 +124,7 @@ function Toaster({ toasts, remover }: { toasts: Toast[]; remover: (id: number) =
                 color: "white",
                 fontSize: 13,
                 lineHeight: 1.4,
-                fontFamily: "Arial, sans-serif",
+                fontFamily: "var(--font-wolf), system-ui, sans-serif",
                 boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
                 cursor: "pointer",
                 pointerEvents: "auto",
@@ -134,7 +135,7 @@ function Toaster({ toasts, remover }: { toasts: Toast[]; remover: (id: number) =
               }}
               title="Clique pra fechar"
             >
-              <span style={{ fontSize: 18, lineHeight: 1 }}>{cor.icon}</span>
+              <span style={{ fontSize: 18, lineHeight: 1 }}>{<IconeEmoji e={cor.icon} />}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: "bold", wordWrap: "break-word" }}>{t.msg}</div>
                 {t.subMsg && (

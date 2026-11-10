@@ -161,56 +161,56 @@ export default function PopupCobranca() {
 
           {/* Dados de contato + PIX */}
           <div style={{
-            background: "#f9fafb", border: "1px solid #e5e7eb",
+            background: "#F7FAF9", border: "1px solid #E6ECEA",
             borderRadius: 12, padding: 18, marginBottom: 18, textAlign: "left",
           }}>
-            <p style={{ color: "#374151", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>📞 Para regularizar</p>
+            <p style={{ color: "#334155", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>Para regularizar</p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <button onClick={copiarPix}
                 style={{
-                  background: pixCopiado ? "#16a34a" : "#ffffff",
-                  color: pixCopiado ? "white" : "#1f2937",
-                  border: `1px solid ${pixCopiado ? "#16a34a" : "#e5e7eb"}`,
+                  background: pixCopiado ? "#059669" : "#ffffff",
+                  color: pixCopiado ? "white" : "#0F172A",
+                  border: `1px solid ${pixCopiado ? "#059669" : "#E6ECEA"}`,
                   borderRadius: 10, padding: "10px 14px", cursor: "pointer",
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                   fontSize: 13, fontWeight: 600, transition: "all 0.15s",
                 }}>
-                <span>💸 PIX (CNPJ): <b style={{ fontFamily: "monospace" }}>{CONTATO.pix_cnpj}</b></span>
+                <span>PIX (CNPJ): <b style={{ fontFamily: "monospace" }}>{CONTATO.pix_cnpj}</b></span>
                 <span style={{ fontSize: 11 }}>{pixCopiado ? "✓ Copiado!" : "Copiar"}</span>
               </button>
 
-              <div style={{ fontSize: 11, color: "#6b7280", padding: "0 6px" }}>
+              <div style={{ fontSize: 11, color: "#64748B", padding: "0 6px" }}>
                 Em nome de: <b>{CONTATO.razao_social}</b>
               </div>
 
               <button onClick={abrirWhatsApp}
                 style={{
-                  background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                  background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "12px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700,
                   display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
-                  boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                  boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 }}>
-                💬 Falar no WhatsApp: {CONTATO.whatsapp_display}
+                Falar no WhatsApp: {CONTATO.whatsapp_display}
               </button>
 
               <button onClick={copiarEmail}
                 style={{
-                  background: emailCopiado ? "#3b82f6" : "#ffffff",
-                  color: emailCopiado ? "white" : "#3b82f6",
-                  border: "1px solid #bfdbfe",
+                  background: emailCopiado ? "#059669" : "#ffffff",
+                  color: emailCopiado ? "white" : "#059669",
+                  border: "1px solid #A7F3D0",
                   borderRadius: 10, padding: "9px 14px", cursor: "pointer",
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                   fontSize: 12, fontWeight: 600,
                 }}>
-                <span>✉️ {CONTATO.email}</span>
+                <span>{CONTATO.email}</span>
                 <span style={{ fontSize: 11 }}>{emailCopiado ? "✓" : "Copiar"}</span>
               </button>
             </div>
           </div>
 
-          <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, fontStyle: "italic" }}>
+          <p style={{ color: "#94A3B8", fontSize: 10, margin: 0, fontStyle: "italic" }}>
             {ehSuspenso ? "Sua conta será reativada após contato com a administração." : "Após confirmação do pagamento, o acesso será liberado em até 1h."}
           </p>
         </div>
@@ -284,26 +284,26 @@ export default function PopupCobranca() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
             <button onClick={copiarPix}
               style={{
-                background: pixCopiado ? "#16a34a" : "#f9fafb",
-                color: pixCopiado ? "white" : "#1f2937",
-                border: `1px solid ${pixCopiado ? "#16a34a" : "#e5e7eb"}`,
+                background: pixCopiado ? "#059669" : "#F7FAF9",
+                color: pixCopiado ? "white" : "#0F172A",
+                border: `1px solid ${pixCopiado ? "#059669" : "#E6ECEA"}`,
                 borderRadius: 10, padding: "10px 14px", cursor: "pointer",
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 fontSize: 13, fontWeight: 600, transition: "all 0.15s",
               }}>
-              <span>💸 PIX: <b style={{ fontFamily: "monospace" }}>{CONTATO.pix_cnpj}</b></span>
+              <span>PIX: <b style={{ fontFamily: "monospace" }}>{CONTATO.pix_cnpj}</b></span>
               <span style={{ fontSize: 11 }}>{pixCopiado ? "✓ Copiado!" : "Copiar"}</span>
             </button>
 
             <button onClick={abrirWhatsApp}
               style={{
-                background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "12px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700,
                 display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
-                boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
               }}>
-              💬 Avisar pagamento no WhatsApp
+              Avisar pagamento no WhatsApp
             </button>
           </div>
 
@@ -311,15 +311,15 @@ export default function PopupCobranca() {
           <button onClick={cobranca.fecharPopup}
             style={{
               width: "100%",
-              background: "white", color: "#6b7280",
-              border: "1px solid #e5e7eb", borderRadius: 10,
+              background: "white", color: "#64748B",
+              border: "1px solid #E6ECEA", borderRadius: 10,
               padding: "9px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600,
               marginBottom: 10,
             }}>
-            ✕ Fechar e continuar (re-exibe em 1h)
+            Fechar e continuar (re-exibe em 1h)
           </button>
 
-          <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, fontStyle: "italic" }}>
+          <p style={{ color: "#94A3B8", fontSize: 10, margin: 0, fontStyle: "italic" }}>
             Este aviso voltará a aparecer em 1 hora até a regularização do pagamento.
           </p>
         </div>
@@ -374,7 +374,7 @@ export default function PopupCobranca() {
           {venceHoje ? "Sua mensalidade vence HOJE!" : "Lembrete de pagamento"}
         </h2>
 
-        <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 18px", lineHeight: 1.5 }}>
+        <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 18px", lineHeight: 1.5 }}>
           {venceHoje ? (
             <>Sua mensalidade do Wolf vence <b>hoje</b>.<br />Pague antes do fim do dia pra evitar bloqueio.</>
           ) : (
@@ -398,40 +398,40 @@ export default function PopupCobranca() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
           <button onClick={copiarPix}
             style={{
-              background: pixCopiado ? "#16a34a" : "#f9fafb",
-              color: pixCopiado ? "white" : "#1f2937",
-              border: `1px solid ${pixCopiado ? "#16a34a" : "#e5e7eb"}`,
+              background: pixCopiado ? "#059669" : "#F7FAF9",
+              color: pixCopiado ? "white" : "#0F172A",
+              border: `1px solid ${pixCopiado ? "#059669" : "#E6ECEA"}`,
               borderRadius: 10, padding: "10px 14px", cursor: "pointer",
               display: "flex", justifyContent: "space-between", alignItems: "center",
               fontSize: 13, fontWeight: 600, transition: "all 0.15s",
             }}>
-            <span>💸 PIX (CNPJ): <b style={{ fontFamily: "monospace" }}>{CONTATO.pix_cnpj}</b></span>
+            <span>PIX (CNPJ): <b style={{ fontFamily: "monospace" }}>{CONTATO.pix_cnpj}</b></span>
             <span style={{ fontSize: 11 }}>{pixCopiado ? "✓ Copiado!" : "Copiar"}</span>
           </button>
 
           <button onClick={abrirWhatsApp}
             style={{
-              background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+              background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
               color: "white", border: "none", borderRadius: 10,
               padding: "11px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700,
               display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
             }}>
-            💬 Falar no WhatsApp
+            Falar no WhatsApp
           </button>
         </div>
 
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={cobranca.fecharPopup}
             style={{
-              flex: 1, background: "white", color: "#6b7280",
-              border: "1px solid #e5e7eb", borderRadius: 10,
+              flex: 1, background: "white", color: "#64748B",
+              border: "1px solid #E6ECEA", borderRadius: 10,
               padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600,
             }}>
             Lembrar daqui 3h
           </button>
         </div>
 
-        <p style={{ color: "#9ca3af", fontSize: 10, margin: "12px 0 0", fontStyle: "italic" }}>
+        <p style={{ color: "#94A3B8", fontSize: 10, margin: "12px 0 0", fontStyle: "italic" }}>
           Em nome de {CONTATO.razao_social}
         </p>
       </div>

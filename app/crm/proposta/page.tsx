@@ -15,6 +15,7 @@ import {
   type CampoCustom,
 } from "../../lib/campos_proposta_definicao";
 
+import { IconeEmoji } from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🎯 NOVA PROPOSTA — Wolf CRM PREMIUM
 // ───────────────────────────────────────────────────────────────────────
@@ -115,7 +116,7 @@ const SECAO_META: Record<string, { icone: string; cor: string; descricao: string
   contato:        { icone: "📱", cor: "#8b5cf6", descricao: "Como falar com o cliente",         ordem: 3 },
   plano:          { icone: "📦", cor: "#f59e0b", descricao: "Serviço contratado",               ordem: 4 },
   agendamento:    { icone: "📅", cor: "#ec4899", descricao: "Quando instalar",                  ordem: 5 },
-  vendedor:       { icone: "👨‍💼", cor: "#16a34a", descricao: "Atribuição interna",              ordem: 6 },
+  vendedor:       { icone: "👨‍💼", cor: "#059669", descricao: "Atribuição interna",              ordem: 6 },
   status:         { icone: "🎯", cor: "#dc2626", descricao: "Situação atual da proposta",       ordem: 7 },
   personalizado:  { icone: "⚙️", cor: "#a855f7", descricao: "Campos customizados pelo workspace", ordem: 8 },
 };
@@ -680,7 +681,7 @@ function PropostaForm() {
           : null;
         const corSecaoCustomizada = campoComCor ? String((campoComCor as any).secao_cor) : null;
         const corCustom = corSecaoCustomizada || ((labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null);
-        const metaPadrao = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
+        const metaPadrao = SECAO_META[sec] || { icone: "📋", cor: "#64748B", descricao: "", ordem: 99 };
         const voc = vocabularioDoWorkspace(workspace?.username);
         const descricaoRamo = sec === "endereco" ? voc.secaoEndereco : sec === "agendamento" ? voc.secaoAgendamento : sec === "plano" ? voc.secaoPlano : "";
         const metaBase = descricaoRamo ? { ...metaPadrao, descricao: descricaoRamo } : metaPadrao;
@@ -716,17 +717,17 @@ function PropostaForm() {
   const inputStyleBase = {
     width: "100%",
     background: "#ffffff",
-    border: "1px solid #e5e7eb",
+    border: "1px solid #E6ECEA",
     borderRadius: 10,
     padding: "10px 14px",
-    color: "#1f2937",
+    color: "#0F172A",
     fontSize: 14,
     boxSizing: "border-box" as const,
     outline: "none",
     transition: "border-color 0.15s, box-shadow 0.15s",
   };
   const labelStyle = {
-    color: "#6b7280",
+    color: "#64748B",
     fontSize: 11,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -739,14 +740,14 @@ function PropostaForm() {
   const cardStyle = {
     background: "#ffffff",
     borderRadius: 14,
-    border: "1px solid #e5e7eb",
+    border: "1px solid #E6ECEA",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
   const inputStyleParaCampo = (c: CampoUnificado): React.CSSProperties => {
     const ok = isCampoPreenchido(c);
     if (c.obrigatorio && ok) {
-      return { ...inputStyleBase, borderColor: "#bbf7d0", background: "linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)" };
+      return { ...inputStyleBase, borderColor: "#A7F3D0", background: "linear-gradient(135deg, #ffffff 0%, #ECFDF5 100%)" };
     }
     return inputStyleBase;
   };
@@ -765,7 +766,7 @@ function PropostaForm() {
   // ═══════════════════════════════════════════════════════════════════
   const renderCampoVendedor = () => {
     if (carregandoUsuarios) {
-      return <input value="⏳ Carregando vendedores..." disabled style={{ ...inputStyleBase, background: "#f3f4f6", color: "#9ca3af", opacity: 0.7 }} />;
+      return <input value="⏳ Carregando vendedores..." disabled style={{ ...inputStyleBase, background: "#F1F5F4", color: "#94A3B8", opacity: 0.7 }} />;
     }
     if (podeEscolherVendedor) {
       return (
@@ -782,7 +783,7 @@ function PropostaForm() {
     const meuNome = usuariosWs.find(u => u.email?.toLowerCase() === userEmail.toLowerCase())?.nome || userEmail;
     return (
       <input value={`${meuNome} (você)`} disabled
-        style={{ ...inputStyleBase, background: "#f3f4f6", color: "#6b7280", cursor: "not-allowed" }}
+        style={{ ...inputStyleBase, background: "#F1F5F4", color: "#64748B", cursor: "not-allowed" }}
         title="Você só pode cadastrar propostas em seu próprio nome" />
     );
   };
@@ -811,7 +812,7 @@ function PropostaForm() {
         <label style={{
           display: "block",
           padding: "12px 14px",
-          background: loading ? "#f9fafb" : "#fafbfc",
+          background: loading ? "#F7FAF9" : "#F7FAF9",
           border: "2px dashed #cbd5e1",
           borderRadius: 10,
           cursor: loading ? "wait" : "pointer",
@@ -825,10 +826,10 @@ function PropostaForm() {
             onChange={(e) => { if (e.target.files && e.target.files.length > 0) { uploadArquivo(c.slug, e.target.files); e.target.value = ""; } }}
             disabled={loading}
             style={{ display: "none" }} />
-          <p style={{ color: loading ? "#9ca3af" : "#3b82f6", fontSize: 13, margin: 0, fontWeight: 700 }}>
+          <p style={{ color: loading ? "#94A3B8" : "#059669", fontSize: 13, margin: 0, fontWeight: 700 }}>
             {loading ? "⏳ Enviando arquivos..." : "📎 Clique pra anexar arquivos"}
           </p>
-          <p style={{ color: "#9ca3af", fontSize: 11, margin: "4px 0 0" }}>
+          <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0" }}>
             Múltiplos arquivos · Máx 20 MB cada
           </p>
         </label>
@@ -837,17 +838,17 @@ function PropostaForm() {
             {arquivos.map((a, i) => (
               <div key={i} style={{
                 display: "flex", alignItems: "center", gap: 10,
-                padding: "8px 12px", background: "#ffffff", border: "1px solid #e5e7eb",
+                padding: "8px 12px", background: "#ffffff", border: "1px solid #E6ECEA",
                 borderRadius: 8, fontSize: 12,
               }}>
                 <span style={{ fontSize: 20 }}>{iconeArquivo(a.tipo)}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ color: "#1f2937", fontSize: 12, margin: 0, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nome}</p>
-                  <p style={{ color: "#9ca3af", fontSize: 10, margin: "1px 0 0" }}>{formatarTamanhoArquivo(a.tamanho)}</p>
+                  <p style={{ color: "#0F172A", fontSize: 12, margin: 0, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nome}</p>
+                  <p style={{ color: "#94A3B8", fontSize: 10, margin: "1px 0 0" }}>{formatarTamanhoArquivo(a.tamanho)}</p>
                 </div>
                 <a href={a.privado ? "#" : a.url} target="_blank" rel="noopener noreferrer"
                   onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}}
-                  style={{ color: "#3b82f6", fontSize: 11, fontWeight: 600, textDecoration: "none", padding: "4px 10px", border: "1px solid #bfdbfe", borderRadius: 6 }}>
+                  style={{ color: "#059669", fontSize: 11, fontWeight: 600, textDecoration: "none", padding: "4px 10px", border: "1px solid #A7F3D0", borderRadius: 6 }}>
                   👁️
                 </a>
                 <button type="button" onClick={() => removerAnexo(c.slug, i)}
@@ -866,7 +867,7 @@ function PropostaForm() {
     const ok = c.obrigatorio && isCampoPreenchido(c);
     const labelComObr = (
       <>
-        {ok && <span style={{ color: "#16a34a", fontSize: 12 }}>✓</span>}
+        {ok && <span style={{ color: "#059669", fontSize: 12 }}>✓</span>}
         <span>{c.label}</span>
         {c.obrigatorio && <span style={{ color: "#dc2626", marginLeft: 2 }}>*</span>}
       </>
@@ -922,7 +923,7 @@ function PropostaForm() {
               onChange={e => { const v = mascaraCEP(e.target.value); set(v); if (v.replace(/\D/g, "").length === 8) buscarCep(v); }}
               style={inputStyleParaCampo(c)} />
             {buscandoCep && (
-              <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#3b82f6", fontSize: 11, fontWeight: 700 }}>🔍 Buscando...</span>
+              <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#059669", fontSize: 11, fontWeight: 700 }}>Buscando...</span>
             )}
           </div>
         );
@@ -1014,14 +1015,14 @@ function PropostaForm() {
           <label style={{
             display: "flex", alignItems: "center", gap: 10,
             padding: "10px 14px",
-            background: marcado ? "#f0fdf4" : "#ffffff",
+            background: marcado ? "#ECFDF5" : "#ffffff",
             borderRadius: 10,
-            border: `1px solid ${marcado ? "#bbf7d0" : "#e5e7eb"}`,
+            border: `1px solid ${marcado ? "#A7F3D0" : "#E6ECEA"}`,
             cursor: "pointer",
             transition: "all 0.15s",
           }}>
-            <input type="checkbox" checked={marcado} onChange={e => set(e.target.checked)} style={{ accentColor: "#16a34a", width: 17, height: 17, cursor: "pointer" }} />
-            <span style={{ color: marcado ? "#16a34a" : "#6b7280", fontSize: 13, fontWeight: 600 }}>{marcado ? "Sim" : "Não"}</span>
+            <input type="checkbox" checked={marcado} onChange={e => set(e.target.checked)} style={{ accentColor: "#059669", width: 17, height: 17, cursor: "pointer" }} />
+            <span style={{ color: marcado ? "#059669" : "#64748B", fontSize: 13, fontWeight: 600 }}>{marcado ? "Sim" : "Não"}</span>
           </label>
         </div>
       );
@@ -1041,7 +1042,7 @@ function PropostaForm() {
   // ═══════════════════════════════════════════════════════════════════
   if (!isDono && !isSuperAdmin && !permissoes.proposta_criar) {
     return (
-      <div style={{ minHeight: "100vh", background: "#f8fafc", padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#F3F6F5", padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
           <div style={{
             width: 80, height: 80, borderRadius: 20,
@@ -1052,15 +1053,15 @@ function PropostaForm() {
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
           </div>
-          <h1 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>Você não tem permissão para criar propostas.</p>
+          <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
+          <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>Você não tem permissão para criar propostas.</p>
           <button onClick={() => router.back()}
             style={{
-              background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
-            }}>← Voltar</button>
+              boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+            }}>Voltar</button>
         </div>
       </div>
     );
@@ -1070,21 +1071,21 @@ function PropostaForm() {
   // 📐 LAYOUT
   // ═══════════════════════════════════════════════════════════════════
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#F3F6F5", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
 
       {/* ═══ HEADER STICKY ═══ */}
       <div style={{
         position: "sticky", top: 0, zIndex: 50,
         background: "rgba(248,250,252,0.85)",
         backdropFilter: "blur(12px)",
-        borderBottom: "1px solid #e5e7eb",
+        borderBottom: "1px solid #E6ECEA",
         padding: isMobile ? "10px 12px" : "12px 28px",
       }}>
         <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
             <div style={{
               width: isMobile ? 38 : 44, height: isMobile ? 38 : 44, borderRadius: 12,
-              background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
+              background: "linear-gradient(135deg, #0F172A 0%, #0F172A 100%)",
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: "0 8px 20px rgba(31,41,55,0.25)",
               flexShrink: 0, padding: 5,
@@ -1093,27 +1094,27 @@ function PropostaForm() {
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                <h1 style={{ color: "#1f2937", fontSize: isMobile ? 16 : 18, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Nova Proposta</h1>
-                {form.nome && <span style={{ color: "#3b82f6", fontSize: isMobile ? 13 : 14, fontWeight: 600 }}>· {form.nome}</span>}
-                {form.valor_plano && <span style={{ color: "#16a34a", fontSize: isMobile ? 13 : 14, fontWeight: 800 }}>· R$ {form.valor_plano}</span>}
+                <h1 style={{ color: "#0F172A", fontSize: isMobile ? 16 : 18, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Nova Proposta</h1>
+                {form.nome && <span style={{ color: "#059669", fontSize: isMobile ? 13 : 14, fontWeight: 600 }}>· {form.nome}</span>}
+                {form.valor_plano && <span style={{ color: "#059669", fontSize: isMobile ? 13 : 14, fontWeight: 800 }}>· R$ {form.valor_plano}</span>}
               </div>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
-                <p style={{ color: "#6b7280", fontSize: 11, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <p style={{ color: "#64748B", fontSize: 11, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   Wolf CRM · <b>{workspace?.nome}</b>
                 </p>
                 {camposObrig.length > 0 && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 5,
                     fontSize: 11, fontWeight: 700,
-                    color: pctTotal === 100 ? "#16a34a" : pctTotal >= 50 ? "#f59e0b" : "#dc2626",
+                    color: pctTotal === 100 ? "#059669" : pctTotal >= 50 ? "#f59e0b" : "#dc2626",
                   }}>
                     {pctTotal === 100 ? "✓" : "●"} {camposObrigPreenchidos}/{camposObrig.length} obrigatórios ({pctTotal}%)
                   </span>
                 )}
                 {salvandoRascunho ? (
-                  <span style={{ fontSize: 10, color: "#9ca3af", fontStyle: "italic" }}>💾 salvando rascunho...</span>
+                  <span style={{ fontSize: 10, color: "#94A3B8", fontStyle: "italic" }}>salvando rascunho...</span>
                 ) : dirty ? (
-                  <span style={{ fontSize: 10, color: "#9ca3af", fontStyle: "italic" }}>📝 rascunho salvo</span>
+                  <span style={{ fontSize: 10, color: "#94A3B8", fontStyle: "italic" }}>rascunho salvo</span>
                 ) : null}
               </div>
             </div>
@@ -1121,20 +1122,20 @@ function PropostaForm() {
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
             <button onClick={handleCancelar}
               style={{
-                background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb",
+                background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA",
                 borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer",
                 whiteSpace: "nowrap", fontWeight: 600,
               }}>
-              ← Voltar
+              Voltar
             </button>
             <button onClick={handleSubmit} disabled={loading}
               title="Ctrl+S"
               style={{
-                background: loading ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                background: loading ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "8px 18px", fontSize: 12, fontWeight: 700,
                 cursor: loading ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 whiteSpace: "nowrap",
               }}>
               {loading ? "⏳ Salvando..." : "💾 Salvar Proposta"}
@@ -1143,9 +1144,9 @@ function PropostaForm() {
         </div>
         {/* Progress bar global */}
         {camposObrig.length > 0 && (
-          <div style={{ marginTop: 10, background: "#e5e7eb", borderRadius: 4, height: 4, overflow: "hidden" }}>
+          <div style={{ marginTop: 10, background: "#E6ECEA", borderRadius: 4, height: 4, overflow: "hidden" }}>
             <div style={{
-              background: pctTotal === 100 ? "linear-gradient(90deg, #16a34a, #22c55e)" : "linear-gradient(90deg, #3b82f6, #6366f1)",
+              background: pctTotal === 100 ? "linear-gradient(90deg, #059669, #10B981)" : "linear-gradient(90deg, #10B981, #059669)",
               height: "100%", width: `${pctTotal}%`,
               transition: "width 0.3s, background 0.3s",
             }} />
@@ -1178,7 +1179,7 @@ function PropostaForm() {
             </div>
             <button onClick={recuperarRascunho}
               style={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 4px 12px rgba(245,158,11,0.3)" }}>
-              ↩️ Recuperar
+              Recuperar
             </button>
             <button onClick={descartarRascunho}
               style={{ background: "#ffffff", color: "#92400e", border: "1px solid #fde68a", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
@@ -1202,8 +1203,8 @@ function PropostaForm() {
         {!isMobile && (
           <aside style={{ position: "sticky", top: 100, alignSelf: "start", display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ ...cardStyle, padding: 14 }}>
-              <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 10px", fontWeight: 800 }}>
-                📑 Seções do formulário
+              <p style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 10px", fontWeight: 800 }}>
+                Seções do formulário
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {(() => {
@@ -1235,22 +1236,22 @@ function PropostaForm() {
                           transition: "all 0.15s",
                         }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                          <span style={{ fontSize: 14 }}>{s.meta.icone}</span>
-                          <span style={{ color: ativa ? s.meta.cor : "#374151", fontSize: 12, fontWeight: ativa ? 800 : 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: 14 }}>{<IconeEmoji e={s.meta.icone} />}</span>
+                          <span style={{ color: ativa ? s.meta.cor : "#334155", fontSize: 12, fontWeight: ativa ? 800 : 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {s.label}
                           </span>
                           {prog.obrig > 0 && (
                             <span style={{
                               fontSize: 9, fontWeight: 800,
-                              color: prog.pct === 100 ? "#16a34a" : prog.pct === 0 ? "#9ca3af" : s.meta.cor,
+                              color: prog.pct === 100 ? "#059669" : prog.pct === 0 ? "#94A3B8" : s.meta.cor,
                             }}>
                               {prog.preench}/{prog.obrig}
                             </span>
                           )}
                         </div>
-                        <div style={{ background: "#e5e7eb", borderRadius: 2, height: 3, overflow: "hidden" }}>
+                        <div style={{ background: "#E6ECEA", borderRadius: 2, height: 3, overflow: "hidden" }}>
                           <div style={{
-                            background: prog.pct === 100 ? "#16a34a" : s.meta.cor,
+                            background: prog.pct === 100 ? "#059669" : s.meta.cor,
                             height: "100%", width: `${prog.obrig > 0 ? prog.pct : (prog.preench / Math.max(prog.total, 1)) * 100}%`,
                             transition: "width 0.3s",
                           }} />
@@ -1263,18 +1264,18 @@ function PropostaForm() {
             </div>
 
             {/* Card de atalhos */}
-            <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
-              <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px", fontWeight: 800 }}>
-                ⌨️ Atalhos
+            <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #F7FAF9 0%, #F1F5F4 100%)" }}>
+              <p style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px", fontWeight: 800 }}>
+                Atalhos
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
-                  <span style={{ color: "#6b7280" }}>Salvar</span>
-                  <kbd style={{ background: "#ffffff", border: "1px solid #d1d5db", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontFamily: "monospace", color: "#374151", fontWeight: 700 }}>Ctrl+S</kbd>
+                  <span style={{ color: "#64748B" }}>Salvar</span>
+                  <kbd style={{ background: "#ffffff", border: "1px solid #CBD5E1", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontFamily: "monospace", color: "#334155", fontWeight: 700 }}>Ctrl+S</kbd>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
-                  <span style={{ color: "#6b7280" }}>Voltar</span>
-                  <kbd style={{ background: "#ffffff", border: "1px solid #d1d5db", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontFamily: "monospace", color: "#374151", fontWeight: 700 }}>Esc</kbd>
+                  <span style={{ color: "#64748B" }}>Voltar</span>
+                  <kbd style={{ background: "#ffffff", border: "1px solid #CBD5E1", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontFamily: "monospace", color: "#334155", fontWeight: 700 }}>Esc</kbd>
                 </div>
               </div>
             </div>
@@ -1287,12 +1288,12 @@ function PropostaForm() {
             <>
               {[1, 2, 3].map(i => (
                 <div key={i} style={{ ...cardStyle, padding: 20 }}>
-                  <div style={{ height: 16, background: "#f3f4f6", borderRadius: 4, marginBottom: 14, width: "30%" }} />
+                  <div style={{ height: 16, background: "#F1F5F4", borderRadius: 4, marginBottom: 14, width: "30%" }} />
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
                     {[1, 2, 3, 4, 5, 6].map(j => (
                       <div key={j}>
-                        <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, marginBottom: 6, width: "60%" }} />
-                        <div style={{ height: 36, background: "#f9fafb", borderRadius: 8 }} />
+                        <div style={{ height: 8, background: "#F1F5F4", borderRadius: 4, marginBottom: 6, width: "60%" }} />
+                        <div style={{ height: 36, background: "#F7FAF9", borderRadius: 8 }} />
                       </div>
                     ))}
                   </div>
@@ -1302,9 +1303,9 @@ function PropostaForm() {
           ) : camposUnificados.length === 0 ? (
             <div style={{ ...cardStyle, padding: 40, textAlign: "center" }}>
               <p style={{ fontSize: 36, margin: "0 0 8px" }}>📋</p>
-              <p style={{ color: "#6b7280", fontSize: 13 }}>
+              <p style={{ color: "#64748B", fontSize: 13 }}>
                 Nenhum campo configurado pra proposta deste workspace.
-                <br /><a href="/crm/editor-proposta" style={{ color: "#3b82f6", fontWeight: 600 }}>Ir para o Editor de Proposta →</a>
+                <br /><a href="/crm/editor-proposta" style={{ color: "#059669", fontWeight: 600 }}>Ir para o Editor de Proposta</a>
               </p>
             </div>
           ) : (
@@ -1319,7 +1320,7 @@ function PropostaForm() {
                   {/* Header da seção */}
                   <div style={{
                     padding: "14px 20px",
-                    borderBottom: "1px solid #f3f4f6",
+                    borderBottom: "1px solid #F1F5F4",
                     background: `${s.meta.cor}05`,
                     borderLeft: `4px solid ${s.meta.cor}`,
                     display: "flex",
@@ -1332,16 +1333,16 @@ function PropostaForm() {
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 18, boxShadow: `0 4px 10px ${s.meta.cor}40`,
                       flexShrink: 0,
-                    }}><span style={{ filter: "saturate(0) brightness(2)" }}>{s.meta.icone}</span></div>
+                    }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={s.meta.icone} />}</span></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <h2 style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: -0.2 }}>{s.label}</h2>
-                      {s.meta.descricao && <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{s.meta.descricao}</p>}
+                      <h2 style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: -0.2 }}>{s.label}</h2>
+                      {s.meta.descricao && <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{s.meta.descricao}</p>}
                     </div>
                     {prog.obrig > 0 && (
                       <span style={{
-                        background: prog.pct === 100 ? "#f0fdf4" : `${s.meta.cor}10`,
-                        color: prog.pct === 100 ? "#16a34a" : s.meta.cor,
-                        border: `1px solid ${prog.pct === 100 ? "#bbf7d0" : `${s.meta.cor}30`}`,
+                        background: prog.pct === 100 ? "#ECFDF5" : `${s.meta.cor}10`,
+                        color: prog.pct === 100 ? "#059669" : s.meta.cor,
+                        border: `1px solid ${prog.pct === 100 ? "#A7F3D0" : `${s.meta.cor}30`}`,
                         padding: "4px 10px",
                         borderRadius: 10,
                         fontSize: 11,
@@ -1374,20 +1375,20 @@ function PropostaForm() {
 
           {/* Resumo final + botões */}
           {!carregandoCampos && camposUnificados.length > 0 && (
-            <div style={{ ...cardStyle, padding: isMobile ? 16 : 22, background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
+            <div style={{ ...cardStyle, padding: isMobile ? 16 : 22, background: "linear-gradient(135deg, #F7FAF9 0%, #F1F5F4 100%)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 10,
-                  background: pctTotal === 100 ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)" : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                  background: pctTotal === 100 ? "linear-gradient(135deg, #059669 0%, #10B981 100%)" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 20,
-                  boxShadow: pctTotal === 100 ? "0 4px 10px rgba(22,163,74,0.3)" : "0 4px 10px rgba(59,130,246,0.3)",
+                  boxShadow: pctTotal === 100 ? "0 4px 10px rgba(5,150,105,0.3)" : "0 4px 10px rgba(5,150,105,0.3)",
                 }}><span style={{ filter: "saturate(0) brightness(2)" }}>{pctTotal === 100 ? "✅" : "📋"}</span></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: 0 }}>
+                  <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: 0 }}>
                     {pctTotal === 100 ? "Tudo pronto pra salvar!" : `Faltam ${camposObrig.length - camposObrigPreenchidos} campo(s) obrigatório(s)`}
                   </p>
-                  <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+                  <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
                     {pctTotal}% completo · {form.nome || "(sem nome)"}{form.valor_plano ? ` · R$ ${form.valor_plano}` : ""}
                   </p>
                 </div>
@@ -1395,18 +1396,18 @@ function PropostaForm() {
               <div style={{ display: "flex", flexDirection: isMobile ? "column-reverse" : "row", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={handleCancelar}
                   style={{
-                    background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb",
+                    background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA",
                     borderRadius: 10, padding: "11px 24px", fontSize: 13, cursor: "pointer", fontWeight: 600,
                   }}>
                   Cancelar
                 </button>
                 <button onClick={handleSubmit} disabled={loading}
                   style={{
-                    background: loading ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                    background: loading ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                     color: "white", border: "none", borderRadius: 10,
                     padding: "11px 32px", fontSize: 14, fontWeight: 700,
                     cursor: loading ? "not-allowed" : "pointer",
-                    boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                    boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                   }}>
                   {loading ? "⏳ Salvando..." : "💾 Salvar Proposta"}
                 </button>
@@ -1422,8 +1423,8 @@ function PropostaForm() {
 export default function NovaProposta() {
   return (
     <Suspense fallback={
-      <div style={{ background: "#f8fafc", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: "#6b7280" }}>Carregando...</p>
+      <div style={{ background: "#F3F6F5", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "#64748B" }}>Carregando...</p>
       </div>
     }>
       <PropostaForm />

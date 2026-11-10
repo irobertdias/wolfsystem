@@ -8,7 +8,7 @@ const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -193,7 +193,7 @@ export function HoleritesSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -204,10 +204,10 @@ export function HoleritesSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>🧾</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Holerites
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Demonstrativos de pagamento dos colaboradores
             </p>
           </div>
@@ -219,12 +219,12 @@ export function HoleritesSection() {
               onChange={(e) => setComp(e.target.value)}
               style={{
                 background: "#ffffff",
-                border: "1px solid #e5e7eb",
+                border: "1px solid #E6ECEA",
                 borderRadius: 10,
                 padding: "9px 14px",
                 fontSize: 13,
                 fontWeight: 600,
-                color: "#1f2937",
+                color: "#0F172A",
                 outline: "none",
               }}
             >
@@ -242,24 +242,24 @@ export function HoleritesSection() {
                 gap: 8,
                 alignItems: "center",
                 background: "#ffffff",
-                border: "1px solid #e5e7eb",
+                border: "1px solid #E6ECEA",
                 borderRadius: 10,
                 padding: "5px 6px 5px 12px",
               }}
             >
-              <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+              <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
                 Gerar da folha:
               </span>
               <select
                 value={compGerar}
                 onChange={(e) => setCompGerar(e.target.value)}
                 style={{
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 8,
                   padding: "6px 8px",
                   fontSize: 12,
                   fontWeight: 600,
-                  color: "#1f2937",
+                  color: "#0F172A",
                   outline: "none",
                 }}
               >
@@ -273,7 +273,7 @@ export function HoleritesSection() {
                 onClick={gerarHolerites}
                 disabled={gerando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 8,
@@ -293,16 +293,16 @@ export function HoleritesSection() {
       </div>
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : itens.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>
+          <p style={{ color: "#64748B", fontSize: 13 }}>
             {todos.length === 0 ? "Nenhum holerite gerado ainda." : "Sem holerites nesta competência."}
           </p>
           {todos.length === 0 && (
-            <p style={{ color: "#9ca3af", fontSize: 12, margin: "6px 0 0", lineHeight: 1.5 }}>
+            <p style={{ color: "#94A3B8", fontSize: 12, margin: "6px 0 0", lineHeight: 1.5 }}>
               {compsFolha.length > 0
                 ? 'Use o botão "⚙️ Gerar" lá em cima pra criar os contracheques a partir da folha do mês.'
                 : "Gere uma folha primeiro no módulo Folha de Pagamento — depois volte aqui pra emitir os holerites."}
@@ -314,21 +314,21 @@ export function HoleritesSection() {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#F7FAF9" }}>
                   {["Colaborador", "Competência", "Proventos", "Descontos", "Líquido", "Situação", ""].map(
                     (h) => (
                       <th
                         key={h}
                         style={{
                           padding: "12px 16px",
-                          color: "#6b7280",
+                          color: "#64748B",
                           fontSize: 11,
                           textAlign: "left",
                           textTransform: "uppercase",
                           letterSpacing: 0.5,
                           whiteSpace: "nowrap",
                           fontWeight: 700,
-                          borderBottom: "1px solid #e5e7eb",
+                          borderBottom: "1px solid #E6ECEA",
                         }}
                       >
                         {h}
@@ -345,28 +345,28 @@ export function HoleritesSection() {
                     <tr
                       key={h.id}
                       style={{
-                        borderTop: "1px solid #f3f4f6",
-                        background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                        borderTop: "1px solid #F1F5F4",
+                        background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
                       }}
                     >
                       <td style={{ padding: "12px 16px" }}>
-                        <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{h.nome}</p>
-                        <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{h.cargo}</p>
+                        <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{h.nome}</p>
+                        <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{h.cargo}</p>
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12 }}>
+                      <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12 }}>
                         {h.competencia}
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#16a34a", fontSize: 12 }}>{real(p)}</td>
+                      <td style={{ padding: "12px 16px", color: "#059669", fontSize: 12 }}>{real(p)}</td>
                       <td style={{ padding: "12px 16px", color: "#dc2626", fontSize: 12 }}>{real(d)}</td>
-                      <td style={{ padding: "12px 16px", color: "#1f2937", fontSize: 12, fontWeight: 800 }}>
+                      <td style={{ padding: "12px 16px", color: "#0F172A", fontSize: 12, fontWeight: 800 }}>
                         {real(p - d)}
                       </td>
                       <td style={{ padding: "12px 16px" }}>
                         <span
                           style={{
-                            background: h.pago ? "#f0fdf4" : "#fffbeb",
-                            color: h.pago ? "#16a34a" : "#f59e0b",
-                            border: `1px solid ${h.pago ? "#bbf7d0" : "#fde68a"}`,
+                            background: h.pago ? "#ECFDF5" : "#fffbeb",
+                            color: h.pago ? "#059669" : "#f59e0b",
+                            border: `1px solid ${h.pago ? "#A7F3D0" : "#fde68a"}`,
                             fontSize: 11,
                             padding: "3px 10px",
                             borderRadius: 10,
@@ -381,9 +381,9 @@ export function HoleritesSection() {
                         <button
                           onClick={() => setVer(h)}
                           style={{
-                            background: "#eef2ff",
+                            background: "#ECFDF5",
                             color: COR_TEXTO,
-                            border: "1px solid #c7d2fe",
+                            border: "1px solid #A7F3D0",
                             borderRadius: 8,
                             padding: "5px 11px",
                             fontSize: 11,
@@ -391,7 +391,7 @@ export function HoleritesSection() {
                             fontWeight: 600,
                           }}
                         >
-                          👁️ Ver
+                          Ver
                         </button>
                       </td>
                     </tr>
@@ -432,26 +432,26 @@ export function HoleritesSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
               <div>
-                <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+                <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
                   Holerite · {ver.competencia}
                 </h3>
-                <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+                <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
                   {ver.nome} — {ver.cargo}
                 </p>
               </div>
               <button
                 onClick={() => setVer(null)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -465,7 +465,7 @@ export function HoleritesSection() {
             <div style={{ padding: 24, overflowY: "auto" }}>
               <p
                 style={{
-                  color: "#16a34a",
+                  color: "#059669",
                   fontSize: 12,
                   fontWeight: 800,
                   textTransform: "uppercase",
@@ -481,11 +481,11 @@ export function HoleritesSection() {
                     display: "flex",
                     justifyContent: "space-between",
                     padding: "6px 0",
-                    borderBottom: "1px solid #f3f4f6",
+                    borderBottom: "1px solid #F1F5F4",
                   }}
                 >
-                  <span style={{ color: "#4b5563", fontSize: 13 }}>{l.rotulo}</span>
-                  <span style={{ color: "#16a34a", fontSize: 13, fontWeight: 600 }}>{real(l.valor)}</span>
+                  <span style={{ color: "#475569", fontSize: 13 }}>{l.rotulo}</span>
+                  <span style={{ color: "#059669", fontSize: 13, fontWeight: 600 }}>{real(l.valor)}</span>
                 </div>
               ))}
               <p
@@ -506,10 +506,10 @@ export function HoleritesSection() {
                     display: "flex",
                     justifyContent: "space-between",
                     padding: "6px 0",
-                    borderBottom: "1px solid #f3f4f6",
+                    borderBottom: "1px solid #F1F5F4",
                   }}
                 >
-                  <span style={{ color: "#4b5563", fontSize: 13 }}>{l.rotulo}</span>
+                  <span style={{ color: "#475569", fontSize: 13 }}>{l.rotulo}</span>
                   <span style={{ color: "#dc2626", fontSize: 13, fontWeight: 600 }}>- {real(l.valor)}</span>
                 </div>
               ))}
@@ -519,7 +519,7 @@ export function HoleritesSection() {
                   justifyContent: "space-between",
                   marginTop: 16,
                   padding: "12px 14px",
-                  background: "#eef2ff",
+                  background: "#ECFDF5",
                   borderRadius: 10,
                 }}
               >

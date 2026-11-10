@@ -18,4 +18,4 @@ export default function TelefoniaHub() {
     {aba === "conexoes" && podeConexoes ? <ConexoesVoipSection/> : podeCampanhas ? <UraDiscadorSection/> : null}
   </div>;
 }
-function botao(ativo:boolean):React.CSSProperties{return{border:ativo?"1px solid #16a34a":"1px solid #dbe2ea",background:ativo?"#ecfdf3":"#fff",color:ativo?"#15803d":"#475569",borderRadius:10,padding:"11px 16px",fontWeight:800,cursor:"pointer"}}
+function botao(ativo:boolean):React.CSSProperties{return{border:ativo?"1px solid #059669":"1px solid #dbe2ea",background:ativo?"#ecfdf3":"#fff",color:ativo?"#047857":"#475569",borderRadius:10,padding:"11px 16px",fontWeight:800,cursor:"pointer"}}

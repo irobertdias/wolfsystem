@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Benefícios (WolfSystem — multi-tenant · tabela 'beneficios'; custoEmpresa↔custo_empresa)
 // PORTADO DO UNITA → WOLF. Isolamento por workspace_id em todas as queries.
 const COR = "#4f46e5";
@@ -10,16 +11,16 @@ const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -28,7 +29,7 @@ const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency"
 const TIPOS: Record<string, { cor: string; icon: string }> = {
   Transporte: { cor: "#0ea5e9", icon: "🚌" },
   Alimentação: { cor: "#f59e0b", icon: "🍽️" },
-  Saúde: { cor: "#16a34a", icon: "🏥" },
+  Saúde: { cor: "#059669", icon: "🏥" },
   "Bem-estar": { cor: "#ec4899", icon: "🧘" },
   Seguro: { cor: "#8b5cf6", icon: "🛡️" },
 };
@@ -141,7 +142,7 @@ export function BeneficiosSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -152,10 +153,10 @@ export function BeneficiosSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>🎁</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Benefícios
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               <b style={{ color: COR_TEXTO }}>{lista.length}</b> benefício(s) ativos
             </p>
           </div>
@@ -166,7 +167,7 @@ export function BeneficiosSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -184,7 +185,7 @@ export function BeneficiosSection() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
         {[
           { label: "Benefícios", value: String(lista.length), cor: "#6366f1", icon: "🎁" },
-          { label: "Adesões totais", value: String(totalAdesoes), cor: "#16a34a", icon: "👥" },
+          { label: "Adesões totais", value: String(totalAdesoes), cor: "#059669", icon: "👥" },
           { label: "Custo mensal", value: real(custoMensal), cor: "#f59e0b", icon: "💰" },
         ].map((s) => (
           <div key={s.label} style={{ ...card, padding: 16, borderTop: `3px solid ${s.cor}` }}>
@@ -201,11 +202,11 @@ export function BeneficiosSection() {
                   fontSize: 14,
                 }}
               >
-                {s.icon}
+                {<IconeEmoji e={s.icon} />}
               </div>
               <p
                 style={{
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 11,
                   margin: 0,
                   fontWeight: 700,
@@ -223,12 +224,12 @@ export function BeneficiosSection() {
       </div>
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum benefício cadastrado.</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum benefício cadastrado.</p>
         </div>
       ) : (
         <div
@@ -274,12 +275,12 @@ export function BeneficiosSection() {
                         flexShrink: 0,
                       }}
                     >
-                      {t.icon}
+                      {<IconeEmoji e={t.icon} />}
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <p
                         style={{
-                          color: "#1f2937",
+                          color: "#0F172A",
                           fontSize: 14,
                           fontWeight: 800,
                           margin: 0,
@@ -300,9 +301,9 @@ export function BeneficiosSection() {
                         setModal(true);
                       }}
                       style={{
-                        background: "#eef2ff",
+                        background: "#ECFDF5",
                         color: COR_TEXTO,
-                        border: "1px solid #c7d2fe",
+                        border: "1px solid #A7F3D0",
                         borderRadius: 8,
                         padding: "4px 9px",
                         fontSize: 11,
@@ -333,14 +334,14 @@ export function BeneficiosSection() {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    borderTop: "1px solid #f3f4f6",
+                    borderTop: "1px solid #F1F5F4",
                     paddingTop: 12,
                   }}
                 >
                   <div>
                     <p
                       style={{
-                        color: "#9ca3af",
+                        color: "#94A3B8",
                         fontSize: 10,
                         margin: 0,
                         fontWeight: 700,
@@ -349,14 +350,14 @@ export function BeneficiosSection() {
                     >
                       Custo/pessoa
                     </p>
-                    <p style={{ color: "#1f2937", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>
+                    <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>
                       {real(b.custoEmpresa)}
                     </p>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <p
                       style={{
-                        color: "#9ca3af",
+                        color: "#94A3B8",
                         fontSize: 10,
                         margin: 0,
                         fontWeight: 700,
@@ -397,21 +398,21 @@ export function BeneficiosSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
                 {editando ? "Editar Benefício" : "Novo Benefício"}
               </h3>
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -462,19 +463,19 @@ export function BeneficiosSection() {
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={() => setModal(false)}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -488,7 +489,7 @@ export function BeneficiosSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -513,7 +514,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label
         style={{
-          color: "#6b7280",
+          color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",

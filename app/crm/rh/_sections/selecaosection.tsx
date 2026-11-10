@@ -16,7 +16,7 @@ const COR = "#4f46e5";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const COLUNAS = ["Triagem", "Entrevista", "Teste", "Proposta", "Contratado"];
@@ -25,7 +25,7 @@ const COL_COR: Record<string, string> = {
   Entrevista: "#6366f1",
   Teste: "#8b5cf6",
   Proposta: "#f59e0b",
-  Contratado: "#16a34a",
+  Contratado: "#059669",
 };
 type Candidato = { id: string; nome: string; vaga: string; etapa: string; reprovado: boolean };
 
@@ -164,7 +164,7 @@ export function SelecaoSection() {
             width: 48,
             height: 48,
             borderRadius: 14,
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -175,10 +175,10 @@ export function SelecaoSection() {
           <span style={{ filter: "saturate(0) brightness(2)" }}>🎯</span>
         </div>
         <div>
-          <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+          <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
             Processo Seletivo
           </h1>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+          <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
             Mova com ‹ › entre as fases · ✕ reprova na fase atual
           </p>
         </div>
@@ -186,12 +186,12 @@ export function SelecaoSection() {
 
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando pipeline...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando pipeline...</p>
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>📭</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>
+          <p style={{ color: "#64748B", fontSize: 13 }}>
             Nenhum candidato no pipeline. Cadastre em “Candidatos”.
           </p>
         </div>
@@ -212,9 +212,9 @@ export function SelecaoSection() {
                 <div
                   key={col}
                   style={{
-                    background: "#f9fafb",
+                    background: "#F7FAF9",
                     borderRadius: 12,
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid #E6ECEA",
                     display: "flex",
                     flexDirection: "column",
                     minHeight: 200,
@@ -229,7 +229,7 @@ export function SelecaoSection() {
                       alignItems: "center",
                     }}
                   >
-                    <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 800 }}>{col}</span>
+                    <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 800 }}>{col}</span>
                     <span
                       style={{
                         background: `${cor}15`,
@@ -257,10 +257,10 @@ export function SelecaoSection() {
                             }}
                           >
                             <div style={{ minWidth: 0 }}>
-                              <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>
+                              <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>
                                 {c.nome}
                               </p>
-                              <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 8px" }}>
+                              <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 8px" }}>
                                 {c.vaga || "—"}
                               </p>
                             </div>
@@ -287,8 +287,8 @@ export function SelecaoSection() {
                               onClick={() => mover(c, -1)}
                               disabled={idx === 0}
                               style={{
-                                background: idx === 0 ? "#f3f4f6" : "#eef2ff",
-                                color: idx === 0 ? "#cbd5e1" : "#4338ca",
+                                background: idx === 0 ? "#F1F5F4" : "#ECFDF5",
+                                color: idx === 0 ? "#cbd5e1" : "#065F46",
                                 border: "none",
                                 borderRadius: 7,
                                 padding: "3px 10px",
@@ -303,8 +303,8 @@ export function SelecaoSection() {
                               onClick={() => mover(c, 1)}
                               disabled={idx === COLUNAS.length - 1}
                               style={{
-                                background: idx === COLUNAS.length - 1 ? "#f3f4f6" : "#eef2ff",
-                                color: idx === COLUNAS.length - 1 ? "#cbd5e1" : "#4338ca",
+                                background: idx === COLUNAS.length - 1 ? "#F1F5F4" : "#ECFDF5",
+                                color: idx === COLUNAS.length - 1 ? "#cbd5e1" : "#065F46",
                                 border: "none",
                                 borderRadius: 7,
                                 padding: "3px 10px",
@@ -343,7 +343,7 @@ export function SelecaoSection() {
             <div style={{ ...card, padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <span style={{ fontSize: 16 }}>🚫</span>
-                <h3 style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: 0 }}>Reprovados</h3>
+                <h3 style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: 0 }}>Reprovados</h3>
                 <span
                   style={{
                     background: "#fef2f2",
@@ -379,8 +379,8 @@ export function SelecaoSection() {
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{c.nome}</p>
-                      <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{c.vaga || "—"}</p>
+                      <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{c.nome}</p>
+                      <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{c.vaga || "—"}</p>
                       <p style={{ color: "#dc2626", fontSize: 11, margin: "4px 0 0", fontWeight: 700 }}>
                         Parou em: {c.etapa}
                       </p>
@@ -389,9 +389,9 @@ export function SelecaoSection() {
                       onClick={() => reativar(c)}
                       title="Voltar ao funil"
                       style={{
-                        background: "#eef2ff",
-                        color: "#4338ca",
-                        border: "1px solid #c7d2fe",
+                        background: "#ECFDF5",
+                        color: "#065F46",
+                        border: "1px solid #A7F3D0",
                         borderRadius: 8,
                         padding: "5px 10px",
                         fontSize: 11,
@@ -401,7 +401,7 @@ export function SelecaoSection() {
                         flexShrink: 0,
                       }}
                     >
-                      ↺ Reativar
+                      Reativar
                     </button>
                   </div>
                 ))}
@@ -422,7 +422,7 @@ export function SelecaoSection() {
             maxWidth: 360,
             background: "#ffffff",
             borderRadius: 12,
-            borderLeft: `4px solid ${aviso.tipo === "erro" ? "#dc2626" : "#16a34a"}`,
+            borderLeft: `4px solid ${aviso.tipo === "erro" ? "#dc2626" : "#059669"}`,
             boxShadow: "0 12px 28px rgba(0,0,0,0.16)",
             padding: "14px 16px",
             display: "flex",
@@ -437,7 +437,7 @@ export function SelecaoSection() {
               height: 34,
               borderRadius: 9,
               flexShrink: 0,
-              background: aviso.tipo === "erro" ? "#fef2f2" : "#f0fdf4",
+              background: aviso.tipo === "erro" ? "#fef2f2" : "#ECFDF5",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -446,7 +446,7 @@ export function SelecaoSection() {
           >
             {aviso.tipo === "erro" ? "⚠️" : "✅"}
           </div>
-          <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 600, margin: 0, flex: 1, lineHeight: 1.4 }}>
+          <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 600, margin: 0, flex: 1, lineHeight: 1.4 }}>
             {aviso.titulo}
           </p>
           <button
@@ -454,7 +454,7 @@ export function SelecaoSection() {
             style={{
               background: "transparent",
               border: "none",
-              color: "#9ca3af",
+              color: "#94A3B8",
               fontSize: 16,
               cursor: "pointer",
               flexShrink: 0,

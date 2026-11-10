@@ -33,49 +33,49 @@ type Modulo = { id: string; nome: string; sub: string; cor: string; preco: numbe
 
 /** Módulos vendidos à parte (preço mensal de tabela). */
 const MODULOS_BASE: Modulo[] = [
-  { id: "crm", nome: "Módulo CRM", sub: "Gestão comercial", cor: "#2563eb", preco: 197, linhas: [
+  { id: "crm", nome: "Módulo CRM", sub: "Gestão comercial", cor: "#047857", preco: 197, linhas: [
     "Funil de vendas, contatos e histórico do cliente", "Vendas por consultor e por equipe", "Dashboard com os números da operação",
   ] },
-  { id: "chatbot", nome: "Módulo Chatbot", sub: "Atendimento no WhatsApp", cor: "#0d9488", preco: 197, linhas: [
+  { id: "chatbot", nome: "Módulo Chatbot", sub: "Atendimento no WhatsApp", cor: "#059669", preco: 197, linhas: [
     "Vários atendentes no mesmo número de WhatsApp", "Fluxos automáticos e respostas rápidas", "Transferência de conversas e histórico completo",
   ] },
-  { id: "revisional", nome: "Módulo Revisional", sub: "Análise contratual", cor: "#8b5cf6", preco: 297, linhas: [
+  { id: "revisional", nome: "Módulo Revisional", sub: "Análise contratual", cor: "#059669", preco: 297, linhas: [
     "Simulação de financiamento imobiliário e de veículo", "Comparação automática com a taxa média do Banco Central", "Proposta por link com validade, aceite online e PDF",
   ] },
-  { id: "contratos", nome: "Contratos e Assinaturas", sub: "Assinatura eletrônica (até 100/mês)", cor: "#155eef", preco: 69.9, linhas: [
+  { id: "contratos", nome: "Contratos e Assinaturas", sub: "Assinatura eletrônica (até 100/mês)", cor: "#047857", preco: 69.9, linhas: [
     "Envio de contratos para assinatura por link", "Assinatura com validação do signatário", "Contratos assinados guardados e para baixar",
   ] },
-  { id: "automacao_crm", nome: "Automação de CRM", sub: "Ações automáticas", cor: "#1d4ed8", preco: 197, linhas: [
+  { id: "automacao_crm", nome: "Automação de CRM", sub: "Ações automáticas", cor: "#065F46", preco: 197, linhas: [
     "Ações automáticas quando o status de uma venda muda",
   ] },
-  { id: "roleta", nome: "Roleta de Distribuição", sub: "Distribuição de leads", cor: "#3b82f6", preco: 97, linhas: [
+  { id: "roleta", nome: "Roleta de Distribuição", sub: "Distribuição de leads", cor: "#059669", preco: 97, linhas: [
     "Distribui os novos contatos entre os atendentes", "Divisão equilibrada da fila de atendimento",
   ] },
-  { id: "disparos_web", nome: "Disparos Web", sub: "Envio em massa", cor: "#0ea5e9", preco: 147, linhas: [
+  { id: "disparos_web", nome: "Disparos Web", sub: "Envio em massa", cor: "#059669", preco: 147, linhas: [
     "Envio de mensagens em massa pelo WhatsApp", "Listas de contatos e acompanhamento dos envios",
   ] },
-  { id: "disparos_api", nome: "Disparos API", sub: "API oficial do WhatsApp", cor: "#6366f1", preco: 197, linhas: [
+  { id: "disparos_api", nome: "Disparos API", sub: "API oficial do WhatsApp", cor: "#059669", preco: 197, linhas: [
     "Campanhas pela API oficial do WhatsApp (Meta)", "Modelos de mensagem aprovados",
   ] },
-  { id: "validacao", nome: "Validação de Números", sub: "Higienização de listas", cor: "#0891b2", preco: 97, linhas: [
+  { id: "validacao", nome: "Validação de Números", sub: "Higienização de listas", cor: "#059669", preco: 97, linhas: [
     "Confere quais números têm WhatsApp", "Limpa listas antes das campanhas",
   ] },
-  { id: "voip", nome: "Telefonia VoIP", sub: "Ligações pelo sistema", cor: "#7c3aed", preco: 197, linhas: [
+  { id: "voip", nome: "Telefonia VoIP", sub: "Ligações pelo sistema", cor: "#047857", preco: 197, linhas: [
     "Ligações direto do navegador", "Chamadas e histórico integrados ao cliente",
   ] },
-  { id: "instagram", nome: "Instagram Direct", sub: "Atendimento no Instagram", cor: "#ec4899", preco: 97, linhas: [
+  { id: "instagram", nome: "Instagram Direct", sub: "Atendimento no Instagram", cor: "#059669", preco: 97, linhas: [
     "Mensagens do Instagram na mesma tela do WhatsApp",
   ] },
-  { id: "meta_ads", nome: "Central Ads", sub: "Mídia paga", cor: "#9333ea", preco: 297, linhas: [
+  { id: "meta_ads", nome: "Central Ads", sub: "Mídia paga", cor: "#047857", preco: 297, linhas: [
     "Indicadores e relatórios das campanhas em um só lugar",
   ] },
-  { id: "equipes", nome: "Equipes Multi-time", sub: "Gestão de equipes", cor: "#2563eb", preco: 97, linhas: [
+  { id: "equipes", nome: "Equipes Multi-time", sub: "Gestão de equipes", cor: "#047857", preco: 97, linhas: [
     "Separação de atendentes e vendas por equipe", "Supervisores com visão da própria equipe",
   ] },
-  { id: "funil_avancado", nome: "Funil Avançado", sub: "Etapas personalizadas", cor: "#1e40af", preco: 97, linhas: [
+  { id: "funil_avancado", nome: "Funil Avançado", sub: "Etapas personalizadas", cor: "#065F46", preco: 97, linhas: [
     "Etapas do funil sob medida para a operação",
   ] },
-  { id: "cobranca", nome: "Cobrança Automatizada", sub: "Lembretes de pagamento", cor: "#16a34a", preco: 197, linhas: [
+  { id: "cobranca", nome: "Cobrança Automatizada", sub: "Lembretes de pagamento", cor: "#059669", preco: 197, linhas: [
     "Lembretes automáticos de vencimento", "Acompanhamento de quem pagou e de quem está em atraso",
   ] },
   { id: "financeiro", nome: "Financeiro", sub: "Gestão financeira", cor: "#d97706", preco: 197, linhas: [
@@ -194,7 +194,7 @@ export function itensDoSite(e: { plano: string; usuarios: number; whatsapps: num
   const escolhidos = new Set((Array.isArray(e.modulos) ? e.modulos : []).map(String));
   const itens: ItemOrcamento[] = [{ tipo: "plano", id: plano.id, nome: plano.nome, sub: "", cor: plano.cor, linhas: plano.linhas, preco: plano.preco, qtd: 1, usuarios: plano.usuarios, whatsapps: plano.whatsapps }];
   if (usuarios > plano.usuarios) itens.push({ tipo: "usuarios", id: "usuarios", nome: "Usuários adicionais", sub: "Acesso individual ao sistema", cor: "#059669", linhas: [], preco: PRECO_USUARIO, qtd: usuarios - plano.usuarios });
-  if (whatsapps > plano.whatsapps) itens.push({ tipo: "whatsapp", id: "whatsapp", nome: "Conexões de WhatsApp adicionais", sub: "Números conectados ao atendimento", cor: "#16a34a", linhas: [], preco: PRECO_WHATSAPP, qtd: whatsapps - plano.whatsapps });
+  if (whatsapps > plano.whatsapps) itens.push({ tipo: "whatsapp", id: "whatsapp", nome: "Conexões de WhatsApp adicionais", sub: "Números conectados ao atendimento", cor: "#059669", linhas: [], preco: PRECO_WHATSAPP, qtd: whatsapps - plano.whatsapps });
   MODULOS.forEach((m) => {
     const noPlano = plano.inclui.includes(m.id);
     if (noPlano || escolhidos.has(m.id)) itens.push({ tipo: "modulo", id: m.id, nome: m.nome, sub: m.sub, cor: m.cor, linhas: m.linhas, preco: m.preco, qtd: 1, incluso: noPlano });
@@ -202,9 +202,9 @@ export function itensDoSite(e: { plano: string; usuarios: number; whatsapps: num
   const contrato = Object.keys(CONTRATOS_SITE).find((k) => escolhidos.has(k));
   if (contrato) {
     const c = CONTRATOS_SITE[contrato];
-    itens.push({ tipo: "personalizado", id: contrato, nome: c.nome, sub: c.sub, cor: "#155eef", linhas: ["Envio de contratos para assinatura por link", "Contratos assinados guardados e para baixar"], preco: c.preco, qtd: 1, cobranca: "mensal" });
+    itens.push({ tipo: "personalizado", id: contrato, nome: c.nome, sub: c.sub, cor: "#047857", linhas: ["Envio de contratos para assinatura por link", "Contratos assinados guardados e para baixar"], preco: c.preco, qtd: 1, cobranca: "mensal" });
   }
-  itens.push({ tipo: "configuracao", id: "configuracao", nome: "Configuração inicial", sub: "Implantação e configuração do ambiente", cor: "#0f766e", linhas: [], preco: CONFIGURACAO_PADRAO, qtd: 1, cobranca: "unico" });
+  itens.push({ tipo: "configuracao", id: "configuracao", nome: "Configuração inicial", sub: "Implantação e configuração do ambiente", cor: "#047857", linhas: [], preco: CONFIGURACAO_PADRAO, qtd: 1, cobranca: "unico" });
   return itens;
 }
 

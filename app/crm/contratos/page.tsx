@@ -12,6 +12,7 @@ import { opcoesAssinatura, type OpcoesAssinatura } from "../../lib/assinatura-op
 import VisualizadorContrato from "./VisualizadorContrato";
 import { lerPdfAssinado, nomePdfAssinado } from "../../lib/contrato-pdf";
 
+import { IconeEmoji } from "../../components/a2/Icone";
 type StatusFiltro = "todos" | "assinados" | "pendentes" | "expirados" | "problemas";
 type PapelSignatario = "empresa" | "cliente" | "testemunha" | "interveniente" | "outro";
 type MeioOtp = "whatsapp" | "email";
@@ -466,10 +467,10 @@ export default function ContratosPage() {
           <span className={styles.eyebrow}>WOLF CONTRATOS</span>
           <h1>Contratos e assinaturas</h1>
           <p>Acompanhe cada documento, assinatura eletrônica e evidência do seu workspace.</p>
-          <div style={{ marginTop: 9, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}><span style={{ background: "#e0e7ff", color: "#3730a3", borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 850, textTransform: "capitalize" }}>Plano {planoUso.nome}</span><span style={{ color: "#64748b", fontSize: 11 }}>{planoUso.limite_mensal === null ? `${planoUso.usados_mes} contratos usados neste mês · ilimitado` : `${planoUso.usados_mes} de ${planoUso.limite_mensal} contratos usados neste mês`}</span></div>
+          <div style={{ marginTop: 9, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}><span style={{ background: "#D1FAE5", color: "#3730a3", borderRadius: 999, padding: "5px 10px", fontSize: 11, fontWeight: 850, textTransform: "capitalize" }}>Plano {planoUso.nome}</span><span style={{ color: "#64748b", fontSize: 11 }}>{planoUso.limite_mensal === null ? `${planoUso.usados_mes} contratos usados neste mês · ilimitado` : `${planoUso.usados_mes} de ${planoUso.limite_mensal} contratos usados neste mês`}</span></div>
         </div>
         <div className={styles.headerActions}>
-          {podeConfigurar && <button className={styles.refreshButton} onClick={() => router.push("/crm/contratos/configuracoes")}>⚙ Empresas e representantes</button>}
+          {podeConfigurar && <button className={styles.refreshButton} onClick={() => router.push("/crm/contratos/configuracoes")}>Empresas e representantes</button>}
           {podeCriar && <button className={styles.newButton} onClick={abrirNovoContrato}>＋ Novo contrato</button>}
           <button className={styles.refreshButton} onClick={() => carregar(paginacao.pagina, true)} disabled={atualizando}>
             <span className={atualizando ? styles.spin : ""}>↻</span> {atualizando ? "Atualizando" : "Atualizar"}
@@ -480,7 +481,7 @@ export default function ContratosPage() {
       <section className={styles.cards} aria-label="Resumo dos contratos">
         {cards.map(card => (
           <button key={card.key} className={`${styles.kpi} ${styles[`kpi_${card.color}`]} ${filtro === card.key ? styles.kpiActive : ""}`} onClick={() => { setFiltro(card.key); setSelecionado(null); }}>
-            <span className={styles.kpiIcon}>{card.icon}</span>
+            <span className={styles.kpiIcon}>{<IconeEmoji e={card.icon} />}</span>
             <span><small>{card.label}</small><strong>{card.value.toLocaleString("pt-BR")}</strong><em>{card.note}</em></span>
           </button>
         ))}
@@ -522,7 +523,7 @@ export default function ContratosPage() {
           </div>
         )}
 
-        {paginacao.paginas > 1 && <div className={styles.pagination}><button disabled={paginacao.pagina <= 1} onClick={() => carregar(paginacao.pagina - 1)}>← Anterior</button><span>Página <b>{paginacao.pagina}</b> de {paginacao.paginas}</span><button disabled={paginacao.pagina >= paginacao.paginas} onClick={() => carregar(paginacao.pagina + 1)}>Próxima →</button></div>}
+        {paginacao.paginas > 1 && <div className={styles.pagination}><button disabled={paginacao.pagina <= 1} onClick={() => carregar(paginacao.pagina - 1)}>Anterior</button><span>Página <b>{paginacao.pagina}</b> de {paginacao.paginas}</span><button disabled={paginacao.pagina >= paginacao.paginas} onClick={() => carregar(paginacao.pagina + 1)}>Próxima</button></div>}
       </section>
 
       <footer className={styles.footer}>Documentos privados · acesso por workspace e permissão · hashes SHA-256 e auditoria Wolf</footer>

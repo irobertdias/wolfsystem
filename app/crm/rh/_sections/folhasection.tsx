@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🧑‍💼 RH · Folha de Pagamento  (CONECTADO — 'folha_itens' por competência)
 // ───────────────────────────────────────────────────────────────────────
@@ -19,7 +20,7 @@ const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -316,10 +317,10 @@ export function FolhaSection() {
   const numStyle = {
     width: 90,
     background: "#ffffff",
-    border: "1px solid #e5e7eb",
+    border: "1px solid #E6ECEA",
     borderRadius: 8,
     padding: "6px 8px",
-    color: "#1f2937",
+    color: "#0F172A",
     fontSize: 12,
     textAlign: "right" as const,
     outline: "none",
@@ -343,7 +344,7 @@ export function FolhaSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -354,10 +355,10 @@ export function FolhaSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>💵</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Folha de Pagamento
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Gere a folha do mês e edite as comissões por colaborador
             </p>
           </div>
@@ -369,12 +370,12 @@ export function FolhaSection() {
               onChange={(e) => selecionarComp(e.target.value)}
               style={{
                 background: "#ffffff",
-                border: "1px solid #e5e7eb",
+                border: "1px solid #E6ECEA",
                 borderRadius: 10,
                 padding: "9px 14px",
                 fontSize: 13,
                 fontWeight: 600,
-                color: "#1f2937",
+                color: "#0F172A",
                 outline: "none",
               }}
             >
@@ -393,7 +394,7 @@ export function FolhaSection() {
                 style={{
                   background: "#ffffff",
                   color: COR_TEXTO,
-                  border: "1px solid #c7d2fe",
+                  border: "1px solid #A7F3D0",
                   borderRadius: 12,
                   padding: "11px 18px",
                   fontSize: 13,
@@ -408,9 +409,9 @@ export function FolhaSection() {
                 onClick={marcarPagas}
                 disabled={processando || todosPagos}
                 style={{
-                  background: todosPagos ? "#f0fdf4" : `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
-                  color: todosPagos ? "#16a34a" : "white",
-                  border: todosPagos ? "1px solid #bbf7d0" : "none",
+                  background: todosPagos ? "#ECFDF5" : `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+                  color: todosPagos ? "#059669" : "white",
+                  border: todosPagos ? "1px solid #A7F3D0" : "none",
                   borderRadius: 12,
                   padding: "11px 18px",
                   fontSize: 13,
@@ -431,7 +432,7 @@ export function FolhaSection() {
         {[
           { label: "Total bruto", value: real(tot.bruto), cor: "#6366f1", icon: "📊" },
           { label: "Descontos", value: real(tot.desc), cor: "#dc2626", icon: "➖" },
-          { label: "Líquido a pagar", value: real(tot.liq), cor: "#16a34a", icon: "💰" },
+          { label: "Líquido a pagar", value: real(tot.liq), cor: "#059669", icon: "💰" },
           { label: "Colaboradores", value: String(itens.length), cor: "#f59e0b", icon: "👥" },
         ].map((s) => (
           <div key={s.label} style={{ ...card, padding: 16, borderTop: `3px solid ${s.cor}` }}>
@@ -448,11 +449,11 @@ export function FolhaSection() {
                   fontSize: 14,
                 }}
               >
-                {s.icon}
+                {<IconeEmoji e={s.icon} />}
               </div>
               <p
                 style={{
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 11,
                   margin: 0,
                   fontWeight: 700,
@@ -471,16 +472,16 @@ export function FolhaSection() {
 
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando folha...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando folha...</p>
         </div>
       ) : itens.length === 0 ? (
         // SEM FOLHA NA COMPETÊNCIA → gerar
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 40, margin: "0 0 8px" }}>🗓️</p>
-          <p style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 6px" }}>
+          <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 6px" }}>
             {competencias.length === 0 ? "Nenhuma folha gerada ainda" : "Gerar uma nova folha"}
           </p>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 18px" }}>
+          <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 18px" }}>
             Escolha o mês e gere a folha — os funcionários ativos entram automaticamente.
           </p>
           <div
@@ -498,12 +499,12 @@ export function FolhaSection() {
               onChange={(e) => setNovaComp(e.target.value)}
               style={{
                 background: "#ffffff",
-                border: "1px solid #e5e7eb",
+                border: "1px solid #E6ECEA",
                 borderRadius: 10,
                 padding: "10px 14px",
                 fontSize: 13,
                 fontWeight: 600,
-                color: "#1f2937",
+                color: "#0F172A",
                 outline: "none",
               }}
             />
@@ -511,7 +512,7 @@ export function FolhaSection() {
               onClick={gerarFolha}
               disabled={gerando}
               style={{
-                background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                 color: "white",
                 border: "none",
                 borderRadius: 12,
@@ -532,7 +533,7 @@ export function FolhaSection() {
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background: "#f9fafb" }}>
+                  <tr style={{ background: "#F7FAF9" }}>
                     {[
                       "Colaborador",
                       "Base",
@@ -548,14 +549,14 @@ export function FolhaSection() {
                         key={h}
                         style={{
                           padding: "12px 16px",
-                          color: "#6b7280",
+                          color: "#64748B",
                           fontSize: 11,
                           textAlign: h === "Colaborador" ? "left" : "right",
                           textTransform: "uppercase",
                           letterSpacing: 0.5,
                           whiteSpace: "nowrap",
                           fontWeight: 700,
-                          borderBottom: "1px solid #e5e7eb",
+                          borderBottom: "1px solid #E6ECEA",
                         }}
                       >
                         {h}
@@ -570,15 +571,15 @@ export function FolhaSection() {
                       <tr
                         key={it.id}
                         style={{
-                          borderTop: "1px solid #f3f4f6",
-                          background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                          borderTop: "1px solid #F1F5F4",
+                          background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
                         }}
                       >
                         <td style={{ padding: "12px 16px" }}>
-                          <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>
+                          <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>
                             {it.nome}
                           </p>
-                          <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{it.cargo}</p>
+                          <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{it.cargo}</p>
                         </td>
                         <td style={{ padding: "10px 16px", textAlign: "right" }}>
                           {editavel ? (
@@ -589,7 +590,7 @@ export function FolhaSection() {
                               style={numStyle}
                             />
                           ) : (
-                            <span style={{ color: "#4b5563", fontSize: 12 }}>{real(it.base)}</span>
+                            <span style={{ color: "#475569", fontSize: 12 }}>{real(it.base)}</span>
                           )}
                         </td>
                         <td style={{ padding: "10px 16px", textAlign: "right" }}>
@@ -600,8 +601,8 @@ export function FolhaSection() {
                               onChange={(e) => editar(it.id, "comissao", Number(e.target.value))}
                               style={{
                                 ...numStyle,
-                                border: "1px solid #c7d2fe",
-                                background: "#f5f3ff",
+                                border: "1px solid #A7F3D0",
+                                background: "#ECFDF5",
                                 fontWeight: 700,
                                 color: COR_TEXTO,
                               }}
@@ -652,7 +653,7 @@ export function FolhaSection() {
                         <td
                           style={{
                             padding: "12px 16px",
-                            color: "#1f2937",
+                            color: "#0F172A",
                             fontSize: 13,
                             fontWeight: 800,
                             textAlign: "right",
@@ -672,7 +673,7 @@ export function FolhaSection() {
                           ) : (
                             <span
                               style={{
-                                color: saldoHoras[it.nome] >= 0 ? "#16a34a" : "#dc2626",
+                                color: saldoHoras[it.nome] >= 0 ? "#059669" : "#dc2626",
                                 fontSize: 13,
                                 fontWeight: 700,
                               }}
@@ -689,9 +690,9 @@ export function FolhaSection() {
                         <td style={{ padding: "12px 16px", textAlign: "right" }}>
                           <span
                             style={{
-                              background: it.status === "pago" ? "#f0fdf4" : "#fffbeb",
-                              color: it.status === "pago" ? "#16a34a" : "#f59e0b",
-                              border: `1px solid ${it.status === "pago" ? "#bbf7d0" : "#fde68a"}`,
+                              background: it.status === "pago" ? "#ECFDF5" : "#fffbeb",
+                              color: it.status === "pago" ? "#059669" : "#f59e0b",
+                              border: `1px solid ${it.status === "pago" ? "#A7F3D0" : "#fde68a"}`,
                               fontSize: 11,
                               padding: "3px 10px",
                               borderRadius: 10,
@@ -709,11 +710,11 @@ export function FolhaSection() {
               </table>
             </div>
           </div>
-          <p style={{ color: "#9ca3af", fontSize: 11, margin: 0, textAlign: "center" }}>
-            Editou os valores? Clique em <b>💾 Salvar alterações</b>. O INSS e o IRRF recalculam sozinhos ao
+          <p style={{ color: "#94A3B8", fontSize: 11, margin: 0, textAlign: "center" }}>
+            Editou os valores? Clique em <b>Salvar alterações</b>. O INSS e o IRRF recalculam sozinhos ao
             mudar a base ou a comissão.
           </p>
-          <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0", textAlign: "center" }}>
+          <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0", textAlign: "center" }}>
             🕐 <b>Saldo Horas</b> vem do ponto eletrônico (jornada {JORNADA_DIA}h/dia) e é só informativo —
             verde = pode folgar, vermelho = está devendo. Não afeta o valor a pagar.
           </p>

@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🧑‍💼 RH · Banco de Horas  (CONECTADO — calcula do PONTO + ajustes manuais)
 // ───────────────────────────────────────────────────────────────────────
@@ -16,16 +17,16 @@ const COR = "#4f46e5";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -234,7 +235,7 @@ export function BancoHorasSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -245,10 +246,10 @@ export function BancoHorasSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>🕐</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Banco de Horas
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Calculado do ponto eletrônico — trabalhado vs jornada
             </p>
           </div>
@@ -260,12 +261,12 @@ export function BancoHorasSection() {
               alignItems: "center",
               gap: 6,
               background: "#fff",
-              border: "1px solid #e5e7eb",
+              border: "1px solid #E6ECEA",
               borderRadius: 10,
               padding: "6px 10px",
             }}
           >
-            <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 700 }}>Jornada/dia</span>
+            <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700 }}>Jornada/dia</span>
             <input
               type="number"
               step="0.5"
@@ -273,17 +274,17 @@ export function BancoHorasSection() {
               onChange={(e) => setJornada(Number(e.target.value) || 0)}
               style={{
                 width: 52,
-                border: "1px solid #e5e7eb",
+                border: "1px solid #E6ECEA",
                 borderRadius: 8,
                 padding: "4px 6px",
                 fontSize: 13,
                 fontWeight: 700,
-                color: "#1f2937",
+                color: "#0F172A",
                 textAlign: "center",
                 outline: "none",
               }}
             />
-            <span style={{ color: "#9ca3af", fontSize: 11 }}>h</span>
+            <span style={{ color: "#94A3B8", fontSize: 11 }}>h</span>
           </div>
           <input
             type="month"
@@ -291,12 +292,12 @@ export function BancoHorasSection() {
             onChange={(e) => setMes(e.target.value)}
             style={{
               background: "#fff",
-              border: "1px solid #e5e7eb",
+              border: "1px solid #E6ECEA",
               borderRadius: 10,
               padding: "9px 14px",
               fontSize: 13,
               fontWeight: 600,
-              color: "#1f2937",
+              color: "#0F172A",
               outline: "none",
             }}
           />
@@ -306,7 +307,7 @@ export function BancoHorasSection() {
               setModal(true);
             }}
             style={{
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               color: "white",
               border: "none",
               borderRadius: 12,
@@ -327,7 +328,7 @@ export function BancoHorasSection() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
         {[
           { label: "Colaboradores", value: String(saldos.length), cor: "#6366f1", icon: "👥" },
-          { label: "Saldo positivo", value: hh(totalPos), cor: "#16a34a", icon: "➕" },
+          { label: "Saldo positivo", value: hh(totalPos), cor: "#059669", icon: "➕" },
           { label: "Saldo negativo", value: hh(totalNeg), cor: "#dc2626", icon: "➖" },
         ].map((s) => (
           <div key={s.label} style={{ ...card, padding: 16, borderTop: `3px solid ${s.cor}` }}>
@@ -344,11 +345,11 @@ export function BancoHorasSection() {
                   fontSize: 14,
                 }}
               >
-                {s.icon}
+                {<IconeEmoji e={s.icon} />}
               </div>
               <p
                 style={{
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 11,
                   margin: 0,
                   fontWeight: 700,
@@ -367,15 +368,15 @@ export function BancoHorasSection() {
 
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : saldos.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>🕐</p>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 4px" }}>
+          <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 4px" }}>
             Nenhuma batida de ponto neste mês ainda.
           </p>
-          <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>
+          <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>
             Assim que os funcionários baterem o ponto, o saldo aparece aqui automaticamente.
           </p>
         </div>
@@ -401,7 +402,7 @@ export function BancoHorasSection() {
                         width: 38,
                         height: 38,
                         borderRadius: "50%",
-                        background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                        background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -413,10 +414,10 @@ export function BancoHorasSection() {
                       {s.funcionario.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 700, margin: 0 }}>
+                      <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0 }}>
                         {s.funcionario}
                       </p>
-                      <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>
+                      <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>
                         {s.diasTrabalhados} dia(s) · {s.horasTrab.toFixed(1)}h trabalhadas de{" "}
                         {s.horasEsper.toFixed(1)}h
                       </p>
@@ -425,37 +426,37 @@ export function BancoHorasSection() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <span
                       style={{
-                        color: s.saldoFinal >= 0 ? "#16a34a" : "#dc2626",
+                        color: s.saldoFinal >= 0 ? "#059669" : "#dc2626",
                         fontSize: 18,
                         fontWeight: 800,
                       }}
                     >
                       {hh(s.saldoFinal)}
                     </span>
-                    <span style={{ color: "#9ca3af", fontSize: 14 }}>{exp ? "▲" : "▼"}</span>
+                    <span style={{ color: "#94A3B8", fontSize: 14 }}>{exp ? "▲" : "▼"}</span>
                   </div>
                 </div>
 
                 {exp && (
                   <div
-                    style={{ borderTop: "1px solid #f3f4f6", background: "#fafbfc", padding: "12px 16px" }}
+                    style={{ borderTop: "1px solid #F1F5F4", background: "#F7FAF9", padding: "12px 16px" }}
                   >
                     {/* resumo do cálculo */}
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
                       <Pill
                         label="Do ponto"
                         valor={hh(s.saldoPonto)}
-                        cor={s.saldoPonto >= 0 ? "#16a34a" : "#dc2626"}
+                        cor={s.saldoPonto >= 0 ? "#059669" : "#dc2626"}
                       />
                       <Pill
                         label="Ajustes manuais"
                         valor={hh(s.ajuste)}
-                        cor={s.ajuste >= 0 ? "#16a34a" : "#dc2626"}
+                        cor={s.ajuste >= 0 ? "#059669" : "#dc2626"}
                       />
                       <Pill
                         label="Saldo final"
                         valor={hh(s.saldoFinal)}
-                        cor={s.saldoFinal >= 0 ? "#16a34a" : "#dc2626"}
+                        cor={s.saldoFinal >= 0 ? "#059669" : "#dc2626"}
                         forte
                       />
                     </div>
@@ -465,7 +466,7 @@ export function BancoHorasSection() {
                       <>
                         <p
                           style={{
-                            color: "#9ca3af",
+                            color: "#94A3B8",
                             fontSize: 10,
                             fontWeight: 700,
                             textTransform: "uppercase",
@@ -483,15 +484,15 @@ export function BancoHorasSection() {
                               justifyContent: "space-between",
                               alignItems: "center",
                               padding: "6px 0",
-                              borderBottom: "1px solid #f3f4f6",
+                              borderBottom: "1px solid #F1F5F4",
                             }}
                           >
-                            <span style={{ color: "#4b5563", fontSize: 12 }}>
-                              📅 {d.dia} · {d.trab.toFixed(1)}h
+                            <span style={{ color: "#475569", fontSize: 12 }}>
+                              {d.dia} · {d.trab.toFixed(1)}h
                             </span>
                             <span
                               style={{
-                                color: d.saldo >= 0 ? "#16a34a" : "#dc2626",
+                                color: d.saldo >= 0 ? "#059669" : "#dc2626",
                                 fontSize: 12,
                                 fontWeight: 700,
                               }}
@@ -508,7 +509,7 @@ export function BancoHorasSection() {
                       <>
                         <p
                           style={{
-                            color: "#9ca3af",
+                            color: "#94A3B8",
                             fontSize: 10,
                             fontWeight: 700,
                             textTransform: "uppercase",
@@ -526,17 +527,17 @@ export function BancoHorasSection() {
                               justifyContent: "space-between",
                               alignItems: "center",
                               padding: "6px 0",
-                              borderBottom: "1px solid #f3f4f6",
+                              borderBottom: "1px solid #F1F5F4",
                             }}
                           >
-                            <span style={{ color: "#4b5563", fontSize: 12 }}>
+                            <span style={{ color: "#475569", fontSize: 12 }}>
                               {l.descricao || "Ajuste"}{" "}
-                              {l.data && <span style={{ color: "#9ca3af" }}>· {dataBR(l.data)}</span>}
+                              {l.data && <span style={{ color: "#94A3B8" }}>· {dataBR(l.data)}</span>}
                             </span>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <span
                                 style={{
-                                  color: l.horas >= 0 ? "#16a34a" : "#dc2626",
+                                  color: l.horas >= 0 ? "#059669" : "#dc2626",
                                   fontSize: 12,
                                   fontWeight: 700,
                                 }}
@@ -593,21 +594,21 @@ export function BancoHorasSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
                 Lançar Horas (ajuste manual)
               </h3>
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -659,19 +660,19 @@ export function BancoHorasSection() {
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={() => setModal(false)}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -685,7 +686,7 @@ export function BancoHorasSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -711,14 +712,14 @@ function Pill({ label, valor, cor, forte }: { label: string; valor: string; cor:
     <div
       style={{
         background: forte ? `${cor}15` : "#fff",
-        border: `1px solid ${forte ? cor + "40" : "#e5e7eb"}`,
+        border: `1px solid ${forte ? cor + "40" : "#E6ECEA"}`,
         borderRadius: 10,
         padding: "6px 12px",
       }}
     >
       <p
         style={{
-          color: "#9ca3af",
+          color: "#94A3B8",
           fontSize: 9,
           margin: 0,
           textTransform: "uppercase",
@@ -738,7 +739,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label
         style={{
-          color: "#6b7280",
+          color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",

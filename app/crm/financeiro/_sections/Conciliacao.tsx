@@ -3,13 +3,14 @@ import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { supabase } from "../../../lib/supabase";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🔁 CONCILIAÇÃO — casa fin_extratos (linhas do banco) com fin_lancamentos
 //   ao conciliar: marca pago, liga os dois e ajusta o saldo da conta.
 // ═══════════════════════════════════════════════════════════════════════
 const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (iso: string | null | undefined) => (iso || "").slice(0, 10).split("-").reverse().join("/");
-const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
+const card: any = { background: "#fff", borderRadius: 16, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
 const COR = "#2563eb", G2 = "#60a5fa";
 
 export default function Conciliacao() {
@@ -64,15 +65,15 @@ export default function Conciliacao() {
   const kpis = [
     { label: "A conciliar", valor: String(extratos.length), cor: COR, g2: G2, icone: "🔁" },
     { label: "Valor pendente", valor: brl(valorPendente), cor: "#d97706", g2: "#f59e0b", icone: "💰" },
-    { label: "Já conciliadas", valor: String(totConc), cor: "#16a34a", g2: "#22c55e", icone: "✅" },
+    { label: "Já conciliadas", valor: String(totConc), cor: "#059669", g2: "#10B981", icone: "✅" },
     { label: "Taxa de conciliação", valor: `${taxa.toFixed(0)}%`, cor: "#7c3aed", g2: "#a78bfa", icone: "📊" },
   ];
 
   return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22, width: "100%", boxSizing: "border-box", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{ width: 52, height: 52, borderRadius: 16, background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: `0 8px 20px ${COR}40` }}><span style={{ filter: "saturate(0) brightness(2)" }}>🔁</span></div>
-        <div><h1 style={{ color: "#1f2937", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Conciliação</h1><p style={{ color: "#6b7280", fontSize: 13, margin: "3px 0 0" }}>Ligue cada linha do extrato ao lançamento correspondente</p></div>
+        <div><h1 style={{ color: "#0F172A", fontSize: 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>Conciliação</h1><p style={{ color: "#64748B", fontSize: 13, margin: "3px 0 0" }}>Ligue cada linha do extrato ao lançamento correspondente</p></div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
@@ -81,20 +82,20 @@ export default function Conciliacao() {
             onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 10px 24px ${k.cor}22`; e.currentTarget.style.transform = "translateY(-3px)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)"; }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.cor} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: `0 4px 10px ${k.cor}30` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{k.icone}</span></div>
-              <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: `linear-gradient(135deg, ${k.cor} 0%, ${k.g2} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: `0 4px 10px ${k.cor}30` }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={k.icone} />}</span></div>
+              <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{k.label}</span>
             </div>
             <div style={{ color: k.cor, fontSize: 25, fontWeight: 800, letterSpacing: -1 }}>{k.valor}</div>
           </div>
         ))}
       </div>
 
-      {carregando ? <p style={{ color: "#9ca3af", fontSize: 14 }}>Carregando…</p>
+      {carregando ? <p style={{ color: "#94A3B8", fontSize: 14 }}>Carregando…</p>
         : extratos.length === 0 ? (
           <div style={{ ...card, padding: "52px 24px", textAlign: "center" }}>
-            <div style={{ width: 70, height: 70, borderRadius: 20, background: "#f0fdf4", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, margin: "0 auto 12px" }}>✓</div>
-            <h3 style={{ color: "#16a34a", fontSize: 17, fontWeight: 800, margin: "0 0 4px" }}>Tudo conciliado!</h3>
-            <p style={{ color: "#9ca3af", fontSize: 13, margin: 0 }}>Importe um extrato (OFX) em <b>Importar extrato</b> pra trazer novas linhas.</p>
+            <div style={{ width: 70, height: 70, borderRadius: 20, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, margin: "0 auto 12px" }}>✓</div>
+            <h3 style={{ color: "#059669", fontSize: 17, fontWeight: 800, margin: "0 0 4px" }}>Tudo conciliado!</h3>
+            <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Importe um extrato (OFX) em <b>Importar extrato</b> pra trazer novas linhas.</p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -102,18 +103,18 @@ export default function Conciliacao() {
               const cand = candidatos(ex); const credito = ex.tipo === "credito";
               return (
                 <div key={ex.id} style={{ ...card, padding: 16, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: credito ? "#f0fdf4" : "#fef2f2", border: `1px solid ${credito ? "#bbf7d0" : "#fecaca"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{credito ? "📥" : "📤"}</div>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: credito ? "#ECFDF5" : "#fef2f2", border: `1px solid ${credito ? "#A7F3D0" : "#fecaca"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{credito ? "📥" : "📤"}</div>
                   <div style={{ flex: 1, minWidth: 180 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#1f2937" }}>{ex.descricao}</div>
-                    <div style={{ fontSize: 12, color: "#9ca3af" }}>{dataBR(ex.data)} · {nomeConta(ex.conta_id)}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{ex.descricao}</div>
+                    <div style={{ fontSize: 12, color: "#94A3B8" }}>{dataBR(ex.data)} · {nomeConta(ex.conta_id)}</div>
                   </div>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: credito ? "#16a34a" : "#dc2626", minWidth: 110, textAlign: "right" }}>{credito ? "+" : "-"}{brl(ex.valor)}</div>
-                  <select value={sel[ex.id] || ""} onChange={(e) => setSel((p) => ({ ...p, [ex.id]: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 13, minWidth: 230, color: "#1f2937", background: "#fff" }}>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: credito ? "#059669" : "#dc2626", minWidth: 110, textAlign: "right" }}>{credito ? "+" : "-"}{brl(ex.valor)}</div>
+                  <select value={sel[ex.id] || ""} onChange={(e) => setSel((p) => ({ ...p, [ex.id]: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #E6ECEA", fontSize: 13, minWidth: 230, color: "#0F172A", background: "#fff" }}>
                     <option value="">{cand.length ? `Escolher lançamento (${cand.length})…` : "Sem correspondência"}</option>
                     {cand.map((l) => <option key={l.id} value={l.id}>{l.descricao} — {dataBR(l.vencimento)}</option>)}
                   </select>
-                  <button onClick={() => conciliar(ex)} disabled={!sel[ex.id]} style={{ background: sel[ex.id] ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)" : "#e5e7eb", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: sel[ex.id] ? "pointer" : "default", boxShadow: sel[ex.id] ? "0 4px 12px rgba(22,163,74,0.3)" : "none" }}>✓ Conciliar</button>
-                  <button onClick={() => ignorar(ex)} style={{ background: "#fff", border: "1px solid #e5e7eb", color: "#9ca3af", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Ignorar</button>
+                  <button onClick={() => conciliar(ex)} disabled={!sel[ex.id]} style={{ background: sel[ex.id] ? "linear-gradient(135deg, #059669 0%, #10B981 100%)" : "#E6ECEA", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: sel[ex.id] ? "pointer" : "default", boxShadow: sel[ex.id] ? "0 4px 12px rgba(5,150,105,0.3)" : "none" }}>Conciliar</button>
+                  <button onClick={() => ignorar(ex)} style={{ background: "#fff", border: "1px solid #E6ECEA", color: "#94A3B8", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Ignorar</button>
                 </div>
               );
             })}

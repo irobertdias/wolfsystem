@@ -2,22 +2,23 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
+import { IconeEmoji } from "../../../components/a2/Icone";
 // 🧑‍💼 RH · Vagas (CONECTADO — 'vagas'; abertaEm↔aberta_em; candidatos = contagem em 'candidatos' por vaga)
 const COR = "#4f46e5";
 const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -43,9 +44,9 @@ type Vaga = {
   candidatos: number;
 };
 const ST: Record<StatusV, { label: string; cor: string }> = {
-  aberta: { label: "Aberta", cor: "#16a34a" },
+  aberta: { label: "Aberta", cor: "#059669" },
   em_analise: { label: "Em análise", cor: "#f59e0b" },
-  fechada: { label: "Fechada", cor: "#6b7280" },
+  fechada: { label: "Fechada", cor: "#64748B" },
 };
 const FORM_VAZIO: Vaga = {
   id: "",
@@ -183,7 +184,7 @@ export function VagasSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -194,10 +195,10 @@ export function VagasSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>📢</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Vagas
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Posições abertas e recrutamento
             </p>
           </div>
@@ -208,7 +209,7 @@ export function VagasSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -225,7 +226,7 @@ export function VagasSection() {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14 }}>
         {[
-          { label: "Vagas abertas", value: String(stats.abertas), cor: "#16a34a", icon: "📢" },
+          { label: "Vagas abertas", value: String(stats.abertas), cor: "#059669", icon: "📢" },
           { label: "Candidatos", value: String(stats.candidatos), cor: "#6366f1", icon: "👥" },
           { label: "Total de vagas", value: String(stats.total), cor: "#0ea5e9", icon: "📋" },
         ].map((s) => (
@@ -243,11 +244,11 @@ export function VagasSection() {
                   fontSize: 14,
                 }}
               >
-                {s.icon}
+                {<IconeEmoji e={s.icon} />}
               </div>
               <p
                 style={{
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 11,
                   margin: 0,
                   fontWeight: 700,
@@ -274,9 +275,9 @@ export function VagasSection() {
               key={k}
               onClick={() => setFiltro(k as any)}
               style={{
-                background: a ? `${cor}15` : "#f9fafb",
-                color: a ? cor : "#6b7280",
-                border: `1px solid ${a ? cor + "50" : "#e5e7eb"}`,
+                background: a ? `${cor}15` : "#F7FAF9",
+                color: a ? cor : "#64748B",
+                border: `1px solid ${a ? cor + "50" : "#E6ECEA"}`,
                 borderRadius: 10,
                 padding: "7px 14px",
                 fontSize: 12,
@@ -291,12 +292,12 @@ export function VagasSection() {
       </div>
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : filtrados.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>{lista.length === 0 ? "📭" : "🔍"}</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>
+          <p style={{ color: "#64748B", fontSize: 13 }}>
             {lista.length === 0 ? "Nenhuma vaga cadastrada." : "Nada com esse filtro"}
           </p>
         </div>
@@ -331,8 +332,8 @@ export function VagasSection() {
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ color: "#1f2937", fontSize: 15, fontWeight: 800, margin: 0 }}>{v.titulo}</p>
-                    <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+                    <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: 0 }}>{v.titulo}</p>
+                    <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
                       {v.departamento} · {v.regime}
                     </p>
                   </div>
@@ -359,19 +360,19 @@ export function VagasSection() {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    borderTop: "1px solid #f3f4f6",
+                    borderTop: "1px solid #F1F5F4",
                     paddingTop: 12,
                   }}
                 >
-                  <span style={{ color: "#6b7280", fontSize: 12 }}>👥 {v.candidatos} candidato(s)</span>
+                  <span style={{ color: "#64748B", fontSize: 12 }}>{v.candidatos} candidato(s)</span>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ color: "#9ca3af", fontSize: 11 }}>{dataBR(v.abertaEm)}</span>
+                    <span style={{ color: "#94A3B8", fontSize: 11 }}>{dataBR(v.abertaEm)}</span>
                     <button
                       onClick={() => abrirEditar(v)}
                       style={{
-                        background: "#eef2ff",
-                        color: "#4338ca",
-                        border: "1px solid #c7d2fe",
+                        background: "#ECFDF5",
+                        color: "#065F46",
+                        border: "1px solid #A7F3D0",
                         borderRadius: 8,
                         padding: "3px 8px",
                         fontSize: 11,
@@ -425,21 +426,21 @@ export function VagasSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
                 {form.id ? "Editar Vaga" : "Nova Vaga"}
               </h3>
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -516,19 +517,19 @@ export function VagasSection() {
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={() => setModal(false)}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -542,7 +543,7 @@ export function VagasSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -567,7 +568,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label
         style={{
-          color: "#6b7280",
+          color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",

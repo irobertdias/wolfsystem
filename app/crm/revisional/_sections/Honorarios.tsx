@@ -46,12 +46,12 @@ export default function Honorarios({ dados, ir }: any) {
   ]);
 
   const chip = (k: Filtro, l: string) => (
-    <button key={k} onClick={() => setFiltro(k)} style={{ border: `1px solid ${filtro === k ? C.amber : "#e5e7eb"}`, background: filtro === k ? `${C.amber}14` : "#fff", color: filtro === k ? C.amber : "#475569", borderRadius: 20, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{l}</button>
+    <button key={k} onClick={() => setFiltro(k)} style={{ border: `1px solid ${filtro === k ? C.amber : "#E6ECEA"}`, background: filtro === k ? `${C.amber}14` : "#fff", color: filtro === k ? C.amber : "#475569", borderRadius: 20, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{l}</button>
   );
 
   return (
     <Page>
-      <PageHeader icone="💰" titulo="Honorários" subtitulo="Entradas parceladas e êxito previsto de cada contrato" acao={<Btn variante="ghost" onClick={exportar}>⬇️ Exportar CSV</Btn>} />
+      <PageHeader icone="💰" titulo="Honorários" subtitulo="Entradas parceladas e êxito previsto de cada contrato" acao={<Btn variante="ghost" onClick={exportar}>Exportar CSV</Btn>} />
 
       <Stats>
         <Stat label="Recebido no mês" valor={brl(recebidoMes)} icone="✅" cor={C.green} />
@@ -69,15 +69,15 @@ export default function Honorarios({ dados, ir }: any) {
 
       <Table
         cols={[{ label: "Cliente" }, { label: "Parcela", align: "center" }, { label: "Vencimento" }, { label: "Valor", align: "right" }, { label: "Situação" }, { label: "", align: "right" }]}
-        empty={carregando ? <span style={{ color: "#9ca3af" }}>Carregando…</span> : lista.length === 0 ? <Vazio icone="💰" titulo="Nenhuma parcela aqui" sub="Gere as parcelas da entrada na ficha do contrato (Contratos → abrir → Honorários)." acao={<Btn onClick={() => ir("contratos")}>Ir para contratos</Btn>} /> : undefined}
+        empty={carregando ? <span style={{ color: "#94A3B8" }}>Carregando…</span> : lista.length === 0 ? <Vazio icone="💰" titulo="Nenhuma parcela aqui" sub="Gere as parcelas da entrada na ficha do contrato (Contratos → abrir → Honorários)." acao={<Btn onClick={() => ir("contratos")}>Ir para contratos</Btn>} /> : undefined}
       >
         {lista.map((p: any) => {
           const at = atrasada(p);
           return (
             <tr key={`${p.contrato.id}-${p.idx}`}>
-              <td style={tdStyle}><a onClick={() => ir("contratos", { contratoId: p.contrato.id })} style={{ fontWeight: 700, cursor: "pointer", color: "#1f2937" }}>{p.contrato.nome}</a><div style={{ fontSize: 12, color: "#9ca3af" }}>{p.contrato.operadora || "—"}</div></td>
+              <td style={tdStyle}><a onClick={() => ir("contratos", { contratoId: p.contrato.id })} style={{ fontWeight: 700, cursor: "pointer", color: "#0F172A" }}>{p.contrato.nome}</a><div style={{ fontSize: 12, color: "#94A3B8" }}>{p.contrato.operadora || "—"}</div></td>
               <td style={{ ...tdStyle, textAlign: "center" }}>{p.n}</td>
-              <td style={tdStyle}>{dataBR(p.vencimento)}{p.pago_em && <div style={{ fontSize: 12, color: "#9ca3af" }}>paga em {dataBR(p.pago_em)}</div>}</td>
+              <td style={tdStyle}>{dataBR(p.vencimento)}{p.pago_em && <div style={{ fontSize: 12, color: "#94A3B8" }}>paga em {dataBR(p.pago_em)}</div>}</td>
               <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(p.valor)}</td>
               <td style={tdStyle}><Pill texto={p.pago_em ? "Paga" : at ? "Atrasada" : "Em aberto"} cor={p.pago_em ? C.green : at ? C.red : C.amber} /></td>
               <td style={{ ...tdStyle, textAlign: "right" }}><Btn variante="ghost" disabled={ocupado === `${p.contrato.id}-${p.idx}`} onClick={() => alternar(p)}>{p.pago_em ? "Desfazer" : "Dar baixa"}</Btn></td>

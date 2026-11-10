@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🧑‍💼 RH · Dashboard  (CONECTADO — agrega funcionarios, vagas, afastamentos,
 // ferias, contratos, documentos). Campos sem coluna no banco (aniversariantes,
@@ -16,7 +17,7 @@ const PALETA = ["#6366f1", "#0ea5e9", "#f59e0b", "#10b981", "#ec4899", "#8b5cf6"
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -153,7 +154,7 @@ export function DashboardSection() {
       cor: "#6366f1",
       icon: "👥",
     },
-    { label: `Admissões`, valor: String(admissoesPeriodo), sub: labelPeriodo, cor: "#16a34a", icon: "✅" },
+    { label: `Admissões`, valor: String(admissoesPeriodo), sub: labelPeriodo, cor: "#059669", icon: "✅" },
     { label: "Turnover", valor: turnover.toFixed(1) + "%", sub: "acumulado", cor: "#0ea5e9", icon: "🔄" },
     { label: "Custo da Folha", valor: real(custoFolha), sub: "ativos", cor: "#f59e0b", icon: "💰" },
     { label: "Vagas abertas", valor: String(pend.vagas), sub: "recrutando", cor: "#8b5cf6", icon: "📢" },
@@ -195,7 +196,7 @@ export function DashboardSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -206,10 +207,10 @@ export function DashboardSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>🧑‍💼</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Visão Geral de RH
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               Acompanhe o quadro de pessoal, folha e movimentações
             </p>
           </div>
@@ -240,15 +241,15 @@ export function DashboardSection() {
 
       {carregando ? (
         <div style={{ ...card, padding: 50, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando indicadores...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando indicadores...</p>
         </div>
       ) : headcount === 0 ? (
         <div style={{ ...card, padding: 50, textAlign: "center" }}>
           <p style={{ fontSize: 40, margin: "0 0 8px" }}>📊</p>
-          <p style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
+          <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
             Sem dados ainda
           </p>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>
+          <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>
             Cadastre funcionários e os números aparecem aqui automaticamente.
           </p>
         </div>
@@ -273,11 +274,11 @@ export function DashboardSection() {
                       fontSize: 15,
                     }}
                   >
-                    {k.icon}
+                    {<IconeEmoji e={k.icon} />}
                   </div>
                   <p
                     style={{
-                      color: "#6b7280",
+                      color: "#64748B",
                       fontSize: 11,
                       margin: 0,
                       fontWeight: 700,
@@ -289,11 +290,11 @@ export function DashboardSection() {
                   </p>
                 </div>
                 <p
-                  style={{ color: "#1f2937", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}
+                  style={{ color: "#0F172A", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}
                 >
                   {k.valor}
                 </p>
-                <p style={{ color: "#9ca3af", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>{k.sub}</p>
+                <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>{k.sub}</p>
               </div>
             ))}
           </div>
@@ -302,15 +303,15 @@ export function DashboardSection() {
           <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 18 }}>
             <div style={{ ...card, padding: 22 }}>
               <div style={{ marginBottom: 18 }}>
-                <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: 0 }}>
+                <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: 0 }}>
                   Headcount por Departamento
                 </h3>
-                <p style={{ color: "#9ca3af", fontSize: 12, margin: "2px 0 0" }}>
+                <p style={{ color: "#94A3B8", fontSize: 12, margin: "2px 0 0" }}>
                   {headcount} funcionários ativos
                 </p>
               </div>
               {porDepto.length === 0 ? (
-                <p style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", padding: 30 }}>
+                <p style={{ color: "#94A3B8", fontSize: 13, textAlign: "center", padding: 30 }}>
                   Sem departamentos.
                 </p>
               ) : (
@@ -337,7 +338,7 @@ export function DashboardSection() {
                         justifyContent: "flex-end",
                       }}
                     >
-                      <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 800 }}>{d.qtd}</span>
+                      <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 800 }}>{d.qtd}</span>
                       <div
                         title={`${d.qtd} pessoas`}
                         style={{
@@ -348,7 +349,7 @@ export function DashboardSection() {
                           minHeight: 6,
                         }}
                       />
-                      <span style={{ color: "#9ca3af", fontSize: 11, fontWeight: 600, textAlign: "center" }}>
+                      <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 600, textAlign: "center" }}>
                         {d.nome}
                       </span>
                     </div>
@@ -358,12 +359,12 @@ export function DashboardSection() {
             </div>
 
             <div style={{ ...card, padding: 22 }}>
-              <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
-                ✅ Novas Admissões
+              <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
+                Novas Admissões
               </h3>
-              <p style={{ color: "#9ca3af", fontSize: 12, margin: "0 0 16px" }}>Contratações mais recentes</p>
+              <p style={{ color: "#94A3B8", fontSize: 12, margin: "0 0 16px" }}>Contratações mais recentes</p>
               {novasAdmissoes.length === 0 ? (
-                <p style={{ color: "#9ca3af", fontSize: 13 }}>Nenhuma admissão registrada.</p>
+                <p style={{ color: "#94A3B8", fontSize: 13 }}>Nenhuma admissão registrada.</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {novasAdmissoes.map((a, i) => (
@@ -373,7 +374,7 @@ export function DashboardSection() {
                           width: 38,
                           height: 38,
                           borderRadius: "50%",
-                          background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                          background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -388,7 +389,7 @@ export function DashboardSection() {
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <p
                           style={{
-                            color: "#1f2937",
+                            color: "#0F172A",
                             fontSize: 13,
                             fontWeight: 700,
                             margin: 0,
@@ -401,7 +402,7 @@ export function DashboardSection() {
                         </p>
                         <p
                           style={{
-                            color: "#9ca3af",
+                            color: "#94A3B8",
                             fontSize: 11,
                             margin: "1px 0 0",
                             overflow: "hidden",
@@ -435,13 +436,13 @@ export function DashboardSection() {
 
           {/* PENDÊNCIAS */}
           <div style={{ ...card, padding: 22 }}>
-            <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: 700, margin: "0 0 16px" }}>
+            <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 16px" }}>
               Pendências de RH
             </h3>
             {pendencias.length === 0 ? (
               <div style={{ textAlign: "center", padding: "10px 0" }}>
                 <p style={{ fontSize: 28, margin: "0 0 4px" }}>🎉</p>
-                <p style={{ color: "#16a34a", fontSize: 13, fontWeight: 700, margin: 0 }}>
+                <p style={{ color: "#059669", fontSize: 13, fontWeight: 700, margin: 0 }}>
                   Tudo em dia, nenhuma pendência!
                 </p>
               </div>
@@ -461,9 +462,9 @@ export function DashboardSection() {
                       alignItems: "center",
                       gap: 12,
                       padding: "13px 14px",
-                      background: "#f9fafb",
+                      background: "#F7FAF9",
                       borderRadius: 10,
-                      border: "1px solid #f3f4f6",
+                      border: "1px solid #F1F5F4",
                     }}
                   >
                     <div
@@ -479,9 +480,9 @@ export function DashboardSection() {
                         flexShrink: 0,
                       }}
                     >
-                      {p.icon}
+                      {<IconeEmoji e={p.icon} />}
                     </div>
-                    <p style={{ color: "#374151", fontSize: 13, fontWeight: 600, margin: 0 }}>{p.texto}</p>
+                    <p style={{ color: "#334155", fontSize: 13, fontWeight: 600, margin: 0 }}>{p.texto}</p>
                   </div>
                 ))}
               </div>

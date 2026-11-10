@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🧑‍💼 RH · Funcionários  (WolfSystem — multi-tenant · tabela 'funcionarios')
 // ───────────────────────────────────────────────────────────────────────
@@ -20,16 +21,16 @@ const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -52,10 +53,10 @@ type Funcionario = {
 };
 
 const STATUS_INFO: Record<Status, { label: string; cor: string }> = {
-  ativo: { label: "Ativo", cor: "#16a34a" },
+  ativo: { label: "Ativo", cor: "#059669" },
   ferias: { label: "Em férias", cor: "#0ea5e9" },
   afastado: { label: "Afastado", cor: "#f59e0b" },
-  desligado: { label: "Desligado", cor: "#6b7280" },
+  desligado: { label: "Desligado", cor: "#64748B" },
 };
 
 const real = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -281,7 +282,7 @@ export function FuncionariosSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -292,10 +293,10 @@ export function FuncionariosSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>👥</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Funcionários
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               <b style={{ color: COR_TEXTO }}>{lista.length}</b> pessoa(s) no quadro
             </p>
           </div>
@@ -303,7 +304,7 @@ export function FuncionariosSection() {
         <button
           onClick={abrirNovo}
           style={{
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -323,7 +324,7 @@ export function FuncionariosSection() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
         {[
           { label: "Total", value: String(stats.total), cor: "#6366f1", icon: "👥" },
-          { label: "Ativos", value: String(stats.ativos), cor: "#16a34a", icon: "✅" },
+          { label: "Ativos", value: String(stats.ativos), cor: "#059669", icon: "✅" },
           { label: "Em férias", value: String(stats.ferias), cor: "#0ea5e9", icon: "🌴" },
           { label: "Custo da folha", value: real(stats.folha), cor: "#f59e0b", icon: "💰" },
         ].map((s) => (
@@ -341,11 +342,11 @@ export function FuncionariosSection() {
                   fontSize: 14,
                 }}
               >
-                {s.icon}
+                {<IconeEmoji e={s.icon} />}
               </div>
               <p
                 style={{
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 11,
                   margin: 0,
                   fontWeight: 700,
@@ -365,7 +366,7 @@ export function FuncionariosSection() {
       {/* FILTROS */}
       <div style={{ ...card, padding: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <input
-          placeholder="🔍 Buscar por nome, CPF, cargo ou e-mail..."
+          placeholder="Buscar por nome, CPF, cargo ou e-mail..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           style={{ ...inputStyle, flex: "1 1 280px", maxWidth: 460, borderRadius: 20 }}
@@ -413,12 +414,12 @@ export function FuncionariosSection() {
       {/* LISTA */}
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando funcionários...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando funcionários...</p>
         </div>
       ) : filtrados.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>{lista.length === 0 ? "📭" : "🔍"}</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>
+          <p style={{ color: "#64748B", fontSize: 13 }}>
             {lista.length === 0
               ? "Nenhum funcionário cadastrado ainda. Clique em “+ Novo Funcionário”."
               : "Nenhum funcionário com esses filtros"}
@@ -447,7 +448,7 @@ export function FuncionariosSection() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p
                       style={{
-                        color: "#1f2937",
+                        color: "#0F172A",
                         fontSize: 14,
                         fontWeight: 700,
                         margin: 0,
@@ -458,7 +459,7 @@ export function FuncionariosSection() {
                     >
                       {f.nome}
                     </p>
-                    <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>{f.cargo}</p>
+                    <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>{f.cargo}</p>
                   </div>
                   <span
                     style={{
@@ -475,7 +476,7 @@ export function FuncionariosSection() {
                   </span>
                 </div>
                 <div
-                  style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#6b7280" }}
+                  style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748B" }}
                 >
                   <span>{f.departamento}{f.equipe_id && equipeNome(f.equipe_id) ? " · " + equipeNome(f.equipe_id) : ""}</span>
                   <span>{real(f.salario)}</span>
@@ -489,20 +490,20 @@ export function FuncionariosSection() {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#F7FAF9" }}>
                   {["Funcionário", "Cargo", "Departamento", "Admissão", "Salário", "Status", ""].map((h) => (
                     <th
                       key={h}
                       style={{
                         padding: "12px 16px",
-                        color: "#6b7280",
+                        color: "#64748B",
                         fontSize: 11,
                         textAlign: "left",
                         textTransform: "uppercase",
                         letterSpacing: 0.5,
                         whiteSpace: "nowrap",
                         fontWeight: 700,
-                        borderBottom: "1px solid #e5e7eb",
+                        borderBottom: "1px solid #E6ECEA",
                       }}
                     >
                       {h}
@@ -518,42 +519,42 @@ export function FuncionariosSection() {
                       key={f.id}
                       onClick={() => abrirEditar(f)}
                       style={{
-                        borderTop: "1px solid #f3f4f6",
-                        background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                        borderTop: "1px solid #F1F5F4",
+                        background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
                         cursor: "pointer",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#F1F5F4")}
                       onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc")
+                        (e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#F7FAF9")
                       }
                     >
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <Avatar nome={f.nome} />
                           <div style={{ minWidth: 0 }}>
-                            <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>
+                            <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>
                               {f.nome}
                             </p>
-                            <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{f.email}</p>
+                            <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{f.email}</p>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>{f.cargo}</td>
-                      <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>
+                      <td style={{ padding: "12px 16px", color: "#475569", fontSize: 12 }}>{f.cargo}</td>
+                      <td style={{ padding: "12px 16px", color: "#475569", fontSize: 12 }}>
                         {f.departamento || "—"}
                         {f.equipe_id && equipeNome(f.equipe_id) ? (
-                          <span style={{ display: "block", color: "#6366f1", fontSize: 11, fontWeight: 600 }}>👥 {equipeNome(f.equipe_id)}</span>
+                          <span style={{ display: "block", color: "#059669", fontSize: 11, fontWeight: 600 }}>{equipeNome(f.equipe_id)}</span>
                         ) : null}
                       </td>
                       <td
-                        style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12, whiteSpace: "nowrap" }}
+                        style={{ padding: "12px 16px", color: "#64748B", fontSize: 12, whiteSpace: "nowrap" }}
                       >
                         {dataBR(f.admissao)}
                       </td>
                       <td
                         style={{
                           padding: "12px 16px",
-                          color: "#1f2937",
+                          color: "#0F172A",
                           fontSize: 12,
                           fontWeight: 700,
                           whiteSpace: "nowrap",
@@ -637,21 +638,21 @@ export function FuncionariosSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>
                 {editando ? "Editar Funcionário" : "Novo Funcionário"}
               </h3>
               <button
                 onClick={fechar}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -725,7 +726,7 @@ export function FuncionariosSection() {
                   ))}
                 </select>
                 {departamentos.length === 0 && (
-                  <p style={{ color: "#9ca3af", fontSize: 11, margin: "6px 0 0" }}>
+                  <p style={{ color: "#94A3B8", fontSize: 11, margin: "6px 0 0" }}>
                     Nenhum departamento cadastrado. Crie na aba <b>Departamentos</b>.
                   </p>
                 )}
@@ -744,7 +745,7 @@ export function FuncionariosSection() {
                   ))}
                 </select>
                 {equipes.length === 0 && (
-                  <p style={{ color: "#9ca3af", fontSize: 11, margin: "6px 0 0" }}>
+                  <p style={{ color: "#94A3B8", fontSize: 11, margin: "6px 0 0" }}>
                     Nenhuma equipe ativa. Crie em <b>Configurações → Equipes</b>.
                   </p>
                 )}
@@ -792,7 +793,7 @@ export function FuncionariosSection() {
                     </option>
                   ))}
                 </select>
-                <p style={{ color: "#9ca3af", fontSize: 11, margin: "6px 0 0", lineHeight: 1.4 }}>
+                <p style={{ color: "#94A3B8", fontSize: 11, margin: "6px 0 0", lineHeight: 1.4 }}>
                   Vincule o login criado em Configurações. É por ele que o funcionário bate o próprio ponto.
                 </p>
               </Campo>
@@ -800,19 +801,19 @@ export function FuncionariosSection() {
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={fechar}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -826,7 +827,7 @@ export function FuncionariosSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -855,7 +856,7 @@ function Avatar({ nome }: { nome: string }) {
         width: 36,
         height: 36,
         borderRadius: "50%",
-        background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+        background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -875,7 +876,7 @@ function Campo({ label, full, children }: { label: string; full?: boolean; child
     <div style={{ gridColumn: full ? "1 / -1" : "auto" }}>
       <label
         style={{
-          color: "#6b7280",
+          color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",

@@ -17,6 +17,7 @@ import {
   type CampoCustom,
 } from "../../lib/campos_proposta_definicao";
 
+import { IconeEmoji } from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // 🛠️ EDITOR DE CAMPOS DA PROPOSTA — Wolf PREMIUM v2
 // ───────────────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ const SECAO_META: Record<string, { icone: string; cor: string; descricao: string
   contato:        { icone: "📱", cor: "#8b5cf6", descricao: "Como falar com o cliente",         ordem: 3 },
   plano:          { icone: "📦", cor: "#f59e0b", descricao: "Serviço contratado",               ordem: 4 },
   agendamento:    { icone: "📅", cor: "#ec4899", descricao: "Quando instalar",                  ordem: 5 },
-  vendedor:       { icone: "👨‍💼", cor: "#16a34a", descricao: "Atribuição interna",              ordem: 6 },
+  vendedor:       { icone: "👨‍💼", cor: "#059669", descricao: "Atribuição interna",              ordem: 6 },
   status:         { icone: "🎯", cor: "#dc2626", descricao: "Situação atual da proposta",       ordem: 7 },
   personalizado:  { icone: "⚙️", cor: "#a855f7", descricao: "Campos customizados pelo workspace", ordem: 8 },
 };
@@ -111,10 +112,10 @@ export default function EditorProposta() {
   const inputStyle = {
     width: "100%",
     background: "#ffffff",
-    border: "1px solid #e5e7eb",
+    border: "1px solid #E6ECEA",
     borderRadius: 10,
     padding: "9px 12px",
-    color: "#1f2937",
+    color: "#0F172A",
     fontSize: 13,
     boxSizing: "border-box" as const,
     outline: "none",
@@ -123,7 +124,7 @@ export default function EditorProposta() {
   const cardStyle = {
     background: "#ffffff",
     borderRadius: 14,
-    border: "1px solid #e5e7eb",
+    border: "1px solid #E6ECEA",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
@@ -549,7 +550,7 @@ export default function EditorProposta() {
           : null;
         const corSecaoCustomizada = campoComCor ? String((campoComCor as any).secao_cor) : null;
         const corCustom = corSecaoCustomizada || ((labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null);
-        const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#6b7280", descricao: "", ordem: 99 };
+        const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#64748B", descricao: "", ordem: 99 };
         grupoAtual = {
           key: sec,
           keyUnica: `${sec}-${result.length}`,
@@ -586,7 +587,7 @@ export default function EditorProposta() {
   }, [grupos]);
 
   const opcoesDestinoSecao = useMemo(() => {
-    const padroes = Object.entries(SECOES_LABEL).map(([key, meta]: any) => ({ value: `@${key}`, label: meta?.titulo || meta?.label || key, cor: meta?.cor || "#6b7280" }));
+    const padroes = Object.entries(SECOES_LABEL).map(([key, meta]: any) => ({ value: `@${key}`, label: meta?.titulo || meta?.label || key, cor: meta?.cor || "#64748B" }));
     const personalizadas = new Map<string, string>();
     for (const campo of campos) {
       const nome = String((campo as any).secao_customizada || "").trim();
@@ -626,54 +627,54 @@ export default function EditorProposta() {
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
           </div>
-          <h1 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>
+          <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
+          <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>
             Só o dono ou administrador do workspace pode editar os campos da proposta.
           </p>
           <button onClick={() => router.back()}
             style={{
-              background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
-            }}>← Voltar</button>
+              boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+            }}>Voltar</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#F3F6F5", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
 
       {/* HEADER STICKY */}
       <div style={{
         position: "sticky", top: 0, zIndex: 50,
         background: "rgba(248,250,252,0.85)",
         backdropFilter: "blur(12px)",
-        borderBottom: "1px solid #e5e7eb",
+        borderBottom: "1px solid #E6ECEA",
         padding: isMobile ? "10px 12px" : "12px 28px",
       }}>
         <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
             <div style={{
               width: isMobile ? 40 : 46, height: isMobile ? 40 : 46, borderRadius: 12,
-              background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 22, boxShadow: "0 8px 20px rgba(139,92,246,0.30)",
+              fontSize: 22, boxShadow: "0 8px 20px rgba(5,150,105,0.30)",
               flexShrink: 0,
             }}>
               <span style={{ filter: "saturate(0) brightness(2)" }}>🛠️</span>
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                <h1 style={{ color: "#1f2937", fontSize: isMobile ? 16 : 18, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Editor de Proposta</h1>
-                <span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 600 }}>· {stats.total} campos</span>
+                <h1 style={{ color: "#0F172A", fontSize: isMobile ? 16 : 18, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Editor de Proposta</h1>
+                <span style={{ color: "#059669", fontSize: 13, fontWeight: 600 }}>· {stats.total} campos</span>
               </div>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
-                <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>
+                <p style={{ color: "#64748B", fontSize: 11, margin: 0 }}>
                   Wolf CRM · <b>{workspace?.nome}</b>
                 </p>
-                <span style={{ color: "#9ca3af", fontSize: 11 }}>
+                <span style={{ color: "#94A3B8", fontSize: 11 }}>
                   {stats.fixos} fixos · {stats.custom} personalizados · {stats.visiveis} visíveis · {stats.obrigatorios} obrigatórios
                 </span>
                 {dirty && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, fontStyle: "italic" }}>● mudanças não salvas</span>}
@@ -686,18 +687,18 @@ export default function EditorProposta() {
               router.push("/crm/vendas");
             }}
               style={{
-                background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb",
+                background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA",
                 borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer",
                 whiteSpace: "nowrap", fontWeight: 600,
-              }}>← Voltar</button>
+              }}>Voltar</button>
             <button onClick={salvar} disabled={salvando || loading}
               title="Ctrl+S"
               style={{
-                background: salvando ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                background: salvando ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "8px 18px", fontSize: 12, fontWeight: 700,
                 cursor: salvando || loading ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 whiteSpace: "nowrap",
               }}>
               {salvando ? "⏳ Salvando..." : "💾 Salvar Tudo"}
@@ -720,8 +721,8 @@ export default function EditorProposta() {
         {!isMobile && (
           <aside style={{ position: "sticky", top: 100, alignSelf: "start", display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ ...cardStyle, padding: 14 }}>
-              <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 10px", fontWeight: 800 }}>
-                📑 Seções
+              <p style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 10px", fontWeight: 800 }}>
+                Seções
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {secoesUnicas.map(s => {
@@ -739,14 +740,14 @@ export default function EditorProposta() {
                         transition: "all 0.15s",
                       }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 14 }}>{s.meta.icone}</span>
-                        <span style={{ color: ativa ? s.meta.cor : "#374151", fontSize: 12, fontWeight: ativa ? 800 : 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span style={{ fontSize: 14 }}>{<IconeEmoji e={s.meta.icone} />}</span>
+                        <span style={{ color: ativa ? s.meta.cor : "#334155", fontSize: 12, fontWeight: ativa ? 800 : 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {s.label}
                         </span>
                         <span style={{
                           fontSize: 10, fontWeight: 800,
-                          color: ativa ? s.meta.cor : "#9ca3af",
-                          background: ativa ? `${s.meta.cor}15` : "#f3f4f6",
+                          color: ativa ? s.meta.cor : "#94A3B8",
+                          background: ativa ? `${s.meta.cor}15` : "#F1F5F4",
                           padding: "1px 7px", borderRadius: 6,
                         }}>
                           {s.total}
@@ -758,26 +759,26 @@ export default function EditorProposta() {
               </div>
             </div>
 
-            <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #f3e8ff 0%, #fae8ff 100%)", border: "1px solid #ddd6fe" }}>
+            <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #ECFDF5 0%, #fae8ff 100%)", border: "1px solid #A7F3D0" }}>
               <p style={{ color: "#6b21a8", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px", fontWeight: 800 }}>
-                📊 Resumo
+                Resumo
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <Stat label="Visíveis" valor={`${stats.visiveis}/${stats.total}`} cor="#3b82f6" />
-                <Stat label="Obrigatórios" valor={stats.obrigatorios.toString()} cor="#16a34a" />
+                <Stat label="Obrigatórios" valor={stats.obrigatorios.toString()} cor="#059669" />
                 <Stat label="Na tela principal" valor={stats.mostrarLista.toString()} cor="#f59e0b" />
                 <Stat label="Personalizados" valor={stats.custom.toString()} cor="#a855f7" />
                 <Stat label="Removidos" valor={stats.removidos.toString()} cor="#dc2626" />
               </div>
             </div>
 
-            <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
-              <p style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px", fontWeight: 800 }}>
-                ⌨️ Atalho
+            <div style={{ ...cardStyle, padding: 14, background: "linear-gradient(135deg, #F7FAF9 0%, #F1F5F4 100%)" }}>
+              <p style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px", fontWeight: 800 }}>
+                Atalho
               </p>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
-                <span style={{ color: "#6b7280" }}>Salvar</span>
-                <kbd style={{ background: "#ffffff", border: "1px solid #d1d5db", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontFamily: "monospace", color: "#374151", fontWeight: 700 }}>Ctrl+S</kbd>
+                <span style={{ color: "#64748B" }}>Salvar</span>
+                <kbd style={{ background: "#ffffff", border: "1px solid #CBD5E1", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontFamily: "monospace", color: "#334155", fontWeight: 700 }}>Ctrl+S</kbd>
               </div>
             </div>
           </aside>
@@ -787,17 +788,17 @@ export default function EditorProposta() {
         <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
 
           <div style={{ ...cardStyle, padding: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <input placeholder="🔍 Buscar campo por nome..." value={busca} onChange={e => setBusca(e.target.value)}
+            <input placeholder="Buscar campo por nome..." value={busca} onChange={e => setBusca(e.target.value)}
               style={{ ...inputStyle, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
             <div style={{ flex: 1 }} />
             <button onClick={adicionarSecao}
               style={{
-                background: "#ffffff", color: "#7c3aed", border: "1px solid #c4b5fd", borderRadius: 10,
+                background: "#ffffff", color: "#047857", border: "1px solid #6EE7B7", borderRadius: 10,
                 padding: "9px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
               }}>{"+ Nova seção"}</button>
             <button onClick={() => adicionarCustom()}
               style={{
-                background: "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)",
+                background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "9px 18px", fontSize: 12, fontWeight: 700, cursor: "pointer",
                 boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
@@ -805,11 +806,11 @@ export default function EditorProposta() {
               }}>+ Campo Personalizado</button>
           </div>
 
-          <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", borderLeft: "4px solid #3b82f6", borderRadius: 12, padding: "10px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <div style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)", border: "1px solid #A7F3D0", borderLeft: "4px solid #059669", borderRadius: 12, padding: "10px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
             <span style={{ fontSize: 20, lineHeight: 1 }}>💡</span>
             <div style={{ flex: 1 }}>
-              <p style={{ color: "#1e40af", fontSize: 12, fontWeight: 700, margin: 0 }}>Setas ↑▼ movem livremente</p>
-              <p style={{ color: "#3b82f6", fontSize: 11, margin: "2px 0 0", lineHeight: 1.5 }}>
+              <p style={{ color: "#065F46", fontSize: 12, fontWeight: 700, margin: 0 }}>Setas ↑▼ movem livremente</p>
+              <p style={{ color: "#059669", fontSize: 11, margin: "2px 0 0", lineHeight: 1.5 }}>
                 Você pode mover qualquer campo pra qualquer posição. Os campos personalizados <b>herdam automaticamente a seção</b> do campo padrão anterior — então onde você colocar aqui, é exatamente onde vai aparecer na <b>Nova Proposta</b>.
               </p>
             </div>
@@ -819,10 +820,10 @@ export default function EditorProposta() {
             <>
               {[1, 2, 3].map(i => (
                 <div key={i} style={{ ...cardStyle, padding: 20 }}>
-                  <div style={{ height: 16, background: "#f3f4f6", borderRadius: 4, marginBottom: 14, width: "30%" }} />
+                  <div style={{ height: 16, background: "#F1F5F4", borderRadius: 4, marginBottom: 14, width: "30%" }} />
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {[1, 2, 3].map(j => (
-                      <div key={j} style={{ height: 60, background: "#f9fafb", borderRadius: 8 }} />
+                      <div key={j} style={{ height: 60, background: "#F7FAF9", borderRadius: 8 }} />
                     ))}
                   </div>
                 </div>
@@ -831,7 +832,7 @@ export default function EditorProposta() {
           ) : campos.length === 0 ? (
             <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
               <p style={{ fontSize: 40, margin: "0 0 8px" }}>🛠️</p>
-              <p style={{ color: "#6b7280", fontSize: 13 }}>Nenhum campo configurado ainda.</p>
+              <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum campo configurado ainda.</p>
             </div>
           ) : (
             grupos.map(g => {
@@ -846,7 +847,7 @@ export default function EditorProposta() {
 
                   <div style={{
                     padding: "14px 20px",
-                    borderBottom: "1px solid #f3f4f6",
+                    borderBottom: "1px solid #F1F5F4",
                     background: `${g.meta.cor}05`,
                     borderLeft: `4px solid ${g.meta.cor}`,
                     display: "flex",
@@ -859,17 +860,17 @@ export default function EditorProposta() {
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 18, boxShadow: `0 4px 10px ${g.meta.cor}40`,
                       flexShrink: 0,
-                    }}><span style={{ filter: "saturate(0) brightness(2)" }}>{g.meta.icone}</span></div>
+                    }}><span style={{ filter: "saturate(0) brightness(2)" }}>{<IconeEmoji e={g.meta.icone} />}</span></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <h2 style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: -0.2 }}>{g.label}</h2>
-                      {g.meta.descricao && <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{g.meta.descricao}</p>}
+                      <h2 style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: 0, letterSpacing: -0.2 }}>{g.label}</h2>
+                      {g.meta.descricao && <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{g.meta.descricao}</p>}
                     </div>
                     {g.key.startsWith("custom:") && <>
-                      <label title="Escolher cor da se\u00e7\u00e3o" style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden" }}>
+                      <label title="Escolher cor da se\u00e7\u00e3o" style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #E6ECEA", background: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden" }}>
                         <input type="color" value={g.meta.cor} onChange={evento => alterarCorSecao(g.label, evento.target.value)} style={{ width: 42, height: 42, border: 0, padding: 0, background: "transparent", cursor: "pointer" }} />
                       </label>
                       <button type="button" onClick={() => adicionarCustom(g.label, g.meta.cor)} style={{ background: "#fff", color: g.meta.cor, border: `1px solid ${g.meta.cor}40`, borderRadius: 8, padding: "6px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>+ Campo</button>
-                      <button type="button" onClick={() => renomearSecao(g.label)} title="Renomear se\u00e7\u00e3o" style={{ background: "#fff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 8, padding: "6px 9px", fontSize: 12, cursor: "pointer" }}>{"✏️"}</button>
+                      <button type="button" onClick={() => renomearSecao(g.label)} title="Renomear se\u00e7\u00e3o" style={{ background: "#fff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 8, padding: "6px 9px", fontSize: 12, cursor: "pointer" }}>{"✏️"}</button>
                     </>}
                     <span style={{
                       background: `${g.meta.cor}10`,
@@ -912,49 +913,49 @@ export default function EditorProposta() {
             <div style={{ ...cardStyle, overflow: "hidden", border: "1px solid #fecaca" }}>
               <div style={{ padding: "14px 20px", background: "#fef2f2", borderBottom: removidosAbertos ? "1px solid #fecaca" : "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                 <div>
-                  <h2 style={{ color: "#991b1b", fontSize: 14, fontWeight: 800, margin: 0 }}>🗑️ Campos removidos deste workspace</h2>
+                  <h2 style={{ color: "#991b1b", fontSize: 14, fontWeight: 800, margin: 0 }}>Campos removidos deste workspace</h2>
                   <p style={{ color: "#b91c1c", fontSize: 11, margin: "3px 0 0" }}>Não aparecem no CRM nem nos fluxos. Os dados históricos continuam preservados.</p>
                 </div>
                 <button type="button" onClick={() => setRemovidosAbertos(aberto => !aberto)} aria-expanded={removidosAbertos} aria-label={removidosAbertos ? "Recolher campos removidos" : "Mostrar campos removidos"} style={{ background: "#fff", color: "#dc2626", border: "1px solid #fecaca", padding: "6px 10px", borderRadius: 10, fontSize: 11, fontWeight: 800, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}><span>{camposRemovidos.length}</span><span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>{removidosAbertos ? "\u25B2" : "\u25BC"}</span></button>
               </div>
               {removidosAbertos && <div style={{ padding: isMobile ? 12 : 16, display: "flex", flexDirection: "column", gap: 8 }}>
                 {camposRemovidos.map(campo => (
-                  <div key={`removido-${campo.origem}-${campo.slug}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 9, padding: "10px 12px" }}>
+                  <div key={`removido-${campo.origem}-${campo.slug}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #E6ECEA", borderRadius: 9, padding: "10px 12px" }}>
                     <div style={{ minWidth: 0 }}>
-                      <span style={{ display: "block", color: "#374151", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{campo.label}</span>
-                      <span style={{ color: "#9ca3af", fontSize: 10 }}>{campo.origem === "fixo" ? "Campo padrão removido neste workspace" : "Campo personalizado removido"}</span>
+                      <span style={{ display: "block", color: "#334155", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{campo.label}</span>
+                      <span style={{ color: "#94A3B8", fontSize: 10 }}>{campo.origem === "fixo" ? "Campo padrão removido neste workspace" : "Campo personalizado removido"}</span>
                     </div>
-                    <button type="button" onClick={() => restaurar(campo)} style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: 8, padding: "7px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>↩ Restaurar</button>
+                    <button type="button" onClick={() => restaurar(campo)} style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 8, padding: "7px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>Restaurar</button>
                   </div>
                 ))}
               </div>}
             </div>
           )}
           {!loading && campos.length > 0 && (
-            <div style={{ ...cardStyle, padding: isMobile ? 14 : 18, background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
+            <div style={{ ...cardStyle, padding: isMobile ? 14 : 18, background: "linear-gradient(135deg, #F7FAF9 0%, #F1F5F4 100%)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 10,
-                  background: dirty ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                  background: dirty ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 20,
                   flexShrink: 0,
                 }}><span style={{ filter: "saturate(0) brightness(2)" }}>{dirty ? "📝" : "✅"}</span></div>
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 800, margin: 0 }}>
+                  <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: 0 }}>
                     {dirty ? "Você tem mudanças não salvas" : "Tudo salvo e sincronizado"}
                   </p>
-                  <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+                  <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
                     {stats.total} campos configurados · {stats.visiveis} visíveis · {stats.obrigatorios} obrigatórios
                   </p>
                 </div>
                 <button onClick={salvar} disabled={salvando || loading}
                   style={{
-                    background: salvando ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                    background: salvando ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                     color: "white", border: "none", borderRadius: 10,
                     padding: "11px 28px", fontSize: 13, fontWeight: 700,
                     cursor: salvando || loading ? "not-allowed" : "pointer",
-                    boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                    boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                     whiteSpace: "nowrap",
                   }}>{salvando ? "⏳ Salvando..." : "💾 Salvar Tudo"}</button>
               </div>
@@ -969,7 +970,7 @@ export default function EditorProposta() {
 function Stat({ label, valor, cor }: { label: string; valor: string; cor: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
-      <span style={{ color: "#6b7280" }}>{label}</span>
+      <span style={{ color: "#64748B" }}>{label}</span>
       <span style={{ color: cor, fontWeight: 800 }}>{valor}</span>
     </div>
   );
@@ -989,9 +990,9 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
 
   return (
     <div style={{
-      background: "#fafbfc",
+      background: "#F7FAF9",
       borderRadius: 10,
-      border: "1px solid #e5e7eb",
+      border: "1px solid #E6ECEA",
       borderLeft: `3px solid ${secaoMeta.cor}`,
       padding: 14,
       opacity: opacidade,
@@ -1002,16 +1003,16 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
           <button onClick={() => mover(idx, -1)} disabled={ehPrimeiroGlobal} title={ehPrimeiroGlobal ? "Já é o primeiro" : "Mover pra cima"}
             style={{
               background: "#ffffff",
-              color: ehPrimeiroGlobal ? "#d1d5db" : "#6b7280",
-              border: "1px solid #e5e7eb",
+              color: ehPrimeiroGlobal ? "#CBD5E1" : "#64748B",
+              border: "1px solid #E6ECEA",
               borderRadius: 6, width: 26, height: 20, fontSize: 9,
               cursor: ehPrimeiroGlobal ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
             }}>▲</button>
           <button onClick={() => mover(idx, 1)} disabled={ehUltimoGlobal} title={ehUltimoGlobal ? "Já é o último" : "Mover pra baixo"}
             style={{
               background: "#ffffff",
-              color: ehUltimoGlobal ? "#d1d5db" : "#6b7280",
-              border: "1px solid #e5e7eb",
+              color: ehUltimoGlobal ? "#CBD5E1" : "#64748B",
+              border: "1px solid #E6ECEA",
               borderRadius: 6, width: 26, height: 20, fontSize: 9,
               cursor: ehUltimoGlobal ? "not-allowed" : "pointer", lineHeight: 1, fontWeight: 700,
             }}>▼</button>
@@ -1034,15 +1035,15 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
             style={{ ...inputStyle, fontSize: 13, fontWeight: 600 }}
           />
           {ehFixo && campo.label !== campo.labelPadrao && (
-            <p style={{ color: "#9ca3af", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>
-              Padrão: {campo.labelPadrao} · slug: <code style={{ color: "#6b7280", background: "#f3f4f6", padding: "1px 5px", borderRadius: 4, border: "1px solid #e5e7eb" }}>{campo.slug}</code>
+            <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", fontStyle: "italic" }}>
+              Padrão: {campo.labelPadrao} · slug: <code style={{ color: "#64748B", background: "#F1F5F4", padding: "1px 5px", borderRadius: 4, border: "1px solid #E6ECEA" }}>{campo.slug}</code>
             </p>
           )}
         </div>
 
         {!isMobile && (ehFixo ? (
           <div style={{ minWidth: 160 }}>
-            <span style={{ background: "#f3f4f6", color: "#4b5563", border: "1px solid #e5e7eb", padding: "9px 14px", borderRadius: 10, fontSize: 12, display: "block", textAlign: "center", fontWeight: 600 }}>
+            <span style={{ background: "#F1F5F4", color: "#475569", border: "1px solid #E6ECEA", padding: "9px 14px", borderRadius: 10, fontSize: 12, display: "block", textAlign: "center", fontWeight: 600 }}>
               {campo.tipo === "vendedor" ? "👤 Vendedor" : campo.tipo === "telefone" ? "📞 Telefone" : campo.tipo === "email" ? "📧 E-mail" : campo.tipo === "data" ? "📅 Data" : campo.tipo === "moeda" ? "💰 Valor (R$)" : campo.tipo === "dropdown" ? "📋 Seleção" : "📝 Texto"}
             </span>
           </div>
@@ -1079,7 +1080,7 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
             fontWeight: 700, whiteSpace: "nowrap",
           }}>{labelBadge}</span>
           {ehFixo ? (
-            <span style={{ background: "#f3f4f6", color: "#4b5563", border: "1px solid #e5e7eb", padding: "5px 10px", borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
+            <span style={{ background: "#F1F5F4", color: "#475569", border: "1px solid #E6ECEA", padding: "5px 10px", borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
               {campo.tipo === "vendedor" ? "👤 Vendedor" : campo.tipo === "telefone" ? "📞 Telefone" : campo.tipo === "email" ? "📧 E-mail" : campo.tipo === "data" ? "📅 Data" : campo.tipo === "moeda" ? "💰 Valor" : campo.tipo === "dropdown" ? "📋 Seleção" : "📝 Texto"}
             </span>
           ) : (
@@ -1096,27 +1097,27 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
       )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, background: "#eef2ff", border: "1px solid #c7d2fe", padding: "5px 9px", borderRadius: 8 }}>
-          <span style={{ color: "#4338ca", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{"Seção:"}</span>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, background: "#ECFDF5", border: "1px solid #A7F3D0", padding: "5px 9px", borderRadius: 8 }}>
+          <span style={{ color: "#065F46", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{"Seção:"}</span>
           <select value={String(campo.secao_customizada || "")} onChange={evento => {
             const valor = evento.target.value;
             const opcao = (opcoesSecao || []).find((item: any) => item.value === valor);
             atualizar(idx, { secao_customizada: valor || null, secao_cor: valor && !valor.startsWith("@") ? (opcao?.cor || campo.secao_cor || "#7c3aed") : null });
-          }} style={{ background: "#fff", color: "#374151", border: "1px solid #c7d2fe", borderRadius: 6, padding: "4px 7px", fontSize: 11, minWidth: 170 }}>
+          }} style={{ background: "#fff", color: "#334155", border: "1px solid #A7F3D0", borderRadius: 6, padding: "4px 7px", fontSize: 11, minWidth: 170 }}>
             <option value="">{ehFixo ? "Se\u00e7\u00e3o original" : "Herdar pela posi\u00e7\u00e3o"}</option>
             {(opcoesSecao || []).map((opcao: any) => <option key={opcao.value} value={opcao.value}>{opcao.label}</option>)}
           </select>
         </label>
         <label style={{
           display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
-          background: campo.obrigatorio ? "#f0fdf4" : "#ffffff",
-          border: `1px solid ${campo.obrigatorio ? "#bbf7d0" : "#e5e7eb"}`,
+          background: campo.obrigatorio ? "#ECFDF5" : "#ffffff",
+          border: `1px solid ${campo.obrigatorio ? "#A7F3D0" : "#E6ECEA"}`,
           padding: "5px 11px", borderRadius: 8,
         }}>
           <input type="checkbox" checked={campo.obrigatorio}
             onChange={(e) => atualizar(idx, { obrigatorio: e.target.checked })}
-            style={{ accentColor: "#16a34a", width: 14, height: 14, cursor: "pointer" }} />
-          <span style={{ color: campo.obrigatorio ? "#16a34a" : "#6b7280", fontSize: 11, fontWeight: 600 }}>⭐ Obrigatório</span>
+            style={{ accentColor: "#059669", width: 14, height: 14, cursor: "pointer" }} />
+          <span style={{ color: campo.obrigatorio ? "#059669" : "#64748B", fontSize: 11, fontWeight: 600 }}>Obrigatório</span>
         </label>
 
 
@@ -1124,20 +1125,20 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
         <label style={{
           display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
           background: (campo as any).mostrar_na_lista ? "#fffbeb" : "#ffffff",
-          border: `1px solid ${(campo as any).mostrar_na_lista ? "#fde68a" : "#e5e7eb"}`,
+          border: `1px solid ${(campo as any).mostrar_na_lista ? "#fde68a" : "#E6ECEA"}`,
           padding: "5px 11px", borderRadius: 8,
         }}>
           <input type="checkbox" checked={!!(campo as any).mostrar_na_lista}
             onChange={(e) => atualizar(idx, { mostrar_na_lista: e.target.checked } as any)}
             style={{ accentColor: "#f59e0b", width: 14, height: 14, cursor: "pointer" }} />
-          <span style={{ color: (campo as any).mostrar_na_lista ? "#d97706" : "#6b7280", fontSize: 11, fontWeight: 600 }}>
-            📊 Tela principal
+          <span style={{ color: (campo as any).mostrar_na_lista ? "#d97706" : "#64748B", fontSize: 11, fontWeight: 600 }}>
+            Tela principal
           </span>
         </label>
 
         {(campo.tipo === "texto" || campo.tipo === "textarea" || campo.tipo === "numero" || campo.tipo === "moeda" || campo.tipo === "telefone" || campo.tipo === "email") && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 200 }}>
-            <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>Placeholder:</span>
+            <span style={{ color: "#64748B", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>Placeholder:</span>
             <input placeholder="Texto de exemplo (opcional)"
               value={campo.placeholder || ""}
               onChange={(e) => atualizar(idx, { placeholder: e.target.value })}
@@ -1147,11 +1148,11 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
       </div>
 
       {campo.tipo === "dropdown" && (
-        <div style={{ marginTop: 12, padding: 12, background: "#ffffff", borderRadius: 10, border: "1px solid #e5e7eb" }}>
-          <p style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px", fontWeight: 700 }}>
-            📋 Opções do dropdown
+        <div style={{ marginTop: 12, padding: 12, background: "#ffffff", borderRadius: 10, border: "1px solid #E6ECEA" }}>
+          <p style={{ color: "#64748B", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px", fontWeight: 700 }}>
+            Opções do dropdown
             {ehFixo && (
-              <span style={{ color: "#9ca3af", fontSize: 10, marginLeft: 8, textTransform: "none", fontWeight: 500, fontStyle: "italic" }}>
+              <span style={{ color: "#94A3B8", fontSize: 10, marginLeft: 8, textTransform: "none", fontWeight: 500, fontStyle: "italic" }}>
                 (você pode editar — vai sobrescrever a do sistema)
               </span>
             )}
@@ -1166,12 +1167,12 @@ function CampoCard({ campo, idx, totalCampos, secaoMeta, opcoesSecao, inputStyle
             </div>
           ))}
           <button onClick={() => adicionarOpcao(idx)}
-            style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700, marginTop: 4 }}>
-            ➕ Adicionar opção
+            style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700, marginTop: 4 }}>
+            Adicionar opção
           </button>
           {ehFixo && campo.slug === "status_venda" && (
             <p style={{ color: "#92400e", fontSize: 10, margin: "10px 0 0", fontStyle: "italic", background: "#fffbeb", padding: "6px 10px", borderRadius: 6, border: "1px solid #fde68a" }}>
-              ⚠️ Status novos não terão cor personalizada na lista de vendas — vão aparecer em cinza.
+              Status novos não terão cor personalizada na lista de vendas — vão aparecer em cinza.
             </p>
           )}
         </div>

@@ -3,18 +3,18 @@ import Link from "next/link";
 
 export default function PrivacidadePage() {
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", background: "#0a0a0a", minHeight: "100vh", color: "white" }}>
+    <div style={{ fontFamily: "var(--font-wolf), system-ui, sans-serif", background: "#0a0a0a", minHeight: "100vh", color: "white" }}>
 
       {/* NAVBAR */}
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, background: "#0a0a0acc", backdropFilter: "blur(10px)", borderBottom: "1px solid #1f2937", padding: "0 32px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, background: "#0a0a0acc", backdropFilter: "blur(10px)", borderBottom: "1px solid #0F172A", padding: "0 32px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <img src="/logo1.png" alt="Wolf" style={{ width: 36, filter: "brightness(0) invert(1)" }} />
           <span style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>Wolf System</span>
         </Link>
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <Link href="/" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>← Voltar</Link>
-          <Link href="/termos" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>Termos de Uso</Link>
-          <Link href="/excluir-dados" style={{ color: "#9ca3af", fontSize: 14, textDecoration: "none" }}>Excluir Dados</Link>
+          <Link href="/" style={{ color: "#94A3B8", fontSize: 14, textDecoration: "none" }}>Voltar</Link>
+          <Link href="/termos" style={{ color: "#94A3B8", fontSize: 14, textDecoration: "none" }}>Termos de Uso</Link>
+          <Link href="/excluir-dados" style={{ color: "#94A3B8", fontSize: 14, textDecoration: "none" }}>Excluir Dados</Link>
         </div>
       </nav>
 
@@ -24,10 +24,10 @@ export default function PrivacidadePage() {
         {/* Título */}
         <div style={{ marginBottom: 48 }}>
           <div style={{ display: "inline-block", background: "#16a34a22", border: "1px solid #16a34a44", borderRadius: 20, padding: "6px 16px", marginBottom: 16 }}>
-            <span style={{ color: "#16a34a", fontSize: 13, fontWeight: "bold" }}>🔒 LGPD</span>
+            <span style={{ color: "#059669", fontSize: 13, fontWeight: "bold" }}>LGPD</span>
           </div>
           <h1 style={{ fontSize: 42, fontWeight: "bold", margin: "0 0 12px 0", lineHeight: 1.2 }}>Política de Privacidade</h1>
-          <p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Última atualização: 11 de maio de 2026</p>
+          <p style={{ color: "#64748B", fontSize: 14, margin: 0 }}>Última atualização: 11 de maio de 2026</p>
         </div>
 
         <Section>
@@ -264,41 +264,41 @@ export default function PrivacidadePage() {
         </Section>
 
         {/* CTA final */}
-        <div style={{ marginTop: 64, paddingTop: 32, borderTop: "1px solid #1f2937", textAlign: "center" }}>
-          <p style={{ color: "#9ca3af", fontSize: 14, marginBottom: 16 }}>Dúvidas? Entre em contato com nosso time.</p>
-          <Link href="/" style={{ color: "#16a34a", fontSize: 14, textDecoration: "none", fontWeight: "bold" }}>← Voltar para a página inicial</Link>
+        <div style={{ marginTop: 64, paddingTop: 32, borderTop: "1px solid #0F172A", textAlign: "center" }}>
+          <p style={{ color: "#94A3B8", fontSize: 14, marginBottom: 16 }}>Dúvidas? Entre em contato com nosso time.</p>
+          <Link href="/" style={{ color: "#059669", fontSize: 14, textDecoration: "none", fontWeight: "bold" }}>Voltar para a página inicial</Link>
         </div>
 
       </article>
 
       {/* FOOTER */}
-      <footer style={{ padding: "32px", textAlign: "center", borderTop: "1px solid #1f2937" }}>
-        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>© {new Date().getFullYear()} Wolf System. Todos os direitos reservados.</p>
+      <footer style={{ padding: "32px", textAlign: "center", borderTop: "1px solid #0F172A" }}>
+        <p style={{ color: "#64748B", fontSize: 12, margin: 0 }}>{new Date().getFullYear()} Wolf System. Todos os direitos reservados.</p>
       </footer>
     </div>
   );
 }
 
 // ─── Helpers de estilo ────────────────────────────────────────────────
-const linkVerde: React.CSSProperties = { color: "#16a34a", textDecoration: "none" };
-const listaStyle: React.CSSProperties = { color: "#d1d5db", fontSize: 15, paddingLeft: 24, margin: "12px 0" };
-const thStyle: React.CSSProperties = { color: "white", fontSize: 13, textAlign: "left", padding: "10px 12px", background: "#111", borderBottom: "2px solid #1f2937" };
+const linkVerde: React.CSSProperties = { color: "#059669", textDecoration: "none" };
+const listaStyle: React.CSSProperties = { color: "#CBD5E1", fontSize: 15, paddingLeft: 24, margin: "12px 0" };
+const thStyle: React.CSSProperties = { color: "white", fontSize: 13, textAlign: "left", padding: "10px 12px", background: "#111", borderBottom: "2px solid #0F172A" };
 const avisoImportante: React.CSSProperties = { background: "#f59e0b11", border: "1px solid #f59e0b44", borderRadius: 8, padding: "14px 16px", color: "#fbbf24", fontSize: 14 };
 
 function Section({ children }: { children: React.ReactNode }) {
-  return <div style={{ color: "#d1d5db", fontSize: 15, marginBottom: 24 }}>{children}</div>;
+  return <div style={{ color: "#CBD5E1", fontSize: 15, marginBottom: 24 }}>{children}</div>;
 }
 function H2({ children, id }: { children: React.ReactNode; id?: string }) {
-  return <h2 id={id} style={{ color: "white", fontSize: 24, fontWeight: "bold", margin: "40px 0 16px 0", paddingBottom: 8, borderBottom: "1px solid #1f2937", scrollMarginTop: 80 }}>{children}</h2>;
+  return <h2 id={id} style={{ color: "white", fontSize: 24, fontWeight: "bold", margin: "40px 0 16px 0", paddingBottom: 8, borderBottom: "1px solid #0F172A", scrollMarginTop: 80 }}>{children}</h2>;
 }
 function H3({ children }: { children: React.ReactNode }) {
-  return <h3 style={{ color: "#16a34a", fontSize: 17, fontWeight: "bold", margin: "24px 0 10px 0" }}>{children}</h3>;
+  return <h3 style={{ color: "#059669", fontSize: 17, fontWeight: "bold", margin: "24px 0 10px 0" }}>{children}</h3>;
 }
 function Table({ children }: { children: React.ReactNode }) {
-  return <table style={{ width: "100%", borderCollapse: "collapse", margin: "16px 0", background: "#0a0a0a", borderRadius: 8, overflow: "hidden", border: "1px solid #1f2937" }}>{children}</table>;
+  return <table style={{ width: "100%", borderCollapse: "collapse", margin: "16px 0", background: "#0a0a0a", borderRadius: 8, overflow: "hidden", border: "1px solid #0F172A" }}>{children}</table>;
 }
 function Row({ children }: { children: string }) {
   // Converte "coluna1 | coluna2" em <tr><td>coluna1</td><td>coluna2</td></tr>
   const [c1, c2] = children.split("|").map(s => s.trim());
-  return <tr><td style={{ color: "#d1d5db", fontSize: 14, padding: "10px 12px", borderBottom: "1px solid #1f2937" }}>{c1}</td><td style={{ color: "#9ca3af", fontSize: 14, padding: "10px 12px", borderBottom: "1px solid #1f2937" }}>{c2}</td></tr>;
+  return <tr><td style={{ color: "#CBD5E1", fontSize: 14, padding: "10px 12px", borderBottom: "1px solid #0F172A" }}>{c1}</td><td style={{ color: "#94A3B8", fontSize: 14, padding: "10px 12px", borderBottom: "1px solid #0F172A" }}>{c2}</td></tr>;
 }

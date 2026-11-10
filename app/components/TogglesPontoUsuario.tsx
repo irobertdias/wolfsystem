@@ -1,6 +1,7 @@
 "use client";
 import { ReactNode } from "react";
 
+import { IconeEmoji } from "./a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════════
 // 🕐 TogglesPontoUsuario — 2 toggles pra usar no formulário de criar/editar usuário
 // ───────────────────────────────────────────────────────────────────────────
@@ -97,7 +98,7 @@ export default function TogglesPontoUsuario({
           gridColumn: layout === "grid" ? "1 / -1" : undefined,
         }}>
           <p style={{ color: "#92400e", fontSize: 12, margin: 0, fontWeight: 600 }}>
-            ⚠️ Esse usuário <b>não vai bater ponto</b>. Geralmente usado para sócios,
+            Esse usuário <b>não vai bater ponto</b>. Geralmente usado para sócios,
             gerentes, freelancers ou usuários externos que não cumprem jornada.
           </p>
         </div>
@@ -143,8 +144,8 @@ function Toggle({
         alignItems: "flex-start",
         gap: 14,
         padding: "14px 16px",
-        background: visualLigado ? corLigadoBg : "#f9fafb",
-        border: `1px solid ${visualLigado ? corLigadoBorder : "#e5e7eb"}`,
+        background: visualLigado ? corLigadoBg : "#F7FAF9",
+        border: `1px solid ${visualLigado ? corLigadoBorder : "#E6ECEA"}`,
         borderRadius: 12,
         cursor: interativo ? "pointer" : "default",
         opacity: desabilitado ? 0.55 : 1,
@@ -157,7 +158,7 @@ function Toggle({
         width: 38,
         height: 38,
         borderRadius: 10,
-        background: visualLigado ? corLigado : "#e5e7eb",
+        background: visualLigado ? corLigado : "#E6ECEA",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -166,7 +167,7 @@ function Toggle({
         transition: "background 0.15s",
       }}>
         <span style={visualLigado ? { filter: "grayscale(0)" } : { filter: "grayscale(1)" }}>
-          {icone}
+          {<IconeEmoji e={icone} />}
         </span>
       </div>
 

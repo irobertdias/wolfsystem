@@ -110,7 +110,7 @@ function iconeDoc(filename: string) {
   if (["zip", "rar", "7z"].includes(ext)) return { cor: "#8e8c99", rotulo: ext.toUpperCase() };
   if (EXT_IMG.test(filename)) return { cor: "#8e4ec6", rotulo: ext.toUpperCase() };
   if (EXT_VIDEO.test(filename)) return { cor: "#d6409f", rotulo: ext.toUpperCase() };
-  return { cor: "#6b7280", rotulo: extensao(filename) };
+  return { cor: "#64748B", rotulo: extensao(filename) };
 }
 function dominio(url: string) {
   try { return new URL(url.startsWith("http") ? url : `https://${url}`).hostname.replace(/^www\./, ""); } catch { return url; }
@@ -142,12 +142,12 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
     { key: "links", label: "Links", total: links.length },
   ];
   const vazio = (texto: string) => (
-    <div style={{ textAlign: "center", padding: "36px 12px", color: "#6b7280", fontSize: 12.5 }}>{texto}</div>
+    <div style={{ textAlign: "center", padding: "36px 12px", color: "#64748B", fontSize: 12.5 }}>{texto}</div>
   );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 10, padding: 3 }}>
+      <div style={{ display: "flex", background: "#F1F5F4", borderRadius: 10, padding: 3 }}>
         {abas.map(a => (
           <button key={a.key} onClick={() => onAba(a.key)}
             style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 4px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", background: aba === a.key ? "#ffffff" : "transparent", color: aba === a.key ? "#008069" : "#54656f", boxShadow: aba === a.key ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>
@@ -158,7 +158,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
       <div style={{ display: "flex", gap: 6 }}>
         {([["todas", "Todas"], ["cliente", "Recebidas"], ["enviadas", "Enviadas"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setOrigem(k)}
-            style={{ border: `1px solid ${origem === k ? "#00a884" : "#e5e7eb"}`, background: origem === k ? "#e7fcf5" : "#ffffff", color: origem === k ? "#008069" : "#54656f", borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            style={{ border: `1px solid ${origem === k ? "#00a884" : "#E6ECEA"}`, background: origem === k ? "#e7fcf5" : "#ffffff", color: origem === k ? "#008069" : "#54656f", borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
             {label}
           </button>
         ))}
@@ -178,7 +178,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
                     ? <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                     : <video src={`${src}#t=0.5`} preload="metadata" muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} />}
                   {item.tipo === "video" && (
-                    <span style={{ position: "absolute", left: 4, bottom: 4, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 5px" }}>▶ vídeo</span>
+                    <span style={{ position: "absolute", left: 4, bottom: 4, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 5px" }}>vídeo</span>
                   )}
                 </button>
               );
@@ -194,7 +194,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
             const icone = iconeDoc(item.filename);
             return (
               <a key={item.chave} href={urlMidia(item.filename, item.canalId)} target="_blank" rel="noreferrer"
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", border: "1px solid #e5e7eb", borderRadius: 8, textDecoration: "none", background: "#ffffff" }}>
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", border: "1px solid #E6ECEA", borderRadius: 8, textDecoration: "none", background: "#ffffff" }}>
                 <span style={{ width: 36, height: 42, borderRadius: 5, background: icone.cor, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 5, flexShrink: 0 }}>{icone.rotulo}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", color: "#111b21", fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nomeExibicao(item.filename)}</span>
@@ -212,7 +212,7 @@ export function BibliotecaMidia({ mensagens, urlMidia, aba, onAba }: Props) {
           <p style={{ color: "#54656f", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, margin: "4px 0 0" }}>{g.rotulo}</p>
           {g.itens.map(item => (
             <a key={item.chave} href={hrefLink(item.url)} target="_blank" rel="noreferrer noopener"
-              style={{ display: "flex", gap: 10, padding: "9px 10px", border: "1px solid #e5e7eb", borderRadius: 8, textDecoration: "none", background: "#ffffff" }}>
+              style={{ display: "flex", gap: 10, padding: "9px 10px", border: "1px solid #E6ECEA", borderRadius: 8, textDecoration: "none", background: "#ffffff" }}>
               <span style={{ width: 36, height: 36, borderRadius: 6, background: "#e7fcf5", color: "#008069", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>🔗</span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", color: "#111b21", fontSize: 12.5, fontWeight: 700 }}>{dominio(item.url)}</span>
@@ -284,7 +284,7 @@ export function PreviaBiblioteca({ mensagens, urlMidia, onAbrir }: { mensagens: 
   const { midias, docs, links } = useMemo(() => extrairBiblioteca(mensagens), [mensagens]);
   const total = midias.length + docs.length + links.length;
   return (
-    <button onClick={onAbrir} style={{ width: "100%", textAlign: "left", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 12px", cursor: "pointer" }}>
+    <button onClick={onAbrir} style={{ width: "100%", textAlign: "left", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 12px", cursor: "pointer" }}>
       <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ color: "#54656f", fontSize: 12, fontWeight: 700 }}>Mídia, links e docs</span>
         <span style={{ color: "#8696a0", fontSize: 12, fontWeight: 600 }}>{total} ›</span>

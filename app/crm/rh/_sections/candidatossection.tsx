@@ -8,16 +8,16 @@ const COR_TEXTO = "#4338ca";
 const card = {
   background: "#ffffff",
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
 };
 const inputStyle = {
   width: "100%",
   background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #E6ECEA",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#1f2937",
+  color: "#0F172A",
   fontSize: 13,
   boxSizing: "border-box" as const,
   outline: "none",
@@ -28,7 +28,7 @@ const ET_COR: Record<string, string> = {
   Entrevista: "#6366f1",
   Teste: "#8b5cf6",
   Proposta: "#f59e0b",
-  Contratado: "#16a34a",
+  Contratado: "#059669",
   Reprovado: "#dc2626",
 };
 type Candidato = {
@@ -177,7 +177,7 @@ export function CandidatosSection() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+              background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -188,10 +188,10 @@ export function CandidatosSection() {
             <span style={{ filter: "saturate(0) brightness(2)" }}>🧑‍💻</span>
           </div>
           <div>
-            <h1 style={{ color: "#1f2937", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
               Candidatos
             </h1>
-            <p style={{ color: "#6b7280", fontSize: 12, margin: "2px 0 0" }}>
+            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
               <b style={{ color: COR_TEXTO }}>{lista.length}</b> candidato(s) no banco
             </p>
           </div>
@@ -202,7 +202,7 @@ export function CandidatosSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -219,7 +219,7 @@ export function CandidatosSection() {
       </div>
       <div style={{ ...card, padding: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <input
-          placeholder="🔍 Buscar por nome ou vaga..."
+          placeholder="Buscar por nome ou vaga..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           style={{ ...inputStyle, flex: "1 1 280px", maxWidth: 460, borderRadius: 20 }}
@@ -239,12 +239,12 @@ export function CandidatosSection() {
       </div>
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando...</p>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
         </div>
       ) : filtrados.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 36, margin: "0 0 8px" }}>{lista.length === 0 ? "📭" : "🔍"}</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>
+          <p style={{ color: "#64748B", fontSize: 13 }}>
             {lista.length === 0 ? "Nenhum candidato cadastrado." : "Nada encontrado"}
           </p>
         </div>
@@ -253,20 +253,20 @@ export function CandidatosSection() {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f9fafb" }}>
+                <tr style={{ background: "#F7FAF9" }}>
                   {["Candidato", "Vaga", "Origem", "Etapa", ""].map((h) => (
                     <th
                       key={h}
                       style={{
                         padding: "12px 16px",
-                        color: "#6b7280",
+                        color: "#64748B",
                         fontSize: 11,
                         textAlign: "left",
                         textTransform: "uppercase",
                         letterSpacing: 0.5,
                         whiteSpace: "nowrap",
                         fontWeight: 700,
-                        borderBottom: "1px solid #e5e7eb",
+                        borderBottom: "1px solid #E6ECEA",
                       }}
                     >
                       {h}
@@ -279,16 +279,16 @@ export function CandidatosSection() {
                   <tr
                     key={c.id}
                     style={{
-                      borderTop: "1px solid #f3f4f6",
-                      background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                      borderTop: "1px solid #F1F5F4",
+                      background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
                     }}
                   >
                     <td style={{ padding: "12px 16px" }}>
-                      <p style={{ color: "#1f2937", fontSize: 13, fontWeight: 700, margin: 0 }}>{c.nome}</p>
-                      <p style={{ color: "#9ca3af", fontSize: 11, margin: "2px 0 0" }}>{c.email}</p>
+                      <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{c.nome}</p>
+                      <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>{c.email}</p>
                     </td>
-                    <td style={{ padding: "12px 16px", color: "#4b5563", fontSize: 12 }}>{c.vaga}</td>
-                    <td style={{ padding: "12px 16px", color: "#6b7280", fontSize: 12 }}>{c.origem}</td>
+                    <td style={{ padding: "12px 16px", color: "#475569", fontSize: 12 }}>{c.vaga}</td>
+                    <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12 }}>{c.origem}</td>
                     <td style={{ padding: "12px 16px" }}>
                       <select
                         value={c.etapa}
@@ -358,19 +358,19 @@ export function CandidatosSection() {
             <div
               style={{
                 padding: "18px 24px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid #E6ECEA",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ color: "#1f2937", fontSize: 16, fontWeight: 700, margin: 0 }}>Novo Candidato</h3>
+              <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: 0 }}>Novo Candidato</h3>
               <button
                 onClick={() => setModal(false)}
                 style={{
-                  background: "#f3f4f6",
+                  background: "#F1F5F4",
                   border: "none",
-                  color: "#6b7280",
+                  color: "#64748B",
                   fontSize: 16,
                   cursor: "pointer",
                   width: 32,
@@ -435,19 +435,19 @@ export function CandidatosSection() {
             <div
               style={{
                 padding: "14px 24px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
-                background: "#f9fafb",
+                background: "#F7FAF9",
               }}
             >
               <button
                 onClick={() => setModal(false)}
                 style={{
                   background: "#ffffff",
-                  color: "#374151",
-                  border: "1px solid #e5e7eb",
+                  color: "#334155",
+                  border: "1px solid #E6ECEA",
                   borderRadius: 10,
                   padding: "9px 18px",
                   fontSize: 13,
@@ -461,7 +461,7 @@ export function CandidatosSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(135deg, ${COR} 0%, #6366f1 100%)`,
+                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -486,7 +486,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label
         style={{
-          color: "#6b7280",
+          color: "#64748B",
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",

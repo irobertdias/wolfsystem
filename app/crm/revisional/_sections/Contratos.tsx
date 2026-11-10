@@ -130,7 +130,7 @@ export default function Contratos({ dados, ir, alvo }: any) {
       </Stats>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="🔍 Buscar por cliente, CPF, banco ou nº do contrato" style={{ ...inputSm, flex: "1 1 280px", width: "auto" }} />
+        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por cliente, CPF, banco ou nº do contrato" style={{ ...inputSm, flex: "1 1 280px", width: "auto" }} />
         <select value={filtroEtapa} onChange={(e) => setFiltroEtapa(e.target.value)} style={{ ...inputSm, width: 220 }}>
           <option value="">Todas as etapas</option>
           {ETAPAS.map((e) => <option key={e.key} value={e.key}>{e.icone} {e.label}</option>)}
@@ -139,7 +139,7 @@ export default function Contratos({ dados, ir, alvo }: any) {
 
       <Table
         cols={[{ label: "Cliente" }, { label: "Banco / modalidade" }, { label: "Financiado", align: "right" }, { label: "Taxa contratada × média", align: "center" }, { label: "Benefício", align: "right" }, { label: "Etapa" }, { label: "", align: "right" }]}
-        empty={carregando ? <span style={{ color: "#9ca3af" }}>Carregando…</span> : lista.length === 0 ? (
+        empty={carregando ? <span style={{ color: "#94A3B8" }}>Carregando…</span> : lista.length === 0 ? (
           <Vazio icone="📑" titulo={contratos.length ? "Nenhum contrato encontrado" : "Nenhum contrato cadastrado"} sub={contratos.length ? "Mude a busca ou a etapa." : "Cadastre o contrato do cliente para calcular a revisão de juros."} acao={!contratos.length && <Btn onClick={abrirNovo}>＋ Novo contrato</Btn>} />
         ) : undefined}
       >
@@ -147,20 +147,20 @@ export default function Contratos({ dados, ir, alvo }: any) {
           const d = rev(c), calc = calcular(d, c.plano, cfg), e = etapa(c.status_venda), m = nomeMod(c.plano);
           return (
             <tr key={c.id} style={{ cursor: "pointer" }} onClick={() => setFichaId(c.id)}>
-              <td style={tdStyle}><div style={{ fontWeight: 700 }}>{c.nome}</div><div style={{ fontSize: 12, color: "#9ca3af" }}>{c.cpf || "CPF não informado"}{d.numero_contrato ? ` · nº ${d.numero_contrato}` : ""}</div></td>
-              <td style={tdStyle}><div>{c.operadora || "—"}</div><div style={{ fontSize: 12, color: "#9ca3af" }}>{m ? `${m.icone} ${m.label}` : "—"}</div></td>
+              <td style={tdStyle}><div style={{ fontWeight: 700 }}>{c.nome}</div><div style={{ fontSize: 12, color: "#94A3B8" }}>{c.cpf || "CPF não informado"}{d.numero_contrato ? ` · nº ${d.numero_contrato}` : ""}</div></td>
+              <td style={tdStyle}><div>{c.operadora || "—"}</div><div style={{ fontSize: 12, color: "#94A3B8" }}>{m ? `${m.icone} ${m.label}` : "—"}</div></td>
               <td style={{ ...tdStyle, textAlign: "right" }}>{d.valor_financiado ? brl(d.valor_financiado) : "—"}</td>
               <td style={{ ...tdStyle, textAlign: "center" }}>
                 {calc.valido ? (
                   <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                    <b style={{ color: calc.abusiva ? C.red : "#1f2937" }}>{pctBR(calc.taxaContratada)}</b>
-                    <span style={{ color: "#9ca3af" }}>×</span>
+                    <b style={{ color: calc.abusiva ? C.red : "#0F172A" }}>{pctBR(calc.taxaContratada)}</b>
+                    <span style={{ color: "#94A3B8" }}>×</span>
                     <span>{pctBR(calc.taxaMedia)}</span>
                     {calc.abusiva && <Pill texto={`${calc.vezesMedia.toFixed(1)}×`} cor={C.red} />}
                   </span>
-                ) : <span style={{ color: "#9ca3af", fontSize: 12 }}>dados incompletos</span>}
+                ) : <span style={{ color: "#94A3B8", fontSize: 12 }}>dados incompletos</span>}
               </td>
-              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800, color: calc.beneficio ? C.green : "#9ca3af" }}>{calc.valido ? brl(calc.beneficio) : "—"}</td>
+              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800, color: calc.beneficio ? C.green : "#94A3B8" }}>{calc.valido ? brl(calc.beneficio) : "—"}</td>
               <td style={tdStyle}><Pill texto={`${e.icone} ${e.label}`} cor={e.cor} /></td>
               <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }} onClick={(ev) => ev.stopPropagation()}>
                 <IconBtn icone="🧮" title="Abrir no cálculo" onClick={() => ir("calculo", { contratoId: c.id })} />
@@ -177,7 +177,7 @@ export default function Contratos({ dados, ir, alvo }: any) {
           footer={<><Btn variante="ghost" onClick={() => { setForm(null); setEditando(null); }}>Cancelar</Btn><Btn onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Salvar contrato"}</Btn></>}>
           {msg && <Banner tipo="warn">{msg}</Banner>}
 
-          <Secao titulo="👤 Cliente">
+          <Secao titulo="Cliente">
             <Row><Field label="Nome completo" flex="2 1 260px"><input style={inputSm} value={form.nome} onChange={(e) => set("nome", e.target.value)} /></Field>
               <Field label="CPF / CNPJ" flex="1 1 160px"><input style={inputSm} value={form.cpf} onChange={(e) => set("cpf", e.target.value)} /></Field></Row>
             <Row><Field label="WhatsApp / telefone" flex="1 1 160px"><input style={inputSm} value={form.telefone1} onChange={(e) => set("telefone1", e.target.value)} /></Field>
@@ -186,7 +186,7 @@ export default function Contratos({ dados, ir, alvo }: any) {
               <Field label="UF" flex="0 0 70px"><input style={inputSm} maxLength={2} value={form.estado} onChange={(e) => set("estado", e.target.value)} /></Field></Row>
           </Secao>
 
-          <Secao titulo="📄 Contrato">
+          <Secao titulo="Contrato">
             <Row><Field label="Banco / financeira" flex="1 1 200px"><input style={inputSm} value={form.operadora} onChange={(e) => set("operadora", e.target.value)} placeholder="Ex.: Banco Pan" /></Field>
               <Field label="Modalidade" flex="1 1 200px"><select style={inputSm} value={form.plano} onChange={(e) => set("plano", e.target.value)}>{cfg.modalidades.map((m: any) => <option key={m.key} value={m.key}>{m.icone} {m.label}</option>)}</select></Field>
               <Field label="Nº do contrato" flex="1 1 150px"><input style={inputSm} value={form.numero_contrato} onChange={(e) => set("numero_contrato", e.target.value)} /></Field>
@@ -200,14 +200,14 @@ export default function Contratos({ dados, ir, alvo }: any) {
             {previa && <PreviaCalculo calc={previa} />}
           </Secao>
 
-          <Secao titulo="⚖️ Processo e andamento">
+          <Secao titulo="Processo e andamento">
             <Row><Field label="Etapa" flex="1 1 200px"><select style={inputSm} value={form.status_venda} onChange={(e) => set("status_venda", e.target.value)}>{ETAPAS.map((e) => <option key={e.key} value={e.key}>{e.icone} {e.label}</option>)}</select></Field>
               <Field label="Nº do processo" flex="1 1 200px"><input style={inputSm} value={form.processo_numero} onChange={(e) => set("processo_numero", e.target.value)} /></Field>
               <Field label="Vara / comarca" flex="1 1 180px"><input style={inputSm} value={form.processo_vara} onChange={(e) => set("processo_vara", e.target.value)} /></Field>
               <Field label="Ajuizada em" flex="1 1 140px"><input type="date" style={inputSm} value={form.processo_data} onChange={(e) => set("processo_data", e.target.value)} /></Field></Row>
           </Secao>
 
-          <Secao titulo="💰 Honorários">
+          <Secao titulo="Honorários">
             <Row><Field label="Entrada (R$)" flex="1 1 140px"><input style={inputSm} inputMode="decimal" value={form.honorarios_entrada} onChange={(e) => set("honorarios_entrada", e.target.value)} /></Field>
               <Field label="Êxito (% do benefício)" flex="1 1 140px"><input style={inputSm} inputMode="decimal" value={form.honorarios_exito} onChange={(e) => set("honorarios_exito", e.target.value)} /></Field></Row>
             <Field label="Observações"><textarea style={{ ...inputSm, minHeight: 70, resize: "vertical", fontFamily: "inherit" }} value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} /></Field>
@@ -224,24 +224,24 @@ export default function Contratos({ dados, ir, alvo }: any) {
 
 export function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <div style={{ border: "1px solid #f3f4f6", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 12, background: "#fcfcfd" }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</div>
+    <div style={{ border: "1px solid #F1F5F4", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 12, background: "#fcfcfd" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</div>
       {children}
     </div>
   );
 }
 
 export function PreviaCalculo({ calc }: { calc: ReturnType<typeof calcular> }) {
-  if (!calc.valido) return <div style={{ fontSize: 12, color: "#9ca3af" }}>Informe valor financiado, prazo e parcela (ou taxa) para ver o cálculo.</div>;
-  const item = (l: string, v: string, cor = "#1f2937") => (
-    <div style={{ flex: "1 1 130px", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "8px 12px" }}>
-      <div style={{ fontSize: 10.5, color: "#6b7280", fontWeight: 700, textTransform: "uppercase" }}>{l}</div>
+  if (!calc.valido) return <div style={{ fontSize: 12, color: "#94A3B8" }}>Informe valor financiado, prazo e parcela (ou taxa) para ver o cálculo.</div>;
+  const item = (l: string, v: string, cor = "#0F172A") => (
+    <div style={{ flex: "1 1 130px", background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10, padding: "8px 12px" }}>
+      <div style={{ fontSize: 10.5, color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>{l}</div>
       <div style={{ fontSize: 15, fontWeight: 800, color: cor }}>{v}</div>
     </div>
   );
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      {item("Taxa contratada", `${pctBR(calc.taxaContratada)} a.m.`, calc.abusiva ? C.red : "#1f2937")}
+      {item("Taxa contratada", `${pctBR(calc.taxaContratada)} a.m.`, calc.abusiva ? C.red : "#0F172A")}
       {item("Taxa média", `${pctBR(calc.taxaMedia)} a.m.`)}
       {item("Parcela revisada", brl(calc.parcelaRevisada), C.blue)}
       {item("Diferença / parcela", brl(calc.diferencaParcela), C.amber)}
@@ -295,14 +295,14 @@ function FichaContrato({ c, cfg, wsId, usuario, onClose, onEditar, onExcluir, on
 
   const info = (l: string, v: any) => (
     <div style={{ flex: "1 1 160px", minWidth: 0 }}>
-      <div style={{ fontSize: 10.5, color: "#9ca3af", fontWeight: 700, textTransform: "uppercase" }}>{l}</div>
-      <div style={{ fontSize: 13.5, color: "#1f2937", fontWeight: 600, overflowWrap: "anywhere" }}>{v || "—"}</div>
+      <div style={{ fontSize: 10.5, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase" }}>{l}</div>
+      <div style={{ fontSize: 13.5, color: "#0F172A", fontWeight: 600, overflowWrap: "anywhere" }}>{v || "—"}</div>
     </div>
   );
 
   return (
     <Modal titulo={c.nome} onClose={onClose} maxWidth={900}
-      footer={<><Btn variante="danger" onClick={onExcluir}>Excluir</Btn><Btn variante="ghost" onClick={onCalculo}>🧮 Cálculo detalhado</Btn><Btn onClick={onEditar}>✏️ Editar</Btn></>}>
+      footer={<><Btn variante="danger" onClick={onExcluir}>Excluir</Btn><Btn variante="ghost" onClick={onCalculo}>Cálculo detalhado</Btn><Btn onClick={onEditar}>Editar</Btn></>}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <Pill texto={`${e.icone} ${e.label}`} cor={e.cor} />
         {calc.abusiva && <Pill texto={`🚩 Taxa ${calc.vezesMedia.toFixed(1)}× a média`} cor={C.red} />}
@@ -312,16 +312,16 @@ function FichaContrato({ c, cfg, wsId, usuario, onClose, onEditar, onExcluir, on
         </select>
       </div>
 
-      <Secao titulo="👤 Cliente e contrato">
+      <Secao titulo="Cliente e contrato">
         <Row>{info("CPF / CNPJ", c.cpf)}{info("Telefone", c.telefone1)}{info("E-mail", c.email)}{info("Cidade", [c.cidade, c.estado].filter(Boolean).join(" / "))}</Row>
         <Row>{info("Banco", c.operadora)}{info("Modalidade", m ? `${m.icone} ${m.label}` : "")}{info("Nº do contrato", d.numero_contrato)}{info("Data do contrato", dataBR(d.data_contrato))}</Row>
         <Row>{info("Valor financiado", d.valor_financiado ? brl(d.valor_financiado) : "")}{info("Prazo", d.prazo ? `${d.prazo} meses` : "")}{info("Parcela", d.parcela ? brl(d.parcela) : "")}{info("Parcelas pagas", d.parcelas_pagas ? `${d.parcelas_pagas} de ${d.prazo || "?"}` : "")}</Row>
       </Secao>
 
-      <Secao titulo="🧮 Cálculo revisional">
+      <Secao titulo="Cálculo revisional">
         <PreviaCalculo calc={calc} />
         {calc.valido && (
-          <div style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12.5, color: "#64748B", lineHeight: 1.6 }}>
             Taxa contratada de <b>{pctBR(calc.taxaContratada)} a.m.</b> ({pctBR(anual(calc.taxaContratada))} a.a.) contra média de mercado de <b>{pctBR(calc.taxaMedia)} a.m.</b> ({pctBR(anual(calc.taxaMedia))} a.a.).
             Pago a maior até agora: <b style={{ color: C.green }}>{brl(calc.pagoAMaior)}</b>{cfg.repeticao_dobro ? " (em dobro)" : ""} · economia nas parcelas restantes: <b style={{ color: C.green }}>{brl(calc.economiaFutura)}</b>.
           </div>
@@ -329,21 +329,21 @@ function FichaContrato({ c, cfg, wsId, usuario, onClose, onEditar, onExcluir, on
       </Secao>
 
       {(d.processo_numero || d.processo_vara || d.processo_data) && (
-        <Secao titulo="⚖️ Processo">
+        <Secao titulo="Processo">
           <Row>{info("Nº do processo", d.processo_numero)}{info("Vara / comarca", d.processo_vara)}{info("Ajuizada em", dataBR(d.processo_data))}</Row>
         </Secao>
       )}
 
-      <Secao titulo="💰 Honorários">
+      <Secao titulo="Honorários">
         <Row>{info("Entrada", brl(hon.entrada))}{info(`Êxito (${pctBR(hon.exitoPct, 0)})`, brl(hon.exito))}{info("Total previsto", brl(hon.total))}{info("Recebido", brl(parcelas.filter((p) => p.pago_em).reduce((s, p) => s + p.valor, 0)))}</Row>
         {parcelas.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {parcelas.map((p, k) => {
               const atraso = !p.pago_em && p.vencimento < hoje();
               return (
-                <div key={k} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10 }}>
-                  <span style={{ fontWeight: 700, color: "#374151", width: 80 }}>Parcela {p.n}</span>
-                  <span style={{ color: "#6b7280", fontSize: 13, flex: 1 }}>vence {dataBR(p.vencimento)}{p.pago_em ? ` · paga em ${dataBR(p.pago_em)}` : ""}</span>
+                <div key={k} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "#fff", border: "1px solid #E6ECEA", borderRadius: 10 }}>
+                  <span style={{ fontWeight: 700, color: "#334155", width: 80 }}>Parcela {p.n}</span>
+                  <span style={{ color: "#64748B", fontSize: 13, flex: 1 }}>vence {dataBR(p.vencimento)}{p.pago_em ? ` · paga em ${dataBR(p.pago_em)}` : ""}</span>
                   <b>{brl(p.valor)}</b>
                   <Pill texto={p.pago_em ? "Paga" : atraso ? "Atrasada" : "Em aberto"} cor={p.pago_em ? C.green : atraso ? C.red : C.amber} />
                   <Btn variante="ghost" disabled={ocupado} onClick={() => alternarPago(k)}>{p.pago_em ? "Desfazer" : "Dar baixa"}</Btn>
@@ -359,26 +359,26 @@ function FichaContrato({ c, cfg, wsId, usuario, onClose, onEditar, onExcluir, on
         </div>
       </Secao>
 
-      <Secao titulo="🕓 Histórico">
+      <Secao titulo="Histórico">
         <div style={{ display: "flex", gap: 8 }}>
           <input style={{ ...inputSm, flex: 1, width: "auto" }} placeholder="Anotar andamento, contato com o cliente, prazo…" value={nota} onChange={(ev) => setNota(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") anotar(); }} />
           <Btn onClick={anotar} disabled={ocupado || !nota.trim()}>Anotar</Btn>
         </div>
-        {(d.historico || []).length === 0 ? <div style={{ fontSize: 12.5, color: "#9ca3af" }}>Sem anotações.</div> : (
+        {(d.historico || []).length === 0 ? <div style={{ fontSize: 12.5, color: "#94A3B8" }}>Sem anotações.</div> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[...(d.historico || [])].reverse().map((h, k) => (
               <div key={k} style={{ display: "flex", gap: 10, fontSize: 13 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 8, background: h.etapa ? etapa(h.etapa).cor : "#cbd5e1", marginTop: 6, flexShrink: 0 }} />
                 <div>
-                  <div style={{ color: "#1f2937" }}>{h.nota}</div>
-                  <div style={{ color: "#9ca3af", fontSize: 11.5 }}>{new Date(h.em).toLocaleString("pt-BR")}{h.por ? ` · ${h.por}` : ""}</div>
+                  <div style={{ color: "#0F172A" }}>{h.nota}</div>
+                  <div style={{ color: "#94A3B8", fontSize: 11.5 }}>{new Date(h.em).toLocaleString("pt-BR")}{h.por ? ` · ${h.por}` : ""}</div>
                 </div>
               </div>
             ))}
           </div>
         )}
       </Secao>
-      {d.observacoes && <Card titulo="Observações" pad={16}><div style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap" }}>{d.observacoes}</div></Card>}
+      {d.observacoes && <Card titulo="Observações" pad={16}><div style={{ fontSize: 13, color: "#334155", whiteSpace: "pre-wrap" }}>{d.observacoes}</div></Card>}
     </Modal>
   );
 }

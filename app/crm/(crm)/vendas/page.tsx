@@ -15,6 +15,7 @@ import {
   type CampoCustom,
 } from "../../../lib/campos_proposta_definicao";
 
+import { IconeEmoji } from "../../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════════
 // 💰 VENDAS — Wolf CRM (multi-tenant)
 // ───────────────────────────────────────────────────────────────────────────
@@ -142,10 +143,10 @@ const metaStatusPersonalizado = (statusNormalizado: string, grupo: GrupoStatusVe
 
 const statusMeta = (s: any): MetaStatusVenda => {
   const t = normalizarStatusVenda(s);
-  if (!t) return { cor: "#64748b", bg: "#f8fafc", border: "#cbd5e1", emoji: "•", grupo: "outros" };
+  if (!t) return { cor: "#64748b", bg: "#F3F6F5", border: "#cbd5e1", emoji: "•", grupo: "outros" };
 
   if (/INSTALAD|ATIVAD|CONCLUID|FINALIZAD/.test(t) && !/NAO|CANCEL|REPROV|CHURN/.test(t)) {
-    return { cor: "#16a34a", bg: "#ecfdf5", border: "#86efac", emoji: "✅", grupo: "instaladas" };
+    return { cor: "#059669", bg: "#ecfdf5", border: "#6EE7B7", emoji: "✅", grupo: "instaladas" };
   }
 
   if (/FRAUDE/.test(t)) return { cor: "#a21caf", bg: "#fdf4ff", border: "#f0abfc", emoji: "⚠", grupo: "canceladas" };
@@ -157,20 +158,20 @@ const statusMeta = (s: any): MetaStatusVenda => {
     return { cor: "#dc2626", bg: "#fef2f2", border: "#fecaca", emoji: "✕", grupo: "canceladas" };
   }
 
-  if (/AGUARDANDO AUDITORIA|AUDITORIA/.test(t)) return { cor: "#2563eb", bg: "#eff6ff", border: "#93c5fd", emoji: "🔎", grupo: "andamento" };
+  if (/AGUARDANDO AUDITORIA|AUDITORIA/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#6EE7B7", emoji: "🔎", grupo: "andamento" };
   if (/PENDENTE DE INSTALACAO/.test(t)) return { cor: "#d97706", bg: "#fffbeb", border: "#fcd34d", emoji: "🛠", grupo: "andamento" };
-  if (/AGUARDANDO INSTALACAO/.test(t)) return { cor: "#0891b2", bg: "#ecfeff", border: "#67e8f9", emoji: "⌛", grupo: "andamento" };
-  if (/GERAD/.test(t)) return { cor: "#7c3aed", bg: "#f5f3ff", border: "#c4b5fd", emoji: "◆", grupo: "andamento" };
-  if (/BIOMETR/.test(t)) return { cor: "#4f46e5", bg: "#eef2ff", border: "#a5b4fc", emoji: "◎", grupo: "andamento" };
-  if (/ANALIS|ANALISE/.test(t)) return { cor: "#9333ea", bg: "#faf5ff", border: "#d8b4fe", emoji: "◈", grupo: "andamento" };
+  if (/AGUARDANDO INSTALACAO/.test(t)) return { cor: "#059669", bg: "#ECFDF5", border: "#67e8f9", emoji: "⌛", grupo: "andamento" };
+  if (/GERAD/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#6EE7B7", emoji: "◆", grupo: "andamento" };
+  if (/BIOMETR/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#a5b4fc", emoji: "◎", grupo: "andamento" };
+  if (/ANALIS|ANALISE/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#d8b4fe", emoji: "◈", grupo: "andamento" };
   if (/VALIDA/.test(t)) return { cor: "#c026d3", bg: "#fdf4ff", border: "#f0abfc", emoji: "✓", grupo: "andamento" };
-  if (/PROCESS/.test(t)) return { cor: "#0f766e", bg: "#f0fdfa", border: "#5eead4", emoji: "↻", grupo: "andamento" };
-  if (/AVERB/.test(t)) return { cor: "#0891b2", bg: "#ecfeff", border: "#67e8f9", emoji: "📝", grupo: "andamento" };
-  if (/DIGITAD|SIMULA/.test(t)) return { cor: "#7c3aed", bg: "#f5f3ff", border: "#c4b5fd", emoji: "◆", grupo: "andamento" };
+  if (/PROCESS/.test(t)) return { cor: "#047857", bg: "#f0fdfa", border: "#5eead4", emoji: "↻", grupo: "andamento" };
+  if (/AVERB/.test(t)) return { cor: "#059669", bg: "#ECFDF5", border: "#67e8f9", emoji: "📝", grupo: "andamento" };
+  if (/DIGITAD|SIMULA/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#6EE7B7", emoji: "◆", grupo: "andamento" };
   if (/DOCUMENT/.test(t)) return { cor: "#ea580c", bg: "#fff7ed", border: "#fdba74", emoji: "📎", grupo: "andamento" };
-  if (/ENVIAD/.test(t)) return { cor: "#0369a1", bg: "#f0f9ff", border: "#7dd3fc", emoji: "➜", grupo: "andamento" };
-  if (/ABERT/.test(t)) return { cor: "#475569", bg: "#f8fafc", border: "#cbd5e1", emoji: "○", grupo: "andamento" };
-  if (/ANDAMENTO/.test(t)) return { cor: "#0284c7", bg: "#f0f9ff", border: "#7dd3fc", emoji: "▶", grupo: "andamento" };
+  if (/ENVIAD/.test(t)) return { cor: "#065F46", bg: "#ECFDF5", border: "#6EE7B7", emoji: "➜", grupo: "andamento" };
+  if (/ABERT/.test(t)) return { cor: "#475569", bg: "#F3F6F5", border: "#cbd5e1", emoji: "○", grupo: "andamento" };
+  if (/ANDAMENTO/.test(t)) return { cor: "#047857", bg: "#ECFDF5", border: "#6EE7B7", emoji: "▶", grupo: "andamento" };
   if (/PENDENT/.test(t)) return { cor: "#ea580c", bg: "#fff7ed", border: "#fdba74", emoji: "⏳", grupo: "andamento" };
   if (/AGUARD|INSTALACAO/.test(t)) return metaStatusPersonalizado(t, "andamento");
 
@@ -328,14 +329,14 @@ export default function Vendas() {
 
   // 🎨 ESTILOS LIGHT TECH
   const inputStyle = {
-    width: "100%", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 10,
-    padding: "9px 12px", color: "#1f2937", fontSize: 13, boxSizing: "border-box" as const,
+    width: "100%", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10,
+    padding: "9px 12px", color: "#0F172A", fontSize: 13, boxSizing: "border-box" as const,
     outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
   };
   const cardStyle = {
     background: "#ffffff",
     borderRadius: 14,
-    border: "1px solid #e5e7eb",
+    border: "1px solid #E6ECEA",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
   };
 
@@ -357,62 +358,62 @@ export default function Vendas() {
         <span style={{
           background: meta.bg, color: meta.cor, border: `1px solid ${meta.border}`,
           padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 800, whiteSpace: "nowrap",
-        }}>{meta.emoji} {raw}</span>
-      ) : <span style={{ color: "#d1d5db" }}>—</span>;
+        }}>{<IconeEmoji e={meta.emoji} />} {raw}</span>
+      ) : <span style={{ color: "#CBD5E1" }}>—</span>;
     }
     if (c.slug === "valor_plano") {
       return (
-        <span style={{ color: "#16a34a", fontSize: 13, fontWeight: 800, letterSpacing: -0.2, whiteSpace: "nowrap" }}>
+        <span style={{ color: "#059669", fontSize: 13, fontWeight: 800, letterSpacing: -0.2, whiteSpace: "nowrap" }}>
           R$ {Number(raw || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       );
     }
     if (c.slug === "vendedor") {
-      return <span style={{ color: "#4b5563", fontSize: 12 }}>{nomeVendedor(raw)}</span>;
+      return <span style={{ color: "#475569", fontSize: 12 }}>{nomeVendedor(raw)}</span>;
     }
     if (c.slug === "nome") {
-      return <span style={{ color: "#1f2937", fontSize: 13, fontWeight: 700 }}>{raw || <span style={{ color: "#d1d5db" }}>—</span>}</span>;
+      return <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700 }}>{raw || <span style={{ color: "#CBD5E1" }}>—</span>}</span>;
     }
     if (c.slug === "cpf") {
-      return <span style={{ color: "#6b7280", fontSize: 12, fontFamily: "monospace" }}>{raw || <span style={{ color: "#d1d5db" }}>—</span>}</span>;
+      return <span style={{ color: "#64748B", fontSize: 12, fontFamily: "monospace" }}>{raw || <span style={{ color: "#CBD5E1" }}>—</span>}</span>;
     }
 
     if (raw === undefined || raw === null || raw === "") {
-      return <span style={{ color: "#d1d5db" }}>—</span>;
+      return <span style={{ color: "#CBD5E1" }}>—</span>;
     }
 
     if (c.tipo === "data") {
       try {
-        return <span style={{ color: "#6b7280", fontSize: 12, whiteSpace: "nowrap" }}>
+        return <span style={{ color: "#64748B", fontSize: 12, whiteSpace: "nowrap" }}>
           {formatarDataCRM(raw)}
         </span>;
-      } catch { return <span style={{ color: "#4b5563", fontSize: 12 }}>{String(raw)}</span>; }
+      } catch { return <span style={{ color: "#475569", fontSize: 12 }}>{String(raw)}</span>; }
     }
     if (c.tipo === "moeda") {
-      return <span style={{ color: "#4b5563", fontSize: 12, whiteSpace: "nowrap" }}>
+      return <span style={{ color: "#475569", fontSize: 12, whiteSpace: "nowrap" }}>
         R$ {Number(raw).toFixed(2).replace(".", ",")}
       </span>;
     }
     if (c.tipo === "checkbox") {
-      return <span style={{ color: raw === true ? "#16a34a" : "#9ca3af", fontSize: 12, fontWeight: 600 }}>
+      return <span style={{ color: raw === true ? "#059669" : "#94A3B8", fontSize: 12, fontWeight: 600 }}>
         {raw === true ? "✓ Sim" : "Não"}
       </span>;
     }
     if (c.slug === "vencimento") {
-      return <span style={{ color: "#4b5563", fontSize: 12 }}>Dia {String(raw)}</span>;
+      return <span style={{ color: "#475569", fontSize: 12 }}>Dia {String(raw)}</span>;
     }
 
-    return <span style={{ color: "#4b5563", fontSize: 12 }}>{String(raw)}</span>;
+    return <span style={{ color: "#475569", fontSize: 12 }}>{String(raw)}</span>;
   };
 
   // ═══ Filtro por coluna — input apropriado por tipo ═══
   const filtroInputStyle = {
     width: "100%",
     background: "#ffffff",
-    border: "1px solid #e5e7eb",
+    border: "1px solid #E6ECEA",
     borderRadius: 6,
     padding: "4px 8px",
-    color: "#1f2937",
+    color: "#0F172A",
     fontSize: 11,
     boxSizing: "border-box" as const,
     outline: "none",
@@ -798,7 +799,7 @@ export default function Vendas() {
       </>
     );
     const lab = (
-      <label style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5, fontWeight: 700 }}>
+      <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5, fontWeight: 700 }}>
         {labelComObr}
       </label>
     );
@@ -819,11 +820,11 @@ export default function Vendas() {
                 <option value="">Selecione...</option>
                 {vendedoresModal.map(u => <option key={u.email} value={u.email}>{u.nome}</option>)}
                 {val && !vendedoresModal.find(u => u.email?.toLowerCase() === String(val).toLowerCase()) && (
-                  <option value={val}>⚠️ {val} (legado)</option>
+                  <option value={val}>{val} (legado)</option>
                 )}
               </select>
             ) : (
-              <input value={nomeVendedor(val)} disabled style={{ ...inputStyle, background: "#f3f4f6", color: "#6b7280", cursor: "not-allowed" }} />
+              <input value={nomeVendedor(val)} disabled style={{ ...inputStyle, background: "#F1F5F4", color: "#64748B", cursor: "not-allowed" }} />
             )}
           </div>
         );
@@ -856,13 +857,13 @@ export default function Vendas() {
       const anexos = anexosDoCampo(c.slug);
       return (
         <div>{lab}
-          <div style={{ border: "1px dashed #bfdbfe", borderRadius: 10, padding: 12, background: "#f8fbff" }}>
+          <div style={{ border: "1px dashed #A7F3D0", borderRadius: 10, padding: 12, background: "#f8fbff" }}>
             <input type="file" multiple onChange={e => uploadArquivoCampo(c, e.target.files)} style={{ ...inputStyle, background: "#ffffff" }} />
             {anexos.length > 0 && (
               <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
                 {anexos.map((a, idx) => (
-                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 10px", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8 }}>
-                    <a href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ color: "#2563eb", fontSize: 12, fontWeight: 700, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 10px", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 8 }}>
+                    <a href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ color: "#047857", fontSize: 12, fontWeight: 700, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {iconeArquivo(a.tipo)} · {a.nome} · {formatarTamanhoArquivo(a.tamanho)}
                     </a>
                     <button type="button" onClick={() => removerArquivoCampo(c.slug, idx)} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Remover</button>
@@ -891,14 +892,14 @@ export default function Vendas() {
           <label style={{
             display: "flex", alignItems: "center", gap: 10,
             padding: "9px 14px",
-            background: marcado ? "#f0fdf4" : "#ffffff",
+            background: marcado ? "#ECFDF5" : "#ffffff",
             borderRadius: 10,
-            border: `1px solid ${marcado ? "#bbf7d0" : "#e5e7eb"}`,
+            border: `1px solid ${marcado ? "#A7F3D0" : "#E6ECEA"}`,
             cursor: "pointer",
             transition: "all 0.15s",
           }}>
-            <input type="checkbox" checked={marcado} onChange={e => set(e.target.checked)} style={{ accentColor: "#16a34a", width: 16, height: 16, cursor: "pointer" }} />
-            <span style={{ color: marcado ? "#16a34a" : "#6b7280", fontSize: 13, fontWeight: 600 }}>{marcado ? "Sim" : "Não"}</span>
+            <input type="checkbox" checked={marcado} onChange={e => set(e.target.checked)} style={{ accentColor: "#059669", width: 16, height: 16, cursor: "pointer" }} />
+            <span style={{ color: marcado ? "#059669" : "#64748B", fontSize: 13, fontWeight: 600 }}>{marcado ? "Sim" : "Não"}</span>
           </label>
         </div>
       );
@@ -1023,21 +1024,21 @@ export default function Vendas() {
   if (permLoading) {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: "#6b7280", fontSize: 13 }}>⏳ Verificando permissões...</p>
+        <p style={{ color: "#64748B", fontSize: 13 }}>Verificando permissões...</p>
       </div>
     );
   }
   if (esc === "none") {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>
-        <div style={{ background: "white", borderRadius: 14, padding: 48, textAlign: "center", maxWidth: 480, border: "1px solid #e5e7eb" }}>
+        <div style={{ background: "white", borderRadius: 14, padding: 48, textAlign: "center", maxWidth: 480, border: "1px solid #E6ECEA" }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
-          <h1 style={{ color: "#1f2937", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Sem acesso a Vendas</h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 8px" }}>
+          <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Sem acesso a Vendas</h1>
+          <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 8px" }}>
             Teu grupo de permissão não tem acesso às vendas.
           </p>
-          <p style={{ color: "#9ca3af", fontSize: 11, margin: 0 }}>
-            Peça ao admin pra ativar <code style={{ background: "#f3f4f6", padding: "1px 6px", borderRadius: 4, fontFamily: "monospace" }}>Ver próprias vendas</code> ou <code style={{ background: "#f3f4f6", padding: "1px 6px", borderRadius: 4, fontFamily: "monospace" }}>Ver vendas da equipe</code> no teu grupo.
+          <p style={{ color: "#94A3B8", fontSize: 11, margin: 0 }}>
+            Peça ao admin pra ativar <code style={{ background: "#F1F5F4", padding: "1px 6px", borderRadius: 4, fontFamily: "monospace" }}>Ver próprias vendas</code> ou <code style={{ background: "#F1F5F4", padding: "1px 6px", borderRadius: 4, fontFamily: "monospace" }}>Ver vendas da equipe</code> no teu grupo.
           </p>
         </div>
       </div>
@@ -1052,30 +1053,30 @@ export default function Vendas() {
         <div onClick={() => setShowExportModal(false)}
           style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.52)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={e => e.stopPropagation()} style={{ ...cardStyle, width: "100%", maxWidth: 720, maxHeight: "88vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "18px 22px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 900, margin: 0 }}>Exportar vendas</h2>
                 <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>{propostasFiltradas.length.toLocaleString("pt-BR")} venda(s) filtrada(s) neste workspace</p>
               </div>
-              <button onClick={() => setShowExportModal(false)} style={{ background: "#f8fafc", border: "1px solid #e5e7eb", color: "#64748b", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontWeight: 900 }}>x</button>
+              <button onClick={() => setShowExportModal(false)} style={{ background: "#F3F6F5", border: "1px solid #E6ECEA", color: "#64748b", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontWeight: 900 }}>x</button>
             </div>
             <div style={{ padding: 20, overflowY: "auto" }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-                <button onClick={() => setExportCampos(colunasExportaveis.map(c => c.slug))} style={{ background: "#ecfdf5", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Selecionar tudo</button>
-                <button onClick={() => setExportCampos([])} style={{ background: "#f8fafc", color: "#64748b", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Limpar</button>
+                <button onClick={() => setExportCampos(colunasExportaveis.map(c => c.slug))} style={{ background: "#ecfdf5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Selecionar tudo</button>
+                <button onClick={() => setExportCampos([])} style={{ background: "#F3F6F5", color: "#64748b", border: "1px solid #E6ECEA", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Limpar</button>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 10 }}>
                 {colunasExportaveis.map(c => (
-                  <label key={c.slug} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 10, background: exportCampos.includes(c.slug) ? "#f0fdf4" : "#ffffff", cursor: "pointer" }}>
-                    <input type="checkbox" checked={exportCampos.includes(c.slug)} onChange={() => toggleCampoExport(c.slug)} style={{ accentColor: "#16a34a", width: 16, height: 16 }} />
+                  <label key={c.slug} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid #E6ECEA", borderRadius: 10, background: exportCampos.includes(c.slug) ? "#ECFDF5" : "#ffffff", cursor: "pointer" }}>
+                    <input type="checkbox" checked={exportCampos.includes(c.slug)} onChange={() => toggleCampoExport(c.slug)} style={{ accentColor: "#059669", width: 16, height: 16 }} />
                     <span style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>{c.label}</span>
                   </label>
                 ))}
               </div>
             </div>
-            <div style={{ padding: "14px 20px", borderTop: "1px solid #e5e7eb", background: "#f8fafc", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button onClick={() => setShowExportModal(false)} style={{ background: "#ffffff", color: "#64748b", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={exportarExcel} disabled={exportando || exportCampos.length === 0} style={{ background: exportCampos.length === 0 ? "#94a3b8" : "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)", color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, fontWeight: 900, cursor: exportCampos.length === 0 ? "not-allowed" : "pointer", boxShadow: "0 6px 16px rgba(37,99,235,0.25)" }}>
+            <div style={{ padding: "14px 20px", borderTop: "1px solid #E6ECEA", background: "#F3F6F5", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setShowExportModal(false)} style={{ background: "#ffffff", color: "#64748b", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Cancelar</button>
+              <button onClick={exportarExcel} disabled={exportando || exportCampos.length === 0} style={{ background: exportCampos.length === 0 ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #047857 100%)", color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, fontWeight: 900, cursor: exportCampos.length === 0 ? "not-allowed" : "pointer", boxShadow: "0 6px 16px rgba(5,150,105,0.25)" }}>
                 {exportando ? "Exportando..." : "Baixar Excel"}
               </button>
             </div>
@@ -1094,13 +1095,13 @@ export default function Vendas() {
               display: "flex", flexDirection: "column", overflow: "hidden",
               boxShadow: "0 20px 50px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.08)",
             }}>
-            <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "18px 24px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✏️</div>
-                <h2 style={{ color: "#1f2937", fontSize: 17, fontWeight: 700, margin: 0 }}>Editar Proposta <span style={{ color: "#9ca3af", fontWeight: 500 }}>#{propostaEditando.id}</span></h2>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✏️</div>
+                <h2 style={{ color: "#0F172A", fontSize: 17, fontWeight: 700, margin: 0 }}>Editar Proposta <span style={{ color: "#94A3B8", fontWeight: 500 }}>#{propostaEditando.id}</span></h2>
               </div>
               <button onClick={() => { setShowModal(false); setPropostaEditando(null); }}
-                style={{ background: "#f3f4f6", border: "none", color: "#6b7280", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
 
             <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
@@ -1113,17 +1114,17 @@ export default function Vendas() {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 24px", borderTop: "1px solid #e5e7eb", background: "#f9fafb" }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 24px", borderTop: "1px solid #E6ECEA", background: "#F7FAF9" }}>
               <button onClick={() => { setShowModal(false); setPropostaEditando(null); }}
-                style={{ background: "#ffffff", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
                 Cancelar
               </button>
               <button onClick={salvar} disabled={salvando}
                 style={{
-                  background: salvando ? "#15803d" : "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                  background: salvando ? "#047857" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                  boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
                 }}>
                 {salvando ? "⏳ Salvando..." : "💾 Salvar"}
               </button>
@@ -1133,26 +1134,26 @@ export default function Vendas() {
       )}
 
       {/* ═══ HEADER ═══ */}
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 18, padding: isMobile ? 16 : "18px 20px", borderRadius: 20, border: "1px solid #dbeafe", background: "radial-gradient(circle at 10% 0%, rgba(34,197,94,0.10), transparent 34%), linear-gradient(135deg, #ffffff 0%, #f8fbff 58%, #eff6ff 100%)", boxShadow: "0 16px 40px rgba(15,23,42,0.07)" }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 18, padding: isMobile ? 16 : "18px 20px", borderRadius: 20, border: "1px solid #D1FAE5", background: "radial-gradient(circle at 10% 0%, rgba(34,197,94,0.10), transparent 34%), linear-gradient(135deg, #ffffff 0%, #f8fbff 58%, #ECFDF5 100%)", boxShadow: "0 16px 40px rgba(15,23,42,0.07)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
             width: 54, height: 54, borderRadius: 17,
-            background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+            background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 26, boxShadow: "0 12px 26px rgba(22,163,74,0.28)",
+            fontSize: 26, boxShadow: "0 12px 26px rgba(5,150,105,0.28)",
             flexShrink: 0,
           }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>💰</span>
           </div>
           <div>
-            <p style={{ color: "#16a34a", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 3px" }}>Central comercial</p>
+            <p style={{ color: "#059669", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 3px" }}>Central comercial</p>
             <h1 style={{ color: "#0f172a", fontSize: isMobile ? 22 : 28, fontWeight: 900, margin: 0, letterSpacing: -0.8 }}>Vendas</h1>
             <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>
               {podeVerTudo
-                ? <><b style={{ color: "#16a34a" }}>{totalGeral}</b> proposta(s) cadastrada(s){totalVisivel !== totalGeral && <> · <b>{totalVisivel}</b> filtradas</>}</>
+                ? <><b style={{ color: "#059669" }}>{totalGeral}</b> proposta(s) cadastrada(s){totalVisivel !== totalGeral && <> · <b>{totalVisivel}</b> filtradas</>}</>
                 : travadoEquipe
-                  ? <><b style={{ color: "#16a34a" }}>{totalVisivel}</b> proposta(s) da sua equipe</>
-                  : <><b style={{ color: "#16a34a" }}>{totalVisivel}</b> proposta(s) suas</>}
+                  ? <><b style={{ color: "#059669" }}>{totalVisivel}</b> proposta(s) da sua equipe</>
+                  : <><b style={{ color: "#059669" }}>{totalVisivel}</b> proposta(s) suas</>}
             </p>
           </div>
         </div>
@@ -1162,19 +1163,19 @@ export default function Vendas() {
           {travadoEquipe && minhaEquipeNome && (
             <div style={{
               display: "flex", alignItems: "center", gap: 8,
-              background: "#f0fdf4", border: "1px solid #bbf7d0",
+              background: "#ECFDF5", border: "1px solid #A7F3D0",
               borderRadius: 12, padding: "6px 14px",
             }}>
               <span style={{ fontSize: 14, lineHeight: 1 }}>👥</span>
-              <span style={{ color: "#6b7280", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Equipe</span>
-              <span style={{ color: "#15803d", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
+              <span style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Equipe</span>
+              <span style={{ color: "#047857", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
             </div>
           )}
 
           <button onClick={abrirExportacao} title="Exportar vendas filtradas"
             style={{
               flex: isMobile ? 1 : "0 0 auto",
-              background: "#ecfeff", color: "#0891b2", border: "1px solid #a5f3fc",
+              background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0",
               borderRadius: 10, padding: "10px 18px", fontSize: 13,
               cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap",
             }}>
@@ -1185,22 +1186,22 @@ export default function Vendas() {
             <button onClick={() => router.push("/crm/editor-proposta")} title="Configurar campos da proposta"
               style={{
                 flex: isMobile ? 1 : "0 0 auto",
-                background: "#f3e8ff", color: "#a855f7", border: "1px solid #ddd6fe",
+                background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0",
                 borderRadius: 10, padding: "10px 18px", fontSize: 13,
                 cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap",
               }}>
-              🛠️ Editar Campos
+              Editar Campos
             </button>
           )}
           <button onClick={() => router.push("/crm/proposta")}
             style={{
               flex: isMobile ? 1 : "0 0 auto",
-              background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+              background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
               color: "white", border: "none", borderRadius: 10,
               padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
-              whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+              whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
             }}>
-            📋 Nova Proposta
+            Nova Proposta
           </button>
         </div>
       </div>
@@ -1210,11 +1211,11 @@ export default function Vendas() {
       <section style={{ ...cardStyle, padding: isMobile ? 14 : 18, borderRadius: 20, border: "1px solid #e2e8f0", background: "linear-gradient(180deg, #ffffff 0%, #fbfdff 100%)", boxShadow: "0 18px 42px rgba(15,23,42,0.06)" }}>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, minmax(0, 1fr))", gap: 10 }}>
           {[
-            { label: "Visiveis", valor: totalVisivel, detalhe: `${totalGeral} no workspace`, cor: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
-            { label: vocabularioDoWorkspace(workspaceId).concluidas, valor: kpis.instaladas, detalhe: `R$ ${kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#16a34a", bg: "#ecfdf5", border: "#bbf7d0" },
+            { label: "Visiveis", valor: totalVisivel, detalhe: `${totalGeral} no workspace`, cor: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
+            { label: vocabularioDoWorkspace(workspaceId).concluidas, valor: kpis.instaladas, detalhe: `R$ ${kpis.receita.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, cor: "#059669", bg: "#ecfdf5", border: "#A7F3D0" },
             { label: "Em andamento", valor: kpis.andamento, detalhe: "aguardando/geradas", cor: "#f59e0b", bg: "#fffbeb", border: "#fde68a" },
             { label: "Canceladas", valor: kpis.canceladas, detalhe: "canceladas/reprovadas", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-            { label: "Ticket", valor: `R$ ${kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, detalhe: vocabularioDoWorkspace(workspaceId).ticketDetalhe, cor: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" },
+            { label: "Ticket", valor: `R$ ${kpis.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, detalhe: vocabularioDoWorkspace(workspaceId).ticketDetalhe, cor: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
           ].map(card => (
             <button key={card.label} type="button" style={{
               textAlign: "left",
@@ -1236,8 +1237,8 @@ export default function Vendas() {
         <details style={{
           marginTop: 14,
           borderRadius: 15,
-          border: filtroStatus === "todos" ? "1px solid #e2e8f0" : "1px solid #93c5fd",
-          background: filtroStatus === "todos" ? "#f8fafc" : "#eff6ff",
+          border: filtroStatus === "todos" ? "1px solid #e2e8f0" : "1px solid #6EE7B7",
+          background: filtroStatus === "todos" ? "#F3F6F5" : "#ECFDF5",
           overflow: "hidden",
         }}>
           <summary style={{
@@ -1254,8 +1255,8 @@ export default function Vendas() {
               <span style={{
                 width: 32, height: 32, borderRadius: 10,
                 display: "grid", placeItems: "center",
-                background: "#ffffff", border: "1px solid #dbeafe",
-                color: "#2563eb", fontSize: 15, flexShrink: 0,
+                background: "#ffffff", border: "1px solid #D1FAE5",
+                color: "#047857", fontSize: 15, flexShrink: 0,
               }}>◫</span>
               <span style={{ minWidth: 0 }}>
                 <strong style={{ display: "block", color: "#0f172a", fontSize: 12 }}>Distribuição por status</strong>
@@ -1266,7 +1267,7 @@ export default function Vendas() {
                 </span>
               </span>
             </span>
-            <span style={{ color: "#2563eb", fontSize: 11, fontWeight: 900, whiteSpace: "nowrap" }}>Ver status ▾</span>
+            <span style={{ color: "#047857", fontSize: 11, fontWeight: 900, whiteSpace: "nowrap" }}>Ver status ▾</span>
           </summary>
 
           <div style={{
@@ -1303,7 +1304,7 @@ export default function Vendas() {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
-                  }}>{item.emoji} {item.status} · {item.total.toLocaleString("pt-BR")}</button>
+                  }}>{<IconeEmoji e={item.emoji} />} {item.status} · {item.total.toLocaleString("pt-BR")}</button>
               );
             })}
           </div>
@@ -1311,7 +1312,7 @@ export default function Vendas() {
       </section>
 
       {/* Filtros */}
-      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", borderRadius: 18, border: "1px solid #dbeafe", background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)", boxShadow: "0 12px 30px rgba(15,23,42,0.05)" }}>
+      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", borderRadius: 18, border: "1px solid #D1FAE5", background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)", boxShadow: "0 12px 30px rgba(15,23,42,0.05)" }}>
         <input placeholder="Buscar por nome, CPF, vendedor..." value={busca} onChange={e => setBusca(e.target.value)}
           style={{ ...inputStyle, maxWidth: 360, flex: "1 1 220px", borderRadius: 20 }} />
         <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={{ ...inputStyle, maxWidth: 220 }}>
@@ -1328,10 +1329,10 @@ export default function Vendas() {
             ["custom", "Personalizado"],
           ].map(([k, label]) => (
             <button key={k} onClick={() => aplicarRange(k as any)} style={{
-              background: rangeRapido === k ? "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)" : "transparent",
+              background: rangeRapido === k ? "linear-gradient(135deg, #047857 0%, #059669 100%)" : "transparent",
               color: rangeRapido === k ? "#ffffff" : "#475569",
-              border: rangeRapido === k ? "1px solid #2563eb" : "1px solid transparent",
-              boxShadow: rangeRapido === k ? "0 5px 12px rgba(37,99,235,0.22)" : "none",
+              border: rangeRapido === k ? "1px solid #047857" : "1px solid transparent",
+              boxShadow: rangeRapido === k ? "0 5px 12px rgba(5,150,105,0.22)" : "none",
               borderRadius: 9,
               padding: "8px 10px",
               fontSize: 12,
@@ -1341,7 +1342,7 @@ export default function Vendas() {
           ))}
         </div>
         {rangeRapido === "custom" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, padding: "5px 10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#F3F6F5", border: "1px solid #E6ECEA", borderRadius: 10, padding: "5px 10px" }}>
             <span style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>De</span>
             <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)} max={filtroDataFim || undefined}
               style={{ background: "transparent", border: "none", color: "#0f172a", fontSize: 12, padding: "5px 0", outline: "none", fontWeight: 700 }} />
@@ -1350,7 +1351,7 @@ export default function Vendas() {
               style={{ background: "transparent", border: "none", color: "#0f172a", fontSize: 12, padding: "5px 0", outline: "none", fontWeight: 700 }} />
           </div>
         )}
-        <select value={filtroModif} onChange={e => setFiltroModif(e.target.value as any)} style={{ ...inputStyle, maxWidth: 230, borderColor: filtroModif !== "qualquer" ? "#bfdbfe" : "#e5e7eb", background: filtroModif !== "qualquer" ? "#eff6ff" : "#ffffff", fontWeight: filtroModif !== "qualquer" ? 800 : 500 }}>
+        <select value={filtroModif} onChange={e => setFiltroModif(e.target.value as any)} style={{ ...inputStyle, maxWidth: 230, borderColor: filtroModif !== "qualquer" ? "#A7F3D0" : "#E6ECEA", background: filtroModif !== "qualquer" ? "#ECFDF5" : "#ffffff", fontWeight: filtroModif !== "qualquer" ? 800 : 500 }}>
           <option value="qualquer">Modificacao: qualquer</option>
           <option value="hoje">Modificada hoje</option>
           <option value="7d">Modificada em 7 dias</option>
@@ -1379,7 +1380,7 @@ export default function Vendas() {
             }}
             style={{
               overflowX: "auto", overflowY: "hidden",
-              height: 14, borderBottom: "1px solid #f3f4f6",
+              height: 14, borderBottom: "1px solid #F1F5F4",
             }}>
             <div style={{ width: topInnerWidth || "100%", height: 1 }} />
           </div>
@@ -1398,43 +1399,43 @@ export default function Vendas() {
           <table ref={tableInnerRef}
             style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
             <thead>
-              <tr style={{ background: "#f9fafb" }}>
+              <tr style={{ background: "#F7FAF9" }}>
                 {colunasTabela.map(c => (
                   <th key={`th-${c.origem}-${c.slug}`}
-                    style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>
+                    style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>
                     {c.label}
                   </th>
                 ))}
                 <th key="th-acoes"
-                  style={{ padding: "12px 16px", color: "#6b7280", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #e5e7eb" }}>
+                  style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>
                   Ações
                 </th>
               </tr>
               <tr style={{ background: "#fbfbfc" }}>
                 {colunasTabela.map(c => (
                   <th key={`fil-${c.origem}-${c.slug}`}
-                    style={{ padding: "6px 12px", borderBottom: "1px solid #e5e7eb" }}>
+                    style={{ padding: "6px 12px", borderBottom: "1px solid #E6ECEA" }}>
                     {renderFiltroColuna(c)}
                   </th>
                 ))}
-                <th key="fil-acoes" style={{ padding: "6px 12px", borderBottom: "1px solid #e5e7eb" }}></th>
+                <th key="fil-acoes" style={{ padding: "6px 12px", borderBottom: "1px solid #E6ECEA" }}></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={colunasTabela.length + 1} style={{ padding: 32, color: "#6b7280", textAlign: "center", fontSize: 13 }}>⏳ Carregando...</td></tr>
+                <tr><td colSpan={colunasTabela.length + 1} style={{ padding: 32, color: "#64748B", textAlign: "center", fontSize: 13 }}>Carregando...</td></tr>
               ) : propostasFiltradas.length === 0 ? (
                 <tr><td colSpan={colunasTabela.length + 1} style={{ padding: 48, textAlign: "center" }}>
                   <div style={{
                     width: 72, height: 72, borderRadius: 18,
-                    background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                    background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 36, margin: "0 auto 14px",
-                    boxShadow: "0 12px 24px rgba(22,163,74,0.25)",
+                    boxShadow: "0 12px 24px rgba(5,150,105,0.25)",
                   }}>
                     <span style={{ filter: "saturate(0) brightness(2)" }}>💰</span>
                   </div>
-                  <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>
+                  <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>
                     {busca || filtroStatus !== "todos"
                       ? "Nenhum resultado pros filtros"
                       : podeVerTudo
@@ -1448,12 +1449,12 @@ export default function Vendas() {
                 return (
                   <tr key={v.id}
                     style={{
-                      borderTop: "1px solid #f3f4f6",
-                      background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                      borderTop: "1px solid #F1F5F4",
+                      background: i % 2 === 0 ? "#ffffff" : "#F7FAF9",
                       transition: "background 0.1s",
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#fafbfc"}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "#F1F5F4"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#F7FAF9"}
                   >
                     {colunasTabela.map(c => (
                       <td key={`td-${c.origem}-${c.slug}`} style={{ padding: "12px 16px" }}>
@@ -1463,9 +1464,9 @@ export default function Vendas() {
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={() => setPropostaVisualizando(v)} title="Visualizar"
-                          style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>👁️</button>
+                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>👁️</button>
                         <button onClick={() => abrirEditar(v)} title="Editar"
-                          style={{ background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
+                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
                         {podeExcluir && (
                           <button onClick={() => excluir(v)} title="Excluir"
                             style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
@@ -1482,13 +1483,13 @@ export default function Vendas() {
 
       {/* Avisos rodapé */}
       {!podeExcluir && propostas.length > 0 && (
-        <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>🔒 Apenas o dono do workspace ou administrador podem excluir propostas.</p>
+        <p style={{ color: "#94A3B8", fontSize: 11, fontStyle: "italic", margin: 0 }}>Apenas o dono do workspace ou administrador podem excluir propostas.</p>
       )}
       {esc === "own" && (
-        <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>👤 Você só vê suas próprias propostas. Pra ver as da equipe, peça ao admin para habilitar <b style={{ color: "#6b7280" }}>"Ver vendas da equipe"</b>.</p>
+        <p style={{ color: "#94A3B8", fontSize: 11, fontStyle: "italic", margin: 0 }}>Você só vê suas próprias propostas. Pra ver as da equipe, peça ao admin para habilitar <b style={{ color: "#64748B" }}>"Ver vendas da equipe"</b>.</p>
       )}
       {travadoEquipe && (
-        <p style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic", margin: 0 }}>👥 Você vê as propostas da sua equipe (<b style={{ color: "#6b7280" }}>{minhaEquipeNome}</b>).</p>
+        <p style={{ color: "#94A3B8", fontSize: 11, fontStyle: "italic", margin: 0 }}>Você vê as propostas da sua equipe (<b style={{ color: "#64748B" }}>{minhaEquipeNome}</b>).</p>
       )}
 
 
@@ -1498,16 +1499,16 @@ export default function Vendas() {
           style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.52)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={e => e.stopPropagation()}
             style={{ ...cardStyle, width: "100%", maxWidth: 920, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.15)" }}>
-            <div style={{ padding: "18px 24px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#ffffff", gap: 12 }}>
+            <div style={{ padding: "18px 24px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#ffffff", gap: 12 }}>
               <div>
                 <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 900, margin: 0 }}>Venda #{propostaVisualizando.id}</h2>
                 <p style={{ color: "#64748b", fontSize: 12, margin: "3px 0 0" }}>{propostaVisualizando.nome || "Sem nome"} · {nomeVendedor(propostaVisualizando.vendedor)}</p>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <button onClick={() => { const p = propostaVisualizando; setPropostaVisualizando(null); abrirEditar(p); }}
-                  style={{ background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 12px rgba(59,130,246,0.28)" }}>Editar</button>
+                  style={{ background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 12px rgba(5,150,105,0.28)" }}>Editar</button>
                 <button onClick={() => setPropostaVisualizando(null)}
-                  style={{ background: "#f8fafc", color: "#64748b", border: "1px solid #e5e7eb", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 800 }}>Fechar</button>
+                  style={{ background: "#F3F6F5", color: "#64748b", border: "1px solid #E6ECEA", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 800 }}>Fechar</button>
               </div>
             </div>
 
@@ -1515,9 +1516,9 @@ export default function Vendas() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
                 {[
                   { label: "Status", value: propostaVisualizando.status_venda || "-", cor: statusMeta(propostaVisualizando.status_venda).cor, bg: statusMeta(propostaVisualizando.status_venda).bg, border: statusMeta(propostaVisualizando.status_venda).border },
-                  { label: "Valor", value: propostaVisualizando.valor_plano == null || String(propostaVisualizando.valor_plano).trim() === "" ? "A conferir" : `R$ ${Number(propostaVisualizando.valor_plano).toFixed(2).replace(".", ",")}`, cor: "#16a34a", bg: "#ecfdf5", border: "#bbf7d0" },
-                  { label: "Data proposta", value: propostaVisualizando.data_proposta ? new Date(propostaVisualizando.data_proposta + "T00:00:00").toLocaleDateString("pt-BR") : "-", cor: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
-                  { label: "Modificado", value: propostaVisualizando.updated_at ? new Date(propostaVisualizando.updated_at).toLocaleString("pt-BR") : "-", cor: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
+                  { label: "Valor", value: propostaVisualizando.valor_plano == null || String(propostaVisualizando.valor_plano).trim() === "" ? "A conferir" : `R$ ${Number(propostaVisualizando.valor_plano).toFixed(2).replace(".", ",")}`, cor: "#059669", bg: "#ecfdf5", border: "#A7F3D0" },
+                  { label: "Data proposta", value: propostaVisualizando.data_proposta ? new Date(propostaVisualizando.data_proposta + "T00:00:00").toLocaleDateString("pt-BR") : "-", cor: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
+                  { label: "Modificado", value: propostaVisualizando.updated_at ? new Date(propostaVisualizando.updated_at).toLocaleString("pt-BR") : "-", cor: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
                 ].map(card => (
                   <div key={card.label} style={{ background: card.bg, border: `1px solid ${card.border}`, borderRadius: 10, padding: 13 }}>
                     <p style={{ color: "#64748b", fontSize: 10, margin: 0, textTransform: "uppercase", fontWeight: 900, letterSpacing: 0.5 }}>{card.label}</p>
@@ -1570,7 +1571,7 @@ export default function Vendas() {
                   return (
                     <div style={{ display: "grid", gap: 8 }}>
                       {anexos.map((a, idx) => (
-                        <a key={idx} href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, color: "#2563eb", textDecoration: "none", fontSize: 12, fontWeight: 800 }}>
+                        <a key={idx} href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "#F3F6F5", border: "1px solid #E6ECEA", borderRadius: 10, color: "#047857", textDecoration: "none", fontSize: 12, fontWeight: 800 }}>
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{iconeArquivo(a.tipo)} · {a.nome}</span>
                           <span style={{ color: "#64748b", flexShrink: 0 }}>{a.campo} · {formatarTamanhoArquivo(a.tamanho)}</span>
                         </a>
@@ -1591,7 +1592,7 @@ export default function Vendas() {
                 ) : (
                   <div style={{ display: "grid", gap: 8 }}>
                     {logsProposta.map((l, idx) => (
-                      <div key={l.id || idx} style={{ padding: 12, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10 }}>
+                      <div key={l.id || idx} style={{ padding: 12, background: "#F3F6F5", border: "1px solid #E6ECEA", borderRadius: 10 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                           <strong style={{ color: "#0f172a", fontSize: 12 }}>{l.acao || "alteracao"} · {l.campo || "proposta"}</strong>
                           <span style={{ color: "#64748b", fontSize: 11 }}>{l.created_at ? new Date(l.created_at).toLocaleString("pt-BR") : ""}</span>
@@ -1600,7 +1601,7 @@ export default function Vendas() {
                         <p style={{ color: "#334155", fontSize: 12, margin: "6px 0 0" }}>
                           <span style={{ color: "#dc2626" }}>{fmtLogVal(l.valor_anterior ?? l.antes)}</span>
                           <span style={{ color: "#94a3b8" }}> → </span>
-                          <span style={{ color: "#16a34a" }}>{fmtLogVal(l.valor_novo ?? l.depois)}</span>
+                          <span style={{ color: "#059669" }}>{fmtLogVal(l.valor_novo ?? l.depois)}</span>
                         </p>
                       </div>
                     ))}
@@ -1623,9 +1624,9 @@ export default function Vendas() {
             title="Ir para o topo"
             style={{
               width: 42, height: 42, borderRadius: "50%",
-              background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+              background: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
               color: "white", border: "none", cursor: "pointer", fontSize: 18,
-              boxShadow: "0 6px 16px rgba(22,163,74,0.35)",
+              boxShadow: "0 6px 16px rgba(5,150,105,0.35)",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontWeight: 700,
             }}>↑</button>
@@ -1635,7 +1636,7 @@ export default function Vendas() {
           style={{
             width: 42, height: 42, borderRadius: "50%",
             background: "#ffffff",
-            color: "#16a34a", border: "1px solid #bbf7d0", cursor: "pointer", fontSize: 18,
+            color: "#059669", border: "1px solid #A7F3D0", cursor: "pointer", fontSize: 18,
             boxShadow: "0 6px 16px rgba(0,0,0,0.10)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 700,
@@ -1649,20 +1650,20 @@ function ViewSection({ titulo, campos }: { titulo: string; campos: [string, any]
   const todosVazios = campos.every(([, v]) => !v && v !== false);
   return (
     <div>
-      <h3 style={{ color: "#6b7280", fontSize: 11, fontWeight: 700, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</h3>
+      <h3 style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>{titulo}</h3>
       {todosVazios ? (
-        <p style={{ color: "#9ca3af", fontSize: 12, margin: 0, fontStyle: "italic" }}>Nenhuma informação cadastrada</p>
+        <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontStyle: "italic" }}>Nenhuma informação cadastrada</p>
       ) : (
         <div style={{
           display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 14, background: "#f9fafb", padding: 16, borderRadius: 12,
-          border: "1px solid #e5e7eb",
+          gap: 14, background: "#F7FAF9", padding: 16, borderRadius: 12,
+          border: "1px solid #E6ECEA",
         }}>
           {campos.map(([label, valor]) => (
             <div key={label}>
-              <p style={{ color: "#9ca3af", fontSize: 10, margin: 0, textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 700 }}>{label}</p>
+              <p style={{ color: "#94A3B8", fontSize: 10, margin: 0, textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 700 }}>{label}</p>
               <p style={{
-                color: valor || valor === false ? "#1f2937" : "#d1d5db",
+                color: valor || valor === false ? "#0F172A" : "#CBD5E1",
                 fontSize: 13, margin: "3px 0 0", wordBreak: "break-word",
                 fontWeight: valor || valor === false ? 600 : 400,
               }}>

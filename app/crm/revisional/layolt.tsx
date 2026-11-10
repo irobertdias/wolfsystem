@@ -11,6 +11,7 @@ import Honorarios from "./_sections/Honorarios";
 import Relatorios from "./_sections/Relatorios";
 import ConfigRevisional from "./_sections/ConfigRevisional";
 
+import { IconeEmoji } from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // ⚖️ Revisional — shell no mesmo formato do Financeiro (menu interno em
 // grupos + telas com o kit visual _ui do Financeiro).
@@ -77,13 +78,13 @@ export default function RevisionalLayolt() {
     .map((g) => ({ ...g, itens: g.itens.filter((i) => !i.soGestor || gestor) }))
     .filter((g) => g.itens.length > 0);
 
-  if (loading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando…</div>;
+  if (loading) return <div style={{ padding: 48, textAlign: "center", color: "#94A3B8" }}>Carregando…</div>;
 
   if (!temAcesso) {
     return (
-      <div style={{ padding: 48, textAlign: "center", color: "#6b7280" }}>
+      <div style={{ padding: 48, textAlign: "center", color: "#64748B" }}>
         <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
-        <h2 style={{ margin: "0 0 6px", color: "#111827", fontSize: 20 }}>Revisional</h2>
+        <h2 style={{ margin: "0 0 6px", color: "#0F172A", fontSize: 20 }}>Revisional</h2>
         <p style={{ margin: 0, fontSize: 14 }}>Você não tem acesso a este módulo.</p>
       </div>
     );
@@ -93,25 +94,25 @@ export default function RevisionalLayolt() {
   const Comp = SECTIONS[abaValida];
 
   return (
-    <div className="rev-shell" style={{ display: "flex", minHeight: "calc(100vh - 64px)", background: "#f8fafc", fontFamily: "Arial, sans-serif" }}>
+    <div className="rev-shell" style={{ display: "flex", minHeight: "calc(100vh - 64px)", background: "#F3F6F5", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
       <style>{`
         @media (max-width: 767px) {
           .rev-shell { flex-direction: column; }
-          .rev-aside { width: auto !important; border-right: none !important; border-bottom: 1px solid #e5e7eb; padding: 10px 12px !important; display: flex; gap: 6px; overflow-x: auto; }
+          .rev-aside { width: auto !important; border-right: none !important; border-bottom: 1px solid #E6ECEA; padding: 10px 12px !important; display: flex; gap: 6px; overflow-x: auto; }
           .rev-aside .rev-marca, .rev-aside .rev-grupo-titulo { display: none !important; }
           .rev-aside .rev-grupo { display: contents; }
           .rev-aside .rev-item { width: auto !important; white-space: nowrap; margin: 0 !important; }
         }
       `}</style>
 
-      <aside className="rev-aside" style={{ width: 248, background: "#fff", borderRight: "1px solid #e5e7eb", padding: "16px 10px", flexShrink: 0 }}>
+      <aside className="rev-aside" style={{ width: 248, background: "#fff", borderRight: "1px solid #E6ECEA", padding: "16px 10px", flexShrink: 0 }}>
         <div className="rev-marca" style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 8px 16px" }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${COR} 0%, #f59e0b 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: `0 4px 10px ${COR}40` }}>
             <span style={{ filter: "saturate(0) brightness(2)" }}>⚖️</span>
           </div>
           <div>
             <div style={{ fontWeight: 800, color: COR, fontSize: 16, lineHeight: 1.1 }}>Revisional</div>
-            <div style={{ color: "#9ca3af", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>Contratos financeiros</div>
+            <div style={{ color: "#94A3B8", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>Contratos financeiros</div>
           </div>
         </div>
 
@@ -120,7 +121,7 @@ export default function RevisionalLayolt() {
             <button
               className="rev-grupo-titulo"
               onClick={() => setAbertos((p) => ({ ...p, [g.nome]: !p[g.nome] }))}
-              style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "none", border: "none", cursor: "pointer", padding: "6px 8px", color: "#6b7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}
+              style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "none", border: "none", cursor: "pointer", padding: "6px 8px", color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}
             >
               {g.nome}
               <span style={{ fontSize: 10 }}>{abertos[g.nome] ? "▼" : "▶"}</span>
@@ -139,10 +140,10 @@ export default function RevisionalLayolt() {
                     background: sel ? `${COR}14` : "transparent",
                     border: sel ? `1px solid ${COR}55` : "1px solid transparent",
                     borderRadius: 8, cursor: "pointer", textAlign: "left",
-                    color: sel ? COR : "#374151", fontSize: 13.5, fontWeight: sel ? 700 : 500,
+                    color: sel ? COR : "#334155", fontSize: 13.5, fontWeight: sel ? 700 : 500,
                   }}
                 >
-                  <span style={{ fontSize: 16 }}>{i.icone}</span>
+                  <span style={{ fontSize: 16 }}>{<IconeEmoji e={i.icone} />}</span>
                   {i.label}
                 </button>
               );

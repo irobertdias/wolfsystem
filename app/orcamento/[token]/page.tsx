@@ -211,7 +211,7 @@ export default function OrcamentoPage() {
     : [`${orc.usuarios_incluidos} usuários`, ...orc.itens.filter((i) => i.id !== "plataforma" && i.nome !== "Plataforma Wolf System").map((i) => i.nome.replace("Módulo ", ""))];
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#d1fae5_0%,_#f8fafc_45%)] text-slate-800">
+    <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#d1fae5_0%,_#F3F6F5_45%)] text-slate-800">
       <div className={`mx-auto max-w-[760px] px-4 pt-5 ${aberto ? "pb-32" : "pb-12"}`}>
         {/* topo */}
         <div className="mb-4 flex items-center justify-between text-[12px]">
@@ -243,7 +243,7 @@ export default function OrcamentoPage() {
 
         <div className="mt-4 space-y-4">
           {aberto && <Contador expiraEm={orc.expira_em} deslocamento={deslocamento} onExpirar={onExpirar} />}
-          {orc.status === "expirado" && <div className="rounded-3xl border border-slate-200 bg-white px-4 py-4 text-center text-[13px] text-slate-600">⏱️ Este orçamento expirou em {new Date(orc.expira_em).toLocaleString("pt-BR")}. Fale com a Wolf System para renovar.</div>}
+          {orc.status === "expirado" && <div className="rounded-3xl border border-slate-200 bg-white px-4 py-4 text-center text-[13px] text-slate-600">Este orçamento expirou em {new Date(orc.expira_em).toLocaleString("pt-BR")}. Fale com a Wolf System para renovar.</div>}
 
           {aceito && (
             <div className="flex items-center gap-3 rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm">
@@ -286,7 +286,7 @@ export default function OrcamentoPage() {
                 <Titulo n="2" sub={`Com esses dados criamos seu ambiente e os acessos dos ${orc.usuarios_incluidos} usuários.`}>Dados para implantação</Titulo>
                 {!mostrarForm ? (
                   <div className="rounded-2xl bg-emerald-50 p-5 text-center">
-                    <div className="text-[15px] font-bold text-emerald-700">✓ Dados recebidos</div>
+                    <div className="text-[15px] font-bold text-emerald-700">Dados recebidos</div>
                     <p className="mt-1 text-[13px] text-emerald-800">Enviados em {orc.implantacao_em ? new Date(orc.implantacao_em).toLocaleString("pt-BR") : ""}. Nossa equipe vai entrar em contato para concluir a implantação.</p>
                     <button onClick={() => setEditando(true)} className="mt-3 text-[13px] font-semibold text-emerald-700 underline">Corrigir ou completar os dados</button>
                   </div>
@@ -393,7 +393,7 @@ export default function OrcamentoPage() {
             )}
             {comPrecos && tot.mensalDesconto + tot.unicoDesconto > 0 && (
               <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-[13px] text-amber-900 ring-1 ring-amber-200">
-                🎁 Você economiza <b>{brlOrc(tot.mensalDesconto)} por mês</b>{tot.unicoDesconto > 0 ? <> e <b>{brlOrc(tot.unicoDesconto)}</b> na configuração</> : null} em relação à tabela.
+                Você economiza <b>{brlOrc(tot.mensalDesconto)} por mês</b>{tot.unicoDesconto > 0 ? <> e <b>{brlOrc(tot.unicoDesconto)}</b> na configuração</> : null} em relação à tabela.
               </div>
             )}
             <div className="divide-y divide-slate-100 text-[14px]">

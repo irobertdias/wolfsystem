@@ -8,6 +8,7 @@ import ConfiguracaoUniversal from './ConfiguracaoUniversal';
 import { assistenteUniversalInicial, nichoUniversalInicial, conclusaoUniversalInicial, validarEstruturaUniversal, universalExecutavel } from '../../lib/atendimento-universal';
 import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
 
+import { IconeEmoji } from "../../components/a2/Icone";
 type TipoNo =
   | "assistente_universal" | "nicho_atendimento" | "concluir_venda_universal"
   | "texto" | "imagem" | "video" | "audio" | "embed"
@@ -45,25 +46,25 @@ function booleanoConfiguracao(valor: any, padrao = false): boolean {
 const B: Record<TipoNo, BC> = {
   assistente_universal: {label:"Vendedor IA · Universal",icone:"✨",cor:"#2563eb",saidas:["Configurar nicho"],grupo:"Integrações"},
   nicho_atendimento: {label:"Nicho de atendimento",icone:"🧩",cor:"#0f766e",saidas:["Atendimento configurado"],grupo:"Integrações"},
-  concluir_venda_universal: {label:"Concluir venda · CRM + WhatsApp",icone:"✅",cor:"#15803d",saidas:["Concluído","Erro"],grupo:"Integrações"},
+  concluir_venda_universal: {label:"Concluir venda · CRM + WhatsApp",icone:"✅",cor:"#047857",saidas:["Concluído","Erro"],grupo:"Integrações"},
   texto:                {label:"Texto",           icone:"💬", cor:"#3b82f6", saidas:["Próximo"],                     grupo:"Bubbles"},
   imagem:               {label:"Imagem",          icone:"🖼️", cor:"#06b6d4", saidas:["Próximo"],                     grupo:"Bubbles"},
   video:                {label:"Vídeo",           icone:"🎥", cor:"#8b5cf6", saidas:["Próximo"],                     grupo:"Bubbles"},
   audio:                {label:"Áudio",           icone:"🎵", cor:"#ec4899", saidas:["Próximo"],                     grupo:"Bubbles"},
   embed:                {label:"Incorporar",      icone:"🔗", cor:"#f97316", saidas:["Próximo"],                     grupo:"Bubbles"},
-  input_texto:          {label:"Texto",           icone:"✏️", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_numero:         {label:"Número",          icone:"🔢", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_email:          {label:"Email",           icone:"📧", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_website:        {label:"Website",         icone:"🌐", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_data:           {label:"Data",            icone:"📅", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_hora:           {label:"Hora",            icone:"🕐", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_telefone:       {label:"Telefone",        icone:"📱", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_botao:          {label:"Botão",           icone:"🔘", cor:"#22c55e", saidas:["Botão 1","Botão 2","Botão 3"], grupo:"Inputs"},
-  input_selecao_imagem: {label:"Seleção Imagem", icone:"🖼️", cor:"#22c55e", saidas:["Selecionado"],                 grupo:"Inputs"},
-  input_pagamento:      {label:"Pagamento",       icone:"💳", cor:"#22c55e", saidas:["Aprovado","Recusado"],         grupo:"Inputs"},
-  input_avaliacao:      {label:"Avaliação",       icone:"⭐", cor:"#22c55e", saidas:["Resposta recebida"],           grupo:"Inputs"},
-  input_arquivo:        {label:"Arquivo",         icone:"📎", cor:"#22c55e", saidas:["Arquivo recebido"],            grupo:"Inputs"},
-  input_cards:          {label:"Cards",           icone:"🃏", cor:"#22c55e", saidas:["Selecionado"],                 grupo:"Inputs"},
+  input_texto:          {label:"Texto",           icone:"✏️", cor:"#10B981", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_numero:         {label:"Número",          icone:"🔢", cor:"#10B981", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_email:          {label:"Email",           icone:"📧", cor:"#10B981", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_website:        {label:"Website",         icone:"🌐", cor:"#10B981", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_data:           {label:"Data",            icone:"📅", cor:"#10B981", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_hora:           {label:"Hora",            icone:"🕐", cor:"#10B981", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_telefone:       {label:"Telefone",        icone:"📱", cor:"#10B981", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_botao:          {label:"Botão",           icone:"🔘", cor:"#10B981", saidas:["Botão 1","Botão 2","Botão 3"], grupo:"Inputs"},
+  input_selecao_imagem: {label:"Seleção Imagem", icone:"🖼️", cor:"#10B981", saidas:["Selecionado"],                 grupo:"Inputs"},
+  input_pagamento:      {label:"Pagamento",       icone:"💳", cor:"#10B981", saidas:["Aprovado","Recusado"],         grupo:"Inputs"},
+  input_avaliacao:      {label:"Avaliação",       icone:"⭐", cor:"#10B981", saidas:["Resposta recebida"],           grupo:"Inputs"},
+  input_arquivo:        {label:"Arquivo",         icone:"📎", cor:"#10B981", saidas:["Arquivo recebido"],            grupo:"Inputs"},
+  input_cards:          {label:"Cards",           icone:"🃏", cor:"#10B981", saidas:["Selecionado"],                 grupo:"Inputs"},
   condicao:             {label:"Condição",        icone:"🔀", cor:"#f59e0b", saidas:["Verdadeiro","Falso"],          grupo:"Lógica"},
   variavel:             {label:"Variável",        icone:"📦", cor:"#f59e0b", saidas:["Próximo"],                     grupo:"Lógica"},
   redirecionar:         {label:"Redirecionar",    icone:"↩️", cor:"#f59e0b", saidas:[],                              grupo:"Lógica"},
@@ -85,7 +86,7 @@ const B: Record<TipoNo, BC> = {
   assinatura_wolf:      {label:"Assinatura Wolf",icone:"🖋️",cor:"#155eef", saidas:["Assinado","Expirado/Recusado","Erro"],grupo:"Documentos"},
   // 🆕 v20: Meta Pixel / Conversions API — manda evento de conversão pra Meta (Lead, Purchase, etc)
   meta_capi:            {label:"Meta Pixel/CAPI", icone:"📈", cor:"#10b981", saidas:["Sucesso","Erro"],              grupo:"Integrações"},
-  inicio:               {label:"Início",          icone:"🚀", cor:"#22c55e", saidas:["Próximo"],                     grupo:"Eventos"},
+  inicio:               {label:"Início",          icone:"🚀", cor:"#10B981", saidas:["Próximo"],                     grupo:"Eventos"},
   comando:              {label:"Comando",         icone:"⚡", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
   reply:                {label:"Reply",           icone:"↩️", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
   invalido:             {label:"Inválido",        icone:"❌", cor:"#ef4444", saidas:["Próximo"],                     grupo:"Eventos"},
@@ -94,17 +95,17 @@ const B: Record<TipoNo, BC> = {
   // 🆕 v18: bloco que cria proposta no /crm/vendas usando variáveis salvas + aplica etiqueta
   gatilho_crm:         {label:"Alteração no CRM", icone:"⚡", cor:"#f97316", saidas:["Disparar"], grupo:"CRM"},
   atualizar_venda:     {label:"Atualizar Venda",  icone:"📝", cor:"#0ea5e9", saidas:["Sucesso","Erro"], grupo:"CRM"},
-  enviar_venda:         {label:"Enviar Venda",    icone:"💰", cor:"#22c55e", saidas:["Sucesso","Erro"],              grupo:"CRM"},
+  enviar_venda:         {label:"Enviar Venda",    icone:"💰", cor:"#10B981", saidas:["Sucesso","Erro"],              grupo:"CRM"},
   // 🆕 v19: aplica/remove etiqueta no atendimento ativo (use no meio do fluxo, não só no final)
-  etiqueta:             {label:"Aplicar Etiqueta",icone:"🏷️", cor:"#22c55e", saidas:["Próximo"],                     grupo:"CRM"},
+  etiqueta:             {label:"Aplicar Etiqueta",icone:"🏷️", cor:"#10B981", saidas:["Próximo"],                     grupo:"CRM"},
 };
 
 // 🆕 v18: novo grupo "CRM" no sidebar pro bloco "Enviar Venda"
 const GRUPOS = ["Bubbles","Inputs","Lógica","Integrações","Documentos","Eventos","CRM"];
 const uid = () => Math.random().toString(36).slice(2,10);
 
-const IS: React.CSSProperties = {width:"100%",background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:6,padding:"8px 10px",color:"#1f2937",fontSize:12,boxSizing:"border-box"};
-const LS: React.CSSProperties = {color:"#9ca3af",fontSize:10,textTransform:"uppercase",display:"block",marginBottom:4,letterSpacing:1};
+const IS: React.CSSProperties = {width:"100%",background:"#F3F6F5",border:"1px solid #E6ECEA",borderRadius:6,padding:"8px 10px",color:"#0F172A",fontSize:12,boxSizing:"border-box"};
+const LS: React.CSSProperties = {color:"#94A3B8",fontSize:10,textTransform:"uppercase",display:"block",marginBottom:4,letterSpacing:1};
 
 // ✅ ATUALIZADO — pega username do workspace (nunca o id numérico)
 // 🆕 v18: padronizado com o useWorkspace.ts pra funcionar igual pra sub-usuário.
@@ -427,8 +428,8 @@ function TVarComponent({
         </button>
       </div>
       {variaveis.length > 0 && (
-        <p style={{ color: "#6b7280", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
-          💡 Clique em <b style={{ color: "#a78bfa" }}>＋ Variável</b> pra inserir uma variável do fluxo na posição do cursor.
+        <p style={{ color: "#64748B", fontSize: 10, margin: "4px 0 0", lineHeight: 1.3 }}>
+          Clique em <b style={{ color: "#a78bfa" }}>＋ Variável</b> pra inserir uma variável do fluxo na posição do cursor.
         </p>
       )}
 
@@ -441,7 +442,7 @@ function TVarComponent({
             left: pos.left,
             top: pos.top,
             background: "#ffffff",
-            border: "1px solid #e5e7eb",
+            border: "1px solid #E6ECEA",
             borderRadius: 8,
             boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
             padding: 10,
@@ -467,11 +468,11 @@ function TVarComponent({
             autoFocus
             style={{
               width: "100%",
-              background: "#f8fafc",
-              border: "1px solid #e5e7eb",
+              background: "#F3F6F5",
+              border: "1px solid #E6ECEA",
               borderRadius: 6,
               padding: "6px 10px",
-              color: "#1f2937",
+              color: "#0F172A",
               fontSize: 12,
               marginBottom: 8,
               outline: "none",
@@ -482,7 +483,7 @@ function TVarComponent({
           {/* Lista scrollável */}
           <div style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
             {variaveisFiltradas.length === 0 ? (
-              <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
+              <p style={{ color: "#64748B", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
                 {filtro
                   ? <>Nenhuma variável corresponde.<br/>Pressione <b>Enter</b> pra criar <span style={{color:"#a78bfa"}}>{`{{${filtro}}}`}</span></>
                   : <>Nenhuma variável no fluxo ainda.<br/>Digite acima pra criar a primeira.</>
@@ -673,7 +674,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           <summary style={{
             listStyle: "none",
             background: "#ffffff",
-            border: "1px solid #e5e7eb",
+            border: "1px solid #E6ECEA",
             borderRadius: 8,
             padding: "8px 12px",
             cursor: "pointer",
@@ -692,13 +693,13 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                 fontWeight: "bold",
               }}>{`{{${valor}}}`}</span>
             ) : (
-              <span style={{ color: "#6b7280", fontSize: 12 }}>{placeholder}</span>
+              <span style={{ color: "#64748B", fontSize: 12 }}>{placeholder}</span>
             )}
-            <span style={{ marginLeft: "auto", color: "#6b7280", fontSize: 10 }}>▼</span>
+            <span style={{ marginLeft: "auto", color: "#64748B", fontSize: 10 }}>▼</span>
           </summary>
           <div style={{
             position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-            background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8,
+            background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 8,
             zIndex: 100, maxHeight: 280, overflowY: "auto", padding: 8,
             boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
           }}>
@@ -719,14 +720,14 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                 if (v && v !== valor) u({ [key]: v });
               }}
               style={{
-                width: "100%", background: "#f8fafc", border: "1px solid #e5e7eb",
-                borderRadius: 6, padding: "6px 10px", color: "#1f2937", fontSize: 12,
+                width: "100%", background: "#F3F6F5", border: "1px solid #E6ECEA",
+                borderRadius: 6, padding: "6px 10px", color: "#0F172A", fontSize: 12,
                 marginBottom: 8, outline: "none",
               }}
             />
             {/* Lista de variáveis existentes */}
             {variaveisDoFluxo.length === 0 ? (
-              <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
+              <p style={{ color: "#64748B", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
                 Nenhuma variável no fluxo ainda.<br/>Digite acima pra criar a primeira.
               </p>
             ) : (
@@ -774,10 +775,10 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                 }}
                 style={{
                   width: "100%", marginTop: 6, padding: 6, background: "transparent",
-                  border: "1px dashed #e5e7eb", borderRadius: 6, color: "#6b7280",
+                  border: "1px dashed #E6ECEA", borderRadius: 6, color: "#64748B",
                   fontSize: 11, cursor: "pointer",
                 }}
-              >✕ Limpar</button>
+              >Limpar</button>
             )}
           </div>
         </details>
@@ -812,7 +813,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
         onChange={e => onChange(e.target.value)}
         style={{
           background: "#ffffff",
-          border: "1px solid #e5e7eb",
+          border: "1px solid #E6ECEA",
           color: "#a78bfa",
           borderRadius: 8,
           padding: "8px 12px",
@@ -851,8 +852,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
         ))}
       </datalist>
       {variaveisDoFluxo.length > 0 && (
-        <p style={{color:"#6b7280", fontSize:10, margin:"3px 0 0", lineHeight:1.3}}>
-          💡 Variáveis no fluxo: {variaveisDoFluxo.slice(0, 5).join(", ")}{variaveisDoFluxo.length > 5 ? "..." : ""}
+        <p style={{color:"#64748B", fontSize:10, margin:"3px 0 0", lineHeight:1.3}}>
+          Variáveis no fluxo: {variaveisDoFluxo.slice(0, 5).join(", ")}{variaveisDoFluxo.length > 5 ? "..." : ""}
         </p>
       )}
     </div>
@@ -907,8 +908,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           style={{...IS, height:100, resize:"vertical", fontFamily:"monospace", fontSize:11}}
           placeholder={"https://exemplo.com/produto1.jpg|Produto 1\nhttps://exemplo.com/produto2.jpg|Produto 2"}
         />
-        <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0", lineHeight:1.3}}>
-          💡 Cliente recebe as imagens e escolhe uma. O título da opção escolhida é salvo na variável abaixo.
+        <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0", lineHeight:1.3}}>
+          Cliente recebe as imagens e escolhe uma. O título da opção escolhida é salvo na variável abaixo.
         </p>
         {VarPill("Salvar opção escolhida em", "variavel", "ex: produto_escolhido")}
       </div>;
@@ -955,21 +956,21 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           <label style={LS}>Como enviar</label>
           <div style={{display:"flex",gap:6}}>
             {[
-              {key:"interativo", label:"🔘 Botões interativos", hint:"Botões clicáveis nativos do WhatsApp (Cloud/WABA). O cliente toca no botão."},
+              {key:"interativo", label:"Botões interativos", hint:"Botões clicáveis nativos do WhatsApp (Cloud/WABA). O cliente toca no botão."},
               {key:"numerado",   label:"1️⃣ Lista numerada",     hint:"Manda como texto numerado. O cliente responde com o número. Funciona em qualquer canal."},
             ].map(opt => (
               <button key={opt.key} type="button" onClick={() => u({modo_envio: opt.key})}
                 style={{
                   flex:1,
                   background: modoEnvio===opt.key ? "#22c55e22" : "#ffffff",
-                  border: `1px solid ${modoEnvio===opt.key ? "#22c55e" : "#e5e7eb"}`,
-                  color: modoEnvio===opt.key ? "#16a34a" : "#6b7280",
+                  border: `1px solid ${modoEnvio===opt.key ? "#10B981" : "#E6ECEA"}`,
+                  color: modoEnvio===opt.key ? "#059669" : "#64748B",
                   borderRadius:8, padding:"8px 10px", fontSize:11, cursor:"pointer", fontWeight:"bold",
                 }}
                 title={opt.hint}>{opt.label}</button>
             ))}
           </div>
-          <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+          <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
             {modoEnvio==="interativo"
               ? "💡 Botões nativos do WhatsApp (máx 3, até 20 caracteres cada). Precisa de canal WABA/Cloud API. No WhatsApp Web (webjs) o sistema cai pra lista numerada automaticamente."
               : "💡 Envia como texto numerado (1, 2, 3...). Funciona em qualquer canal (Web/WABA/Meta)."}
@@ -981,13 +982,13 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           <label style={LS}>Botões (máx 3)</label>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {botoes.length === 0 && (
-              <p style={{color:"#9ca3af",fontSize:11,margin:"2px 0",fontStyle:"italic"}}>
+              <p style={{color:"#94A3B8",fontSize:11,margin:"2px 0",fontStyle:"italic"}}>
                 Nenhum botão. Clique em "+ Adicionar botão".
               </p>
             )}
             {botoes.map((b, i) => (
               <div key={i} style={{display:"flex",gap:6,alignItems:"center"}}>
-                <span style={{background:"#22c55e22",color:"#16a34a",fontSize:11,fontWeight:"bold",borderRadius:6,padding:"6px 9px",flexShrink:0}}>{i+1}</span>
+                <span style={{background:"#22c55e22",color:"#059669",fontSize:11,fontWeight:"bold",borderRadius:6,padding:"6px 9px",flexShrink:0}}>{i+1}</span>
                 <input
                   value={b}
                   onChange={e => updateBotao(i, e.target.value)}
@@ -1002,13 +1003,13 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           </div>
           {botoes.length < 3 && (
             <button type="button" onClick={addBotao}
-              style={{width:"100%",marginTop:6,background:"#22c55e11",color:"#16a34a",border:"1px dashed #22c55e",borderRadius:8,padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>
+              style={{width:"100%",marginTop:6,background:"#22c55e11",color:"#059669",border:"1px dashed #10B981",borderRadius:8,padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>
               + Adicionar botão
             </button>
           )}
           {modoEnvio==="interativo" && botoes.some(b => (b||"").length > 20) && (
             <p style={{color:"#f59e0b",fontSize:10,margin:"4px 0 0"}}>
-              ⚠️ Botões interativos do WhatsApp aceitam no máximo 20 caracteres por botão.
+              Botões interativos do WhatsApp aceitam no máximo 20 caracteres por botão.
             </p>
           )}
         </div>
@@ -1034,8 +1035,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       </div>;
     case "condicao":
       return <>
-        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 10px",lineHeight:1.4}}>
-          🔀 SE (todas/alguma) das condições forem verdadeiras → saída <b style={{color:"#22c55e"}}>Verdadeiro</b>, senão → <b style={{color:"#ef4444"}}>Falso</b>
+        <p style={{color:"#94A3B8",fontSize:11,margin:"0 0 10px",lineHeight:1.4}}>
+          SE (todas/alguma) das condições forem verdadeiras → saída <b style={{color:"#10B981"}}>Verdadeiro</b>, senão <b style={{color:"#ef4444"}}>Falso</b>
         </p>
         {/* Lógica AND/OR — botões grandes */}
         <label style={LS}>Lógica entre condições</label>
@@ -1052,7 +1053,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                 style={{
                   flex:1,
                   background: ativo ? "#8b5cf622" : "#ffffff",
-                  border: `1px solid ${ativo ? "#8b5cf6" : "#e5e7eb"}`,
+                  border: `1px solid ${ativo ? "#8b5cf6" : "#E6ECEA"}`,
                   color: ativo ? "#a78bfa" : "white",
                   borderRadius:8, padding:"8px 10px", fontSize:11, cursor:"pointer", fontWeight:"bold",
                   textAlign:"center",
@@ -1117,7 +1118,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                     <summary style={{
                       listStyle: "none",
                       background: "#ffffff",
-                      border: "1px solid #e5e7eb",
+                      border: "1px solid #E6ECEA",
                       borderRadius: 8,
                       padding: "8px 12px",
                       cursor: "pointer",
@@ -1129,13 +1130,13 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                           padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: "bold",
                         }}>{`{{${cond.variavel}}}`}</span>
                       ) : (
-                        <span style={{ color: "#6b7280", fontSize: 12 }}>Selecionar variável...</span>
+                        <span style={{ color: "#64748B", fontSize: 12 }}>Selecionar variável...</span>
                       )}
-                      <span style={{ marginLeft: "auto", color: "#6b7280", fontSize: 10 }}>▼</span>
+                      <span style={{ marginLeft: "auto", color: "#64748B", fontSize: 10 }}>▼</span>
                     </summary>
                     <div style={{
                       position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-                      background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8,
+                      background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 8,
                       zIndex: 100, maxHeight: 240, overflowY: "auto", padding: 8,
                       boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                     }}>
@@ -1154,13 +1155,13 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                           if (v && v !== cond.variavel) updateCond(idx, { variavel: v });
                         }}
                         style={{
-                          width: "100%", background: "#f8fafc", border: "1px solid #e5e7eb",
-                          borderRadius: 6, padding: "6px 10px", color: "#1f2937", fontSize: 12,
+                          width: "100%", background: "#F3F6F5", border: "1px solid #E6ECEA",
+                          borderRadius: 6, padding: "6px 10px", color: "#0F172A", fontSize: 12,
                           marginBottom: 8, outline: "none",
                         }}
                       />
                       {variaveisDoFluxo.length === 0 ? (
-                        <p style={{ color: "#6b7280", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
+                        <p style={{ color: "#64748B", fontSize: 11, textAlign: "center", padding: 12, margin: 0 }}>
                           Sem variáveis ainda
                         </p>
                       ) : variaveisDoFluxo.map(v => (
@@ -1194,8 +1195,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                         onChange={e => updateCond(idx, { valor: e.target.value })}
                         placeholder="Valor pra comparar"
                         style={{
-                          flex: 1, background: "#ffffff", border: "1px solid #e5e7eb",
-                          borderRadius: 8, padding: "8px 12px", color: "#1f2937", fontSize: 12, outline: "none",
+                          flex: 1, background: "#ffffff", border: "1px solid #E6ECEA",
+                          borderRadius: 8, padding: "8px 12px", color: "#0F172A", fontSize: 12, outline: "none",
                         }}
                       />
                     )}
@@ -1222,8 +1223,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       // 🆕 Modo do valor: "texto" (literal), "codigo" (JS), "expressao" (substituição {{var}})
       const modo = d.modo_valor || "texto";
       return <>
-        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 10px",lineHeight:1.4}}>
-          📝 Cria ou atualiza uma variável. O valor é salvo no banco e fica disponível em todos os blocos seguintes.
+        <p style={{color:"#94A3B8",fontSize:11,margin:"0 0 10px",lineHeight:1.4}}>
+          Cria ou atualiza uma variável. O valor é salvo no banco e fica disponível em todos os blocos seguintes.
         </p>
         {VarPill("Nome da variável", "nome", "Selecionar ou criar variável...")}
         {/* Toggle Text / Code / Expressão */}
@@ -1231,9 +1232,9 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           <label style={LS}>Tipo do valor</label>
           <div style={{display:"flex",gap:6,marginBottom:8}}>
             {[
-              {key:"texto",label:"📝 Texto",hint:"Valor literal"},
-              {key:"expressao",label:"🔗 Expressão",hint:"Usa {{var}}"},
-              {key:"codigo",label:"💻 Código",hint:"JavaScript"},
+              {key:"texto",label:"Texto",hint:"Valor literal"},
+              {key:"expressao",label:"Expressão",hint:"Usa {{var}}"},
+              {key:"codigo",label:"Código",hint:"JavaScript"},
             ].map(opt => (
               <button
                 key={opt.key}
@@ -1241,7 +1242,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                 style={{
                   flex:1,
                   background: modo === opt.key ? "#3b82f622" : "#ffffff",
-                  border: `1px solid ${modo === opt.key ? "#3b82f6" : "#e5e7eb"}`,
+                  border: `1px solid ${modo === opt.key ? "#3b82f6" : "#E6ECEA"}`,
                   color: modo === opt.key ? "#3b82f6" : "white",
                   borderRadius:6, padding:"6px 8px", fontSize:11, cursor:"pointer", fontWeight:"bold"
                 }}
@@ -1261,8 +1262,8 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           <div>
             <label style={LS}>Expressão</label>
             <input value={d.valor||""} onChange={e => u({valor: e.target.value})} style={IS} placeholder="{{nome}} - {{cpf_limpo}}" />
-            <p style={{color:"#6b7280", fontSize:10, margin:"3px 0 0"}}>
-              💡 Use <code style={{color:"#3b82f6"}}>{"{{nome_variavel}}"}</code> pra inserir valores de outras variáveis. Ex: <code>{"Olá {{nome}}"}</code>
+            <p style={{color:"#64748B", fontSize:10, margin:"3px 0 0"}}>
+              Use <code style={{color:"#3b82f6"}}>{"{{nome_variavel}}"}</code> pra inserir valores de outras variáveis. Ex: <code>{"Olá {{nome}}"}</code>
             </p>
           </div>
         )}
@@ -1279,7 +1280,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             </div>
             {/* Save error in variable (igual Typebot) */}
             {VarPill("Salvar erro em (opcional)", "salvar_erro_em", "Variável pra erro...")}
-            <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 0", lineHeight:1.3}}>
+            <p style={{color:"#64748B", fontSize:10, margin:"-6px 0 0", lineHeight:1.3}}>
               Se o código der erro, a mensagem fica salva nessa variável. Útil pra blocos de condição depois.
             </p>
           </>
@@ -1289,17 +1290,17 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     case "redirecionar": return <>{F("URL","url","url","https://...")}</>;
     case "script":
       return <>
-        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>🆕 API disponível: <code style={{color:"#3b82f6"}}>setVariable(nome, valor)</code>, <code style={{color:"#3b82f6"}}>getVariable(nome)</code>, <code style={{color:"#3b82f6"}}>fetch</code>, <code style={{color:"#3b82f6"}}>sleep(ms)</code>, <code style={{color:"#3b82f6"}}>log(...)</code></p>
-        <p style={{color:"#9ca3af",fontSize:11,margin:"0 0 6px"}}>{`{{variaveis}} são substituídas no código antes de executar.`}</p>
+        <p style={{color:"#94A3B8",fontSize:11,margin:"0 0 6px"}}>API disponível: <code style={{color:"#3b82f6"}}>setVariable(nome, valor)</code>, <code style={{color:"#3b82f6"}}>getVariable(nome)</code>, <code style={{color:"#3b82f6"}}>fetch</code>, <code style={{color:"#3b82f6"}}>sleep(ms)</code>, <code style={{color:"#3b82f6"}}>log(...)</code></p>
+        <p style={{color:"#94A3B8",fontSize:11,margin:"0 0 6px"}}>{`{{variaveis}} são substituídas no código antes de executar.`}</p>
         {T("Código JavaScript","codigo",`// Exemplo:\n// const resp = await fetch("https://api.exemplo.com/cep/" + getVariable("cep"))\n// const data = await resp.json()\n// setVariable("rua", data.logradouro)`,200)}
-        <p style={{color:"#9ca3af",fontSize:10,margin:"4px 0 0"}}>Saídas: <span style={{color:"#22c55e"}}>0=sucesso</span> / <span style={{color:"#ef4444"}}>1=erro</span></p>
+        <p style={{color:"#94A3B8",fontSize:10,margin:"4px 0 0"}}>Saídas: <span style={{color:"#10B981"}}>0=sucesso</span> / <span style={{color:"#ef4444"}}>1=erro</span></p>
       </>;
     case "espera":        return <>{F("Aguardar (segundos)","segundos","number","3")}</>;
     case "teste_ab":
       return <div>
         <label style={LS}>Percentual para A (%)</label>
         <input type="number" min={1} max={99} value={d.percentual_a||50} onChange={e => u({percentual_a: Number(e.target.value)})} style={IS} />
-        <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0"}}>B recebe {100-(d.percentual_a||50)}%</p>
+        <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0"}}>B recebe {100-(d.percentual_a||50)}%</p>
       </div>;
     case "webhook":
       return <>
@@ -1331,10 +1332,10 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
         </select>
         {d.alvo && !nos.find(n => n.id === d.alvo) && (
           <p style={{color:"#ef4444", fontSize:10, margin:"4px 0 0"}}>
-            ⚠️ Bloco alvo não existe mais (pode ter sido excluído). Selecione outro.
+            Bloco alvo não existe mais (pode ter sido excluído). Selecione outro.
           </p>
         )}
-        <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0", lineHeight:1.3}}>
+        <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0", lineHeight:1.3}}>
           {noSel.tipo === "pular"
             ? "💡 Pula a execução direto pro bloco escolhido (atalho/jump)."
             : "💡 Volta a execução pro bloco escolhido (loop/retry)."}
@@ -1342,15 +1343,15 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       </div>;
     case "google_sheets":
       return <>
-        <div style={{background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8, padding:10, marginBottom:10}}>
-          <p style={{color:"#14532d", fontSize:11, margin:0, fontWeight:700}}>📊 Google Sheets via Apps Script</p>
-          <p style={{color:"#16a34a", fontSize:10, margin:"4px 0 6px", lineHeight:1.5}}>
+        <div style={{background:"#ECFDF5", border:"1px solid #A7F3D0", borderRadius:8, padding:10, marginBottom:10}}>
+          <p style={{color:"#14532d", fontSize:11, margin:0, fontWeight:700}}>Google Sheets via Apps Script</p>
+          <p style={{color:"#059669", fontSize:10, margin:"4px 0 6px", lineHeight:1.5}}>
             <b>Como configurar (5 minutos, sem OAuth):</b><br/>
-            1. Abra seu Sheets → <b>Extensões → Apps Script</b><br/>
+            1. Abra seu Sheets <b>Extensões → Apps Script</b><br/>
             2. Cole o código de webhook (veja botão abaixo)<br/>
             3. <b>Implantar → Nova implantação → Aplicativo da Web</b><br/>
-            4. Quem tem acesso: <b>Qualquer pessoa</b> → Implantar<br/>
-            5. Copie a URL e cole aqui embaixo 👇
+            4. Quem tem acesso: <b>Qualquer pessoa</b> Implantar<br/>
+            5. Copie a URL e cole aqui embaixo
           </p>
           <button
             type="button"
@@ -1391,9 +1392,9 @@ function saida(obj) {
               navigator.clipboard.writeText(codigo);
               alert("✅ Código copiado!\n\nAgora cole no Apps Script do seu Google Sheets.");
             }}
-            style={{background:"#16a34a", color:"#fff", border:"none", borderRadius:6, padding:"6px 12px", fontSize:11, cursor:"pointer", fontWeight:700, marginTop:4}}
+            style={{background:"#059669", color:"#fff", border:"none", borderRadius:6, padding:"6px 12px", fontSize:11, cursor:"pointer", fontWeight:700, marginTop:4}}
           >
-            📋 Copiar código do Apps Script
+            Copiar código do Apps Script
           </button>
         </div>
         {F("URL do Webhook (Apps Script Web App)","webhook_url","url","https://script.google.com/macros/s/AKfy.../exec")}
@@ -1405,8 +1406,8 @@ function saida(obj) {
         ])}
         {T("Dados (separados por vírgula)","dados","{{nome}}, {{email}}, {{telefone}}",80)}
         {VarPill("Salvar resposta em (opcional)","variavel_resposta","ex: resposta_sheets")}
-        <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
-          💡 Use {`{{variavel}}`} nos campos. Saídas: <b>Sucesso</b> / <b>Erro</b>.
+        <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0"}}>
+          Use {`{{variavel}}`} nos campos. Saídas: <b>Sucesso</b> / <b>Erro</b>.
         </p>
       </>;
     case "http_request":
@@ -1424,7 +1425,7 @@ function saida(obj) {
         {S("Modelo","modelo",[{value:"gpt-4o",label:"GPT-4o"},{value:"gpt-4o-mini",label:"GPT-4o Mini"},{value:"gpt-3.5-turbo",label:"GPT-3.5"}])}
         {T("Prompt do sistema","prompt","Você é um assistente...",100)}
         {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_ia")}
-        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"#1f2937",fontSize:12}}>
+        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"#0F172A",fontSize:12}}>
           <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
           Enviar resposta pro cliente automaticamente
         </label>
@@ -1432,7 +1433,7 @@ function saida(obj) {
     case "gerar_documento":
       return <>
         <div style={{background:"#ecfdf5",border:"1px solid #99f6e4",borderRadius:8,padding:10,marginBottom:10}}>
-          <p style={{color:"#0f766e",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>📄 Gerar e enviar documento</p>
+          <p style={{color:"#0f766e",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>Gerar e enviar documento</p>
           <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Gera um PDF com as variáveis confirmadas e envia pelo mesmo canal. Nenhuma regra de negócio fica presa ao motor.</p>
         </div>
         {TVar("Título do documento","titulo","CONTRATO",55)}
@@ -1442,8 +1443,8 @@ function saida(obj) {
         {TVar("Rodapé opcional","rodape","",55)}
         {TVar("Nome do signatário","nome_signatario","{{nome}}",45)}
         {F("Rótulo da assinatura","rotulo_assinatura","text","Assinatura do cliente")}
-        <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,color:"#1f2937",fontSize:11}}><input type="checkbox" checked={d.incluir_area_assinatura !== false} onChange={e=>u({incluir_area_assinatura:e.target.checked})}/>Incluir área de assinatura no final do PDF</label>
-        <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,color:"#1f2937",fontSize:11}}><input type="checkbox" checked={d.permitir_variaveis_vazias === true} onChange={e=>u({permitir_variaveis_vazias:e.target.checked})}/>Permitir gerar mesmo com variável vazia</label>
+        <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,color:"#0F172A",fontSize:11}}><input type="checkbox" checked={d.incluir_area_assinatura !== false} onChange={e=>u({incluir_area_assinatura:e.target.checked})}/>Incluir área de assinatura no final do PDF</label>
+        <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,color:"#0F172A",fontSize:11}}><input type="checkbox" checked={d.permitir_variaveis_vazias === true} onChange={e=>u({permitir_variaveis_vazias:e.target.checked})}/>Permitir gerar mesmo com variável vazia</label>
         {VarPill("Salvar nome do PDF em","variavel_arquivo","ex: contrato_arquivo")}
         {VarPill("Salvar confirmação de envio em","variavel_enviado","ex: contrato_enviado")}
         {TVar("Mensagem em caso de erro","mensagem_erro","Não consegui gerar o contrato agora...",65)}
@@ -1452,10 +1453,10 @@ function saida(obj) {
     case "assinatura_wolf":
       return <>
         <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:10,marginBottom:10}}>
-          <p style={{color:"#1d4ed8",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>🖋️ Assinatura eletrônica Wolf</p>
+          <p style={{color:"#1d4ed8",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>Assinatura eletrônica Wolf</p>
           <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Cria um envelope sequencial: primeiro assina o representante da empresa; depois o cliente recebe o link automaticamente. O fluxo só continua quando as duas assinaturas e o PDF final estiverem concluídos.</p>
         </div>
-        <label style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,color:"#1f2937",fontSize:11,fontWeight:700}}><input type="checkbox" checked={d.assinatura_bilateral === true} onChange={e=>u({assinatura_bilateral:e.target.checked})}/>Assinatura bilateral: empresa → cliente</label>
+        <label style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,color:"#0F172A",fontSize:11,fontWeight:700}}><input type="checkbox" checked={d.assinatura_bilateral === true} onChange={e=>u({assinatura_bilateral:e.target.checked})}/>Assinatura bilateral: empresa → cliente</label>
         {d.assinatura_bilateral === true && <>
           <div><label style={LS}>Quem assina pela empresa</label><select value={d.representante_id || ""} onChange={e=>u({representante_id:e.target.value})} style={IS}>
             <option value="">— selecione o representante —</option>
@@ -1473,7 +1474,7 @@ function saida(obj) {
         {VarPill("PDF gerado anteriormente","variavel_arquivo","ex: contrato_arquivo")}
         {TVar("Nome do documento final","nome_documento","contrato_{{cpf}}.pdf",45)}
         <div><label style={LS}>Validade do link (horas)</label><input type="number" min={1} max={168} value={d.expira_horas ?? 48} onChange={e=>u({expira_horas:Math.max(1,Math.min(168,Number(e.target.value)||48))})} style={IS}/></div>
-        <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,color:"#1f2937",fontSize:11}}><input type="checkbox" checked={d.exigir_localizacao === true} onChange={e=>u({exigir_localizacao:e.target.checked})}/>Solicitar geolocalização como evidência adicional</label>
+        <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,color:"#0F172A",fontSize:11}}><input type="checkbox" checked={d.exigir_localizacao === true} onChange={e=>u({exigir_localizacao:e.target.checked})}/>Solicitar geolocalização como evidência adicional</label>
         {VarPill("Salvar ID da sessão em","variavel_sessao","ex: assinatura_wolf_id")}
         {VarPill("Salvar resultado em","variavel_resultado","ex: assinatura_confirmada")}
         {d.assinatura_bilateral !== true && TVar("Mensagem com o link","mensagem_link","Para concluir, revise e assine seu documento com segurança neste link: {{assinatura_wolf_link}}",75)}
@@ -1484,7 +1485,7 @@ function saida(obj) {
     case "validar_assinatura":
       return <>
         <div style={{background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:8,padding:10,marginBottom:10}}>
-          <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>✍️ Validar assinatura devolvida</p>
+          <p style={{color:"#6d28d9",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>Validar assinatura devolvida</p>
           <p style={{color:"#475569",fontSize:10,margin:0,lineHeight:1.45}}>Espera PDF ou foto, procura evidência concreta de assinatura e só libera a saída Assinado acima da confiança mínima.</p>
         </div>
         {TVar("Pedido do contrato assinado","pergunta","Agora envie o contrato assinado...",75)}
@@ -1507,7 +1508,7 @@ function saida(obj) {
         {S("Modelo","modelo",[{value:"claude-opus-4-5",label:"Claude Opus 4.5"},{value:"claude-sonnet-4-20250514",label:"Claude Sonnet 4"},{value:"claude-haiku-4-5",label:"Claude Haiku"}])}
         {T("Prompt do sistema","prompt","Você é um assistente...",100)}
         {VarPill("Salvar resposta em", "variavel_resposta", "ex: resposta_ia")}
-        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"#1f2937",fontSize:12}}>
+        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:8,color:"#0F172A",fontSize:12}}>
           <input type="checkbox" checked={d.enviar_resposta !== false} onChange={e => u({ enviar_resposta: e.target.checked })} />
           Enviar resposta pro cliente automaticamente
         </label>
@@ -1515,29 +1516,29 @@ function saida(obj) {
     case "gmail":
       return <>
         <div style={{background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:8, padding:10, marginBottom:10}}>
-          <p style={{color:"#1e40af", fontSize:11, margin:0, fontWeight:700}}>📨 Envio de email via SMTP</p>
+          <p style={{color:"#1e40af", fontSize:11, margin:0, fontWeight:700}}>Envio de email via SMTP</p>
           <p style={{color:"#3b82f6", fontSize:10, margin:"4px 0 0", lineHeight:1.4}}>
             Use Gmail (com <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{color:"#2563eb",fontWeight:700}}>App Password</a>), SendGrid, Mailgun ou qualquer SMTP.
           </p>
         </div>
-        <p style={{color:"#6b7280", fontSize:10, margin:"6px 0 6px", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4}}>Servidor SMTP</p>
+        <p style={{color:"#64748B", fontSize:10, margin:"6px 0 6px", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4}}>Servidor SMTP</p>
         <div style={{display:"grid", gridTemplateColumns:"1fr 80px", gap:8}}>
           {F("Host","smtp_host","text","smtp.gmail.com")}
           {F("Porta","smtp_port","number","587")}
         </div>
-        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:6,color:"#1f2937",fontSize:12}}>
+        <label style={{display:"flex",alignItems:"center",gap:6,marginTop:6,color:"#0F172A",fontSize:12}}>
           <input type="checkbox" checked={!!d.smtp_secure} onChange={e => u({ smtp_secure: e.target.checked })} />
           Conexão SSL/TLS (porta 465). Desmarcado = STARTTLS (porta 587).
         </label>
         {F("Usuário SMTP","smtp_user","text","seu@gmail.com")}
         {F("Senha SMTP / App Password","smtp_pass","password","••••••••")}
-        <p style={{color:"#6b7280", fontSize:10, margin:"6px 0 6px", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4}}>Mensagem</p>
+        <p style={{color:"#64748B", fontSize:10, margin:"6px 0 6px", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4}}>Mensagem</p>
         {F("Nome do remetente (opcional)","from_name","text","Minha Empresa")}
         {F("Para","para","text","cliente@email.com  •  aceita {{variavel}}")}
         {F("Assunto","assunto","text","Bem-vindo, {{nome}}!")}
         {T("Corpo do email (texto ou HTML)","corpo","Olá {{nome}},\n\nObrigado pelo contato!\n\nAtenciosamente.",140)}
-        <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
-          💡 Use {`{{variavel}}`} no Para/Assunto/Corpo. Saídas: <b>Enviado</b> (ok) / <b>Erro</b> (falha SMTP).
+        <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0"}}>
+          Use {`{{variavel}}`} no Para/Assunto/Corpo. Saídas: <b>Enviado</b> (ok) / <b>Erro</b> (falha SMTP).
         </p>
       </>;
 
@@ -1562,8 +1563,8 @@ function saida(obj) {
       const evento = d.evento || "Lead";
       return <>
         <div style={{background:"#10b98111", border:"1px solid #10b98133", borderRadius:8, padding:12, marginBottom:8}}>
-          <p style={{color:"#059669", fontSize:12, fontWeight:"bold", margin:"0 0 4px"}}>📈 Meta Pixel / Conversions API</p>
-          <p style={{color:"#6b7280", fontSize:11, margin:0, lineHeight:1.5}}>
+          <p style={{color:"#059669", fontSize:12, fontWeight:"bold", margin:"0 0 4px"}}>Meta Pixel / Conversions API</p>
+          <p style={{color:"#64748B", fontSize:11, margin:0, lineHeight:1.5}}>
             Dispara um evento de conversão pro Pixel da Meta. Serve pra seus anúncios "aprenderem"
             com quem converteu no chatbot (Lead, compra, etc) e otimizarem a entrega. O telefone do
             contato é enviado com hash (SHA-256) pra fazer o match com a Meta.
@@ -1571,30 +1572,30 @@ function saida(obj) {
         </div>
 
         {F("Pixel ID / Dataset ID","pixel_id","text","Ex: 1473534314246940")}
-        <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 8px", lineHeight:1.3}}>
-          💡 Pega no <b>Gerenciador de Eventos da Meta → Configurações do conjunto de dados</b>.
+        <p style={{color:"#64748B", fontSize:10, margin:"-6px 0 8px", lineHeight:1.3}}>
+          Pega no <b>Gerenciador de Eventos da Meta → Configurações do conjunto de dados</b>.
         </p>
 
         {F("Access Token (Conversions API)","access_token","password","EAAB...")}
-        <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 8px", lineHeight:1.3}}>
-          💡 Gerado em <b>Gerenciador de Eventos → Configurações → Gerar token de acesso</b>.
+        <p style={{color:"#64748B", fontSize:10, margin:"-6px 0 8px", lineHeight:1.3}}>
+          Gerado em <b>Gerenciador de Eventos → Configurações → Gerar token de acesso</b>.
         </p>
 
         {S("Evento de conversão","evento",[
-          {value:"Lead",                 label:"🎯 Lead (contato/interesse)"},
-          {value:"Contact",              label:"📞 Contact"},
-          {value:"CompleteRegistration", label:"📝 CompleteRegistration (cadastro)"},
-          {value:"Schedule",             label:"📅 Schedule (agendamento)"},
-          {value:"Purchase",             label:"💰 Purchase (compra)"},
-          {value:"SubmitApplication",    label:"📄 SubmitApplication (proposta)"},
-          {value:"custom",               label:"⚙️ Evento personalizado..."},
+          {value:"Lead",                 label:"Lead (contato/interesse)"},
+          {value:"Contact",              label:"Contact"},
+          {value:"CompleteRegistration", label:"CompleteRegistration (cadastro)"},
+          {value:"Schedule",             label:"Schedule (agendamento)"},
+          {value:"Purchase",             label:"Purchase (compra)"},
+          {value:"SubmitApplication",    label:"SubmitApplication (proposta)"},
+          {value:"custom",               label:"Evento personalizado..."},
         ])}
 
         {evento === "custom" && (
           <>
             {F("Nome do evento personalizado","evento_custom","text","Ex: PropostaInternet")}
-            <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 8px"}}>
-              💡 Crie eventos personalizados no Gerenciador de Eventos antes de usar aqui.
+            <p style={{color:"#64748B", fontSize:10, margin:"-6px 0 8px"}}>
+              Crie eventos personalizados no Gerenciador de Eventos antes de usar aqui.
             </p>
           </>
         )}
@@ -1608,18 +1609,18 @@ function saida(obj) {
             {value:"EUR",label:"EUR"},
           ])}
         </div>
-        <p style={{color:"#6b7280", fontSize:10, margin:"-2px 0 8px", lineHeight:1.3}}>
-          💡 Aceita {`{{variavel}}`}. Use ponto como separador decimal (99.90). Deixe vazio pra eventos sem valor.
+        <p style={{color:"#64748B", fontSize:10, margin:"-2px 0 8px", lineHeight:1.3}}>
+          Aceita {`{{variavel}}`}. Use ponto como separador decimal (99.90). Deixe vazio pra eventos sem valor.
         </p>
 
         {F("Test Event Code (opcional)","test_event_code","text","Ex: TEST12345")}
-        <p style={{color:"#6b7280", fontSize:10, margin:"-6px 0 0", lineHeight:1.3}}>
-          💡 Use enquanto testa: pega em <b>Gerenciador de Eventos → Testar eventos</b>. Os eventos
+        <p style={{color:"#64748B", fontSize:10, margin:"-6px 0 0", lineHeight:1.3}}>
+          Use enquanto testa: pega em <b>Gerenciador de Eventos → Testar eventos</b>. Os eventos
           aparecem lá em tempo real. <b>Remova quando for pra produção.</b>
         </p>
 
-        <p style={{color:"#6b7280", fontSize:10, margin:"10px 0 0", lineHeight:1.4, fontStyle:"italic"}}>
-          ⚠️ Saídas: <span style={{color:"#22c55e"}}>0=Sucesso</span> (Meta recebeu) /{" "}
+        <p style={{color:"#64748B", fontSize:10, margin:"10px 0 0", lineHeight:1.4, fontStyle:"italic"}}>
+          Saídas: <span style={{color:"#10B981"}}>0=Sucesso</span> (Meta recebeu) /{" "}
           <span style={{color:"#ef4444"}}>1=Erro</span> (token inválido, pixel errado, etc).
         </p>
       </>;
@@ -1638,8 +1639,8 @@ function saida(obj) {
     case "transferir": {
       const modo = d.modo || "equipe";
       const radioStyle = (ativo: boolean): React.CSSProperties => ({
-        flex: 1, padding: "10px 12px", borderRadius: 8, border: ativo ? "2px solid #ef4444" : "1px solid #e5e7eb",
-        background: ativo ? "#fef2f2" : "#ffffff", color: ativo ? "#dc2626" : "#6b7280",
+        flex: 1, padding: "10px 12px", borderRadius: 8, border: ativo ? "2px solid #ef4444" : "1px solid #E6ECEA",
+        background: ativo ? "#fef2f2" : "#ffffff", color: ativo ? "#dc2626" : "#64748B",
         fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
         transition: "all 0.15s",
       });
@@ -1648,13 +1649,13 @@ function saida(obj) {
           <label style={LS}>Tipo de transferência</label>
           <div style={{display:"flex", gap:6}}>
             <button type="button" onClick={() => u({modo: "equipe"})} style={radioStyle(modo === "equipe")}>
-              👥 Equipe / Fila
+              Equipe / Fila
             </button>
             <button type="button" onClick={() => u({modo: "humano"})} style={radioStyle(modo === "humano")}>
-              👤 Atendente humano
+              Atendente humano
             </button>
           </div>
-          <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0", lineHeight:1.4}}>
+          <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0", lineHeight:1.4}}>
             {modo === "humano"
               ? "Atribui o atendimento direto pro atendente escolhido."
               : "Joga o atendimento na fila — qualquer atendente da equipe pode pegar."}
@@ -1666,8 +1667,8 @@ function saida(obj) {
             <label style={LS}>Fila de destino</label>
             {filasBanco.length === 0 ? (
               <div style={{background:"#fef3c7", border:"1px solid #f59e0b44", borderRadius:6, padding:10}}>
-                <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>⚠️ Nenhuma fila cadastrada</p>
-                <p style={{color:"#9ca3af", fontSize:10, margin:0, lineHeight:1.4}}>
+                <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>Nenhuma fila cadastrada</p>
+                <p style={{color:"#94A3B8", fontSize:10, margin:0, lineHeight:1.4}}>
                   Vá em <b>CRM → Configurações → Filas</b> e crie suas filas.<br/>
                   Depois volte aqui e selecione a fila de destino.
                 </p>
@@ -1676,12 +1677,12 @@ function saida(obj) {
               <select value={d.fila||""} onChange={e => u({fila: e.target.value})} style={IS}>
                 <option value="">Selecione uma fila...</option>
                 {filasBanco.map(f => (
-                  <option key={f.id} value={f.nome}>📋 {f.nome}{f.conexao ? ` (${f.conexao})` : ""}</option>
+                  <option key={f.id} value={f.nome}>{f.nome}{f.conexao ? ` (${f.conexao})` : ""}</option>
                 ))}
               </select>
             )}
-            <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
-              💡 Filas são criadas em <b>Configurações → Filas</b> do CRM
+            <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0"}}>
+              Filas são criadas em <b>Configurações → Filas</b> do CRM
             </p>
           </div>
         ) : (
@@ -1689,8 +1690,8 @@ function saida(obj) {
             <label style={LS}>Atendente humano</label>
             {atendentesBanco.length === 0 ? (
               <div style={{background:"#fef3c7", border:"1px solid #f59e0b44", borderRadius:6, padding:10}}>
-                <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>⚠️ Nenhum atendente cadastrado</p>
-                <p style={{color:"#9ca3af", fontSize:10, margin:0, lineHeight:1.4}}>
+                <p style={{color:"#f59e0b", fontSize:11, margin:"0 0 4px", fontWeight:"bold"}}>Nenhum atendente cadastrado</p>
+                <p style={{color:"#94A3B8", fontSize:10, margin:0, lineHeight:1.4}}>
                   Cadastre atendentes em <b>CRM → Configurações → Usuários</b>.
                 </p>
               </div>
@@ -1705,12 +1706,12 @@ function saida(obj) {
               >
                 <option value="">Selecione um atendente...</option>
                 {atendentesBanco.map(a => (
-                  <option key={a.email} value={a.email}>👤 {a.nome} ({a.email})</option>
+                  <option key={a.email} value={a.email}>{a.nome} ({a.email})</option>
                 ))}
               </select>
             )}
-            <p style={{color:"#6b7280", fontSize:10, margin:"4px 0 0"}}>
-              💡 Atendentes são cadastrados em <b>Configurações → Usuários</b>
+            <p style={{color:"#64748B", fontSize:10, margin:"4px 0 0"}}>
+              Atendentes são cadastrados em <b>Configurações → Usuários</b>
             </p>
           </div>
         )}
@@ -1742,10 +1743,10 @@ function saida(obj) {
       const campoAtual = d.campo || "status_venda";
       return <>
         <div style={{background:"#fff7ed",border:"1px solid #fdba74",borderRadius:9,padding:10}}>
-          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#c2410c"}}>⚡ Entrada automática pelo CRM</p>
-          <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#6b7280"}}>Quando uma venda mudar conforme esta regra, o sistema abre o trecho conectado usando o mesmo cliente, canal e venda. Crie quantos gatilhos precisar.</p>
+          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#c2410c"}}>Entrada automática pelo CRM</p>
+          <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#64748B"}}>Quando uma venda mudar conforme esta regra, o sistema abre o trecho conectado usando o mesmo cliente, canal e venda. Crie quantos gatilhos precisar.</p>
         </div>
-        <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#374151"}}>
+        <label style={{display:"flex",alignItems:"center",gap:7,fontSize:11,color:"#334155"}}>
           <input type="checkbox" checked={d.ativo !== false} onChange={e=>u({ativo:e.target.checked})}/> Regra ativa
         </label>
         <div><label style={LS}>Campo observado</label><select value={campoAtual} onChange={e=>u({campo:e.target.value})} style={IS}>
@@ -1768,7 +1769,7 @@ function saida(obj) {
           </div>}
           <p style={{fontSize:9,color:"#9a3412",lineHeight:1.4,margin:"6px 0 0"}}>Na Cloud API, use template quando o cliente estiver fora da janela de 24 horas. Depois o fluxo e a IA continuam normalmente.</p>
         </div>
-        <div style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:9,fontSize:10,color:"#475569",lineHeight:1.5}}>
+        <div style={{background:"#F3F6F5",border:"1px solid #E6ECEA",borderRadius:8,padding:9,fontSize:10,color:"#475569",lineHeight:1.5}}>
           Variáveis automáticas: <code>{'{{proposta_id}}'}</code>, <code>{'{{crm_campo_alterado}}'}</code>, <code>{'{{crm_valor_anterior}}'}</code>, <code>{'{{crm_valor_novo}}'}</code> e todos os campos da venda.
         </div>
       </>;
@@ -1778,10 +1779,10 @@ function saida(obj) {
       const atualizar = (i:number, patch:Record<string,string>) => u({atualizacoes:itens.map((x,j)=>j===i?{...x,...patch}:x)});
       return <>
         <div style={{background:"#f0f9ff",border:"1px solid #7dd3fc",borderRadius:9,padding:10}}>
-          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#0369a1"}}>📝 Atualizar a venda atual</p>
-          <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#6b7280"}}>Edita a mesma ficha que acionou a automação. Pode alterar status, horário, CPF, observação ou qualquer campo personalizado do workspace.</p>
+          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#0369a1"}}>Atualizar a venda atual</p>
+          <p style={{margin:0,fontSize:10,lineHeight:1.45,color:"#64748B"}}>Edita a mesma ficha que acionou a automação. Pode alterar status, horário, CPF, observação ou qualquer campo personalizado do workspace.</p>
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>{itens.map((item,i)=><div key={i} style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8,padding:8}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>{itens.map((item,i)=><div key={i} style={{background:"#F3F6F5",border:"1px solid #E6ECEA",borderRadius:8,padding:8}}>
           <select value={item.campo || ""} onChange={e=>atualizar(i,{campo:e.target.value})} style={{...IS,marginBottom:6}}>
             <option value="">Selecione o campo...</option>
             {camposPropostaUnif.filter(c=>c.visivel).map(c=><option key={c.origem+":"+c.slug} value={c.origem === "custom" ? "custom."+c.slug : c.slug}>{c.label}{c.origem === "custom" ? " (personalizado)" : ""}</option>)}
@@ -1833,8 +1834,8 @@ function saida(obj) {
       const limparVendedores = () => u({ roleta_vendedores: [] });
       return <>
         <div style={{background:"#22c55e11",border:"1px solid #22c55e33",borderRadius:8,padding:12,marginBottom:8}}>
-          <p style={{color:"#22c55e",fontSize:12,fontWeight:"bold",margin:"0 0 4px"}}>💰 Enviar Venda pro CRM</p>
-          <p style={{color:"#9ca3af",fontSize:11,margin:0,lineHeight:1.4}}>
+          <p style={{color:"#10B981",fontSize:12,fontWeight:"bold",margin:"0 0 4px"}}>Enviar Venda pro CRM</p>
+          <p style={{color:"#94A3B8",fontSize:11,margin:0,lineHeight:1.4}}>
             Quando o fluxo chegar nesse bloco, o sistema cria <b>automaticamente uma proposta</b> no
             <b> /crm/vendas</b> com as variáveis que você capturou no fluxo + aplica uma etiqueta
             no atendimento. O vendedor já abre o chat com a venda pronta.
@@ -1846,7 +1847,7 @@ function saida(obj) {
         <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:8,padding:12,marginBottom:10}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:8}}>
             <div>
-              <p style={{color:"#c2410c",fontSize:12,fontWeight:"bold",margin:"0 0 3px"}}>🎯 Roleta de vendas</p>
+              <p style={{color:"#c2410c",fontSize:12,fontWeight:"bold",margin:"0 0 3px"}}>Roleta de vendas</p>
               <p style={{color:"#9a3412",fontSize:10,margin:0,lineHeight:1.35}}>
                 Marque quais vendedores podem receber vendas criadas pelo BOT neste fluxo.
               </p>
@@ -1863,7 +1864,7 @@ function saida(obj) {
               onChange={e => u({roleta_vendas_ativa: e.target.checked})}
               style={{accentColor:"#f97316",marginTop:2}}
             />
-            <span style={{color:"#1f2937",fontSize:11,lineHeight:1.35}}>
+            <span style={{color:"#0F172A",fontSize:11,lineHeight:1.35}}>
               <b>Ativar roleta de vendas deste bloco</b>
               <br/>
               Se o atendimento já tiver vendedor real, usa ele. Se não tiver, sorteia um vendedor marcado abaixo e transfere o atendimento para ele.
@@ -1878,7 +1879,7 @@ function saida(obj) {
                   Marcar todos
                 </button>
                 <button type="button" onClick={limparVendedores}
-                  style={{background:"#fff",border:"1px solid #e5e7eb",color:"#6b7280",borderRadius:7,padding:"6px 9px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                  style={{background:"#fff",border:"1px solid #E6ECEA",color:"#64748B",borderRadius:7,padding:"6px 9px",fontSize:10,fontWeight:700,cursor:"pointer"}}>
                   Limpar
                 </button>
               </div>
@@ -1906,10 +1907,10 @@ function saida(obj) {
                           style={{accentColor:"#f97316"}}
                         />
                         <span style={{minWidth:0}}>
-                          <span style={{display:"block",color:"#1f2937",fontSize:11,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                          <span style={{display:"block",color:"#0F172A",fontSize:11,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
                             {a.nome || a.email}
                           </span>
-                          <span style={{display:"block",color:"#9ca3af",fontSize:9,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                          <span style={{display:"block",color:"#94A3B8",fontSize:9,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
                             {a.email}
                           </span>
                         </span>
@@ -1921,7 +1922,7 @@ function saida(obj) {
 
               {vendedoresRoleta.length === 0 && (
                 <p style={{color:"#dc2626",fontSize:10,margin:"8px 0 0",lineHeight:1.35,fontWeight:600}}>
-                  ⚠️ Marque pelo menos um vendedor para a roleta funcionar quando o lead ainda não tiver atendente.
+                  Marque pelo menos um vendedor para a roleta funcionar quando o lead ainda não tiver atendente.
                 </p>
               )}
             </>
@@ -1933,15 +1934,15 @@ function saida(obj) {
           <label style={LS}>Mapeamento das variáveis</label>
           <div style={{display:"flex",gap:6,marginBottom:8}}>
             {[
-              {key:"automatico",label:"🔮 Automático",hint:"Variável com mesmo nome do campo já mapeia. Ex: variável 'nome' → campo 'nome' da proposta."},
-              {key:"manual",label:"🎯 Manual",hint:"Você define qual variável vai pra cada campo."},
+              {key:"automatico",label:"Automático",hint:"Variável com mesmo nome do campo já mapeia. Ex: variável 'nome' → campo 'nome' da proposta."},
+              {key:"manual",label:"Manual",hint:"Você define qual variável vai pra cada campo."},
             ].map(opt => (
               <button key={opt.key} onClick={() => u({modo_mapeamento: opt.key})}
                 style={{
                   flex:1,
                   background: modoMap === opt.key ? "#22c55e22" : "#ffffff",
-                  border: `1px solid ${modoMap === opt.key ? "#22c55e" : "#e5e7eb"}`,
-                  color: modoMap === opt.key ? "#22c55e" : "white",
+                  border: `1px solid ${modoMap === opt.key ? "#10B981" : "#E6ECEA"}`,
+                  color: modoMap === opt.key ? "#10B981" : "white",
                   borderRadius:8, padding:"8px 10px", fontSize:11, cursor:"pointer", fontWeight:"bold"
                 }}
                 title={opt.hint}
@@ -1949,10 +1950,10 @@ function saida(obj) {
             ))}
           </div>
           {modoMap === "automatico" && (
-            <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
-              💡 O sistema vai pegar todas as variáveis salvas no fluxo e tentar mapear pelo nome.
-              <br/>Ex: variável <code style={{color:"#22c55e"}}>nome</code> → campo "Nome do cliente";
-              variável <code style={{color:"#22c55e"}}>cpf_limpo</code> → campo "CPF" (usa nome similar).
+            <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+              O sistema vai pegar todas as variáveis salvas no fluxo e tentar mapear pelo nome.
+              <br/>Ex: variável <code style={{color:"#10B981"}}>nome</code> campo "Nome do cliente";
+              variável <code style={{color:"#10B981"}}>cpf_limpo</code> campo "CPF" (usa nome similar).
             </p>
           )}
         </div>
@@ -1961,30 +1962,30 @@ function saida(obj) {
         {modoMap === "manual" && (
           <div>
             <label style={LS}>Defina qual variável preenche cada campo</label>
-            <p style={{color:"#6b7280",fontSize:10,margin:"-2px 0 8px",lineHeight:1.3}}>
+            <p style={{color:"#64748B",fontSize:10,margin:"-2px 0 8px",lineHeight:1.3}}>
               Deixe em branco os campos que não quer preencher. O sistema só cria os que você mapear.
-              <br/>📅 Datas devem vir no formato <code style={{color:"#22c55e"}}>YYYY-MM-DD</code> ou <code style={{color:"#22c55e"}}>DD/MM/YYYY</code>.
-              💰 Valores monetários: ponto como separador decimal (ex: <code style={{color:"#22c55e"}}>99.90</code>).
+              <br/>Datas devem vir no formato <code style={{color:"#10B981"}}>YYYY-MM-DD</code> ou <code style={{color:"#10B981"}}>DD/MM/YYYY</code>.
+              💰 Valores monetários: ponto como separador decimal (ex: <code style={{color:"#10B981"}}>99.90</code>).
             </p>
-            <div style={{display:"flex",flexDirection:"column",gap:10,background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:10,maxHeight:380,overflowY:"auto"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:10,background:"#F3F6F5",border:"1px solid #ffffff",borderRadius:8,padding:10,maxHeight:380,overflowY:"auto"}}>
 
               {/* ──── Seção 1: Campos fixos da proposta ──── */}
               {camposFixos.length > 0 && (
                 <>
-                  <p style={{color:"#6b7280",fontSize:10,margin:"0 0 2px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>
-                    📋 Campos da Proposta
+                  <p style={{color:"#64748B",fontSize:10,margin:"0 0 2px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>
+                    Campos da Proposta
                   </p>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
                     {camposFixos.map(c => (
                       <div key={c.slug} style={{display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{color:"#9ca3af",fontSize:11,flex:"0 0 140px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
+                        <span style={{color:"#94A3B8",fontSize:11,flex:"0 0 140px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
                           title={`${c.label} (${c.tipo})`}>
                           {c.label}
                           {c.obrigatorio && <span style={{color:"#ef4444"}}> *</span>}
                           {(c.tipo === "data") && " 📅"}
                           {(c.tipo === "moeda") && " 💰"}
                         </span>
-                        <span style={{color:"#e5e7eb",fontSize:11}}>←</span>
+                        <span style={{color:"#E6ECEA",fontSize:11}}>←</span>
                         <select value={mapeamento[c.slug] || ""} onChange={e => updateMap(c.slug, e.target.value)}
                           style={{...IS,flex:1,fontSize:11,padding:"5px 8px"}}>
                           <option value="">— sem mapeamento —</option>
@@ -2001,8 +2002,8 @@ function saida(obj) {
               {/* ──── Seção 2: Campos customizados do workspace ──── */}
               {camposCustoms.length > 0 && (
                 <>
-                  <p style={{color:"#8b5cf6",fontSize:10,margin:"8px 0 2px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,borderTop:"1px dashed #d1d5db",paddingTop:8}}>
-                    ✨ Campos Customizados ({camposCustoms.length})
+                  <p style={{color:"#8b5cf6",fontSize:10,margin:"8px 0 2px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,borderTop:"1px dashed #CBD5E1",paddingTop:8}}>
+                    Campos Customizados ({camposCustoms.length})
                   </p>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
                     {camposCustoms.map(c => (
@@ -2014,7 +2015,7 @@ function saida(obj) {
                           {(c.tipo === "data") && " 📅"}
                           {(c.tipo === "moeda") && " 💰"}
                         </span>
-                        <span style={{color:"#e5e7eb",fontSize:11}}>←</span>
+                        <span style={{color:"#E6ECEA",fontSize:11}}>←</span>
                         <select value={mapeamento[c.slug] || ""} onChange={e => updateMap(c.slug, e.target.value)}
                           style={{...IS,flex:1,fontSize:11,padding:"5px 8px"}}>
                           <option value="">— sem mapeamento —</option>
@@ -2029,14 +2030,14 @@ function saida(obj) {
               )}
 
               {camposFixos.length === 0 && camposCustoms.length === 0 && (
-                <p style={{color:"#9ca3af",fontSize:11,fontStyle:"italic",margin:0,padding:12,textAlign:"center"}}>
+                <p style={{color:"#94A3B8",fontSize:11,fontStyle:"italic",margin:0,padding:12,textAlign:"center"}}>
                   Carregando campos da proposta...
                 </p>
               )}
             </div>
             {Object.keys(mapeamento).length > 0 && (
-              <p style={{color:"#22c55e",fontSize:10,margin:"6px 0 0"}}>
-                ✅ {Object.keys(mapeamento).length} campo(s) mapeado(s)
+              <p style={{color:"#10B981",fontSize:10,margin:"6px 0 0"}}>
+                {Object.keys(mapeamento).length} campo(s) mapeado(s)
               </p>
             )}
           </div>
@@ -2047,14 +2048,14 @@ function saida(obj) {
           <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,cursor:"pointer"}}>
             <input type="checkbox" checked={d.aplicar_etiqueta !== false}
               onChange={e => u({aplicar_etiqueta: e.target.checked})}
-              style={{accentColor:"#22c55e"}}/>
-            <span style={{color:"#1f2937",fontSize:12,fontWeight:"bold"}}>🏷️ Aplicar etiqueta ao atendimento</span>
+              style={{accentColor:"#10B981"}}/>
+            <span style={{color:"#0F172A",fontSize:12,fontWeight:"bold"}}>Aplicar etiqueta ao atendimento</span>
           </label>
           {d.aplicar_etiqueta !== false && (
             <>
               {F("Nome da etiqueta","etiqueta","text","proposta_finalizada")}
-              <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
-                💡 A etiqueta é criada automaticamente se ainda não existir.
+              <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+                A etiqueta é criada automaticamente se ainda não existir.
                 Útil pra filtrar atendimentos com proposta criada no chatbot.
               </p>
             </>
@@ -2064,8 +2065,8 @@ function saida(obj) {
         {/* Status inicial da proposta — dinâmico por workspace */}
         <div style={{borderTop:"1px solid #ffffff",paddingTop:12,marginTop:6}}>
           {S("Status inicial da proposta","status_inicial", statusVendaOpcoes)}
-          <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
-            💡 As opções mostradas são os status ativos configurados no <b>Editor de Vendas</b> deste workspace.
+          <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+            As opções mostradas são os status ativos configurados no <b>Editor de Vendas</b> deste workspace.
           </p>
         </div>
 
@@ -2075,8 +2076,8 @@ function saida(obj) {
           {TVar("Mensagem ao cliente (erro)","mensagem_erro","⚠️ Não consegui registrar, atendente vai te ajudar.",70)}
         </div>
 
-        <p style={{color:"#6b7280",fontSize:10,margin:"8px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
-          ⚠️ Saídas: <span style={{color:"#22c55e"}}>0=Sucesso</span> (proposta criada) /{" "}
+        <p style={{color:"#64748B",fontSize:10,margin:"8px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
+          Saídas: <span style={{color:"#10B981"}}>0=Sucesso</span> (proposta criada) /{" "}
           <span style={{color:"#ef4444"}}>1=Erro</span> (falha ao salvar — conecte aqui um bloco "Transferir" como fallback).
         </p>
       </>;
@@ -2087,29 +2088,29 @@ function saida(obj) {
       const iconesComuns = ["🏷️","⭐","🔥","💎","✅","❌","⚠️","💰","📌","🎯","🚀","💼","📋","🔔"];
       const coresComuns = [
         { hex: "#3b82f6", nome: "Azul" },
-        { hex: "#22c55e", nome: "Verde" },
+        { hex: "#10B981", nome: "Verde" },
         { hex: "#ef4444", nome: "Vermelho" },
         { hex: "#f59e0b", nome: "Laranja" },
         { hex: "#8b5cf6", nome: "Roxo" },
         { hex: "#ec4899", nome: "Rosa" },
         { hex: "#06b6d4", nome: "Ciano" },
-        { hex: "#6b7280", nome: "Cinza" },
+        { hex: "#64748B", nome: "Cinza" },
       ];
       return <>
         <div style={{display:"flex",flexDirection:"column",gap:14}}>
           {/* Ação: aplicar ou remover */}
           <div>
-            <label style={{display:"block",color:"#9ca3af",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+            <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
               Ação
             </label>
             <div style={{display:"flex",gap:6}}>
               {[
-                { v: "aplicar", label: "✅ Aplicar etiqueta" },
-                { v: "remover", label: "🗑️ Remover etiqueta" },
+                { v: "aplicar", label: "Aplicar etiqueta" },
+                { v: "remover", label: "Remover etiqueta" },
               ].map(o => (
                 <button key={o.v} type="button" onClick={()=>u({acao:o.v})}
                   style={{flex:1,padding:"8px 10px",background:d.acao===o.v?"#3b82f6":"#ffffff",
-                    color:d.acao===o.v?"#fff":"#9ca3af",border:"1px solid #e5e7eb",borderRadius:8,
+                    color:d.acao===o.v?"#fff":"#94A3B8",border:"1px solid #E6ECEA",borderRadius:8,
                     fontSize:12,cursor:"pointer",fontWeight:d.acao===o.v?"bold":"normal"}}>
                   {o.label}
                 </button>
@@ -2124,27 +2125,27 @@ function saida(obj) {
           {d.acao !== "remover" && (
             <>
               <div>
-                <label style={{display:"block",color:"#9ca3af",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+                <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
                   Cor da etiqueta
                 </label>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {coresComuns.map(c => (
                     <button key={c.hex} type="button" onClick={()=>u({cor:c.hex})}
                       title={c.nome}
-                      style={{width:32,height:32,background:c.hex,border:d.cor===c.hex?"3px solid #fff":"1px solid #e5e7eb",
+                      style={{width:32,height:32,background:c.hex,border:d.cor===c.hex?"3px solid #fff":"1px solid #E6ECEA",
                         borderRadius:6,cursor:"pointer"}} />
                   ))}
                 </div>
               </div>
               <div>
-                <label style={{display:"block",color:"#9ca3af",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+                <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
                   Ícone
                 </label>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                   {iconesComuns.map(ic => (
                     <button key={ic} type="button" onClick={()=>u({icone:ic})}
                       style={{width:34,height:34,background:d.icone===ic?"#3b82f6":"#ffffff",
-                        border:"1px solid #e5e7eb",borderRadius:6,fontSize:18,cursor:"pointer"}}>
+                        border:"1px solid #E6ECEA",borderRadius:6,fontSize:18,cursor:"pointer"}}>
                       {ic}
                     </button>
                   ))}
@@ -2156,7 +2157,7 @@ function saida(obj) {
           {/* Preview */}
           {d.nome && (
             <div>
-              <label style={{display:"block",color:"#9ca3af",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+              <label style={{display:"block",color:"#94A3B8",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
                 Preview
               </label>
               <span style={{
@@ -2170,14 +2171,14 @@ function saida(obj) {
           )}
         </div>
 
-        <p style={{color:"#6b7280",fontSize:10,margin:"12px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
-          💡 Use este bloco em qualquer ponto do fluxo pra marcar atendimentos.
+        <p style={{color:"#64748B",fontSize:10,margin:"12px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
+          Use este bloco em qualquer ponto do fluxo pra marcar atendimentos.
           Se a etiqueta não existir no workspace, será criada automaticamente.
         </p>
       </>;
     }
 
-    default: return <p style={{color:"#6b7280",fontSize:12}}>Sem propriedades.</p>;
+    default: return <p style={{color:"#64748B",fontSize:12}}>Sem propriedades.</p>;
   }
 }
 
@@ -2249,7 +2250,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
       ref={divRef}
       style={{position:"absolute", left:no.x, top:no.y, width:230,
         background:"#ffffff", borderRadius:14,
-        border:`1px solid ${sel ? cfg.cor : "#e5e7eb"}`,
+        border:`1px solid ${sel ? cfg.cor : "#E6ECEA"}`,
         boxShadow: sel
           ? `0 0 0 3px ${cfg.cor}33, 0 12px 24px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06)`
           : "0 4px 12px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04)",
@@ -2273,7 +2274,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
             width:22,height:22,
             background:"rgba(255,255,255,.25)",
             borderRadius:6
-          }}>{cfg.icone}</span>
+          }}>{<IconeEmoji e={cfg.icone} />}</span>
           <span style={{color:"#ffffff", fontSize:12, fontWeight:"700", textShadow:"0 1px 2px rgba(0,0,0,.15)"}}>{cfg.label}</span>
           <span style={{background:"rgba(255,255,255,.22)", color:"#ffffff", fontSize:9, padding:"2px 7px", borderRadius:10, fontWeight:"600", letterSpacing:.3}}>{cfg.grupo}</span>
         </div>
@@ -2285,7 +2286,7 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
         )}
       </div>
       <div style={{padding:"7px 10px", borderBottom:cfg.saidas.length?"1px solid #ffffff":"none", pointerEvents:"none"}}>
-        <p style={{color:"#9ca3af", fontSize:10, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{getPreview(no)}</p>
+        <p style={{color:"#94A3B8", fontSize:10, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{getPreview(no)}</p>
       </div>
       {no.tipo!=="inicio" && (
         <div
@@ -2298,10 +2299,10 @@ function NoCard({ no, sel, scale, onSelect, onOpen, onDelete, onConectarSaida, o
       {no.saidas.map((saida,idx) => (
         <div key={idx} style={{display:"flex", alignItems:"center", justifyContent:"space-between",
           padding:"0 10px", height:36, borderTop:idx>0?"1px solid #ffffff":"none"}}>
-          <span style={{color:"#6b7280", fontSize:10, pointerEvents:"none"}}>{saida}</span>
+          <span style={{color:"#64748B", fontSize:10, pointerEvents:"none"}}>{saida}</span>
           <div
             style={{width:14, height:14, borderRadius:"50%", background:cfg.cor, cursor:"crosshair",
-              flexShrink:0, position:"relative", right:-18, border:"2px solid #e5e7eb"}}
+              flexShrink:0, position:"relative", right:-18, border:"2px solid #E6ECEA"}}
             onPointerDown={e => {e.stopPropagation(); onConectarSaida(no.id,idx);}}
           />
         </div>
@@ -2821,17 +2822,17 @@ export default function FluxosPage() {
   function posE(no:No)              { return {x:no.x,     y:no.y+48+18};        }
 
   if(view==="lista") return (
-    <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#f8fafc",color:"#1f2937"}}>
-      <div style={{width:230,background:"#ffffff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",padding:14,gap:6,boxShadow:"2px 0 8px rgba(0,0,0,0.04)"}}>
+    <div style={{display:"flex",height:"100vh",fontFamily: "var(--font-wolf), system-ui, sans-serif",background:"#F3F6F5",color:"#0F172A"}}>
+      <div style={{width:230,background:"#ffffff",borderRight:"1px solid #E6ECEA",display:"flex",flexDirection:"column",padding:14,gap:6,boxShadow:"2px 0 8px rgba(0,0,0,0.04)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"4px 8px"}}>
           <img src="/logo1.png" alt="Wolf" style={{width:32}}/>
-          <span style={{color:"#1f2937",fontWeight:"700",fontSize:14}}>Wolf Chatbot</span>
+          <span style={{color:"#0F172A",fontWeight:"700",fontSize:14}}>Wolf Chatbot</span>
         </div>
         <button onClick={()=>router.push("/chatbot")}
           style={{
             display:"flex",alignItems:"center",gap:10,
-            background:"#ffffff",border:"1px solid #e5e7eb",borderRadius:10,
-            padding:"10px 12px",color:"#374151",fontSize:13,fontWeight:"600",cursor:"pointer",
+            background:"#ffffff",border:"1px solid #E6ECEA",borderRadius:10,
+            padding:"10px 12px",color:"#334155",fontSize:13,fontWeight:"600",cursor:"pointer",
             textAlign:"left",
             boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
             transition:"transform .12s, box-shadow .12s, border-color .12s",
@@ -2844,7 +2845,7 @@ export default function FluxosPage() {
           onMouseLeave={e=>{
             e.currentTarget.style.transform="translateY(0)";
             e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)";
-            e.currentTarget.style.borderColor="#e5e7eb";
+            e.currentTarget.style.borderColor="#E6ECEA";
           }}>
           <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"#3b82f615",borderRadius:8,fontSize:14}}>💬</span>
           Conversas
@@ -2864,8 +2865,8 @@ export default function FluxosPage() {
         <button onClick={()=>router.push("/crm")}
           style={{
             display:"flex",alignItems:"center",gap:8,
-            background:"#ffffff",border:"1px solid #e5e7eb",borderRadius:10,
-            padding:"10px 12px",color:"#6b7280",fontSize:12,fontWeight:"600",cursor:"pointer",
+            background:"#ffffff",border:"1px solid #E6ECEA",borderRadius:10,
+            padding:"10px 12px",color:"#64748B",fontSize:12,fontWeight:"600",cursor:"pointer",
             textAlign:"left",
             boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
             transition:"transform .12s, box-shadow .12s, border-color .12s",
@@ -2873,18 +2874,18 @@ export default function FluxosPage() {
           onMouseEnter={e=>{
             e.currentTarget.style.transform="translateY(-1px)";
             e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.06)";
-            e.currentTarget.style.borderColor="#d1d5db";
+            e.currentTarget.style.borderColor="#CBD5E1";
           }}
           onMouseLeave={e=>{
             e.currentTarget.style.transform="translateY(0)";
             e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)";
-            e.currentTarget.style.borderColor="#e5e7eb";
-          }}>← Voltar ao CRM</button>
+            e.currentTarget.style.borderColor="#E6ECEA";
+          }}>Voltar ao CRM</button>
       </div>
       <div style={{flex:1,padding:32,overflowY:"auto"}}>
         {showNovo && (
           <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.4)",backdropFilter:"blur(2px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <div style={{background:"#ffffff",borderRadius:16,padding:28,width:500,border:"1px solid #e5e7eb",display:"flex",flexDirection:"column",gap:16,boxShadow:"0 20px 60px rgba(0,0,0,0.15)"}}>
+            <div style={{background:"#ffffff",borderRadius:16,padding:28,width:500,border:"1px solid #E6ECEA",display:"flex",flexDirection:"column",gap:16,boxShadow:"0 20px 60px rgba(0,0,0,0.15)"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   <div style={{
@@ -2893,9 +2894,9 @@ export default function FluxosPage() {
                     display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,
                     boxShadow:"0 4px 12px rgba(139,92,246,0.3)"
                   }}>➕</div>
-                  <h2 style={{color:"#1f2937",fontSize:18,fontWeight:"700",margin:0}}>Novo Fluxo</h2>
+                  <h2 style={{color:"#0F172A",fontSize:18,fontWeight:"700",margin:0}}>Novo Fluxo</h2>
                 </div>
-                <button onClick={()=>setShowNovo(false)} style={{background:"#f3f4f6",border:"none",color:"#6b7280",fontSize:18,cursor:"pointer",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                <button onClick={()=>setShowNovo(false)} style={{background:"#F1F5F4",border:"none",color:"#64748B",fontSize:18,cursor:"pointer",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
               </div>
               <div><label style={{...LS,fontSize:11}}>Nome *</label>
                 <input autoFocus placeholder="Ex: Fluxo de Vendas" value={form.nome}
@@ -2933,21 +2934,21 @@ export default function FluxosPage() {
                       <input type="time" value={cfg.hora_inicio}
                         onChange={e=>setCfg({hora_inicio:e.target.value})}
                         style={{...IS,flex:1}}/>
-                      <span style={{color:"#6b7280",fontSize:12}}>até</span>
+                      <span style={{color:"#64748B",fontSize:12}}>até</span>
                       <input type="time" value={cfg.hora_fim}
                         onChange={e=>setCfg({hora_fim:e.target.value})}
                         style={{...IS,flex:1}}/>
                     </div>
-                    <p style={{color:"#6b7280",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
-                      💡 O fluxo dispara quando o cliente manda mensagem FORA do horário {cfg.hora_inicio}–{cfg.hora_fim}.
+                    <p style={{color:"#64748B",fontSize:10,margin:"4px 0 0",lineHeight:1.3}}>
+                      O fluxo dispara quando o cliente manda mensagem FORA do horário {cfg.hora_inicio}–{cfg.hora_fim}.
                     </p>
                   </div>
                 );
               })()}
               <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
-                <button onClick={()=>setShowNovo(false)} style={{background:"#ffffff",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"600"}}>Cancelar</button>
+                <button onClick={()=>setShowNovo(false)} style={{background:"#ffffff",color:"#64748B",border:"1px solid #E6ECEA",borderRadius:10,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"600"}}>Cancelar</button>
                 <button onClick={criarFluxo} disabled={criando} style={{
-                  background:criando?"linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)":"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                  background:criando?"linear-gradient(135deg, #94A3B8 0%, #64748B 100%)":"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
                   color:"#ffffff",border:"none",borderRadius:10,padding:"10px 24px",fontSize:13,
                   cursor:criando?"wait":"pointer",fontWeight:"700",
                   boxShadow:criando?"none":"0 4px 12px rgba(139,92,246,0.35)"
@@ -2967,8 +2968,8 @@ export default function FluxosPage() {
               boxShadow:"0 8px 16px rgba(139,92,246,0.25)"
             }}>🤖</div>
             <div>
-              <h1 style={{color:"#1f2937",fontSize:22,fontWeight:"700",margin:0}}>Meus Fluxos</h1>
-              <p style={{color:"#6b7280",fontSize:13,margin:"2px 0 0"}}>{fluxos.length} fluxo(s) cadastrado(s)</p>
+              <h1 style={{color:"#0F172A",fontSize:22,fontWeight:"700",margin:0}}>Meus Fluxos</h1>
+              <p style={{color:"#64748B",fontSize:13,margin:"2px 0 0"}}>{fluxos.length} fluxo(s) cadastrado(s)</p>
             </div>
           </div>
           <button onClick={()=>setShowNovo(true)} style={{
@@ -2988,7 +2989,7 @@ export default function FluxosPage() {
           }}>+ Novo Fluxo</button>
         </div>
         {fluxos.length===0 ? (
-          <div style={{background:"#ffffff",borderRadius:16,padding:64,textAlign:"center",border:"1px solid #e5e7eb",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+          <div style={{background:"#ffffff",borderRadius:16,padding:64,textAlign:"center",border:"1px solid #E6ECEA",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
             <div style={{
               display:"inline-flex",alignItems:"center",justifyContent:"center",
               width:96,height:96,borderRadius:24,
@@ -2996,8 +2997,8 @@ export default function FluxosPage() {
               fontSize:48,margin:"0 auto 20px",
               boxShadow:"0 12px 24px rgba(139,92,246,0.25)"
             }}>🤖</div>
-            <h3 style={{color:"#1f2937",fontSize:18,fontWeight:"700",margin:"0 0 8px"}}>Nenhum fluxo criado</h3>
-            <p style={{color:"#6b7280",fontSize:14,margin:"0 0 24px"}}>Crie fluxos de atendimento automático pra seu chatbot</p>
+            <h3 style={{color:"#0F172A",fontSize:18,fontWeight:"700",margin:"0 0 8px"}}>Nenhum fluxo criado</h3>
+            <p style={{color:"#64748B",fontSize:14,margin:"0 0 24px"}}>Crie fluxos de atendimento automático pra seu chatbot</p>
             <button onClick={()=>setShowNovo(true)} style={{
               background:"linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
               color:"#ffffff",border:"none",borderRadius:12,
@@ -3010,7 +3011,7 @@ export default function FluxosPage() {
             {fluxos.map(f => (
               <div key={f.id} style={{
                 background:"#ffffff",borderRadius:14,padding:20,
-                border:`1px solid ${f.ativo?"#22c55e44":"#e5e7eb"}`,
+                border:`1px solid ${f.ativo?"#22c55e44":"#E6ECEA"}`,
                 boxShadow:"0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)",
                 transition:"transform .15s, box-shadow .15s, border-color .15s",
                 cursor:"default",
@@ -3027,33 +3028,33 @@ export default function FluxosPage() {
                   <div style={{display:"flex",alignItems:"center",gap:10,flex:1,minWidth:0}}>
                     <div style={{
                       width:38,height:38,borderRadius:10,
-                      background:f.ativo?"linear-gradient(135deg, #22c55e 0%, #16a34a 100%)":"#f3f4f6",
+                      background:f.ativo?"linear-gradient(135deg, #10B981 0%, #059669 100%)":"#F1F5F4",
                       display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,
                       boxShadow:f.ativo?"0 4px 8px rgba(34,197,94,0.25)":"none",
                       flexShrink:0
                     }}>{f.ativo?"🚀":"⏸️"}</div>
                     <div style={{minWidth:0,flex:1}}>
-                      <h3 style={{color:"#1f2937",fontSize:15,fontWeight:"700",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.nome}</h3>
-                      {f.descricao && <p style={{color:"#6b7280",fontSize:11,margin:"3px 0 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.descricao}</p>}
+                      <h3 style={{color:"#0F172A",fontSize:15,fontWeight:"700",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.nome}</h3>
+                      {f.descricao && <p style={{color:"#64748B",fontSize:11,margin:"3px 0 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.descricao}</p>}
                     </div>
                   </div>
                   <span style={{
                     display:"inline-flex",alignItems:"center",gap:4,
-                    background:f.ativo?"#dcfce7":"#f3f4f6",
-                    color:f.ativo?"#16a34a":"#6b7280",
+                    background:f.ativo?"#D1FAE5":"#F1F5F4",
+                    color:f.ativo?"#059669":"#64748B",
                     fontSize:10,padding:"3px 9px",borderRadius:20,fontWeight:"700",whiteSpace:"nowrap",
-                    border:f.ativo?"1px solid #86efac":"1px solid #e5e7eb",
+                    border:f.ativo?"1px solid #6EE7B7":"1px solid #E6ECEA",
                     flexShrink:0
                   }}>
-                    <span style={{width:6,height:6,borderRadius:"50%",background:f.ativo?"#22c55e":"#9ca3af",boxShadow:f.ativo?"0 0 0 2px #22c55e33":"none"}}/>
+                    <span style={{width:6,height:6,borderRadius:"50%",background:f.ativo?"#10B981":"#94A3B8",boxShadow:f.ativo?"0 0 0 2px #22c55e33":"none"}}/>
                     {f.ativo?"Ativo":"Inativo"}
                   </span>
                 </div>
                 <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-                  <span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f3f4f6",color:"#4b5563",fontSize:11,padding:"4px 10px",borderRadius:6,fontWeight:"500"}}>
-                    🧩 {f.nos?.length||0} blocos
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#F1F5F4",color:"#475569",fontSize:11,padding:"4px 10px",borderRadius:6,fontWeight:"500"}}>
+                    {f.nos?.length||0} blocos
                   </span>
-                  <span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f3f4f6",color:"#4b5563",fontSize:11,padding:"4px 10px",borderRadius:6,fontWeight:"500"}}>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4,background:"#F1F5F4",color:"#475569",fontSize:11,padding:"4px 10px",borderRadius:6,fontWeight:"500"}}>
                     {f.trigger_tipo==="qualquer_mensagem"?"📨 Qualquer":f.trigger_tipo==="palavra_chave"?`🔑 "${f.trigger_valor}"`:f.trigger_tipo==="primeiro_contato"?"👋 1º contato":"🕐 Fora horário"}
                   </span>
                 </div>
@@ -3073,7 +3074,7 @@ export default function FluxosPage() {
                   onMouseLeave={e=>{
                     e.currentTarget.style.transform="translateY(0)";
                     e.currentTarget.style.boxShadow="0 2px 6px rgba(139,92,246,0.25)";
-                  }}>✏️ Editar</button>
+                  }}>Editar</button>
                   <button onClick={()=>excluirFluxo(f.id!, f.nome)} style={{
                     background:"#fef2f2",color:"#ef4444",border:"1px solid #fecaca",
                     borderRadius:10,padding:"9px 14px",fontSize:13,cursor:"pointer",
@@ -3097,18 +3098,18 @@ export default function FluxosPage() {
   );
 
   return (
-    <div style={{display:"flex",height:"100vh",fontFamily:"Arial,sans-serif",background:"#f8fafc",color:"#1f2937",overflow:"hidden"}}>
+    <div style={{display:"flex",height:"100vh",fontFamily: "var(--font-wolf), system-ui, sans-serif",background:"#F3F6F5",color:"#0F172A",overflow:"hidden"}}>
 
-      <div style={{width:220,background:"#ffffff",borderRight:"1px solid #e5e7eb",display:"flex",flexDirection:"column",flexShrink:0,boxShadow:"2px 0 8px rgba(0,0,0,0.04)"}}>
-        <div style={{padding:"14px 16px",borderBottom:"1px solid #e5e7eb",display:"flex",alignItems:"center",gap:8}}>
+      <div style={{width:220,background:"#ffffff",borderRight:"1px solid #E6ECEA",display:"flex",flexDirection:"column",flexShrink:0,boxShadow:"2px 0 8px rgba(0,0,0,0.04)"}}>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid #E6ECEA",display:"flex",alignItems:"center",gap:8}}>
           <button onClick={()=>setView("lista")} style={{
-            background:"#f3f4f6",border:"none",color:"#6b7280",fontSize:14,
+            background:"#F1F5F4",border:"none",color:"#64748B",fontSize:14,
             cursor:"pointer",padding:"4px 8px",borderRadius:6,
             transition:"background .15s"
           }}
-          onMouseEnter={e=>(e.currentTarget.style.background="#e5e7eb")}
-          onMouseLeave={e=>(e.currentTarget.style.background="#f3f4f6")}>←</button>
-          <h3 style={{color:"#1f2937",fontSize:13,fontWeight:"bold",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{fluxoAtivo?.nome}</h3>
+          onMouseEnter={e=>(e.currentTarget.style.background="#E6ECEA")}
+          onMouseLeave={e=>(e.currentTarget.style.background="#F1F5F4")}>←</button>
+          <h3 style={{color:"#0F172A",fontSize:13,fontWeight:"bold",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{fluxoAtivo?.nome}</h3>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"12px 0"}}>
           {GRUPOS.map(grupo => {
@@ -3117,9 +3118,9 @@ export default function FluxosPage() {
             return (
               <div key={grupo} style={{marginBottom:6}}>
                 <button onClick={()=>setGrupoAberto(ab?"":grupo)}
-                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"8px 16px",background:"none",border:"none",cursor:"pointer",color:ab?"#1f2937":"#6b7280",fontSize:10,fontWeight:"800",textTransform:"uppercase",letterSpacing:1.2}}>
+                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"8px 16px",background:"none",border:"none",cursor:"pointer",color:ab?"#0F172A":"#64748B",fontSize:10,fontWeight:"800",textTransform:"uppercase",letterSpacing:1.2}}>
                   <span>{grupo}</span>
-                  <span style={{fontSize:8,color:ab?"#8b5cf6":"#9ca3af",transition:"transform .2s",transform:ab?"rotate(0deg)":"rotate(-90deg)"}}>▼</span>
+                  <span style={{fontSize:8,color:ab?"#8b5cf6":"#94A3B8",transition:"transform .2s",transform:ab?"rotate(0deg)":"rotate(-90deg)"}}>▼</span>
                 </button>
                 {ab && (
                   <div style={{padding:"4px 10px 6px",display:"flex",flexDirection:"column",gap:4}}>
@@ -3128,15 +3129,15 @@ export default function FluxosPage() {
                       <button key={tipo} onClick={()=>adicionarNo(tipo)}
                         style={{
                           display:"flex",alignItems:"center",gap:10,width:"100%",
-                          background:"#ffffff", border:"1px solid #e5e7eb", borderRadius:8,
-                          padding:"7px 10px", color:"#1f2937", fontSize:12, fontWeight:"500",
+                          background:"#ffffff", border:"1px solid #E6ECEA", borderRadius:8,
+                          padding:"7px 10px", color:"#0F172A", fontSize:12, fontWeight:"500",
                           cursor:"pointer",
                           textAlign:"left", boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
                           transition:"transform .12s ease, box-shadow .12s ease, border-color .12s ease",
                         }}
                         onMouseEnter={e=>{ e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.boxShadow=`0 4px 12px ${cfg.cor}22, 0 1px 3px rgba(0,0,0,0.06)`; e.currentTarget.style.borderColor=`${cfg.cor}55`; }}
-                        onMouseLeave={e=>{ e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor="#e5e7eb"; }}>
-                        <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:26,height:26,background:`${cfg.cor}15`,borderRadius:7,fontSize:14,flexShrink:0}}>{cfg.icone}</span>
+                        onMouseLeave={e=>{ e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor="#E6ECEA"; }}>
+                        <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:26,height:26,background:`${cfg.cor}15`,borderRadius:7,fontSize:14,flexShrink:0}}>{<IconeEmoji e={cfg.icone} />}</span>
                         <span style={{flex:1}}>{cfg.label}</span>
                       </button>
                     );})}
@@ -3146,20 +3147,20 @@ export default function FluxosPage() {
             );
           })}
         </div>
-        <div style={{padding:12,borderTop:"1px solid #e5e7eb",background:"#fafbfc"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#ffffff",border:"1px solid #e5e7eb",borderRadius:10,padding:"9px 12px",marginBottom:10,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
-            <span style={{color:fluxoAtivo?.ativo?"#16a34a":"#6b7280",fontSize:12,fontWeight:"600",display:"flex",alignItems:"center",gap:6}}>
-              <span style={{width:8,height:8,borderRadius:"50%",background:fluxoAtivo?.ativo?"#22c55e":"#9ca3af",boxShadow:fluxoAtivo?.ativo?"0 0 0 3px #22c55e22":"none"}}/>
+        <div style={{padding:12,borderTop:"1px solid #E6ECEA",background:"#F7FAF9"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#ffffff",border:"1px solid #E6ECEA",borderRadius:10,padding:"9px 12px",marginBottom:10,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
+            <span style={{color:fluxoAtivo?.ativo?"#059669":"#64748B",fontSize:12,fontWeight:"600",display:"flex",alignItems:"center",gap:6}}>
+              <span style={{width:8,height:8,borderRadius:"50%",background:fluxoAtivo?.ativo?"#10B981":"#94A3B8",boxShadow:fluxoAtivo?.ativo?"0 0 0 3px #22c55e22":"none"}}/>
               {fluxoAtivo?.ativo?"Ativo":"Inativo"}
             </span>
-            <button onClick={toggleAtivo} style={{width:38,height:22,background:fluxoAtivo?.ativo?"#22c55e":"#d1d5db",borderRadius:11,cursor:"pointer",border:"none",position:"relative",transition:"background .2s",boxShadow:"inset 0 1px 2px rgba(0,0,0,0.1)"}}>
+            <button onClick={toggleAtivo} style={{width:38,height:22,background:fluxoAtivo?.ativo?"#10B981":"#CBD5E1",borderRadius:11,cursor:"pointer",border:"none",position:"relative",transition:"background .2s",boxShadow:"inset 0 1px 2px rgba(0,0,0,0.1)"}}>
               <div style={{width:16,height:16,background:"white",borderRadius:"50%",position:"absolute",top:3,left:fluxoAtivo?.ativo?19:3,transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
             </button>
           </div>
           <button onClick={()=>void salvar()} disabled={salvando} style={{
             width:"100%",
             background: salvando
-              ? "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"
+              ? "linear-gradient(135deg, #64748B 0%, #475569 100%)"
               : "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
             color:"#ffffff",
             border:"none",
@@ -3188,7 +3189,7 @@ export default function FluxosPage() {
 
       <div ref={canvasRef}
         style={{flex:1,position:"relative",overflow:"hidden",cursor:panning.current?"grabbing":conectando?"crosshair":"default",touchAction:"none",
-          background:"#f8fafc"}}
+          background:"#F3F6F5"}}
         onPointerDown={onCanvasPointerDown}
         onPointerMove={onCanvasPointerMove}
         onPointerUp={onCanvasPointerUp}
@@ -3211,7 +3212,7 @@ export default function FluxosPage() {
             const o=posC(nO,a.saidaIndex), d2=posE(nD);
             const ox=o.x*scale+offset.x, oy=o.y*scale+offset.y;
             const dx=d2.x*scale+offset.x, dy=d2.y*scale+offset.y;
-            const cor=B[nO.tipo]?.cor||"#4b5563";
+            const cor=B[nO.tipo]?.cor||"#475569";
             return (
               <g key={a.id} style={{pointerEvents:"all",cursor:"pointer"}} onClick={()=>setArestas(p=>p.filter(x=>x.id!==a.id))}>
                 <path d={`M${ox} ${oy} C${ox+80*scale} ${oy} ${dx-80*scale} ${dy} ${dx} ${dy}`} stroke={cor} strokeWidth={2} fill="none" opacity={0.7}/>
@@ -3250,18 +3251,18 @@ export default function FluxosPage() {
         </div>
 
         <div style={{position:"absolute",bottom:16,left:16,display:"flex",gap:8}}>
-          <div style={{background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:"6px 12px"}}>
-            <p style={{color:"#6b7280",fontSize:10,margin:0}}>🖱️ Arraste blocos • Scroll zoom • ● conectar • Clique na linha para excluir</p>
+          <div style={{background:"#F3F6F5",border:"1px solid #ffffff",borderRadius:8,padding:"6px 12px"}}>
+            <p style={{color:"#64748B",fontSize:10,margin:0}}>Arraste blocos • Scroll zoom • ● conectar • Clique na linha para excluir</p>
           </div>
-          <div style={{background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:"6px 10px",display:"flex",gap:6,alignItems:"center"}}>
-            <button onClick={()=>{const s=Math.min(scaleRef.current*1.2,2.5);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:16}}>+</button>
-            <span style={{color:"#6b7280",fontSize:10}}>{Math.round(scale*100)}%</span>
-            <button onClick={()=>{const s=Math.max(scaleRef.current*0.8,0.2);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:16}}>−</button>
-            <button onClick={()=>{scaleRef.current=1;offsetRef.current={x:80,y:80};setScale(1);setOffset({x:80,y:80});}} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:10}}>Reset</button>
+          <div style={{background:"#F3F6F5",border:"1px solid #ffffff",borderRadius:8,padding:"6px 10px",display:"flex",gap:6,alignItems:"center"}}>
+            <button onClick={()=>{const s=Math.min(scaleRef.current*1.2,2.5);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:16}}>+</button>
+            <span style={{color:"#64748B",fontSize:10}}>{Math.round(scale*100)}%</span>
+            <button onClick={()=>{const s=Math.max(scaleRef.current*0.8,0.2);scaleRef.current=s;setScale(s);}} style={{background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:16}}>−</button>
+            <button onClick={()=>{scaleRef.current=1;offsetRef.current={x:80,y:80};setScale(1);setOffset({x:80,y:80});}} style={{background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:10}}>Reset</button>
           </div>
         </div>
-        <div style={{position:"absolute",top:16,right:noSel?285:16,background:"#f8fafc",border:"1px solid #ffffff",borderRadius:8,padding:"6px 12px"}}>
-          <p style={{color:"#6b7280",fontSize:10,margin:0}}>{nos.length} blocos • {arestas.length} conexões</p>
+        <div style={{position:"absolute",top:16,right:noSel?285:16,background:"#F3F6F5",border:"1px solid #ffffff",borderRadius:8,padding:"6px 12px"}}>
+          <p style={{color:"#64748B",fontSize:10,margin:0}}>{nos.length} blocos • {arestas.length} conexões</p>
         </div>
       </div>
 
@@ -3285,7 +3286,7 @@ export default function FluxosPage() {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: "#f8fafc",
+              background: "#F3F6F5",
               borderRadius: 12,
               border: "1px solid #ffffff",
               width: "100%",
@@ -3319,8 +3320,8 @@ export default function FluxosPage() {
                   {B[noEditando.tipo]?.icone}
                 </div>
                 <div>
-                  <h3 style={{ color: "#1f2937", fontSize: 15, fontWeight: "bold", margin: 0 }}>{B[noEditando.tipo]?.label}</h3>
-                  <p style={{ color: "#6b7280", fontSize: 11, margin: 0 }}>{B[noEditando.tipo]?.grupo}</p>
+                  <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: "bold", margin: 0 }}>{B[noEditando.tipo]?.label}</h3>
+                  <p style={{ color: "#64748B", fontSize: 11, margin: 0 }}>{B[noEditando.tipo]?.grupo}</p>
                 </div>
               </div>
               <button
@@ -3329,7 +3330,7 @@ export default function FluxosPage() {
                   background: "#ffffff",
                   border: "none",
                   borderRadius: 8,
-                  color: "#9ca3af",
+                  color: "#94A3B8",
                   width: 32,
                   height: 32,
                   cursor: "pointer",
@@ -3372,7 +3373,7 @@ export default function FluxosPage() {
             {noEditando.tipo !== "inicio" && (
               <div style={{
                 padding: "12px 18px",
-                borderTop: "1px solid #e5e7eb",
+                borderTop: "1px solid #E6ECEA",
                 display: "flex",
                 gap: 8,
                 flexShrink: 0,
@@ -3389,7 +3390,7 @@ export default function FluxosPage() {
                     cursor: "pointer",
                     fontWeight: "bold",
                   }}
-                >📋 Duplicar bloco</button>
+                >Duplicar bloco</button>
                 <button
                   onClick={() => { excluirNo(noEditando.id); setNoEditando(null); }}
                   style={{
@@ -3402,7 +3403,7 @@ export default function FluxosPage() {
                     cursor: "pointer",
                     fontWeight: "bold",
                   }}
-                >🗑️ Excluir bloco</button>
+                >Excluir bloco</button>
                 <div style={{ flex: 1 }} />
                 <button
                   onClick={() => void salvar({fecharEditor:true, avisarSucesso:true})}
@@ -3434,7 +3435,7 @@ export default function FluxosPage() {
                   disabled={salvando}
                   style={{
                     background: "#3b82f6",
-                    color: "#1f2937",
+                    color: "#0F172A",
                     border: "none",
                     borderRadius: 8,
                     padding: "10px 24px",

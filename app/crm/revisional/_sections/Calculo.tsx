@@ -59,7 +59,7 @@ export default function Calculo({ dados, alvo }: any) {
   return (
     <Page>
       <PageHeader icone="🧮" titulo="Cálculo revisional" subtitulo="Compara a taxa do contrato com a taxa média de mercado (Tabela Price)"
-        acao={<div style={{ display: "flex", gap: 8 }}>{calc.valido && <Btn variante="ghost" onClick={() => window.print()}>🖨️ Imprimir</Btn>}{contrato && <Btn onClick={salvar}>💾 Salvar no contrato</Btn>}</div>} />
+        acao={<div style={{ display: "flex", gap: 8 }}>{calc.valido && <Btn variante="ghost" onClick={() => window.print()}>Imprimir</Btn>}{contrato && <Btn onClick={salvar}>Salvar no contrato</Btn>}</div>} />
 
       {aviso && <Banner tipo={aviso.startsWith("Erro") ? "warn" : "ok"}>{aviso}</Banner>}
 
@@ -84,7 +84,7 @@ export default function Calculo({ dados, alvo }: any) {
             <Field label="Parcelas pagas" flex="1 1 100px"><input style={inputSm} inputMode="numeric" value={f.parcelas_pagas} onChange={(e) => set("parcelas_pagas", e.target.value)} /></Field>
             <Field label="Taxa média (% a.m.)" flex="1 1 140px"><input style={inputSm} inputMode="decimal" value={f.taxa_media} onChange={(e) => set("taxa_media", e.target.value)} placeholder={pctBR(cfg.modalidades.find((m: any) => m.key === f.plano)?.taxaMedia || 0)} /></Field>
           </Row>
-          <div style={{ fontSize: 12, color: "#9ca3af" }}>Informe a parcela <b>ou</b> a taxa contratada: o sistema calcula a outra. Sem taxa média, usa a da modalidade definida em Configurações.</div>
+          <div style={{ fontSize: 12, color: "#94A3B8" }}>Informe a parcela <b>ou</b> a taxa contratada: o sistema calcula a outra. Sem taxa média, usa a da modalidade definida em Configurações.</div>
         </div>
       </Card>
 
@@ -128,7 +128,7 @@ export default function Calculo({ dados, alvo }: any) {
               <div style={{ maxHeight: 420, overflowY: "auto" }}>
                 <Table cols={[{ label: "Mês" }, { label: "Juros contratado", align: "right" }, { label: "Saldo contratado", align: "right" }, { label: "Juros revisado", align: "right" }, { label: "Saldo revisado", align: "right" }]}>
                   {linhasC.map((l, k) => (
-                    <tr key={l.n} style={{ background: l.n <= (d.parcelas_pagas || 0) ? "#f0fdf4" : undefined }}>
+                    <tr key={l.n} style={{ background: l.n <= (d.parcelas_pagas || 0) ? "#ECFDF5" : undefined }}>
                       <td style={tdStyle}>{l.n}{l.n <= (d.parcelas_pagas || 0) ? " ✓" : ""}</td>
                       <td style={{ ...tdStyle, textAlign: "right" }}>{brl(l.juros)}</td>
                       <td style={{ ...tdStyle, textAlign: "right" }}>{brl(l.saldo)}</td>
@@ -138,9 +138,9 @@ export default function Calculo({ dados, alvo }: any) {
                   ))}
                 </Table>
               </div>
-            ) : <div style={{ fontSize: 13, color: "#6b7280" }}>{d.prazo} parcelas · linhas em verde são as já pagas.</div>}
+            ) : <div style={{ fontSize: 13, color: "#64748B" }}>{d.prazo} parcelas · linhas em verde são as já pagas.</div>}
           </Card>
-          <div style={{ fontSize: 11.5, color: "#9ca3af" }}>Cálculo estimativo pela Tabela Price, sem tarifas, seguros e IOF. Confira a taxa média do Banco Central da data e modalidade do contrato antes de usar em petição.</div>
+          <div style={{ fontSize: 11.5, color: "#94A3B8" }}>Cálculo estimativo pela Tabela Price, sem tarifas, seguros e IOF. Confira a taxa média do Banco Central da data e modalidade do contrato antes de usar em petição.</div>
         </>
       )}
     </Page>

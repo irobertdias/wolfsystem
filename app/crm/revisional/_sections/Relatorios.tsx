@@ -50,19 +50,19 @@ export default function Relatorios({ dados }: any) {
   ]);
 
   const chip = (k: Agrupar, l: string) => (
-    <button key={k} onClick={() => setAgrupar(k)} style={{ border: `1px solid ${agrupar === k ? C.amber : "#e5e7eb"}`, background: agrupar === k ? `${C.amber}14` : "#fff", color: agrupar === k ? C.amber : "#475569", borderRadius: 20, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{l}</button>
+    <button key={k} onClick={() => setAgrupar(k)} style={{ border: `1px solid ${agrupar === k ? C.amber : "#E6ECEA"}`, background: agrupar === k ? `${C.amber}14` : "#fff", color: agrupar === k ? C.amber : "#475569", borderRadius: 20, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{l}</button>
   );
 
   return (
     <Page>
-      <PageHeader icone="📈" titulo="Relatórios" subtitulo="Carteira de contratos agrupada como você precisar" acao={<Btn variante="ghost" onClick={exportar}>⬇️ Exportar contratos (CSV)</Btn>} />
+      <PageHeader icone="📈" titulo="Relatórios" subtitulo="Carteira de contratos agrupada como você precisar" acao={<Btn variante="ghost" onClick={exportar}>Exportar contratos (CSV)</Btn>} />
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {chip("etapa", "Por etapa")}{chip("banco", "Por banco")}{chip("modalidade", "Por modalidade")}{chip("mes", "Por mês de cadastro")}
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 12, color: "#6b7280" }}>Cadastrados de</span>
+        <span style={{ fontSize: 12, color: "#64748B" }}>Cadastrados de</span>
         <input type="date" value={de} onChange={(e) => setDe(e.target.value)} style={{ ...inputSm, width: 150 }} />
-        <span style={{ fontSize: 12, color: "#6b7280" }}>até</span>
+        <span style={{ fontSize: 12, color: "#64748B" }}>até</span>
         <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} style={{ ...inputSm, width: 150 }} />
       </div>
 
@@ -78,8 +78,8 @@ export default function Relatorios({ dados }: any) {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {ordem.map((g: any) => (
               <div key={g.nome}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#374151", marginBottom: 4 }}><span>{g.nome}</span><b style={{ color: C.green }}>{brl(g.beneficio)}</b></div>
-                <div style={{ height: 8, background: "#f3f4f6", borderRadius: 6, overflow: "hidden" }}><div style={{ width: `${(g.beneficio / max) * 100}%`, height: "100%", background: `linear-gradient(90deg, ${C.green}, #4ade80)`, borderRadius: 6 }} /></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#334155", marginBottom: 4 }}><span>{g.nome}</span><b style={{ color: C.green }}>{brl(g.beneficio)}</b></div>
+                <div style={{ height: 8, background: "#F1F5F4", borderRadius: 6, overflow: "hidden" }}><div style={{ width: `${(g.beneficio / max) * 100}%`, height: "100%", background: `linear-gradient(90deg, ${C.green}, #4ade80)`, borderRadius: 6 }} /></div>
               </div>
             ))}
           </div>

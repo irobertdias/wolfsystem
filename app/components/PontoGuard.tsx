@@ -172,8 +172,8 @@ export default function PontoGuard({ children, ativo }: { children: ReactNode; a
 
   if (status === "verificando") {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
-        <div style={{ color: "#6b7280", fontSize: 14 }}>⏳ Verificando acesso...</div>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F3F6F5" }}>
+        <div style={{ color: "#64748B", fontSize: 14 }}>Verificando acesso...</div>
       </div>
     );
   }
@@ -236,7 +236,7 @@ export default function PontoGuard({ children, ativo }: { children: ReactNode; a
             textAlign: "left",
           }}>
             <p style={{ color: "#991b1b", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>
-              ⛔ Acesso ao sistema bloqueado
+              Acesso ao sistema bloqueado
             </p>
             <p style={{ color: "#7f1d1d", fontSize: 12.5, margin: 0, lineHeight: 1.55 }}>
               Você precisa bater o ponto de entrada antes de começar a usar o sistema hoje.
@@ -264,7 +264,7 @@ export default function PontoGuard({ children, ativo }: { children: ReactNode; a
               gap: 8,
             }}
           >
-            🕐 Bater Ponto Agora
+            Bater Ponto Agora
           </button>
 
           {/* Sair */}

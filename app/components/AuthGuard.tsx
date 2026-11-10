@@ -128,15 +128,15 @@ export default function AuthGuard({
     return (
       <div style={{
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        minHeight: "100vh", background: "#f8fafc", gap: 12,
+        minHeight: "100vh", background: "#F3F6F5", gap: 12,
       }}>
         <div style={{
           width: 48, height: 48, borderRadius: 12,
-          background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+          background: "linear-gradient(135deg, #10B981 0%, #047857 100%)",
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
-          boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+          boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
         }}>🔒</div>
-        <p style={{ color: "#6b7280", fontSize: 13, margin: 0, fontWeight: 600 }}>Verificando acesso...</p>
+        <p style={{ color: "#64748B", fontSize: 13, margin: 0, fontWeight: 600 }}>Verificando acesso...</p>
       </div>
     );
   }
