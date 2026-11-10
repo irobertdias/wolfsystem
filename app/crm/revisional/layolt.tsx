@@ -9,6 +9,7 @@ import Calculo from "./_sections/Calculo";
 import Honorarios from "./_sections/Honorarios";
 import Relatorios from "./_sections/Relatorios";
 import ConfigRevisional from "./_sections/ConfigRevisional";
+import Clientes from "./_sections/Clientes";
 
 import Icone from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
@@ -20,9 +21,10 @@ type Item = { key: string; label: string; icone: string; soGestor?: boolean };
 type Grupo = { nome: string; itens: Item[] };
 
 const GRUPOS: Grupo[] = [
-  { nome: "Visão geral", itens: [
-    { key: "painel",    label: "Painel",    icone: "grafico" },
-    { key: "andamento", label: "Andamento", icone: "pasta" },
+  { nome: "CRM", itens: [
+    { key: "painel",    label: "Painel financeiro", icone: "grafico" },
+    { key: "andamento", label: "Funil",             icone: "funil" },
+    { key: "clientes",  label: "Clientes",          icone: "usuarios" },
   ]},
   { nome: "Contratos", itens: [
     { key: "contratos", label: "Contratos dos clientes", icone: "documento" },
@@ -45,6 +47,7 @@ const SECTIONS: Record<string, React.ComponentType<any>> = {
   honorarios: Honorarios,
   relatorios: Relatorios,
   config: ConfigRevisional,
+  clientes: Clientes,
 };
 
 const LABELS: Record<string, string> = Object.fromEntries(GRUPOS.flatMap((g) => g.itens.map((i) => [i.key, i.label])));
@@ -142,8 +145,8 @@ export default function RevisionalLayolt() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 12px 4px" }}>
             <span style={{ width: 32, height: 32, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="balanca" tamanho={17} /></span>
             <span style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ fontWeight: 800, color: "#0F172A", fontSize: 16 }}>Revisional</span>
-              <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 600 }}>Contratos financeiros</span>
+              <span style={{ fontWeight: 800, color: "#0F172A", fontSize: 16 }}>CRM</span>
+              <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 600 }}>Revisão de contratos</span>
             </span>
           </div>
           {grupos}

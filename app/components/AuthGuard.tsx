@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import AvisoPropostaAceita from "./AvisoPropostaAceita";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔒 AUTH GUARD — Wolf System
@@ -156,7 +157,7 @@ export default function AuthGuard({
     return null;
   }
 
-  return <>{children}<FaixaSuporte /></>;
+  return <>{children}<FaixaSuporte />{!requireSuperAdmin && <AvisoPropostaAceita />}</>;
 }
 
 // Selo discreto quando o super admin está no workspace de um cliente pelo "Acessar como cliente".

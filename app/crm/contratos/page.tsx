@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { usePermissao } from "../../hooks/usePermissao";
@@ -10,6 +10,7 @@ import { empresaDoContrato, representantePadrao, formatarCnpj, type EmpresaContr
 
 import { opcoesAssinatura, type OpcoesAssinatura } from "../../lib/assinatura-opcoes";
 import VisualizadorContrato from "./VisualizadorContrato";
+import { textoContratoRevisional } from "../../lib/revisional-contrato";
 import { lerPdfAssinado, nomePdfAssinado } from "../../lib/contrato-pdf";
 
 import { IconeEmoji } from "../../components/a2/Icone";
@@ -183,6 +184,40 @@ export default function ContratosPage() {
 
   useEffect(() => { void carregar(1); }, [carregar]);
 
+  // Vindo de uma proposta revisional aceita (/crm/contratos?revisional=<id>):
+  // abre o novo contrato já com cliente, assinante e texto preenchidos.
+  useEffect(() => {
+    if (!workspaceId || !permitido || !podeCriar || revisionalTratada.current) return;
+    const id = new URLSearchParams(window.location.search).get("revisional") || "";
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return;
+    revisionalTratada.current = true;
+    (async () => {
+      try {
+        const lista = await (await requisicao(`/api/revisional/propostas?workspace=${encodeURIComponent(workspaceId)}`)).json();
+        const p = (lista.propostas || []).find((x: any) => x.id === id);
+        if (!p) throw new Error("Proposta não encontrada ou sem acesso");
+        if (p.status !== "aceita") throw new Error("Essa proposta ainda não foi aceita pelo cliente");
+        let crmId = p.dados?.crm_proposta_id;
+        if (!crmId) {
+          const r = await (await requisicao(`/api/revisional/propostas/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspace: workspaceId, acao: "cliente_crm" }) })).json();
+          crmId = r.crm_proposta_id;
+        }
+        propostaRevisionalRef.current = id;
+        await abrirNovoContrato({
+          origem: crmId ? "crm" : "avulso",
+          proposta_id: crmId ? String(crmId) : "",
+          nome: p.cliente_nome || "",
+          cpf: (p.cliente_documento || "").replace(/\D/g, ""),
+          telefone: (p.cliente_telefone || "").replace(/\D/g, ""),
+          titulo: "Contrato de prestação de serviços — Revisão contratual",
+          conteudo: textoContratoRevisional(p, lista.config || {}),
+        });
+        window.history.replaceState(null, "", "/crm/contratos");
+      } catch (e: any) { setErro(e.message || "Não foi possível preparar o contrato da proposta"); }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId, permitido, podeCriar]);
+
   const cards = useMemo(() => [
     { key: "todos" as const, icon: "📄", label: "Contratos gerados", value: resumo.total, note: "Todos os documentos", color: "blue" },
     { key: "assinados" as const, icon: "✅", label: "Assinados", value: resumo.assinados, note: "Concluídos com auditoria", color: "green" },
@@ -191,7 +226,11 @@ export default function ContratosPage() {
     { key: "problemas" as const, icon: "⚠️", label: "Recusados / erros", value: resumo.problemas, note: "Precisam de atenção", color: "red" },
   ], [resumo]);
 
-  async function abrirNovoContrato() {
+  // Proposta revisional aceita que originou este contrato (marca "contrato gerado" ao enviar).
+  const propostaRevisionalRef = useRef<string>("");
+  const revisionalTratada = useRef(false);
+
+  async function abrirNovoContrato(preenchido?: Partial<FormContrato>) {
     setErro(""); setEditando(null);
     try {
       const response = await requisicao(`/api/contratos/clientes?workspaceId=${encodeURIComponent(workspaceId)}`);
@@ -205,7 +244,21 @@ export default function ContratosPage() {
       if (!reps.length) throw new Error("Cadastre uma empresa e ao menos um representante antes de criar contratos");
       setEmpresas(lista); setRepresentantes(reps);
       const primeira = lista.find(e => e.representantes.length);
-      setFormContrato({ ...FORM_INICIAL, empresa_id: primeira?.id || "", representante_id: String(representantePadrao(primeira)?.id || ""), canal_id: String(data.conexoes?.find((c: Conexao) => c.status === "conectado")?.id || data.conexoes?.[0]?.id || "") });
+      const base = { ...FORM_INICIAL, empresa_id: primeira?.id || "", representante_id: String(representantePadrao(primeira)?.id || ""), canal_id: String(data.conexoes?.find((c: Conexao) => c.status === "conectado")?.id || data.conexoes?.[0]?.id || "") };
+      const p0 = preenchido;
+      if (p0?.proposta_id) {
+        // completa com o que o CRM tem (e-mail costuma estar lá)
+        const cli = (data.clientes || []).find((c: ClienteCRM) => String(c.id) === String(p0.proposta_id));
+        if (cli) preenchido = { ...p0, email: p0.email || cli.email || "", telefone: p0.telefone || cli.telefone1 || cli.telefone2 || "" };
+        else preenchido = { ...p0, origem: "avulso" };
+      }
+      // Texto vindo da proposta sem nome/CNPJ da empresa: usa a empresa escolhida aqui.
+      if (preenchido?.conteudo && primeira) {
+        preenchido = { ...preenchido, conteudo: preenchido.conteudo
+          .replace("[NOME DA EMPRESA]", primeira.razao_social || primeira.nome_fantasia || "[NOME DA EMPRESA]")
+          .replace("[CNPJ]", formatarCnpj(primeira.cnpj) || "[CNPJ]") };
+      }
+      setFormContrato({ ...base, ...(preenchido || {}) });
       setCriando(true);
     } catch (e: any) { setErro(e.message || "Não foi possível preparar o novo contrato"); }
   }
@@ -417,6 +470,13 @@ export default function ContratosPage() {
       });
       const data = await response.json();
       const eraEdicao = Boolean(editando);
+      if (!eraEdicao && propostaRevisionalRef.current) {
+        await requisicao(`/api/revisional/propostas/${propostaRevisionalRef.current}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspace: workspaceId, acao: "contrato_gerado" }),
+        }).catch(() => undefined);
+        propostaRevisionalRef.current = "";
+      }
       setCriando(false); setEditando(null); await carregar(1, true);
       const avisos: string[] = [];
       const entregaAtual = data.entrega || data.entregas?.[0];
@@ -471,7 +531,7 @@ export default function ContratosPage() {
         </div>
         <div className={styles.headerActions}>
           {podeConfigurar && <button className={styles.refreshButton} onClick={() => router.push("/crm/contratos/configuracoes")}>Empresas e representantes</button>}
-          {podeCriar && <button className={styles.newButton} onClick={abrirNovoContrato}>＋ Novo contrato</button>}
+          {podeCriar && <button className={styles.newButton} onClick={() => abrirNovoContrato()}>＋ Novo contrato</button>}
           <button className={styles.refreshButton} onClick={() => carregar(paginacao.pagina, true)} disabled={atualizando}>
             <span className={atualizando ? styles.spin : ""}>↻</span> {atualizando ? "Atualizando" : "Atualizar"}
           </button>

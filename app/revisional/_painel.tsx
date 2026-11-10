@@ -580,7 +580,7 @@ function ListaPropostas({ propostas, config, onMudou }: { propostas: PropostaLis
           const total = p.tipo === "imovel" ? p.resultado.diferenca_total : p.resultado.economia_total;
           const aberta = p.status === "enviada" || p.status === "visualizada";
           return (
-            <div key={p.id} className="flex flex-wrap items-center gap-3.5 border-t border-[#F1F5F4] px-[18px] py-4 transition hover:bg-[#F7FAF9]">
+            <div key={p.id} className={`flex flex-wrap items-center gap-3.5 border-t border-[#F1F5F4] px-[18px] py-4 transition hover:bg-[#F7FAF9] ${p.status === "aceita" && !p.dados?.contrato_gerado ? "bg-[#FFFBEB]" : ""}`}>
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#D1FAE5] to-[#A7F3D0] text-[13px] font-extrabold text-[#065F46]">{iniciais(p.cliente_nome)}</div>
               <div className="min-w-[200px] flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -602,6 +602,9 @@ function ListaPropostas({ propostas, config, onMudou }: { propostas: PropostaLis
                 <div className="text-[12px] text-[#94A3B8]">parcela {brl(p.dados?.parcela_atual)} → {brl(p.resultado.parcela_corrigida)}</div>
               </div>
               <div className="flex flex-wrap gap-1.5">
+                {p.status === "aceita" && (p.dados?.contrato_gerado
+                  ? <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF5] px-3 py-1.5 text-[12.5px] font-bold text-[#047857]"><Icone nome="check" tamanho={13} />Contrato gerado</span>
+                  : <a href={`/crm/contratos?revisional=${p.id}`} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] px-3.5 py-2 text-[13px] font-extrabold text-white shadow-[0_10px_20px_-10px_rgba(5,150,105,.8)]"><Icone nome="documento" tamanho={14} />Gerar contrato</a>)}
                 <button onClick={() => navigator.clipboard.writeText(p.link)} className={botaoSec}><Icone nome="copiar" tamanho={13} />Copiar link</button>
                 <button onClick={() => void baixarPdfProposta({ ...p, cliente_documento: formatarDocumento(p.cliente_documento), empresa: p.empresa || {}, criada_em: p.created_at }).catch(() => alert("Não foi possível gerar o PDF"))} className={botaoSec}><Icone nome="download" tamanho={13} />PDF</button>
                 <a href={linkWhats(p.cliente_telefone, mensagemCliente(p.cliente_nome, p.link, Math.max(1, Math.round((new Date(p.expira_em).getTime() - Date.now()) / 3600_000))))} target="_blank" rel="noreferrer" className={`${botaoSec} !bg-[#ECFDF5] !text-[#047857] hover:!bg-[#D1FAE5]`}><Icone nome="whatsapp" tamanho={13} />WhatsApp</a>

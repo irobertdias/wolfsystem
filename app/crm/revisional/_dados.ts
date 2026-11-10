@@ -183,6 +183,13 @@ export function calcular(d: DadosRevisional, modalidade: string | null | undefin
   };
 }
 
+// Benefício do contrato: o cálculo do CRM quando os dados estão completos; senão,
+// o valor da análise da proposta aceita que originou o contrato.
+export function beneficioDoContrato(c: Contrato, calc: Calculo): number {
+  if (calc.valido) return calc.beneficio;
+  return Number(c.dados_customizados?.revisional_proposta?.beneficio) || 0;
+}
+
 // Honorários previstos de um contrato: entrada + % de êxito sobre o benefício.
 export function honorariosPrevistos(d: DadosRevisional, calc: Calculo, cfg: ConfigRevisional) {
   const entrada = d.honorarios_entrada ?? cfg.honorarios_entrada;

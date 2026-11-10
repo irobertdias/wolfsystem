@@ -28,7 +28,7 @@ export default function Andamento({ dados, ir, alvo }: any) {
 
   return (
     <Page>
-      <PageHeader icone="🗂️" titulo="Andamento dos contratos" subtitulo="Arraste o cartão para mudar a etapa · clique para abrir a ficha"
+      <PageHeader icone="🗂️" titulo="Funil" subtitulo="Arraste o cartão para mudar a etapa · clique para abrir o contrato"
         acao={<div style={{ display: "flex", gap: 8 }}><Btn variante="ghost" onClick={carregar}>Atualizar</Btn><Btn onClick={() => ir("contratos", { novo: true })}>＋ Novo contrato</Btn></div>} />
 
       <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12, opacity: movendo ? 0.6 : 1, transition: "opacity .15s" }}>
@@ -43,9 +43,9 @@ export default function Andamento({ dados, ir, alvo }: any) {
               onDragOver={(ev) => { ev.preventDefault(); setSobre(e.key); }}
               onDragLeave={() => setSobre((s) => (s === e.key ? null : s))}
               onDrop={(ev) => { ev.preventDefault(); setSobre(null); if (arrastando) mover(arrastando, e.key); setArrastando(null); }}
-              style={{ flex: "0 0 270px", background: destaque ? `${e.cor}0d` : "#f1f5f9", border: `1px solid ${destaque ? e.cor + "66" : "#E6ECEA"}`, borderRadius: 14, display: "flex", flexDirection: "column", maxHeight: "calc(100vh - 230px)", transition: "all .15s" }}
+              style={{ flex: "0 0 270px", background: destaque ? "#ECFDF5" : "#EEF2F1", boxShadow: destaque ? "inset 0 0 0 2px #6EE7B7" : "none", borderRadius: 18, display: "flex", flexDirection: "column", maxHeight: "calc(100vh - 230px)", transition: "all .15s" }}
             >
-              <div style={{ padding: "12px 14px", borderBottom: "1px solid #E6ECEA", borderRadius: "14px 14px 0 0", background: "#fff" }}>
+              <div style={{ padding: "12px 14px 8px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <b style={{ fontSize: 13, color: "#0F172A" }}>{<IconeEmoji e={e.icone} />} {e.label}</b>
                   <span style={{ fontSize: 12, fontWeight: 800, color: e.cor, background: `${e.cor}14`, borderRadius: 20, padding: "2px 9px" }}>{itens.length}</span>
@@ -64,12 +64,12 @@ export default function Andamento({ dados, ir, alvo }: any) {
                       onDragStart={() => setArrastando(c.id)}
                       onDragEnd={() => { setArrastando(null); setSobre(null); }}
                       onClick={() => ir("contratos", { contratoId: c.id })}
-                      style={{ background: "#fff", border: "1px solid #E6ECEA", borderLeft: `3px solid ${e.cor}`, borderRadius: 10, padding: "10px 12px", cursor: "grab", boxShadow: "0 1px 2px rgba(0,0,0,0.04)", opacity: arrastando === c.id ? 0.5 : 1 }}
+                      style={{ background: "#fff", borderRadius: 14, padding: "11px 13px", cursor: "grab", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 8px 18px -12px rgba(16,24,40,.22)", opacity: arrastando === c.id ? 0.5 : 1 }}
                     >
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 2 }}>{c.nome}</div>
                       <div style={{ fontSize: 12, color: "#64748B" }}>{c.operadora || "Sem banco"}</div>
                       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 12 }}>
-                        <span style={{ color: calc.abusiva ? C.red : "#94A3B8", fontWeight: calc.abusiva ? 700 : 400 }}>{calc.valido ? `${calc.taxaContratada.toFixed(2)}% a.m.${calc.abusiva ? " 🚩" : ""}` : "sem cálculo"}</span>
+                        <span style={{ color: calc.abusiva ? C.red : "#94A3B8", fontWeight: calc.abusiva ? 700 : 400 }}>{calc.valido ? `${calc.taxaContratada.toFixed(2)}% a.m.${calc.abusiva ? " · acima da média" : ""}` : "sem cálculo"}</span>
                         <b style={{ color: C.green }}>{calc.valido ? brl(calc.beneficio) : ""}</b>
                       </div>
                       <select
@@ -79,7 +79,7 @@ export default function Andamento({ dados, ir, alvo }: any) {
                         style={{ marginTop: 8, width: "100%", fontSize: 11.5, border: "1px solid #E6ECEA", borderRadius: 7, padding: "4px 6px", color: "#475569", background: "#F7FAF9" }}
                         title="Mover para outra etapa"
                       >
-                        {ETAPAS.map((x) => <option key={x.key} value={x.key}>{x.icone} {x.label}</option>)}
+                        {ETAPAS.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
                       </select>
                     </div>
                   );

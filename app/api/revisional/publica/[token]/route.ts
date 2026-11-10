@@ -2,13 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "../../../_auth";
 import { mascararDocumento } from "../../../../lib/revisional";
 import { SEM_CACHE, statusEfetivo, tokenValido } from "../../_shared";
+import { linhaCrmDaProposta } from "../../../../lib/revisional-contrato";
 
 // Página pública do cliente: sem login, o token do link é a credencial.
 
 async function buscar(token: string) {
   const { data, error } = await supabaseServer
     .from("revisional_propostas")
-    .select("id,numero,tipo,status,cliente_nome,cliente_documento,consultor_nome,dados,resultado,empresa,expira_em,visualizada_em,respondida_em,created_at")
+    .select("id,workspace_id,numero,tipo,status,cliente_nome,cliente_documento,cliente_telefone,consultor_nome,dados,resultado,empresa,expira_em,visualizada_em,respondida_em,created_at")
     .eq("token", token)
     .maybeSingle();
   if (error) throw error;
@@ -85,6 +86,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     }).eq("id", p.id).in("status", ["enviada", "visualizada"]).gt("expira_em", agora).select("id");
     if (error) throw error;
     if (!atualizada?.length) return NextResponse.json({ success: false, error: "Esta proposta não pode mais ser respondida" }, { status: 409 });
+
+    // Aceite: o cliente já entra no CRM financeiro (etapa Documentação) para o
+    // vendedor gerar o contrato. Falha aqui não desfaz o aceite.
+    if (acao === "aceita") {
+      try {
+        const { data: crm, error: erroCrm } = await supabaseServer.from("proposta")
+          .insert([linhaCrmDaProposta(p as any, p.workspace_id)]).select("id").single();
+        if (erroCrm) throw erroCrm;
+        await supabaseServer.from("revisional_propostas")
+          .update({ dados: { ...(p.dados || {}), crm_proposta_id: crm.id } }).eq("id", p.id);
+      } catch (e: any) {
+        console.error("[revisional/aceite] cliente não criado no CRM:", e?.message || e);
+      }
+    }
     return NextResponse.json({ success: true, status: acao, respondida_em: agora }, { headers: SEM_CACHE });
   } catch {
     return NextResponse.json({ success: false, error: "Serviço temporariamente indisponível" }, { status: 502 });
