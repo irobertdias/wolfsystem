@@ -74,6 +74,8 @@ const DE_EMOJI: Record<string, string> = {
   "📢": "megafone", "📣": "megafone", "🤖": "robo", "🛡️": "escudo", "🔒": "cadeado", "🔐": "cadeado", "🔑": "cadeado",
   "⚠️": "alerta", "🚨": "alerta", "❗": "alerta", "ℹ️": "info", "💡": "info", "❓": "info",
   "📁": "pasta", "📂": "pasta", "🗂️": "pasta", "🏷️": "tag", "⚖️": "balanca", "📎": "link", "📦": "pasta",
+  "🏠": "predio", "🏡": "predio", "📐": "balanca", "🧮": "grafico", "🤝": "usuarios", "🏥": "escudo", "🩺": "escudo",
+  "🌴": "estrela", "🎁": "estrela", "🎓": "estrela", "🚧": "relogio", "🔴": "alerta", "🟢": "check",
   "➕": "mais", "🧬": "grafico", "♾️": "atualizar", "🎉": "estrela", "👋": "usuario", "🙋": "usuario",
 };
 export function nomeDoEmoji(e?: string | null): string | null {

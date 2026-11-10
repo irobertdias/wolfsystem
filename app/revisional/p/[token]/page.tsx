@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { brl, pctBR } from "../../../lib/revisional";
 import { baixarPdfProposta } from "../../../lib/revisional-pdf";
 
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 type Proposta = {
   numero: string;
   tipo: "imovel" | "veiculo";
@@ -43,14 +43,14 @@ function useContagem(alvo: number, duracao = 1400) {
 
 /* ---------- peças visuais ---------- */
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`break-inside-avoid rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)] print:shadow-none ${className}`}>{children}</div>;
+  return <div className={`break-inside-avoid rounded-[22px] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_14px_32px_-18px_rgba(16,24,40,.22)] print:shadow-none ${className}`}>{children}</div>;
 }
 
 function Titulo({ icone, children }: { icone: string; children: React.ReactNode }) {
   return (
     <div className="mb-4 flex items-center gap-2.5">
-      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-[16px]">{<IconeEmoji e={icone} />}</span>
-      <h2 className="text-[15px] font-bold text-slate-800">{children}</h2>
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><IconeEmoji e={icone} tamanho={17} /></span>
+      <h2 className="text-[16px] font-extrabold text-slate-900">{children}</h2>
     </div>
   );
 }
@@ -82,7 +82,7 @@ function Contador({ expiraEm, deslocamento, onExpirar }: { expiraEm: string; des
             {i > 0 && <span className="text-amber-400">:</span>}
             <div className="min-w-[42px] rounded-xl bg-white px-1.5 py-1 text-center shadow-sm ring-1 ring-amber-200">
               <div className="text-[18px] font-bold leading-none text-amber-700 tabular-nums">{v}</div>
-              <div className="mt-0.5 font-sans text-[9px] uppercase text-amber-500">{u}</div>
+              <div className="mt-0.5 font-sans text-[11px] text-amber-500">{u}</div>
             </div>
           </div>
         ))}
@@ -121,7 +121,7 @@ function Rosca({ partes }: { partes: { rotulo: string; valor: number; cor: strin
 function Linha({ icone, rotulo, valor, destaque }: { icone: string; rotulo: string; valor: string; destaque?: string }) {
   return (
     <div className="flex items-center gap-3 py-2.5">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-[14px]">{<IconeEmoji e={icone} />}</span>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-500"><IconeEmoji e={icone} tamanho={16} /></span>
       <span className="flex-1 text-[13px] text-slate-600">{rotulo}</span>
       <span className={`text-[14px] font-bold tabular-nums ${destaque || "text-slate-800"}`}>{valor}</span>
     </div>
@@ -210,7 +210,7 @@ export default function PropostaRevisionalPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
         <Card className="max-w-sm text-center">
-          <div className="text-3xl">🔒</div>
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600"><Icone nome="cadeado" tamanho={26} /></div>
           <div className="mt-2 text-lg font-bold text-slate-800">Proposta indisponível</div>
           <p className="mt-1 text-sm text-slate-500">{erro}</p>
         </Card>
@@ -233,10 +233,10 @@ export default function PropostaRevisionalPage() {
         {/* topo */}
         <div className="mb-4 flex items-center justify-between text-[12px]">
           <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-[15px] text-white shadow-md shadow-emerald-600/30">⚖️</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-800 text-white shadow-md shadow-emerald-600/30"><Icone nome="balanca" tamanho={17} /></span>
             <div className="leading-tight">
               <div className="font-bold text-slate-800">{proposta.empresa?.nome || "Análise contratual"}</div>
-              {proposta.empresa?.cnpj && <div className="text-[10px] text-slate-500">CNPJ {proposta.empresa.cnpj}</div>}
+              {proposta.empresa?.cnpj && <div className="text-[11.5px] text-slate-500">CNPJ {proposta.empresa.cnpj}</div>}
             </div>
           </div>
           <span className="rounded-full bg-white/80 px-2.5 py-1 font-mono text-[11px] text-slate-500 ring-1 ring-slate-200">nº {proposta.numero}</span>
@@ -255,7 +255,7 @@ export default function PropostaRevisionalPage() {
             <div className="mt-5 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
               {[["Cliente", proposta.cliente_nome], ["CPF/CNPJ", proposta.cliente_documento || "—"], ["Consultor", proposta.consultor_nome], ["Data", dataBR(proposta.criada_em)]].map(([k, v]) => (
                 <div key={k} className="min-w-0 rounded-2xl bg-white/10 px-3 py-2 backdrop-blur">
-                  <div className="text-[9px] uppercase tracking-wider text-emerald-100/80">{k}</div>
+                  <div className="text-[11px]r text-emerald-100/80">{k}</div>
                   <div className="truncate font-semibold">{v}</div>
                 </div>
               ))}
@@ -266,7 +266,7 @@ export default function PropostaRevisionalPage() {
         <div className="mt-4 space-y-4">
           {aberta && <Contador expiraEm={proposta.expira_em} deslocamento={deslocamento} onExpirar={onExpirar} />}
           {proposta.status === "expirada" && (
-            <div className="rounded-3xl border border-slate-200 bg-white px-4 py-4 text-center text-[13px] text-slate-600">
+            <div className="rounded-[22px] bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),0_14px_32px_-18px_rgba(16,24,40,.22)] px-4 py-4 text-center text-[13px] text-slate-600">
               Esta proposta expirou em {new Date(proposta.expira_em).toLocaleString("pt-BR")}. Fale com seu consultor para renovar.
             </div>
           )}
@@ -276,12 +276,12 @@ export default function PropostaRevisionalPage() {
             <Titulo icone="💳">Sua parcela</Titulo>
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
               <div className="min-w-0 rounded-2xl bg-red-50 px-2 py-4 text-center ring-1 ring-red-100 sm:px-4">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-red-500">Hoje você paga</div>
+                <div className="text-[11px] font-semibold text-red-500">Hoje você paga</div>
                 <div className="mt-1 text-[17px] font-extrabold text-red-500 line-through decoration-red-300 decoration-2 tabular-nums min-[400px]:text-[20px] sm:text-[26px]">{brl(d.parcela_atual)}</div>
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md sm:h-9 sm:w-9">→</div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md sm:h-9 sm:w-9"><Icone nome="seta" tamanho={16} espessura={2.4} /></div>
               <div className="min-w-0 rounded-2xl bg-emerald-50 px-2 py-4 text-center ring-2 ring-emerald-500 sm:px-4">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Valor corrigido</div>
+                <div className="text-[11px] font-semibold text-emerald-700">Valor corrigido</div>
                 <div className="mt-1 text-[17px] font-extrabold text-emerald-600 tabular-nums min-[400px]:text-[20px] sm:text-[26px]">{brl(r.parcela_corrigida)}</div>
               </div>
             </div>
@@ -330,7 +330,7 @@ export default function PropostaRevisionalPage() {
               <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                 {[["Já pago em juros", r.juros_pagos, "text-red-500"], ["Em amortização", r.amortizacao_corrigida, "text-emerald-600"], ["Total pago", r.media_total, "text-slate-800"]].map(([k, v, cor]) => (
                   <div key={k as string} className="rounded-2xl bg-slate-50 px-2 py-3">
-                    <div className="text-[10px] font-semibold uppercase leading-tight text-slate-500">{k}</div>
+                    <div className="text-[11.5px] font-semibold leading-tight text-slate-500">{k}</div>
                     <div className={`mt-1 text-[13px] font-extrabold tabular-nums sm:text-[15px] ${cor}`}>{brl(v as number)}</div>
                   </div>
                 ))}
@@ -358,7 +358,7 @@ export default function PropostaRevisionalPage() {
               )}
             </div>
             <div className="mt-3 flex items-center justify-between rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-4 text-white">
-              <span className="text-[13px] font-semibold uppercase tracking-wide opacity-90">{imovel ? "Diferença total" : "Economia total"}</span>
+              <span className="text-[13px] font-semibold opacity-90">{imovel ? "Diferença total" : "Economia total"}</span>
               <span className="text-[24px] font-black tabular-nums">{brl(total)}</span>
             </div>
             <div className="mt-3 grid grid-cols-1 gap-2 min-[480px]:grid-cols-3">
@@ -367,8 +367,8 @@ export default function PropostaRevisionalPage() {
                 : [["💳", "Parcela corrigida", r.parcela_corrigida], ["📉", "Economia por parcela", r.reducao_parcela], ["🎯", "Redução total", r.reducao_total]]
               ).map(([ic, k, v]) => (
                 <div key={k as string} className="rounded-2xl border border-emerald-100 bg-emerald-50/60 px-3 py-3 text-center">
-                  <div className="text-[16px]">{ic}</div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700/80">{k}</div>
+                  <div className="mb-1 flex justify-center text-emerald-600"><IconeEmoji e={ic as string} tamanho={18} /></div>
+                  <div className="text-[11.5px] font-semibold text-emerald-700/80">{k}</div>
                   <div className="mt-0.5 text-[17px] font-extrabold text-emerald-700 tabular-nums">{brl(v as number)}</div>
                 </div>
               ))}
@@ -378,8 +378,8 @@ export default function PropostaRevisionalPage() {
           {/* contrato */}
           <Card className="py-0">
             <button onClick={() => setVerContrato((v) => !v)} className="flex w-full items-center justify-between py-4 text-left">
-              <span className="flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50">📄</span><b className="text-[15px]">Dados do contrato</b></span>
-              <span className={`text-slate-400 transition print:hidden ${verContrato ? "rotate-180" : ""}`}>⌄</span>
+              <span className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><Icone nome="documento" tamanho={17} /></span><b className="text-[15px]">Dados do contrato</b></span>
+              <span className={`flex text-slate-400 transition print:hidden ${verContrato ? "rotate-180" : ""}`}><Icone nome="baixo" tamanho={18} /></span>
             </button>
             {(
               <div className={`${verContrato ? "grid" : "hidden"} gap-x-6 border-t border-slate-100 pb-4 pt-2 text-[13px] sm:grid-cols-2 print:grid print:grid-cols-2`}>
@@ -401,7 +401,7 @@ export default function PropostaRevisionalPage() {
 
           {proposta.status === "aceita" && (
             <div className="rounded-3xl border border-emerald-200 bg-white p-6 text-center shadow-sm">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-2xl text-white shadow-lg shadow-emerald-600/30">✓</div>
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"><Icone nome="check" tamanho={26} espessura={2.6} /></div>
               <div className="mt-3 text-[18px] font-extrabold text-emerald-700">Proposta aceita!</div>
               <p className="mt-1 text-[13px] text-slate-600">Recebemos seu aceite{proposta.respondida_em ? ` em ${new Date(proposta.respondida_em).toLocaleString("pt-BR")}` : ""}. Seu consultor vai entrar em contato com os próximos passos.</p>
               {zap && (
@@ -411,16 +411,16 @@ export default function PropostaRevisionalPage() {
               )}
             </div>
           )}
-          <button onClick={baixarPdf} disabled={gerandoPdf} className="flex w-full items-center justify-center gap-2.5 rounded-3xl border border-slate-200 bg-white py-4 text-[14px] font-bold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-60 print:hidden">
-            <span className="flex h-7 w-9 items-center justify-center rounded-lg bg-red-50 text-[10px] font-black tracking-wide text-red-600">PDF</span>
+          <button onClick={baixarPdf} disabled={gerandoPdf} className="flex w-full items-center justify-center gap-2.5 rounded-[22px] bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),0_14px_32px_-18px_rgba(16,24,40,.22)] py-4 text-[14px] font-bold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-60 print:hidden">
+            <span className="flex h-7 w-9 items-center justify-center rounded-lg bg-red-50 text-[11.5px] font-black tracking-wide text-red-600">PDF</span>
             {gerandoPdf ? "Gerando PDF…" : "Baixar PDF da proposta"}
           </button>
 
           {proposta.status === "recusada" && (
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 text-center text-[13px] text-slate-600">Proposta recusada. Se mudar de ideia, fale com seu consultor.</div>
+            <div className="rounded-[22px] bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),0_14px_32px_-18px_rgba(16,24,40,.22)] p-5 text-center text-[13px] text-slate-600">Proposta recusada. Se mudar de ideia, fale com seu consultor.</div>
           )}
 
-          <div className="space-y-2 px-1 text-center text-[10px] leading-relaxed text-slate-400">
+          <div className="space-y-2 px-1 text-center text-[11.5px] leading-relaxed text-slate-400">
             <p>Arts. 42, 43 e 51 da Lei nº 8.078/1990 (Código de Defesa do Consumidor). Valores estimados com base nos dados informados, sujeitos à análise do contrato.{taxaMedia ? " Taxa média de mercado: Banco Central do Brasil (SGS)." : ""}</p>
           </div>
         </div>
@@ -434,7 +434,7 @@ export default function PropostaRevisionalPage() {
               <div className="grid grid-cols-[1fr_2fr] gap-2.5">
                 <button disabled={enviando} onClick={() => setConfirmarRecusa(true)} className="rounded-2xl border border-slate-200 bg-white py-3.5 text-[14px] font-semibold text-slate-500 hover:bg-slate-50 disabled:opacity-50">Recusar</button>
                 <button disabled={enviando} onClick={() => responder("aceitar")} className="rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3.5 text-[15px] font-bold text-white shadow-lg shadow-emerald-600/30 transition hover:brightness-105 disabled:opacity-50">
-                  {enviando ? "Registrando…" : "✓ Aceitar proposta"}
+                  <span className="inline-flex items-center justify-center gap-2">{!enviando && <Icone nome="check" tamanho={17} espessura={2.5} />}{enviando ? "Registrando…" : "Aceitar proposta"}</span>
                 </button>
               </div>
             ) : (
