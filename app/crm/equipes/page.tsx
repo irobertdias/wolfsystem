@@ -51,15 +51,12 @@ export default function EquipesPage() {
 
   // 🎨 ESTILOS LIGHT TECH (mesmo padrão das outras páginas)
   const inputStyle = {
-    width: "100%", background: "#ffffff", border: "1px solid #E6ECEA",
-    borderRadius: 10, padding: "9px 12px", color: "#0F172A", fontSize: 13,
+    width: "100%", background: "#F7FAF9", border: "1px solid #E6ECEA",
+    borderRadius: 12, padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600,
     boxSizing: "border-box" as const, outline: "none",
     transition: "border-color 0.15s, box-shadow 0.15s",
   };
-  const cardStyle = {
-    background: "#ffffff", borderRadius: 14, border: "1px solid #E6ECEA",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-  };
+  const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
   const fetchTudo = async () => {
     if (!workspace?.username) return;
@@ -218,7 +215,7 @@ export default function EquipesPage() {
               background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(5,150,105,0.3)",
+              boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
             }}>Voltar</button>
         </div>
       </div>
@@ -246,11 +243,14 @@ export default function EquipesPage() {
                 </h2>
               </div>
               <button onClick={() => setModalAberto(false)}
-                style={{ background: "#F1F5F4", border: "none", color: "#64748B", fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}><Icone nome="x" tamanho={16} /></button>
+                style={{ background: "#F3F6F5", border: "none", color: "#64748B", fontSize: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center", cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5, fontWeight: 700 }}>
+                <label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 5, fontWeight: 700 }}>
                   Nome da equipe <span style={{ color: "#dc2626" }}>*</span>
                 </label>
                 <input value={form.nome} autoFocus
@@ -259,7 +259,7 @@ export default function EquipesPage() {
                   style={inputStyle} />
               </div>
               <div>
-                <label style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 5, fontWeight: 700 }}>
+                <label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 5, fontWeight: 700 }}>
                   Descrição (opcional)
                 </label>
                 <textarea value={form.descricao}
@@ -291,26 +291,18 @@ export default function EquipesPage() {
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, boxShadow: "0 8px 20px rgba(168,85,247,0.25)",
-          }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>👥</span>
-          </div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>
+            <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
               Equipes
             </h1>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0", maxWidth: 720, lineHeight: 1.5 }}>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0", maxWidth: 720, lineHeight: 1.5 }}>
               Organize seus vendedores em equipes/empresas. Cada vendedor pertence a uma equipe, e as propostas dele entram automaticamente nessa equipe.
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => router.push("/crm/vendas")}
-            style={{ background: "#ffffff", color: "#64748B", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+            style={{ background: "#ffffff", color: "#334155", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25)", borderRadius: 12, padding: "10px 16px", fontSize: 13.5, cursor: "pointer", fontWeight: 600 }}>
             Voltar para Vendas
           </button>
           <button onClick={abrirNova}
@@ -327,7 +319,7 @@ export default function EquipesPage() {
 
       {/* ═══ LISTA DE EQUIPES ═══ */}
       <div>
-        <h2 style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>
+        <h2 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: "0 0 12px" }}>
           Equipes do workspace
         </h2>
         {loading ? (
@@ -363,7 +355,6 @@ export default function EquipesPage() {
             {equipes.map(eq => (
               <div key={eq.id} style={{
                 ...cardStyle, padding: 16,
-                borderLeft: "3px solid #059669",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -378,18 +369,18 @@ export default function EquipesPage() {
                   </div>
                   <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                     <button onClick={() => abrirEditar(eq)} title="Editar"
-                      style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
+                      style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="editar" tamanho={15} /></button>
                     <button onClick={() => desativar(eq)} title="Desativar equipe"
-                      style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
+                      style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="lixeira" tamanho={15} /></button>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                   <div style={{ flex: 1, background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
-                    <p style={{ color: "#94A3B8", fontSize: 9, margin: 0, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Vendedores</p>
+                    <p style={{ color: "#94A3B8", fontSize: 9, margin: 0, fontWeight: 700 }}>Vendedores</p>
                     <p style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{eq.qtdUsuarios}</p>
                   </div>
                   <div style={{ flex: 1, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
-                    <p style={{ color: "#047857", fontSize: 9, margin: 0, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Propostas</p>
+                    <p style={{ color: "#047857", fontSize: 9, margin: 0, fontWeight: 700 }}>Propostas</p>
                     <p style={{ color: "#059669", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{eq.qtdPropostas}</p>
                   </div>
                 </div>
@@ -401,7 +392,7 @@ export default function EquipesPage() {
 
       {/* ═══ ATRIBUIÇÃO DE USUÁRIOS ═══ */}
       <div>
-        <h2 style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>
+        <h2 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: "0 0 12px" }}>
           Atribuir vendedores às equipes
         </h2>
         <div style={{ ...cardStyle, overflow: "hidden" }}>
