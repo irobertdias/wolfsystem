@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
 import Icone, { IconeEmoji } from "../../components/a2/Icone";
+import { VERTICAIS, verticalDoWorkspace, type Vertical } from "../../lib/vertical-workspace";
 // ⚠️ Só este email tem acesso à tela de clientes
 const ADMIN_EMAIL = "robert.dias@live.com";
 const CONTRATOS_PLANOS = {
@@ -18,6 +19,7 @@ type Cadastro = {
   id: number; created_at: string; nome: string; empresa: string;
   email: string; whatsapp: string; plano: string; autorizado: boolean;
   username: string; workspace_id?: string;
+  vertical?: Vertical; // tipo de negócio do workspace (fica em workspaces.vertical)
   usuarios_liberados?: number; conexoes_liberadas?: number;
   permite_webjs?: boolean; permite_waba?: boolean; permite_instagram?: boolean;
   modulo_roleta?: boolean; modulo_disparos_web?: boolean; modulo_validacao_numeros?: boolean; modulo_disparos_api?: boolean;
@@ -559,7 +561,7 @@ export default function Clientes() {
     setTesteCliente(null);
     setFormCadastro({
       nome: "", empresa: "", email: "", whatsapp: "", plano: "basico",
-      username: "",
+      username: "", vertical: "telecom",
       modulo_meta_ads: false,  modulo_contratos_assinaturas: false, modulo_revisional: false, modulo_contratos_plano: "essencial", modulo_contratos_com_crm: true,
       usuarios_liberados: 5, conexoes_liberadas: 1,
       permite_webjs: true, permite_waba: false, permite_instagram: false,
@@ -579,7 +581,14 @@ export default function Clientes() {
 
   const abrirEditar = (c: Cadastro) => {
     setTesteCliente(null);
-    setFormCadastro({ ...c, modulo_contratos_plano: c.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: c.modulo_contratos_com_crm !== false });
+    setFormCadastro({ ...c, vertical: verticalDoWorkspace(c.username), modulo_contratos_plano: c.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: c.modulo_contratos_com_crm !== false });
+    // Tipo salvo no banco (workspaces.vertical); sem a coluna, fica o padrão acima.
+    (async () => {
+      const token = await getToken();
+      if (!token || !c.username) return;
+      const r = await fetch(`/api/workspace/vertical?ws=${encodeURIComponent(c.username)}`, { headers: { Authorization: `Bearer ${token}` } }).then((x) => x.json()).catch(() => null);
+      if (r?.vertical) setFormCadastro((prev) => (prev.username === c.username ? { ...prev, vertical: r.vertical } : prev));
+    })();
     setCadastroSelecionado(c);
     setShowModalCliente(true);
     setShowModalDetalhe(false);
@@ -718,11 +727,11 @@ export default function Clientes() {
         const respModulo = await fetch("/api/admin/cliente", {
           method: "PATCH",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tokenModulo },
-          body: JSON.stringify({ email: formCadastro.email, teste_config: testeCliente, modulo_contratos_assinaturas: !!formCadastro.modulo_contratos_assinaturas, modulo_revisional: !!formCadastro.modulo_revisional, modulo_contratos_plano: formCadastro.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: formCadastro.modulo_contratos_com_crm !== false }),
+          body: JSON.stringify({ email: formCadastro.email, vertical: formCadastro.vertical || "telecom", teste_config: testeCliente, modulo_contratos_assinaturas: !!formCadastro.modulo_contratos_assinaturas, modulo_revisional: !!formCadastro.modulo_revisional, modulo_contratos_plano: formCadastro.modulo_contratos_plano || "essencial", modulo_contratos_com_crm: formCadastro.modulo_contratos_com_crm !== false }),
         });
         const resultModulo = await respModulo.json();
         if (!resultModulo.success) { alert("Erro ao salvar Contratos e Assinaturas: " + resultModulo.error); setSalvandoCliente(false); return; }
-        alert("Cliente atualizado!");
+        alert("Cliente atualizado!" + (resultModulo.aviso_vertical ? "\n\nAtenção: o tipo de workspace não foi salvo porque a coluna 'vertical' ainda não existe no banco (rode a migração 20261110_workspace_vertical.sql)." : ""));
       } else {
         if (!formCadastro.senha || formCadastro.senha.length < 6) { alert("Senha obrigatória (mínimo 6 caracteres)"); setSalvandoCliente(false); return; }
         if (!formCadastro.username || !/^[a-z0-9_]{3,30}$/.test(formCadastro.username)) {
@@ -744,7 +753,7 @@ export default function Clientes() {
           setSalvandoCliente(false);
           return;
         }
-        alert("Cliente criado! O cliente já pode fazer login com o email e senha.");
+        alert("Cliente criado! No primeiro acesso ele vai criar a própria senha." + (result.aviso_vertical ? "\n\nAtenção: o tipo de workspace não foi salvo porque a coluna 'vertical' ainda não existe no banco (rode a migração 20261110_workspace_vertical.sql)." : ""));
       }
       await fetchCadastros();
       setShowModalCliente(false);
@@ -896,6 +905,34 @@ export default function Clientes() {
                     <input type="password" placeholder="Senha de acesso (mín 6)" value={formCadastro.senha || ""} onChange={e => setFormCadastro({ ...formCadastro, senha: e.target.value })} style={inputSm} />
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Tipo de workspace */}
+            <div>
+              <p style={{ color: "#059669", fontSize: 12.5, fontWeight: 700, margin: "0 0 4px" }}>Tipo de workspace</p>
+              <p style={{ color: "#94A3B8", fontSize: 12.5, margin: "0 0 12px" }}>Define o perfil do cliente: textos, painel e telas iniciais.</p>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: 10 }}>
+                {VERTICAIS.map((v) => {
+                  const ativo = (formCadastro.vertical || "telecom") === v.id;
+                  return (
+                    <button key={v.id} type="button"
+                      onClick={() => setFormCadastro((prev) => ({ ...prev, vertical: v.id, ...(v.id === "revisional" ? { modulo_revisional: true } : {}) }))}
+                      style={{
+                        textAlign: "left", cursor: "pointer", borderRadius: 14, padding: "12px 12px",
+                        border: 0, background: ativo ? "#F7FFFB" : "#F7FAF9",
+                        boxShadow: ativo ? "inset 0 0 0 2px #10B981, 0 8px 18px -12px rgba(5,150,105,.6)" : "inset 0 0 0 1px #E6ECEA",
+                        display: "flex", flexDirection: "column", gap: 6,
+                      }}>
+                      <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ width: 30, height: 30, borderRadius: 9, background: ativo ? "#059669" : "#ECFDF5", color: ativo ? "#fff" : "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={v.icone as any} tamanho={16} /></span>
+                        {ativo && <Icone nome="check" tamanho={15} cor="#059669" espessura={2.6} />}
+                      </span>
+                      <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0F172A" }}>{v.nome}</span>
+                      <span style={{ fontSize: 11.5, color: "#64748B", lineHeight: 1.35 }}>{v.desc}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

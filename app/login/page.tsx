@@ -15,7 +15,10 @@ export default function Login() {
   const [aviso, setAviso] = useState("");
 
   // No subdomínio rev.* (módulo Revisional) o login volta para o painel do consultor.
-  const irParaInicio = () => {
+  const irParaInicio = async () => {
+    // Login criado pelo administrador: primeiro acesso cria a própria senha.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.user_metadata?.trocar_senha === true) { router.push("/login/nova-senha?primeiro=1"); return; }
     if (window.location.host.startsWith("rev.")) { window.location.href = "/"; return; }
     router.push("/crm");
   };

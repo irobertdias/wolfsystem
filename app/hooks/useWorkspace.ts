@@ -1,5 +1,24 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { registrarVertical, verticalDoWorkspace, type Vertical } from "../lib/vertical-workspace";
+
+// Tipo de negócio por workspace: uma consulta por workspace, compartilhada entre as telas.
+const verticalCarregando: Record<string, Promise<void>> = {};
+function carregarVertical(ws: string, doBanco: unknown): Promise<void> {
+  if (doBanco !== undefined) { registrarVertical(ws, doBanco); return Promise.resolve(); }
+  if (!verticalCarregando[ws]) {
+    verticalCarregando[ws] = (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const r = await fetch(`/api/workspace/vertical?ws=${encodeURIComponent(ws)}`, { headers: { Authorization: `Bearer ${session.access_token}` } });
+        const j = await r.json().catch(() => ({}));
+        registrarVertical(ws, j?.vertical);
+      } catch { /* segue com o tipo padrão */ }
+    })();
+  }
+  return verticalCarregando[ws];
+}
 
 type Workspace = {
   id: number;
@@ -89,6 +108,7 @@ export function useWorkspace() {
   const [user, setUser] = useState<User | null>(null);
   const [wsIdDireto, setWsIdDireto] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [vertical, setVertical] = useState<Vertical>("telecom");
 
   useEffect(() => {
     let cancelado = false;
@@ -110,6 +130,12 @@ export function useWorkspace() {
       try {
         const r = await resolucaoCompartilhada.promessa;
         if (cancelado) return;
+        const ws = r.workspace?.username || r.wsIdDireto;
+        if (ws) {
+          await carregarVertical(ws, r.workspace && "vertical" in r.workspace ? (r.workspace as any).vertical : undefined);
+          if (cancelado) return;
+          setVertical(verticalDoWorkspace(ws));
+        }
         setWsIdDireto(r.wsIdDireto);
         setWorkspace(r.workspace);
       } finally {
@@ -129,5 +155,5 @@ export function useWorkspace() {
   const wsId = workspace?.username || wsIdDireto || "";
   const wsPronto = !loading && !!wsId;
 
-  return { workspace, user, loading, signOut, wsId, wsPronto };
+  return { workspace, user, loading, signOut, wsId, wsPronto, vertical };
 }

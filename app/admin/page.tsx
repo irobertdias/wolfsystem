@@ -130,6 +130,7 @@ export default function Admin() {
           usuarios: "1",
           conexoes: "1",
           skipCadastro: true,
+          trocarSenha: true,
         }),
       });
       const result = await response.json();

@@ -49,6 +49,13 @@ export default function AuthGuard({
       const { data: { session } } = await supabase.auth.getSession();
       if (cancelado) return;
 
+      // Login criado pelo administrador: no primeiro acesso o cliente cria a própria senha.
+      if (session?.user?.user_metadata?.trocar_senha === true) {
+        router.replace("/login/nova-senha?primeiro=1");
+        setEstado("negado");
+        return;
+      }
+
       // ⚡ O mesmo token já foi validado no servidor há menos de 45 min (o cookie dura 60):
       // libera a tela na hora em vez de repetir a validação a cada página aberta.
       const CHAVE_VALIDACAO = "wolf_sessao_validada";

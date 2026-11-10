@@ -7,7 +7,8 @@ export async function POST(request: NextRequest) {
     if (!acesso.isSuperAdmin) return NextResponse.json({ success: false, error: "Acesso exclusivo do super administrador" }, { status: 403 });
     const body = await request.json(); const { id, email, senha, nome, empresa, plano, ia, usuarios, conexoes, username } = body;
     if (!id || !email || !senha) return NextResponse.json({ success: false, error: "id, email e senha são obrigatórios" }, { status: 400 });
-    const { data: authUser, error: authError } = await supabaseServer.auth.admin.createUser({ email, password: senha, email_confirm: true, user_metadata: { nome, empresa, username } });
+    // trocarSenha: login criado pelo administrador com senha provisória (o cliente troca no primeiro acesso).
+    const { data: authUser, error: authError } = await supabaseServer.auth.admin.createUser({ email, password: senha, email_confirm: true, user_metadata: { nome, empresa, username, ...(body.trocarSenha === true ? { trocar_senha: true } : {}) } });
     if (authError && !authError.message.includes("already been registered")) return NextResponse.json({ success: false, error: authError.message }, { status: 400 });
     const userId = authUser?.user?.id || (await supabaseServer.auth.admin.listUsers()).data.users.find((item) => item.email?.toLowerCase() === String(email).toLowerCase())?.id;
     if (!userId) return NextResponse.json({ success: false, error: "Usuário não encontrado" }, { status: 400 });

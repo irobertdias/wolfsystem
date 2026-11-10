@@ -2,16 +2,41 @@
 // de internet (instalação, operadora). Workspaces de outro ramo recebem os textos
 // próprios aqui, sem mudar nada para os demais.
 
-export type Vertical = "telecom" | "consignado" | "revisional";
+export type Vertical = "telecom" | "consignado" | "revisional" | "vendas" | "roupas";
 
+// Tipos oferecidos no cadastro do cliente (o "revisional" aparece como Financeiro).
+export const VERTICAIS: { id: Vertical; nome: string; desc: string; icone: string }[] = [
+  { id: "telecom", nome: "Telecom", desc: "Venda de planos de internet e telefonia", icone: "telefone" },
+  { id: "revisional", nome: "Financeiro", desc: "Revisão de contratos e financiamentos", icone: "balanca" },
+  { id: "consignado", nome: "Consignado", desc: "Crédito consignado e averbação", icone: "predio" },
+  { id: "vendas", nome: "Vendas", desc: "Vendas em geral, produtos e serviços", icone: "dinheiro" },
+  { id: "roupas", nome: "Roupas", desc: "Loja de roupas e moda", icone: "tag" },
+];
+
+export function normalizarVertical(v: unknown): Vertical | null {
+  const s = String(v ?? "").trim().toLowerCase();
+  if (s === "financeiro") return "revisional";
+  return (VERTICAIS.some((x) => x.id === s) ? s : null) as Vertical | null;
+}
+
+// Usado só enquanto a coluna workspaces.vertical não existir no banco.
 const VERTICAL_POR_WORKSPACE: Record<string, Vertical> = {
   blennerjuridico: "consignado",
   teste1: "revisional",
   aproveconsultoria: "revisional", // Aprove Consultoria: escritório de revisão de contratos financeiros
 };
 
+// Tipo lido do banco (workspaces.vertical), preenchido pelo useWorkspace.
+const REGISTRO: Record<string, Vertical> = {};
+export function registrarVertical(workspaceId: string | null | undefined, v: unknown) {
+  const ws = String(workspaceId ?? "").trim().toLowerCase();
+  const n = normalizarVertical(v);
+  if (ws && n) REGISTRO[ws] = n;
+}
+
 export function verticalDoWorkspace(workspaceId?: string | number | null): Vertical {
-  return VERTICAL_POR_WORKSPACE[String(workspaceId ?? "").trim().toLowerCase()] || "telecom";
+  const ws = String(workspaceId ?? "").trim().toLowerCase();
+  return REGISTRO[ws] || VERTICAL_POR_WORKSPACE[ws] || "telecom";
 }
 
 // Workspaces de revisão de contratos financeiros: sem telas de vendas, com o
@@ -89,6 +114,56 @@ const CONSIGNADO: Vocabulario = {
   secaoPlano: "Produto, banco e valores da operação",
 };
 
+const VENDAS: Vocabulario = {
+  concluidas: "Vendas fechadas",
+  concluidasMin: "fechadas",
+  concluidaSing: "fechada",
+  abrev: "fech.",
+  aguardando: "Aguardando pagamento",
+  aguardandoCurto: "aguardando pagamento",
+  aguardandoParaConcluida: "Aguardando → fechada",
+  taxa: "taxa de fechamento",
+  taxaTitulo: "Taxa de fechamento",
+  fornecedores: "Produtos",
+  fornecedorSing: "produto",
+  iconeFornecedor: "🏷️",
+  semFornecedor: "sem produto",
+  receitaConcluida: "Receita fechada",
+  ticketDetalhe: "média por venda fechada",
+  porDia: "Vendas fechadas e aguardando pagamento por dia",
+  somenteConcluidas: "Somente vendas fechadas",
+  secaoEndereco: "Endereço do cliente",
+  secaoAgendamento: "Andamento da venda",
+  secaoPlano: "Produto, condições e valores",
+};
+
+const ROUPAS: Vocabulario = {
+  concluidas: "Pedidos entregues",
+  concluidasMin: "entregues",
+  concluidaSing: "entregue",
+  abrev: "entr.",
+  aguardando: "Aguardando entrega",
+  aguardandoCurto: "aguardando entrega",
+  aguardandoParaConcluida: "Aguardando → entregue",
+  taxa: "taxa de entrega",
+  taxaTitulo: "Taxa de entrega",
+  fornecedores: "Marcas",
+  fornecedorSing: "marca",
+  iconeFornecedor: "🏷️",
+  semFornecedor: "sem marca",
+  receitaConcluida: "Faturamento entregue",
+  ticketDetalhe: "média por pedido entregue",
+  porDia: "Pedidos entregues e aguardando entrega por dia",
+  somenteConcluidas: "Somente pedidos entregues",
+  secaoEndereco: "Endereço de entrega",
+  secaoAgendamento: "Entrega do pedido",
+  secaoPlano: "Peças, tamanhos e valores",
+};
+
 export function vocabularioDoWorkspace(workspaceId?: string | number | null): Vocabulario {
-  return verticalDoWorkspace(workspaceId) === "consignado" ? CONSIGNADO : TELECOM;
+  const v = verticalDoWorkspace(workspaceId);
+  if (v === "consignado") return CONSIGNADO;
+  if (v === "vendas") return VENDAS;
+  if (v === "roupas") return ROUPAS;
+  return TELECOM;
 }

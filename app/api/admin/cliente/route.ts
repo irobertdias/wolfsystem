@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { configurarTesteCliente, lerTesteCliente } from "../../../lib/teste-cliente";
+import { normalizarVertical } from "../../../lib/vertical-workspace";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -202,7 +203,8 @@ export async function POST(req: NextRequest) {
       email,
       password: senha,
       email_confirm: true,
-      user_metadata: { nome, username: usernameLimpo },
+      // trocar_senha: no primeiro acesso o cliente cria a própria senha (tela /login/nova-senha)
+      user_metadata: { nome, username: usernameLimpo, trocar_senha: true },
       app_metadata: { wolf_teste: testeNovo },
     });
 
@@ -234,6 +236,12 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json({ success: false, error: "Erro ao criar workspace: " + wsError.message });
     }
+
+    // Tipo de negócio do workspace (coluna workspaces.vertical). Se a coluna ainda
+    // não existir no banco, o cliente é criado do mesmo jeito e fica como Telecom.
+    const verticalNovo = normalizarVertical(body.vertical) || "telecom";
+    const { error: vertErro } = await supabase.from("workspaces").update({ vertical: verticalNovo }).eq("username", usernameLimpo);
+    if (vertErro) console.error("[admin/cliente] vertical não salvo:", vertErro.message);
 
     // ═══ 4. Salva na tabela cadastros (com TODOS os módulos novos) ═══
     const { error: cadError } = await supabase.from("cadastros").insert([{
@@ -282,7 +290,7 @@ export async function POST(req: NextRequest) {
       // Admin pode editar o cadastro manualmente depois.
     }
 
-    return NextResponse.json({ success: true, userId });
+    return NextResponse.json({ success: true, userId, aviso_vertical: vertErro ? "coluna_vertical_ausente" : undefined });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message });
   }
@@ -471,6 +479,17 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    // Tipo de negócio do workspace
+    let verticalAviso: string | undefined;
+    if ("vertical" in campos) {
+      const v = normalizarVertical(campos.vertical);
+      const wsAlvo = String((usernameAlterado && novo_username) || cadastro.username || "").toLowerCase().trim();
+      if (v && wsAlvo) {
+        const { error: vErro } = await supabase.from("workspaces").update({ vertical: v }).eq("username", wsAlvo);
+        if (vErro) verticalAviso = "coluna_vertical_ausente";
+      }
+    }
+
     if (testePendente) {
       const { error: erroTeste } = await supabase.auth.admin.updateUserById(testePendente.userId, { app_metadata: testePendente.metadata });
       if (erroTeste) throw erroTeste;
@@ -481,6 +500,7 @@ export async function PATCH(req: NextRequest) {
       email_alterado: emailAtual !== email,
       username_alterado: usernameAlterado,
       atualizados: Object.keys(update),
+      aviso_vertical: verticalAviso,
     });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message });
