@@ -1,8 +1,10 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { PLANOS_WOLF, brlCurto } from "../../lib/precos-wolf";
+import Icone from "../../components/a2/Icone";
+import { MolduraAuth, CampoA2, OlhoSenha, BotaoA2, inputA2 } from "../_a2";
 
 type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid";
 
@@ -131,7 +133,7 @@ export default function Register() {
       }).catch(() => {});
 
       setLoading(false);
-      alert("✅ Cadastro enviado! Aguarde a autorização do administrador.");
+      alert("Cadastro enviado! Aguarde a autorização do administrador.");
       router.push("/");
     } catch (e) {
       setLoading(false);
@@ -139,165 +141,125 @@ export default function Register() {
     }
   };
 
-  const inputStyle = {
-    width: "100%", border: "1px solid #CBD5E1", borderRadius: 10,
-    padding: "12px 16px", fontSize: 14, background: "white",
-    boxSizing: "border-box" as const, color: "#111",
-  };
+  const planos = PLANOS_WOLF.map((p) => ({
+    // o texto salvo continua o mesmo de antes (o administrador lê este valor)
+    value: `${p.nome} - ${brlCurto(p.preco)}/mês`,
+    nome: p.nome,
+    preco: brlCurto(p.preco),
+    usuarios: p.usuarios,
+  }));
 
-  const planos = [
-    { value: "", label: "Selecione um plano *" },
-    // preços da tabela única (app/lib/precos-wolf.ts)
-    ...PLANOS_WOLF.map((p, i) => ({
-      value: `${p.nome} - ${brlCurto(p.preco)}/mês`,
-      label: `${["🐺", "⭐", "🚀"][i] || "•"} Plano ${p.nome} — ${brlCurto(p.preco)}/mês (até ${p.usuarios} usuários)`,
-    })),
-  ];
-  // ✅ Borda do input username muda conforme status
-  const usernameBorderColor =
-    usernameStatus === "taken" || usernameStatus === "invalid" ? "#dc2626" :
+  const corStatus =
+    usernameStatus === "taken" || usernameStatus === "invalid" ? "#DC2626" :
     usernameStatus === "available" ? "#059669" :
-    usernameStatus === "checking" ? "#f59e0b" :
-    "#CBD5E1";
+    usernameStatus === "checking" ? "#C2410C" : "";
 
   const submitDisabled = loading || usernameStatus !== "available";
+  const duplo: CSSProperties = { display: "flex", gap: 12, flexWrap: "wrap" };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-wolf), system-ui, sans-serif" }}>
+    <MolduraAuth
+      titulo="Crie sua conta grátis"
+      sub="Preencha os dados abaixo para começar o teste. Não pedimos cartão de crédito."
+      larguraCartao={600}
+      destaques={[
+        { icone: "robo", texto: "Integração com Claude, ChatGPT e Typebot" },
+        { icone: "funil", texto: "CRM completo para a sua equipe" },
+        { icone: "whatsapp", texto: "Conexão com WhatsApp e a API oficial da Meta" },
+        { icone: "check", texto: "Teste grátis, sem cartão de crédito" },
+      ]}>
+      <CampoA2 rotulo="Nome completo *" icone="usuario">
+        <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Seu nome" autoComplete="name" style={{ ...inputA2, paddingLeft: 42 }} />
+      </CampoA2>
 
-      {/* ESQUERDA */}
-      <div style={{ width: "40%", background: "linear-gradient(160deg, #064e3b, #000)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px", gap: "32px" }}>
-        <img src="/logo1.png" alt="Wolf System" style={{ width: 300, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}>
-          {["Integração com Claude, ChatGPT e Typebot", "CRM completo para sua equipe", "Conexão com WhatsApp e API Meta", "Teste grátis sem cartão de crédito"].map((item) => (
-            <div key={item} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-              <span style={{ background: "#059669", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 12, flexShrink: 0, marginTop: 1 }}>✓</span>
-              <p style={{ color: "#d1fae5", fontSize: 13, margin: 0, lineHeight: 1.5 }}>{item}</p>
-            </div>
-          ))}
+      <CampoA2 rotulo="Nome da empresa" icone="predio">
+        <input value={form.empresa} onChange={(e) => setForm({ ...form, empresa: e.target.value })} placeholder="Como sua empresa se chama" autoComplete="organization" style={{ ...inputA2, paddingLeft: 42 }} />
+      </CampoA2>
+
+      <div style={duplo}>
+        <CampoA2 rotulo="CNPJ" icone="documento">
+          <input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} placeholder="00.000.000/0000-00" inputMode="numeric" style={{ ...inputA2, paddingLeft: 42 }} />
+        </CampoA2>
+        <CampoA2 rotulo="CPF" icone="documento">
+          <input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="000.000.000-00" inputMode="numeric" style={{ ...inputA2, paddingLeft: 42 }} />
+        </CampoA2>
+      </div>
+
+      <div style={duplo}>
+        <CampoA2 rotulo="E-mail *" icone="email">
+          <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="seu@email.com" autoComplete="email" style={{ ...inputA2, paddingLeft: 42 }} />
+        </CampoA2>
+        <CampoA2 rotulo="WhatsApp *" icone="whatsapp">
+          <input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="(62) 99999-9999" inputMode="tel" autoComplete="tel" style={{ ...inputA2, paddingLeft: 42 }} />
+        </CampoA2>
+      </div>
+
+      <div style={duplo}>
+        <CampoA2 rotulo="Senha *" icone="cadeado" direita={<OlhoSenha visivel={showPassword} onClick={() => setShowPassword(!showPassword)} />}>
+          <input type={showPassword ? "text" : "password"} value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} placeholder="Mínimo 6 caracteres" autoComplete="new-password" style={{ ...inputA2, paddingLeft: 42, paddingRight: 48 }} />
+        </CampoA2>
+        <CampoA2 rotulo="Confirmar senha *" icone="cadeado" direita={<OlhoSenha visivel={showConfirm} onClick={() => setShowConfirm(!showConfirm)} />}
+          dica={form.confirmarSenha && form.senha !== form.confirmarSenha ? <span style={{ color: "#DC2626", fontSize: 12, fontWeight: 700 }}>As senhas não são iguais</span> : null}>
+          <input type={showConfirm ? "text" : "password"} value={form.confirmarSenha} onChange={(e) => setForm({ ...form, confirmarSenha: e.target.value })} placeholder="Repita a senha" autoComplete="new-password" style={{ ...inputA2, paddingLeft: 42, paddingRight: 48 }} />
+        </CampoA2>
+      </div>
+
+      <CampoA2 rotulo="Nome de usuário *" erro={usernameStatus === "taken" || usernameStatus === "invalid"}
+        direita={usernameStatus === "checking"
+          ? <span style={{ width: 16, height: 16, marginRight: 8, borderRadius: "50%", border: "2px solid #FDBA74", borderTopColor: "#C2410C", animation: "spin .7s linear infinite" }} />
+          : usernameStatus === "available" ? <span style={{ marginRight: 8, color: "#059669", display: "flex" }}><Icone nome="check" tamanho={18} espessura={2.6} /></span>
+          : usernameStatus === "taken" || usernameStatus === "invalid" ? <span style={{ marginRight: 8, color: "#DC2626", display: "flex" }}><Icone nome="alerta" tamanho={18} /></span>
+          : null}
+        dica={
+          <span style={{ fontSize: 12, fontWeight: corStatus ? 700 : 500, color: corStatus || "#94A3B8" }}>
+            {usernameStatus === "checking" ? "Verificando se está livre…"
+              : usernameStatus === "available" ? "Disponível, pode usar este nome"
+              : usernameStatus === "taken" ? "Este nome já está em uso, escolha outro"
+              : usernameStatus === "invalid" && usernameError ? usernameError
+              : "Só letras minúsculas, números e _ (de 3 a 30 caracteres)"}
+          </span>
+        }>
+        <span style={{ position: "absolute", left: 15, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", fontWeight: 700, pointerEvents: "none" }}>@</span>
+        <input value={form.username} onChange={(e) => validarUsername(e.target.value)} placeholder="minha_empresa" autoComplete="off"
+          style={{ ...inputA2, paddingLeft: 34, paddingRight: 44, borderColor: corStatus || "#E6ECEA", boxShadow: corStatus ? `0 0 0 3px ${corStatus}1f` : "none" }} />
+      </CampoA2>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>Plano *</span>
+        <div role="radiogroup" aria-label="Plano" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+          {planos.map((p) => {
+            const sel = form.plano === p.value;
+            return (
+              <button key={p.value} type="button" role="radio" aria-checked={sel} onClick={() => setForm({ ...form, plano: p.value })}
+                style={{
+                  textAlign: "left", border: 0, cursor: "pointer", borderRadius: 16, padding: "14px 14px",
+                  background: sel ? "#fff" : "#F7FAF9",
+                  outline: sel ? "2px solid #059669" : "none",
+                  boxShadow: sel ? "0 10px 24px -14px rgba(5,150,105,.55)" : "inset 0 0 0 1px #E6ECEA",
+                  display: "flex", flexDirection: "column", gap: 4,
+                }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#0F172A" }}>{p.nome}</span>
+                  {sel && <span style={{ marginLeft: "auto", width: 20, height: 20, borderRadius: 6, background: "#059669", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={12} espessura={2.8} /></span>}
+                </span>
+                <span style={{ fontSize: 18, fontWeight: 800, color: "#047857", letterSpacing: "-.01em" }}>{p.preco}<span style={{ fontSize: 12, fontWeight: 600, color: "#64748B" }}>/mês</span></span>
+                <span style={{ fontSize: 12, color: "#64748B" }}>até {p.usuarios} usuários</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* DIREITA */}
-      <div style={{ width: "60%", background: "white", overflowY: "auto", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 60px" }}>
-        <div style={{ width: "100%", maxWidth: 520, display: "flex", flexDirection: "column", gap: 16 }}>
-
-          <div>
-            <h2 style={{ fontSize: 26, fontWeight: "bold", color: "#111", margin: 0 }}>Crie sua conta grátis</h2>
-            <p style={{ color: "#94A3B8", fontSize: 13, marginTop: 6 }}>Preencha os dados abaixo para começar</p>
-          </div>
-
-          <input placeholder="Nome completo *" value={form.nome}
-            onChange={(e) => setForm({ ...form, nome: e.target.value })} style={inputStyle} />
-
-          <input placeholder="Nome da empresa" value={form.empresa}
-            onChange={(e) => setForm({ ...form, empresa: e.target.value })} style={inputStyle} />
-
-          <div style={{ display: "flex", gap: 12 }}>
-            <input placeholder="CNPJ" value={form.cnpj}
-              onChange={(e) => setForm({ ...form, cnpj: e.target.value })} style={{ ...inputStyle, flex: 1 }} />
-            <input placeholder="CPF" value={form.cpf}
-              onChange={(e) => setForm({ ...form, cpf: e.target.value })} style={{ ...inputStyle, flex: 1 }} />
-          </div>
-
-          <div style={{ display: "flex", gap: 12 }}>
-            <input placeholder="E-mail *" type="email" value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })} style={{ ...inputStyle, flex: 1 }} />
-            <input placeholder="WhatsApp *" value={form.whatsapp}
-              onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} style={{ ...inputStyle, flex: 1 }} />
-          </div>
-
-          <div style={{ display: "flex", gap: 12 }}>
-            <div style={{ flex: 1, position: "relative" }}>
-              <input placeholder="Senha *" type={showPassword ? "text" : "password"} value={form.senha}
-                onChange={(e) => setForm({ ...form, senha: e.target.value })}
-                style={{ ...inputStyle, paddingRight: 40 }} />
-              <button onClick={() => setShowPassword(!showPassword)}
-                style={{ position: "absolute", right: 12, top: 12, background: "none", border: "none", cursor: "pointer", fontSize: 16 }}>
-                {showPassword ? "🙈" : "👁️"}
-              </button>
-            </div>
-            <div style={{ flex: 1, position: "relative" }}>
-              <input placeholder="Confirmar senha *" type={showConfirm ? "text" : "password"} value={form.confirmarSenha}
-                onChange={(e) => setForm({ ...form, confirmarSenha: e.target.value })}
-                style={{ ...inputStyle, paddingRight: 40 }} />
-              <button onClick={() => setShowConfirm(!showConfirm)}
-                style={{ position: "absolute", right: 12, top: 12, background: "none", border: "none", cursor: "pointer", fontSize: 16 }}>
-                {showConfirm ? "🙈" : "👁️"}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 14, top: 13, color: "#94A3B8", fontSize: 14, pointerEvents: "none" }}>@</span>
-              <input
-                placeholder="Nome de usuário * (ex: minha_empresa)"
-                value={form.username}
-                onChange={(e) => validarUsername(e.target.value)}
-                style={{ ...inputStyle, paddingLeft: 28, paddingRight: 44, borderColor: usernameBorderColor, borderWidth: 2 }}
-              />
-              {/* ÍCONE DE STATUS */}
-              <span style={{ position: "absolute", right: 14, top: 14, fontSize: 16 }}>
-                {usernameStatus === "checking" && "⏳"}
-                {usernameStatus === "available" && "✅"}
-                {usernameStatus === "taken" && "❌"}
-                {usernameStatus === "invalid" && "⚠️"}
-              </span>
-            </div>
-
-            {/* MENSAGEM DE STATUS */}
-            {usernameStatus === "checking" && (
-              <p style={{ color: "#f59e0b", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
-                Verificando disponibilidade...
-              </p>
-            )}
-            {usernameStatus === "available" && (
-              <p style={{ color: "#059669", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
-                Disponível! Pode usar este nome
-              </p>
-            )}
-            {usernameStatus === "taken" && (
-              <p style={{ color: "#dc2626", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
-                Este nome já está em uso. Escolha outro
-              </p>
-            )}
-            {usernameStatus === "invalid" && usernameError && (
-              <p style={{ color: "#dc2626", fontSize: 11, margin: "4px 0 0 4px", fontWeight: "bold" }}>
-                {usernameError}
-              </p>
-            )}
-            <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0 4px" }}>Apenas letras minúsculas, números e _ (underline) — 3 a 30 caracteres</p>
-          </div>
-
-          <select
-            value={form.plano}
-            onChange={(e) => setForm({ ...form, plano: e.target.value })}
-            style={{ ...inputStyle, cursor: "pointer", color: form.plano ? "#111" : "#94A3B8" }}
-          >
-            {planos.map((p) => (
-              <option key={p.value} value={p.value} disabled={p.value === ""}>{p.label}</option>
-            ))}
-          </select>
-
-          <button onClick={handleSubmit} disabled={submitDisabled} style={{
-            width: "100%", background: submitDisabled ? "#6EE7B7" : "#059669", color: "white", border: "none",
-            borderRadius: 10, padding: 14, fontSize: 14, fontWeight: "bold",
-            cursor: submitDisabled ? "not-allowed" : "pointer", letterSpacing: 1, textTransform: "uppercase",
-            opacity: submitDisabled ? 0.6 : 1,
-          }}>
-            {loading ? "Enviando..." : usernameStatus === "checking" ? "Verificando username..." : usernameStatus !== "available" && form.username ? "Corrija o username" : "Enviar cadastro"}
-          </button>
-
-          <button onClick={() => router.push("/")} style={{
-            width: "100%", background: "white", color: "#94A3B8",
-            border: "1px solid #E6ECEA", borderRadius: 10, padding: 14, fontSize: 14, cursor: "pointer"
-          }}>
-            Já tenho conta? Fazer login
-          </button>
-
-        </div>
+      <div style={{ marginTop: 4 }}>
+        <BotaoA2 onClick={handleSubmit} disabled={submitDisabled} carregando={loading}>
+          {loading ? "Enviando…" : usernameStatus === "checking" ? "Verificando o nome de usuário…" : usernameStatus !== "available" && form.username ? "Corrija o nome de usuário" : "Enviar cadastro"}
+        </BotaoA2>
       </div>
-    </div>
+
+      <p style={{ textAlign: "center", fontSize: 13.5, color: "#64748B", margin: 0 }}>
+        Já tem conta?{" "}
+        <button type="button" onClick={() => router.push("/")} className="a2-auth-link" style={{ background: "none", border: 0, padding: 0, color: "#059669", fontWeight: 800, cursor: "pointer", fontSize: 13.5 }}>Entrar</button>
+      </p>
+    </MolduraAuth>
   );
 }

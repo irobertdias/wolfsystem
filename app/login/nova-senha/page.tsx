@@ -1,12 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { MolduraAuth, CampoA2, OlhoSenha, BotaoA2, AvisoA2, inputA2 } from "../_a2";
 
 export default function NovaSenha() {
   const router = useRouter();
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
+  const [ver, setVer] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -18,28 +20,25 @@ export default function NovaSenha() {
     const { error } = await supabase.auth.updateUser({ password: senha });
     setLoading(false);
     if (error) { setErro("Erro ao atualizar senha!"); return; }
-    alert("✅ Senha atualizada com sucesso!");
+    alert("Senha atualizada com sucesso!");
     router.push("/");
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center gap-5">
-        <img src="/logo.png" alt="Wolf System" style={{ width: 200, objectFit: "contain" }} />
-        <h2 style={{ color: "#111", fontSize: 18, fontWeight: "bold", margin: 0 }}>Redefinir Senha</h2>
-        {erro && (
-          <div style={{ background: "#dc262622", border: "1px solid #dc262633", borderRadius: 8, padding: "10px 16px", width: "100%" }}>
-            <p style={{ color: "#dc2626", fontSize: 13, margin: 0, textAlign: "center" }}>{erro}</p>
-          </div>
-        )}
-        <div className="w-full flex flex-col gap-4">
-          <input type="password" placeholder="Nova senha" value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-          <input type="password" placeholder="Confirmar nova senha" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-          <button onClick={handleSalvar} disabled={loading} style={{ background: loading ? "#6EE7B7" : "black" }} className="w-full text-white rounded-lg py-3 text-sm font-semibold">
-            {loading ? "Salvando..." : "SALVAR NOVA SENHA"}
-          </button>
-        </div>
+    <MolduraAuth titulo="Criar nova senha" sub="Escolha uma senha nova para entrar no Wolf System.">
+      {erro && <AvisoA2>{erro}</AvisoA2>}
+      <CampoA2 rotulo="Nova senha" icone="cadeado" direita={<OlhoSenha visivel={ver} onClick={() => setVer(!ver)} />}>
+        <input type={ver ? "text" : "password"} placeholder="Mínimo 6 caracteres" value={senha} autoComplete="new-password"
+          onChange={(e) => setSenha(e.target.value)} style={{ ...inputA2, paddingLeft: 42, paddingRight: 48 }} />
+      </CampoA2>
+      <CampoA2 rotulo="Confirmar nova senha" icone="cadeado">
+        <input type={ver ? "text" : "password"} placeholder="Repita a senha" value={confirmar} autoComplete="new-password"
+          onChange={(e) => setConfirmar(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSalvar()}
+          style={{ ...inputA2, paddingLeft: 42 }} />
+      </CampoA2>
+      <div style={{ marginTop: 4 }}>
+        <BotaoA2 onClick={handleSalvar} carregando={loading}>{loading ? "Salvando…" : "Salvar nova senha"}</BotaoA2>
       </div>
-    </div>
+    </MolduraAuth>
   );
 }
