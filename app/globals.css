@@ -553,18 +553,51 @@ body {
   border: 0;
   box-shadow: none;
 }
+.wolf-premium-launcher { overflow: visible; }
 .wolf-premium-launcher button {
   min-width: 0;
-  height: 40px;
+  height: 36px;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 14px;
+  padding: 0 12px;
   border-radius: 10px;
   color: var(--a2-texto-2);
 }
 .wolf-premium-launcher button i { display: none; }
-.wolf-premium-launcher button span { font-size: 14px; font-weight: 600; letter-spacing: 0; }
+.wolf-premium-launcher button span { font-size: 13.5px; font-weight: 600; letter-spacing: 0; }
+
+/* "Mais" módulos */
+.wolf-premium-mais { position: relative; flex: 0 0 auto; }
+.wolf-premium-launcher .wolf-premium-mais > button { gap: 4px; }
+.wolf-premium-launcher .wolf-premium-mais > button.aberto { background: var(--a2-fundo); color: var(--a2-texto); }
+.wolf-premium-mais-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 200;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 4px rgba(16,24,40,.06), 0 20px 40px -12px rgba(16,24,40,.28);
+}
+.wolf-premium-launcher .wolf-premium-mais-menu button {
+  width: 100%;
+  height: 38px;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 12px;
+  border-radius: 9px;
+  color: var(--a2-texto-2);
+}
+.wolf-premium-launcher .wolf-premium-mais-menu button svg { color: var(--a2-texto-3); }
+.wolf-premium-launcher .wolf-premium-mais-menu button:hover { background: var(--a2-verde-claro); color: var(--a2-verde-escuro); }
+.wolf-premium-launcher .wolf-premium-mais-menu button:hover svg { color: var(--a2-verde); }
+.wolf-premium-launcher .wolf-premium-mais-menu button span { font-size: 13.5px; font-weight: 600; }
 .wolf-premium-launcher button:hover { background: var(--a2-fundo); color: var(--a2-texto); transform: none; }
 .wolf-premium-launcher button.active {
   color: #fff;
@@ -703,8 +736,10 @@ body {
 @media (max-width: 760px) {
   .wolf-premium-shell { grid-template-rows: auto auto minmax(0, 1fr); }
   .wolf-premium-header { grid-template-columns: 38px minmax(0, 1fr) 40px; gap: 8px; margin: 8px 8px 0; padding: 8px; border-radius: 16px; }
-  .wolf-premium-launcher button { height: 38px; padding: 0 12px; }
+  .wolf-premium-launcher { overflow-x: auto; }
+  .wolf-premium-launcher button { height: 36px; padding: 0 11px; }
   .wolf-premium-launcher button span { font-size: 13px; }
+  .wolf-premium-mais-menu { position: fixed; top: 64px; left: auto; right: 10px; }
   .wolf-premium-context-title b { font-size: 20px; }
   .wolf-premium-content { padding: 10px; }
 }

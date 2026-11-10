@@ -10,10 +10,22 @@ import { ehRevisional } from "../lib/vertical-workspace";
 import AuthGuard from "../components/AuthGuard";
 import PontoGuard from "../components/PontoGuard";
 
-import { IconeEmoji } from "../components/a2/Icone";
+import Icone, { IconeEmoji, nomeDoEmoji } from "../components/a2/Icone";
+
 export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+
+  // Lista "Mais" da barra de módulos: fecha ao clicar fora ou ao trocar de página.
+  const [maisAberto, setMaisAberto] = useState(false);
+  useEffect(() => {
+    if (!maisAberto) return;
+    const fora = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest?.(".wolf-premium-mais")) setMaisAberto(false);
+    };
+    document.addEventListener("mousedown", fora);
+    return () => document.removeEventListener("mousedown", fora);
+  }, [maisAberto]);
 
   const { permissoes, isDono, isSuperAdmin, perfil } = usePermissao();
   const { modulos, carregado: modulosCarregados } = useModulos();
@@ -277,6 +289,14 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     return pathname === path || pathname.startsWith(`${path}/`);
   };
 
+  // Barra compacta: os primeiros módulos ficam à vista; o resto vai para "Mais".
+  // O módulo aberto sempre aparece na barra, mesmo se estiver no "Mais".
+  const LIMITE_BARRA = 6;
+  const principais = launchers.slice(0, LIMITE_BARRA);
+  const ativoExtra = launchers.slice(LIMITE_BARRA).find((item) => launcherAtivo(item.path));
+  if (ativoExtra) principais.push(ativoExtra);
+  const extras = launchers.slice(LIMITE_BARRA).filter((item) => item !== ativoExtra);
+
   const paginaAtual = launchers.find((item) => launcherAtivo(item.path))?.label
     || pathname.split("/").filter(Boolean).slice(-1)[0]?.replaceAll("-", " ")
     || "Visão geral";
@@ -304,7 +324,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           </button>
 
           <nav className="wolf-premium-launcher" aria-label="Módulos do sistema">
-            {launchers.map((item) => (
+            {principais.map((item) => (
               <button
                 key={item.path}
                 className={launcherAtivo(item.path) ? "active" : ""}
@@ -315,6 +335,29 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
                 <span>{item.label}</span>
               </button>
             ))}
+            {extras.length > 0 && (
+              <div className="wolf-premium-mais">
+                <button
+                  className={maisAberto ? "aberto" : ""}
+                  onClick={() => setMaisAberto((v) => !v)}
+                  aria-expanded={maisAberto}
+                  title="Mais módulos"
+                >
+                  <span>Mais</span>
+                  <Icone nome="baixo" tamanho={14} espessura={2.2} style={{ transform: maisAberto ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+                </button>
+                {maisAberto && (
+                  <div className="wolf-premium-mais-menu" role="menu">
+                    {extras.map((item) => (
+                      <button key={item.path} role="menuitem" onClick={() => { setMaisAberto(false); navegarPara(item.path); }}>
+                        <Icone nome={nomeDoEmoji(item.icon) || "pasta"} tamanho={16} />
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           <div className="wolf-premium-user">
