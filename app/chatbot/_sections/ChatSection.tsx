@@ -67,6 +67,8 @@ function corAvatar(t?: string | null) {
   return CORES_AVATAR[h % CORES_AVATAR.length];
 }
 const WA_BG_LIGHT = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='%23000000' fill-opacity='0.05'><path d='M20 30 q0 -10 10 -10 h40 q10 0 10 10 v15 q0 10 -10 10 h-25 l-10 10 v-10 h-5 q-10 0 -10 -10 z'/><path d='M120 32 q-8 -10 -16 0 q-8 10 8 22 q16 -12 8 -22 z'/><path d='M195 25 l3 8 l9 0 l-7 5 l3 9 l-8 -5 l-8 5 l3 -9 l-7 -5 l9 0 z'/><rect x='100' y='90' width='40' height='25' rx='3' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M100 95 l20 14 l20 -14' stroke='%23000000' stroke-opacity='0.05' stroke-width='2' fill='none'/><circle cx='195' cy='105' r='12' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M195 97 v8 l5 4' stroke='%23000000' stroke-opacity='0.05' stroke-width='2' fill='none' stroke-linecap='round'/><path d='M35 95 l8 8 l16 -16' stroke='%23000000' stroke-opacity='0.05' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/><rect x='20' y='160' width='30' height='30' rx='2'/><rect x='90' y='155' width='35' height='25' rx='3' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><circle cx='107' cy='167' r='6' fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'/><path d='M170 165 q-5 10 5 20 q10 -5 15 -15 q-5 -10 -20 -5 z'/><circle cx='60' cy='200' r='6'/></g></svg>")`;
+// A2: mesmo papel de parede, em verde bem suave sobre o fundo claro.
+const WA_BG_A2 = WA_BG_LIGHT.replace("fill='%23000000'", "fill='%23047857'").replace("fill-opacity='0.05'", "fill-opacity='0.07'");
 
 const WA_BG_DARK = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200' opacity='0.04'><g fill='%23ffffff'><path d='M40 40 l10 0 l0 10 l-10 0 z'/><circle cx='70' cy='75' r='4'/><path d='M110 35 l15 -5 l5 15 l-15 5 z' opacity='0.6'/><circle cx='150' cy='55' r='3'/><path d='M30 110 l8 8 l-8 8 l-8 -8 z'/><circle cx='80' cy='135' r='5'/><path d='M130 115 l10 0 l-5 10 z' opacity='0.7'/><circle cx='165' cy='150' r='4'/><path d='M50 170 l12 0 l-6 12 z'/><circle cx='100' cy='180' r='3'/></g></svg>")`;
 
@@ -3165,7 +3167,7 @@ export function ChatSection() {
       </div>
 
       {/* ÁREA DO CHAT — mobile: esconde quando nenhum chat aberto (mostra só a lista) */}
-      <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden", display: isMobile && !atendimentoAtivo ? "none" : "flex", flexDirection: "column", background: tema.chatBg, position: "relative", width: isMobile ? "100%" : "auto" }}>
+      <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden", display: isMobile && !atendimentoAtivo ? "none" : "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: WA_BG_A2, backgroundRepeat: "repeat", backgroundSize: "260px 260px", position: "relative", width: isMobile ? "100%" : "auto" }}>
         {atendimentoAtivo ? (
           <>
             <div style={{ padding: isMobile ? "8px 8px 8px 56px" : "14px 22px", borderBottom: "1px solid #EEF2F1", background: tema.headerBg, display: "flex", justifyContent: "space-between", alignItems: "center", gap: isMobile ? 6 : 12, flexShrink: 0, position: "relative", zIndex: 5 }}>
