@@ -51,6 +51,7 @@ export type ConfigRevisional = {
   honorarios_exito: number;    // % sobre o benefício
   honorarios_parcelas: number; // nº de parcelas da entrada
   repeticao_dobro: boolean;    // devolução em dobro do pago a maior
+  modelo_contrato?: string;    // texto do contrato com {marcadores}; vazio = modelo padrão
 };
 
 export const CONFIG_PADRAO: ConfigRevisional = {

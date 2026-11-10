@@ -35,7 +35,7 @@ const GRUPOS: Grupo[] = [
     { key: "relatorios", label: "Relatórios", icone: "grafico" },
   ]},
   { nome: "Configurações", itens: [
-    { key: "config", label: "Taxas e honorários", icone: "config", soGestor: true },
+    { key: "config", label: "Taxas, honorários e contrato", icone: "config", soGestor: true },
   ]},
 ];
 

@@ -10,7 +10,7 @@ import { empresaDoContrato, representantePadrao, formatarCnpj, type EmpresaContr
 
 import { opcoesAssinatura, type OpcoesAssinatura } from "../../lib/assinatura-opcoes";
 import VisualizadorContrato from "./VisualizadorContrato";
-import { textoContratoRevisional } from "../../lib/revisional-contrato";
+import { textoContratoRevisional, aplicarModelo } from "../../lib/revisional-contrato";
 import { lerPdfAssinado, nomePdfAssinado } from "../../lib/contrato-pdf";
 
 import { IconeEmoji } from "../../components/a2/Icone";
@@ -203,6 +203,9 @@ export default function ContratosPage() {
           crmId = r.crm_proposta_id;
         }
         propostaRevisionalRef.current = id;
+        // modelo do contrato e honorários salvos nas Configurações do CRM financeiro
+        const { data: fin } = await supabase.from("fin_config").select("config").eq("workspace_id", workspaceId).maybeSingle();
+        const cfgRev = (fin as any)?.config?.revisional || {};
         await abrirNovoContrato({
           origem: crmId ? "crm" : "avulso",
           proposta_id: crmId ? String(crmId) : "",
@@ -210,7 +213,13 @@ export default function ContratosPage() {
           cpf: (p.cliente_documento || "").replace(/\D/g, ""),
           telefone: (p.cliente_telefone || "").replace(/\D/g, ""),
           titulo: "Contrato de prestação de serviços — Revisão contratual",
-          conteudo: textoContratoRevisional(p, lista.config || {}),
+          conteudo: textoContratoRevisional(p, {
+            modelo: cfgRev.modelo_contrato || "",
+            honorarios_exito: cfgRev.honorarios_exito ?? 30,
+            honorarios_entrada: cfgRev.honorarios_entrada ?? 0,
+            empresa_nome: lista.config?.empresa_nome || "",
+            empresa_cnpj: lista.config?.empresa_cnpj || "",
+          }),
         });
         window.history.replaceState(null, "", "/crm/contratos");
       } catch (e: any) { setErro(e.message || "Não foi possível preparar o contrato da proposta"); }
@@ -252,11 +261,15 @@ export default function ContratosPage() {
         if (cli) preenchido = { ...p0, email: p0.email || cli.email || "", telefone: p0.telefone || cli.telefone1 || cli.telefone2 || "" };
         else preenchido = { ...p0, origem: "avulso" };
       }
-      // Texto vindo da proposta sem nome/CNPJ da empresa: usa a empresa escolhida aqui.
-      if (preenchido?.conteudo && primeira) {
-        preenchido = { ...preenchido, conteudo: preenchido.conteudo
-          .replace("[NOME DA EMPRESA]", primeira.razao_social || primeira.nome_fantasia || "[NOME DA EMPRESA]")
-          .replace("[CNPJ]", formatarCnpj(primeira.cnpj) || "[CNPJ]") };
+      // Marcadores ainda abertos no texto: completa com a empresa escolhida aqui e o e-mail do CRM.
+      if (preenchido?.conteudo) {
+        const vars: Record<string, string> = {
+          empresa_nome: primeira?.razao_social || primeira?.nome_fantasia || "",
+          empresa_cnpj: primeira?.cnpj ? formatarCnpj(primeira.cnpj) : "",
+          empresa_endereco: primeira?.endereco_completo || "",
+          cliente_email: preenchido.email || "",
+        };
+        preenchido = { ...preenchido, conteudo: aplicarModelo(preenchido.conteudo, vars) };
       }
       setFormContrato({ ...base, ...(preenchido || {}) });
       setCriando(true);
@@ -453,6 +466,10 @@ export default function ContratosPage() {
     }
     if (formContrato.origem === "crm" && !formContrato.proposta_id) { setErro("Escolha um cliente do CRM"); return; }
     if (!editando && !formContrato.pdf_base64 && formContrato.conteudo.trim().length < 30) { setErro("Escreva o contrato ou anexe um PDF pronto"); return; }
+    if (!formContrato.pdf_base64) {
+      const abertos = [...new Set(aplicarModelo(formContrato.conteudo, { cliente_email: formContrato.email.trim() }).match(/\{[a-z_]+\}/g) || [])];
+      if (abertos.length) { setErro(`Complete no texto do contrato: ${abertos.join(", ")}`); return; }
+    }
     setSalvando(true); setErro("");
     try {
       const endpoint = editando ? `/api/contratos/${editando.id}/editar` : "/api/contratos/criar";
@@ -461,7 +478,8 @@ export default function ContratosPage() {
         body: JSON.stringify({ workspaceId, proposta_id: formContrato.origem === "crm" ? Number(formContrato.proposta_id) : null,
           canal_id: formContrato.canal_id ? Number(formContrato.canal_id) : null, numero: formContrato.telefone, nome_signatario: formContrato.nome,
           cpf: formContrato.cpf, email_signatario: formContrato.email, titulo: formContrato.titulo,
-          conteudo: formContrato.conteudo, pdf_base64: formContrato.pdf_base64, mensagem: formContrato.mensagem,
+          // marcador do modelo que só se completa com o e-mail digitado aqui
+          conteudo: aplicarModelo(formContrato.conteudo, { cliente_email: formContrato.email.trim() }), pdf_base64: formContrato.pdf_base64, mensagem: formContrato.mensagem,
           expira_horas: formContrato.expira_horas, exigir_localizacao: formContrato.exigir_localizacao, exigir_documento_identidade: formContrato.exigir_documento_identidade,
           empresa_id: formContrato.empresa_id, representante_id: formContrato.representante_id, otp_meio_representante: formContrato.otp_meio_representante,
           assinatura_opcoes_representante: formContrato.assinatura_opcoes_representante, assinatura_opcoes_cliente: formContrato.assinatura_opcoes_cliente,
