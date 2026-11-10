@@ -1,5 +1,5 @@
 "use client";
-import { IconeEmoji } from "../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../components/a2/Icone";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
@@ -15,19 +15,18 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 // 'ponto-selfies' numa pasta por workspace (wsId/...).
 // ═══════════════════════════════════════════════════════════════════════
 
-const COR = "#2563eb";
+const COR = "#0F766E";
 const card = {
   background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+  borderRadius: 20,
+  boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
 };
 
 const TIPOS = ["Entrada", "Saída p/ almoço", "Retorno do almoço", "Saída"];
 const TIPO_COR: Record<string, string> = {
   Entrada: "#059669",
-  "Saída p/ almoço": "#f59e0b",
-  "Retorno do almoço": "#0ea5e9",
+  "Saída p/ almoço": "#C2410C",
+  "Retorno do almoço": "#0369A1",
   Saída: "#dc2626",
   Marcação: "#64748B",
 };
@@ -307,23 +306,8 @@ export default function BaterPontoPage() {
     <div style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}>
       {/* HEADER */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 24,
-            boxShadow: `0 8px 20px ${COR}30`,
-          }}
-        >
-          <span style={{ filter: "saturate(0) brightness(2)" }}>🕐</span>
-        </div>
         <div>
-          <h1 style={{ color: "#0f172a", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>
+          <h1 style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>
             Bater Ponto
           </h1>
           <p style={{ color: "#64748b", fontSize: 12, margin: "2px 0 0" }}>
@@ -339,7 +323,7 @@ export default function BaterPontoPage() {
       ) : semVinculo ? (
         // login não vinculado a um funcionário
         <div style={{ ...card, padding: 36, textAlign: "center" }}>
-          <p style={{ fontSize: 38, margin: "0 0 10px" }}>🔗</p>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, margin: "0 0 6px" }}>
             Seu login ainda não está vinculado a um funcionário
           </p>
@@ -370,13 +354,17 @@ export default function BaterPontoPage() {
               ...card,
               padding: 32,
               textAlign: "center",
-              background: "linear-gradient(180deg, #ffffff 0%, #ECFDF5 100%)",
+              position: "relative",
+              overflow: "hidden",
+              color: "#fff",
+              background: "linear-gradient(140deg, #10B981 0%, #059669 42%, #065F46 100%)",
+              boxShadow: "0 24px 48px -26px rgba(6,95,70,.8)",
             }}
           >
-            <p style={{ color: "#0f172a", fontSize: 15, fontWeight: 700, margin: "0 0 2px" }}>
-              Olá, {func?.nome?.split(" ")[0]} 👋
+            <p style={{ color: "#fff", fontSize: 16, fontWeight: 700, margin: "0 0 2px" }}>
+              Olá, {func?.nome?.split(" ")[0]}
             </p>
-            <p style={{ color: "#64748b", fontSize: 12, margin: "0 0 4px", textTransform: "capitalize" }}>
+            <p style={{ color: "rgba(255,255,255,.8)", fontSize: 13.5, margin: "0 0 6px", textTransform: "capitalize" }}>
               {relogio.toLocaleDateString("pt-BR", {
                 weekday: "long",
                 day: "2-digit",
@@ -386,8 +374,8 @@ export default function BaterPontoPage() {
             </p>
             <p
               style={{
-                color: "#0f172a",
-                fontSize: 56,
+                color: "#fff",
+                fontSize: 60,
                 fontWeight: 800,
                 margin: "0 0 20px",
                 letterSpacing: -2,
@@ -398,22 +386,22 @@ export default function BaterPontoPage() {
             </p>
 
             <div style={{ maxWidth: 380, margin: "0 auto" }}>
-              <p style={{ color: "#64748b", fontSize: 13, margin: "0 0 14px" }}>
-                Próxima batida: <b style={{ color: TIPO_COR[proximoTipo] || COR }}>{proximoTipo}</b>
+              <p style={{ color: "rgba(255,255,255,.85)", fontSize: 14, margin: "0 0 14px" }}>
+                Próxima batida: <b style={{ color: "#fff" }}>{proximoTipo}</b>
               </p>
               <button
                 onClick={exigeSelfie ? abrirCamera : baterDireto}
                 style={{
                   width: "100%",
-                  background: `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
-                  color: "white",
+                  background: "#ffffff",
+                  color: "#065F46",
                   border: "none",
                   borderRadius: 16,
                   padding: "18px 24px",
                   fontSize: 18,
                   cursor: "pointer",
                   fontWeight: 800,
-                  boxShadow: `0 8px 24px ${COR}50`,
+                  boxShadow: "0 14px 30px -14px rgba(0,0,0,.45)",
                 }}
               >
                 {exigeSelfie ? "Bater Ponto com selfie" : "Bater Ponto"}
@@ -543,17 +531,20 @@ export default function BaterPontoPage() {
               <button
                 onClick={fecharCamera}
                 style={{
-                  background: "#F1F5F4",
+                  background: "#F3F6F5",
                   border: "none",
                   color: "#64748B",
                   fontSize: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: "pointer",
                   width: 32,
                   height: 32,
                   borderRadius: 8,
                 }}
               >
-                ✕
+                <Icone nome="x" tamanho={16} />
               </button>
             </div>
             <div style={{ padding: 20 }}>
@@ -614,7 +605,7 @@ export default function BaterPontoPage() {
                   disabled={!!erroCam}
                   style={{
                     width: "100%",
-                    background: erroCam ? "#cbd5e1" : `linear-gradient(135deg, ${COR} 0%, #059669 100%)`,
+                    background: erroCam ? "#cbd5e1" : `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
                     color: "#fff",
                     border: "none",
                     borderRadius: 14,
@@ -650,7 +641,7 @@ export default function BaterPontoPage() {
                     disabled={enviando}
                     style={{
                       flex: 2,
-                      background: enviando ? "#6EE7B7" : "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+                      background: enviando ? "#6EE7B7" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
                       color: "#fff",
                       border: "none",
                       borderRadius: 14,
