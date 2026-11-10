@@ -749,8 +749,8 @@ body { font-family: var(--font-wolf), system-ui, sans-serif; background: var(--a
 body *:not(code):not(pre):not(kbd):not(samp):not(.font-mono) { font-family: var(--font-wolf), system-ui, -apple-system, "Segoe UI", sans-serif !important; }
 input, select, textarea, button { font-family: inherit; }
 input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--a2-verde); }
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):focus,
-select:focus, textarea:focus {
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.a2-input-limpo):focus,
+select:focus, textarea:not(.a2-input-limpo):focus {
   outline: none !important;
   border-color: #10B981 !important;
   box-shadow: 0 0 0 4px rgba(16,185,129,.14) !important;
@@ -794,3 +794,7 @@ select:focus, textarea:focus {
   .a2-visao-kpi:last-child { border-bottom: 0; }
   .a2-visao-funil { grid-template-columns: minmax(0, 1fr); }
 }
+/* ---------- A2: Atendimento ---------- */
+.a2-input-limpo:focus { outline: none; }
+label:has(> .a2-input-limpo:focus), div:has(> .a2-input-limpo:focus) { box-shadow: 0 0 0 4px rgba(16,185,129,.14), inset 0 0 0 1px #10B981 !important; }
+.a2-chat-item:hover { background: rgba(255,255,255,.7); }
