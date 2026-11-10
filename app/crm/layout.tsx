@@ -377,20 +377,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <div className="wolf-premium-context">
-          <div className="wolf-premium-context-title">
-            <span>{workspaceNome || "WOLF SYSTEM"}</span>
-            <b>{paginaAtual}</b>
-          </div>
-          <div className="context-actions">
-            {ehDonoOuAdmin && !isSuperAdmin && (
-              <span className="plan-info">{usuariosCount}/{limiteUsuarios} usuários</span>
-            )}
-            <span className="system-status"><i /> Sistema operacional</span>
-            <button onClick={() => navegarPara(inicio)}>{revisional ? "Painel revisional" : "Visão executiva"}</button>
-          </div>
-        </div>
-
+        {/* A barra de contexto (empresa / página) saiu: cada tela A2 já abre com o próprio título. */}
         <main className="wolf-premium-content">
           <PontoGuard ativo={modulosCarregados ? modulos.bater_ponto : undefined}>{children}</PontoGuard>
         </main>

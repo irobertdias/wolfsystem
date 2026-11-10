@@ -32,7 +32,7 @@ import { IconeEmoji } from "../../../components/a2/Icone";
 const ADMIN_EMAIL = "robert.dias@live.com";
 
 // ─── estilos ──────────────────────────────────────────────────────────────
-const card = { background: "#fff", borderRadius: 14, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
+const card = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 const btnSec = { background: "#fff", color: "#334155", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600 };
 const sectionTitle = { color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 18px 0", display: "flex", alignItems: "center", gap: 8 };
 
@@ -57,7 +57,7 @@ const GRUPO_DE_STATUS: Record<string, GrupoStatus> = {
 const META_GRUPO: Record<GrupoStatus, { label: string; icone: string; cor: string; bg: string; border: string; desc: string }> = {
   recebidas:   { label: "Recebidas",       icone: "✅", cor: "#059669", bg: "#ECFDF5", border: "#A7F3D0", desc: "Faturas pagas (no prazo, com atraso ou parcial)" },
   negociacao:  { label: "Em Negociação",   icone: "🤝", cor: "#047857", bg: "#ECFDF5", border: "#A7F3D0", desc: "Promessa de pagamento, acordo ou negociação ativa" },
-  risco:       { label: "Em Risco",        icone: "⚠️", cor: "#d97706", bg: "#fffbeb", border: "#fde68a", desc: "Atrasadas — precisam de ação imediata" },
+  risco:       { label: "Em Risco",        icone: "⚠️", cor: "#C2410C", bg: "#fffbeb", border: "#fde68a", desc: "Atrasadas — precisam de ação imediata" },
   pendentes:   { label: "A Vencer",        icone: "⏳", cor: "#059669", bg: "#ECFDF5", border: "#A7F3D0", desc: "Ainda não venceram, dentro do prazo" },
   perdidas:    { label: "Perdidas",        icone: "❌", cor: "#94A3B8", bg: "#F7FAF9", border: "#E6ECEA", desc: "Marcadas como 'não vai pagar' ou canceladas" },
   juridico:    { label: "Jurídico",        icone: "⚖️", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca", desc: "Em cobrança judicial ou protestadas" },
@@ -93,7 +93,7 @@ function GraficoBarras({ data, mobile }: { data: Serie[]; mobile: boolean }) {
   const passos = 4, plotH = H - padT - padB, plotW = W - padL - padR;
   const bw = Math.min(mobile ? 22 : 34, (plotW / data.length) * 0.6);
   const y = (v: number) => padT + plotH * (1 - v / maxV);
-  const cores: [keyof Serie, string][] = [["Pagas", "#059669"], ["Pendentes", "#d97706"], ["Inadimplentes", "#dc2626"]];
+  const cores: [keyof Serie, string][] = [["Pagas", "#059669"], ["Pendentes", "#C2410C"], ["Inadimplentes", "#dc2626"]];
   return (
     <div style={{ width: "100%", overflowX: "auto" }}>
       <svg width={W} height={H} style={{ minWidth: "100%", display: "block" }}>
@@ -455,25 +455,22 @@ export default function CobrancaDashboard() {
       {/* ════════ HEADER ════════ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #047857 0%, #065F46 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(5,150,105,0.3)" }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>📊</span>
-          </div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Dashboard de Cobrança</h1>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Dashboard de Cobrança</h1>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               Acompanhe o resultado do que sua equipe atualiza · <b>{formatNum(kpis.totalFaturas)}</b> faturas analisadas
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={() => router.push("/crm/cobranca/negociacoes")} style={btnSec}>Negociações</button>
-          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ ...btnSec, background: "linear-gradient(135deg,#047857,#065F46)", color: "#fff", border: "none" }}>Atualizar planilha</button>
+          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ ...btnSec, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "#fff", border: "none" }}>Atualizar planilha</button>
         </div>
       </div>
 
       {/* ════════ BANNER: ÚLTIMA ATUALIZAÇÃO ════════ */}
       {ultimaAtualizacao.quando && (
-        <div style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)", border: "1px solid #A7F3D0", borderLeft: "4px solid #059669", borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ background: "#F7FFFB", border: "none", boxShadow: "inset 0 0 0 1.5px #A7F3D0", borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ fontSize: 26 }}>🔄</div>
             <div>
@@ -492,7 +489,7 @@ export default function CobrancaDashboard() {
 
       {/* ════════ SELETOR DE PERÍODO ════════ */}
       <div style={{ ...card, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <span style={{ color: "#64748B", fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Período:</span>
+        <span style={{ color: "#64748B", fontSize: 11.5, fontWeight: 700 }}>Período:</span>
         <div style={{ display: "flex", gap: 4 }}>
           {([
             { k: "mes" as const, l: "Este mês" },
@@ -511,7 +508,7 @@ export default function CobrancaDashboard() {
       </div>
 
       {vazio && (
-        <div style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)", border: "1px solid #A7F3D0", borderLeft: "4px solid #047857", borderRadius: 12, padding: "16px 20px" }}>
+        <div style={{ background: "#F7FFFB", border: "none", boxShadow: "inset 0 0 0 1.5px #A7F3D0", borderRadius: 12, padding: "16px 20px" }}>
           <p style={{ color: "#065F46", fontSize: 14, margin: 0, fontWeight: 700 }}>Ainda não há faturas no período selecionado</p>
           <p style={{ color: "#059669", fontSize: 12.5, margin: "4px 0 0" }}>
             Suba a planilha de pagamento em <b>Atualizar planilha</b> ou amplie o período pra "Tudo".
@@ -527,7 +524,7 @@ export default function CobrancaDashboard() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>✅</div>
-                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Recebidas</p>
+                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0 }}>Recebidas</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.recebidas} anterior={kpisAnt.recebidas} />}
             </div>
@@ -542,7 +539,7 @@ export default function CobrancaDashboard() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🤝</div>
-                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Em negociação</p>
+                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0 }}>Em negociação</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.negociacao} anterior={kpisAnt.negociacao} />}
             </div>
@@ -557,7 +554,7 @@ export default function CobrancaDashboard() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🔴</div>
-                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Inadimplentes</p>
+                <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0 }}>Inadimplentes</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.inadimplentes} anterior={kpisAnt.inadimplentes} invertido />}
             </div>
@@ -571,9 +568,9 @@ export default function CobrancaDashboard() {
           <div style={{ ...card, padding: isMobile ? 14 : 18, borderTop: "4px solid #047857" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>📉</div>
-              <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>Tx. Inadimplência</p>
+              <p style={{ color: "#64748B", fontSize: 10.5, fontWeight: 700, margin: 0 }}>Tx. Inadimplência</p>
             </div>
-            <p style={{ color: kpis.pctInad < 10 ? "#059669" : kpis.pctInad < 25 ? "#d97706" : "#dc2626", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{kpis.pctInad}%</p>
+            <p style={{ color: kpis.pctInad < 10 ? "#059669" : kpis.pctInad < 25 ? "#C2410C" : "#dc2626", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{kpis.pctInad}%</p>
             <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
               {kpis.pctInad < 10 ? "✓ saudável" : kpis.pctInad < 25 ? "atenção" : "crítico"} · inad/total
             </p>
@@ -583,7 +580,7 @@ export default function CobrancaDashboard() {
 
       {/* ════════ INSIGHTS AUTOMÁTICOS ════════ */}
       {!vazio && insights.length > 0 && (
-        <div style={{ ...card, padding: isMobile ? 16 : 20, background: "linear-gradient(135deg, #fefefe 0%, #F7FAF9 100%)" }}>
+        <div style={{ ...card, padding: isMobile ? 16 : 20, background: "#ffffff" }}>
           <h3 style={{ ...sectionTitle, margin: "0 0 12px" }}>
             <span style={{ width: 28, height: 28, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>💡</span>
             O que esses números te dizem
@@ -602,16 +599,16 @@ export default function CobrancaDashboard() {
       {!vazio && (alertas.vencemEm3 > 0 || alertas.atrasadasMais30d > 0 || alertas.promessasHoje > 0) && (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 12 }}>
           {alertas.vencemEm3 > 0 && (
-            <div style={{ ...card, padding: 16, borderLeft: "4px solid #d97706", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ ...card, padding: 16, borderLeft: "4px solid #C2410C", display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontSize: 28 }}>⏰</div>
               <div>
-                <p style={{ color: "#d97706", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.vencemEm3)}</p>
+                <p style={{ color: "#C2410C", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.vencemEm3)}</p>
                 <p style={{ color: "#92400e", fontSize: 12, margin: 0, fontWeight: 600 }}>fatura(s) vencem nos próximos 3 dias</p>
               </div>
             </div>
           )}
           {alertas.promessasHoje > 0 && (
-            <div style={{ ...card, padding: 16, borderLeft: "4px solid #047857", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ ...card, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontSize: 28 }}>🤝</div>
               <div>
                 <p style={{ color: "#047857", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.promessasHoje)}</p>
@@ -680,9 +677,9 @@ export default function CobrancaDashboard() {
           </div>
           {tipoGrafico === "barras"
             ? <GraficoBarras data={serieMensal} mobile={isMobile} />
-            : <GraficoLinha data={serieMensal} mobile={isMobile} series={[["Pagas", "#059669"], ["Pendentes", "#d97706"], ["Inadimplentes", "#dc2626"]]} />}
+            : <GraficoLinha data={serieMensal} mobile={isMobile} series={[["Pagas", "#059669"], ["Pendentes", "#C2410C"], ["Inadimplentes", "#dc2626"]]} />}
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 10, justifyContent: "center" }}>
-            {([["Pagas", "#059669"], ["Pendentes", "#d97706"], ["Inadimplentes", "#dc2626"]] as [string, string][]).map(([l, cor]) => (
+            {([["Pagas", "#059669"], ["Pendentes", "#C2410C"], ["Inadimplentes", "#dc2626"]] as [string, string][]).map(([l, cor]) => (
               <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#64748B", fontSize: 11.5, fontWeight: 600 }}>
                 <span style={{ width: 12, height: 4, borderRadius: 2, background: cor }} /> {l}
               </span>
@@ -705,7 +702,7 @@ export default function CobrancaDashboard() {
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ ...card, padding: 16, borderLeft: "4px solid #047857" }}>
+            <div style={{ ...card, padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ fontSize: 24 }}>👥</div>
                 <div>
@@ -714,7 +711,7 @@ export default function CobrancaDashboard() {
                 </div>
               </div>
             </div>
-            <div style={{ ...card, padding: 16, borderLeft: "4px solid #059669" }}>
+            <div style={{ ...card, padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ fontSize: 24 }}>📑</div>
                 <div>
@@ -751,7 +748,7 @@ export default function CobrancaDashboard() {
               <thead>
                 <tr style={{ background: "#F7FAF9" }}>
                   {["#", "Cliente", "Faturas em risco", "Jurídico", "Total devido", "Ação"].map(h => (
-                    <th key={h} style={{ padding: "11px 14px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
+                    <th key={h} style={{ padding: "11px 14px", color: "#64748B", fontSize: 12.5, textAlign: "left",  fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -764,7 +761,7 @@ export default function CobrancaDashboard() {
                       {c.proposta?.dados_customizados?.custcode && <p style={{ color: "#94A3B8", fontSize: 10.5, margin: "2px 0 0", fontFamily: "monospace" }}>{c.proposta.dados_customizados.custcode}</p>}
                     </td>
                     <td style={{ padding: "12px 14px" }}>
-                      {c.emRisco > 0 ? <span style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", borderRadius: 10, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{c.emRisco}</span> : <span style={{ color: "#CBD5E1", fontSize: 13 }}>—</span>}
+                      {c.emRisco > 0 ? <span style={{ background: "#fffbeb", color: "#C2410C", border: "1px solid #fde68a", borderRadius: 10, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{c.emRisco}</span> : <span style={{ color: "#CBD5E1", fontSize: 13 }}>—</span>}
                     </td>
                     <td style={{ padding: "12px 14px" }}>
                       {c.emJuridico > 0 ? <span style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 10, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{c.emJuridico}</span> : <span style={{ color: "#CBD5E1", fontSize: 13 }}>—</span>}
@@ -786,7 +783,7 @@ export default function CobrancaDashboard() {
 
       {/* ════════ COMO LER ESTE DASHBOARD ════════ */}
       {!vazio && (
-        <div style={{ ...card, padding: isMobile ? 16 : 22, background: "linear-gradient(135deg, #F7FAF9 0%, #F1F5F4 100%)" }}>
+        <div style={{ ...card, padding: isMobile ? 16 : 22, background: "#ffffff" }}>
           <h3 style={{ ...sectionTitle, margin: "0 0 12px", color: "#334155" }}>
             <span style={{ width: 28, height: 28, borderRadius: 8, background: "#fff", border: "1px solid #E6ECEA", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>📖</span>
             Como ler este dashboard

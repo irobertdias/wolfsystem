@@ -8,7 +8,7 @@ import { supabase } from "../../../lib/supabase";
 // 🆕 multi-tenant: hooks do Wolf
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { useModulos, ModuloBloqueado } from "../../../hooks/useModulos";
-import { IconeEmoji } from "../../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 // 🆕 ChatSection embedded foi removido nesta adaptação (ver comentário no bloco da aba "Atendimentos")
 // import { ChatSection } from "../../../chatbot/_sections/ChatSection";
 
@@ -163,7 +163,7 @@ const STATUS_META: Record<StatusFatura, {
   label: string; icone: string; bg: string; border: string; color: string;
   recebido: boolean; pendencia: boolean; descricao: string;
 }> = {
-  pendente:     { label: "Em vencer",          icone: "⏳", bg: "#fffbeb", border: "#fde68a", color: "#d97706", recebido: false, pendencia: true,  descricao: "Ainda não venceu" },
+  pendente:     { label: "Em vencer",          icone: "⏳", bg: "#fffbeb", border: "#fde68a", color: "#C2410C", recebido: false, pendencia: true,  descricao: "Ainda não venceu" },
   atrasada:     { label: "Em aberto",          icone: "🔴", bg: "#fef2f2", border: "#fecaca", color: "#dc2626", recebido: false, pendencia: true,  descricao: "Venceu e não foi paga" },
   paga:         { label: "Paga",               icone: "✅", bg: "#ECFDF5", border: "#A7F3D0", color: "#059669", recebido: true,  pendencia: false, descricao: "Paga em dia" },
   paga_atraso:  { label: "Paga c/ atraso",     icone: "⏰", bg: "#ecfdf5", border: "#a7f3d0", color: "#059669", recebido: true,  pendencia: false, descricao: "Paga depois do vencimento" },
@@ -191,26 +191,21 @@ const substituirVars = (texto: string, vars: Record<string, string>): string =>
   texto.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 
 // ─── ESTILOS ───────────────────────────────────────────────────────────────
-const cardStyle = {
-  background: "#ffffff",
-  borderRadius: 14,
-  border: "1px solid #E6ECEA",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-};
+const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 const inputStyle = {
-  background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10,
-  padding: "9px 12px", color: "#0F172A", fontSize: 13, outline: "none",
+  background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12,
+  padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, outline: "none",
   width: "100%", boxSizing: "border-box" as const,
 };
 const labelStyle = {
-  color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const,
-  letterSpacing: 0.5, display: "block", marginBottom: 6,
+  color: "#64748B", fontSize: 11, fontWeight: 700,
+  display: "block", marginBottom: 6,
 };
 const btnPrimario = {
-  background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+  background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
   color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 18px",
   fontSize: 13, cursor: "pointer", fontWeight: 700,
-  boxShadow: "0 4px 12px rgba(220,38,38,0.3)",
+  boxShadow: "0 4px 12px rgba(5,150,105,.45)",
 };
 const btnSecundario = {
   background: "#ffffff", color: "#334155", border: "1px solid #E6ECEA",
@@ -1321,20 +1316,19 @@ export default function CobrancaPage() {
   return (
     <div style={{ padding: isMobile ? 14 : 24, background: "#F3F6F5", minHeight: "100vh", display: "flex", flexDirection: "column", gap: 14 }}>
       {/* HEADER */}
-      <div style={{ ...cardStyle, padding: isMobile ? 16 : 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(220,38,38,0.3)" }}>💰</div>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 17 : 20, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Cobrança — Negociações</h1>
-            <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Cobrança — Negociações</h1>
+            <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               {/* 🆕 multi-tenant: mostra o workspace logado em vez do "Grupo Unita" fixo */}
-              <b style={{ color: "#dc2626" }}>{workspace?.nome || "Wolf System"}</b> · Cobre direto do CRM ou suba uma planilha
+              <b style={{ color: "#065F46" }}>{workspace?.nome || "Wolf System"}</b> · Cobre direto do CRM ou suba uma planilha
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => router.push("/crm/cobranca/dashboard")} style={{ background: "#fff", color: "#334155", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: 600 }}>Dashboard</button>
-          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ background: "#fff", color: "#334155", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: 600 }}>Atualizar planilha</button>
+          <button onClick={() => router.push("/crm/cobranca/dashboard")} style={{ background: "#ffffff", color: "#334155", border: "none", borderRadius: 12, padding: "10px 16px", fontSize: 13.5, cursor: "pointer", fontWeight: 700, boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25)" }}>Dashboard</button>
+          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ background: "#ffffff", color: "#334155", border: "none", borderRadius: 12, padding: "10px 16px", fontSize: 13.5, cursor: "pointer", fontWeight: 700, boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25)" }}>Atualizar planilha</button>
         </div>
       </div>
 
@@ -1342,7 +1336,7 @@ export default function CobrancaPage() {
       {tabelasFaltando.length > 0 && (
         <div style={{
           background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-          border: "1px solid #fcd34d", borderLeft: "4px solid #f59e0b",
+          border: "1px solid #fcd34d", borderLeft: "4px solid #EA580C",
           borderRadius: 12, padding: "12px 16px",
           display: "flex", gap: 12, alignItems: "flex-start",
         }}>
@@ -1360,22 +1354,22 @@ export default function CobrancaPage() {
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 10 : 14 }}>
         <KPI cor="#059669" bg="#ECFDF5" icone="✅" label="Faturas pagas"      valor={formatNum(kpis.pagas)}     sub={`${kpis.pctPago}% do total`} isMobile={isMobile} />
-        <KPI cor="#d97706" bg="#fffbeb" icone="⏳" label="Faturas a pagar"    valor={formatNum(kpis.aPagar)}    sub={`${formatNum(kpis.atrasadas)} já vencida(s)`} isMobile={isMobile} />
-        <KPI cor="#2563eb" bg="#eff6ff" icone="📅" label="Vencem em 7 dias"   valor={formatNum(kpis.vence7d)}   sub="faturas a vencer" isMobile={isMobile} />
+        <KPI cor="#C2410C" bg="#fffbeb" icone="⏳" label="Faturas a pagar"    valor={formatNum(kpis.aPagar)}    sub={`${formatNum(kpis.atrasadas)} já vencida(s)`} isMobile={isMobile} />
+        <KPI cor="#0F766E" bg="#F0FDFA" icone="📅" label="Vencem em 7 dias"   valor={formatNum(kpis.vence7d)}   sub="faturas a vencer" isMobile={isMobile} />
         <KPI cor="#dc2626" bg="#fef2f2" icone="🚨" label={kpis.proxData ? `Pague até ${kpis.proxData.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}` : "Próximo corte"} valor={formatNum(kpis.viramInad)} sub={kpis.proxDias != null ? (kpis.proxDias === 0 ? "viram inadimplentes HOJE" : `viram inadimplentes em ${kpis.proxDias}d`) : "nenhuma a vencer"} isMobile={isMobile} />
       </div>
 
       {/* TABS */}
-      <div style={{ ...cardStyle, padding: 6, display: "flex", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ alignSelf: "flex-start", maxWidth: "100%", background: "#ffffff", borderRadius: 14, boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25)", padding: 5, display: "flex", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         {([
-          { key: "do_crm",    label: "Do CRM",   color: "#dc2626" },
-          { key: "campanhas", label: "Campanhas", color: "#047857" },
+          { key: "do_crm",    label: "Do CRM",   color: "#059669" },
+          { key: "campanhas", label: "Campanhas", color: "#059669" },
           { key: "atendimentos", label: "Atendimentos", color: "#059669" },
         ] as { key: AbaKey; label: string; color: string }[]).map(t => {
           const at = aba === t.key;
           return (
             <button key={t.key} onClick={() => setAba(t.key)}
-              style={{ background: at ? `linear-gradient(135deg, ${t.color} 0%, ${t.color}dd 100%)` : "transparent", color: at ? "white" : "#64748B", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: at ? `0 4px 12px ${t.color}40` : "none", whiteSpace: "nowrap", flexShrink: 0 }}>
+              style={{ background: at ? "#ECFDF5" : "transparent", color: at ? "#065F46" : "#64748B", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontWeight: at ? 800 : 600, whiteSpace: "nowrap", flexShrink: 0 }}>
               {t.label}
             </button>
           );
@@ -1407,7 +1401,7 @@ export default function CobrancaPage() {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {respostasCob.map(({ a, cli }: any) => (
-                    <div key={a.id} style={{ border: "1px solid #E6ECEA", borderLeft: "4px solid #059669", borderRadius: 12, background: "#ffffff" }}>
+                    <div key={a.id} style={{ border: "1px solid #E6ECEA", borderRadius: 12, background: "#ffffff" }}>
                       <div onClick={() => abrirConversaCob(a.numero)}
                         style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", cursor: "pointer", flexWrap: "wrap" }}>
                         <div style={{ flex: "1 1 220px", minWidth: 0 }}>
@@ -1420,7 +1414,7 @@ export default function CobrancaPage() {
                         </div>
                         <div style={{ textAlign: "right", minWidth: 110 }}>
                           <p style={{ margin: 0, color: "#334155", fontSize: 11, fontWeight: 700 }}>{a.updated_at ? new Date(a.updated_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</p>
-                          <p style={{ margin: "2px 0 0", color: a.status === "resolvido" ? "#059669" : "#d97706", fontSize: 10.5, fontWeight: 700 }}>{a.status || ""}{a.atendente ? ` · ${String(a.atendente).split("@")[0]}` : ""}</p>
+                          <p style={{ margin: "2px 0 0", color: a.status === "resolvido" ? "#059669" : "#C2410C", fontSize: 10.5, fontWeight: 700 }}>{a.status || ""}{a.atendente ? ` · ${String(a.atendente).split("@")[0]}` : ""}</p>
                         </div>
                         <span style={{ color: "#94A3B8", fontSize: 14, fontWeight: 700 }}>{convAberta === a.numero ? "▾" : "▸"}</span>
                       </div>
@@ -1442,7 +1436,7 @@ export default function CobrancaPage() {
                             </div>
                           )}
                           <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "flex-end" }}>
-                            <a href="/chatbot" style={{ background: "linear-gradient(135deg, #059669 0%, #10B981 100%)", color: "#fff", borderRadius: 9, padding: "8px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", boxShadow: "0 4px 12px rgba(5,150,105,0.3)" }}>Responder no Atendimento</a>
+                            <a href="/chatbot" style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "#fff", borderRadius: 9, padding: "8px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Responder no Atendimento</a>
                           </div>
                         </div>
                       )}
@@ -1475,7 +1469,7 @@ export default function CobrancaPage() {
 
                 {/* 🆕 MENU SUSPENSO de vencimentos detectados */}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Vencimento:</span>
+                  <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700 }}>Vencimento:</span>
                   <select value={filtroVencSel} onChange={e => { setFiltroVencSel(e.target.value); setSelecionadasFat(new Set()); setClienteSel(null); }}
                     style={{ ...inputStyle, width: "auto", padding: "8px 10px", cursor: "pointer", fontWeight: 600, minWidth: 180 }}>
                     <option value="">Todos os vencimentos</option>
@@ -1503,10 +1497,10 @@ export default function CobrancaPage() {
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {([
                     { k: "todos",       l: "🌐 Todos",          cor: "#64748B" },
-                    { k: "vencendo_7d", l: "🟡 Próx. 7 dias",   cor: "#f59e0b" },
+                    { k: "vencendo_7d", l: "🟡 Próx. 7 dias",   cor: "#EA580C" },
                     { k: "hoje",        l: "⏰ Hoje",            cor: "#ea580c" },
                     { k: "vencidos",    l: "🔴 Vencidos",        cor: "#dc2626" },
-                    { k: "este_mes",    l: "📆 Este mês",        cor: "#2563eb" },
+                    { k: "este_mes",    l: "📆 Este mês",        cor: "#0F766E" },
                   ] as { k: FiltroVenc; l: string; cor: string }[]).map(f => {
                     const at = filtroVenc === f.k;
                     return (
@@ -1524,13 +1518,13 @@ export default function CobrancaPage() {
 
               {/* ░░ STATUS + MÊS DE INSTALAÇÃO ░░ */}
               <div style={{ ...cardStyle, padding: isMobile ? 10 : 12, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, marginRight: 4 }}>Status:</span>
+                <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginRight: 4 }}>Status:</span>
                 {([
                   { k: "todas",     l: "🌐 Todas",          cor: "#334155" },
                   { k: "pagas",     l: "✅ Pagas",           cor: "#059669" },
                   { k: "atrasadas", l: "🔴 Em aberto",      cor: "#dc2626" },
-                  { k: "pendentes", l: "⏳ Em vencer",      cor: "#d97706" },
-                  { k: "negociacao",l: "📞 Em negociação",  cor: "#7c3aed" },
+                  { k: "pendentes", l: "⏳ Em vencer",      cor: "#C2410C" },
+                  { k: "negociacao",l: "📞 Em negociação",  cor: "#0F766E" },
                 ] as { k: string; l: string; cor: string }[]).map(f => {
                   const at = filtroStatus === f.k;
                   return (
@@ -1541,7 +1535,7 @@ export default function CobrancaPage() {
                   );
                 })}
                 <span style={{ width: 1, height: 22, background: "#E6ECEA", margin: "0 4px" }} />
-                <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Instalaram em:</span>
+                <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700 }}>Instalaram em:</span>
                 <input type="month" value={mesInst} onChange={e => { setMesInst(e.target.value); setSelecionadasFat(new Set()); }} style={{ ...inputStyle, padding: "6px 10px", width: "auto" }} />
                 {mesInst && (
                   <button onClick={() => setMesInst("")} style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 20, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>Limpar mês</button>
@@ -1573,7 +1567,7 @@ export default function CobrancaPage() {
 
                 {clientesTabela.length === 0 ? (
                   <div style={{ padding: 40, textAlign: "center" }}>
-                    <div style={{ fontSize: 40, marginBottom: 8 }}>📋</div>
+                    <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="documento" tamanho={24} /></span>
                     <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>Nenhum cliente nesse filtro</p>
                     <p style={{ color: "#94A3B8", fontSize: 12, margin: "0 0 14px" }}>
                       As faturas vêm da planilha de status (uma linha por fatura). Suba a planilha em <b>Atualizar planilha</b> pra preencher os dados.<br/>
@@ -1597,7 +1591,7 @@ export default function CobrancaPage() {
                             </th>
                           )}
                           {["Cliente", "Fraude", "Churn", "OS", "Custcode", "Situação", "Faturas", "Total em aberto", "Próximo vencimento", ""].map(h => (
-                            <th key={h} style={{ padding: "11px 14px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
+                            <th key={h} style={{ padding: "11px 14px", color: "#64748B", fontSize: 12.5, textAlign: "left",  fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
                           ))}
                         </tr>
                         {/* linha de filtros por coluna (nome / OS / custcode) */}
@@ -1645,8 +1639,8 @@ export default function CobrancaPage() {
                           return (
                             <tr key={c.proposta.id} onClick={() => setModalCliente(c.proposta.id)}
                               style={{ borderTop: "1px solid #F1F5F4", background: clientesSel.has(c.proposta.id) ? "#ECFDF5" : (i % 2 === 0 ? "#ffffff" : "#F7FAF9"), cursor: "pointer" }}
-                              onMouseEnter={e => (e.currentTarget.style.background = "#eff6ff")}
-                              onMouseLeave={e => (e.currentTarget.style.background = clientesSel.has(c.proposta.id) ? "#eff6ff" : (i % 2 === 0 ? "#ffffff" : "#F7FAF9"))}>
+                              onMouseEnter={e => (e.currentTarget.style.background = "#F0FDFA")}
+                              onMouseLeave={e => (e.currentTarget.style.background = clientesSel.has(c.proposta.id) ? "#F0FDFA" : (i % 2 === 0 ? "#ffffff" : "#F7FAF9"))}>
                               {podeDisparar && (
                                 <td onClick={e => e.stopPropagation()} style={{ padding: "12px", textAlign: "center" }}>
                                   <input type="checkbox" checked={clientesSel.has(c.proposta.id)} onChange={() => toggleSelCliente(c.proposta.id)}
@@ -1695,7 +1689,7 @@ export default function CobrancaPage() {
                                   <span style={{ display: "flex", gap: 5, fontSize: 11, fontWeight: 700 }}>
                                     <span title="Pagas" style={{ color: c.pagas > 0 ? "#059669" : "#CBD5E1" }}>✅{c.pagas}</span>
                                     <span title="Em aberto (vencidas)" style={{ color: c.emAberto > 0 ? "#dc2626" : "#CBD5E1" }}>🔴{c.emAberto}</span>
-                                    <span title="A vencer" style={{ color: c.aVencer > 0 ? "#d97706" : "#CBD5E1" }}>⏳{c.aVencer}</span>
+                                    <span title="A vencer" style={{ color: c.aVencer > 0 ? "#C2410C" : "#CBD5E1" }}>⏳{c.aVencer}</span>
                                   </span>
                                 </div>
                               </td>
@@ -1706,7 +1700,7 @@ export default function CobrancaPage() {
                                 {c.proxVenc ? (
                                   <div>
                                     <div style={{ color: "#0F172A", fontSize: 12, fontWeight: 600 }}>{formatData(c.proxVenc)}</div>
-                                    <div style={{ color: c.proxDias <= 5 ? "#d97706" : "#047857", fontSize: 10, fontWeight: 700 }}>
+                                    <div style={{ color: c.proxDias <= 5 ? "#C2410C" : "#047857", fontSize: 10, fontWeight: 700 }}>
                                       {c.proxDias === 0 ? "vence hoje" : `em ${c.proxDias}d`}
                                     </div>
                                   </div>
@@ -1818,7 +1812,7 @@ export default function CobrancaPage() {
               </div>
               {campanhas.length === 0 ? (
                 <div style={{ padding: 48, textAlign: "center" }}>
-                  <div style={{ fontSize: 40, marginBottom: 8 }}>📊</div>
+                  <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="grafico" tamanho={24} /></span>
                   <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>Nenhuma campanha ainda</p>
                   <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>
                     Dispare uma cobrança na aba Do CRM ou Planilha que ela aparece aqui.
@@ -1830,7 +1824,7 @@ export default function CobrancaPage() {
                     <thead>
                       <tr style={{ background: "#F7FAF9" }}>
                         {["Campanha", "Modo", "Status", "Contatos", "Enviados", "Falhas", "Criada"].map(h => (
-                          <th key={h} style={{ padding: "10px 12px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
+                          <th key={h} style={{ padding: "10px 12px", color: "#64748B", fontSize: 12.5, textAlign: "left",  fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -1840,7 +1834,7 @@ export default function CobrancaPage() {
                           <td style={{ padding: "12px", color: "#0F172A", fontSize: 13, fontWeight: 700 }}>{c.nome}</td>
                           <td style={{ padding: "12px", color: "#64748B", fontSize: 12 }}>{c.modo === "planilha" ? "📤 Planilha" : "📅 CRM"}</td>
                           <td style={{ padding: "12px" }}>
-                            <span style={{ background: c.status === "concluida" ? "#ECFDF5" : c.status === "rodando" ? "#fffbeb" : "#fef2f2", color: c.status === "concluida" ? "#059669" : c.status === "rodando" ? "#f59e0b" : "#dc2626", border: "1px solid", borderRadius: 8, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+                            <span style={{ background: c.status === "concluida" ? "#ECFDF5" : c.status === "rodando" ? "#fffbeb" : "#fef2f2", color: c.status === "concluida" ? "#059669" : c.status === "rodando" ? "#EA580C" : "#dc2626", border: "1px solid", borderRadius: 8, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
                               {c.status}
                             </span>
                           </td>
@@ -1866,7 +1860,7 @@ export default function CobrancaPage() {
             <div style={{ padding: "18px 22px", borderBottom: "1px solid #E6ECEA", background: "linear-gradient(135deg, #ECFDF5 0%, #ffffff 100%)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: 0 }}>Disparar cobrança</h3>
-                <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>{envioContatos.length} contato(s) · fonte: {envioFonte === "crm" ? "📅 CRM" : "📤 Planilha"}</p>
+                <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>{envioContatos.length} contato(s) · fonte: {envioFonte === "crm" ? "📅 CRM" : "📤 Planilha"}</p>
               </div>
               <button onClick={() => setShowEnvio(false)} disabled={envioEnviando} style={{ background: "#F1F5F4", color: "#64748B", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>✕</button>
             </div>
@@ -1923,7 +1917,7 @@ export default function CobrancaPage() {
                   ))}
                 </select>
                 {canais.length === 0 && (
-                  <p style={{ color: "#f59e0b", fontSize: 11, margin: "4px 0 0" }}>Nenhum canal cadastrado. Configure em Chatbot → Conexões.</p>
+                  <p style={{ color: "#EA580C", fontSize: 11, margin: "4px 0 0" }}>Nenhum canal cadastrado. Configure em Chatbot → Conexões.</p>
                 )}
               </div>
 
@@ -1935,7 +1929,7 @@ export default function CobrancaPage() {
                   </div>
                   {envioContatos.length > 0 && (
                     <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
-                      <p style={{ color: "#14532d", fontSize: 11, fontWeight: 700, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.4 }}>Preview (1º contato: {envioContatos[0].nome})</p>
+                      <p style={{ color: "#14532d", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Preview (1º contato: {envioContatos[0].nome})</p>
                       <p style={{ color: "#334155", fontSize: 13, margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{previewMensagem}</p>
                     </div>
                   )}
@@ -1952,7 +1946,7 @@ export default function CobrancaPage() {
                     ))}
                   </select>
                   {templates.length === 0 && (
-                    <p style={{ color: "#f59e0b", fontSize: 11, margin: "4px 0 0" }}>Nenhum template aprovado. Crie em Chatbot → Templates.</p>
+                    <p style={{ color: "#EA580C", fontSize: 11, margin: "4px 0 0" }}>Nenhum template aprovado. Crie em Chatbot → Templates.</p>
                   )}
                 </div>
               )}
@@ -2093,7 +2087,7 @@ export default function CobrancaPage() {
       {feedback && (() => {
         const cores = {
           erro:    { bg: "#fef2f2", border: "#fecaca", iconBg: "#fee2e2", icon: "#dc2626", titulo: "#991b1b", botao: "#dc2626", emoji: "⚠️" },
-          aviso:   { bg: "#fffbeb", border: "#fde68a", iconBg: "#fef3c7", icon: "#d97706", titulo: "#92400e", botao: "#d97706", emoji: "🛡️" },
+          aviso:   { bg: "#fffbeb", border: "#fde68a", iconBg: "#fef3c7", icon: "#C2410C", titulo: "#92400e", botao: "#C2410C", emoji: "🛡️" },
           sucesso: { bg: "#ECFDF5", border: "#A7F3D0", iconBg: "#D1FAE5", icon: "#059669", titulo: "#14532d", botao: "#059669", emoji: "✅" },
           info:    { bg: "#ECFDF5", border: "#A7F3D0", iconBg: "#D1FAE5", icon: "#047857", titulo: "#065F46", botao: "#047857", emoji: "ℹ️" },
         }[feedback.tipo];
@@ -2110,7 +2104,7 @@ export default function CobrancaPage() {
               </div>
               {feedback.detalhes && feedback.detalhes.length > 0 && (
                 <div style={{ padding: "16px 24px", overflowY: "auto", flex: 1, borderBottom: "1px solid #F1F5F4" }}>
-                  <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 10px" }}>Detalhes</p>
+                  <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 10px" }}>Detalhes</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {feedback.detalhes.map((d, i) => (
                       <div key={i} style={{ background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#334155" }}>{d}</div>
@@ -2141,7 +2135,7 @@ export default function CobrancaPage() {
           const k = String(cod || "").replace(/\D/g, "").padStart(2, "0");
           if (k === "01") return { bg: "#ECFDF5", cor: "#059669", txt: "Pagou no prazo" };
           if (k === "02") return { bg: "#ecfdf5", cor: "#059669", txt: "Pagou até 30d" };
-          if (k === "03") return { bg: "#fffbeb", cor: "#d97706", txt: "Pagou até 60d" };
+          if (k === "03") return { bg: "#fffbeb", cor: "#C2410C", txt: "Pagou até 60d" };
           if (k === "04") return { bg: "#fef2f2", cor: "#dc2626", txt: "Pagou após 60d" };
           if (k === "05") return { bg: "#fef2f2", cor: "#b91c1c", txt: "Não pagou" };
           return { bg: "#F1F5F4", cor: "#64748B", txt: "—" };
@@ -2181,7 +2175,7 @@ export default function CobrancaPage() {
                 <span style={{ color: "#334155" }}>📄 <b>{c.faturas.length}</b> fatura(s)</span>
                 <span style={{ color: "#059669" }}>✅ <b>{c.pagas}</b> paga(s)</span>
                 <span style={{ color: "#dc2626" }}>🔴 <b>{c.emAberto}</b> em aberto</span>
-                <span style={{ color: "#d97706" }}>⏳ <b>{c.aVencer}</b> a vencer</span>
+                <span style={{ color: "#C2410C" }}>⏳ <b>{c.aVencer}</b> a vencer</span>
                 {c.totalAberto > 0 && <span style={{ color: "#dc2626", marginLeft: "auto", fontWeight: 800 }}>Total em aberto: {formatBRL(c.totalAberto)}</span>}
               </div>
 
@@ -2192,7 +2186,7 @@ export default function CobrancaPage() {
                     <tr style={{ background: "#F7FAF9" }}>
                       {podeDisparar && <th style={{ width: 36, padding: "10px 12px", borderBottom: "1px solid #E6ECEA" }}></th>}
                       {["Nº fat.", "Status pagamento", "Detalhamento", "Mês gross", "Mês venc.", "Data venc.", "Data pgto.", "Banco / Opção", "Fraude", "Churn", "Ações"].map(h => (
-                        <th key={h} style={{ padding: "10px 12px", color: "#64748B", fontSize: 10.5, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
+                        <th key={h} style={{ padding: "10px 12px", color: "#64748B", fontSize: 12.5, textAlign: "left",  fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -2252,7 +2246,7 @@ export default function CobrancaPage() {
                                       style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 6, padding: "4px 8px", fontSize: 10.5, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>Paga</button>
                                   ) : (
                                     <button onClick={() => marcarAPagar(f)} title="Reverter status"
-                                      style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", borderRadius: 6, padding: "4px 8px", fontSize: 10.5, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>A pagar</button>
+                                      style={{ background: "#fffbeb", color: "#C2410C", border: "1px solid #fde68a", borderRadius: 6, padding: "4px 8px", fontSize: 10.5, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>A pagar</button>
                                   )}
                                   <button onClick={() => abrirStatus(f, "promessa")} title="Mais status"
                                     style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 6, padding: "4px 8px", fontSize: 10.5, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>⚙</button>
@@ -2364,13 +2358,13 @@ function KPI({ cor, bg, icone, label, valor, sub, isMobile }: {
   cor: string; bg: string; icone: string; label: string; valor: string; sub: string; isMobile: boolean;
 }) {
   return (
-    <div style={{ ...cardStyle, padding: isMobile ? 14 : 18, borderTop: `3px solid ${cor}` }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 8, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{<IconeEmoji e={icone} />}</div>
-        <p style={{ color: "#64748B", fontSize: 10, margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>{label}</p>
+    <div style={{ ...cardStyle, padding: isMobile ? 14 : 18 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: bg, color: cor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={icone} tamanho={17} /></div>
+        <p style={{ color: "#64748B", fontSize: 13, margin: 0, fontWeight: 700 }}>{label}</p>
       </div>
-      <p style={{ color: cor, fontSize: isMobile ? 19 : 25, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{valor}</p>
-      <p style={{ color: "#94A3B8", fontSize: 10, margin: "4px 0 0", fontWeight: 500 }}>{sub}</p>
+      <p style={{ color: "#0F172A", fontSize: isMobile ? 22 : 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>{valor}</p>
+      <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0", fontWeight: 600 }}>{sub}</p>
     </div>
   );
 }

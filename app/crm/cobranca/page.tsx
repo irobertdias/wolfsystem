@@ -9,7 +9,7 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 import { useModulos, ModuloBloqueado } from "../../hooks/useModulos";
 import { formatNum, carregarFaturasStatus } from "../../lib/cobranca_lib";
 
-import { IconeEmoji } from "../../components/a2/Icone";
+import Icone from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════════
 // 💰 COBRANÇA (hub) — Wolf System (multi-tenant)
 // Porta de entrada: Dashboard · Negociações · Atualizar planilha
@@ -17,7 +17,7 @@ import { IconeEmoji } from "../../components/a2/Icone";
 
 const ADMIN_EMAIL = "robert.dias@live.com";
 
-const card = { background: "#fff", borderRadius: 14, border: "1px solid #E6ECEA", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" };
+const card = { background: "#fff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 
 export default function CobrancaHub() {
   const router = useRouter();
@@ -75,66 +75,72 @@ export default function CobrancaHub() {
 
   const PAGINAS = [
     {
-      rota: "/crm/cobranca/dashboard", icone: "📊", titulo: "Dashboard", slug: "dashboard",
+      rota: "/crm/cobranca/dashboard", icone: "grafico", titulo: "Dashboard", slug: "dashboard",
       desc: "Quantas faturas estão pagas, pendentes e inadimplentes, com a evolução dos pagamentos mês a mês.",
-      cor: "#2563eb", bg: "#eff6ff", bd: "#bfdbfe",
     },
     {
-      rota: "/crm/cobranca/negociacoes", icone: "🤝", titulo: "Negociações", slug: "negociacoes",
+      rota: "/crm/cobranca/negociacoes", icone: "chat", titulo: "Negociações", slug: "negociacoes",
       desc: "A operação de cobrança: faturas do CRM, status, disparos de WhatsApp, campanhas e atendimentos.",
-      cor: "#dc2626", bg: "#fef2f2", bd: "#fecaca",   // 🆕 mudei roxo→vermelho (cor do tema cobrança no Wolf)
     },
     {
-      rota: "/crm/cobranca/atualizacao", icone: "📤", titulo: "Atualizar planilha", slug: "planilha",
-      desc: "Suba a planilha de status de pagamento — acha o cliente pela ordem de serviço e puxa o custcode sozinho.",
-      cor: "#059669", bg: "#ECFDF5", bd: "#A7F3D0",
+      rota: "/crm/cobranca/atualizacao", icone: "upload", titulo: "Atualizar planilha", slug: "planilha",
+      desc: "Suba a planilha de status de pagamento. O sistema acha o cliente pela ordem de serviço e puxa o custcode sozinho.",
     },
   ].filter(p => (cardsLiberados as any)[p.slug]);
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 22 }}>
+  const total = contagem ? contagem.pagas + contagem.pendentes + contagem.inadimplentes : 0;
+  const pctPagas = total > 0 && contagem ? Math.round((contagem.pagas / total) * 100) : 0;
 
-      {/* header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        {/* 🆕 mudei gradient azul/roxo → vermelho (consistência com módulo Cobrança do Wolf) */}
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(220,38,38,0.3)" }}>💰</div>
-        <div>
-          <h1 style={{ color: "#0F172A", fontSize: isMobile ? 20 : 24, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Cobrança</h1>
-          {/* 🆕 multi-tenant: mostra o nome do workspace logado (em vez do "Grupo Unita" fixo) */}
-          <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
-            <b style={{ color: "#dc2626" }}>{workspace?.nome || "Wolf System"}</b> · Gestão completa da sua cobrança
-          </p>
-        </div>
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 22, maxWidth: 1240, margin: "0 auto", width: "100%", padding: isMobile ? "4px 0 20px" : "8px 4px 28px", boxSizing: "border-box" }}>
+      <style>{`.a2-cob-card:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 22px 40px -20px rgba(16,24,40,.32) !important; } .a2-cob-card:hover .a2-cob-seta { transform: translateX(3px); }`}</style>
+
+      <div>
+        <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Cobrança</h1>
+        <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
+          <b style={{ color: "#065F46" }}>{workspace?.nome || "Wolf System"}</b> · acompanhe faturas, negocie e atualize os pagamentos
+        </p>
       </div>
 
-      {/* contagem rápida */}
-      {contagem && (contagem.pagas + contagem.pendentes + contagem.inadimplentes) > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: isMobile ? 10 : 14 }}>
-          {([
-            { l: "✅ Pagas", v: contagem.pagas, cor: "#059669" },
-            { l: "⏳ Pendentes", v: contagem.pendentes, cor: "#d97706" },
-            { l: "🔴 Inadimplentes", v: contagem.inadimplentes, cor: "#dc2626" },
-          ]).map(c => (
-            <div key={c.l} style={{ ...card, padding: isMobile ? 12 : 16, textAlign: "center" }}>
-              <p style={{ color: c.cor, fontSize: isMobile ? 20 : 26, fontWeight: 800, margin: 0 }}>{formatNum(c.v)}</p>
-              <p style={{ color: "#64748B", fontSize: 11, margin: "2px 0 0", fontWeight: 600 }}>{c.l}</p>
+      {contagem && total > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr 1fr", gap: isMobile ? 10 : 16 }}>
+          <div style={{ borderRadius: 20, padding: 20, color: "#fff", background: "linear-gradient(140deg, #10B981 0%, #059669 45%, #065F46 100%)", boxShadow: "0 18px 34px -18px rgba(5,150,105,.75)", display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,.85)" }}>
+              <span style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={17} /></span>
+              Faturas pagas
+            </span>
+            <span style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-.02em" }}>{formatNum(contagem.pagas)}</span>
+            <span style={{ height: 6, borderRadius: 99, background: "rgba(255,255,255,.2)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: `${pctPagas}%`, background: "#fff", borderRadius: 99 }} /></span>
+            <span style={{ fontSize: 12.5, color: "rgba(255,255,255,.8)", fontWeight: 600 }}>{pctPagas}% de {formatNum(total)} faturas</span>
+          </div>
+          {[
+            { l: "Pendentes", v: contagem.pendentes, cor: "#C2410C", fundo: "#FFF7ED", icone: "relogio", sub: "aguardando pagamento" },
+            { l: "Inadimplentes", v: contagem.inadimplentes, cor: "#B91C1C", fundo: "#FEF2F2", icone: "alerta", sub: "com fatura em atraso" },
+          ].map(c => (
+            <div key={c.l} style={{ ...card, padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 700, color: "#64748B" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, background: c.fundo, color: c.cor, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={c.icone as any} tamanho={17} /></span>
+                {c.l}
+              </span>
+              <span style={{ fontSize: 30, fontWeight: 800, color: "#0F172A", letterSpacing: "-.02em" }}>{formatNum(c.v)}</span>
+              <span style={{ fontSize: 12.5, color: "#94A3B8", fontWeight: 600 }}>{c.sub}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* cards de navegação */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: isMobile ? 12 : 16 }}>
         {PAGINAS.map(p => (
-          <button key={p.rota} onClick={() => router.push(p.rota)}
-            style={{ ...card, padding: isMobile ? 18 : 24, cursor: "pointer", textAlign: "left", borderTop: `4px solid ${p.cor}`, display: "flex", flexDirection: "column", gap: 12, transition: "transform 0.12s, box-shadow 0.12s" }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.08)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)"; }}>
-            <div style={{ width: 52, height: 52, borderRadius: 14, background: p.bg, border: `1px solid ${p.bd}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>{<IconeEmoji e={p.icone} />}</div>
-            <div>
-              <h2 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: "0 0 4px" }}>{p.titulo} <span style={{ color: p.cor }}>→</span></h2>
-              <p style={{ color: "#64748B", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>{p.desc}</p>
-            </div>
+          <button key={p.rota} onClick={() => router.push(p.rota)} className="a2-cob-card"
+            style={{ ...card, border: 0, padding: isMobile ? 20 : 24, cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 14, transition: "transform .15s, box-shadow .15s" }}>
+            <span style={{ width: 48, height: 48, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={p.icone as any} tamanho={22} /></span>
+            <span style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ color: "#0F172A", fontSize: 17, fontWeight: 800 }}>{p.titulo}</span>
+              <span style={{ color: "#64748B", fontSize: 13.5, lineHeight: 1.55 }}>{p.desc}</span>
+            </span>
+            <span style={{ marginTop: "auto", display: "inline-flex", alignItems: "center", gap: 6, color: "#059669", fontSize: 13.5, fontWeight: 800 }}>
+              Abrir <span className="a2-cob-seta" style={{ display: "inline-flex", transition: "transform .15s" }}><Icone nome="seta" tamanho={15} espessura={2.3} /></span>
+            </span>
           </button>
         ))}
       </div>
