@@ -800,3 +800,4 @@ label:has(> .a2-input-limpo:focus), div:has(> .a2-input-limpo:focus) { box-shado
 .a2-chat-item:hover { background: rgba(255,255,255,.7); }
 /* ---------- A2: Contatos ---------- */
 .a2-linha-contato:hover { background: #F7FAF9; }
+.a2-menu-config:not(.ativo):hover { background: #F3F6F5 !important; }

@@ -6,7 +6,7 @@ import { usePermissao } from "../../hooks/usePermissao";
 import { useModulos } from "../../hooks/useModulos";
 import { useWorkspace } from "../../hooks/useWorkspace";
 
-import { IconeEmoji } from "../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 // ⚙️ CONFIGURAÇÕES — Wolf CRM (multi-tenant, premium)
 // ───────────────────────────────────────────────────────────────────────
@@ -17,6 +17,20 @@ import { IconeEmoji } from "../../components/a2/Icone";
 // ═══════════════════════════════════════════════════════════════════════
 
 const ADMIN_EMAIL = "robert.dias@live.com";
+
+// A2: cor do avatar a partir do e-mail/nome.
+const CORES_AVATAR_USUARIO = [
+  { bg: "linear-gradient(140deg, #D1FAE5, #A7F3D0)", fg: "#065F46" },
+  { bg: "#FFF7ED", fg: "#C2410C" },
+  { bg: "#F1F5F9", fg: "#334155" },
+  { bg: "#FEF3C7", fg: "#92400E" },
+  { bg: "#E0F2F1", fg: "#0F766E" },
+  { bg: "#ECFDF5", fg: "#047857" },
+];
+function corAvatarUsuario(t: string) {
+  let h = 0; for (const c of String(t || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return CORES_AVATAR_USUARIO[h % CORES_AVATAR_USUARIO.length];
+}
 
 type Usuario = {
   id?: number;
@@ -239,18 +253,18 @@ export default function Configuracoes() {
   }, []);
 
   // Estilos compartilhados
+  // Estilos A2: campos claros, cartões sem borda com sombra suave.
   const IS = {
-    width: "100%", background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10,
-    padding: "10px 14px", color: "#0F172A", fontSize: 14, boxSizing: "border-box" as const,
+    width: "100%", background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12,
+    padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, boxSizing: "border-box" as const,
     outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
   };
   const cardStyle = {
-    background: "#ffffff", borderRadius: 14, border: "1px solid #E6ECEA",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+    background: "#ffffff", borderRadius: 20,
+    boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
   };
   const labelStyle = {
-    color: "#64748B", fontSize: 11, fontWeight: 700,
-    textTransform: "uppercase" as const, letterSpacing: 0.5,
+    color: "#64748B", fontSize: 12, fontWeight: 700,
     display: "block" as const, marginBottom: 6,
   };
 
@@ -380,12 +394,12 @@ export default function Configuracoes() {
   const limiteAtingido = !isAdmin && usuarios.length >= limites.usuarios_liberados;
 
   // ═══ ABAS ═══
-  const abas: { id: Aba; nome: string; icone: string; cor: string; count: number; podeVer: boolean }[] = [
-    { id: "usuarios",   nome: "Usuários",   icone: "👥", cor: "#3b82f6", count: usuarios.length,        podeVer: podeGerenciarUsuarios },
-    { id: "equipes",    nome: "Equipes",    icone: "🏢", cor: "#a855f7", count: equipes.length,         podeVer: podeGerenciarUsuarios },
-    { id: "filas",      nome: "Filas",      icone: "📋", cor: "#059669", count: filas.length,           podeVer: podeGerenciarFilas },
-    { id: "permissoes", nome: "Permissões", icone: "🔐", cor: "#8b5cf6", count: gruposPermissao.length, podeVer: podeGerenciarGrupos },
-    { id: "geral",      nome: "Geral",      icone: "⚙️", cor: "#f59e0b", count: 0,                      podeVer: podeConfigSistema },
+  const abas: { id: Aba; nome: string; titulo: string; sub: string; grupo: string; icone: string; count: number; podeVer: boolean }[] = [
+    { id: "usuarios",   nome: "Usuários",            titulo: "Usuários",             sub: "Cadastre pessoas, defina o perfil, a equipe e as filas de cada uma", grupo: "Workspace",   icone: "usuarios", count: usuarios.length,        podeVer: podeGerenciarUsuarios },
+    { id: "equipes",    nome: "Equipes",             titulo: "Equipes",              sub: "Agrupe as pessoas por equipe para organizar vendas e atendimento", grupo: "Workspace",   icone: "predio",   count: equipes.length,         podeVer: podeGerenciarUsuarios },
+    { id: "permissoes", nome: "Grupos de permissão", titulo: "Grupos de permissão",  sub: "Defina o que cada cargo pode ver e fazer no sistema",                grupo: "Workspace",   icone: "escudo",   count: gruposPermissao.length, podeVer: podeGerenciarGrupos },
+    { id: "filas",      nome: "Filas de atendimento", titulo: "Filas de atendimento", sub: "Organize as conversas por assunto e escolha quem atende cada fila",   grupo: "Atendimento", icone: "chat",     count: filas.length,           podeVer: podeGerenciarFilas },
+    { id: "geral",      nome: "Geral",               titulo: "Geral",                sub: "Plano, regras de atendimento e ponto",                                grupo: "Conta",       icone: "config",   count: 0,                      podeVer: podeConfigSistema },
   ];
   const abasVisiveis = abas.filter(a => a.podeVer);
   if (!carregandoInit && abasVisiveis.length > 0 && !abasVisiveis.some(a => a.id === abaAtiva)) {
@@ -405,18 +419,15 @@ export default function Configuracoes() {
   if (!autorizado || (abasVisiveis.length === 0)) {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480, borderLeft: "4px solid #dc2626", background: "#fef2f2", borderColor: "#fecaca" }}>
+        <div style={{ ...cardStyle, padding: 40, textAlign: "center", maxWidth: 440 }}>
           <div style={{
-            width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40, margin: "0 auto 16px",
-            boxShadow: "0 12px 24px rgba(239,68,68,0.25)",
+            width: 56, height: 56, borderRadius: 16, background: "#FEF2F2", color: "#B91C1C",
+            display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px",
           }}>
-            <span style={{ filter: "saturate(0) brightness(2)" }}>🔒</span>
+            <Icone nome="cadeado" tamanho={24} />
           </div>
-          <h1 style={{ color: "#991b1b", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
-          <p style={{ color: "#7f1d1d", fontSize: 13, margin: "0 0 22px", lineHeight: 1.5 }}>
+          <h1 style={{ color: "#0F172A", fontSize: 19, fontWeight: 800, margin: "0 0 8px" }}>Acesso restrito</h1>
+          <p style={{ color: "#64748B", fontSize: 13.5, margin: "0 0 22px", lineHeight: 1.5 }}>
             Você não tem permissão para acessar as configurações do workspace. Fale com o administrador.
           </p>
           <button onClick={() => router.back()}
@@ -431,86 +442,56 @@ export default function Configuracoes() {
     );
   }
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 22 }}>
-
-      {/* ═══ HEADER ═══ */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: 14,
-          background: "linear-gradient(135deg, #059669 0%, #059669 50%, #059669 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 26, boxShadow: "0 8px 20px rgba(5,150,105,0.30)",
-          flexShrink: 0,
+  const abaInfo = abasVisiveis.find(a => a.id === abaAtiva) || abasVisiveis[0];
+  const gruposMenu = Array.from(new Set(abasVisiveis.map(a => a.grupo)));
+  const botaoMenu = (aba: typeof abas[number]) => {
+    const ativo = abaAtiva === aba.id;
+    return (
+      <button key={aba.id} onClick={() => trocarAba(aba.id)} className={`a2-menu-config${ativo ? " ativo" : ""}`}
+        style={{
+          display: "flex", alignItems: "center", gap: 10, width: isMobile ? "auto" : "100%",
+          border: 0, cursor: "pointer", textAlign: "left", whiteSpace: "nowrap",
+          background: ativo ? "#ECFDF5" : "transparent",
+          color: ativo ? "#065F46" : "#475569",
+          fontSize: 14, fontWeight: ativo ? 800 : 600,
+          padding: "10px 12px", borderRadius: 11, transition: "background .15s",
         }}>
-          <span style={{ filter: "saturate(0) brightness(2)" }}>⚙️</span>
-        </div>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <h1 style={{ color: "#0F172A", fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Configurações do Workspace</h1>
-          <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0" }}>
-            Wolf CRM · Gerenciamento completo · {usuarios.length} usuário(s) · {equipes.length} equipe(s) · {filas.length} fila(s)
-          </p>
-        </div>
-        {!isAdmin && limites.usuarios_liberados < 9999 && (
-          <div style={{
-            background: limiteAtingido ? "#fef2f2" : "#ECFDF5",
-            border: `1px solid ${limiteAtingido ? "#fecaca" : "#A7F3D0"}`,
-            borderRadius: 12,
-            padding: "10px 16px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-          }}>
-            <span style={{ fontSize: 10, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Seu plano</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: limiteAtingido ? "#dc2626" : "#059669", marginTop: 2 }}>
-              {usuarios.length}/{limites.usuarios_liberados} usuários
-            </span>
-          </div>
+        <Icone nome={aba.icone as any} tamanho={17} cor={ativo ? "#059669" : "#94A3B8"} />
+        <span style={{ flex: 1 }}>{aba.nome}</span>
+        {aba.count > 0 && (
+          <span style={{ background: ativo ? "#059669" : "#F3F6F5", color: ativo ? "#fff" : "#64748B", fontSize: 11, fontWeight: 800, padding: "1px 8px", borderRadius: 999 }}>{aba.count}</span>
         )}
-      </div>
+      </button>
+    );
+  };
 
-      {/* ═══ TABS ═══ */}
-      <div style={{ ...cardStyle, padding: isMobile ? 6 : 8, overflowX: "auto" }}>
-        <div style={{ display: "flex", gap: 4, minWidth: "fit-content" }}>
-          {abasVisiveis.map(aba => {
-            const ativo = abaAtiva === aba.id;
-            return (
-              <button key={aba.id} onClick={() => trocarAba(aba.id)}
-                style={{
-                  background: ativo ? `linear-gradient(135deg, ${aba.cor}15, ${aba.cor}08)` : "transparent",
-                  color: ativo ? aba.cor : "#64748B",
-                  border: ativo ? `1px solid ${aba.cor}40` : "1px solid transparent",
-                  borderRadius: 10,
-                  padding: isMobile ? "9px 12px" : "10px 18px",
-                  fontSize: isMobile ? 12 : 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  whiteSpace: "nowrap",
-                  transition: "all 0.15s",
-                  boxShadow: ativo ? `0 2px 8px ${aba.cor}15` : "none",
-                }}>
-                <span style={{ fontSize: 16 }}>{<IconeEmoji e={aba.icone} />}</span>
-                <span>{aba.nome}</span>
-                {aba.count > 0 && (
-                  <span style={{
-                    background: ativo ? aba.cor : "#E6ECEA",
-                    color: ativo ? "white" : "#64748B",
-                    fontSize: 10,
-                    padding: "1px 7px",
-                    borderRadius: 8,
-                    fontWeight: 800,
-                    minWidth: 18,
-                    textAlign: "center",
-                  }}>{aba.count}</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 22, alignItems: "flex-start", padding: isMobile ? "4px 0 20px" : "8px 4px 28px", maxWidth: 1360, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+
+      {/* ═══ MENU LATERAL ═══ */}
+      {isMobile ? (
+        <nav aria-label="Seções das configurações" style={{ ...cardStyle, padding: 6, display: "flex", gap: 4, overflowX: "auto", width: "100%" }}>
+          {abasVisiveis.map(botaoMenu)}
+        </nav>
+      ) : (
+        <nav aria-label="Seções das configurações" style={{ ...cardStyle, flex: "1 1 250px", maxWidth: 270, padding: 12, display: "flex", flexDirection: "column", gap: 2, position: "sticky", top: 12 }}>
+          {gruposMenu.map((g, i) => (
+            <div key={g} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, padding: i === 0 ? "8px 12px 6px" : "14px 12px 6px" }}>{g}</span>
+              {abasVisiveis.filter(a => a.grupo === g).map(botaoMenu)}
+            </div>
+          ))}
+        </nav>
+      )}
+
+      <div style={{ flex: "999 1 560px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* ═══ TÍTULO DA SEÇÃO ═══ */}
+      {abaInfo && (
+        <section style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <h1 style={{ margin: 0, fontSize: isMobile ? 24 : 28, fontWeight: 800, letterSpacing: "-.02em", color: "#0F172A" }}>{abaInfo.titulo}</h1>
+          <span style={{ color: "#64748B", fontSize: 14 }}>{abaInfo.sub}</span>
+        </section>
+      )}
 
       {/* ═══ CONTEÚDO DA ABA ═══ */}
       {abaAtiva === "usuarios" && (
@@ -585,6 +566,7 @@ export default function Configuracoes() {
           IS={IS} cardStyle={cardStyle} labelStyle={labelStyle}
         />
       )}
+      </div>
     </div>
   );
 }
@@ -837,59 +819,74 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {/* Barra de uso de plano (não admin) */}
-      {!isAdmin && limites.usuarios_liberados < 9999 && (
-        <div style={{ ...cardStyle, padding: "12px 18px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, alignItems: "center" }}>
-            <span style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }}>Uso do plano</span>
-            <span style={{ color: limiteAtingido ? "#dc2626" : "#059669", fontSize: 12, fontWeight: 800 }}>
-              {usuarios.length}/{limites.usuarios_liberados} usuários ({Math.round(usuarios.length / limites.usuarios_liberados * 100)}%)
-            </span>
-          </div>
-          <div style={{ background: "#E6ECEA", borderRadius: 4, height: 6, overflow: "hidden" }}>
-            <div style={{
-              background: limiteAtingido
-                ? "linear-gradient(90deg, #dc2626, #ef4444)"
-                : usuarios.length / limites.usuarios_liberados >= 0.8
-                  ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
-                  : "linear-gradient(90deg, #059669, #10B981)",
-              height: "100%",
-              width: `${Math.min((usuarios.length / limites.usuarios_liberados) * 100, 100)}%`,
-              transition: "width 0.3s",
-            }} />
-          </div>
-        </div>
-      )}
+      {/* Resumo */}
+      {(() => {
+        const temLimite = !isAdmin && limites.usuarios_liberados < 9999;
+        const pct = temLimite ? Math.min(100, (usuarios.length / limites.usuarios_liberados) * 100) : 0;
+        const online = usuarios.filter((u: Usuario) => u.status === "online").length;
+        const conectadas = conexoes.filter((c: any) => c.status === "conectado").length;
+        const kpi = { ...cardStyle, borderRadius: 18, padding: "20px 22px", display: "flex", flexDirection: "column" as const, gap: 10 };
+        return (
+          <section style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: isMobile ? 12 : 18 }}>
+            <div style={kpi}>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{temLimite ? "Usuários do plano" : "Usuários"}</span>
+              <span style={{ fontSize: 26, fontWeight: 800 }}>{usuarios.length}{temLimite && <span style={{ color: "#94A3B8", fontSize: 16, fontWeight: 700 }}> de {limites.usuarios_liberados}</span>}</span>
+              {temLimite ? (
+                <div style={{ height: 8, borderRadius: 99, background: "#EEF2F1" }}>
+                  <div style={{ width: `${pct}%`, height: 8, borderRadius: 99, background: limiteAtingido ? "linear-gradient(90deg, #F87171, #DC2626)" : pct >= 80 ? "linear-gradient(90deg, #FBBF24, #F59E0B)" : "linear-gradient(90deg, #34D399, #059669)", boxShadow: "0 2px 6px rgba(5,150,105,.4)", transition: "width .3s" }} />
+                </div>
+              ) : <span style={{ color: "#64748B", fontSize: 12.5 }}>sem limite no plano</span>}
+            </div>
+            <div style={kpi}>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>Online agora</span>
+              <span style={{ fontSize: 26, fontWeight: 800 }}>{online}</span>
+              <span style={{ color: "#64748B", fontSize: 12.5 }}>{usuarios.length - online} offline</span>
+            </div>
+            <div style={kpi}>
+              <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>Canais de atendimento</span>
+              <span style={{ fontSize: 26, fontWeight: 800 }}>{conectadas}{conexoes.length > 0 && <span style={{ color: "#94A3B8", fontSize: 16, fontWeight: 700 }}> de {conexoes.length}</span>}</span>
+              {conexoes.length - conectadas > 0
+                ? <span style={{ alignSelf: "flex-start", background: "#FFF7ED", color: "#C2410C", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>{conexoes.length - conectadas} desconectada{conexoes.length - conectadas > 1 ? "s" : ""}</span>
+                : <span style={{ alignSelf: "flex-start", background: "#ECFDF5", color: "#047857", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>{conexoes.length ? "todas conectadas" : "nenhuma cadastrada"}</span>}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Toolbar */}
       <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <input placeholder="Buscar por nome ou e-mail..." value={busca} onChange={e => setBusca(e.target.value)}
-          style={{ ...IS, flex: "1 1 240px", maxWidth: 400, borderRadius: 20 }} />
-        <select value={filtroPerfil} onChange={e => setFiltroPerfil(e.target.value as any)} style={{ ...IS, maxWidth: 180 }}>
-          <option value="todos">Perfil: Todos</option>
+        <label style={{ flex: "1 1 240px", maxWidth: 400, height: 44, display: "flex", alignItems: "center", gap: 10, background: "#F3F6F5", borderRadius: 13, padding: "0 14px", color: "#64748B" }}>
+          <Icone nome="busca" tamanho={17} />
+          <input className="a2-input-limpo" placeholder="Buscar por nome ou e-mail" value={busca} onChange={e => setBusca(e.target.value)}
+            style={{ flex: 1, height: "100%", border: 0, background: "transparent", outline: "none", fontSize: 14, fontWeight: 600, color: "#0F172A" }} />
+        </label>
+        <select value={filtroPerfil} onChange={e => setFiltroPerfil(e.target.value as any)} style={{ height: 44, borderRadius: 12, border: 0, background: "#F3F6F5", color: "#334155", fontSize: 13, fontWeight: 600, padding: "0 12px", cursor: "pointer", maxWidth: 180 }}>
+          <option value="todos">Perfil: todos</option>
           <option value="Administrador">Administrador</option>
           <option value="Supervisor">Supervisor</option>
           <option value="Atendente">Atendente</option>
         </select>
-        <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)} style={{ ...IS, maxWidth: 200 }}>
-          <option value="todas">Equipe: Todas</option>
+        <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)} style={{ height: 44, borderRadius: 12, border: 0, background: "#F3F6F5", color: "#334155", fontSize: 13, fontWeight: 600, padding: "0 12px", cursor: "pointer", maxWidth: 200 }}>
+          <option value="todas">Equipe: todas</option>
           <option value="sem">Sem equipe</option>
           {equipes.map((eq: Equipe) => (
-            <option key={eq.id} value={eq.id}>{iconeHashFromString(eq.nome)} {eq.nome}</option>
+            <option key={eq.id} value={eq.id}>{eq.nome}</option>
           ))}
         </select>
         <div style={{ flex: 1 }} />
         <button onClick={abrirNovo} disabled={limiteAtingido}
           style={{
-            background: limiteAtingido ? "#F1F5F4" : "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+            height: 46, display: "inline-flex", alignItems: "center", gap: 7,
+            background: limiteAtingido ? "#F1F5F4" : "linear-gradient(140deg, #10B981, #059669)",
             color: limiteAtingido ? "#94A3B8" : "white",
-            border: "none", borderRadius: 10,
-            padding: "10px 18px", fontSize: 13, fontWeight: 700,
+            border: "none", borderRadius: 14,
+            padding: "0 20px", fontSize: 14, fontWeight: 800,
             cursor: limiteAtingido ? "not-allowed" : "pointer",
-            boxShadow: limiteAtingido ? "none" : "0 4px 12px rgba(5,150,105,0.3)",
+            boxShadow: limiteAtingido ? "none" : "0 12px 24px -12px rgba(5,150,105,.8)",
             whiteSpace: "nowrap",
           }}>
-          {limiteAtingido ? "🔒 Limite Atingido" : "+ Novo Usuário"}
+          <Icone nome={limiteAtingido ? "cadeado" : "mais"} tamanho={16} espessura={2.4} />
+          {limiteAtingido ? "Limite atingido" : "Novo usuário"}
         </button>
       </div>
 
@@ -1302,96 +1299,69 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
 
       {/* Lista */}
       {usuariosFiltrados.length === 0 ? (
-        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <p style={{ fontSize: 40, margin: "0 0 8px" }}>{busca || filtroPerfil !== "todos" || filtroEquipe !== "todas" ? "🔍" : "👥"}</p>
-          <p style={{ color: "#94A3B8", fontSize: 13 }}>
+        <div style={{ ...cardStyle, padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 48, height: 48, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icone nome={busca || filtroPerfil !== "todos" || filtroEquipe !== "todas" ? "busca" : "usuarios"} tamanho={22} />
+          </span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>
             {busca || filtroPerfil !== "todos" || filtroEquipe !== "todas" ? "Nenhum usuário com esses filtros" : "Nenhum usuário cadastrado ainda"}
-          </p>
+          </span>
         </div>
       ) : (
-        <div style={{ ...cardStyle, overflow: "hidden" }}>
+        <section aria-label="Usuários" style={{ ...cardStyle, borderRadius: 22, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 800 : "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 820 }}>
               <thead>
                 <tr style={{ background: "#F7FAF9" }}>
-                  {["Nome", "Perfil", "Equipe", "Filas", "Grupo", "Status", "Ações"].map(h => (
-                    <th key={h} style={{ padding: "12px 16px", color: "#64748B", fontSize: 11, textAlign: "left", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, borderBottom: "1px solid #E6ECEA", whiteSpace: "nowrap" }}>{h}</th>
+                  {["Usuário", "Perfil", "Equipe", "Filas", "Grupo", "Status", ""].map((h, k) => (
+                    <th key={k} style={{ padding: "14px 18px", color: "#64748B", fontSize: 12, textAlign: k === 6 ? "right" : "left", fontWeight: 700, borderBottom: "1px solid #EEF2F1", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {usuariosFiltrados.map((u: Usuario, i: number) => {
                   const equipe = u.equipe_id ? equipeById.get(u.equipe_id) : null;
-                  const corEquipe = equipe ? corHashFromString(equipe.nome) : "#94A3B8";
                   const grupo = u.grupo_id ? gruposPermissao.find((g: GrupoPermissao) => g.id === u.grupo_id) : null;
-                  const corAvatar = corHashFromString(u.email || u.nome);
+                  const av = corAvatarUsuario(u.email || u.nome);
                   const filasUser = (u.fila || "").split(",").map(s => s.trim()).filter(Boolean);
+                  const online = u.status === "online";
+                  const pil = (bg: string, cor: string): React.CSSProperties => ({ background: bg, color: cor, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" });
+                  const perfilPil = u.perfil === "Administrador" ? pil("#0F172A", "#fff") : u.perfil === "Supervisor" ? pil("#E0F2F1", "#0F766E") : pil("#ECFDF5", "#047857");
                   return (
-                    <tr key={u.id || i}
-                      style={{ borderTop: "1px solid #F1F5F4", background: i % 2 === 0 ? "#ffffff" : "#F7FAF9", transition: "background 0.1s" }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "#F1F5F4"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? "#ffffff" : "#F7FAF9"}
-                    >
-                      <td style={{ padding: "12px 16px" }}>
+                    <tr key={u.id || i} className="a2-linha-contato" style={{ borderTop: i ? "1px solid #F1F5F4" : "none", fontSize: 13.5 }}>
+                      <td style={{ padding: "14px 18px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{
-                            width: 36, height: 36, borderRadius: "50%",
-                            background: `linear-gradient(135deg, ${corAvatar} 0%, ${corAvatar}cc 100%)`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            color: "white", fontSize: 12, fontWeight: 800,
-                            flexShrink: 0,
-                            boxShadow: `0 2px 6px ${corAvatar}40`,
-                          }}>
+                          <div style={{ width: 38, height: 38, borderRadius: 12, background: av.bg, color: av.fg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
                             {initialsFromName(u.nome)}
                           </div>
-                          <div style={{ minWidth: 0 }}>
-                            <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.nome}</p>
-                            <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.email}</p>
+                          <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+                            <span style={{ color: "#0F172A", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.nome}</span>
+                            <span style={{ color: "#94A3B8", fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.email}</span>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        {u.perfil === "Administrador" ? (
-                          <span style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>Admin</span>
-                        ) : u.perfil === "Supervisor" ? (
-                          <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>Supervisor</span>
-                        ) : (
-                          <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>Atendente</span>
-                        )}
+                      <td style={{ padding: "14px 18px" }}><span style={perfilPil}>{u.perfil}</span></td>
+                      <td style={{ padding: "14px 18px", color: equipe ? "#334155" : "#CBD5E1", whiteSpace: "nowrap" }}>{equipe ? equipe.nome : "—"}</td>
+                      <td style={{ padding: "14px 18px", color: filasUser.length ? "#334155" : "#CBD5E1", whiteSpace: "nowrap" }} title={filasUser.join(", ")}>
+                        {filasUser.length === 0 ? "—" : filasUser.length === 1 ? filasUser[0] : `${filasUser.length} filas`}
                       </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        {equipe ? (
-                          <span style={{ background: `${corEquipe}15`, color: corEquipe, border: `1px solid ${corEquipe}40`, padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
-                            {iconeHashFromString(equipe.nome)} {equipe.nome}
-                          </span>
-                        ) : <span style={{ color: "#CBD5E1", fontSize: 12 }}>—</span>}
+                      <td style={{ padding: "14px 18px", color: grupo ? "#334155" : "#CBD5E1", whiteSpace: "nowrap" }}>{grupo ? grupo.nome : "—"}</td>
+                      <td style={{ padding: "14px 18px" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: online ? "#047857" : "#64748B", fontWeight: 700, whiteSpace: "nowrap" }}>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: online ? "#22C55E" : "#CBD5E1", boxShadow: online ? "0 0 0 3px rgba(34,197,94,.2)" : "none" }} />
+                          {online ? "Online" : "Offline"}
+                        </span>
                       </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        {filasUser.length === 0 ? <span style={{ color: "#CBD5E1", fontSize: 12 }}>—</span> : filasUser.length === 1 ? (
-                          <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{iconeFilaFromString(filasUser[0])} {filasUser[0]}</span>
-                        ) : (
-                          <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }} title={filasUser.join(", ")}>{filasUser.length} filas</span>
-                        )}
-                      </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        {grupo ? (
-                          <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{grupo.nome}</span>
-                        ) : <span style={{ color: "#CBD5E1", fontSize: 12 }}>—</span>}
-                      </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <span style={{
-                          background: u.status === "online" ? "#ECFDF5" : "#F1F5F4",
-                          color: u.status === "online" ? "#059669" : "#64748B",
-                          border: `1px solid ${u.status === "online" ? "#A7F3D0" : "#E6ECEA"}`,
-                          padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 700,
-                        }}>{u.status === "online" ? "🟢 Online" : "⚫ Offline"}</span>
-                      </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <div style={{ display: "flex", gap: 6 }}>
+                      <td style={{ padding: "14px 18px", textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: 6 }}>
                           <button onClick={() => abrirEditar(u)}
-                            style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>✏️</button>
-                          <button onClick={() => excluirUsuario(u)}
-                            style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🗑️</button>
+                            style={{ height: 34, display: "inline-flex", alignItems: "center", gap: 6, background: "#F3F6F5", color: "#334155", border: 0, borderRadius: 10, padding: "0 12px", fontSize: 12.5, cursor: "pointer", fontWeight: 700 }}>
+                            <Icone nome="editar" tamanho={14} />Editar
+                          </button>
+                          <button onClick={() => excluirUsuario(u)} title="Excluir usuário"
+                            style={{ width: 34, height: 34, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#FEF2F2", color: "#B91C1C", border: 0, borderRadius: 10, cursor: "pointer" }}>
+                            <Icone nome="lixeira" tamanho={15} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1400,7 +1370,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
