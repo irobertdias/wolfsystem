@@ -797,7 +797,7 @@ select:focus, textarea:not(.a2-input-limpo):focus {
 /* ---------- A2: Atendimento ---------- */
 .a2-input-limpo:focus { outline: none; }
 label:has(> .a2-input-limpo:focus), div:has(> .a2-input-limpo:focus) { box-shadow: 0 0 0 4px rgba(16,185,129,.14), inset 0 0 0 1px #10B981 !important; }
-.a2-chat-item:hover { background: rgba(255,255,255,.7); }
+.a2-chat-item:not(.sel):hover { box-shadow: 0 2px 4px rgba(16,24,40,.06), 0 10px 22px -12px rgba(16,24,40,.25), inset 0 0 0 1.5px #D1FAE5 !important; }
 /* ---------- A2: Contatos ---------- */
 .a2-linha-contato:hover { background: #F7FAF9; }
 .a2-menu-config:not(.ativo):hover { background: #F3F6F5 !important; }

@@ -3079,7 +3079,7 @@ export function ChatSection() {
         </div>
         <div ref={listaAtendimentosRef}
           onScroll={e => { posicaoListaRef.current = capturarPosicaoLista(e.currentTarget, atendimentoAtivo?.id); }}
-          style={{ overflowY: "auto", flex: 1, minHeight: 0, overflowAnchor: "none", background: tema.listaItem, padding: "4px 10px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
+          style={{ overflowY: "auto", flex: 1, minHeight: 0, overflowAnchor: "none", background: tema.listaItem, padding: "6px 10px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
           {atendimentosFiltrados.length === 0 ? (
             <div style={{ padding: 32, textAlign: "center" }}>
               <span style={{ width: 52, height: 52, borderRadius: 16, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="chat" tamanho={24} /></span>
@@ -3091,8 +3091,8 @@ export function ChatSection() {
             const temNaoLidas = naoLidas > 0 && atendimentoAtivo?.id !== a.id;
             return (
               <div key={a.id} data-atendimento-id={a.id} onClick={() => abrirAtendimento(a)}
-                className="a2-chat-item"
-                style={{ padding: "12px 12px", borderRadius: 16, cursor: "pointer", flexShrink: 0, background: atendimentoAtivo?.id === a.id ? "#FFFFFF" : "transparent", boxShadow: atendimentoAtivo?.id === a.id ? "0 2px 4px rgba(16,24,40,.04), 0 10px 24px -12px rgba(5,150,105,.35), inset 0 0 0 1.5px #A7F3D0" : "none", position: "relative", transition: "background .12s" }}>
+                className={`a2-chat-item${atendimentoAtivo?.id === a.id ? " sel" : ""}`}
+                style={{ padding: "12px 12px", borderRadius: 16, cursor: "pointer", flexShrink: 0, background: atendimentoAtivo?.id === a.id ? "#FFFBEB" : "#FFFFFF", boxShadow: atendimentoAtivo?.id === a.id ? "0 2px 4px rgba(16,24,40,.04), 0 10px 24px -14px rgba(217,119,6,.35), inset 0 0 0 1.5px #FDE68A" : "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.18)", position: "relative", transition: "background .12s, box-shadow .12s" }}>
                 {temNaoLidas && (
                   <span style={{ position: "absolute", left: 3, top: "50%", transform: "translateY(-50%)", width: 6, height: 6, background: tema.accent, borderRadius: "50%", animation: "pulseBlue 1.5s ease-in-out infinite", zIndex: 1 }} />
                 )}
