@@ -63,6 +63,8 @@ export function linhaCrmDaProposta(p: PropostaRev, workspaceId: string) {
         historico: [{ em: agora, etapa: "DOCUMENTACAO", nota: `Cliente aceitou a proposta nº ${p.numero}. Próximo passo: contrato de prestação de serviços.` }],
       },
       revisional_proposta: { id: p.id, numero: p.numero, beneficio: beneficioDaProposta(p) },
+      // dono do cliente no CRM = consultor que enviou a proposta
+      ...((p as any).consultor_email ? { criado_por: String((p as any).consultor_email) } : {}),
     },
   };
 }

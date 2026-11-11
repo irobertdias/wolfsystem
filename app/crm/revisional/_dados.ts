@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { usePermissao } from "../../hooks/usePermissao";
 
 // ═══════════════════════════════════════════════════════════════════════
 // ⚖️ Revisional — dados e cálculos
@@ -200,15 +201,55 @@ export function honorariosPrevistos(d: DadosRevisional, calc: Calculo, cfg: Conf
 }
 
 // ─── carregamento ───
+// Quem vê os clientes de todos: dono (master), super admin, Administrador,
+// Supervisor ou quem tem a permissão "Ver propostas de todos os consultores"
+// (ex.: um grupo "Gerente"). Os demais veem só os clientes deles.
+export function useVeTodosClientes() {
+  const { veTudo, perfil, permissoes, loading } = usePermissao() as any;
+  return { verTodos: !!(veTudo || perfil === "Administrador" || perfil === "Supervisor" || permissoes?.revisional_todas), carregandoPerm: !!loading };
+}
+
+const mesmo = (a?: string | null, b?: string | null) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+
+// O contrato é do usuário se ele criou (e-mail em "vendedor" ou em criado_por),
+// se o nome dele está como responsável ou se veio de uma proposta dele.
+async function filtrarMeus(lista: Contrato[]): Promise<Contrato[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const email = user?.email || "";
+  if (!email) return [];
+  const nomes = new Set<string>();
+  const nomeMeta = String(user?.user_metadata?.nome || user?.user_metadata?.full_name || "").trim();
+  if (nomeMeta) nomes.add(nomeMeta.toLowerCase());
+  try {
+    const { data: uw } = await supabase.from("usuarios_workspace").select("nome").eq("email", email);
+    (uw || []).forEach((u: any) => { if (u?.nome) nomes.add(String(u.nome).trim().toLowerCase()); });
+  } catch {}
+  // Propostas por link deste consultor (a API já devolve só as dele).
+  const minhasPropostas = new Set<string>();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const r = await fetch("/api/revisional/propostas", { cache: "no-store", headers: session ? { Authorization: `Bearer ${session.access_token}` } : {} });
+    const d = await r.json();
+    (d?.propostas || []).forEach((p: any) => minhasPropostas.add(String(p.id)));
+  } catch {}
+  return lista.filter((c) => {
+    const dc = c.dados_customizados || {};
+    return mesmo(c.vendedor, email) || mesmo(dc.criado_por, email)
+      || (!!c.vendedor && nomes.has(c.vendedor.trim().toLowerCase()))
+      || (!!dc.revisional_proposta?.id && minhasPropostas.has(String(dc.revisional_proposta.id)));
+  });
+}
+
 export function useRevisional() {
   const { wsId } = useWorkspace();
+  const { verTodos, carregandoPerm } = useVeTodosClientes();
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [cfg, setCfg] = useState<ConfigRevisional>(CONFIG_PADRAO);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
   const carregar = useCallback(async () => {
-    if (!wsId) return;
+    if (!wsId || carregandoPerm) return;
     setCarregando(true);
     const [p, c] = await Promise.all([
       supabase.from("proposta")
@@ -217,7 +258,8 @@ export function useRevisional() {
       supabase.from("fin_config").select("config").eq("workspace_id", wsId).maybeSingle(),
     ]);
     if (p.error) setErro(p.error.message); else setErro("");
-    setContratos((p.data as Contrato[]) || []);
+    const todos = (p.data as Contrato[]) || [];
+    setContratos(verTodos ? todos : await filtrarMeus(todos));
     const salvo = (c.data as any)?.config?.revisional || {};
     setCfg({
       ...CONFIG_PADRAO,
@@ -225,7 +267,7 @@ export function useRevisional() {
       modalidades: Array.isArray(salvo.modalidades) && salvo.modalidades.length ? salvo.modalidades : MODALIDADES_PADRAO,
     });
     setCarregando(false);
-  }, [wsId]);
+  }, [wsId, verTodos, carregandoPerm]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -243,6 +285,9 @@ export async function salvarContrato(wsId: string, campos: Partial<Contrato>, d:
   const dados_customizados = { ...(dadosAtuais || {}), revisional: d };
   const payload: any = { ...campos, dados_customizados, updated_at: new Date().toISOString() };
   if (id) return supabase.from("proposta").update(payload).eq("workspace_id", wsId).eq("id", id);
+  // Novo contrato: grava quem criou, para o consultor ver só os clientes dele.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user?.email && !payload.dados_customizados.criado_por) payload.dados_customizados = { ...payload.dados_customizados, criado_por: user.email };
   return supabase.from("proposta").insert([{ ...payload, workspace_id: wsId, data_proposta: hoje() }]);
 }
 

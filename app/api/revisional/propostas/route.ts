@@ -7,7 +7,9 @@ import {
 import { SEM_CACHE, exigirRevisional, lerConfig, linkPublico, novoNumero, novoToken, statusEfetivo } from "../_shared";
 
 function veTodas(acesso: AcessoWolf) {
-  return acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador || acesso.permissoes.revisional_todas === true;
+  return acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador
+    || acesso.perfil === "Administrador" || acesso.perfil === "Supervisor"
+    || acesso.permissoes.revisional_todas === true;
 }
 
 export async function GET(request: NextRequest) {
