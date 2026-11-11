@@ -178,6 +178,9 @@ const statusMeta = (s: any): MetaStatusVenda => {
   return metaStatusPersonalizado(t);
 };
 
+// Coluna de ações fixa à esquerda da tabela (fica visível ao rolar pro lado).
+const COL_ACOES: React.CSSProperties = { position: "sticky", left: 0, zIndex: 2, boxShadow: "6px 0 10px -8px rgba(16,24,40,.18)" };
+
 export default function Vendas() {
   const router = useRouter();
   // 🛡️ Permissões reais (Fase 2): escopo + equipe do usuário logado
@@ -1388,25 +1391,26 @@ export default function Vendas() {
             style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 720 : "auto" }}>
             <thead>
               <tr style={{ background: "#F7FAF9" }}>
+                {/* Ações primeiro e fixas à esquerda: não precisa rolar até o fim */}
+                <th key="th-acoes"
+                  style={{ ...COL_ACOES, background: "#F7FAF9", padding: "12px 16px", color: "#64748B", fontSize: 12.5, textAlign: "left", whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>
+                  Ações
+                </th>
                 {colunasTabela.map(c => (
                   <th key={`th-${c.origem}-${c.slug}`}
                     style={{ padding: "12px 16px", color: "#64748B", fontSize: 12.5, textAlign: "left", whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>
                     {c.label}
                   </th>
                 ))}
-                <th key="th-acoes"
-                  style={{ padding: "12px 16px", color: "#64748B", fontSize: 12.5, textAlign: "left", whiteSpace: "nowrap", fontWeight: 700, borderBottom: "1px solid #E6ECEA" }}>
-                  Ações
-                </th>
               </tr>
               <tr style={{ background: "#fbfbfc" }}>
+                <th key="fil-acoes" style={{ ...COL_ACOES, background: "#fbfbfc", padding: "6px 12px", borderBottom: "1px solid #E6ECEA" }}></th>
                 {colunasTabela.map(c => (
                   <th key={`fil-${c.origem}-${c.slug}`}
                     style={{ padding: "6px 12px", borderBottom: "1px solid #E6ECEA" }}>
                     {renderFiltroColuna(c)}
                   </th>
                 ))}
-                <th key="fil-acoes" style={{ padding: "6px 12px", borderBottom: "1px solid #E6ECEA" }}></th>
               </tr>
             </thead>
             <tbody>
@@ -1436,23 +1440,23 @@ export default function Vendas() {
                     onMouseEnter={(e) => e.currentTarget.style.background = "#F7FAF9"}
                     onMouseLeave={(e) => e.currentTarget.style.background = "#ffffff"}
                   >
+                    <td style={{ ...COL_ACOES, background: "inherit", padding: "12px 16px" }}>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => setPropostaVisualizando(v)} title="Ver venda" aria-label="Ver venda"
+                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "flex", alignItems: "center" }}><Icone nome="olho" tamanho={15} /></button>
+                        <button onClick={() => abrirEditar(v)} title="Editar" aria-label="Editar"
+                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "flex", alignItems: "center" }}><Icone nome="editar" tamanho={15} /></button>
+                        {podeExcluir && (
+                          <button onClick={() => excluir(v)} title="Excluir" aria-label="Excluir"
+                            style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "flex", alignItems: "center" }}><Icone nome="lixeira" tamanho={15} /></button>
+                        )}
+                      </div>
+                    </td>
                     {colunasTabela.map(c => (
                       <td key={`td-${c.origem}-${c.slug}`} style={{ padding: "12px 16px" }}>
                         {renderCelulaTabela(c, v)}
                       </td>
                     ))}
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => setPropostaVisualizando(v)} title="Visualizar"
-                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>👁️</button>
-                        <button onClick={() => abrirEditar(v)} title="Editar"
-                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="editar" tamanho={15} /></button>
-                        {podeExcluir && (
-                          <button onClick={() => excluir(v)} title="Excluir"
-                            style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="lixeira" tamanho={15} /></button>
-                        )}
-                      </div>
-                    </td>
                   </tr>
                 );
               })}
