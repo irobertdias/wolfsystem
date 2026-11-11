@@ -89,6 +89,15 @@ export default function Contatos() {
 
   const [exportando, setExportando] = useState(false);
 
+  // Novo contato (cadastro manual, sem precisar de conversa no WhatsApp)
+  const [novoAberto, setNovoAberto] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novoTel, setNovoTel] = useState("");
+  const [novoObs, setNovoObs] = useState("");
+  const [novoEtiqs, setNovoEtiqs] = useState<Set<number>>(new Set());
+  const [novoErro, setNovoErro] = useState("");
+  const [criando, setCriando] = useState(false);
+
   // 🆕 FASE 3 MOBILE
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -349,6 +358,43 @@ export default function Contatos() {
     setSalvandoContato(false);
   };
 
+  // ═══ NOVO CONTATO ═══
+  // Os contatos são agregados da tabela atendimentos (por número). O cadastro
+  // manual grava um atendimento já "resolvido", com a observação como mensagem.
+  const abrirNovo = () => { setNovoNome(""); setNovoTel(""); setNovoObs(""); setNovoEtiqs(new Set()); setNovoErro(""); setNovoAberto(true); };
+  const telNormalizado = (t: string) => {
+    let d = t.replace(/\D/g, "");
+    if (d.startsWith("0")) d = d.replace(/^0+/, "");
+    if (d.length === 10 || d.length === 11) d = "55" + d;
+    return d;
+  };
+  const criarContato = async () => {
+    if (!wsId) return;
+    const nome = novoNome.trim();
+    const numero = telNormalizado(novoTel);
+    if (!nome) { setNovoErro("Informe o nome do contato."); return; }
+    if (numero.length < 12 || numero.length > 13) { setNovoErro("Telefone inválido. Use DDD + número, ex.: (62) 99999-8888."); return; }
+    const existente = contatos.find(c => c.numero.replace(/\D/g, "") === numero);
+    if (existente) { setNovoErro(`Esse telefone já está cadastrado como "${existente.nome}".`); return; }
+    setCriando(true); setNovoErro("");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from("atendimentos").insert({
+        workspace_id: wsId, numero, nome,
+        mensagem: novoObs.trim() || "Contato cadastrado manualmente",
+        status: "resolvido", fila: "", atendente: user?.email || "",
+        equipe_id: equipeEfetiva || null,
+      }).select("id").single();
+      if (error) { setNovoErro("Erro ao salvar: " + error.message); setCriando(false); return; }
+      if (data?.id && novoEtiqs.size > 0) {
+        await supabase.from("atendimento_etiquetas").insert(Array.from(novoEtiqs).map(eid => ({ atendimento_id: data.id, etiqueta_id: eid })));
+      }
+      await carregarDados(wsId);
+      setNovoAberto(false);
+    } catch (e: any) { setNovoErro("Erro: " + e.message); }
+    setCriando(false);
+  };
+
   // ═══ EXCLUIR CONTATO (todos atendimentos do número) ═══
   const excluirContato = async (c: Contato) => {
     if (!wsId) return;
@@ -568,6 +614,65 @@ export default function Contatos() {
         </div>
       )}
 
+      {/* ═══ MODAL NOVO CONTATO ═══ */}
+      {novoAberto && (
+        <div onClick={() => !criando && setNovoAberto(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...cardStyle, width: "100%", maxWidth: 520, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "18px 24px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ width: 40, height: 40, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="usuarios" tamanho={20} /></span>
+                <div>
+                  <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: 0 }}>Novo contato</h3>
+                  <p style={{ color: "#64748B", fontSize: 12.5, margin: "2px 0 0" }}>Cadastre um cliente que ainda não conversou pelo WhatsApp</p>
+                </div>
+              </div>
+              <button onClick={() => setNovoAberto(false)} aria-label="Fechar"
+                style={{ background: "#F1F5F4", border: "none", color: "#64748B", cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
+            </div>
+            <div style={{ padding: 24, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>Nome</label>
+                <input autoFocus value={novoNome} onChange={e => setNovoNome(e.target.value)} style={inputStyle} placeholder="Nome completo do cliente" />
+              </div>
+              <div>
+                <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>Telefone (WhatsApp)</label>
+                <input value={novoTel} onChange={e => setNovoTel(e.target.value)} style={inputStyle} inputMode="tel" placeholder="(62) 99999-8888" />
+              </div>
+              <div>
+                <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>Observação (opcional)</label>
+                <textarea value={novoObs} onChange={e => setNovoObs(e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} placeholder="Ex.: indicado pelo João, quer revisar o financiamento do carro" />
+              </div>
+              {etiquetas.length > 0 && (
+                <div>
+                  <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 8 }}>Etiquetas</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {etiquetas.map(e => {
+                      const marcada = novoEtiqs.has(e.id);
+                      return (
+                        <button key={e.id} type="button" onClick={() => { const n = new Set(novoEtiqs); if (n.has(e.id)) n.delete(e.id); else n.add(e.id); setNovoEtiqs(n); }}
+                          style={{ background: marcada ? `${e.cor}15` : "#ffffff", border: `1.5px solid ${marcada ? e.cor : "#E6ECEA"}`, color: marcada ? e.cor : "#64748B", borderRadius: 20, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <IconeEmoji e={e.icone} /> {e.nome}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {novoErro && <div style={{ background: "#FEF2F2", color: "#B91C1C", borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 600 }}>{novoErro}</div>}
+            </div>
+            <div style={{ padding: "14px 24px", borderTop: "1px solid #E6ECEA", display: "flex", gap: 10, justifyContent: "flex-end", background: "#F7FAF9" }}>
+              <button onClick={() => setNovoAberto(false)} disabled={criando}
+                style={{ background: "#ffffff", color: "#475569", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 18px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>Cancelar</button>
+              <button onClick={criarContato} disabled={criando}
+                style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 13, cursor: criando ? "not-allowed" : "pointer", fontWeight: 800, opacity: criando ? 0.7 : 1, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>
+                {criando ? "Salvando..." : "Salvar contato"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ CABEÇALHO (A2) ═══ */}
       <section style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 16, padding: "4px 4px 0" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -587,12 +692,16 @@ export default function Contatos() {
             style={{
               height: 44, borderRadius: 13, border: 0, padding: "0 18px", fontSize: 14, fontWeight: 800, whiteSpace: "nowrap",
               display: "flex", alignItems: "center", gap: 8,
-              background: (exportando || contatosFiltrados.length === 0) ? "#F1F5F4" : "linear-gradient(140deg, #10B981, #059669)",
-              color: (exportando || contatosFiltrados.length === 0) ? "#94A3B8" : "#FFFFFF",
+              background: "#FFFFFF",
+              color: (exportando || contatosFiltrados.length === 0) ? "#94A3B8" : "#047857",
               cursor: (exportando || contatosFiltrados.length === 0) ? "not-allowed" : "pointer",
-              boxShadow: (exportando || contatosFiltrados.length === 0) ? "none" : "0 10px 22px -10px rgba(5,150,105,.75)",
+              boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.2)",
             }}>
             <Icone nome="download" tamanho={16} /> {exportando ? "Exportando..." : "Exportar Excel"}
+          </button>
+          <button onClick={abrirNovo} disabled={!wsId}
+            style={{ height: 44, borderRadius: 13, border: 0, padding: "0 18px", fontSize: 14, fontWeight: 800, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(140deg, #10B981, #059669)", color: "#FFFFFF", cursor: "pointer", boxShadow: "0 10px 22px -10px rgba(5,150,105,.75)" }}>
+            <Icone nome="mais" tamanho={16} /> Novo contato
           </button>
         </div>
       </section>
@@ -678,7 +787,10 @@ export default function Contatos() {
           <div style={{ padding: 48, textAlign: "center", borderTop: "1px solid #EEF2F1" }}>
             <span style={{ width: 64, height: 64, borderRadius: 20, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><Icone nome="usuarios" tamanho={28} /></span>
             <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: "0 0 6px" }}>Nenhum contato ainda</h3>
-            <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>Os leads que chegarem pelo WhatsApp aparecem aqui automaticamente.</p>
+            <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 16px" }}>Os leads que chegarem pelo WhatsApp aparecem aqui automaticamente. Você também pode cadastrar um contato à mão.</p>
+            <button onClick={abrirNovo} style={{ height: 42, borderRadius: 12, border: 0, padding: "0 18px", fontSize: 14, fontWeight: 800, background: "#ECFDF5", color: "#047857", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <Icone nome="mais" tamanho={16} /> Novo contato
+            </button>
           </div>
         ) : contatosFiltrados.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", borderTop: "1px solid #EEF2F1" }}>
