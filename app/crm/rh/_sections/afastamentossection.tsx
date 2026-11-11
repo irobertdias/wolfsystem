@@ -145,6 +145,13 @@ export function AfastamentosSection() {
     setForm(FORM_VAZIO);
     carregar();
   };
+  const excluir = async (a: Afastamento) => {
+    if (!wsId || !a.id) return;
+    if (!confirm(`Excluir o afastamento de ${a.nome}? Não dá para desfazer.`)) return;
+    const { error } = await supabase.from("afastamentos").delete().eq("id", a.id).eq("workspace_id", wsId);
+    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    carregar();
+  };
   const set = (k: keyof Afastamento, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
@@ -274,7 +281,7 @@ export function AfastamentosSection() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#F7FAF9" }}>
-                  {["Colaborador", "Tipo", "Início", "Fim", "Dias", "CID", "Status"].map((h) => (
+                  {["Colaborador", "Tipo", "Início", "Fim", "Dias", "CID", "Status", ""].map((h) => (
                     <th
                       key={h}
                       style={{
@@ -346,6 +353,12 @@ export function AfastamentosSection() {
                         >
                           {ativo ? "Em andamento" : "Encerrado"}
                         </span>
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                        <button onClick={() => excluir(a)} title="Excluir" aria-label="Excluir afastamento"
+                          style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "6px 9px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+                          <Icone nome="lixeira" tamanho={15} />
+                        </button>
                       </td>
                     </tr>
                   );

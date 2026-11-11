@@ -210,7 +210,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
                 </div>
               ))}
             </div>
-            <ListaPropostas propostas={propostas} config={config} onMudou={() => void carregar()} />
+            <ListaPropostas propostas={propostas} config={config} podeExcluir={podeConfigurar} onMudou={() => void carregar()} />
           </>
         )}
         {aba === "config" && config && <Configuracoes config={config} onSalvo={(c) => setConfig(c)} />}
@@ -545,7 +545,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada }: { config: Config; usua
 }
 
 /* ---------- lista ---------- */
-function ListaPropostas({ propostas, config, onMudou }: { propostas: PropostaLista[]; config: Config | null; onMudou: () => void }) {
+function ListaPropostas({ propostas, config, podeExcluir, onMudou }: { propostas: PropostaLista[]; config: Config | null; podeExcluir: boolean; onMudou: () => void }) {
   const [filtro, setFiltro] = useState("");
   const [ocupado, setOcupado] = useState("");
   const lista = propostas.filter((p) => !filtro || `${p.cliente_nome} ${p.cliente_documento} ${p.numero}`.toLowerCase().includes(filtro.toLowerCase()));
@@ -555,6 +555,16 @@ function ListaPropostas({ propostas, config, onMudou }: { propostas: PropostaLis
     setOcupado(p.id);
     try {
       await api(`/api/revisional/propostas/${p.id}`, { method: "PATCH", body: JSON.stringify({ acao: a }) });
+      onMudou();
+    } catch (e: any) { alert(e.message); } finally { setOcupado(""); }
+  }
+
+  async function excluir(p: PropostaLista) {
+    const aviso = p.status === "aceita" ? "\n\nO cliente que já entrou no CRM por esta proposta continua lá." : "";
+    if (!confirm(`Excluir de vez a proposta de ${p.cliente_nome} (nº ${p.numero})? O link deixa de funcionar e não dá para desfazer.${aviso}`)) return;
+    setOcupado(p.id);
+    try {
+      await api(`/api/revisional/propostas/${p.id}`, { method: "DELETE" });
       onMudou();
     } catch (e: any) { alert(e.message); } finally { setOcupado(""); }
   }
@@ -613,6 +623,7 @@ function ListaPropostas({ propostas, config, onMudou }: { propostas: PropostaLis
                   <button disabled={ocupado === p.id} onClick={() => acao(p, "renovar")} className={botaoSec} title={`Mais ${config?.validade_horas || 24}h a partir de agora`}><Icone nome="atualizar" tamanho={13} />Renovar</button>
                 )}
                 {aberta && <button disabled={ocupado === p.id} onClick={() => acao(p, "cancelar")} className={`${botaoSec} !bg-[#FEF2F2] !text-[#B91C1C] hover:!bg-[#FEE2E2]`}><Icone nome="x" tamanho={13} />Cancelar</button>}
+                {podeExcluir && <button disabled={ocupado === p.id} onClick={() => excluir(p)} title="Excluir proposta" aria-label="Excluir proposta" className={`${botaoSec} !bg-[#FEF2F2] !text-[#B91C1C] hover:!bg-[#FEE2E2]`}><Icone nome="lixeira" tamanho={13} />Excluir</button>}
               </div>
             </div>
           );

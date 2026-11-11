@@ -299,6 +299,24 @@ export function FolhaSection() {
     carregar(comp);
   };
 
+  // 🔌 excluir um colaborador da folha / a folha inteira do mês
+  const excluirItem = async (it: any) => {
+    if (!wsId || !it.id) return;
+    if (!confirm(`Tirar ${it.nome} da folha de ${fmtComp(comp)}? Não dá para desfazer.`)) return;
+    const { error } = await supabase.from("folha_itens").delete().eq("id", it.id).eq("workspace_id", wsId);
+    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    carregar(comp);
+  };
+  const excluirFolha = async () => {
+    if (!wsId || !comp || itens.length === 0) return;
+    if (!confirm(`Excluir a folha inteira de ${fmtComp(comp)} (${itens.length} colaborador(es))? Não dá para desfazer.`)) return;
+    setProcessando(true);
+    const { error } = await supabase.from("folha_itens").delete().eq("workspace_id", wsId).eq("competencia", comp);
+    setProcessando(false);
+    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    carregar();
+  };
+
   // 🔌 marcar competência como paga
   const marcarPagas = async () => {
     if (!comp || itens.length === 0) return;
@@ -405,6 +423,10 @@ export function FolhaSection() {
                 }}
               >
                 {todosPagos ? "Folha paga" : processando ? "..." : "Marcar como paga"}
+              </button>
+              <button onClick={excluirFolha} disabled={processando} title="Excluir a folha deste mês"
+                style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 12, padding: "11px 14px", fontSize: 13, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Icone nome="lixeira" tamanho={15} /> Excluir folha
               </button>
             </>
           )}
@@ -527,6 +549,7 @@ export function FolhaSection() {
                       "Líquido",
                       "Saldo Horas",
                       "Status",
+                      "",
                     ].map((h) => (
                       <th
                         key={h}
@@ -683,6 +706,12 @@ export function FolhaSection() {
                           >
                             {it.status === "pago" ? "Pago" : "Pendente"}
                           </span>
+                        </td>
+                        <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                          <button onClick={() => excluirItem(it)} title="Excluir da folha" aria-label="Excluir da folha"
+                            style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "6px 9px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+                            <Icone nome="lixeira" tamanho={15} />
+                          </button>
                         </td>
                       </tr>
                     );

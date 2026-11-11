@@ -168,6 +168,13 @@ export function HoleritesSection() {
     await carregar();
     alert(`${novos.length} holerite(s) gerado(s) para ${fmtComp(compGerar)}!`);
   };
+  const excluir = async (h: any) => {
+    if (!wsId || !h.id) return;
+    if (!confirm(`Excluir o holerite de ${h.nome} (${fmtComp(h.competencia)})? Não dá para desfazer.`)) return;
+    const { error } = await supabase.from("holerites").delete().eq("id", h.id).eq("workspace_id", wsId);
+    if (error) { alert("Erro ao excluir: " + error.message); return; }
+    await carregar();
+  };
   const competencias = useMemo(
     () =>
       Array.from(new Set(todos.map((i) => i.competencia)))
@@ -375,6 +382,10 @@ export function HoleritesSection() {
                           }}
                         >
                           Ver
+                        </button>
+                        <button onClick={() => excluir(h)} title="Excluir" aria-label="Excluir holerite"
+                          style={{ marginLeft: 6, background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "inline-flex", alignItems: "center", verticalAlign: "middle" }}>
+                          <Icone nome="lixeira" tamanho={14} />
                         </button>
                       </td>
                     </tr>

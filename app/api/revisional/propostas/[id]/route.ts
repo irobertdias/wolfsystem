@@ -3,6 +3,28 @@ import { autenticarWorkspace, respostaErroAcesso, supabaseServer } from "../../.
 import { SEM_CACHE, exigirRevisional, lerConfig } from "../../_shared";
 import { linhaCrmDaProposta } from "../../../../lib/revisional-contrato";
 
+// DELETE ?workspace= — apaga a proposta de vez (só dono, administrador ou super admin).
+// O cliente que já entrou no CRM por esta proposta continua lá.
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await context.params;
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ success: false, error: "Proposta inválida" }, { status: 400 });
+    const acesso = await autenticarWorkspace(request, request.nextUrl.searchParams.get("workspace") || "");
+    await exigirRevisional(acesso);
+    if (!(acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador)) {
+      return NextResponse.json({ success: false, error: "Só o dono ou um administrador pode excluir propostas" }, { status: 403 });
+    }
+    const { data, error } = await supabaseServer.from("revisional_propostas")
+      .delete().eq("id", id).eq("workspace_id", acesso.workspaceId).select("id");
+    if (error) throw error;
+    if (!data?.length) return NextResponse.json({ success: false, error: "Proposta não encontrada" }, { status: 404 });
+    return NextResponse.json({ success: true }, { headers: SEM_CACHE });
+  } catch (error) {
+    const { status, message } = respostaErroAcesso(error);
+    return NextResponse.json({ success: false, error: message }, { status });
+  }
+}
+
 // PATCH { acao: "cancelar" | "renovar", horas? }
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
