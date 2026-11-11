@@ -34,7 +34,7 @@ const cartaoCls = "rounded-[20px] bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),
 const botaoSec = "inline-flex items-center gap-1.5 rounded-[10px] bg-[#F3F6F5] px-3 py-2 text-[12.5px] font-bold text-[#334155] transition hover:bg-[#E6ECEA] disabled:opacity-50";
 
 const IMOVEL_VAZIO = { banco: "", valor_financiado: 0, prazo: "", pagas: "", atrasadas: "0", pausa: false, modalidade: "SAC", taxa_anual: "", data_contrato: "", saldo_devedor: 0, parcela_atual: 0, juros: 0, amortizacao: 0, tarifa_adm: 25, seguros: 0 };
-const VEICULO_VAZIO = { banco: "", modelo: "", ano: "", data_contrato: "", valor_financiado: 0, parcela_atual: 0, prazo: "", pagas: "", atrasadas: "0" };
+const VEICULO_VAZIO = { banco: "", modelo: "", ano: "", data_contrato: "", valor_financiado: 0, parcela_atual: 0, prazo: "", pagas: "", atrasadas: "0", tem_balao: false, valor_balao: 0, quitacao: false };
 
 async function api(path: string, init: RequestInit = {}) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -468,6 +468,19 @@ function NovaSimulacao({ config, usuarioNome, onCriada }: { config: Config; usua
                 <Campo rotulo="Total de parcelas"><Texto valor={veiculo.prazo} onChange={setV("prazo")} inputMode="numeric" /></Campo>
                 <Campo rotulo="Parcelas pagas"><Texto valor={veiculo.pagas} onChange={setV("pagas")} inputMode="numeric" /></Campo>
                 <Campo rotulo="Parcelas em atraso"><Texto valor={veiculo.atrasadas} onChange={setV("atrasadas")} inputMode="numeric" /></Campo>
+                <Campo rotulo="Tem parcela balão?" dica="Parcela maior no fim do contrato">
+                  <select className={inputCls} value={veiculo.tem_balao ? "sim" : "nao"} onChange={(e) => setV("tem_balao")(e.target.value === "sim")}>
+                    <option value="nao">Não</option>
+                    <option value="sim">Sim</option>
+                  </select>
+                </Campo>
+                {veiculo.tem_balao && <Campo rotulo="Valor da parcela balão"><Dinheiro valor={veiculo.valor_balao} onChange={setV("valor_balao")} /></Campo>}
+                <Campo rotulo="Intenção de quitação?" dica="Mostra quanto custa quitar hoje">
+                  <select className={inputCls} value={veiculo.quitacao ? "sim" : "nao"} onChange={(e) => setV("quitacao")(e.target.value === "sim")}>
+                    <option value="nao">Não</option>
+                    <option value="sim">Sim</option>
+                  </select>
+                </Campo>
               </div>
             </Secao>
             <Secao n={3} titulo="Correção">
@@ -518,7 +531,11 @@ function NovaSimulacao({ config, usuarioNome, onCriada }: { config: Config; usua
         <div className={`${cartaoCls} px-[22px] py-2 text-[13.5px]`}>
           {(tipo === "imovel"
             ? [["Amortizado", resultado.amortizado, ""], ["Amortização corrigida", resultado.amortizacao_corrigida, ""], ["Diferença na amortização", resultado.diferenca_amortizacao, "text-[#DC2626]"], ["Tarifas e seguros questionáveis", resultado.tarifas_questionaveis, "text-[#C2410C]"], ["Saldo devedor correto", resultado.saldo_correto, ""], ["Economia até o fim do contrato", resultado.economia_total, "text-[#047857]"]]
-            : [["Redução por parcela", resultado.reducao_parcela, ""], [`Redução nas ${resultado.restantes} restantes`, resultado.reducao_total, "text-[#047857]"], ["Estorno das pagas", resultado.estorno, "text-[#C2410C]"]]
+            : [["Redução por parcela", resultado.reducao_parcela, ""],
+               ...(resultado.balao ? [["Parcela balão", resultado.balao, ""], ["Balão corrigido", resultado.balao_corrigido, "text-[#047857]"]] : []),
+               [`Redução nas ${resultado.restantes} restantes${resultado.balao ? " + balão" : ""}`, resultado.reducao_total, "text-[#047857]"],
+               ["Estorno das pagas", resultado.estorno, "text-[#C2410C]"],
+               ...(resultado.saldo_quitacao != null ? [["Quitação hoje (contrato)", resultado.saldo_quitacao, ""], ["Quitação com a revisão", resultado.saldo_quitacao_revisado, "text-[#047857]"], ["Desconto na quitação", resultado.desconto_quitacao, "text-[#047857]"]] : [])]
           ).map(([k, v, cor]) => (
             <div key={k} className="flex border-b border-[#F1F5F4] py-3 last:border-0"><span className="text-[#64748B]">{k}</span><b className={`ml-auto tabular-nums ${cor}`}>{brl(v)}</b></div>
           ))}

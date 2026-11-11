@@ -352,8 +352,13 @@ export default function PropostaRevisionalPage() {
               ) : (
                 <>
                   <Linha icone="📉" rotulo="Redução por parcela" valor={brl(r.reducao_parcela)} destaque="text-emerald-600" />
-                  <Linha icone="📅" rotulo={`Redução nas ${r.restantes} parcelas restantes`} valor={brl(r.reducao_total)} />
+                  {r.balao > 0 && <Linha icone="🎈" rotulo={`Parcela balão: ${brl(r.balao)} passa para`} valor={brl(r.balao_corrigido)} destaque="text-emerald-600" />}
+                  <Linha icone="📅" rotulo={`Redução nas ${r.restantes} parcelas restantes${r.balao > 0 ? " e no balão" : ""}`} valor={brl(r.reducao_total)} />
                   <Linha icone="💸" rotulo={`Devolução das ${d.pagas} parcelas já pagas`} valor={brl(r.estorno)} destaque="text-amber-600" />
+                  {r.saldo_quitacao != null && <>
+                    <Linha icone="🏁" rotulo="Para quitar hoje pelo contrato" valor={brl(r.saldo_quitacao)} />
+                    <Linha icone="✅" rotulo="Para quitar com a revisão" valor={brl(r.saldo_quitacao_revisado)} destaque="text-emerald-600" />
+                  </>}
                 </>
               )}
             </div>

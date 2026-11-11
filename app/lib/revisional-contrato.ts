@@ -57,7 +57,9 @@ export function linhaCrmDaProposta(p: PropostaRev, workspaceId: string) {
         parcelas_pagas: n(d.pagas) || undefined,
         // Parcela e taxa ficam de fora de propósito: o benefício vem da análise da
         // proposta (abaixo) até o vendedor completar o cálculo do contrato.
-        observacoes: `Criado automaticamente pelo aceite da proposta nº ${p.numero}. Parcela atual informada: R$ ${n(d.parcela_atual).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.`,
+        observacoes: `Criado automaticamente pelo aceite da proposta nº ${p.numero}. Parcela atual informada: R$ ${n(d.parcela_atual).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.`
+          + (d.tem_balao && n(d.valor_balao) > 0 ? ` Parcela balão: R$ ${n(d.valor_balao).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.` : "")
+          + ` Intenção de quitação: ${d.quitacao ? "sim" : "não"}.`,
         historico: [{ em: agora, etapa: "DOCUMENTACAO", nota: `Cliente aceitou a proposta nº ${p.numero}. Próximo passo: contrato de prestação de serviços.` }],
       },
       revisional_proposta: { id: p.id, numero: p.numero, beneficio: beneficioDaProposta(p) },
@@ -83,6 +85,9 @@ export const CAMPOS_MODELO: { chave: string; desc: string; grupo: "Empresa" | "C
   { chave: "parcela_atual", desc: "Parcela que o cliente paga hoje", grupo: "Contrato" },
   { chave: "parcela_corrigida", desc: "Parcela corrigida pela análise", grupo: "Contrato" },
   { chave: "beneficio_estimado", desc: "Benefício estimado na análise", grupo: "Contrato" },
+  { chave: "parcela_balao", desc: "Parcela balão do contrato (ou \"não há\")", grupo: "Contrato" },
+  { chave: "parcela_balao_corrigida", desc: "Parcela balão corrigida pela análise (ou \"não há\")", grupo: "Contrato" },
+  { chave: "intencao_quitacao", desc: "Se o cliente quer quitar o contrato: sim ou não", grupo: "Contrato" },
   { chave: "numero_proposta", desc: "Nº da proposta aceita", grupo: "Contrato" },
   { chave: "honorarios_percentual", desc: "% de êxito (Configurações)", grupo: "Honorários" },
   { chave: "honorarios_entrada", desc: "Entrada em R$ (Configurações)", grupo: "Honorários" },
@@ -96,7 +101,7 @@ CONTRATADA: {empresa_nome}, inscrita no CNPJ sob o nº {empresa_cnpj}, com sede 
 CONTRATANTE: {cliente_nome}, inscrito(a) no CPF/CNPJ sob o nº {cliente_cpf}, telefone {cliente_telefone}, e-mail {cliente_email}.
 
 CLÁUSULA 1ª — DO OBJETO
-1.1. A CONTRATADA prestará ao CONTRATANTE serviços de consultoria para análise técnica e cálculo revisional do contrato de {tipo_financiamento} firmado com {banco}, no valor financiado de {valor_financiado}, em {prazo} parcelas, das quais {parcelas_pagas} já foram pagas.
+1.1. A CONTRATADA prestará ao CONTRATANTE serviços de consultoria para análise técnica e cálculo revisional do contrato de {tipo_financiamento} firmado com {banco}, no valor financiado de {valor_financiado}, em {prazo} parcelas, das quais {parcelas_pagas} já foram pagas. Parcela balão: {parcela_balao}. Intenção de quitação antecipada: {intencao_quitacao}.
 1.2. Os serviços incluem: análise do contrato e dos encargos cobrados, comparação com a taxa média de mercado divulgada pelo Banco Central, elaboração de laudo de cálculo e tentativa de negociação administrativa com a instituição financeira.
 1.3. Havendo necessidade de medida judicial, ela será proposta por advogado regularmente inscrito na OAB, indicado pela CONTRATADA e contratado diretamente pelo CONTRATANTE, mediante procuração e contrato de honorários próprios, nos termos da Lei nº 8.906/1994.
 
@@ -164,6 +169,9 @@ export function variaveisDaProposta(
     parcela_atual: n(d.parcela_atual) ? brl(d.parcela_atual) : "",
     parcela_corrigida: n(p.resultado?.parcela_corrigida) ? brl(p.resultado?.parcela_corrigida) : "",
     beneficio_estimado: brl(beneficioDaProposta(p)),
+    parcela_balao: d.tem_balao && n(d.valor_balao) > 0 ? brl(d.valor_balao) : "não há",
+    parcela_balao_corrigida: d.tem_balao && n(p.resultado?.balao_corrigido) > 0 ? brl(p.resultado?.balao_corrigido) : "não há",
+    intencao_quitacao: d.quitacao ? "sim" : "não",
     numero_proposta: p.numero || "",
     honorarios_percentual: pct ? `${pct.toLocaleString("pt-BR")}% (por cento)` : "",
     honorarios_entrada: extra.honorarios_entrada !== undefined ? (n(extra.honorarios_entrada) > 0 ? brl(n(extra.honorarios_entrada)) : "R$ 0,00 (sem entrada)") : "",

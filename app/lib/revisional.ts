@@ -47,6 +47,9 @@ export type DadosVeiculo = {
   taxa_corrigida: number;      // % ao mês (método "taxa")
   taxa_media_mensal: number;   // BACEN, % a.m. (método "bacen" usa esta)
   taxa_media_ref: string;
+  tem_balao: boolean;          // contrato com parcela balão (parcela maior no fim)
+  valor_balao: number;         // valor da parcela balão
+  quitacao: boolean;           // cliente tem intenção de quitar o contrato
 };
 
 export type ResultadoImovel = {
@@ -78,6 +81,12 @@ export type ResultadoVeiculo = {
   taxa_aplicada: number | null;
   taxa_media_mensal: number | null;
   vezes_media: number | null;
+  balao?: number;              // parcela balão do contrato (0 = sem balão)
+  balao_corrigido?: number;
+  reducao_balao?: number;
+  saldo_quitacao?: number | null;          // quanto custa quitar hoje pelo contrato
+  saldo_quitacao_revisado?: number | null; // quanto custaria com a taxa corrigida
+  desconto_quitacao?: number | null;
 };
 
 const r2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
@@ -112,7 +121,28 @@ export function taxaImplicita(valor: number, parcela: number, prazo: number): nu
   return r4((lo + hi) / 2);
 }
 
-export const anualParaMensal = (aa: number) => (aa > 0 ? (Math.pow(1 + aa / 100, 1 / 12) - 1) * 100 : 0);
+/** Valor presente de `n` parcelas iguais + uma parcela balão junto com a última. */
+export function valorPresente(parcela: number, balao: number, taxaMensalPct: number, n: number) {
+  if (n <= 0) return 0;
+  const i = taxaMensalPct / 100;
+  if (i <= 0) return parcela * n + balao;
+  const v = Math.pow(1 + i, -n);
+  return parcela * ((1 - v) / i) + balao * v;
+}
+
+/** Taxa mensal (%) implícita num financiamento com parcela balão, por bisseção. */
+export function taxaImplicitaBalao(valor: number, parcela: number, prazo: number, balao: number): number | null {
+  if (balao <= 0) return taxaImplicita(valor, parcela, prazo);
+  if (valor <= 0 || parcela <= 0 || prazo <= 0 || parcela * prazo + balao <= valor) return null;
+  let lo = 0, hi = 100;
+  for (let k = 0; k < 200; k++) {
+    const mid = (lo + hi) / 2;
+    if (valorPresente(parcela, balao, mid, prazo) > valor) lo = mid; else hi = mid;
+  }
+  return r4((lo + hi) / 2);
+}
+
+export const anualParaMensal =(aa: number) => (aa > 0 ? (Math.pow(1 + aa / 100, 1 / 12) - 1) * 100 : 0);
 export const mensalParaAnual = (am: number) => (am > 0 ? (Math.pow(1 + am / 100, 12) - 1) * 100 : 0);
 
 /**
@@ -188,6 +218,9 @@ export function normalizarVeiculo(d: Partial<Record<keyof DadosVeiculo, unknown>
     taxa_corrigida: Math.min(20, Math.max(0, num(d.taxa_corrigida))),
     taxa_media_mensal: Math.min(20, Math.max(0, num(d.taxa_media_mensal))),
     taxa_media_ref: String(d.taxa_media_ref ?? "").slice(0, 20),
+    tem_balao: d.tem_balao === true || d.tem_balao === "true",
+    valor_balao: d.tem_balao === true || d.tem_balao === "true" ? Math.max(0, num(d.valor_balao)) : 0,
+    quitacao: d.quitacao === true || d.quitacao === "true",
   };
 }
 
@@ -219,30 +252,60 @@ export function calcularImovel(d: DadosImovel): ResultadoImovel {
 export function calcularVeiculo(d: DadosVeiculo): ResultadoVeiculo {
   const pagas = Math.min(d.pagas, d.prazo || d.pagas);
   const restantes = Math.max(0, d.prazo - pagas);
+  const balao = d.tem_balao ? Math.max(0, d.valor_balao || 0) : 0;
   const taxaRecalculo = d.metodo === "bacen" ? d.taxa_media_mensal : d.taxa_corrigida;
+  // Fator de correção aplicado à parcela e ao balão.
+  // % sobre a parcela: os dois caem no mesmo percentual. Por taxa: os dois
+  // caem na mesma proporção até o valor financiado bater com a taxa corrigida.
+  let fator = 1;
+  if (d.metodo === "percentual") fator = 1 - d.percentual_correcao / 100;
+  else {
+    const vp = valorPresente(d.parcela_atual, balao, taxaRecalculo, d.prazo);
+    fator = vp > 0 ? d.valor_financiado / vp : 1;
+  }
   const parcela_corrigida = r2(
-    d.metodo === "percentual"
-      ? d.parcela_atual * (1 - d.percentual_correcao / 100)
-      : parcelaPrice(d.valor_financiado, taxaRecalculo, d.prazo)
+    d.metodo !== "percentual" && balao <= 0
+      ? parcelaPrice(d.valor_financiado, taxaRecalculo, d.prazo)
+      : d.parcela_atual * fator
   );
+  const balao_corrigido = r2(balao * fator);
   const reducao_parcela = r2(Math.max(0, d.parcela_atual - parcela_corrigida));
-  const taxa_contratada = taxaImplicita(d.valor_financiado, d.parcela_atual, d.prazo);
+  const reducao_balao = r2(Math.max(0, balao - balao_corrigido));
+  const taxa_contratada = taxaImplicitaBalao(d.valor_financiado, d.parcela_atual, d.prazo, balao);
   const taxa_aplicada = d.metodo === "percentual"
-    ? taxaImplicita(d.valor_financiado, parcela_corrigida, d.prazo)
+    ? taxaImplicitaBalao(d.valor_financiado, parcela_corrigida, d.prazo, balao_corrigido)
     : taxaRecalculo;
   const taxa_media_mensal = d.taxa_media_mensal > 0 ? d.taxa_media_mensal : null;
   const vezes_media = taxa_contratada && taxa_media_mensal ? Math.round((taxa_contratada / taxa_media_mensal) * 100) / 100 : null;
+  // O balão vence junto com a última parcela: entra na economia se ainda não foi pago.
+  const balaoEmAberto = restantes > 0 ? reducao_balao : 0;
+  // Quitação: saldo das parcelas que faltam (+ balão), trazido a valor de hoje.
+  let saldo_quitacao: number | null = null, saldo_quitacao_revisado: number | null = null, desconto_quitacao: number | null = null;
+  if (d.quitacao && restantes > 0 && taxa_contratada != null && (d.metodo === "percentual" || taxa_aplicada != null)) {
+    saldo_quitacao = r2(valorPresente(d.parcela_atual, balao, taxa_contratada, restantes));
+    // % sobre a parcela: o saldo cai no mesmo percentual. Por taxa: saldo na taxa corrigida.
+    saldo_quitacao_revisado = r2(d.metodo === "percentual"
+      ? saldo_quitacao * fator
+      : valorPresente(parcela_corrigida, balao_corrigido, taxa_aplicada as number, restantes));
+    desconto_quitacao = r2(Math.max(0, saldo_quitacao - saldo_quitacao_revisado));
+  }
   return {
     parcela_corrigida,
     reducao_parcela,
-    reducao_total: r2(reducao_parcela * restantes),
+    reducao_total: r2(reducao_parcela * restantes + balaoEmAberto),
     estorno: r2(reducao_parcela * pagas),
-    economia_total: r2(reducao_parcela * d.prazo),
+    economia_total: r2(reducao_parcela * d.prazo + balaoEmAberto),
     restantes,
     taxa_contratada,
     taxa_aplicada,
     taxa_media_mensal,
     vezes_media,
+    balao,
+    balao_corrigido,
+    reducao_balao,
+    saldo_quitacao,
+    saldo_quitacao_revisado,
+    desconto_quitacao,
   };
 }
 
@@ -264,6 +327,7 @@ export function validarDados(tipo: TipoRevisional, d: DadosImovel | DadosVeiculo
     if (v.parcela_atual <= 0) erros.push("Informe o valor da parcela atual");
     if (v.metodo === "taxa" && v.taxa_corrigida <= 0) erros.push("Informe a taxa corrigida");
     if (v.metodo === "bacen" && v.taxa_media_mensal <= 0) erros.push("Aguardando a taxa média do Banco Central");
+    if (v.tem_balao && v.valor_balao <= 0) erros.push("Informe o valor da parcela balão");
   }
   return erros;
 }

@@ -340,7 +340,11 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   y += 5;
   const res: [string, string, RGB?][] = imovel
     ? [["Parcelas de amortização pagas", brl(r.amortizacao_corrigida)], ["Parcelas de juros pagas", brl(r.juros_pagos)], ["Amortizado pelo banco", brl(r.amortizado)], ["Diferença na amortização", brl(r.diferenca_amortizacao), C.vermelho600], ["Tarifas e seguros questionáveis", brl(r.tarifas_questionaveis), C.laranja500]]
-    : [["Redução por parcela", brl(r.reducao_parcela), C.verde600], [`Redução nas ${r.restantes} parcelas restantes`, brl(r.reducao_total)], [`Devolução das ${d.pagas} parcelas pagas`, brl(r.estorno), C.ambar800]];
+    : [["Redução por parcela", brl(r.reducao_parcela), C.verde600],
+       ...(r.balao > 0 ? [["Parcela balão (contrato → revisada)", `${brl(r.balao)} → ${brl(r.balao_corrigido)}`, C.verde600] as [string, string, RGB]] : []),
+       [`Redução nas ${r.restantes} parcelas restantes${r.balao > 0 ? " e no balão" : ""}`, brl(r.reducao_total)],
+       [`Devolução das ${d.pagas} parcelas pagas`, brl(r.estorno), C.ambar800],
+       ...(r.saldo_quitacao != null ? [["Quitação hoje (contrato → revisada)", `${brl(r.saldo_quitacao)} → ${brl(r.saldo_quitacao_revisado)}`, C.verde600] as [string, string, RGB]] : [])];
   const h3 = quadro("Apuração", C.vermelho500, res, M, y, W);
   y += h3 + 4;
   // faixa do total
