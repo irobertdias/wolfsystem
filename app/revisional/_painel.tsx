@@ -98,6 +98,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
     percentual_imovel: 35, percentual_veiculo: 35, taxa_veiculo: 1.5, metodo_veiculo: "percentual",
   });
   const [podeConfigurar, setPodeConfigurar] = useState(false);
+  const [editando, setEditando] = useState<PropostaLista | null>(null);
   const [propostas, setPropostas] = useState<PropostaLista[]>([]);
   const [usuarioNome, setUsuarioNome] = useState("");
   const [, setTique] = useState(0);
@@ -150,7 +151,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
   const abas = (
     <nav className="ml-auto flex gap-1 rounded-[13px] bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,.05),0_6px_16px_-10px_rgba(16,24,40,.2)]">
       {([["nova", "Nova simulação"], ["lista", "Propostas"], ...(podeConfigurar ? [["config", "Configurações"]] : [])] as [typeof aba, string][]).map(([k, t]) => (
-        <button key={k} onClick={() => setAba(k)}
+        <button key={k} onClick={() => { if (k === "nova") setEditando(null); setAba(k); }}
           className={`flex items-center gap-1.5 rounded-[9px] px-[15px] py-[9px] text-[13px] transition ${aba === k ? "bg-[#059669] font-extrabold text-white shadow-[0_8px_18px_-8px_rgba(5,150,105,.7)]" : "font-semibold text-[#475569] hover:bg-[#F3F6F5]"}`}>
           {t}
           {k === "lista" && <span className={`rounded-full px-1.5 text-[11px] font-extrabold ${aba === k ? "bg-white/20 text-white" : "bg-[#ECFDF5] text-[#047857]"}`}>{propostas.length}</span>}
@@ -197,8 +198,17 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
         </section>
 
         {erroAcesso && <div className="rounded-xl bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#B91C1C]">{erroAcesso}</div>}
+        {aba === "nova" && config && editando && (
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-[#FFFBEB] px-4 py-3 text-[13.5px] text-[#92400E] shadow-[inset_0_0_0_1.5px_#FDE68A]">
+            <Icone nome="editar" tamanho={16} />
+            <span>Corrigindo a proposta nº <b>{editando.numero}</b> de <b>{editando.cliente_nome}</b>. Ao salvar, o cliente continua com o mesmo link e vê os valores novos.</span>
+            <button onClick={() => { setEditando(null); setAba("lista"); }} className="ml-auto font-bold underline">Cancelar edição</button>
+          </div>
+        )}
         {aba === "nova" && config && (
-          <NovaSimulacao config={config} usuarioNome={usuarioNome} onCriada={() => void carregar()} />
+          <NovaSimulacao key={editando?.id || "nova"} config={config} usuarioNome={usuarioNome} editar={editando}
+            onSairEdicao={() => { setEditando(null); setAba("lista"); }}
+            onCriada={() => void carregar()} />
         )}
         {aba === "lista" && (
           <>
@@ -210,7 +220,8 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
                 </div>
               ))}
             </div>
-            <ListaPropostas propostas={propostas} config={config} podeExcluir={podeConfigurar} onMudou={() => void carregar()} />
+            <ListaPropostas propostas={propostas} config={config} podeExcluir={podeConfigurar} onMudou={() => void carregar()}
+              onEditar={(p) => { setEditando(p); setAba("nova"); window.scrollTo({ top: 0 }); }} />
           </>
         )}
         {aba === "config" && config && <Configuracoes config={config} onSalvo={(c) => setConfig(c)} />}
@@ -276,12 +287,24 @@ function ComparaTaxas({ cobrada, media, ref, vezes }: { cobrada: number | null; 
   );
 }
 
-function NovaSimulacao({ config, usuarioNome, onCriada }: { config: Config; usuarioNome: string; onCriada: () => void }) {
-  const [tipo, setTipo] = useState<TipoRevisional>("imovel");
-  const [cliente, setCliente] = useState({ nome: "", documento: "", telefone: "" });
-  const [consultor, setConsultor] = useState(usuarioNome);
-  const [imovel, setImovel] = useState<Record<string, any>>({ ...IMOVEL_VAZIO, percentual_correcao: config.percentual_imovel });
-  const [veiculo, setVeiculo] = useState<Record<string, any>>({ ...VEICULO_VAZIO, metodo: "bacen", percentual_correcao: config.percentual_veiculo, taxa_corrigida: config.taxa_veiculo });
+// Dados salvos de uma proposta → valores do formulário. No imóvel, o que o sistema
+// tinha estimado volta vazio, para continuar sendo calculado sozinho.
+function dadosParaForm(p: PropostaLista): Record<string, any> {
+  const d: Record<string, any> = { ...(p.dados || {}) };
+  for (const campo of (d.estimados || []) as string[]) d[campo] = 0;
+  delete d.estimados;
+  for (const k of ["prazo", "pagas", "atrasadas", "taxa_anual", "percentual_correcao", "taxa_corrigida"]) if (d[k] !== undefined && d[k] !== null) d[k] = String(d[k]).replace(".", ",");
+  return d;
+}
+
+function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: { config: Config; usuarioNome: string; onCriada: () => void; editar?: PropostaLista | null; onSairEdicao?: () => void }) {
+  const [tipo, setTipo] = useState<TipoRevisional>(editar ? (editar.tipo as TipoRevisional) : "imovel");
+  const [cliente, setCliente] = useState(editar
+    ? { nome: editar.cliente_nome || "", documento: formatarDocumento(editar.cliente_documento || ""), telefone: editar.cliente_telefone || "" }
+    : { nome: "", documento: "", telefone: "" });
+  const [consultor, setConsultor] = useState(editar?.consultor_nome || usuarioNome);
+  const [imovel, setImovel] = useState<Record<string, any>>(editar?.tipo === "imovel" ? { ...IMOVEL_VAZIO, ...dadosParaForm(editar) } : { ...IMOVEL_VAZIO, percentual_correcao: config.percentual_imovel });
+  const [veiculo, setVeiculo] = useState<Record<string, any>>(editar?.tipo === "veiculo" ? { ...VEICULO_VAZIO, ...dadosParaForm(editar) } : { ...VEICULO_VAZIO, metodo: "bacen", percentual_correcao: config.percentual_veiculo, taxa_corrigida: config.taxa_veiculo });
   const [validade, setValidade] = useState(config.validade_horas);
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState("");
@@ -329,14 +352,14 @@ function NovaSimulacao({ config, usuarioNome, onCriada }: { config: Config; usua
   async function gerar() {
     setErro(""); setGerando(true);
     try {
-      const d = await api("/api/revisional/propostas", {
-        method: "POST",
+      const d = await api(editar ? `/api/revisional/propostas/${editar.id}` : "/api/revisional/propostas", {
+        method: editar ? "PUT" : "POST",
         body: JSON.stringify({
           tipo, cliente_nome: cliente.nome, cliente_documento: cliente.documento, cliente_telefone: cliente.telefone,
           consultor_nome: consultor, dados: tipo === "imovel" ? imovel : veiculo, validade_horas: validade,
         }),
       });
-      setGerada(d.proposta);
+      setGerada(editar ? { ...d.proposta, link: editar.link } : d.proposta);
       onCriada();
     } catch (e: any) {
       setErro(e.message);
@@ -346,6 +369,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada }: { config: Config; usua
   }
 
   function novaSimulacao() {
+    if (editar) { onSairEdicao?.(); return; }
     setGerada(null); setCopiado(false);
     setCliente({ nome: "", documento: "", telefone: "" });
     setImovel({ ...IMOVEL_VAZIO, percentual_correcao: config.percentual_imovel });
@@ -358,7 +382,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada }: { config: Config; usua
       <div className={`${cartaoCls} mx-auto w-full max-w-xl overflow-hidden`}>
         <div className="relative overflow-hidden bg-gradient-to-br from-[#10B981] via-[#059669] to-[#065F46] px-[26px] py-6 text-white">
           <div aria-hidden className="pointer-events-none absolute -right-14 -top-14 h-52 w-52 rounded-full bg-white/10" />
-          <span className="relative inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-bold"><Icone nome="check" tamanho={13} /> Proposta nº {gerada.numero} gerada</span>
+          <span className="relative inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-bold"><Icone nome="check" tamanho={13} /> Proposta nº {gerada.numero} {editar ? "corrigida · mesmo link" : "gerada"}</span>
           <div className="relative mt-3 text-[24px] font-extrabold tracking-tight">{cliente.nome}</div>
           <div className="relative text-[13px] text-white/80">Válida até {new Date(gerada.expira_em).toLocaleString("pt-BR")}</div>
         </div>
@@ -554,15 +578,16 @@ function NovaSimulacao({ config, usuarioNome, onCriada }: { config: Config; usua
 
         <button disabled={gerando || pendencias.length > 0 || !cliente.nome.trim() || validade < 1} onClick={gerar}
           className="h-[54px] rounded-2xl bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-[15px] font-extrabold text-white shadow-[0_16px_30px_-14px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none">
-          {gerando ? "Gerando…" : "Gerar proposta e enviar link"}
+          {gerando ? (editar ? "Salvando…" : "Gerando…") : editar ? "Salvar correção (mesmo link)" : "Gerar proposta e enviar link"}
         </button>
+        {editar && <button onClick={() => onSairEdicao?.()} className="text-[13px] font-bold text-[#64748B] hover:underline">Cancelar edição</button>}
       </aside>
     </div>
   );
 }
 
 /* ---------- lista ---------- */
-function ListaPropostas({ propostas, config, podeExcluir, onMudou }: { propostas: PropostaLista[]; config: Config | null; podeExcluir: boolean; onMudou: () => void }) {
+function ListaPropostas({ propostas, config, podeExcluir, onMudou, onEditar }: { propostas: PropostaLista[]; config: Config | null; podeExcluir: boolean; onMudou: () => void; onEditar: (p: PropostaLista) => void }) {
   const [filtro, setFiltro] = useState("");
   const [ocupado, setOcupado] = useState("");
   const lista = propostas.filter((p) => !filtro || `${p.cliente_nome} ${p.cliente_documento} ${p.numero}`.toLowerCase().includes(filtro.toLowerCase()));
@@ -632,6 +657,9 @@ function ListaPropostas({ propostas, config, podeExcluir, onMudou }: { propostas
                 {p.status === "aceita" && (p.dados?.contrato_gerado
                   ? <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF5] px-3 py-1.5 text-[12.5px] font-bold text-[#047857]"><Icone nome="check" tamanho={13} />Contrato gerado</span>
                   : <a href={`/crm/contratos?revisional=${p.id}`} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] px-3.5 py-2 text-[13px] font-extrabold text-white shadow-[0_10px_20px_-10px_rgba(5,150,105,.8)]"><Icone nome="documento" tamanho={14} />Gerar contrato</a>)}
+                {p.status !== "aceita" && p.status !== "recusada" && (
+                  <button onClick={() => onEditar(p)} className={`${botaoSec} !bg-[#FFFBEB] !text-[#92400E] hover:!bg-[#FEF3C7]`} title="Corrigir os dados e recalcular (mantém o mesmo link)"><Icone nome="editar" tamanho={13} />Editar</button>
+                )}
                 <button onClick={() => navigator.clipboard.writeText(p.link)} className={botaoSec}><Icone nome="copiar" tamanho={13} />Copiar link</button>
                 <button onClick={() => void baixarPdfProposta({ ...p, cliente_documento: formatarDocumento(p.cliente_documento), empresa: p.empresa || {}, criada_em: p.created_at }).catch(() => alert("Não foi possível gerar o PDF"))} className={botaoSec}><Icone nome="download" tamanho={13} />PDF</button>
                 <a href={linkWhats(p.cliente_telefone, mensagemCliente(p.cliente_nome, p.link, Math.max(1, Math.round((new Date(p.expira_em).getTime() - Date.now()) / 3600_000))))} target="_blank" rel="noreferrer" className={`${botaoSec} !bg-[#ECFDF5] !text-[#047857] hover:!bg-[#D1FAE5]`}><Icone nome="whatsapp" tamanho={13} />WhatsApp</a>
