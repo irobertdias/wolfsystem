@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import SimuladorOrcamento from "./components/SimuladorOrcamento";
+import { conversaoLead } from "./lib/conversoes";
 import { PLANOS_WOLF, PRECO_USUARIO_EXTRA, PRECO_WHATSAPP_EXTRA, brlCurto } from "./lib/precos-wolf";
 
 import { IconeEmoji } from "./components/a2/Icone";
@@ -19,8 +20,10 @@ export default function Site() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  const falar = (texto = "Olá! Quero conhecer o Wolf System.") =>
+  const falar = (texto = "Olá! Quero conhecer o Wolf System.") => {
+    conversaoLead("whatsapp"); // Google Ads: lead (clique para falar com especialista)
     window.open(WHATSAPP + encodeURIComponent(texto), "_blank");
+  };
 
   // Preços vêm da tabela única (app/lib/precos-wolf.ts).
   const planos = PLANOS_WOLF.map((p) => ({ nome: p.nome, preco: brlCurto(p.preco), cor: p.cor, destaque: p.destaque, descricao: p.descricao, recursos: p.recursos }));

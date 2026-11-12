@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { PLANOS_WOLF, brlCurto } from "../../lib/precos-wolf";
 import Icone from "../../components/a2/Icone";
+import { conversaoLead } from "../../lib/conversoes";
 import { MolduraAuth, CampoA2, OlhoSenha, BotaoA2, inputA2 } from "../_a2";
 
 type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid";
@@ -133,6 +134,8 @@ export default function Register() {
       }).catch(() => {});
 
       setLoading(false);
+      // Google Ads: lead (cadastro do teste concluído)
+      conversaoLead("cadastro");
       alert("Cadastro enviado! Aguarde a autorização do administrador.");
       router.push("/");
     } catch (e) {

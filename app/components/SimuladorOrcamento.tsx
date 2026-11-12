@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { CONFIGURACAO_PADRAO, PLANOS_WOLF, PRECO_USUARIO_EXTRA as USUARIO_EXTRA_TABELA, PRECO_WHATSAPP_EXTRA } from "../lib/precos-wolf";
 import { CONTRATOS_SITE, MODULOS as CATALOGO_MODULOS } from "../lib/orcamento";
+import { conversaoLead } from "../lib/conversoes";
 
 type Plano = {
   id: string;
@@ -127,13 +128,15 @@ export default function SimuladorOrcamento() {
       });
       const d = await r.json().catch(() => ({ success: false, error: "Resposta inválida" }));
       if (!r.ok || !d.success) throw new Error(d.error || "Não foi possível gerar o orçamento");
-      window.location.href = d.link;
+      // Google Ads: lead (orçamento gerado) — redireciona depois que a conversão é registrada
+      conversaoLead("orcamento", () => { window.location.href = d.link; });
     } catch (e) {
       setOnline({ carregando: false, erro: e instanceof Error ? e.message : "Não foi possível gerar o orçamento" });
     }
   }
 
   function abrirWhatsApp() {
+    conversaoLead("whatsapp");
     window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensagemWhatsApp())}`, "_blank", "noopener,noreferrer");
   }
 
