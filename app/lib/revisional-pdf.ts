@@ -4,6 +4,7 @@
 // Gerado no navegador com jsPDF, a partir dos mesmos dados da página do cliente.
 
 import { brl, pctBR } from "./revisional";
+import { paletaPdf, type MarcaRevisional } from "./revisional-marca";
 
 export type PropostaPdf = {
   numero: string;
@@ -14,12 +15,13 @@ export type PropostaPdf = {
   dados: Record<string, any>;
   resultado: Record<string, any>;
   empresa: { nome?: string; cnpj?: string };
+  marca?: MarcaRevisional | null;
   expira_em: string;
   criada_em: string;
 };
 
 type RGB = [number, number, number];
-const C = {
+const C_BASE = {
   verde900: [6, 78, 59] as RGB,
   verde800: [6, 95, 70] as RGB,
   verde700: [4, 120, 87] as RGB,
@@ -59,6 +61,9 @@ const txt = (s: string) => String(s ?? "").replace(/\u2212/g, "-").replace(/[\u2
 export async function gerarPdfProposta(p: PropostaPdf) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
+  // cores da marca do escritório no lugar dos verdes do modelo
+  const C = { ...C_BASE, ...paletaPdf(p.marca) } as typeof C_BASE;
+  const logo = p.marca?.logo && /^data:image\/(png|jpeg);base64,/.test(p.marca.logo) ? p.marca.logo : "";
   const PW = 210, PH = 297, M = 14, W = PW - 2 * M;
   const d = p.dados, r = p.resultado;
   const imovel = p.tipo === "imovel";
@@ -154,9 +159,13 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   opacidade(1);
 
   // topo da faixa
-  marca(M, 12, 11, C.branco, C.verde700);
-  fonte("bold", 13, C.branco); texto(empresa, M + 15, 17);
-  fonte("normal", 8, C.verde100); texto(imovel ? "Análise contratual · financiamento imobiliário" : "Análise contratual · financiamento de veículo", M + 15, 21.5);
+  let xNome = M + 15;
+  if (logo) {
+    try { doc.addImage(logo, logo.startsWith("data:image/png") ? "PNG" : "JPEG", M, 8, 18, 18); xNome = M + 22; }
+    catch { marca(M, 12, 11, C.branco, C.verde700); }
+  } else marca(M, 12, 11, C.branco, C.verde700);
+  fonte("bold", 13, C.branco); texto(empresa, xNome, 17);
+  fonte("normal", 8, C.verde100); texto(imovel ? "Análise contratual · financiamento imobiliário" : "Análise contratual · financiamento de veículo", xNome, 21.5);
   // selo do número
   opacidade(0.16); fill(C.branco); doc.roundedRect(PW - M - 52, 11, 52, 15, 3, 3, "F"); opacidade(1);
   fonte("normal", 6.5, C.verde100); texto("PROPOSTA Nº", PW - M - 26, 16, { align: "center" });

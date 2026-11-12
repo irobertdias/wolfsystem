@@ -34,7 +34,23 @@ export type ConfigRevisional = {
   percentual_veiculo: number;
   taxa_veiculo: number;
   metodo_veiculo: "percentual" | "taxa";
+  marca: MarcaRevisional;
 };
+
+/** Identidade visual do escritório no link e no PDF da proposta. */
+export type MarcaRevisional = { logo?: string; cor?: string; cor2?: string };
+
+const HEX = /^#[0-9a-f]{6}$/i;
+/** Valida a marca recebida: logo em data URL de imagem (até ~400 KB) ou https; cores #RRGGBB. */
+export function limparMarca(m: any): MarcaRevisional {
+  const out: MarcaRevisional = {};
+  const logo = String(m?.logo || "");
+  if (/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(logo) && logo.length <= 550_000) out.logo = logo;
+  else if (/^https:\/\/[^\s"']{5,500}$/.test(logo)) out.logo = logo;
+  if (HEX.test(String(m?.cor || ""))) out.cor = String(m.cor).toUpperCase();
+  if (HEX.test(String(m?.cor2 || ""))) out.cor2 = String(m.cor2).toUpperCase();
+  return out;
+}
 
 export const CONFIG_PADRAO: Omit<ConfigRevisional, "workspace_id"> = {
   empresa_nome: "",
@@ -45,6 +61,7 @@ export const CONFIG_PADRAO: Omit<ConfigRevisional, "workspace_id"> = {
   percentual_veiculo: 35,
   taxa_veiculo: 1.5,
   metodo_veiculo: "percentual",
+  marca: {},
 };
 
 export async function lerConfig(workspaceId: string): Promise<ConfigRevisional> {
@@ -58,6 +75,7 @@ export async function lerConfig(workspaceId: string): Promise<ConfigRevisional> 
     percentual_imovel: Number(base.percentual_imovel),
     percentual_veiculo: Number(base.percentual_veiculo),
     taxa_veiculo: Number(base.taxa_veiculo),
+    marca: limparMarca((base as any).marca),
   };
 }
 

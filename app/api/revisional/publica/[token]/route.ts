@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "../../../_auth";
 import { mascararDocumento } from "../../../../lib/revisional";
-import { SEM_CACHE, statusEfetivo, tokenValido } from "../../_shared";
+import { SEM_CACHE, lerConfig, statusEfetivo, tokenValido, type MarcaRevisional } from "../../_shared";
 import { linhaCrmDaProposta } from "../../../../lib/revisional-contrato";
 
 // Página pública do cliente: sem login, o token do link é a credencial.
@@ -14,6 +14,17 @@ async function buscar(token: string) {
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+// Nome e marca atuais do escritório (vale também para propostas já enviadas).
+async function identidade(workspaceId: string, empresa: any): Promise<{ empresa: any; marca: MarcaRevisional }> {
+  try {
+    const cfg = await lerConfig(workspaceId);
+    return {
+      empresa: { ...(empresa || {}), ...(cfg.empresa_nome ? { nome: cfg.empresa_nome } : {}), ...(cfg.empresa_cnpj ? { cnpj: cfg.empresa_cnpj } : {}), ...(cfg.whatsapp_contato ? { whatsapp: cfg.whatsapp_contato } : {}) },
+      marca: cfg.marca || {},
+    };
+  } catch { return { empresa, marca: {} }; }
 }
 
 function publico(p: NonNullable<Awaited<ReturnType<typeof buscar>>>) {
@@ -53,7 +64,8 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ to
       ...(p.status === "enviada" && statusEfetivo(p) === "enviada" ? { status: "visualizada" } : {}),
     }).eq("id", p.id);
     if (p.status === "enviada" && statusEfetivo(p) === "enviada") p.status = "visualizada";
-    return NextResponse.json({ success: true, proposta: publico(p) }, { headers: SEM_CACHE });
+    const id = await identidade(p.workspace_id, p.empresa);
+    return NextResponse.json({ success: true, proposta: { ...publico(p), empresa: id.empresa, marca: id.marca } }, { headers: SEM_CACHE });
   } catch {
     return NextResponse.json({ success: false, error: "Serviço temporariamente indisponível" }, { status: 502 });
   }

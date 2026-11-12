@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { autenticarWorkspace, respostaErroAcesso, supabaseServer } from "../../_auth";
-import { SEM_CACHE, exigirRevisional } from "../_shared";
+import { SEM_CACHE, exigirRevisional, limparMarca } from "../_shared";
 
 const n = (v: unknown, min: number, max: number, padrao: number) => {
   const x = Number(String(v ?? "").replace(",", "."));
@@ -26,9 +26,14 @@ export async function PUT(request: NextRequest) {
       taxa_veiculo: n(body.taxa_veiculo, 0, 20, 1.5),
       metodo_veiculo: body.metodo_veiculo === "taxa" ? "taxa" : "percentual",
       updated_at: new Date().toISOString(),
+      // a marca só vai junto quando a tela manda (coluna criada pela migração 20261112)
+      ...(body.marca !== undefined ? { marca: limparMarca(body.marca) } : {}),
     };
     const { error } = await supabaseServer.from("revisional_config").upsert(registro, { onConflict: "workspace_id" });
-    if (error) throw error;
+    if (error) {
+      if (/marca/.test(error.message)) throw Object.assign(new Error("Falta rodar a migração da marca (supabase/migrations/20261112_revisional_marca.sql)"), { statusCode: 400 });
+      throw error;
+    }
     return NextResponse.json({ success: true, config: registro }, { headers: SEM_CACHE });
   } catch (error) {
     const { status, message } = respostaErroAcesso(error);

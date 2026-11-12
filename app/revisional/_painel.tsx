@@ -661,7 +661,7 @@ function ListaPropostas({ propostas, config, podeExcluir, onMudou, onEditar }: {
                   <button onClick={() => onEditar(p)} className={`${botaoSec} !bg-[#FFFBEB] !text-[#92400E] hover:!bg-[#FEF3C7]`} title="Corrigir os dados e recalcular (mantém o mesmo link)"><Icone nome="editar" tamanho={13} />Editar</button>
                 )}
                 <button onClick={() => navigator.clipboard.writeText(p.link)} className={botaoSec}><Icone nome="copiar" tamanho={13} />Copiar link</button>
-                <button onClick={() => void baixarPdfProposta({ ...p, cliente_documento: formatarDocumento(p.cliente_documento), empresa: p.empresa || {}, criada_em: p.created_at }).catch(() => alert("Não foi possível gerar o PDF"))} className={botaoSec}><Icone nome="download" tamanho={13} />PDF</button>
+                <button onClick={() => void baixarPdfProposta({ ...p, cliente_documento: formatarDocumento(p.cliente_documento), empresa: { ...(p.empresa || {}), ...(config?.empresa_nome ? { nome: config.empresa_nome } : {}) }, marca: (config as any)?.marca, criada_em: p.created_at }).catch(() => alert("Não foi possível gerar o PDF"))} className={botaoSec}><Icone nome="download" tamanho={13} />PDF</button>
                 <a href={linkWhats(p.cliente_telefone, mensagemCliente(p.cliente_nome, p.link, Math.max(1, Math.round((new Date(p.expira_em).getTime() - Date.now()) / 3600_000))))} target="_blank" rel="noreferrer" className={`${botaoSec} !bg-[#ECFDF5] !text-[#047857] hover:!bg-[#D1FAE5]`}><Icone nome="whatsapp" tamanho={13} />WhatsApp</a>
                 <a href={p.link} target="_blank" rel="noreferrer" className={botaoSec}><Icone nome="olho" tamanho={13} />Abrir</a>
                 {(p.status === "expirada" || p.status === "cancelada" || aberta) && (
@@ -680,14 +680,31 @@ function ListaPropostas({ propostas, config, podeExcluir, onMudou, onEditar }: {
 
 /* ---------- configurações ---------- */
 function Configuracoes({ config, onSalvo }: { config: Config; onSalvo: (c: Config) => void }) {
-  const [c, setC] = useState<Record<string, any>>({ ...config });
+  const { marca: marcaAtual, ...resto } = config as any;
+  const [c, setC] = useState<Record<string, any>>({ ...resto });
+  const [marca, setMarca] = useState<{ logo?: string; cor?: string; cor2?: string }>({ ...(marcaAtual || {}) });
+  const [marcaAlterada, setMarcaAlterada] = useState(false);
   const [msg, setMsg] = useState("");
   const set = (k: string) => (v: any) => setC((s) => ({ ...s, [k]: v }));
+  const setM = (k: "logo" | "cor" | "cor2", v: string | undefined) => { setMarca((m) => ({ ...m, [k]: v })); setMarcaAlterada(true); };
+  async function escolherLogo(arq?: File) {
+    if (!arq) return;
+    if (!/^image\/(png|jpeg|webp)$/.test(arq.type)) { setMsg("Use uma imagem PNG, JPG ou WEBP."); return; }
+    const url = await new Promise<string>((ok, erro) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = erro; r.readAsDataURL(arq); });
+    const img = await new Promise<HTMLImageElement>((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = url; });
+    // reduz para no máximo 360px (fica leve no link e no PDF)
+    const lado = Math.min(360, Math.max(img.width, img.height));
+    const k = lado / Math.max(img.width, img.height);
+    const cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+    cv.getContext("2d")!.drawImage(img, 0, 0, cv.width, cv.height);
+    setM("logo", arq.type === "image/png" ? cv.toDataURL("image/png") : cv.toDataURL("image/jpeg", 0.9));
+  }
   async function salvar() {
     setMsg("");
     try {
-      const d = await api("/api/revisional/config", { method: "PUT", body: JSON.stringify(c) });
-      onSalvo(d.config); setMsg("Salvo ✓");
+      const corpo = marcaAlterada ? { ...c, marca } : c;
+      const d = await api("/api/revisional/config", { method: "PUT", body: JSON.stringify(corpo) });
+      onSalvo({ ...d.config, marca: marcaAlterada ? marca : marcaAtual }); setMarcaAlterada(false); setMsg("Salvo ✓");
     } catch (e: any) { setMsg(e.message); }
   }
   return (
@@ -705,6 +722,45 @@ function Configuracoes({ config, onSalvo }: { config: Config; onSalvo: (c: Confi
         <Campo rotulo="% correção padrão — veículo" dica="Usado quando o método escolhido é % sobre a parcela"><Texto valor={c.percentual_veiculo} onChange={set("percentual_veiculo")} inputMode="decimal" /></Campo>
         <Campo rotulo="Taxa corrigida padrão — veículo (% a.m.)"><Texto valor={c.taxa_veiculo} onChange={set("taxa_veiculo")} inputMode="decimal" /></Campo>
       </div>
+
+      {/* marca do escritório no link e no PDF */}
+      <div className="flex flex-col gap-3 border-t border-[#F1F5F4] pt-4">
+        <div>
+          <h3 className="m-0 text-[15px] font-extrabold">Marca nas propostas</h3>
+          <p className="m-0 text-[12.5px] text-[#64748B]">Logo e cores que o cliente vê no link e no PDF. Sem marca, a proposta sai com as cores do Wolf System.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex h-[84px] w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#F3F6F5] shadow-[inset_0_0_0_1px_#E6ECEA]">
+            {marca.logo ? <img src={marca.logo} alt="Logo" className="h-full w-full object-cover" /> : <span className="text-[11px] font-bold text-[#94A3B8]">Sem logo</span>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className={`${botaoSec} cursor-pointer`}>
+              <Icone nome="upload" tamanho={13} />{marca.logo ? "Trocar logo" : "Enviar logo"}
+              <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => void escolherLogo(e.target.files?.[0])} />
+            </label>
+            {marca.logo && <button onClick={() => setM("logo", undefined)} className="text-left text-[12.5px] font-bold text-[#B91C1C] hover:underline">Remover logo</button>}
+          </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-bold text-[#64748B]">Cor principal</span>
+            <input type="color" value={marca.cor || "#059669"} onChange={(e) => setM("cor", e.target.value)} className="h-11 w-24 cursor-pointer rounded-xl border border-[#E6ECEA] bg-white p-1" />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-bold text-[#64748B]">Cor de destaque</span>
+            <input type="color" value={marca.cor2 || "#A7F3D0"} onChange={(e) => setM("cor2", e.target.value)} className="h-11 w-24 cursor-pointer rounded-xl border border-[#E6ECEA] bg-white p-1" />
+          </label>
+          {(marca.cor || marca.cor2) && <button onClick={() => { setM("cor", undefined); setM("cor2", undefined); }} className="text-[12.5px] font-bold text-[#64748B] hover:underline">Voltar às cores do Wolf</button>}
+        </div>
+        {marca.cor && (
+          <div className="flex items-center gap-3 rounded-2xl p-4 text-white" style={{ background: `linear-gradient(135deg, ${marca.cor}, #000000cc)` }}>
+            {marca.logo && <img src={marca.logo} alt="" className="h-10 w-10 rounded-lg object-cover" />}
+            <div className="leading-tight">
+              <div className="text-[12px] font-semibold" style={{ color: marca.cor2 || "#fff" }}>Prévia do topo da proposta</div>
+              <div className="text-[20px] font-extrabold">{c.empresa_nome || "Sua empresa"}</div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center gap-3">
         <button onClick={salvar} className="rounded-xl bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] px-6 py-3 text-[14px] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(5,150,105,.8)]">Salvar</button>
         {msg && <span className="text-[13px] font-semibold text-[#64748B]">{msg}</span>}

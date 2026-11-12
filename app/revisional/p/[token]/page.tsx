@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { brl, pctBR } from "../../../lib/revisional";
 import { baixarPdfProposta } from "../../../lib/revisional-pdf";
+import { varsMarca, type MarcaRevisional } from "../../../lib/revisional-marca";
 
 import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 type Proposta = {
@@ -16,6 +17,7 @@ type Proposta = {
   dados: Record<string, any>;
   resultado: Record<string, any>;
   empresa: { nome?: string; cnpj?: string; whatsapp?: string };
+  marca?: MarcaRevisional;
   expira_em: string;
   respondida_em: string | null;
   criada_em: string;
@@ -227,13 +229,20 @@ export default function PropostaRevisionalPage() {
   const msgZap = encodeURIComponent(`Olá! Aceitei a proposta de análise contratual nº ${proposta.numero}.`);
   const primeiroNome = proposta.cliente_nome.trim().split(/\s+/)[0] || "";
 
+  // Marca do escritório: troca a escala verde da página pelas cores dele.
+  const varsCor = varsMarca(proposta.marca);
+  const comCor = !!varsCor["--color-emerald-100"];
+
   return (
-    <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#d1fae5_0%,_#F3F6F5_45%)] text-slate-800 print:bg-white">
+    <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#d1fae5_0%,_#F3F6F5_45%)] text-slate-800 print:bg-white"
+      style={{ ...varsCor, ...(comCor ? { background: `radial-gradient(ellipse at top, ${varsCor["--color-emerald-100"]} 0%, #F6F4F1 45%)` } : {}) } as React.CSSProperties}>
       <div className={`mx-auto max-w-[640px] px-4 pt-5 ${aberta ? "pb-36" : "pb-10"} print:pb-4`}>
         {/* topo */}
         <div className="mb-4 flex items-center justify-between text-[12px]">
-          <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-800 text-white shadow-md shadow-emerald-600/30"><Icone nome="balanca" tamanho={17} /></span>
+          <div className="flex items-center gap-2.5">
+            {proposta.marca?.logo
+              ? <img src={proposta.marca.logo} alt={proposta.empresa?.nome || "Logo"} className="h-12 w-12 rounded-xl object-cover shadow-md shadow-emerald-900/25" />
+              : <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-800 text-white shadow-md shadow-emerald-600/30"><Icone nome="balanca" tamanho={17} /></span>}
             <div className="leading-tight">
               <div className="font-bold text-slate-800">{proposta.empresa?.nome || "Análise contratual"}</div>
               {proposta.empresa?.cnpj && <div className="text-[11.5px] text-slate-500">CNPJ {proposta.empresa.cnpj}</div>}
