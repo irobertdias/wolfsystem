@@ -59,7 +59,16 @@ export default function Contatos() {
   const [truncado, setTruncado] = useState(false);
 
   // 🔒 Permissões + equipe do usuário logado
-  const { equipeId: minhaEquipeId, veTudo } = usePermissao();
+  const { equipeId: minhaEquipeId, veTudo, perfil, permissoes, userEmail } = usePermissao() as any;
+  // Quem vê os contatos de todos: dono, admin, Supervisor ou quem pode ver todos os
+  // atendimentos / todas as propostas. Os demais (vendedor/atendente) veem só os deles.
+  const veTodosContatos = !!(veTudo || perfil === "Administrador" || perfil === "Supervisor" || permissoes?.chat_todos || permissoes?.revisional_todas);
+  const [meuNome, setMeuNome] = useState("");
+  useEffect(() => {
+    if (veTodosContatos || !userEmail) return;
+    supabase.from("usuarios_workspace").select("nome").eq("email", userEmail).limit(1).maybeSingle()
+      .then(({ data }) => setMeuNome(String(data?.nome || "")));
+  }, [veTodosContatos, userEmail]);
   // 👥 Filtro por equipe (dropdown que aparece pro admin)
   const { equipes, equipeId, EquipeSelector } = useEquipeFiltro(wsId || "");
 
@@ -201,9 +210,18 @@ export default function Contatos() {
   //    • admin com Equipe X escolhida → só os atendimentos da X
   //    • admin sem escolha → todos
   const contatos: Contato[] = useMemo(() => {
-    const fonte = equipeEfetiva
+    let fonte = equipeEfetiva
       ? atendimentos.filter(a => String(a.equipe_id ?? "") === String(equipeEfetiva))
       : atendimentos;
+    // Vendedor/atendente: só os contatos que ele atendeu ou cadastrou (todo o histórico deles).
+    if (!veTodosContatos) {
+      const eu = (userEmail || "").toLowerCase(), nome = meuNome.trim().toLowerCase();
+      const meus = new Set(fonte.filter(a => {
+        const at = (a.atendente || "").trim().toLowerCase();
+        return !!at && (at === eu || (!!nome && at === nome));
+      }).map(a => a.numero));
+      fonte = fonte.filter(a => meus.has(a.numero));
+    }
     const mapa = new Map<string, Contato>();
     for (const a of fonte) {
       if (!a.numero) continue;
@@ -242,7 +260,7 @@ export default function Contatos() {
       }
     }
     return Array.from(mapa.values()).sort((a, b) => new Date(b.ultimaData).getTime() - new Date(a.ultimaData).getTime());
-  }, [atendimentos, etiquetasPorAtend, equipeEfetiva]);
+  }, [atendimentos, etiquetasPorAtend, equipeEfetiva, veTodosContatos, userEmail, meuNome]);
 
   // ═══ FILTROS ═══
   const contatosFiltrados = useMemo(() => {
