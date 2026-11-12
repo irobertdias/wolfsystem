@@ -1,4 +1,4 @@
-﻿-- Marca do escritório (logo + cores) no link e no PDF da proposta revisional.
+-- Marca do escritório (logo + cores) no link e no PDF da proposta revisional.
 -- 1) cria o campo; 2) configura a Aprove Consultoria com a logo e as cores dela.
 alter table public.revisional_config add column if not exists marca jsonb not null default '{}'::jsonb;
 
