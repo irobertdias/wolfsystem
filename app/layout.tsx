@@ -39,7 +39,7 @@ export const metadata: Metadata = {
 };
 
 // Google Tag Manager (tráfego pago no Google). Snippet oficial do GTM + gtag().
-const GTM_ID = "GTM-5NZ5K4LS";
+const GTM_ID = "GTM-56S4R962";
 
 export default function RootLayout({
   children,
