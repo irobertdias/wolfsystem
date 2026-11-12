@@ -11,6 +11,18 @@ import { empresaDoContrato, representantePadrao, formatarCnpj, type EmpresaContr
 import { opcoesAssinatura, type OpcoesAssinatura } from "../../lib/assinatura-opcoes";
 import VisualizadorContrato from "./VisualizadorContrato";
 import { textoContratoRevisional, aplicarModelo } from "../../lib/revisional-contrato";
+import { reaisPorExtenso } from "../../lib/extenso";
+
+// Caixinhas do popup "Dados do contrato" (marcadores que o vendedor completa).
+const CAMPO_DADO: Record<string, { rotulo: string; placeholder?: string; opcoes?: string[]; sugestoes?: string[]; largo?: boolean }> = {
+  cliente_email: { rotulo: "E-mail do cliente", placeholder: "cliente@email.com" },
+  cliente_estado_civil: { rotulo: "Estado civil", opcoes: ["solteiro(a)", "casado(a)", "divorciado(a)", "viúvo(a)", "em união estável", "separado(a) judicialmente"] },
+  cliente_cep: { rotulo: "CEP", placeholder: "00000-000" },
+  cliente_endereco: { rotulo: "Endereço completo", placeholder: "Rua, número, complemento, bairro, cidade - UF", largo: true },
+  honorarios_valor: { rotulo: "Valor dos honorários" },
+  honorarios_valor_extenso: { rotulo: "Valor por extenso", largo: true },
+  forma_pagamento: { rotulo: "Forma de pagamento", placeholder: "Ex.: à vista via Pix", largo: true, sugestoes: ["À vista via Pix", "À vista no boleto bancário", "Cartão de crédito em até 12 vezes", "Entrada via Pix e o restante no boleto", "Parcelado no boleto bancário"] },
+};
 import { lerPdfAssinado, nomePdfAssinado } from "../../lib/contrato-pdf";
 
 import { IconeEmoji } from "../../components/a2/Icone";
@@ -271,9 +283,45 @@ export default function ContratosPage() {
         };
         preenchido = { ...preenchido, conteudo: aplicarModelo(preenchido.conteudo, vars) };
       }
-      setFormContrato({ ...base, ...(preenchido || {}) });
+      const formPronto = { ...base, ...(preenchido || {}) } as FormContrato;
+      // Contrato de modelo com dados a completar: primeiro o popup de dados, depois o formulário.
+      if (preenchido?.conteudo && /\{[a-z_]+\}/.test(formPronto.conteudo)) { abrirDadosPendentes(formPronto); return; }
+      setFormContrato(formPronto);
       setCriando(true);
     } catch (e: any) { setErro(e.message || "Não foi possível preparar o novo contrato"); }
+  }
+
+  // ─── Popup "Dados do contrato": caixinhas para os marcadores que faltam ───
+  const [dadosPend, setDadosPend] = useState<null | { form: FormContrato; chaves: string[]; valores: Record<string, string>; valorNum: number; erro: string }>(null);
+  function abrirDadosPendentes(formOriginal: FormContrato) {
+    // o que o formulário já sabe entra sozinho (nome, CPF, telefone, data)
+    const dig = (s: string) => String(s || "").replace(/\D/g, "");
+    const cpf = dig(formOriginal.cpf);
+    const tel = dig(formOriginal.telefone).replace(/^55(?=\d{10,11}$)/, "");
+    const form = { ...formOriginal, conteudo: aplicarModelo(formOriginal.conteudo, {
+      cliente_nome: formOriginal.nome || "",
+      cliente_cpf: cpf.length === 11 ? cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : formOriginal.cpf || "",
+      cliente_telefone: tel.length >= 10 ? tel.replace(/^(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3") : formOriginal.telefone || "",
+      data_hoje: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }),
+    }) };
+    const chaves = [...new Set((form.conteudo.match(/\{([a-z_]+)\}/g) || []).map(m => m.slice(1, -1)))].filter(k => k !== "cliente_email");
+    setDadosPend({ form, chaves, valores: { cliente_email: form.email || "" }, valorNum: 0, erro: "" });
+    setCriando(false);
+  }
+  function confirmarDadosPendentes() {
+    if (!dadosPend) return;
+    const v = { ...dadosPend.valores };
+    if (dadosPend.chaves.includes("honorarios_valor")) v.honorarios_valor = dadosPend.valorNum > 0 ? dadosPend.valorNum.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "";
+    const faltando = [...dadosPend.chaves, "cliente_email"].filter(k => !String(v[k] || "").trim()).map(k => CAMPO_DADO[k]?.rotulo || k);
+    if (faltando.length) { setDadosPend({ ...dadosPend, erro: `Preencha: ${faltando.join(", ")}` }); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.cliente_email.trim())) { setDadosPend({ ...dadosPend, erro: "E-mail do cliente inválido" }); return; }
+    if (dadosPend.chaves.includes("cliente_cep") && v.cliente_cep.replace(/\D/g, "").length !== 8) { setDadosPend({ ...dadosPend, erro: "CEP precisa ter 8 números" }); return; }
+    const email = v.cliente_email.trim();
+    const conteudo = aplicarModelo(dadosPend.form.conteudo, Object.fromEntries(Object.entries(v).map(([k, x]) => [k, String(x).trim()])));
+    setFormContrato({ ...dadosPend.form, conteudo, email });
+    setDadosPend(null);
+    setErro("");
+    setCriando(true);
   }
 
   async function abrirEditarContrato(contrato: Contrato) {
@@ -468,7 +516,8 @@ export default function ContratosPage() {
     if (!editando && !formContrato.pdf_base64 && formContrato.conteudo.trim().length < 30) { setErro("Escreva o contrato ou anexe um PDF pronto"); return; }
     if (!formContrato.pdf_base64) {
       const abertos = [...new Set(aplicarModelo(formContrato.conteudo, { cliente_email: formContrato.email.trim() }).match(/\{[a-z_]+\}/g) || [])];
-      if (abertos.length) { setErro(`Complete no texto do contrato: ${abertos.join(", ")}`); return; }
+      // Falta dado no texto: abre o popup com caixinhas em vez de mandar procurar no texto.
+      if (abertos.length) { abrirDadosPendentes(formContrato); return; }
     }
     setSalvando(true); setErro("");
     try {
@@ -612,6 +661,60 @@ export default function ContratosPage() {
 
       <footer className={styles.footer}>Documentos privados · acesso por workspace e permissão · hashes SHA-256 e auditoria Wolf</footer>
 
+      {dadosPend && (() => {
+        const set = (k: string, val: string) => setDadosPend(d => d && ({ ...d, erro: "", valores: { ...d.valores, [k]: val } }));
+        const ordem = ["cliente_email", "cliente_estado_civil", "cliente_cep", "cliente_endereco", "honorarios_valor", "honorarios_valor_extenso", "forma_pagamento"];
+        const campos = ["cliente_email", ...dadosPend.chaves].sort((a, b) => (ordem.indexOf(a) + 1 || 99) - (ordem.indexOf(b) + 1 || 99));
+        const inp: React.CSSProperties = { width: "100%", boxSizing: "border-box", height: 44, borderRadius: 12, border: "1px solid #E6ECEA", background: "#F7FAF9", padding: "0 12px", fontSize: 14, fontWeight: 600, color: "#0F172A", outline: "none" };
+        return (
+          <div className={styles.modalBackdrop} onMouseDown={e => { if (e.target === e.currentTarget) setDadosPend(null); }}>
+            <div role="dialog" aria-label="Dados do contrato" style={{ background: "#fff", borderRadius: 22, width: "min(640px, 100%)", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 30px 80px -20px rgba(15,23,42,.45)" }}>
+              <div style={{ padding: "20px 24px 6px" }}>
+                <span style={{ color: "#059669", fontSize: 12, fontWeight: 900, letterSpacing: 1 }}>GERAR CONTRATO</span>
+                <h2 style={{ margin: "6px 0 4px", fontSize: 21, color: "#0F172A" }}>Dados do contrato · {dadosPend.form.nome || "cliente"}</h2>
+                <p style={{ margin: 0, color: "#64748b", fontSize: 13.5 }}>Preencha só estes campos. O resto do contrato já está pronto.</p>
+              </div>
+              <div style={{ padding: "16px 24px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+                {campos.map(k => {
+                  const def = CAMPO_DADO[k] || { rotulo: k.replace(/_/g, " ") };
+                  const val = dadosPend.valores[k] || "";
+                  return (
+                    <label key={k} style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, fontWeight: 800, color: "#475569", gridColumn: def.largo ? "1 / -1" : undefined }}>
+                      {def.rotulo}
+                      {k === "honorarios_valor" ? (
+                        <input inputMode="numeric" style={inp} placeholder="R$ 0,00"
+                          value={dadosPend.valorNum ? dadosPend.valorNum.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""}
+                          onChange={e => {
+                            const n = Number(e.target.value.replace(/\D/g, "") || 0) / 100;
+                            setDadosPend(d => d && ({ ...d, erro: "", valorNum: n, valores: { ...d.valores, honorarios_valor_extenso: n > 0 ? reaisPorExtenso(n) : "" } }));
+                          }} />
+                      ) : def.opcoes ? (
+                        <select style={inp} value={val} onChange={e => set(k, e.target.value)}>
+                          <option value="">Selecione…</option>
+                          {def.opcoes.map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      ) : (
+                        <>
+                          <input style={inp} value={val} placeholder={def.placeholder} list={def.sugestoes ? `sug-${k}` : undefined}
+                            type={k === "cliente_email" ? "email" : "text"}
+                            onChange={e => set(k, k === "cliente_cep" ? e.target.value.replace(/\D/g, "").slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2") : e.target.value)} />
+                          {def.sugestoes && <datalist id={`sug-${k}`}>{def.sugestoes.map(s => <option key={s} value={s} />)}</datalist>}
+                        </>
+                      )}
+                      {k === "honorarios_valor_extenso" && <small style={{ fontWeight: 500, color: "#94a3b8" }}>Preenchido sozinho a partir do valor; ajuste se precisar.</small>}
+                    </label>
+                  );
+                })}
+              </div>
+              {dadosPend.erro && <div style={{ margin: "0 24px", background: "#FEF2F2", color: "#B91C1C", borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 700 }}>{dadosPend.erro}</div>}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, padding: "16px 24px 22px" }}>
+                <button onClick={() => setDadosPend(null)} style={{ height: 44, borderRadius: 12, border: "1px solid #E6ECEA", background: "#fff", padding: "0 18px", fontWeight: 800, color: "#475569", cursor: "pointer" }}>Cancelar</button>
+                <button onClick={confirmarDadosPendentes} style={{ height: 44, borderRadius: 12, border: 0, background: "linear-gradient(135deg,#10B981,#059669 60%,#047857)", padding: "0 22px", fontWeight: 900, color: "#fff", cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.8)" }}>Continuar para o contrato →</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {criando && <div className={styles.modalBackdrop} onMouseDown={e => { if (e.target === e.currentTarget && !salvando) { setCriando(false); setEditando(null); } }}>
         <section className={`${styles.modal} ${styles.createModal}`} role="dialog" aria-modal="true">
           <header><div><span>{editando ? "NOVA VERSÃO" : "NOVO DOCUMENTO"}</span><h2>{editando ? "Editar contrato" : "Criar contrato"}</h2><p>{editando ? "A nova versão revoga o link anterior e é reenviada ao cliente." : "Use um cliente do CRM ou crie um contrato avulso."}</p></div><button disabled={salvando} onClick={() => { setCriando(false); setEditando(null); }}>×</button></header>
