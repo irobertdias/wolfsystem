@@ -15,6 +15,8 @@ type Empresa = {
   endereco_completo: string;
   email: string;
   telefone: string;
+  assinatura_automatica?: boolean;   // a empresa assina sozinha com o carimbo
+  carimbo_assinatura?: string;       // PNG (data URL) do carimbo/assinatura
 };
 type Representante = {
   id?: string;
@@ -67,6 +69,7 @@ export default function ConfiguracoesContratosPage() {
     setEmpresa(item ? {
       id: item.id, razao_social: item.razao_social || "", nome_fantasia: item.nome_fantasia || "",
       cnpj: item.cnpj || "", endereco_completo: item.endereco_completo || "", email: item.email || "", telefone: item.telefone || "",
+      assinatura_automatica: (item as any).assinatura_automatica === true, carimbo_assinatura: (item as any).carimbo_assinatura || "",
     } : { ...EMPRESA_INICIAL });
     setRepresentantes(item?.representantes?.length ? item.representantes.map(r => ({ ...r, cpf: r.cpf || "" })) : [{ ...NOVO_REPRESENTANTE }]);
     setAlterado(false); setErro(""); setSucesso("");
@@ -142,6 +145,30 @@ export default function ConfiguracoesContratosPage() {
         <label>E-mail<input type="email" value={empresa.email} onChange={e => alterarEmpresa("email", e.target.value)}/></label>
         <label className={styles.full}>Endereço completo<input value={empresa.endereco_completo} onChange={e => alterarEmpresa("endereco_completo", e.target.value)}/></label>
       </div>
+      <h2 style={{ marginTop: 18 }}>Assinatura da empresa</h2>
+      <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontWeight: 600 }}>
+        <input type="checkbox" checked={!!empresa.assinatura_automatica} onChange={e => { setEmpresa(a => ({ ...a, assinatura_automatica: e.target.checked })); setAlterado(true); }} style={{ width: 18, height: 18, marginTop: 2 }} />
+        <span>A empresa assina automaticamente com o carimbo abaixo<small style={{ display: "block", fontWeight: 400, color: "#64748b", marginTop: 3 }}>Ao criar o contrato, a etapa da empresa já sai assinada com o carimbo e o link vai direto para o cliente. Ninguém da empresa precisa assinar.</small></span>
+      </label>
+      {empresa.assinatura_automatica && (
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 12 }}>
+          <div style={{ width: 220, height: 110, borderRadius: 12, border: "1px dashed #cbd5e1", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+            {empresa.carimbo_assinatura ? <img src={empresa.carimbo_assinatura} alt="Carimbo" style={{ maxWidth: "100%", maxHeight: "100%" }} /> : <small style={{ color: "#94a3b8" }}>Sem carimbo</small>}
+          </div>
+          <label style={{ cursor: "pointer", fontWeight: 700, color: "#047857" }}>
+            {empresa.carimbo_assinatura ? "Trocar carimbo" : "Enviar carimbo / assinatura (imagem)"}
+            <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }} onChange={async e => {
+              const arq = e.target.files?.[0]; if (!arq) return;
+              const url = await new Promise<string>((ok, er) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = er; r.readAsDataURL(arq); });
+              const img = await new Promise<HTMLImageElement>((ok, er) => { const i = new Image(); i.onload = () => ok(i); i.onerror = er; i.src = url; });
+              const k = Math.min(1, 600 / Math.max(img.width, img.height));
+              const cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+              cv.getContext("2d")!.drawImage(img, 0, 0, cv.width, cv.height);
+              setEmpresa(a => ({ ...a, carimbo_assinatura: cv.toDataURL("image/png") })); setAlterado(true);
+            }} />
+          </label>
+        </div>
+      )}
     </section>
     <section className={styles.card}>
       <div className={styles.titleRow}><div><h2>Representantes</h2><p>O representante selecionado assina primeiro. Só depois o cliente recebe o contrato.</p></div><button onClick={() => { setAlterado(true); setRepresentantes([...representantes, { ...NOVO_REPRESENTANTE, padrao: false }]); }}>＋ Adicionar</button></div>

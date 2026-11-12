@@ -1,5 +1,6 @@
 import { exigirSuporteOpcoesAssinatura } from "../../_opcoes";
 import { validarEmpresaRepresentante } from "../../_empresa";
+import { OPCOES_EMPRESA_AUTOMATICA, assinarEtapaEmpresa, empresaAssinaSozinha } from "../../_autoassinatura";
 import { NextRequest, NextResponse } from "next/server";
 import { autenticarContratos, exigirFranquiaContratos, exigirPermissaoContratos, respostaErroContratos, supabaseContratos } from "../../_auth";
 
@@ -21,30 +22,36 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const empresaId = await validarEmpresaRepresentante(acesso.workspaceId, String(body.empresa_id || ""), String(body.representante_id || ""));
     const pdfBase64 = String(body.pdf_base64 || "");
     if (pdfBase64.length > 4_200_000) return NextResponse.json({ success: false, error: "PDF maior que 3 MB" }, { status: 413 });
+    const carimbo = await empresaAssinaSozinha(acesso.workspaceId, empresaId);
     const payload = {
       empresa_id: empresaId,
-      assinatura_opcoes_representante: body.assinatura_opcoes_representante,
+      assinatura_opcoes_representante: carimbo ? OPCOES_EMPRESA_AUTOMATICA : body.assinatura_opcoes_representante,
       assinatura_opcoes_cliente: body.assinatura_opcoes_cliente,
       workspace_id: acesso.workspaceId, canal_id: Number(body.canal_id), numero: String(body.numero || ""),
       nome_signatario: String(body.nome_signatario || ""), cpf: String(body.cpf || ""),
       email_signatario: String(body.email_signatario || ""), titulo: String(body.titulo || "Contrato"),
       conteudo: String(body.conteudo || ""), pdf_base64: pdfBase64, mensagem: String(body.mensagem || ""),
       expira_horas: Number(body.expira_horas || 48), exigir_localizacao: body.exigir_localizacao === true, exigir_documento_identidade: body.exigir_documento_identidade === true,
-      otp_meio_representante: String(body.otp_meio_representante || ""),
+      otp_meio_representante: carimbo ? "email" : String(body.otp_meio_representante || ""),
       otp_meio_cliente: String(body.otp_meio_cliente || ""),
       participantes_adicionais: Array.isArray(body.participantes_adicionais) ? body.participantes_adicionais : [],
       proposta_id: propostaId, representante_id: String(body.representante_id || ""), criado_por: acesso.email,
     };
-    const rota = body.modo_assinatura === "envelope_v1" || body.assinatura_opcoes_cliente || body.assinatura_opcoes_representante
+    const rota = carimbo || body.modo_assinatura === "envelope_v1" || body.assinatura_opcoes_cliente || body.assinatura_opcoes_representante
       ? `/assinaturas-wolf/envelopes/admin/${encodeURIComponent(id)}/editar`
       : `/assinaturas-wolf/admin/${encodeURIComponent(id)}/editar`;
-    if (body.assinatura_opcoes_cliente || body.assinatura_opcoes_representante) await exigirSuporteOpcoesAssinatura(BACKEND);
+    if (payload.assinatura_opcoes_cliente || payload.assinatura_opcoes_representante) await exigirSuporteOpcoesAssinatura(BACKEND);
     const response = await fetch(`${BACKEND}${rota}`, {
       method: "POST", cache: "no-store",
       headers: { "Content-Type": "application/json", "X-Wolf-Signature-Proxy": process.env.WOLF_SIGNATURE_PROXY_SECRET || "" },
       body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => ({ success: false, error: "Resposta inválida do backend" }));
+    if (carimbo && response.ok && data?.success) {
+      const auto = await assinarEtapaEmpresa(BACKEND, data, acesso.workspaceId, carimbo);
+      data.assinatura_empresa = auto.ok ? "concluida" : "falhou";
+      if (!auto.ok) data.aviso = `Nova versão criada, mas a assinatura automática da empresa não foi concluída: ${auto.erro}`;
+    }
     return NextResponse.json(data, { status: response.status, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     const falha = respostaErroContratos(error);

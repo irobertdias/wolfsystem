@@ -496,6 +496,12 @@ export default function ContratosPage() {
         propostaRevisionalRef.current = "";
       }
       setCriando(false); setEditando(null); await carregar(1, true);
+      // Empresa com assinatura automática: o convite da empresa não importa, o link já foi para o cliente.
+      if (data.assinatura_empresa === "concluida") {
+        alert(eraEdicao ? "Nova versão criada. A empresa já assinou com o carimbo e o link foi enviado ao cliente." : "Contrato criado. A empresa já assinou com o carimbo e o link foi enviado ao cliente!");
+        return;
+      }
+      if (data.aviso) { alert(data.aviso); return; }
       const avisos: string[] = [];
       const entregaAtual = data.entrega || data.entregas?.[0];
       if (entregaAtual) {
@@ -624,6 +630,12 @@ export default function ContratosPage() {
               </select>
               {empresas.find(e => e.id === formContrato.empresa_id) && <small>{empresas.find(e => e.id === formContrato.empresa_id)?.razao_social} · {empresas.find(e => e.id === formContrato.empresa_id)?.endereco_completo}</small>}
             </label>
+            {(empresas.find(e => e.id === formContrato.empresa_id) as any)?.assinatura_automatica ? (
+              <div className={styles.full} style={{ display: "flex", alignItems: "center", gap: 12, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#065F46" }}>
+                {(empresas.find(e => e.id === formContrato.empresa_id) as any)?.carimbo_assinatura && <img src={(empresas.find(e => e.id === formContrato.empresa_id) as any).carimbo_assinatura} alt="Carimbo da empresa" style={{ height: 44, background: "#fff", borderRadius: 8, padding: 4 }} />}
+                <span><b>A empresa assina automaticamente</b> com o carimbo cadastrado. Só o cliente (e os participantes extras, se houver) recebe o link para assinar.</span>
+              </div>
+            ) : (<>
             <label className={styles.full}>Quem assina pela empresa
               <select disabled={!formContrato.empresa_id} value={formContrato.representante_id} onChange={e => setFormContrato({ ...formContrato, representante_id: e.target.value })}>
                 <option value="">Selecione o representante…</option>
@@ -637,6 +649,7 @@ export default function ContratosPage() {
                 <option value="whatsapp" disabled={!formContrato.canal_id}>Receber por WhatsApp</option>
               </select>
             </label>
+            </>)}
             {formContrato.origem === "crm" && <label className={styles.full}>Cliente do CRM<select value={formContrato.proposta_id} onChange={e => escolherCliente(e.target.value)}><option value="">Selecione uma venda/cliente…</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nome} · {c.cpf || c.telefone1 || c.email || ("#" + c.id)}</option>)}</select></label>}
             <label>Nome completo<input value={formContrato.nome} onChange={e => setFormContrato({ ...formContrato, nome: e.target.value })}/></label>
             <label>CPF<input value={formContrato.cpf} onChange={e => setFormContrato({ ...formContrato, cpf: e.target.value })}/></label>

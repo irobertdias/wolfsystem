@@ -1,5 +1,6 @@
 import { exigirSuporteOpcoesAssinatura } from "../_opcoes";
 import { validarEmpresaRepresentante } from "../_empresa";
+import { OPCOES_EMPRESA_AUTOMATICA, assinarEtapaEmpresa, empresaAssinaSozinha } from "../_autoassinatura";
 import { NextRequest, NextResponse } from "next/server";
 import { autenticarContratos, exigirFranquiaContratos, exigirPermissaoContratos, respostaErroContratos, supabaseContratos } from "../_auth";
 
@@ -41,13 +42,25 @@ export async function POST(request: NextRequest) {
     if (!payload.representante_id) {
       return NextResponse.json({ success: false, error: "Escolha o representante que assinará pela empresa" }, { status: 400 });
     }
-    if (body.assinatura_opcoes_cliente || body.assinatura_opcoes_representante) await exigirSuporteOpcoesAssinatura(BACKEND);
+    // Empresa com assinatura automática: a etapa dela não pede código nem selfie
+    // e é concluída com o carimbo logo depois de criar o envelope.
+    const carimbo = await empresaAssinaSozinha(acesso.workspaceId, empresaId);
+    if (carimbo) {
+      payload.assinatura_opcoes_representante = OPCOES_EMPRESA_AUTOMATICA;
+      payload.otp_meio_representante = "email";
+    }
+    if (payload.assinatura_opcoes_cliente || payload.assinatura_opcoes_representante) await exigirSuporteOpcoesAssinatura(BACKEND);
     const response = await fetch(`${BACKEND}/assinaturas-wolf/envelopes/admin/criar`, {
       method: "POST", cache: "no-store",
       headers: { "Content-Type": "application/json", "X-Wolf-Signature-Proxy": process.env.WOLF_SIGNATURE_PROXY_SECRET || "" },
       body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => ({ success: false, error: "Resposta inválida do backend" }));
+    if (carimbo && response.ok && data?.success) {
+      const auto = await assinarEtapaEmpresa(BACKEND, data, acesso.workspaceId, carimbo);
+      data.assinatura_empresa = auto.ok ? "concluida" : "falhou";
+      if (!auto.ok) data.aviso = `Contrato criado, mas a assinatura automática da empresa não foi concluída: ${auto.erro}`;
+    }
     return NextResponse.json(data, { status: response.status, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     const falha = respostaErroContratos(error);

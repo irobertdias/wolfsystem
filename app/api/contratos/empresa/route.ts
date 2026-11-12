@@ -45,7 +45,21 @@ export async function PUT(request: NextRequest) {
       if (["P0001", "22P02"].includes(error.code)) throw Object.assign(new Error(error.message), { statusCode: 400 });
       throw error;
     }
-    return NextResponse.json({ success: true, ...data });
+    // Assinatura automática da empresa (colunas da migração 20261113; fora da RPC).
+    const salvaId = (data as any)?.empresa?.id;
+    let aviso = "";
+    if (salvaId && (empresa.assinatura_automatica !== undefined || empresa.carimbo_assinatura !== undefined)) {
+      const auto = empresa.assinatura_automatica === true;
+      const carimbo = String(empresa.carimbo_assinatura || "");
+      if (auto && !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(carimbo)) throw Object.assign(new Error("Envie a imagem do carimbo para a assinatura automática"), { statusCode: 400 });
+      if (carimbo.length > 1_500_000) throw Object.assign(new Error("Imagem do carimbo muito grande"), { statusCode: 400 });
+      const { error: erroAuto } = await supabaseContratos.from("assinatura_wolf_empresas")
+        .update({ assinatura_automatica: auto, carimbo_assinatura: carimbo || null })
+        .eq("id", salvaId).eq("workspace_id", acesso.workspaceId);
+      if (erroAuto) aviso = "Empresa salva, mas a assinatura automática precisa da migração 20261113_contratos_assinatura_automatica.sql";
+      else if ((data as any).empresa) Object.assign((data as any).empresa, { assinatura_automatica: auto, carimbo_assinatura: carimbo || null });
+    }
+    return NextResponse.json({ success: true, ...data, ...(aviso ? { aviso } : {}) });
   } catch (error) {
     const falha = respostaErroContratos(error);
     return NextResponse.json({ success: false, error: falha.message }, { status: falha.status });
