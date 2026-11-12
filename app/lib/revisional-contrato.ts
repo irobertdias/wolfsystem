@@ -96,6 +96,10 @@ export const CAMPOS_MODELO: { chave: string; desc: string; grupo: "Empresa" | "C
   { chave: "parcela_balao", desc: "Parcela balão do contrato (ou \"não há\")", grupo: "Contrato" },
   { chave: "parcela_balao_corrigida", desc: "Parcela balão corrigida pela análise (ou \"não há\")", grupo: "Contrato" },
   { chave: "intencao_quitacao", desc: "Se o cliente quer quitar o contrato: sim ou não", grupo: "Contrato" },
+  { chave: "numero_contrato_banco", desc: "Nº do contrato no banco (o vendedor completa)", grupo: "Contrato" },
+  { chave: "veiculo_modelo", desc: "Modelo do veículo (da análise; senão o vendedor completa)", grupo: "Contrato" },
+  { chave: "veiculo_ano", desc: "Ano do veículo (da análise; senão o vendedor completa)", grupo: "Contrato" },
+  { chave: "veiculo_placa", desc: "Placa do veículo (o vendedor completa)", grupo: "Contrato" },
   { chave: "numero_proposta", desc: "Nº da proposta aceita", grupo: "Contrato" },
   { chave: "honorarios_percentual", desc: "% de êxito (Configurações)", grupo: "Honorários" },
   { chave: "honorarios_entrada", desc: "Entrada em R$ (Configurações)", grupo: "Honorários" },
@@ -180,6 +184,8 @@ export function variaveisDaProposta(
     parcela_balao: d.tem_balao && n(d.valor_balao) > 0 ? brl(d.valor_balao) : "não há",
     parcela_balao_corrigida: d.tem_balao && n(p.resultado?.balao_corrigido) > 0 ? brl(p.resultado?.balao_corrigido) : "não há",
     intencao_quitacao: d.quitacao ? "sim" : "não",
+    veiculo_modelo: String(d.modelo || ""),
+    veiculo_ano: d.ano ? String(d.ano) : "",
     numero_proposta: p.numero || "",
     honorarios_percentual: pct ? `${pct.toLocaleString("pt-BR")}% (por cento)` : "",
     honorarios_entrada: extra.honorarios_entrada !== undefined ? (n(extra.honorarios_entrada) > 0 ? brl(n(extra.honorarios_entrada)) : "R$ 0,00 (sem entrada)") : "",
@@ -191,6 +197,24 @@ export function variaveisDaProposta(
 /** Troca {marcadores} pelos valores; marcador sem valor fica no texto para o vendedor completar. */
 export function aplicarModelo(modelo: string, vars: Record<string, string>) {
   return modelo.replace(/\{([a-z_]+)\}/g, (m, k) => (vars[k] ? vars[k] : m));
+}
+
+/** Modelo nomeado (o workspace pode ter vários, ex.: "Minuta Contratual Veicular" e "Minuta Contratual"). */
+export type ModeloContrato = { nome: string; texto: string };
+
+/** Lista de modelos do workspace: os nomeados; senão o único texto salvo; senão o padrão do sistema. */
+export function modelosDoWorkspace(cfg: { modelos_contrato?: ModeloContrato[]; modelo_contrato?: string } | null | undefined): ModeloContrato[] {
+  const lista = (cfg?.modelos_contrato || []).filter((m) => m && String(m.texto || "").trim());
+  if (lista.length) return lista.map((m) => ({ nome: String(m.nome || "").trim() || "Modelo", texto: m.texto }));
+  return [{ nome: "Contrato de prestação de serviços", texto: (cfg?.modelo_contrato || "").trim() || MODELO_PADRAO }];
+}
+
+/** Modelo sugerido para a proposta: veículo → o que fala de veículo; demais → o que não fala. */
+export function modeloSugerido(modelos: ModeloContrato[], tipo?: string) {
+  if (modelos.length < 2) return 0;
+  const veic = (m: ModeloContrato) => /ve[ií]cul/i.test(m.nome) || /\{veiculo_/.test(m.texto);
+  const i = modelos.findIndex((m) => (tipo === "veiculo" ? veic(m) : !veic(m)));
+  return i >= 0 ? i : 0;
 }
 
 /** Texto do contrato: modelo do workspace (ou o padrão) com os dados da proposta. */

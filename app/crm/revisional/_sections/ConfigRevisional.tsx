@@ -2,8 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Page, PageHeader, Card, Btn, Banner, Field, Row, Table, IconBtn, inputSm, tdStyle } from "../../financeiro/_sections/_ui";
 import { salvarConfig, MODALIDADES_PADRAO, num, type ConfigRevisional, type Modalidade } from "../_dados";
-import { CAMPOS_MODELO, MODELO_PADRAO, textoContratoRevisional } from "../../../lib/revisional-contrato";
+import { CAMPOS_MODELO, MODELO_PADRAO, modelosDoWorkspace, textoContratoRevisional, type ModeloContrato } from "../../../lib/revisional-contrato";
 
+const NOME_PADRAO = "Contrato de prestação de serviços";
 const fmt = (v: any) => String(v ?? "").replace(".", ",");
 
 export default function ConfigRevisionalSection({ dados }: any) {
@@ -12,14 +13,20 @@ export default function ConfigRevisionalSection({ dados }: any) {
   const [geral, setGeral] = useState({ fator: "", entrada: "", exito: "", parcelas: "", dobro: false });
   const [aviso, setAviso] = useState("");
   const [salvando, setSalvando] = useState(false);
-  const [modelo, setModelo] = useState("");
+  // vários modelos nomeados; o vendedor escolhe qual usar no "Gerar contrato"
+  const [modelos, setModelos] = useState<ModeloContrato[]>([]);
+  const [ativo, setAtivo] = useState(0);
   const [previa, setPrevia] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement | null>(null);
+  const modelo = modelos[ativo]?.texto ?? "";
+  const setModelo = (v: string | ((m: string) => string)) =>
+    setModelos((lista) => lista.map((m, i) => (i === ativo ? { ...m, texto: typeof v === "function" ? v(m.texto) : v } : m)));
 
   useEffect(() => {
     setMods(cfg.modalidades.map((m: Modalidade) => ({ ...m, taxaTxt: fmt(m.taxaMedia) })));
     setGeral({ fator: fmt(cfg.fator_abusividade), entrada: fmt(cfg.honorarios_entrada), exito: fmt(cfg.honorarios_exito), parcelas: String(cfg.honorarios_parcelas), dobro: !!cfg.repeticao_dobro });
-    setModelo(cfg.modelo_contrato || MODELO_PADRAO);
+    setModelos(modelosDoWorkspace(cfg));
+    setAtivo(0);
   }, [cfg]);
 
   const setMod = (i: number, k: "label" | "icone" | "taxaTxt", v: string) => setMods((p) => p.map((m, j) => (j === i ? { ...m, [k]: v } : m)));
@@ -34,7 +41,11 @@ export default function ConfigRevisionalSection({ dados }: any) {
       honorarios_parcelas: Math.max(1, Math.round(num(geral.parcelas)) || 1),
       repeticao_dobro: geral.dobro,
       // guarda só se for diferente do padrão (assim melhorias no padrão chegam a quem não personalizou)
-      modelo_contrato: modelo.trim() && modelo.trim() !== MODELO_PADRAO.trim() ? modelo : "",
+      modelo_contrato: modelos[0]?.texto.trim() && modelos[0].texto.trim() !== MODELO_PADRAO.trim() ? modelos[0].texto : "",
+      // com mais de um modelo (ou nome próprio), guarda a lista com os nomes
+      modelos_contrato: modelos.length > 1 || (modelos[0] && modelos[0].nome.trim() !== NOME_PADRAO)
+        ? modelos.filter((m) => m.texto.trim()).map((m, i) => ({ nome: m.nome.trim() || `Modelo ${i + 1}`, texto: m.texto }))
+        : [],
     };
     const { error } = await salvarConfig(wsId, novo);
     setSalvando(false);
@@ -87,7 +98,7 @@ export default function ConfigRevisionalSection({ dados }: any) {
         <Btn variante="ghost" onClick={() => setMods(MODALIDADES_PADRAO.map((m) => ({ ...m, taxaTxt: fmt(m.taxaMedia) })))}>Restaurar padrão</Btn>
       </div>
 
-      <Card titulo="Modelo do contrato de prestação de serviços"
+      <Card titulo={modelos.length > 1 ? "Modelos do contrato de prestação de serviços" : "Modelo do contrato de prestação de serviços"}
         acao={<div style={{ display: "flex", gap: 8 }}>
           <Btn variante="ghost" onClick={() => setPrevia((v) => !v)}>{previa ? "Editar texto" : "Ver com dados de exemplo"}</Btn>
           <Btn variante="ghost" onClick={() => { if (confirm("Trocar o texto atual pelo modelo padrão do sistema?")) setModelo(MODELO_PADRAO); }}>Restaurar modelo padrão</Btn>
@@ -99,6 +110,26 @@ export default function ConfigRevisionalSection({ dados }: any) {
           <div style={{ background: "#FFF7ED", boxShadow: "inset 0 0 0 1.5px #FED7AA", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#7C2D12" }}>
             O modelo padrão é um ponto de partida. Peça ao jurídico da empresa para revisar e ajustar as cláusulas antes de usar com clientes.
           </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            {modelos.map((m, i) => (
+              <button key={i} type="button" onClick={() => setAtivo(i)}
+                style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 800,
+                  background: i === ativo ? "#059669" : "#F1F5F9", color: i === ativo ? "#fff" : "#475569" }}>
+                {m.nome || `Modelo ${i + 1}`}
+              </button>
+            ))}
+            <Btn variante="ghost" onClick={() => { setModelos((l) => [...l, { nome: `Modelo ${l.length + 1}`, texto: MODELO_PADRAO }]); setAtivo(modelos.length); }}>＋ Novo modelo</Btn>
+          </div>
+          <Row>
+            <Field label="Nome deste modelo (o vendedor vê ao gerar o contrato)" flex="1 1 320px">
+              <input style={inputSm} value={modelos[ativo]?.nome || ""} onChange={(e) => setModelos((l) => l.map((m, i) => (i === ativo ? { ...m, nome: e.target.value } : m)))} />
+            </Field>
+            {modelos.length > 1 && (
+              <div style={{ display: "flex", alignItems: "flex-end" }}>
+                <Btn variante="ghost" onClick={() => { if (confirm(`Excluir o modelo "${modelos[ativo]?.nome}"?`)) { setModelos((l) => l.filter((_, i) => i !== ativo)); setAtivo(0); } }}>🗑️ Excluir modelo</Btn>
+              </div>
+            )}
+          </Row>
           {!previa && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {(["Empresa", "Cliente", "Contrato", "Honorários", "Outros"] as const).map((g) => (

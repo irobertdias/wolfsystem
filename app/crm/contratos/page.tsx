@@ -10,7 +10,7 @@ import { empresaDoContrato, representantePadrao, formatarCnpj, type EmpresaContr
 
 import { opcoesAssinatura, type OpcoesAssinatura } from "../../lib/assinatura-opcoes";
 import VisualizadorContrato from "./VisualizadorContrato";
-import { textoContratoRevisional, aplicarModelo } from "../../lib/revisional-contrato";
+import { textoContratoRevisional, aplicarModelo, modelosDoWorkspace, modeloSugerido } from "../../lib/revisional-contrato";
 import { reaisPorExtenso } from "../../lib/extenso";
 
 // Caixinhas do popup "Dados do contrato" (marcadores que o vendedor completa).
@@ -19,6 +19,11 @@ const CAMPO_DADO: Record<string, { rotulo: string; placeholder?: string; opcoes?
   cliente_estado_civil: { rotulo: "Estado civil", opcoes: ["solteiro(a)", "casado(a)", "divorciado(a)", "viúvo(a)", "em união estável", "separado(a) judicialmente"] },
   cliente_cep: { rotulo: "CEP", placeholder: "00000-000" },
   cliente_endereco: { rotulo: "Endereço completo", placeholder: "Rua, número, complemento, bairro, cidade - UF", largo: true },
+  numero_contrato_banco: { rotulo: "Nº do contrato no banco", placeholder: "Número do contrato de financiamento" },
+  veiculo_modelo: { rotulo: "Veículo (marca/modelo)", placeholder: "Ex.: Chevrolet Onix LT 1.0" },
+  veiculo_ano: { rotulo: "Ano do veículo", placeholder: "Ex.: 2021/2022" },
+  veiculo_placa: { rotulo: "Placa", placeholder: "ABC1D23" },
+  banco: { rotulo: "Banco / financeira" },
   honorarios_valor: { rotulo: "Valor dos honorários" },
   honorarios_valor_extenso: { rotulo: "Valor por extenso", largo: true },
   forma_pagamento: { rotulo: "Forma de pagamento", placeholder: "Ex.: à vista via Pix", largo: true, sugestoes: ["À vista via Pix", "À vista no boleto bancário", "Cartão de crédito em até 12 vezes", "Entrada via Pix e o restante no boleto", "Parcelado no boleto bancário"] },
@@ -218,21 +223,28 @@ export default function ContratosPage() {
         // modelo do contrato e honorários salvos nas Configurações do CRM financeiro
         const { data: fin } = await supabase.from("fin_config").select("config").eq("workspace_id", workspaceId).maybeSingle();
         const cfgRev = (fin as any)?.config?.revisional || {};
+        // o workspace pode ter vários modelos (ex.: veicular e geral): sugere pelo tipo e o vendedor troca no popup
+        const modelos = modelosDoWorkspace(cfgRev);
+        const idx = modeloSugerido(modelos, p.tipo);
+        const alternativas = modelos.map(m => ({
+          nome: m.nome,
+          conteudo: textoContratoRevisional(p, {
+            modelo: m.texto,
+            honorarios_exito: cfgRev.honorarios_exito ?? 30,
+            honorarios_entrada: cfgRev.honorarios_entrada ?? 0,
+            empresa_nome: lista.config?.empresa_nome || "",
+            empresa_cnpj: lista.config?.empresa_cnpj || "",
+          }),
+        }));
         await abrirNovoContrato({
           origem: crmId ? "crm" : "avulso",
           proposta_id: crmId ? String(crmId) : "",
           nome: p.cliente_nome || "",
           cpf: (p.cliente_documento || "").replace(/\D/g, ""),
           telefone: (p.cliente_telefone || "").replace(/\D/g, ""),
-          titulo: "Contrato de prestação de serviços — Revisão contratual",
-          conteudo: textoContratoRevisional(p, {
-            modelo: cfgRev.modelo_contrato || "",
-            honorarios_exito: cfgRev.honorarios_exito ?? 30,
-            honorarios_entrada: cfgRev.honorarios_entrada ?? 0,
-            empresa_nome: lista.config?.empresa_nome || "",
-            empresa_cnpj: lista.config?.empresa_cnpj || "",
-          }),
-        });
+          titulo: modelos.length > 1 ? modelos[idx].nome : "Contrato de prestação de serviços — Revisão contratual",
+          conteudo: alternativas[idx].conteudo,
+        }, alternativas.length > 1 ? { alternativas, idx } : undefined);
         window.history.replaceState(null, "", "/crm/contratos");
       } catch (e: any) { setErro(e.message || "Não foi possível preparar o contrato da proposta"); }
     })();
@@ -251,7 +263,7 @@ export default function ContratosPage() {
   const propostaRevisionalRef = useRef<string>("");
   const revisionalTratada = useRef(false);
 
-  async function abrirNovoContrato(preenchido?: Partial<FormContrato>) {
+  async function abrirNovoContrato(preenchido?: Partial<FormContrato>, escolha?: { alternativas: { nome: string; conteudo: string }[]; idx: number }) {
     setErro(""); setEditando(null);
     try {
       const response = await requisicao(`/api/contratos/clientes?workspaceId=${encodeURIComponent(workspaceId)}`);
@@ -282,18 +294,20 @@ export default function ContratosPage() {
           cliente_email: preenchido.email || "",
         };
         preenchido = { ...preenchido, conteudo: aplicarModelo(preenchido.conteudo, vars) };
+        if (escolha) escolha = { ...escolha, alternativas: escolha.alternativas.map(a => ({ ...a, conteudo: aplicarModelo(a.conteudo, vars) })) };
       }
       const formPronto = { ...base, ...(preenchido || {}) } as FormContrato;
-      // Contrato de modelo com dados a completar: primeiro o popup de dados, depois o formulário.
-      if (preenchido?.conteudo && /\{[a-z_]+\}/.test(formPronto.conteudo)) { abrirDadosPendentes(formPronto); return; }
+      // Contrato de modelo com dados a completar (ou com mais de um modelo): primeiro o popup, depois o formulário.
+      if (preenchido?.conteudo && (escolha || /\{[a-z_]+\}/.test(formPronto.conteudo))) { abrirDadosPendentes(formPronto, escolha); return; }
       setFormContrato(formPronto);
       setCriando(true);
     } catch (e: any) { setErro(e.message || "Não foi possível preparar o novo contrato"); }
   }
 
   // ─── Popup "Dados do contrato": caixinhas para os marcadores que faltam ───
-  const [dadosPend, setDadosPend] = useState<null | { form: FormContrato; chaves: string[]; valores: Record<string, string>; valorNum: number; erro: string }>(null);
-  function abrirDadosPendentes(formOriginal: FormContrato) {
+  type EscolhaModelo = { alternativas: { nome: string; conteudo: string }[]; idx: number };
+  const [dadosPend, setDadosPend] = useState<null | { form: FormContrato; chaves: string[]; valores: Record<string, string>; valorNum: number; erro: string; escolha?: EscolhaModelo }>(null);
+  function abrirDadosPendentes(formOriginal: FormContrato, escolha?: EscolhaModelo, anterior?: { valores: Record<string, string>; valorNum: number }) {
     // o que o formulário já sabe entra sozinho (nome, CPF, telefone, data)
     const dig = (s: string) => String(s || "").replace(/\D/g, "");
     const cpf = dig(formOriginal.cpf);
@@ -305,8 +319,15 @@ export default function ContratosPage() {
       data_hoje: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }),
     }) };
     const chaves = [...new Set((form.conteudo.match(/\{([a-z_]+)\}/g) || []).map(m => m.slice(1, -1)))].filter(k => k !== "cliente_email");
-    setDadosPend({ form, chaves, valores: { cliente_email: form.email || "" }, valorNum: 0, erro: "" });
+    setDadosPend({ form, chaves, valores: anterior?.valores || { cliente_email: form.email || "" }, valorNum: anterior?.valorNum || 0, erro: "", escolha });
     setCriando(false);
+  }
+  // troca o modelo no popup mantendo o que já foi digitado
+  function trocarModeloPendente(idx: number) {
+    if (!dadosPend?.escolha) return;
+    const alt = dadosPend.escolha.alternativas[idx];
+    if (!alt) return;
+    abrirDadosPendentes({ ...dadosPend.form, conteudo: alt.conteudo, titulo: alt.nome }, { ...dadosPend.escolha, idx }, { valores: dadosPend.valores, valorNum: dadosPend.valorNum });
   }
   function confirmarDadosPendentes() {
     if (!dadosPend) return;
@@ -663,7 +684,7 @@ export default function ContratosPage() {
 
       {dadosPend && (() => {
         const set = (k: string, val: string) => setDadosPend(d => d && ({ ...d, erro: "", valores: { ...d.valores, [k]: val } }));
-        const ordem = ["cliente_email", "cliente_estado_civil", "cliente_cep", "cliente_endereco", "honorarios_valor", "honorarios_valor_extenso", "forma_pagamento"];
+        const ordem = ["cliente_email", "cliente_estado_civil", "cliente_cep", "cliente_endereco", "banco", "numero_contrato_banco", "veiculo_modelo", "veiculo_ano", "veiculo_placa", "honorarios_valor", "honorarios_valor_extenso", "forma_pagamento"];
         const campos = ["cliente_email", ...dadosPend.chaves].sort((a, b) => (ordem.indexOf(a) + 1 || 99) - (ordem.indexOf(b) + 1 || 99));
         const inp: React.CSSProperties = { width: "100%", boxSizing: "border-box", height: 44, borderRadius: 12, border: "1px solid #E6ECEA", background: "#F7FAF9", padding: "0 12px", fontSize: 14, fontWeight: 600, color: "#0F172A", outline: "none" };
         return (
@@ -674,6 +695,23 @@ export default function ContratosPage() {
                 <h2 style={{ margin: "6px 0 4px", fontSize: 21, color: "#0F172A" }}>Dados do contrato · {dadosPend.form.nome || "cliente"}</h2>
                 <p style={{ margin: 0, color: "#64748b", fontSize: 13.5 }}>Preencha só estes campos. O resto do contrato já está pronto.</p>
               </div>
+              {dadosPend.escolha && (
+                <div style={{ padding: "14px 24px 0" }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#475569", marginBottom: 6 }}>Modelo do contrato</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {dadosPend.escolha.alternativas.map((a, i) => {
+                      const sel = i === dadosPend.escolha!.idx;
+                      return (
+                        <button key={i} type="button" onClick={() => trocarModeloPendente(i)}
+                          style={{ flex: "1 1 200px", minHeight: 44, borderRadius: 12, cursor: "pointer", padding: "8px 14px", fontSize: 14, fontWeight: 800, textAlign: "left",
+                            border: sel ? "2px solid #059669" : "1px solid #E6ECEA", background: sel ? "#ECFDF5" : "#fff", color: sel ? "#047857" : "#475569" }}>
+                          {sel ? "● " : "○ "}{a.nome}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div style={{ padding: "16px 24px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
                 {campos.map(k => {
                   const def = CAMPO_DADO[k] || { rotulo: k.replace(/_/g, " ") };
