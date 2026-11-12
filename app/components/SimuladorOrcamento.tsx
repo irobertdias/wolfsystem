@@ -46,6 +46,11 @@ const moeda = (valor: number) =>
 
 export default function SimuladorOrcamento() {
   const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const ver = () => setMobile(window.innerWidth < 820);
+    ver(); window.addEventListener("resize", ver);
+    return () => window.removeEventListener("resize", ver);
+  }, []);
   const [planoId, setPlanoId] = useState("intermediario");
   const [usuarios, setUsuarios] = useState(12);
   const [canais, setCanais] = useState(2);
@@ -111,6 +116,8 @@ export default function SimuladorOrcamento() {
 
   const [online, setOnline] = useState<{ carregando: boolean; erro: string }>({ carregando: false, erro: "" });
   const [isca, setIsca] = useState("");
+  // No celular a lista de recursos começa recolhida (6 itens) para o formulário ficar perto.
+  const [verTodosRecursos, setVerTodosRecursos] = useState(false);
 
   // Gera um orçamento online de verdade (com aceite, PIX e cadastro) e leva o cliente até ele.
   async function gerarOrcamentoOnline() {
@@ -309,7 +316,7 @@ export default function SimuladorOrcamento() {
 
             <Bloco numero="3" titulo="Adicione recursos">
               <div style={gridModulos}>
-                {MODULOS.map((item) => {
+                {MODULOS.filter((item, i) => !mobile || verTodosRecursos || i < 6 || modulos.includes(item.id)).map((item) => {
                   const incluso = noPlano(item);
                   const ativo = incluso || modulos.includes(item.id);
                   const preco = incluso ? "incluso no plano" : item.mensalidade ? `${moeda(item.mensalidade)}/mês` : `${moeda(item.implantacao)} único`;
@@ -322,6 +329,12 @@ export default function SimuladorOrcamento() {
                   );
                 })}
               </div>
+              {mobile && MODULOS.length > 6 && (
+                <button type="button" onClick={() => setVerTodosRecursos((v) => !v)}
+                  style={{ marginTop: 12, width: "100%", border: "1.5px solid #A7F3D0", background: "#fff", color: "#047857", borderRadius: 12, padding: "11px 14px", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+                  {verTodosRecursos ? "Mostrar menos" : `Ver todos os ${MODULOS.length} recursos`}
+                </button>
+              )}
             </Bloco>
 
             <Bloco numero="4" titulo="Identifique o orçamento">
