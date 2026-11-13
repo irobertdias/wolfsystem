@@ -11,8 +11,11 @@ import {
 import { supabase } from "../../../lib/supabase";
 import { usePermissao } from "../../../hooks/usePermissao";
 import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
+import { carregarVertical } from "../../../hooks/useWorkspace";
+import { vocabularioDoWorkspace } from "../../../lib/vertical-workspace";
 import {
   montarCamposUnificados,
+  statusOpcoes,
   type CampoUnificado,
   type ConfigCampoPadrao,
   type CampoCustom,
@@ -415,6 +418,8 @@ export default function Funil() {
 
       // 1) Carrega config de campos (igual ao Editor)
       let camposUnificados: CampoUni[] = [];
+      // tipo do workspace (nomes dos campos e etapas do ramo)
+      await carregarVertical(wsUsername || wsIds[0]);
       try {
         const [respConfig, respCustom] = await Promise.all([
           supabase.from("proposta_campos_padrao_config").select("*").eq("workspace_id", wsUsername || wsIds[0]),
@@ -437,7 +442,7 @@ export default function Funil() {
         console.warn("[Funil] não consegui carregar config de campos, usando fallback telecom.", e);
         // Fallback mínimo telecom pra não quebrar
         camposUnificados = [
-          { slug: "status_venda", label: "Status da Venda", tipo: "dropdown", origem: "fixo", visivel: true, ordem: 1, opcoes: ["GERADA", "AGUARDANDO AUDITORIA", "PENDENTE", "INSTALADA", "CANCELADA"] } as any,
+          { slug: "status_venda", label: "Status da Venda", tipo: "dropdown", origem: "fixo", visivel: true, ordem: 1, opcoes: statusOpcoes() } as any,
           { slug: "valor_plano", label: "Valor", tipo: "moeda", origem: "fixo", visivel: true, ordem: 2, opcoes: null } as any,
           { slug: "plano", label: "Plano", tipo: "dropdown", origem: "fixo", visivel: true, ordem: 3, opcoes: [] } as any,
           { slug: "operadora", label: "Operadora", tipo: "dropdown", origem: "fixo", visivel: true, ordem: 4, opcoes: [] } as any,
@@ -1375,7 +1380,7 @@ export default function Funil() {
       <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div>
-            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Funil de Vendas</h1>
+            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Funil de {vocabularioDoWorkspace(workspaceId).itens}</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               <b style={{ color: "#059669" }}>{metricas.total}</b> registros · {periodoLabelCurto}
               {campoStatus && <> · etapa: <b>{campoStatus.label}</b></>}

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useWorkspace } from "../../hooks/useWorkspace";
-import { ehRevisional } from "../../lib/vertical-workspace";
+import { ehRevisional, vocabularioDoWorkspace } from "../../lib/vertical-workspace";
 import Icone from "../../components/a2/Icone";
 
 const COR = "#059669";
@@ -49,16 +49,17 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
   }, []);
 
   const revisional = ehRevisional(wsId);
+  const voc = vocabularioDoWorkspace(wsId); // nomes do ramo (Vendas, Contratos, Pedidos...)
 
   const itensTodos: Item[] = [
     ...((isSuperAdmin || isDono || permissoes.dashboard)
-      ? [{ path: "/crm/dashboard", icon: "grafico", label: "Dashboard de Vendas" }]
+      ? [{ path: "/crm/dashboard", icon: "grafico", label: `Dashboard de ${voc.itens}` }]
       : []),
     ...((isSuperAdmin || isDono || permissoes.funil || permissoes.vendas_proprio || permissoes.vendas_equipe)
-      ? [{ path: "/crm/funil", icon: "funil", label: "Funil de Vendas" }]
+      ? [{ path: "/crm/funil", icon: "funil", label: `Funil de ${voc.itens}` }]
       : []),
     ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe)
-      ? [{ path: "/crm/vendas", icon: "dinheiro", label: "Vendas" }]
+      ? [{ path: "/crm/vendas", icon: "dinheiro", label: voc.itens }]
       : []),
     ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos)
       ? [{ path: "/crm/contatos", icon: "usuarios", label: "Contatos" }]
@@ -197,7 +198,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
                   letterSpacing: 0.5,
                 }}
               >
-                {revisional ? "Contatos dos clientes" : "Comercial & Vendas"}
+                {revisional ? "Contatos dos clientes" : voc.subtituloCrm}
               </span>
             </div>
           </div>

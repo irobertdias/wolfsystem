@@ -9,7 +9,8 @@ import { usePermissao } from "../../hooks/usePermissao";
 import {
   CAMPOS_FIXOS,
   CAMPOS_FIXOS_MAP,
-  SECOES_LABEL,
+  secoesLabel,
+  camposFixosDoRamo,
   agruparCamposPorSecao,
   montarCamposUnificados,
   type CampoUnificado,
@@ -18,6 +19,7 @@ import {
 } from "../../lib/campos_proposta_definicao";
 
 import Icone, { IconeEmoji } from "../../components/a2/Icone";
+import { vocabularioDoWorkspace } from "../../lib/vertical-workspace";
 // ═══════════════════════════════════════════════════════════════════════
 // 🛠️ EDITOR DE CAMPOS DA PROPOSTA — Wolf PREMIUM v2
 // ───────────────────────────────────────────────────────────────────────
@@ -395,9 +397,11 @@ export default function EditorProposta() {
     setSalvando(true);
     try {
       const fixosNaLista = campos.filter(c => c.origem === "fixo");
+      // padrão do ramo do workspace (nomes/opções de Roupas, Consignado...): só grava o que fugir dele
+      const padraoRamo = Object.fromEntries(camposFixosDoRamo().map(f => [f.slug, f]));
       for (let i = 0; i < fixosNaLista.length; i++) {
         const c = fixosNaLista[i];
-        const def = CAMPOS_FIXOS_MAP[c.slug];
+        const def = padraoRamo[c.slug];
         if (!def) continue;
 
         const labelMudou = c.label.trim() !== def.labelPadrao;
@@ -423,7 +427,7 @@ export default function EditorProposta() {
         const obrigatorioFinal = obrigMudou ? c.obrigatorio : null;
         const ordemFinal = ordemMudou ? c.ordem : null;
 
-        if (!labelMudou && !obrigMudou && !ordemMudou && !secaoMudou && !opcoesMudou && !placeholderMudou && !mostrarMudou && c.visivel) {
+        if (!labelMudou && !obrigMudou && !ordemMudou && !secaoMudou && !opcoesMudou && !placeholderMudou && !mostrarMudou && c.visivel === !def.oculto) {
           if (c.idConfig) {
             await supabase.from("proposta_campos_padrao_config")
               .delete()
@@ -539,7 +543,7 @@ export default function EditorProposta() {
         const nomeSecaoCustomizada = sec.startsWith("custom:")
           ? String((campos[i] as any).secao_customizada || "").trim()
           : "";
-        const labelRaw = (SECOES_LABEL as any)?.[sec];
+        const labelRaw = (secoesLabel() as any)?.[sec];
         const label = nomeSecaoCustomizada || (typeof labelRaw === "string"
           ? labelRaw
           : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec));
@@ -548,7 +552,10 @@ export default function EditorProposta() {
           : null;
         const corSecaoCustomizada = campoComCor ? String((campoComCor as any).secao_cor) : null;
         const corCustom = corSecaoCustomizada || ((labelRaw && typeof labelRaw === "object" && labelRaw.cor) ? labelRaw.cor : null);
-        const metaBase = SECAO_META[sec] || { icone: "📋", cor: "#64748B", descricao: "", ordem: 99 };
+        const voc = vocabularioDoWorkspace(workspace?.username);
+        const descRamo: Record<string, string> = { endereco: voc.secaoEndereco, agendamento: voc.secaoAgendamento, plano: voc.secaoPlano };
+        const meta0 = SECAO_META[sec] || { icone: "📋", cor: "#64748B", descricao: "", ordem: 99 };
+        const metaBase = descRamo[sec] ? { ...meta0, descricao: descRamo[sec] } : meta0;
         grupoAtual = {
           key: sec,
           keyUnica: `${sec}-${result.length}`,
@@ -585,7 +592,7 @@ export default function EditorProposta() {
   }, [grupos]);
 
   const opcoesDestinoSecao = useMemo(() => {
-    const padroes = Object.entries(SECOES_LABEL).map(([key, meta]: any) => ({ value: `@${key}`, label: meta?.titulo || meta?.label || key, cor: meta?.cor || "#64748B" }));
+    const padroes = Object.entries(secoesLabel()).map(([key, meta]: any) => ({ value: `@${key}`, label: meta?.titulo || meta?.label || key, cor: meta?.cor || "#64748B" }));
     const personalizadas = new Map<string, string>();
     for (const campo of campos) {
       const nome = String((campo as any).secao_customizada || "").trim();

@@ -8,7 +8,7 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import { vocabularioDoWorkspace } from "../../lib/vertical-workspace";
 import {
-  SECOES_LABEL,
+  secoesLabel,
   montarCamposUnificados,
   type CampoUnificado,
   type ConfigCampoPadrao,
@@ -672,7 +672,7 @@ function PropostaForm() {
           ? String((camposUnificados[i] as any).secao_customizada || "").trim()
           : "";
         // FIX react-error-31: SECOES_LABEL pode ser string OU objeto {titulo, cor}
-        const labelRaw = (SECOES_LABEL as any)?.[sec];
+        const labelRaw = (secoesLabel() as any)?.[sec];
         const label = nomeSecaoCustomizada || (typeof labelRaw === "string"
           ? labelRaw
           : (labelRaw?.titulo || labelRaw?.label || labelRaw?.nome || SECAO_META[sec]?.descricao || sec));

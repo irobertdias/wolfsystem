@@ -8,7 +8,8 @@ import { chaveMensagem, mesclarHistorico, atualizarRecibo, criarSincronizadorHis
 import { nomeArquivoAudio, lerRespostaAudio } from "../../lib/audio-envio";
 import { validarGravacaoAudio } from "../../lib/audio-gravacao";
 import { BibliotecaMidia, PreviaBiblioteca, type AbaBiblioteca } from "./BibliotecaMidia";
-import { useWorkspace } from "../../hooks/useWorkspace";
+import { useWorkspace, carregarVertical } from "../../hooks/useWorkspace";
+import { vocabularioDoWorkspace } from "../../lib/vertical-workspace";
 import { useConversasFixadas } from "../../hooks/useConversasFixadas";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useSoftphone } from "../../hooks/useSoftphone";
@@ -769,13 +770,14 @@ export function ChatSection() {
   // dele e classifica cada uma em ganho/perdido/pipeline. Assim a aba "Funil" do
   // contato fala a MESMA língua do Funil de Vendas. Se nada estiver configurado,
   // a aba cai no fallback fixo (Novo Lead, etc).
-  const REGEX_GANHO_FUNIL = /instal|ganho|conclu|fechad|aprovad|pago|ativ|sucesso|vendid|efetiv|finaliz/i;
+  const REGEX_GANHO_FUNIL = /instalad|ganho|conclu|fechad|aprovad|pago|ativ|sucesso|vendid|efetiv|finaliz|entregue/i;
   const REGEX_PERDIDO_FUNIL = /cancel|perd|recus|reprovad|inativ|desist|inadimpl/i;
   useEffect(() => {
     if (!wsId) return;
     let cancel = false;
     (async () => {
       try {
+        await carregarVertical(wsId); // etapas e nomes do ramo do workspace
         const [respConfig, respCustom] = await Promise.all([
           supabase.from("proposta_campos_padrao_config").select("*").eq("workspace_id", wsId),
           supabase.from("proposta_campos_customizados").select("*").eq("workspace_id", wsId).eq("ativo", true).order("ordem", { ascending: true }),
@@ -3923,7 +3925,7 @@ export function ChatSection() {
                   </select>
                   {funilEtapas.length > 0 ? (
                     <p style={{ color: "#94A3B8", fontSize: 12, margin: "6px 0 0", lineHeight: 1.4 }}>
-                      Etapas sincronizadas com o seu <b>Funil de Vendas</b> (definidas no Editor de Proposta).
+                      Etapas sincronizadas com o seu <b>Funil de {vocabularioDoWorkspace(wsId).itens}</b> (definidas no Editor de Proposta).
                     </p>
                   ) : (
                     <p style={{ color: "#94A3B8", fontSize: 12, margin: "6px 0 0", lineHeight: 1.4 }}>

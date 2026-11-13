@@ -6,6 +6,7 @@ import { useModulos } from "../../hooks/useModulos";
 import AjudaCampo from '../../components/AjudaCampo';
 import ConfiguracaoUniversal from './ConfiguracaoUniversal';
 import { assistenteUniversalInicial, nichoUniversalInicial, conclusaoUniversalInicial, validarEstruturaUniversal, universalExecutavel } from '../../lib/atendimento-universal';
+import { carregarVertical } from "../../hooks/useWorkspace";
 import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
 
 import Icone, { IconeEmoji } from "../../components/a2/Icone";
@@ -2373,6 +2374,7 @@ export default function FluxosPage() {
     let cancelado = false;
     (async () => {
       try {
+        await carregarVertical(wsId); // nomes dos campos e status do ramo do workspace
         const [{ data: cfgs }, { data: customs }] = await Promise.all([
           supabase.from("proposta_campos_padrao_config")
             .select("id, campo_slug, label_custom, obrigatorio, visivel, ordem, opcoes, placeholder_custom")

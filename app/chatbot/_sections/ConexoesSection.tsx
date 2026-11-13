@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
-import { useWorkspace } from "../../hooks/useWorkspace";
+import { useWorkspace, carregarVertical } from "../../hooks/useWorkspace";
 import { useToast } from "../../hooks/useToast";
 import { traduzirErro } from "../../lib/traduzir_erro";
 import { somenteConfirmacoes, definirSomenteConfirmacoes } from "../../lib/uso-canal";
@@ -181,6 +181,7 @@ export function ConexoesSection() {
     if (!wsId) return;
     let cancelado = false;
     (async () => {
+      await carregarVertical(wsId); // campos com os nomes do ramo do workspace
       const [{ data: configs }, { data: customs }] = await Promise.all([
         supabase.from("proposta_campos_padrao_config")
           .select("id, campo_slug, label_custom, obrigatorio, visivel, ordem, opcoes, placeholder_custom")

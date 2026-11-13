@@ -18,7 +18,7 @@ export default function AtendimentoShell({ children }: { children?: ReactNode })
   const searchParams = useSearchParams();
   const paginaVendas = usePathname().startsWith("/chatbot/vendas");
   const aba = searchParams.get("aba") || (paginaVendas ? "vendas_enviadas" : "chat");
-  const { workspace } = useWorkspace();
+  const { workspace, vertical } = useWorkspace();
   const { permissoes, isDono } = usePermissao();
   const { modulos } = useModulos();
   // No desktop os menus são listas suspensas: começam fechadas.
@@ -55,7 +55,8 @@ export default function AtendimentoShell({ children }: { children?: ReactNode })
   const podeVerRoleta = isDono || permissoes.roleta_gerenciar;
 
   const menus = [
-    ...((modulos.vendedor_ia && (isDono || permissoes.vendas_proprio || permissoes.vendas_equipe || permissoes.configuracoes_workspace || permissoes.administrador)) ? [{
+    // IA vendedora de planos (cobertura de operadora): só no tipo Telecom
+    ...((modulos.vendedor_ia && vertical === "telecom" && (isDono || permissoes.vendas_proprio || permissoes.vendas_equipe || permissoes.configuracoes_workspace || permissoes.administrador)) ? [{
       key: 'vendas', icon: 'dinheiro', label: 'Vendas', cor: '#059669',
       subitens: [{ key: 'vendas_enviadas', label: 'Vendas enviadas', path: '/chatbot/vendas' }, ...((isDono || permissoes.configuracoes_workspace || permissoes.administrador) ? [{ key: 'configuracoes', label: 'Configurações', path: '/chatbot/vendas?aba=configuracoes' }] : [])]
     }] : []),

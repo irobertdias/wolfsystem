@@ -9,6 +9,7 @@ import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 import {
   CAMPOS_FIXOS_MAP,
   STATUS_OPCOES,
+  statusOpcoes,
   montarCamposUnificados,
   type CampoUnificado,
   type ConfigCampoPadrao,
@@ -145,7 +146,7 @@ const statusMeta = (s: any): MetaStatusVenda => {
   const t = normalizarStatusVenda(s);
   if (!t) return { cor: "#64748b", bg: "#F3F6F5", border: "#cbd5e1", emoji: "•", grupo: "outros" };
 
-  if (/INSTALAD|ATIVAD|CONCLUID|FINALIZAD/.test(t) && !/NAO|CANCEL|REPROV|CHURN/.test(t)) {
+  if (/INSTALAD|ATIVAD|CONCLUID|FINALIZAD|\bPAGO\b|FECHAD|ENTREGUE|VENDID/.test(t) && !/NAO|CANCEL|REPROV|CHURN/.test(t)) {
     return { cor: "#059669", bg: "#ecfdf5", border: "#6EE7B7", emoji: "✅", grupo: "instaladas" };
   }
 
@@ -227,7 +228,7 @@ export default function Vendas() {
       const v = String(p.status_venda || "").trim();
       if (v) set.add(v);
     }
-    if (set.size === 0) for (const s of (STATUS_OPCOES as string[])) set.add(s);
+    if (set.size === 0) for (const s of statusOpcoes()) set.add(s);
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
   }, [camposUnificados, propostas]);
 
@@ -1139,7 +1140,7 @@ export default function Vendas() {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div>
             <p style={{ color: "#059669", fontSize: 12.5, fontWeight: 700, margin: "0 0 4px" }}>Central comercial</p>
-            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Vendas</h1>
+            <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>{vocabularioDoWorkspace(workspaceId).itens}</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               {podeVerTudo
                 ? <><b style={{ color: "#059669" }}>{totalGeral}</b> proposta(s) cadastrada(s){totalVisivel !== totalGeral && <> · <b>{totalVisivel}</b> filtradas</>}</>

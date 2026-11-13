@@ -413,7 +413,7 @@ export default function VisaoGeralPage() {
   const vendas = useMemo(() => {
     const comp = compAtual();
     const noMes = (iso: string | null | undefined) => (iso || "").slice(0, 7) === comp;
-    const instaladas = propostas.filter((p) => /INSTALAD|ATIVAD|CONCLUID|FINALIZAD/.test(norm(p.status_venda)) && !/CANCEL|REPROV|CHURN/.test(norm(p.status_venda)));
+    const instaladas = propostas.filter((p) => /INSTALAD|ATIVAD|CONCLUID|FINALIZAD|\bPAGO\b|FECHAD|ENTREGUE|VENDID/.test(norm(p.status_venda)) && !/CANCEL|REPROV|CHURN/.test(norm(p.status_venda)));
     const criadasMes = propostas.filter((p) => noMes(p.data_proposta || p.created_at));
     const instaladasMes = instaladas.filter((p) => noMes(p.data_proposta || p.created_at));
     const receitaMes = instaladasMes.reduce((s, p) => s + (Number(p.valor_plano) || 0), 0);
@@ -502,7 +502,7 @@ export default function VisaoGeralPage() {
       const key = p.workspace_id || "sem_workspace";
       const atual = mapa.get(key) || { workspace: key, vendas: 0, receita: 0, canais: 0 };
       atual.vendas += 1;
-      if (/INSTALAD|ATIVAD|CONCLUID|FINALIZAD/.test(norm(p.status_venda))) atual.receita += Number(p.valor_plano || 0);
+      if (/INSTALAD|ATIVAD|CONCLUID|FINALIZAD|\bPAGO\b|FECHAD|ENTREGUE|VENDID/.test(norm(p.status_venda))) atual.receita += Number(p.valor_plano || 0);
       mapa.set(key, atual);
     }
     for (const c of canais) {

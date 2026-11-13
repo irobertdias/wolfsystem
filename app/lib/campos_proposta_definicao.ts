@@ -11,6 +11,8 @@
 //
 // Usado em 3 lugares: editor-proposta, proposta (nova), vendas (modal).
 
+import { verticalAtual, type Vertical } from "./vertical-workspace";
+
 export type TipoCampoFixo =
   | "texto"           // input simples
   | "email"           // input type=email
@@ -74,6 +76,84 @@ export const CAMPOS_FIXOS: CampoFixoDef[] = [
   { slug: "data_instalacao",    labelPadrao: "Data de Instalação",    tipo: "data",     secaoPadrao: "agendamento",  obrigatorioPadrao: false, ordemPadrao: 53 },
   { slug: "data_cancelamento",  labelPadrao: "Data de Cancelamento",  tipo: "data",     secaoPadrao: "agendamento",  obrigatorioPadrao: false, ordemPadrao: 54 },
 ];
+
+// ═══════════════════════════════════════════════════════════════════════
+// Perfil do ramo do workspace (Tipo de workspace no cadastro do cliente).
+// O padrão acima é telecom. Os outros ramos trocam nomes, exemplos, opções
+// e escondem o que não faz sentido. O que o workspace personalizar no
+// Editor de Vendas continua valendo por cima disso.
+// ═══════════════════════════════════════════════════════════════════════
+type AjusteCampo = { label?: string; placeholder?: string; opcoes?: string[]; oculto?: boolean };
+
+export const STATUS_POR_VERTICAL: Partial<Record<Vertical, string[]>> = {
+  consignado: ["DIGITADA", "AGUARDANDO DOCUMENTOS", "EM ANALISE NO BANCO", "AGUARDANDO AVERBACAO", "PAGO", "REPROVADA", "CANCELADA"],
+  vendas: ["PENDENTE", "EM NEGOCIACAO", "AGUARDANDO PAGAMENTO", "FECHADA", "PERDIDA", "CANCELADA"],
+  roupas: ["PENDENTE", "AGUARDANDO PAGAMENTO", "EM SEPARACAO", "AGUARDANDO ENTREGA", "ENTREGUE", "CANCELADA"],
+};
+
+const AJUSTES_POR_VERTICAL: Partial<Record<Vertical, Record<string, AjusteCampo>>> = {
+  consignado: {
+    operadora: { label: "Banco", placeholder: "Ex: Banco do Brasil, Caixa, Pan, BMG..." },
+    plano: { label: "Produto", placeholder: "Ex: Consignado INSS, Cartão benefício, Portabilidade..." },
+    valor_plano: { label: "Valor Liberado (R$)", placeholder: "5000.00" },
+    vencimento: { oculto: true },
+    forma_pagamento: { label: "Recebimento", opcoes: ["Conta corrente", "Conta poupança", "PIX"] },
+    data_agendamento: { label: "Data da Digitação" },
+    periodo_instalacao: { oculto: true },
+    status_venda: { label: "Status do Contrato", opcoes: STATUS_POR_VERTICAL.consignado },
+    data_instalacao: { label: "Data do Pagamento" },
+  },
+  vendas: {
+    operadora: { label: "Produto", placeholder: "Ex: nome do produto ou serviço" },
+    plano: { label: "Detalhes do Pedido", placeholder: "Ex: quantidade, modelo, cor..." },
+    valor_plano: { label: "Valor da Venda (R$)", placeholder: "199.90" },
+    vencimento: { label: "Dia de Vencimento" },
+    forma_pagamento: { opcoes: ["PIX", "Cartão de Crédito", "Cartão de Débito", "Boleto Bancário", "Dinheiro"] },
+    data_agendamento: { label: "Data Prevista" },
+    periodo_instalacao: { oculto: true },
+    status_venda: { opcoes: STATUS_POR_VERTICAL.vendas },
+    data_instalacao: { label: "Data do Fechamento" },
+  },
+  roupas: {
+    operadora: { label: "Marca", placeholder: "Ex: marca ou coleção" },
+    plano: { label: "Peças do Pedido", placeholder: "Ex: 2 camisetas M, 1 calça 40..." },
+    valor_plano: { label: "Valor do Pedido (R$)", placeholder: "249.90" },
+    vencimento: { oculto: true },
+    forma_pagamento: { opcoes: ["PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Boleto Bancário"] },
+    data_agendamento: { label: "Data da Entrega" },
+    periodo_instalacao: { label: "Período da Entrega" },
+    status_venda: { label: "Status do Pedido", opcoes: STATUS_POR_VERTICAL.roupas },
+    data_instalacao: { label: "Entregue em" },
+    endereco: { label: "Endereço de Entrega" },
+  },
+};
+
+const SECOES_POR_VERTICAL: Partial<Record<Vertical, Partial<Record<string, string>>>> = {
+  consignado: { plano: "💳 Produto e Valores", agendamento: "📅 Andamento e Status" },
+  vendas: { plano: "💳 Produto e Pagamento", agendamento: "📅 Andamento e Status" },
+  roupas: { plano: "🛍️ Pedido e Pagamento", agendamento: "🚚 Entrega e Status", endereco: "📍 Endereço de Entrega" },
+};
+
+/** Títulos das seções da proposta para o ramo (padrão: o do workspace aberto). */
+export function secoesLabel(vertical: Vertical = verticalAtual()): Record<string, { titulo: string; cor: string }> {
+  const ajuste = SECOES_POR_VERTICAL[vertical] || {};
+  return Object.fromEntries(Object.entries(SECOES_LABEL).map(([k, v]) => [k, { ...v, titulo: ajuste[k] || v.titulo }]));
+}
+
+/** Opções de status do ramo (padrão: o do workspace aberto). */
+export function statusOpcoes(vertical: Vertical = verticalAtual()): string[] {
+  return STATUS_POR_VERTICAL[vertical] || STATUS_OPCOES;
+}
+
+/** Campos fixos com os nomes/opções do ramo. */
+export function camposFixosDoRamo(vertical: Vertical = verticalAtual()): (CampoFixoDef & { oculto?: boolean })[] {
+  const ajustes = AJUSTES_POR_VERTICAL[vertical] || {};
+  return CAMPOS_FIXOS.map((f) => {
+    const a = ajustes[f.slug];
+    if (!a) return f;
+    return { ...f, labelPadrao: a.label || f.labelPadrao, placeholderPadrao: a.placeholder ?? f.placeholderPadrao, opcoes: a.opcoes || f.opcoes, oculto: a.oculto };
+  });
+}
 
 // Mapeia o slug do campo pro campo (busca rápida)
 export const CAMPOS_FIXOS_MAP: Record<string, CampoFixoDef> = Object.fromEntries(
@@ -186,13 +266,14 @@ export function agruparCamposPorSecao(campos: CampoUnificado[]): CampoUnificado[
 // Helper: aplica a config do workspace nos campos fixos e devolve a lista unificada
 export function montarCamposUnificados(
   configsFixos: ConfigCampoPadrao[],
-  customs: CampoCustom[]
+  customs: CampoCustom[],
+  vertical: Vertical = verticalAtual()
 ): CampoUnificado[] {
   // 1. Indexar config por slug
   const configMap = new Map<string, ConfigCampoPadrao>(configsFixos.map(c => [c.campo_slug, c]));
 
-  // 2. Pra cada fixo, monta versão aplicada com config
-  const fixos: CampoUnificado[] = CAMPOS_FIXOS.map(f => {
+  // 2. Pra cada fixo (já com os nomes do ramo), monta versão aplicada com config
+  const fixos: CampoUnificado[] = camposFixosDoRamo(vertical).map(f => {
     const cfg = configMap.get(f.slug);
     // 🆕 v3: opções customizadas — se cfg.opcoes existe e tem itens, usa elas; senão padrão
     const opcoesCustom = Array.isArray(cfg?.opcoes) && cfg.opcoes.length > 0 ? cfg.opcoes : null;
@@ -205,7 +286,8 @@ export function montarCamposUnificados(
       labelPadrao: f.labelPadrao,
       tipo: f.tipo,
       obrigatorio: cfg?.obrigatorio !== null && cfg?.obrigatorio !== undefined ? !!cfg.obrigatorio : f.obrigatorioPadrao,
-      visivel: cfg?.visivel !== false, // default true
+      // default: visível, menos o que o ramo esconde (ex.: período de instalação fora de telecom)
+      visivel: cfg?.visivel === undefined || cfg?.visivel === null ? !f.oculto : cfg.visivel !== false,
       ordem: cfg?.ordem !== null && cfg?.ordem !== undefined ? cfg.ordem : f.ordemPadrao,
       opcoes: opcoesCustom || f.opcoes,        // 🆕 v3
       placeholder: placeholderCustom || f.placeholderPadrao,  // 🆕 v3

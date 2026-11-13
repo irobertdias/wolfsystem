@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { registrarVertical, verticalDoWorkspace, type Vertical } from "../lib/vertical-workspace";
+import { definirVerticalAtual, registrarVertical, verticalDoWorkspace, type Vertical } from "../lib/vertical-workspace";
 
 // Tipo de negócio por workspace: uma consulta por workspace, compartilhada entre as telas.
 const verticalCarregando: Record<string, Promise<void>> = {};
-function carregarVertical(ws: string, doBanco: unknown): Promise<void> {
+export async function carregarVertical(ws: string, doBanco?: unknown): Promise<void> {
+  await carregarVerticalBruto(ws, doBanco);
+  definirVerticalAtual(ws);
+}
+function carregarVerticalBruto(ws: string, doBanco: unknown): Promise<void> {
   if (doBanco !== undefined) { registrarVertical(ws, doBanco); return Promise.resolve(); }
   if (!verticalCarregando[ws]) {
     verticalCarregando[ws] = (async () => {

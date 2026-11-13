@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 import { usePermissao } from "../hooks/usePermissao";
 import { useModulos } from "../hooks/useModulos";
 import { useWorkspace } from "../hooks/useWorkspace";
-import { ehRevisional } from "../lib/vertical-workspace";
+import { ehRevisional, verticalDoWorkspace, vocabularioDoWorkspace } from "../lib/vertical-workspace";
 import AuthGuard from "../components/AuthGuard";
 import PontoGuard from "../components/PontoGuard";
 
@@ -33,6 +33,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   // Workspace de revisão de contratos: sem telas de vendas; o módulo
   // Revisional ocupa o lugar da Visão e do CRM comercial.
   const revisional = ehRevisional(wsAberto);
+  const voc = vocabularioDoWorkspace(wsAberto);
+  // IA vendedora de planos (consulta de cobertura de operadora): só faz sentido em telecom
+  const telecom = verticalDoWorkspace(wsAberto) === "telecom";
 
   const [userEmail, setUserEmail] = useState("");
   const [userNome, setUserNome] = useState("");
@@ -197,9 +200,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const crmItems = [
-    ...((isSuperAdmin || isDono || permissoes.dashboard) ? [{ path: "/crm/dashboard", icon: "📈", label: "Dashboard de Vendas" }] : []),
-    ...((isSuperAdmin || isDono || permissoes.funil || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/funil", icon: "🎯", label: "Funil de Vendas" }] : []),
-    ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/vendas", icon: "💰", label: "Vendas" }] : []),
+    ...((isSuperAdmin || isDono || permissoes.dashboard) ? [{ path: "/crm/dashboard", icon: "📈", label: `Dashboard de ${voc.itens}` }] : []),
+    ...((isSuperAdmin || isDono || permissoes.funil || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/funil", icon: "🎯", label: `Funil de ${voc.itens}` }] : []),
+    ...((isSuperAdmin || isDono || permissoes.vendas_proprio || permissoes.vendas_equipe) ? [{ path: "/crm/vendas", icon: "💰", label: voc.itens }] : []),
     ...(!isSuperAdmin && (isDono || permissoes.contatos_ver || permissoes.chat_proprio || permissoes.chat_todos) ? [{ path: "/crm/contatos", icon: "👥", label: "Contatos" }] : []),
   ];
 
@@ -255,7 +258,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           { path: crmItems[0]?.path || "/crm/dashboard", label: "CRM", icon: "🎯", visivel: podeVerCRM },
         ]),
     { path: "/chatbot", label: "Atendimento", icon: "💬", visivel: podeVerChatbot },
-    { path: "/chatbot/vendas", label: "Vendas", icon: "💰", visivel: !revisional && modulosCarregados && modulos.vendedor_ia && (podeVerConfig || permissoes.vendas_proprio || permissoes.vendas_equipe) },
+    { path: "/chatbot/vendas", label: "Vendas", icon: "💰", visivel: !revisional && (telecom || isSuperAdmin) && modulosCarregados && modulos.vendedor_ia && (podeVerConfig || permissoes.vendas_proprio || permissoes.vendas_equipe) },
     { path: "/crm/contratos", label: "Contratos", icon: "📄", visivel: podeVerContratos },
     // No workspace que já é escritório revisional (/crm/revisional), este vira "Propostas".
     { path: "/crm/propostas-revisional", label: revisional ? "Propostas" : "Revisional", icon: revisional ? "📨" : "⚖️", visivel: modulosCarregados && podeVerPropostasRevisional },

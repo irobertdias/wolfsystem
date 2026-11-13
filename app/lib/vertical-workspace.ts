@@ -34,6 +34,16 @@ export function registrarVertical(workspaceId: string | null | undefined, v: unk
   if (ws && n) REGISTRO[ws] = n;
 }
 
+// Tipo do workspace aberto agora (um por sessão). Usado por quem monta telas sem
+// receber o workspace (ex.: campos da proposta). Definido pelo useWorkspace.
+let VERTICAL_ATUAL: Vertical = "telecom";
+export function definirVerticalAtual(workspaceId?: string | number | null) {
+  VERTICAL_ATUAL = verticalDoWorkspace(workspaceId);
+}
+export function verticalAtual(): Vertical {
+  return VERTICAL_ATUAL;
+}
+
 export function verticalDoWorkspace(workspaceId?: string | number | null): Vertical {
   const ws = String(workspaceId ?? "").trim().toLowerCase();
   return REGISTRO[ws] || VERTICAL_POR_WORKSPACE[ws] || "telecom";
@@ -46,6 +56,9 @@ export function ehRevisional(workspaceId?: string | number | null): boolean {
 }
 
 export type Vocabulario = {
+  itens: string;               // "Vendas" (menu: Dashboard de Vendas, Funil de Vendas)
+  itemSing: string;            // "venda"
+  subtituloCrm: string;        // "Comercial & Vendas"
   concluidas: string;          // "Instaladas"
   concluidasMin: string;       // "instaladas"
   concluidaSing: string;       // "instalada"
@@ -69,6 +82,9 @@ export type Vocabulario = {
 };
 
 const TELECOM: Vocabulario = {
+  itens: "Vendas",
+  itemSing: "venda",
+  subtituloCrm: "Comercial & Vendas",
   concluidas: "Instaladas",
   concluidasMin: "instaladas",
   concluidaSing: "instalada",
@@ -92,6 +108,9 @@ const TELECOM: Vocabulario = {
 };
 
 const CONSIGNADO: Vocabulario = {
+  itens: "Contratos",
+  itemSing: "contrato",
+  subtituloCrm: "Contratos & Bancos",
   concluidas: "Contratos pagos",
   concluidasMin: "pagos",
   concluidaSing: "paga",
@@ -115,6 +134,9 @@ const CONSIGNADO: Vocabulario = {
 };
 
 const VENDAS: Vocabulario = {
+  itens: "Vendas",
+  itemSing: "venda",
+  subtituloCrm: "Comercial & Vendas",
   concluidas: "Vendas fechadas",
   concluidasMin: "fechadas",
   concluidaSing: "fechada",
@@ -138,6 +160,9 @@ const VENDAS: Vocabulario = {
 };
 
 const ROUPAS: Vocabulario = {
+  itens: "Pedidos",
+  itemSing: "pedido",
+  subtituloCrm: "Pedidos & Clientes",
   concluidas: "Pedidos entregues",
   concluidasMin: "entregues",
   concluidaSing: "entregue",

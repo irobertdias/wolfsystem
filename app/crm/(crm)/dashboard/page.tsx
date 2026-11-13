@@ -99,6 +99,17 @@ const STATUS_GRUPO: Record<string, Grupo> = {
   "AGUARDANDO DOCUMENTOS": "PENDENTE",
   "EM ANALISE NO BANCO": "AUDITORIA",
 
+  // Vendas em geral / Roupas
+  FECHADA: "INSTALADA",
+  FECHADO: "INSTALADA",
+  VENDIDA: "INSTALADA",
+  ENTREGUE: "INSTALADA",
+  "AGUARDANDO PAGAMENTO": "AGUARDANDO_INST",
+  "EM SEPARACAO": "AGUARDANDO_INST",
+  "AGUARDANDO ENTREGA": "AGUARDANDO_INST",
+  "EM NEGOCIACAO": "PENDENTE",
+  PERDIDA: "CANCELADA",
+
   "AGUARDANDO BIOMETRIA": "BIOMETRIA",
   BIOMETRIA: "BIOMETRIA",
 
@@ -679,7 +690,7 @@ export default function Dashboard() {
               {saudacao}, {userNome || "vendedor"}
             </p>
             <h1 style={{ color: T.ink, fontSize: isMobile ? 24 : 32, fontWeight: 900, margin: "4px 0 0", letterSpacing: -1 }}>
-              Painel de Vendas
+              Painel de {voc.itens}
             </h1>
             <p style={{ color: T.sub, fontSize: 12.5, margin: "6px 0 0", fontWeight: 600 }}>
               {workspaceNome || "Workspace"} · {stats.total} proposta(s) em {periodoLabel[periodo].toLowerCase()}
