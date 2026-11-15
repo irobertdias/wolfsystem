@@ -626,7 +626,7 @@ export function ChatSection() {
       return "Permissão negada pela Meta. Verifique as configurações do canal.";
     }
     if (msg.includes("(#131047)") || msg.includes("re-engagement") || msg.includes("24 hour")) {
-      return "Janela de 24h expirou. Envie um template aprovado.";
+      return "A Meta recusou: janela de conversa expirada. Envie um template aprovado.";
     }
     if (msg.includes("(#131056)") || msg.includes("blocked")) {
       return "Cliente bloqueou mensagens neste número.";
@@ -2545,16 +2545,20 @@ export function ChatSection() {
   const canalAtivo = canais.find(c => c.id === atendimentoAtivo?.canal_id);
   const ehCanalWaba = canalAtivo?.tipo === "waba";
 
-  const { janelaExpirada, horasDesdeUltimaMsgCliente } = (() => {
-    if (!ehCanalWaba || historico.length === 0) { return { janelaExpirada: false, horasDesdeUltimaMsgCliente: 0 }; }
+  // Janela da Meta (WABA): lead que chegou mandando a primeira mensagem (tráfego,
+  // anúncio Click-to-WhatsApp) tem 72h; conversa que começou por um disparo nosso, 24h.
+  const { janelaExpirada, horasDesdeUltimaMsgCliente, janelaHoras } = (() => {
+    if (!ehCanalWaba || historico.length === 0) { return { janelaExpirada: false, horasDesdeUltimaMsgCliente: 0, janelaHoras: 24 }; }
     const msgsCliente = historico.filter(m => m.de === "cliente");
-    if (msgsCliente.length === 0) { return { janelaExpirada: true, horasDesdeUltimaMsgCliente: 9999 }; }
+    if (msgsCliente.length === 0) { return { janelaExpirada: true, horasDesdeUltimaMsgCliente: 9999, janelaHoras: 24 }; }
+    const primeira = historico.find(m => m.de !== "sistema");
+    const janelaHoras = primeira?.de === "cliente" ? 72 : 24;
     const ultimaMsgCliente = msgsCliente[msgsCliente.length - 1];
     const criadaEm = ultimaMsgCliente.created_at;
-    if (!criadaEm) { return { janelaExpirada: true, horasDesdeUltimaMsgCliente: 9999 }; }
+    if (!criadaEm) { return { janelaExpirada: true, horasDesdeUltimaMsgCliente: 9999, janelaHoras }; }
     const tempoMs = Date.now() - new Date(criadaEm).getTime();
     const horas = tempoMs / (1000 * 60 * 60);
-    return { janelaExpirada: horas > 24, horasDesdeUltimaMsgCliente: horas };
+    return { janelaExpirada: horas > janelaHoras, horasDesdeUltimaMsgCliente: horas, janelaHoras };
   })();
 
   const abrirModalTemplate = async () => {
@@ -3565,7 +3569,7 @@ export function ChatSection() {
                   <div style={{ background: "#FFF7ED", borderTop: "1px solid #FED7AA", padding: "10px 20px", display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ color: "#EA580C", display: "inline-flex" }}><Icone nome="alerta" tamanho={18} /></span>
                     <div style={{ flex: 1 }}>
-                      <p style={{ color: "#9A3412", fontSize: 12.5, margin: 0, fontWeight: 800 }}>Janela de 24h expirada</p>
+                      <p style={{ color: "#9A3412", fontSize: 12.5, margin: 0, fontWeight: 800 }}>Janela de {janelaHoras}h expirada</p>
                       <p style={{ color: "#C2410C", fontSize: 11.5, margin: "2px 0 0" }}>
                         {horasDesdeUltimaMsgCliente > 9000 ? "Esse contato nunca te enviou mensagem." : `Última mensagem do cliente há ${Math.floor(horasDesdeUltimaMsgCliente)}h.`} Só é possível enviar via Template aprovado.
                       </p>
@@ -3608,7 +3612,7 @@ export function ChatSection() {
                   <button onClick={() => fileUploadRef.current?.click()} title="Anexar arquivo"
                     style={botaoComp}><Icone nome="clipe" tamanho={18} /></button>
                   {ehCanalWaba && (
-                    <button onClick={abrirModalTemplate} title={janelaExpirada ? "Enviar template (janela 24h expirada)" : "Enviar template aprovado"}
+                    <button onClick={abrirModalTemplate} title={janelaExpirada ? `Enviar template (janela ${janelaHoras}h expirada)` : "Enviar template aprovado"}
                       style={{ ...botaoComp, background: janelaExpirada ? "#EA580C" : "#FFFFFF", color: janelaExpirada ? "#FFFFFF" : "#475569", animation: janelaExpirada ? "pulse 2s infinite" : "none" }}><Icone nome="documento" tamanho={18} /></button>
                   )}
                   <textarea onPaste={handleColarImagem} ref={mensagemTextareaRef} placeholder={isMobile ? "Mensagem" : (meuNome ? `Mensagem (vai com *${meuNome}* no topo)` : "Mensagem")} value={mensagem}
@@ -3721,7 +3725,7 @@ export function ChatSection() {
             {janelaExpirada && (
               <div style={{ padding: "10px 20px", background: "#f59e0b22", borderBottom: "1px solid #f59e0b44" }}>
                 <p style={{ color: "#fbbf24", fontSize: 12, margin: 0 }}>
-                  Janela de 24h expirada. O template vai reabrir a conversa (custo da Meta aplica).
+                  Janela de {janelaHoras}h expirada. O template vai reabrir a conversa (custo da Meta aplica).
                 </p>
               </div>
             )}
