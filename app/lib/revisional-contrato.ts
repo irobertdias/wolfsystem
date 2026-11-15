@@ -5,7 +5,7 @@
 type PropostaRev = {
   id: string;
   numero: string;
-  tipo: "imovel" | "veiculo" | string;
+  tipo: "imovel" | "veiculo" | "emprestimo" | string;
   cliente_nome: string;
   cliente_documento?: string;
   cliente_telefone?: string;
@@ -46,7 +46,8 @@ export function linhaCrmDaProposta(p: PropostaRev, workspaceId: string) {
     cpf: (p.cliente_documento || "").replace(/\D/g, "") || null,
     telefone1: (p.cliente_telefone || "").replace(/\D/g, "") || null,
     operadora: String(d.banco || "").trim() || null,
-    plano: p.tipo === "imovel" ? "imobiliario" : "veiculo",
+    // modalidade no CRM financeiro (empréstimo: pessoal ou consignado)
+    plano: p.tipo === "imovel" ? "imobiliario" : p.tipo === "emprestimo" ? (String(d.modalidade_emprestimo || "").startsWith("consignado") ? "consignado" : "pessoal") : "veiculo",
     status_venda: "DOCUMENTACAO",
     vendedor: p.consultor_nome || null,
     dados_customizados: {
@@ -163,7 +164,10 @@ export function variaveisDaProposta(
   extra: { honorarios_exito?: number; honorarios_entrada?: number; empresa_nome?: string; empresa_cnpj?: string; empresa_endereco?: string; cliente_email?: string } = {},
 ): Record<string, string> {
   const d = p.dados || {};
-  const bem = p.tipo === "imovel" ? "financiamento imobiliário" : `financiamento de veículo${d.modelo ? ` (${d.modelo}${d.ano ? `, ${d.ano}` : ""})` : ""}`;
+  const MOD_EMP: Record<string, string> = { pessoal: "empréstimo pessoal", consignado_inss: "empréstimo consignado (INSS)", consignado_publico: "empréstimo consignado (servidor público)", consignado_privado: "empréstimo consignado (trabalhador CLT)" };
+  const bem = p.tipo === "imovel" ? "financiamento imobiliário"
+    : p.tipo === "emprestimo" ? (MOD_EMP[String(d.modalidade_emprestimo || "")] || "empréstimo pessoal")
+    : `financiamento de veículo${d.modelo ? ` (${d.modelo}${d.ano ? `, ${d.ano}` : ""})` : ""}`;
   const pct = n(extra.honorarios_exito);
   return {
     empresa_nome: extra.empresa_nome || p.empresa?.nome || "",

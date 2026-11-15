@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { autenticarWorkspace, respostaErroAcesso, supabaseServer, type AcessoWolf } from "../../_auth";
 import {
-  calcularImovel, calcularVeiculo, normalizarImovel, normalizarVeiculo, validarDados,
+  calcularImovel, calcularVeiculo, normalizarImovel, normalizarVeiculo, normalizarDados, tipoRevisional, validarDados,
   type TipoRevisional,
 } from "../../../lib/revisional";
 import { SEM_CACHE, exigirRevisional, lerConfig, linkPublico, novoNumero, novoToken, statusEfetivo } from "../_shared";
@@ -50,14 +50,14 @@ export async function POST(request: NextRequest) {
     const acesso = await autenticarWorkspace(request, String(body.workspace || ""));
     await exigirRevisional(acesso);
 
-    const tipo: TipoRevisional = body.tipo === "veiculo" ? "veiculo" : "imovel";
+    const tipo: TipoRevisional = tipoRevisional(body.tipo);
     const clienteNome = String(body.cliente_nome || "").trim().slice(0, 160);
     const clienteDoc = String(body.cliente_documento || "").replace(/\D/g, "").slice(0, 14);
     const clienteTel = String(body.cliente_telefone || "").replace(/\D/g, "").slice(0, 15);
     const consultorNome = String(body.consultor_nome || "").trim().slice(0, 120)
       || String(acesso.user.user_metadata?.nome || acesso.email.split("@")[0]);
 
-    const dados = tipo === "imovel" ? normalizarImovel(body.dados || {}) : normalizarVeiculo(body.dados || {});
+    const dados = normalizarDados(tipo, body.dados || {});
     const erros = validarDados(tipo, dados);
     if (!clienteNome) erros.unshift("Informe o nome do cliente");
     if (clienteDoc && clienteDoc.length !== 11 && clienteDoc.length !== 14) erros.push("CPF/CNPJ inválido");

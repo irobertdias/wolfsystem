@@ -3,12 +3,12 @@
 // Página 2: composição da parcela, quadros do contrato, resultado e próximos passos.
 // Gerado no navegador com jsPDF, a partir dos mesmos dados da página do cliente.
 
-import { brl, pctBR } from "./revisional";
+import { brl, pctBR, nomeModalidadeEmprestimo } from "./revisional";
 import { paletaPdf, type MarcaRevisional } from "./revisional-marca";
 
 export type PropostaPdf = {
   numero: string;
-  tipo: "imovel" | "veiculo";
+  tipo: "imovel" | "veiculo" | "emprestimo";
   cliente_nome: string;
   cliente_documento: string;
   consultor_nome: string;
@@ -67,6 +67,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   const PW = 210, PH = 297, M = 14, W = PW - 2 * M;
   const d = p.dados, r = p.resultado;
   const imovel = p.tipo === "imovel";
+  const emprestimo = p.tipo === "emprestimo";
   const empresa = p.empresa?.nome || "Wolf System";
   const total = Number(imovel ? r.diferenca_total : r.economia_total) || 0;
   const parcelaAtual = Number(d.parcela_atual) || 0;
@@ -165,7 +166,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
     catch { marca(M, 12, 11, C.branco, C.verde700); }
   } else marca(M, 12, 11, C.branco, C.verde700);
   fonte("bold", 13, C.branco); texto(empresa, xNome, 17);
-  fonte("normal", 8, C.verde100); texto(imovel ? "Análise contratual · financiamento imobiliário" : "Análise contratual · financiamento de veículo", xNome, 21.5);
+  fonte("normal", 8, C.verde100); texto(imovel ? "Análise contratual · financiamento imobiliário" : emprestimo ? "Análise contratual · empréstimo" : "Análise contratual · financiamento de veículo", xNome, 21.5);
   // selo do número
   opacidade(0.16); fill(C.branco); doc.roundedRect(PW - M - 52, 11, 52, 15, 3, 3, "F"); opacidade(1);
   fonte("normal", 6.5, C.verde100); texto("PROPOSTA Nº", PW - M - 26, 16, { align: "center" });
@@ -176,7 +177,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   fonte("normal", 11, C.verde100); texto(nome ? `${nome}, identificamos` : "Identificamos", M, 44);
   fonte("bold", 44, C.branco); texto(brl(total), M - 0.6, 62);
   fonte("normal", 10.5, C.verde100);
-  texto(imovel ? "em cobranças indevidas no seu financiamento imobiliário" : "de economia no seu financiamento de veículo", M, 71);
+  texto(imovel ? "em cobranças indevidas no seu financiamento imobiliário" : emprestimo ? "de economia no seu empréstimo" : "de economia no seu financiamento de veículo", M, 71);
   fonte("bold", 10.5, C.branco); texto(d.banco || "", M, 76.5);
   // validade
   pilula(`Válida até ${dataHoraBR(p.expira_em)}`, M, 89, C.ambar100, C.ambar800, 8);
@@ -334,7 +335,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   const meia = (W - 5) / 2;
   const contrato: [string, string, RGB?][] = imovel
     ? [["Financeira", d.banco || "-"], ["Valor financiado", brl(d.valor_financiado)], ["Saldo devedor", brl(d.saldo_devedor)], ["Prazo", `${d.prazo} meses`], ["Pagas / em atraso", `${d.pagas} / ${d.atrasadas || 0}`], ["Modalidade", d.modalidade || "SAC"], ["Sofreu pausa?", d.pausa ? "Sim" : "Não"], ...(d.taxa_anual ? [["Taxa do contrato", `${pctBR(d.taxa_anual)} a.a.`] as [string, string]] : [])]
-    : [["Financeira", d.banco || "-"], ["Veículo", `${d.modelo || "-"}${d.ano ? ` ${d.ano}` : ""}`], ["Valor financiado", brl(d.valor_financiado)], ["Prazo", `${d.prazo} meses`], ["Pagas / em atraso", `${d.pagas} / ${d.atrasadas || 0}`], ...(taxaCobrada ? [["Taxa cobrada (estimada)", `${pctBR(taxaCobrada)} a.m.`, C.vermelho600] as [string, string, RGB]] : [])];
+    : [["Financeira", d.banco || "-"], emprestimo ? ["Tipo", nomeModalidadeEmprestimo(d.modalidade_emprestimo)] : ["Veículo", `${d.modelo || "-"}${d.ano ? ` ${d.ano}` : ""}`], [emprestimo ? "Valor do empréstimo" : "Valor financiado", brl(d.valor_financiado)], ["Prazo", `${d.prazo} meses`], ["Pagas / em atraso", `${d.pagas} / ${d.atrasadas || 0}`], ...(taxaCobrada ? [["Taxa cobrada (estimada)", `${pctBR(taxaCobrada)} a.m.`, C.vermelho600] as [string, string, RGB]] : [])];
   const parcela: [string, string, RGB?][] = imovel
     ? [["Parcela atual", brl(d.parcela_atual), C.vermelho600], ["Parcela corrigida", brl(r.parcela_corrigida), C.verde600], ["Juros", brl(d.juros)], ["Amortização", brl(d.amortizacao)], ["Tarifa administrativa", brl(d.tarifa_adm)], ["Seguros", brl(d.seguros)]]
     : [["Parcela atual", brl(d.parcela_atual), C.vermelho600], ["Parcela corrigida", brl(r.parcela_corrigida), C.verde600], ["Juros abusivos/parcela", brl(r.reducao_parcela), C.laranja500], ...(taxaMedia ? [["Taxa aplicada", `${pctBR(r.taxa_aplicada)} a.m.`] as [string, string]] : [])];

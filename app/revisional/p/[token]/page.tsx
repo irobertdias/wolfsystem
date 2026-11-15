@@ -2,14 +2,14 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { brl, pctBR } from "../../../lib/revisional";
+import { brl, pctBR, nomeModalidadeEmprestimo } from "../../../lib/revisional";
 import { baixarPdfProposta } from "../../../lib/revisional-pdf";
 import { varsMarca, type MarcaRevisional } from "../../../lib/revisional-marca";
 
 import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 type Proposta = {
   numero: string;
-  tipo: "imovel" | "veiculo";
+  tipo: "imovel" | "veiculo" | "emprestimo";
   status: string;
   cliente_nome: string;
   cliente_documento: string;
@@ -167,6 +167,7 @@ export default function PropostaRevisionalPage() {
   const onExpirar = useMemo(() => () => setProposta((p) => (p && (p.status === "enviada" || p.status === "visualizada") ? { ...p, status: "expirada" } : p)), []);
 
   const imovel = proposta?.tipo === "imovel";
+  const emprestimo = proposta?.tipo === "emprestimo";
   const total = proposta ? Number(imovel ? proposta.resultado.diferenca_total : proposta.resultado.economia_total) || 0 : 0;
   const totalAnimado = useContagem(total);
 
@@ -259,7 +260,7 @@ export default function PropostaRevisionalPage() {
             <div className="text-[13px] font-medium text-emerald-100">{primeiroNome ? `${primeiroNome}, identificamos` : "Identificamos"}</div>
             <div className="mt-1 text-[40px] font-black leading-none tracking-tight tabular-nums sm:text-[48px]"><span className="print:hidden">{brl(totalAnimado)}</span><span className="hidden print:inline">{brl(total)}</span></div>
             <div className="mt-2 text-[14px] text-emerald-50/90">
-              {imovel ? "em cobranças indevidas no seu financiamento imobiliário" : "de economia no seu financiamento de veículo"} · <b className="text-white">{d.banco}</b>
+              {imovel ? "em cobranças indevidas no seu financiamento imobiliário" : emprestimo ? "de economia no seu empréstimo" : "de economia no seu financiamento de veículo"} · <b className="text-white">{d.banco}</b>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
               {[["Cliente", proposta.cliente_nome], ["CPF/CNPJ", proposta.cliente_documento || "—"], ["Consultor", proposta.consultor_nome], ["Data", dataBR(proposta.criada_em)]].map(([k, v]) => (
@@ -399,8 +400,8 @@ export default function PropostaRevisionalPage() {
               <div className={`${verContrato ? "grid" : "hidden"} gap-x-6 border-t border-slate-100 pb-4 pt-2 text-[13px] sm:grid-cols-2 print:grid print:grid-cols-2`}>
                 {([
                   ["Banco / Financeira", d.banco],
-                  ...(!imovel ? [["Veículo", `${d.modelo || "—"}${d.ano ? ` (${d.ano})` : ""}`]] : []),
-                  ["Valor financiado", brl(d.valor_financiado)],
+                  ...(emprestimo ? [["Tipo de empréstimo", nomeModalidadeEmprestimo(d.modalidade_emprestimo)]] : !imovel ? [["Veículo", `${d.modelo || "—"}${d.ano ? ` (${d.ano})` : ""}`]] : []),
+                  [emprestimo ? "Valor do empréstimo" : "Valor financiado", brl(d.valor_financiado)],
                   ["Total de parcelas", String(d.prazo)],
                   ["Parcelas pagas", String(d.pagas)],
                   ["Parcelas em atraso", String(d.atrasadas || 0)],

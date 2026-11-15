@@ -229,7 +229,7 @@ function Ficha({ cliente, wsId, cfg, propostas, ir, fechar }: any) {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {props.map((p: any) => (
                 <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", fontSize: 13.5 }}>
-                  <span style={{ minWidth: 0 }}><b>nº {p.numero}</b> · {p.dados?.banco || (p.tipo === "imovel" ? "Imóvel" : "Veículo")}<br /><span style={{ color: "#94A3B8", fontSize: 12.5 }}>{new Date(p.created_at).toLocaleDateString("pt-BR")} · {p.consultor_nome}</span></span>
+                  <span style={{ minWidth: 0 }}><b>nº {p.numero}</b> · {p.dados?.banco || (p.tipo === "imovel" ? "Imóvel" : p.tipo === "emprestimo" ? "Empréstimo" : "Veículo")}<br /><span style={{ color: "#94A3B8", fontSize: 12.5 }}>{new Date(p.created_at).toLocaleDateString("pt-BR")} · {p.consultor_nome}</span></span>
                   <Pill texto={p.status === "aceita" ? (p.dados?.contrato_gerado ? "Aceita · contrato gerado" : "Aceita") : p.status} cor={p.status === "aceita" ? C.green : p.status === "recusada" ? C.red : C.blue} />
                 </div>
               ))}

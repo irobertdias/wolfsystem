@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { MODALIDADES_EMPRESTIMO, modalidadeEmprestimo } from "../../../lib/revisional";
 
 // Taxa média de mercado do Banco Central (SGS), em % ao mês, para comparar com o contrato.
 //   veiculo → 25471: PF, recursos livres, aquisição de veículos
 //   imovel  → 25497: PF, recursos direcionados, financiamento imobiliário com taxas de mercado
-// GET ?tipo=veiculo|imovel&mes=AAAA-MM  (sem mês, ou mês ainda não divulgado → último disponível)
+//   emprestimo → série da modalidade (pessoal 25464, consignado INSS 25468, público 25467, privado 25466)
+// GET ?tipo=veiculo|imovel|emprestimo&modalidade=...&mes=AAAA-MM  (sem mês, ou mês ainda não divulgado → último disponível)
 
 const SERIES = { veiculo: 25471, imovel: 25497 } as const;
 
@@ -25,9 +27,11 @@ async function buscar(url: string): Promise<Ponto[]> {
 const ddmmaaaa = (d: Date) => `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 
 export async function GET(request: NextRequest) {
-  const tipo = request.nextUrl.searchParams.get("tipo") === "imovel" ? "imovel" : "veiculo";
+  const tipoParam = request.nextUrl.searchParams.get("tipo");
+  const tipo = tipoParam === "imovel" ? "imovel" : tipoParam === "emprestimo" ? "emprestimo" : "veiculo";
   const mes = request.nextUrl.searchParams.get("mes") || "";
-  const serie = SERIES[tipo];
+  const modalidade = modalidadeEmprestimo(request.nextUrl.searchParams.get("modalidade"));
+  const serie = tipo === "emprestimo" ? MODALIDADES_EMPRESTIMO.find((m) => m.key === modalidade)!.serie : SERIES[tipo];
   const base = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${serie}/dados`;
   try {
     let pontos: Ponto[] = [];

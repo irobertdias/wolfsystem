@@ -3,7 +3,7 @@ import { autenticarWorkspace, respostaErroAcesso, supabaseServer } from "../../.
 import { SEM_CACHE, exigirRevisional, lerConfig } from "../../_shared";
 import { linhaCrmDaProposta } from "../../../../lib/revisional-contrato";
 import {
-  calcularImovel, calcularVeiculo, normalizarImovel, normalizarVeiculo, validarDados,
+  calcularImovel, calcularVeiculo, normalizarImovel, normalizarVeiculo, normalizarDados, tipoRevisional, validarDados,
   type TipoRevisional,
 } from "../../../../lib/revisional";
 
@@ -27,11 +27,11 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       return NextResponse.json({ success: false, error: "O cliente já respondeu esta proposta. Faça uma nova simulação." }, { status: 409 });
     }
 
-    const tipo: TipoRevisional = body.tipo === "veiculo" ? "veiculo" : "imovel";
+    const tipo: TipoRevisional = tipoRevisional(body.tipo);
     const clienteNome = String(body.cliente_nome || "").trim().slice(0, 160);
     const clienteDoc = String(body.cliente_documento || "").replace(/\D/g, "").slice(0, 14);
     const clienteTel = String(body.cliente_telefone || "").replace(/\D/g, "").slice(0, 15);
-    const dados = tipo === "imovel" ? normalizarImovel(body.dados || {}) : normalizarVeiculo(body.dados || {});
+    const dados = normalizarDados(tipo, body.dados || {});
     const erros = validarDados(tipo, dados);
     if (!clienteNome) erros.unshift("Informe o nome do cliente");
     if (clienteDoc && clienteDoc.length !== 11 && clienteDoc.length !== 14) erros.push("CPF/CNPJ inválido");

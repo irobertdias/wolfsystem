@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import {
-  brl, calcularImovel, calcularVeiculo, formatarDocumento, normalizarImovel, normalizarVeiculo,
-  pctBR, validarDados, type TipoRevisional,
+  brl, calcularImovel, calcularVeiculo, formatarDocumento, normalizarImovel, normalizarVeiculo, normalizarEmprestimo,
+  pctBR, validarDados, MODALIDADES_EMPRESTIMO, NOME_TIPO, tipoRevisional, type TipoRevisional,
 } from "../lib/revisional";
 import { baixarPdfProposta } from "../lib/revisional-pdf";
 import Icone from "../components/a2/Icone";
@@ -35,6 +35,7 @@ const botaoSec = "inline-flex items-center gap-1.5 rounded-[10px] bg-[#F3F6F5] p
 
 const IMOVEL_VAZIO = { banco: "", valor_financiado: 0, prazo: "", pagas: "", atrasadas: "0", pausa: false, modalidade: "SAC", taxa_anual: "", data_contrato: "", saldo_devedor: 0, parcela_atual: 0, juros: 0, amortizacao: 0, tarifa_adm: 25, seguros: 0 };
 const VEICULO_VAZIO = { banco: "", modelo: "", ano: "", data_contrato: "", valor_financiado: 0, parcela_atual: 0, prazo: "", pagas: "", atrasadas: "0", tem_balao: false, valor_balao: 0, quitacao: false };
+const EMPRESTIMO_VAZIO = { banco: "", modalidade_emprestimo: "pessoal", data_contrato: "", valor_financiado: 0, parcela_atual: 0, prazo: "", pagas: "", atrasadas: "0", quitacao: false };
 
 async function api(path: string, init: RequestInit = {}) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -304,24 +305,31 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
     : { nome: "", documento: "", telefone: "" });
   const [consultor, setConsultor] = useState(editar?.consultor_nome || usuarioNome);
   const [imovel, setImovel] = useState<Record<string, any>>(editar?.tipo === "imovel" ? { ...IMOVEL_VAZIO, ...dadosParaForm(editar) } : { ...IMOVEL_VAZIO, percentual_correcao: config.percentual_imovel });
-  const [veiculo, setVeiculo] = useState<Record<string, any>>(editar?.tipo === "veiculo" ? { ...VEICULO_VAZIO, ...dadosParaForm(editar) } : { ...VEICULO_VAZIO, metodo: "bacen", percentual_correcao: config.percentual_veiculo, taxa_corrigida: config.taxa_veiculo });
+  const [veiculoForm, setVeiculoForm] = useState<Record<string, any>>(editar?.tipo === "veiculo" ? { ...VEICULO_VAZIO, ...dadosParaForm(editar) } : { ...VEICULO_VAZIO, metodo: "bacen", percentual_correcao: config.percentual_veiculo, taxa_corrigida: config.taxa_veiculo });
+  const [emprestimoForm, setEmprestimoForm] = useState<Record<string, any>>(editar?.tipo === "emprestimo" ? { ...EMPRESTIMO_VAZIO, ...dadosParaForm(editar) } : { ...EMPRESTIMO_VAZIO, metodo: "bacen", percentual_correcao: config.percentual_veiculo, taxa_corrigida: config.taxa_veiculo });
+  // Veículo e empréstimo usam o mesmo cálculo (parcelas fixas); cada um guarda o seu formulário.
+  const emprestimo = tipo === "emprestimo";
+  const veiculo = emprestimo ? emprestimoForm : veiculoForm;
+  const setVeiculo = emprestimo ? setEmprestimoForm : setVeiculoForm;
   const [validade, setValidade] = useState(config.validade_horas);
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState("");
   const [gerada, setGerada] = useState<{ link: string; numero: string; expira_em: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
-  const [bacen, setBacen] = useState<{ imovel: TaxaBacen; veiculo: TaxaBacen }>({ imovel: null, veiculo: null });
+  const [bacen, setBacen] = useState<{ imovel: TaxaBacen; veiculo: TaxaBacen; emprestimo: TaxaBacen }>({ imovel: null, veiculo: null, emprestimo: null });
   const [bacenErro, setBacenErro] = useState("");
 
   useEffect(() => { if (!consultor && usuarioNome) setConsultor(usuarioNome); }, [usuarioNome, consultor]);
 
   // Taxa média do Banco Central do mês do contrato (ou a última divulgada).
   const mesContrato = tipo === "imovel" ? String(imovel.data_contrato || "") : String(veiculo.data_contrato || "");
+  // no empréstimo, a média depende da modalidade (pessoal, consignado INSS...)
+  const modalidadeEmp = emprestimo ? String(emprestimoForm.modalidade_emprestimo || "pessoal") : "";
   useEffect(() => {
     let ativo = true;
     const t = setTimeout(async () => {
       try {
-        const r = await fetch(`/api/revisional/taxa-media?tipo=${tipo}${mesContrato ? `&mes=${mesContrato}` : ""}`);
+        const r = await fetch(`/api/revisional/taxa-media?tipo=${tipo}${modalidadeEmp ? `&modalidade=${modalidadeEmp}` : ""}${mesContrato ? `&mes=${mesContrato}` : ""}`);
         const d = await r.json();
         if (!ativo) return;
         if (!d.success) throw new Error(d.error);
@@ -334,10 +342,11 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
       }
     }, 300);
     return () => { ativo = false; clearTimeout(t); };
-  }, [tipo, mesContrato]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tipo, mesContrato, modalidadeEmp]);
 
   const dadosImovel = useMemo(() => normalizarImovel(imovel), [imovel]);
-  const dadosVeiculo = useMemo(() => normalizarVeiculo(veiculo), [veiculo]);
+  const dadosVeiculo = useMemo(() => (emprestimo ? normalizarEmprestimo(veiculo) : normalizarVeiculo(veiculo)), [veiculo, emprestimo]);
   const dados = tipo === "imovel" ? dadosImovel : dadosVeiculo;
   const pendencias = validarDados(tipo, dados);
   const resultado = useMemo(
@@ -373,7 +382,8 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
     setGerada(null); setCopiado(false);
     setCliente({ nome: "", documento: "", telefone: "" });
     setImovel({ ...IMOVEL_VAZIO, percentual_correcao: config.percentual_imovel });
-    setVeiculo({ ...VEICULO_VAZIO, metodo: "bacen", percentual_correcao: config.percentual_veiculo, taxa_corrigida: config.taxa_veiculo });
+    setVeiculoForm({ ...VEICULO_VAZIO, metodo: "bacen", percentual_correcao: config.percentual_veiculo, taxa_corrigida: config.taxa_veiculo });
+    setEmprestimoForm({ ...EMPRESTIMO_VAZIO, metodo: "bacen", percentual_correcao: config.percentual_veiculo, taxa_corrigida: config.taxa_veiculo });
   }
 
   if (gerada) {
@@ -413,8 +423,8 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
   return (
     <div className="grid items-start gap-[22px] lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
       <div className="flex flex-col gap-[18px]">
-        <div role="group" aria-label="Tipo de financiamento" className="grid grid-cols-2 gap-3">
-          {(["imovel", "veiculo"] as const).map((t) => {
+        <div role="group" aria-label="Tipo de financiamento" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {(["imovel", "veiculo", "emprestimo"] as const).map((t) => {
             const sel = tipo === t;
             return (
               <button key={t} onClick={() => setTipo(t)}
@@ -423,12 +433,14 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
                   <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                     {t === "imovel"
                       ? <><path d="M3 11l9-7 9 7" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></>
-                      : <><path d="M5 17h14v-5l-2-5H7l-2 5z" /><circle cx="8" cy="17" r="2" /><circle cx="16" cy="17" r="2" /></>}
+                      : t === "veiculo"
+                        ? <><path d="M5 17h14v-5l-2-5H7l-2 5z" /><circle cx="8" cy="17" r="2" /><circle cx="16" cy="17" r="2" /></>
+                        : <><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><path d="M6 9.5v5M18 9.5v5" /></>}
                   </svg>
                 </span>
                 <span className="flex flex-col">
-                  <span className="text-[15px] font-extrabold">{t === "imovel" ? "Imobiliário" : "Veículo"}</span>
-                  <span className="text-[12.5px] text-[#64748B]">{t === "imovel" ? "SAC ou PRICE" : "Taxa média automática"}</span>
+                  <span className="text-[15px] font-extrabold">{t === "imovel" ? "Imobiliário" : t === "veiculo" ? "Veículo" : "Empréstimo"}</span>
+                  <span className="text-[12.5px] text-[#64748B]">{t === "imovel" ? "SAC ou PRICE" : t === "veiculo" ? "Taxa média automática" : "Pessoal ou consignado"}</span>
                 </span>
               </button>
             );
@@ -483,22 +495,36 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
           <>
             <Secao n={2} titulo="Contrato" extra={pilulaBacen} sub="A taxa cobrada é descoberta sozinha pela parcela; a média vem do Banco Central.">
               <div className="grid gap-3.5 sm:grid-cols-3">
-                <Campo rotulo="Banco / Financeira"><Texto valor={veiculo.banco} onChange={setV("banco")} placeholder="Aymoré CFI S.A." /></Campo>
-                <Campo rotulo="Modelo do veículo"><Texto valor={veiculo.modelo} onChange={setV("modelo")} /></Campo>
-                <Campo rotulo="Ano"><Texto valor={veiculo.ano} onChange={setV("ano")} inputMode="numeric" /></Campo>
+                <Campo rotulo="Banco / Financeira"><Texto valor={veiculo.banco} onChange={setV("banco")} placeholder={emprestimo ? "Banco Pan S.A." : "Aymoré CFI S.A."} /></Campo>
+                {emprestimo ? (
+                  <div className="sm:col-span-2">
+                    <Campo rotulo="Tipo de empréstimo" dica="Define a taxa média do Banco Central usada na comparação">
+                      <select className={inputCls} value={veiculo.modalidade_emprestimo || "pessoal"} onChange={(e) => setV("modalidade_emprestimo")(e.target.value)}>
+                        {MODALIDADES_EMPRESTIMO.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+                      </select>
+                    </Campo>
+                  </div>
+                ) : (
+                  <>
+                    <Campo rotulo="Modelo do veículo"><Texto valor={veiculo.modelo} onChange={setV("modelo")} /></Campo>
+                    <Campo rotulo="Ano"><Texto valor={veiculo.ano} onChange={setV("ano")} inputMode="numeric" /></Campo>
+                  </>
+                )}
                 <Campo rotulo="Mês do contrato" dica="Busca a taxa média da época"><input type="month" className={inputCls} value={veiculo.data_contrato || ""} onChange={(e) => setV("data_contrato")(e.target.value)} /></Campo>
-                <Campo rotulo="Valor financiado"><Dinheiro valor={veiculo.valor_financiado} onChange={setV("valor_financiado")} /></Campo>
+                <Campo rotulo={emprestimo ? "Valor do empréstimo" : "Valor financiado"} dica={emprestimo ? "Valor liberado/contratado" : undefined}><Dinheiro valor={veiculo.valor_financiado} onChange={setV("valor_financiado")} /></Campo>
                 <Campo rotulo="Parcela atual"><Dinheiro valor={veiculo.parcela_atual} onChange={setV("parcela_atual")} /></Campo>
                 <Campo rotulo="Total de parcelas"><Texto valor={veiculo.prazo} onChange={setV("prazo")} inputMode="numeric" /></Campo>
                 <Campo rotulo="Parcelas pagas"><Texto valor={veiculo.pagas} onChange={setV("pagas")} inputMode="numeric" /></Campo>
                 <Campo rotulo="Parcelas em atraso"><Texto valor={veiculo.atrasadas} onChange={setV("atrasadas")} inputMode="numeric" /></Campo>
-                <Campo rotulo="Tem parcela balão?" dica="Parcela maior no fim do contrato">
-                  <select className={inputCls} value={veiculo.tem_balao ? "sim" : "nao"} onChange={(e) => setV("tem_balao")(e.target.value === "sim")}>
-                    <option value="nao">Não</option>
-                    <option value="sim">Sim</option>
-                  </select>
-                </Campo>
-                {veiculo.tem_balao && <Campo rotulo="Valor da parcela balão"><Dinheiro valor={veiculo.valor_balao} onChange={setV("valor_balao")} /></Campo>}
+                {!emprestimo && (
+                  <Campo rotulo="Tem parcela balão?" dica="Parcela maior no fim do contrato">
+                    <select className={inputCls} value={veiculo.tem_balao ? "sim" : "nao"} onChange={(e) => setV("tem_balao")(e.target.value === "sim")}>
+                      <option value="nao">Não</option>
+                      <option value="sim">Sim</option>
+                    </select>
+                  </Campo>
+                )}
+                {!emprestimo && veiculo.tem_balao && <Campo rotulo="Valor da parcela balão"><Dinheiro valor={veiculo.valor_balao} onChange={setV("valor_balao")} /></Campo>}
                 <Campo rotulo="Intenção de quitação?" dica="Mostra quanto custa quitar hoje">
                   <select className={inputCls} value={veiculo.quitacao ? "sim" : "nao"} onChange={(e) => setV("quitacao")(e.target.value === "sim")}>
                     <option value="nao">Não</option>
@@ -640,7 +666,7 @@ function ListaPropostas({ propostas, config, podeExcluir, onMudou, onEditar }: {
                   <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-bold ${st.cls}`}>{st.rotulo}</span>
                 </div>
                 <div className="text-[12.5px] text-[#64748B]">
-                  {p.tipo === "imovel" ? "Imóvel" : "Veículo"} · {p.dados?.banco} · nº {p.numero} · {p.consultor_nome} · {new Date(p.created_at).toLocaleString("pt-BR")}
+                  {NOME_TIPO[tipoRevisional(p.tipo)]} · {p.dados?.banco} · nº {p.numero} · {p.consultor_nome} · {new Date(p.created_at).toLocaleString("pt-BR")}
                 </div>
                 <div className="text-[12px] text-[#94A3B8]">
                   {p.visualizacoes > 0 ? `Aberta ${p.visualizacoes}x (1ª em ${new Date(p.visualizada_em!).toLocaleString("pt-BR")})` : "Ainda não aberta"}

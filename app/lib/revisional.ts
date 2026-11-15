@@ -1,4 +1,4 @@
-// Cálculos do módulo Revisional (imobiliário e veículo).
+// Cálculos do módulo Revisional (imobiliário, veículo e empréstimo).
 // Usado no painel (prévia ao vivo) e no servidor (valor gravado na proposta).
 // O servidor sempre recalcula: o cliente nunca recebe um número enviado pelo navegador.
 //
@@ -7,8 +7,29 @@
 // (SAC ou PRICE). O que o consultor digitar do boleto/extrato tem prioridade.
 // A taxa média de mercado vem do Banco Central (séries SGS, ver /api/revisional/taxa-media).
 
-export type TipoRevisional = "imovel" | "veiculo";
+// "emprestimo": empréstimo pessoal/consignado. Usa o mesmo cálculo do veículo
+// (parcelas fixas, taxa descoberta pela parcela), sem modelo/ano/balão.
+export type TipoRevisional = "imovel" | "veiculo" | "emprestimo";
 export type MetodoCorrecao = "percentual" | "taxa" | "bacen";
+
+export const TIPOS_REVISIONAL: TipoRevisional[] = ["imovel", "veiculo", "emprestimo"];
+export function tipoRevisional(v: unknown): TipoRevisional {
+  return v === "veiculo" || v === "emprestimo" ? v : "imovel";
+}
+export const NOME_TIPO: Record<TipoRevisional, string> = { imovel: "Imóvel", veiculo: "Veículo", emprestimo: "Empréstimo" };
+
+/** Modalidades de empréstimo, cada uma com a sua série de taxa média do Banco Central (SGS, % a.m., PF, recursos livres). */
+export const MODALIDADES_EMPRESTIMO = [
+  { key: "pessoal", label: "Empréstimo pessoal (não consignado)", serie: 25464 },
+  { key: "consignado_inss", label: "Consignado INSS (aposentado/pensionista)", serie: 25468 },
+  { key: "consignado_publico", label: "Consignado servidor público", serie: 25467 },
+  { key: "consignado_privado", label: "Consignado trabalhador CLT (privado)", serie: 25466 },
+] as const;
+export type ModalidadeEmprestimo = (typeof MODALIDADES_EMPRESTIMO)[number]["key"];
+export function modalidadeEmprestimo(v: unknown): ModalidadeEmprestimo {
+  return (MODALIDADES_EMPRESTIMO.find((m) => m.key === v)?.key || "pessoal") as ModalidadeEmprestimo;
+}
+export const nomeModalidadeEmprestimo = (v: unknown) => MODALIDADES_EMPRESTIMO.find((m) => m.key === v)?.label || "Empréstimo pessoal";
 
 export type DadosImovel = {
   banco: string;
@@ -50,6 +71,7 @@ export type DadosVeiculo = {
   tem_balao: boolean;          // contrato com parcela balão (parcela maior no fim)
   valor_balao: number;         // valor da parcela balão
   quitacao: boolean;           // cliente tem intenção de quitar o contrato
+  modalidade_emprestimo?: ModalidadeEmprestimo; // só no tipo "emprestimo"
 };
 
 export type ResultadoImovel = {
@@ -221,7 +243,18 @@ export function normalizarVeiculo(d: Partial<Record<keyof DadosVeiculo, unknown>
     tem_balao: d.tem_balao === true || d.tem_balao === "true",
     valor_balao: d.tem_balao === true || d.tem_balao === "true" ? Math.max(0, num(d.valor_balao)) : 0,
     quitacao: d.quitacao === true || d.quitacao === "true",
+    ...(d.modalidade_emprestimo !== undefined ? { modalidade_emprestimo: modalidadeEmprestimo(d.modalidade_emprestimo) } : {}),
   };
+}
+
+/** Empréstimo: mesmos dados do veículo, sem modelo/ano/balão. */
+export function normalizarEmprestimo(d: Partial<Record<keyof DadosVeiculo, unknown>>): DadosVeiculo {
+  return { ...normalizarVeiculo({ ...d, tem_balao: false, valor_balao: 0 }), modelo: "", ano: "", modalidade_emprestimo: modalidadeEmprestimo(d.modalidade_emprestimo) };
+}
+
+/** Dados normalizados do tipo. */
+export function normalizarDados(tipo: TipoRevisional, d: Record<string, unknown>): DadosImovel | DadosVeiculo {
+  return tipo === "imovel" ? normalizarImovel(d) : tipo === "emprestimo" ? normalizarEmprestimo(d) : normalizarVeiculo(d);
 }
 
 export function calcularImovel(d: DadosImovel): ResultadoImovel {
@@ -313,7 +346,7 @@ export function calcularVeiculo(d: DadosVeiculo): ResultadoVeiculo {
 export function validarDados(tipo: TipoRevisional, d: DadosImovel | DadosVeiculo): string[] {
   const erros: string[] = [];
   if (!d.banco) erros.push("Informe o banco/financeira");
-  if (d.valor_financiado <= 0) erros.push("Informe o valor financiado");
+  if (d.valor_financiado <= 0) erros.push(tipo === "emprestimo" ? "Informe o valor do empréstimo" : "Informe o valor financiado");
   if (d.prazo <= 0) erros.push("Informe o total de parcelas");
   if (d.pagas > d.prazo) erros.push("Parcelas pagas maior que o total");
   if (tipo === "imovel") {
