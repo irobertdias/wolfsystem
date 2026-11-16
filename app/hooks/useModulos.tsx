@@ -103,7 +103,7 @@ export function useModulos() {
         // isso os módulos voltariam todos false pro time interno da casa.
         if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           if (!cancelado) {
-            setModulos({ vendedor_ia: true, roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true,  contratos_assinaturas: true, revisional: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, nicho_opcoes: { ia_cadastro: true, frete_calculado: true, pagamento_online: true }, plano: "ultra" });
+            setModulos({ vendedor_ia: true, roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true,  contratos_assinaturas: true, revisional: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, nicho_opcoes: { ia_cadastro: true, frete_calculado: true, pagamento_online: true, ia_vendas: true }, plano: "ultra" });
             setCarregado(true);
           }
           return;

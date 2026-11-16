@@ -59,6 +59,7 @@ export type ConfigLoja = {
   produtos: Produto[];
   empresa?: EmpresaLoja;        // logo, CNPJ e contatos para orçamento/PDF/link
   frete?: FreteConfig;          // frete fixo ou calculado pelo CEP
+  ia_vendas?: any;              // vendedora IA no WhatsApp e avisos do pedido
   categorias: string[];
   formas_pagamento: string[];
   taxa_entrega: number;

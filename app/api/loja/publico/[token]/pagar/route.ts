@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "../../../../_auth";
 import { modulosLoja } from "../../../_modulos";
-import { lerGateway, criarCobranca, consultarPagamento, confirmarPagamento, NOME_GATEWAY } from "../../../_pagamento";
+import { lerGateway, consultarPagamento, confirmarPagamento, linkPagamentoDoPedido } from "../../../_pagamento";
 
 // Link de pagamento online do pedido aceito (gateway do lojista).
 // POST { documento? } → { url }. O valor vem sempre do banco.
@@ -14,34 +14,10 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ token:
     if (!p) return NextResponse.json({ success: false, error: "Pedido não encontrado" }, { status: 404 });
     const x: any = p; const d = x.dados_customizados?.pedido || {};
     if (!d.aceite) return NextResponse.json({ success: false, error: "Aprove o orçamento antes de pagar" }, { status: 409 });
-    if (["CANCELADA", "PERDIDA"].includes(x.status_venda)) return NextResponse.json({ success: false, error: "Este pedido foi cancelado" }, { status: 409 });
-    if (d.pagamento_online?.status === "pago") return NextResponse.json({ success: false, error: "Este pedido já está pago" }, { status: 409 });
-    const g = await lerGateway(x.workspace_id);
-    if (!g || !(await modulosLoja(x.workspace_id)).liberado("pagamento_online")) return NextResponse.json({ success: false, error: "A loja não ativou o pagamento online" }, { status: 400 });
-
-    // Reaproveita a cobrança já criada (mesmo gateway, mesmo valor, menos de 2 dias)
-    const total = Number(x.valor_plano) || 0;
-    const po = d.pagamento_online;
-    if (po?.url && po.gateway === g.gateway && Number(po.valor) === total && Date.now() - new Date(po.criado_em).getTime() < 2 * 86400_000) {
-      return NextResponse.json({ success: true, url: po.url });
-    }
-    if (total <= 0) return NextResponse.json({ success: false, error: "Pedido sem valor" }, { status: 400 });
-
-    const { data: cfg } = await supabaseServer.from("fin_config").select("config").eq("workspace_id", x.workspace_id).maybeSingle();
-    const emp = (cfg as any)?.config?.loja?.empresa || {};
-    const doc = String(b.documento || x.cpf || "").replace(/\D/g, "");
-    const origem = request.nextUrl.origin;
-    const cob = await criarCobranca(g, {
-      ws: x.workspace_id, pedidoId: x.id, numero: d.numero || String(x.id), total,
-      descricao: `Pedido nº ${d.numero || x.id}${emp.nome ? ` - ${emp.nome}` : ""}`,
-      cliente: { nome: x.nome, documento: doc, email: x.email || undefined, telefone: x.telefone1 || undefined },
-      voltar: `${origem}/pedido/${token}?pagamento=retorno`, origem,
-    });
-    const agora = new Date().toISOString();
-    const novo = { ...d, pagamento_online: { gateway: g.gateway, cobranca_id: cob.id, url: cob.url, valor: total, status: "aguardando", criado_em: agora },
-      historico: [...(d.historico || []), { em: agora, nota: `Cliente abriu o pagamento online (${NOME_GATEWAY[g.gateway]})`, por: "cliente" }] };
-    await supabaseServer.from("proposta").update({ ...(doc && !x.cpf ? { cpf: doc } : {}), dados_customizados: { ...x.dados_customizados, pedido: novo } }).eq("id", x.id);
-    return NextResponse.json({ success: true, url: cob.url });
+    if (!(await modulosLoja(x.workspace_id)).liberado("pagamento_online")) return NextResponse.json({ success: false, error: "A loja não ativou o pagamento online" }, { status: 400 });
+    const r = await linkPagamentoDoPedido(x, request.nextUrl.origin, b.documento);
+    if (r.erro) return NextResponse.json({ success: false, error: r.erro }, { status: 409 });
+    return NextResponse.json({ success: true, url: r.url });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: String(e?.message || "Não foi possível abrir o pagamento").slice(0, 200) }, { status: 502 });
   }

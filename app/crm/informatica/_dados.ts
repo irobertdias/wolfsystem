@@ -31,20 +31,22 @@ const ETAPAS_VENDAS: Etapa[] = [
   { key: "PENDENTE", label: "Novo / em atendimento", curto: "Novo", cor: "#64748B" },
   { key: "EM NEGOCIACAO", label: "Orçamento enviado", curto: "Orçamento", cor: "#2563EB" },
   { key: "AGUARDANDO PAGAMENTO", label: "Aguardando pagamento", curto: "Pagamento", cor: "#D97706" },
-  { key: "FECHADA", label: "Venda fechada", curto: "Fechada", cor: "#16A34A" },
+  { key: "EM SEPARACAO", label: "Pago · em separação", curto: "Separação", cor: "#7C3AED" },
+  { key: "AGUARDANDO ENTREGA", label: "Enviado / saiu para entrega", curto: "Enviado", cor: "#0891B2" },
+  { key: "FECHADA", label: "Venda concluída", curto: "Concluída", cor: "#16A34A" },
   { key: "PERDIDA", label: "Perdida", curto: "Perdida", cor: "#DC2626" },
   { key: "CANCELADA", label: "Cancelada", curto: "Cancelada", cor: "#94A3B8" },
 ];
 export const etapasDo = (m: Modo) => (m === "roupas" ? ETAPAS_ROUPAS : ETAPAS_VENDAS);
 export const etapaDe = (m: Modo, key?: string | null) => etapasDo(m).find((e) => e.key === key) || etapasDo(m)[0];
 // Etapas em que o estoque já saiu e a venda conta no faturamento.
-export const CONFIRMADAS: Record<Modo, string[]> = { roupas: ["EM SEPARACAO", "AGUARDANDO ENTREGA", "ENTREGUE"], vendas: ["FECHADA"] };
-export const CONCLUIDAS: Record<Modo, string[]> = { roupas: ["ENTREGUE", "AGUARDANDO ENTREGA", "EM SEPARACAO"], vendas: ["FECHADA"] };
+export const CONFIRMADAS: Record<Modo, string[]> = { roupas: ["EM SEPARACAO", "AGUARDANDO ENTREGA", "ENTREGUE"], vendas: ["EM SEPARACAO", "AGUARDANDO ENTREGA", "FECHADA"] };
+export const CONCLUIDAS: Record<Modo, string[]> = { roupas: ["ENTREGUE", "AGUARDANDO ENTREGA", "EM SEPARACAO"], vendas: ["EM SEPARACAO", "AGUARDANDO ENTREGA", "FECHADA"] };
 export const ENCERRADAS = ["CANCELADA", "PERDIDA"];
 // Ordem do fluxo principal (botão "avançar").
 export const FLUXO: Record<Modo, string[]> = {
   roupas: ["PENDENTE", "AGUARDANDO PAGAMENTO", "EM SEPARACAO", "AGUARDANDO ENTREGA", "ENTREGUE"],
-  vendas: ["PENDENTE", "EM NEGOCIACAO", "AGUARDANDO PAGAMENTO", "FECHADA"],
+  vendas: ["PENDENTE", "EM NEGOCIACAO", "AGUARDANDO PAGAMENTO", "EM SEPARACAO", "AGUARDANDO ENTREGA", "FECHADA"],
 };
 
 export type Variante = { id: string; tamanho?: string; cor?: string; estoque: number; sku?: string };
@@ -61,6 +63,7 @@ export type ConfigLoja = {
   produtos: Produto[];
   empresa?: EmpresaLoja;        // logo, CNPJ e contatos para orçamento/PDF/link
   frete?: FreteConfig;          // frete fixo ou calculado pelo CEP
+  ia_vendas?: any;              // vendedora IA no WhatsApp e avisos do pedido
   categorias: string[];
   formas_pagamento: string[];
   taxa_entrega: number;

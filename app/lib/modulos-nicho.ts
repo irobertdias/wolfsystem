@@ -16,6 +16,7 @@ export const MODULOS_NICHO: Partial<Record<Vertical, ModuloNicho[]>> = {
     { key: "ia_cadastro", label: "IA no cadastro de produtos", desc: "Busca dados e fotos do produto para cadastrar", padrao: false },
     { key: "frete_calculado", label: "Frete calculado pelo CEP", desc: "Sedex/PAC pelo CEP do cliente (tabela ou contrato dos Correios)", padrao: false },
     { key: "pagamento_online", label: "Pagamento online (gateway)", desc: "Cliente paga pelo link com Mercado Pago ou Asaas; baixa automática", padrao: false },
+    { key: "ia_vendas", label: "Vendedora IA no WhatsApp + avisos", desc: "Atende consultando estoque e preços, fecha o pedido, manda o pagamento e avisa cada etapa", padrao: false },
   ],
   vendas: [
     { key: "caixa", label: "Caixa (PDV)", desc: "Frente de caixa com leitor de código, troco e cupom", padrao: true },
@@ -24,6 +25,7 @@ export const MODULOS_NICHO: Partial<Record<Vertical, ModuloNicho[]>> = {
     { key: "ia_cadastro", label: "IA no cadastro de produtos", desc: "Busca dados e fotos do produto para cadastrar", padrao: false },
     { key: "frete_calculado", label: "Frete calculado pelo CEP", desc: "Sedex/PAC pelo CEP do cliente (tabela ou contrato dos Correios)", padrao: false },
     { key: "pagamento_online", label: "Pagamento online (gateway)", desc: "Cliente paga pelo link com Mercado Pago ou Asaas; baixa automática", padrao: false },
+    { key: "ia_vendas", label: "Vendedora IA no WhatsApp + avisos", desc: "Atende consultando estoque e preços, fecha o pedido, manda o pagamento e avisa cada etapa", padrao: false },
   ],
   roupas: [
     { key: "entregas", label: "Separação e entregas", desc: "Expedição dos pedidos, entrega e retirada", padrao: true },
@@ -32,6 +34,7 @@ export const MODULOS_NICHO: Partial<Record<Vertical, ModuloNicho[]>> = {
     { key: "ia_cadastro", label: "IA no cadastro de peças", desc: "Busca dados e fotos da peça para cadastrar", padrao: false },
     { key: "frete_calculado", label: "Frete calculado pelo CEP", desc: "Sedex/PAC pelo CEP do cliente (tabela ou contrato dos Correios)", padrao: false },
     { key: "pagamento_online", label: "Pagamento online (gateway)", desc: "Cliente paga pelo link com Mercado Pago ou Asaas; baixa automática", padrao: false },
+    { key: "ia_vendas", label: "Vendedora IA no WhatsApp + avisos", desc: "Atende consultando estoque e preços, fecha o pedido, manda o pagamento e avisa cada etapa", padrao: false },
   ],
   consignado: [
     { key: "esteira", label: "Esteira de contratos", desc: "Da simulação ao pagamento", padrao: true },

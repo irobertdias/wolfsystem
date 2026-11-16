@@ -80,15 +80,40 @@ export async function consultarPagamento(g: GatewayCfg, id: string): Promise<{ p
   return { pago: ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(j.status), ref: String(j.externalReference || ""), valor: Number(j.value) || 0, status: String(j.status || ""), metodo: j.billingType };
 }
 
+/** Link de pagamento de um pedido (reaproveita a cobrança aberta). `x` = linha da proposta. */
+export async function linkPagamentoDoPedido(x: any, origem: string, documento?: string): Promise<{ url?: string; erro?: string }> {
+  const d = x.dados_customizados?.pedido || {};
+  if (["CANCELADA", "PERDIDA"].includes(x.status_venda)) return { erro: "Este pedido foi cancelado" };
+  if (d.pagamento_online?.status === "pago") return { erro: "Este pedido já está pago" };
+  const g = await lerGateway(x.workspace_id);
+  if (!g) return { erro: "A loja não ativou o pagamento online" };
+  const total = Number(x.valor_plano) || 0;
+  if (total <= 0) return { erro: "Pedido sem valor" };
+  const po = d.pagamento_online;
+  if (po?.url && po.gateway === g.gateway && Number(po.valor) === total && Date.now() - new Date(po.criado_em).getTime() < 2 * 86400_000) return { url: po.url };
+  const { data: cfg } = await supabaseServer.from("fin_config").select("config").eq("workspace_id", x.workspace_id).maybeSingle();
+  const emp = (cfg as any)?.config?.loja?.empresa || {};
+  const doc = String(documento || x.cpf || "").replace(/\D/g, "");
+  const cob = await criarCobranca(g, {
+    ws: x.workspace_id, pedidoId: x.id, numero: d.numero || String(x.id), total,
+    descricao: `Pedido nº ${d.numero || x.id}${emp.nome ? ` - ${emp.nome}` : ""}`,
+    cliente: { nome: x.nome, documento: doc, email: x.email || undefined, telefone: x.telefone1 || undefined },
+    voltar: `${origem}/pedido/${d.link_token}?pagamento=retorno`, origem,
+  });
+  const agora = new Date().toISOString();
+  const novo = { ...d, pagamento_online: { gateway: g.gateway, cobranca_id: cob.id, url: cob.url, valor: total, status: "aguardando", criado_em: agora },
+    historico: [...(d.historico || []), { em: agora, nota: `Link de pagamento online gerado (${NOME_GATEWAY[g.gateway]})`, por: "cliente" }] };
+  await supabaseServer.from("proposta").update({ ...(doc && !x.cpf ? { cpf: doc } : {}), dados_customizados: { ...x.dados_customizados, pedido: novo } }).eq("id", x.id);
+  return { url: cob.url };
+}
+
 /** Dá baixa no pedido pago: etapa seguinte do fluxo, data do pagamento e saída do estoque. */
 export async function confirmarPagamento(ws: string, pedidoId: number, info: { gateway: Gateway; id: string; valor: number; metodo?: string }) {
   const { data: p } = await supabaseServer.from("proposta").select("id,status_venda,dados_customizados").eq("workspace_id", ws).eq("id", pedidoId).maybeSingle();
   if (!p) return { ok: false, motivo: "pedido não encontrado" };
   const d = (p as any).dados_customizados?.pedido || {};
   if (d.pagamento_online?.status === "pago") return { ok: true, motivo: "já estava pago" };
-  const { data: w } = await supabaseServer.from("workspaces").select("vertical").eq("username", ws).maybeSingle();
-  const roupas = (w as any)?.vertical === "roupas";
-  const proxima = roupas ? "EM SEPARACAO" : "FECHADA";
+  const proxima = "EM SEPARACAO"; // pago → separação (os três nichos de loja têm essa etapa)
   const agora = new Date().toISOString();
 
   // Estoque: mesma regra da tela (sai ao confirmar), feita aqui porque não há ninguém logado.
@@ -112,5 +137,7 @@ export async function confirmarPagamento(ws: string, pedidoId: number, info: { g
   };
   const etapa = ["CANCELADA", "PERDIDA"].includes((p as any).status_venda) ? (p as any).status_venda : proxima;
   await supabaseServer.from("proposta").update({ status_venda: etapa, dados_customizados: { ...(p as any).dados_customizados, pedido: novo }, updated_at: agora }).eq("workspace_id", ws).eq("id", pedidoId);
+  // Módulo IA de vendas: avisa o cliente no WhatsApp que o pagamento entrou e o pedido está em separação
+  if (etapa === proxima) { try { const { avisarEtapa } = await import("./_avisos"); await avisarEtapa(ws, pedidoId, "pago"); } catch {} }
   return { ok: true };
 }

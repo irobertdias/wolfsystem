@@ -5,6 +5,7 @@ import { num, salvarConfig } from "../_dados";
 import { reduzirLogo, cnpjFmt, coresDaLogo, type EmpresaLoja, type FreteConfig } from "../../../lib/loja-orcamento";
 import ConfigFreteLoja from "../../../components/ConfigFreteLoja";
 import GatewayLoja from "../../../components/GatewayLoja";
+import ConfigIAVendas, { type IAVendasConfig } from "../../../components/ConfigIAVendas";
 import ChaveIALoja from "../../../components/ChaveIALoja";
 import { useModulos } from "../../../hooks/useModulos";
 import { nichoLiberado } from "../../../lib/modulos-nicho";
@@ -17,6 +18,9 @@ export default function ConfigLoja({ dados }: any) {
   const iaLiberada = nichoLiberado(modulos.nicho_opcoes, "vendas", "ia_cadastro");
   const freteLiberado = nichoLiberado(modulos.nicho_opcoes, "vendas", "frete_calculado");
   const pagLiberado = nichoLiberado(modulos.nicho_opcoes, "vendas", "pagamento_online");
+  const iaVendasLiberado = nichoLiberado(modulos.nicho_opcoes, "vendas", "ia_vendas");
+  const [iav, setIav] = useState<IAVendasConfig>({});
+  useEffect(() => { setIav(cfg.ia_vendas || {}); }, [cfg]);
   const roupas = modo === "roupas";
   const [f, setF] = useState({ pagamentos: "", categorias: "", tamanhos: "", taxa: "", minimo: "", validade: "" });
   const [aviso, setAviso] = useState("");
@@ -33,7 +37,7 @@ export default function ConfigLoja({ dados }: any) {
     setSalvando(true); setAviso("");
     const { error } = await salvarConfig(wsId, {
       ...cfg,
-      empresa: emp, frete: fr,
+      empresa: emp, frete: fr, ia_vendas: iav,
       formas_pagamento: lista(f.pagamentos), categorias: lista(f.categorias), tamanhos: lista(f.tamanhos),
       taxa_entrega: num(f.taxa), estoque_minimo: Math.max(0, Math.round(num(f.minimo))), validade_orcamento_dias: Math.max(1, Math.round(num(f.validade)) || 7),
     });
@@ -90,6 +94,7 @@ export default function ConfigLoja({ dados }: any) {
       </Card>
       <ConfigFreteLoja valor={fr} onChange={setFr} taxaFixa={f.taxa} onTaxaFixa={(s) => setF({ ...f, taxa: s })} roupas={roupas} permiteCalculado={freteLiberado} />
       {pagLiberado && <GatewayLoja wsId={wsId} />}
+      {iaVendasLiberado && <ConfigIAVendas wsId={wsId} valor={iav} onChange={setIav} />}
       {iaLiberada && <ChaveIALoja wsId={wsId} />}
       <Card titulo="Vendas">
         <Row>

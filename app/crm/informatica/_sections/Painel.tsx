@@ -38,7 +38,7 @@ export default function Painel({ dados, ir }: any) {
   const aprovar = ordens.filter((p) => p.status_venda === "AGUARDANDO APROVACAO");
   const prontas = ordens.filter((p) => p.status_venda === "PRONTO");
   const orcs = pedidos.filter((p) => ped(p).tipo === "orcamento" || p.status_venda === "EM NEGOCIACAO");
-  const conversao = orcs.length ? Math.round((orcs.filter((p) => p.status_venda === "FECHADA").length / orcs.length) * 100) : 0;
+  const conversao = orcs.length ? Math.round((orcs.filter((p) => CONFIRMADAS.vendas.includes(p.status_venda || "")).length / orcs.length) * 100) : 0;
   const aguardandoPgto = pedidos.filter((p) => p.status_venda === "AGUARDANDO PAGAMENTO");
   const produtos: Produto[] = cfg.produtos || [];
   const baixo = produtos.filter((p) => !p.servico).flatMap((p) => p.variantes.filter((v) => num(v.estoque) <= cfg.estoque_minimo).map(() => p.nome));

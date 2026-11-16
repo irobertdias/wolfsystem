@@ -32,7 +32,7 @@ export default function Painel({ dados, ir }: any) {
   const aguardandoPgto = pedidos.filter((p) => p.status_venda === "AGUARDANDO PAGAMENTO");
   const orcs = pedidos.filter((p) => ped(p).tipo === "orcamento" || p.status_venda === "EM NEGOCIACAO");
   const orcAbertos = orcs.filter((p) => ["PENDENTE", "EM NEGOCIACAO"].includes(p.status_venda || "PENDENTE"));
-  const conversao = orcs.length ? Math.round((orcs.filter((p) => p.status_venda === "FECHADA").length / orcs.length) * 100) : 0;
+  const conversao = orcs.length ? Math.round((orcs.filter((p) => CONFIRMADAS.vendas.includes(p.status_venda || "")).length / orcs.length) * 100) : 0;
   const separar = pedidos.filter((p) => p.status_venda === "EM SEPARACAO").length;
   const naRua = pedidos.filter((p) => p.status_venda === "AGUARDANDO ENTREGA").length;
   const produtos: Produto[] = cfg.produtos || [];

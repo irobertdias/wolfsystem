@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { Page, PageHeader, Btn, Banner, Field, Row, Table, Vazio, Pill, Modal, inputSm, tdStyle } from "../../financeiro/_sections/_ui";
 import {
-  etapasDo, etapaDe, FLUXO, ENCERRADAS, brl, dataBR, hoje, num, telFmt, ped, descVariante, subtotal, totalPedido, qtdItens,
+  etapasDo, etapaDe, FLUXO, ENCERRADAS, CONFIRMADAS, brl, dataBR, hoje, num, telFmt, ped, descVariante, subtotal, totalPedido, qtdItens,
   salvarPedido, mudarEtapa, textoPedido, nomeUsuario, baixarCSV, type Pedido, type DadosPedido, type Item, type Produto,
 } from "../_dados";
 import Icone from "../../../components/a2/Icone";
@@ -30,6 +30,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
   const produtos: Produto[] = (cfg.produtos || []).filter((p: Produto) => p.ativo !== false);
   const { modulos } = useModulos();
   const nichoOk = nichoLiberado(modulos.nicho_opcoes, "informatica", "orcamentos");
+  const iaVendas = nichoLiberado(modulos.nicho_opcoes, "informatica", "ia_vendas");
 
   const ehOrc = (p: Pedido) => ped(p).tipo === "orcamento" && ["PENDENTE", "EM NEGOCIACAO"].includes(p.status_venda || "PENDENTE");
   const base = orcamentos ? pedidos.filter((p) => ped(p).tipo === "orcamento" || p.status_venda === "EM NEGOCIACAO") : pedidos.filter((p) => !ehOrc(p));
@@ -101,14 +102,24 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
     setSalvando(false);
     if (error) { setErro("Erro ao salvar: " + error.message); return; }
     setAberto(false); carregar();
+    if (atual && mudou) avisarCliente(atual.id, f.status_venda);
     if (nichoOk && d.tipo === "orcamento" && d.link_token && !d.aceite) setPopup({ token: d.link_token, form: { ...f, d }, atual });
   }
 
+  // Módulo Vendedora IA: avisa o cliente no WhatsApp (separação, enviado, entregue). O servidor confere o módulo.
+  async function avisarCliente(pedidoId: number, etapa: string) {
+    if (!iaVendas || !["EM SEPARACAO", "AGUARDANDO ENTREGA", "ENTREGUE", "FECHADA"].includes(etapa)) return;
+    try {
+      const { data } = await supabase.auth.getSession();
+      const r = await fetch("/api/loja/avisar", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token || ""}` }, body: JSON.stringify({ ws: wsId, pedidoId, etapa }) }).then((x) => x.json());
+      if (r?.ok === false && r.motivo && !/já avisado|venda de balcão|etapa sem aviso|desligad/.test(r.motivo)) setAviso("Aviso ao cliente não enviado: " + r.motivo);
+    } catch {}
+  }
   async function avancar(p: Pedido, nova: string) {
     setAviso("");
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await mudarEtapa(wsId, modo, p, nova, "", user?.email || "");
-    if (error) setAviso("Não foi possível mudar a etapa: " + error.message); else carregar();
+    if (error) setAviso("Não foi possível mudar a etapa: " + error.message); else { carregar(); avisarCliente(p.id, nova); }
   }
   async function excluir() {
     if (!atual || !confirm(`Excluir de vez ${ped(atual).tipo === "orcamento" ? "o orçamento" : "o pedido"} de ${atual.nome}?`)) return;
@@ -120,7 +131,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
 
   const titulo = orcamentos ? "Orçamentos" : "Vendas";
   const proxima = (p: Pedido) => { const fl = FLUXO[modo]; const i = fl.indexOf(p.status_venda || "PENDENTE"); return i >= 0 && i < fl.length - 1 ? fl[i + 1] : null; };
-  const conversao = (() => { const orcs = pedidos.filter((p) => ped(p).tipo === "orcamento" || p.status_venda === "EM NEGOCIACAO"); const fech = orcs.filter((p) => p.status_venda === "FECHADA").length; return orcs.length ? Math.round((fech / orcs.length) * 100) : 0; })();
+  const conversao = (() => { const orcs = pedidos.filter((p) => ped(p).tipo === "orcamento" || p.status_venda === "EM NEGOCIACAO"); const fech = orcs.filter((p) => CONFIRMADAS[modo].includes(p.status_venda || "")).length; return orcs.length ? Math.round((fech / orcs.length) * 100) : 0; })();
 
   return (
     <Page>
@@ -208,7 +219,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
               </select>
             </Field>
             {f.d.entrega === "entrega" && <Field label={modo === "roupas" ? "Taxa de entrega (R$)" : `Frete (R$)${f.d.servico_frete ? ` · ${f.d.servico_frete}` : ""}`} flex="1 1 140px"><input style={inputSm} inputMode="decimal" value={f.d.frete ?? ""} onChange={(e) => setD({ frete: e.target.value as any, servico_frete: undefined, prazo_frete: undefined })} /></Field>}
-            <Field label="Pagamento" flex="1 1 170px"><select style={inputSm} value={f.d.pagamento || ""} onChange={(e) => setD({ pagamento: e.target.value })}><option value="">—</option>{cfg.formas_pagamento.map((x: string) => <option key={x}>{x}</option>)}</select></Field>
+            <Field label="Pagamento" flex="1 1 170px"><select style={inputSm} value={f.d.pagamento || ""} onChange={(e) => setD({ pagamento: e.target.value })}><option value="">—</option>{f.d.pagamento && !cfg.formas_pagamento.includes(f.d.pagamento) && <option>{f.d.pagamento}</option>}{cfg.formas_pagamento.map((x: string) => <option key={x}>{x}</option>)}</select></Field>
           </Row>
           {f.d.entrega === "entrega" && cfg.frete?.modo === "calculado" && nichoLiberado(modulos.nicho_opcoes, "informatica", "frete_calculado") && (
             <CalcularFreteLoja wsId={wsId} itens={f.d.itens.map((i) => ({ produto_id: i.produto_id, qtd: num(i.qtd), preco: num(i.preco), servico: i.servico }))}
@@ -219,6 +230,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
               <Field label="Endereço de entrega" flex="3 1 300px"><input style={inputSm} value={f.endereco} onChange={(e) => setF({ ...f, endereco: e.target.value })} placeholder="Rua, número, bairro, complemento" /></Field>
               <Field label="Cidade" flex="1 1 140px"><input style={inputSm} value={f.cidade} onChange={(e) => setF({ ...f, cidade: e.target.value })} /></Field>
               <Field label="Data de entrega" flex="1 1 150px"><input type="date" style={inputSm} value={f.d.data_entrega || ""} onChange={(e) => setD({ data_entrega: e.target.value })} /></Field>
+              <Field label="Código de rastreio" flex="1 1 160px"><input style={inputSm} value={f.d.rastreio || ""} onChange={(e) => setD({ rastreio: e.target.value.trim() })} placeholder="Ex.: AA123456789BR" /></Field>
               <Field label="Período" flex="1 1 120px"><select style={inputSm} value={f.d.periodo_entrega || ""} onChange={(e) => setD({ periodo_entrega: e.target.value })}><option value="">—</option><option>Manhã</option><option>Tarde</option><option>Noite</option></select></Field>
             </Row>
           )}
