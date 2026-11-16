@@ -5,6 +5,8 @@ import { brl, num, novoId, estoqueProduto, salvarConfig, type Produto, type Vari
 import { SIMBOLOS } from "../../../lib/arte-nicho";
 import { gerarSku, skuVariante } from "../../../lib/loja-sku";
 import AssistenteIAProduto from "../../../components/AssistenteIAProduto";
+import ImportarPlanilhaLoja from "../../../components/ImportarPlanilhaLoja";
+import CompararPrecosLoja from "../../../components/CompararPrecosLoja";
 import { useModulos } from "../../../hooks/useModulos";
 import { nichoLiberado } from "../../../lib/modulos-nicho";
 const NICHO_IA = "informatica";
@@ -33,6 +35,15 @@ export default function Catalogo({ dados, gestor }: any) {
   const produtos: Produto[] = cfg.produtos || [];
   const { modulos } = useModulos();
   const iaLiberada = nichoLiberado(modulos.nicho_opcoes, NICHO_IA, "ia_cadastro");
+  const importarLiberado = nichoLiberado(modulos.nicho_opcoes, NICHO_IA, "importar_planilha");
+  const compararLiberado = nichoLiberado(modulos.nicho_opcoes, NICHO_IA, "precos_concorrencia");
+  const [importar, setImportar] = useState(false);
+  const [comparar, setComparar] = useState(false);
+  const salvarLista = async (lista: Produto[], novasCats: string[] = []) => {
+    const { error } = await salvarConfig(wsId, { ...cfg, produtos: lista, categorias: [...cfg.categorias, ...novasCats.filter((c) => !cfg.categorias.includes(c))] });
+    if (!error) carregar();
+    return error ? error.message : null;
+  };
   const lista = produtos.filter((p) => (!cat || p.categoria === cat) && (!busca || `${p.nome} ${p.marca || ""} ${p.sku || ""}`.toLowerCase().includes(busca.toLowerCase())));
 
   const abrir = (p?: Produto) => {
@@ -77,7 +88,7 @@ export default function Catalogo({ dados, gestor }: any) {
   const simbolo = SIMBOLOS.informatica;
   return (
     <Page>
-      <PageHeader titulo="Produtos, peças e serviços" subtitulo={`${produtos.length} ${roupas ? "peça(s)" : "item(ns)"} cadastrado(s)`} acao={<Btn onClick={() => abrir()}>＋ {roupas ? "Nova peça" : "Novo produto ou serviço"}</Btn>} />
+      <PageHeader titulo="Produtos, peças e serviços" subtitulo={`${produtos.length} ${roupas ? "peça(s)" : "item(ns)"} cadastrado(s)`} acao={<div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{gestor && importarLiberado && <Btn variante="ghost" onClick={() => setImportar(true)}>⬆ Importar planilha</Btn>}{gestor && compararLiberado && <Btn variante="ghost" onClick={() => setComparar(true)}>⚖ Comparar preços</Btn>}<Btn onClick={() => abrir()}>＋ {roupas ? "Nova peça" : "Novo produto ou serviço"}</Btn></div>} />
       <Row>
         <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={roupas ? "Buscar peça, marca ou código" : "Buscar produto, serviço ou código"} style={{ ...inputSm, flex: "2 1 260px", width: "auto" }} />
         <select value={cat} onChange={(e) => setCat(e.target.value)} style={{ ...inputSm, flex: "1 1 180px", width: "auto" }}><option value="">Todas as categorias</option>{cfg.categorias.map((c: string) => <option key={c}>{c}</option>)}</select>
@@ -184,6 +195,8 @@ export default function Catalogo({ dados, gestor }: any) {
           </Row>
         </Modal>
       )}
+      {importar && <ImportarPlanilhaLoja produtos={produtos} categorias={cfg.categorias} onSalvar={salvarLista} onFechar={() => setImportar(false)} />}
+      {comparar && <CompararPrecosLoja wsId={wsId} produtos={produtos} onSalvar={(l: Produto[]) => salvarLista(l)} onFechar={() => setComparar(false)} />}
     </Page>
   );
 }

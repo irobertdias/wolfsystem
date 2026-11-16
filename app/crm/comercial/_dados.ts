@@ -54,6 +54,10 @@ export type Produto = {
   id: string; nome: string; categoria?: string; marca?: string; sku?: string; descricao?: string;
   preco: number; custo?: number; foto?: string; ativo: boolean;
   peso_kg?: number;              // usado no frete calculado
+  codigo_fornecedor?: string;    // código na tabela da distribuidora (importação)
+  ean?: string;
+  fornecedor?: string;
+  preco_ref?: { em: string; kabum?: number | null; terabyte?: number | null }; // última comparação com a concorrência
   servico?: boolean;             // vendas: serviço não controla estoque
   variantes: Variante[];
 };
