@@ -11,6 +11,7 @@ import { useModulos } from "../../../hooks/useModulos";
 import { nichoLiberado } from "../../../lib/modulos-nicho";
 const NICHO_IA = "informatica";
 
+const POR_PAGINA = 60;
 const SOMBRA = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)";
 const vid = (t?: string, c?: string) => `${t || "-"}|${c || "-"}`;
 
@@ -44,7 +45,9 @@ export default function Catalogo({ dados, gestor }: any) {
     if (!error) carregar();
     return error ? error.message : null;
   };
-  const lista = produtos.filter((p) => (!cat || p.categoria === cat) && (!busca || `${p.nome} ${p.marca || ""} ${p.sku || ""}`.toLowerCase().includes(busca.toLowerCase())));
+  const [mostrar, setMostrar] = useState(POR_PAGINA);
+  const lista = produtos.filter((p) => (!cat || p.categoria === cat) && (!busca || `${p.nome} ${p.marca || ""} ${p.sku || ""} ${p.modelo || ""}`.toLowerCase().includes(busca.toLowerCase())));
+  const visiveis = lista.slice(0, mostrar);
 
   const abrir = (p?: Produto) => {
     setErro("");
@@ -90,14 +93,14 @@ export default function Catalogo({ dados, gestor }: any) {
     <Page>
       <PageHeader titulo="Produtos, peças e serviços" subtitulo={`${produtos.length} ${roupas ? "peça(s)" : "item(ns)"} cadastrado(s)`} acao={<div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{gestor && importarLiberado && <Btn variante="ghost" onClick={() => setImportar(true)}>⬆ Importar planilha</Btn>}{gestor && compararLiberado && <Btn variante="ghost" onClick={() => setComparar(true)}>⚖ Comparar preços</Btn>}<Btn onClick={() => abrir()}>＋ {roupas ? "Nova peça" : "Novo produto ou serviço"}</Btn></div>} />
       <Row>
-        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={roupas ? "Buscar peça, marca ou código" : "Buscar produto, serviço ou código"} style={{ ...inputSm, flex: "2 1 260px", width: "auto" }} />
-        <select value={cat} onChange={(e) => setCat(e.target.value)} style={{ ...inputSm, flex: "1 1 180px", width: "auto" }}><option value="">Todas as categorias</option>{cfg.categorias.map((c: string) => <option key={c}>{c}</option>)}</select>
+        <input value={busca} onChange={(e) => { setBusca(e.target.value); setMostrar(POR_PAGINA); }} placeholder={roupas ? "Buscar peça, marca ou código" : "Buscar produto, serviço ou código"} style={{ ...inputSm, flex: "2 1 260px", width: "auto" }} />
+        <select value={cat} onChange={(e) => { setCat(e.target.value); setMostrar(POR_PAGINA); }} style={{ ...inputSm, flex: "1 1 180px", width: "auto" }}><option value="">Todas as categorias</option>{cfg.categorias.map((c: string) => <option key={c}>{c}</option>)}</select>
       </Row>
       {lista.length === 0 ? (
         <div style={{ background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: 44 }}><Vazio icone={roupas ? "👗" : "🏷️"} titulo={produtos.length ? "Nada encontrado" : roupas ? "Catálogo vazio" : "Nenhum produto ainda"} sub={roupas ? "Cadastre as peças com a grade de tamanhos e cores para controlar o estoque de cada uma." : "Cadastre equipamentos e peças (com estoque) e serviços como formatação, limpeza e instalação (sem estoque)."} acao={<Btn onClick={() => abrir()}>＋ Cadastrar</Btn>} /></div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 16 }}>
-          {lista.map((p, k) => {
+          {visiveis.map((p, k) => {
             const est = estoqueProduto(p), baixo = !p.servico && est <= cfg.estoque_minimo;
             return (
               <button key={p.id} onClick={() => abrir(p)} style={{ background: "#fff", border: 0, borderRadius: 18, boxShadow: SOMBRA, padding: 0, overflow: "hidden", cursor: "pointer", textAlign: "left", opacity: p.ativo === false ? 0.55 : 1 }}>
@@ -116,6 +119,12 @@ export default function Catalogo({ dados, gestor }: any) {
               </button>
             );
           })}
+        </div>
+      )}
+      {lista.length > visiveis.length && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 18, color: "#64748B", fontSize: 13 }}>
+          <span>Mostrando {visiveis.length} de {lista.length}</span>
+          <Btn variante="ghost" onClick={() => setMostrar((m) => m + POR_PAGINA * 2)}>Mostrar mais</Btn>
         </div>
       )}
 

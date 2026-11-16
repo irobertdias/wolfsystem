@@ -9,6 +9,7 @@ export default function Estoque({ dados, ir }: any) {
   const [busca, setBusca] = useState("");
   const [soBaixo, setSoBaixo] = useState(false);
   const [aviso, setAviso] = useState("");
+  const [mostrar, setMostrar] = useState(100);
   const produtos: Produto[] = (cfg.produtos || []).filter((p: Produto) => !p.servico);
   const linhas = useMemo(() => produtos.flatMap((p) => p.variantes.map((v) => ({ p, v }))).filter(({ p, v }) =>
     (!busca || `${p.nome} ${p.marca || ""} ${p.sku || ""} ${descVariante(v)}`.toLowerCase().includes(busca.toLowerCase())) && (!soBaixo || num(v.estoque) <= cfg.estoque_minimo)), [produtos, busca, soBaixo, cfg.estoque_minimo]);
@@ -36,12 +37,12 @@ export default function Estoque({ dados, ir }: any) {
         <Stat label="Com estoque baixo" icone="⚠️" valor={String(baixo)} cor="#C2410C" sub={`até ${cfg.estoque_minimo} unidade(s)`} />
       </Stats>
       <Row>
-        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar" style={{ ...inputSm, flex: "2 1 260px", width: "auto" }} />
+        <input value={busca} onChange={(e) => { setBusca(e.target.value); setMostrar(100); }} placeholder="Buscar" style={{ ...inputSm, flex: "2 1 260px", width: "auto" }} />
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5, fontWeight: 700, color: "#334155" }}><input type="checkbox" checked={soBaixo} onChange={(e) => setSoBaixo(e.target.checked)} /> Só estoque baixo</label>
       </Row>
       <Table cols={[{ label: roupas ? "Peça" : "Produto" }, ...(roupas ? [{ label: "Tamanho / cor" }] : []), { label: "Preço", align: "right" as const }, { label: "Estoque", align: "center" as const }, { label: "Ajustar", align: "right" as const }]}
         empty={linhas.length === 0 ? <Vazio icone="📦" titulo="Nada no estoque" sub="Cadastre os produtos no catálogo." /> : undefined}>
-        {linhas.map(({ p, v }) => {
+        {linhas.slice(0, mostrar).map(({ p, v }) => {
           const b = num(v.estoque) <= cfg.estoque_minimo;
           return (
             <tr key={p.id + v.id}>
@@ -56,6 +57,12 @@ export default function Estoque({ dados, ir }: any) {
           );
         })}
       </Table>
+      {linhas.length > mostrar && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 14, color: "#64748B", fontSize: 13 }}>
+          <span>Mostrando {mostrar} de {linhas.length}</span>
+          <Btn variante="ghost" onClick={() => setMostrar((m) => m + 200)}>Mostrar mais</Btn>
+        </div>
+      )}
     </Page>
   );
 }
