@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase";
 
 import Icone, { IconeEmoji } from "../../components/a2/Icone";
 import { VERTICAIS, verticalDoWorkspace, type Vertical } from "../../lib/vertical-workspace";
+import { modulosDoNicho, nichoLiberado } from "../../lib/modulos-nicho";
 import { SIMBOLOS } from "../../lib/arte-nicho";
 // ⚠️ Só este email tem acesso à tela de clientes
 const ADMIN_EMAIL = "robert.dias@live.com";
@@ -38,6 +39,7 @@ type Cadastro = {
   modulo_bater_ponto?: boolean;
   modulo_financeiro?: boolean;
   financeiro_opcoes?: Record<string, boolean> | null;
+  nicho_opcoes?: Record<string, boolean> | null; // módulos próprios do nicho (lib/modulos-nicho)
   ia?: string; senha?: string; user_id?: string;
   // 🆕 CAMPOS DE COBRANÇA
   dia_vencimento?: number | null;
@@ -660,6 +662,12 @@ export default function Clientes() {
     return { ...prev, modulo_financeiro: novo, financeiro_opcoes: novo ? (temOpc ? prev.financeiro_opcoes : todasFinOpcoes(true)) : (prev.financeiro_opcoes || {}) };
   });
   const setTodasFin = (v: boolean) => setFormCadastro((prev) => ({ ...prev, financeiro_opcoes: todasFinOpcoes(v) }));
+  // Módulos do nicho ficam em coluna própria (nicho_opcoes); salvo à parte para não travar o resto se a coluna faltar.
+  const salvarNichoOpcoes = async (email?: string) => {
+    if (!email || !modulosDoNicho(formCadastro.vertical).length) return "";
+    const { error } = await supabase.from("cadastros").update({ nicho_opcoes: formCadastro.nicho_opcoes || {} }).eq("email", email);
+    return error ? "\n\nAtenção: os módulos do nicho não foram salvos (rode a migração 20261116_cadastros_nicho_opcoes.sql)." : "";
+  };
   const toggleFinOpcao = (key: string) => setFormCadastro((prev) => ({ ...prev, financeiro_opcoes: { ...(prev.financeiro_opcoes || {}), [key]: !((prev.financeiro_opcoes || {})[key]) } }));
 
   const salvarCadastro = async () => {
@@ -748,7 +756,8 @@ export default function Clientes() {
         });
         const resultModulo = await respModulo.json();
         if (!resultModulo.success) { alert("Erro ao salvar Contratos e Assinaturas: " + resultModulo.error); setSalvandoCliente(false); return; }
-        alert("Cliente atualizado!" + (resultModulo.aviso_vertical ? "\n\nAtenção: o tipo de workspace não foi salvo porque a coluna 'vertical' ainda não existe no banco (rode a migração 20261110_workspace_vertical.sql)." : ""));
+        const avisoNicho = await salvarNichoOpcoes(cadastroSelecionado.email || formCadastro.email);
+        alert("Cliente atualizado!" + avisoNicho + (resultModulo.aviso_vertical ? "\n\nAtenção: o tipo de workspace não foi salvo porque a coluna 'vertical' ainda não existe no banco (rode a migração 20261110_workspace_vertical.sql)." : ""));
       } else {
         if (!formCadastro.senha || formCadastro.senha.length < 6) { alert("Senha obrigatória (mínimo 6 caracteres)"); setSalvandoCliente(false); return; }
         if (!formCadastro.username || !/^[a-z0-9_]{3,30}$/.test(formCadastro.username)) {
@@ -770,7 +779,8 @@ export default function Clientes() {
           setSalvandoCliente(false);
           return;
         }
-        alert("Cliente criado! No primeiro acesso ele vai criar a própria senha." + (result.aviso_vertical ? "\n\nAtenção: o tipo de workspace não foi salvo porque a coluna 'vertical' ainda não existe no banco (rode a migração 20261110_workspace_vertical.sql)." : ""));
+        const avisoNichoNovo = await salvarNichoOpcoes(formCadastro.email);
+        alert("Cliente criado! No primeiro acesso ele vai criar a própria senha." + avisoNichoNovo + (result.aviso_vertical ? "\n\nAtenção: o tipo de workspace não foi salvo porque a coluna 'vertical' ainda não existe no banco (rode a migração 20261110_workspace_vertical.sql)." : ""));
       }
       await fetchCadastros();
       setShowModalCliente(false);
@@ -1249,6 +1259,20 @@ export default function Clientes() {
                 )}
               </div>
             </div>
+
+            {/* MÓDULOS DO NICHO: mudam conforme o tipo de workspace escolhido */}
+            {modulosDoNicho(formCadastro.vertical).length > 0 && (
+              <div style={{ border: "1px solid var(--w-200)", background: "var(--w-50)", borderRadius: 14, padding: 14 }}>
+                <p style={{ color: "var(--w-700)", fontSize: 11, fontWeight: 800, margin: "0 0 4px" }}>Módulos do nicho · {VERTICAIS.find((v) => v.id === formCadastro.vertical)?.nome || formCadastro.vertical}</p>
+                <p style={{ color: "#64748B", fontSize: 11, margin: "0 0 12px" }}>Funções próprias deste tipo de workspace. Mudam quando você troca o tipo acima.</p>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
+                  {modulosDoNicho(formCadastro.vertical).map((m) => {
+                    const on = nichoLiberado(formCadastro.nicho_opcoes, formCadastro.vertical, m.key);
+                    return <Toggle key={m.key} value={on} onChange={() => setFormCadastro((prev) => ({ ...prev, nicho_opcoes: { ...(prev.nicho_opcoes || {}), [m.key]: !on } }))} label={m.label} desc={m.desc} color="var(--w-600)" />;
+                  })}
+                </div>
+              </div>
+            )}
 
             <Toggle value={!!formCadastro.autorizado} onChange={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} label="Autorizado — Permitir acesso ao sistema" color="var(--w-600)" />
 

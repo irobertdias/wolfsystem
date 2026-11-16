@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Page, PageHeader, Stats, Stat, Table, Vazio, Pill, Btn, Banner, Row, inputSm, tdStyle } from "../_ui";
+import { Page, PageHeader, Stats, Stat, Table, Vazio, Pill, Btn, Banner, Row, inputSm, tdStyle } from "../../financeiro/_sections/_ui";
 import { produto, brl, pctBR, dataBR, hoje, cons, valorLiberado, comissaoPct, comissaoValor, mesDe, salvarContrato, nomeUsuario, baixarCSV, type Contrato } from "../_dados";
 
 export default function Comissoes({ dados, gestor }: any) {
@@ -58,13 +58,13 @@ export default function Comissoes({ dados, gestor }: any) {
           const rec = cons(c).comissao_recebida_em;
           return (
             <tr key={c.id}>
-              <td style={tdStyle}><b>{c.nome}</b><div style={{ fontSize: 12, color: "var(--k-mut)" }}>{nomeUsuario(usuarios, c.vendedor)}</div></td>
-              <td style={tdStyle}>{c.operadora || "—"}<div style={{ fontSize: 12, color: "var(--k-mut)" }}>{produto(c.plano)}</div></td>
+              <td style={tdStyle}><b>{c.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{nomeUsuario(usuarios, c.vendedor)}</div></td>
+              <td style={tdStyle}>{c.operadora || "—"}<div style={{ fontSize: 12, color: "#94A3B8" }}>{produto(c.plano)}</div></td>
               <td style={tdStyle}>{dataBR(cons(c).data_pagamento) || "—"}</td>
               <td style={{ ...tdStyle, textAlign: "right" }}>{brl(valorLiberado(c))}</td>
-              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(comissaoValor(c, cfg))}<div style={{ fontSize: 12, color: "var(--k-mut)", fontWeight: 600 }}>{pctBR(comissaoPct(c, cfg))}</div></td>
+              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(comissaoValor(c, cfg))}<div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>{pctBR(comissaoPct(c, cfg))}</div></td>
               <td style={tdStyle}>
-                {rec ? <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Pill texto={`Recebida ${dataBR(rec)}`} cor="var(--w-600)" />{gestor && <a onClick={() => baixa(c, false)} style={{ fontSize: 12, color: "var(--k-mut)", cursor: "pointer" }}>desfazer</a>}</span>
+                {rec ? <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Pill texto={`Recebida ${dataBR(rec)}`} cor="var(--w-600)" />{gestor && <a onClick={() => baixa(c, false)} style={{ fontSize: 12, color: "#94A3B8", cursor: "pointer" }}>desfazer</a>}</span>
                   : gestor ? <Btn variante="ghost" onClick={() => baixa(c, true)}>Marcar recebida</Btn> : <Pill texto="A receber" cor="#C2410C" />}
               </td>
             </tr>

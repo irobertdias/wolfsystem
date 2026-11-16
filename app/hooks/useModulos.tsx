@@ -36,6 +36,7 @@ export type Modulos = {
   bater_ponto: boolean;   // 🆕 Bater Ponto
   financeiro: boolean;                          // 🆕 Financeiro (master)
   financeiro_opcoes: Record<string, boolean>;   // 🆕 subset de opções do workspace
+  nicho_opcoes: Record<string, boolean>;        // módulos próprios do nicho (ver lib/modulos-nicho)
   plano: "basico" | "intermediario" | "ultra" | string;
 };
 
@@ -53,7 +54,7 @@ const MODULOS_BLOQUEADOS_DEFAULT: Modulos = {
   roleta: false, disparos_web: false, validacao_numeros: false, disparos_api: false,
   voip: false, api_integracao: false, instagram: false,
   cobranca: false, meta_ads: false,  contratos_assinaturas: false, revisional: false, rh: false, bater_ponto: false,
-  financeiro: false, financeiro_opcoes: {},
+  financeiro: false, financeiro_opcoes: {}, nicho_opcoes: {},
   plano: "basico",
 };
 
@@ -102,7 +103,7 @@ export function useModulos() {
         // isso os módulos voltariam todos false pro time interno da casa.
         if ((ownerEmail || "").toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           if (!cancelado) {
-            setModulos({ vendedor_ia: true, roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true,  contratos_assinaturas: true, revisional: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, plano: "ultra" });
+            setModulos({ vendedor_ia: true, roleta: true, disparos_web: true, validacao_numeros: true, disparos_api: true, voip: true, api_integracao: true, instagram: true, cobranca: true, meta_ads: true,  contratos_assinaturas: true, revisional: true, rh: true, bater_ponto: true, financeiro: true, financeiro_opcoes: FIN_TODAS, nicho_opcoes: { ia_cadastro: true }, plano: "ultra" });
             setCarregado(true);
           }
           return;
@@ -116,6 +117,11 @@ export function useModulos() {
         // Revisional em consulta separada: se a coluna ainda não existir, só ele fica desligado.
         const { data: cadRev } = await supabase.from("cadastros")
           .select("modulo_revisional")
+          .eq("email", ownerEmail)
+          .maybeSingle();
+        // Módulos do nicho também à parte (coluna nova: nicho_opcoes).
+        const { data: cadNicho } = await supabase.from("cadastros")
+          .select("nicho_opcoes")
           .eq("email", ownerEmail)
           .maybeSingle();
 
@@ -138,6 +144,7 @@ export function useModulos() {
             bater_ponto: !!cad?.modulo_bater_ponto, // 🆕
             financeiro: !!cad?.modulo_financeiro,
             financeiro_opcoes: (cad?.financeiro_opcoes as Record<string, boolean>) || {},
+            nicho_opcoes: ((cadNicho as any)?.nicho_opcoes as Record<string, boolean>) || {},
             plano: cad?.plano || "basico",
           });
           setCarregado(true);

@@ -8,7 +8,6 @@ import { useModulos } from "../hooks/useModulos";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { ehRevisional, verticalDoWorkspace, vocabularioDoWorkspace, SISTEMA_DO_NICHO } from "../lib/vertical-workspace";
 import { ROTULO, iconeNicho } from "../lib/arte-nicho";
-import { ProvedorAppNicho } from "./_app-nicho";
 import AuthGuard from "../components/AuthGuard";
 import PontoGuard from "../components/PontoGuard";
 
@@ -317,22 +316,6 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-
-  // Sistema próprio do nicho (Informática, Moda, Comercial, Consignado): tela inteira,
-  // sem o topo padrão. O próprio sistema monta a navegação com estes atalhos.
-  const telaNicho = !!crmNicho && crmNicho !== "/crm/revisional" && (pathname === crmNicho || pathname.startsWith(crmNicho + "/"));
-  if (telaNicho) {
-    return (
-      <AuthGuard>
-        <ProvedorAppNicho value={{
-          atalhos: launchers.filter((l) => l.path !== crmNicho).map(({ path, label, icon }) => ({ path, label, icon })),
-          workspaceNome, userNome, userEmail, fotoUrl: userFotoUrl, perfilLabel, ir: navegarPara, sair: signOut,
-        }}>
-          <PontoGuard ativo={modulosCarregados ? modulos.bater_ponto : undefined}>{children}</PontoGuard>
-        </ProvedorAppNicho>
-      </AuthGuard>
-    );
-  }
 
   return (
     <AuthGuard>

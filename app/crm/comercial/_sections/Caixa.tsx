@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Btn, Modal, NUM } from "../_ui";
+import { Btn, Modal } from "../../financeiro/_sections/_ui";
+const NUM: any = { fontVariantNumeric: "tabular-nums" };
 import { brl, num, telFmt, descVariante, subtotal, qtdItens, salvarPedido, textoPedido, type Item, type Produto, type DadosPedido } from "../_dados";
 import Icone from "../../../components/a2/Icone";
 

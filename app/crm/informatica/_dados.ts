@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
+import type { EmpresaLoja } from "../../lib/loja-orcamento";
 
 // ═══════════════════════════════════════════════════════════════════════
 // Informática — loja de informática e assistência técnica (vendas, orçamentos, estoque e OS)
@@ -57,6 +58,7 @@ export type Produto = {
 };
 export type ConfigLoja = {
   produtos: Produto[];
+  empresa?: EmpresaLoja;        // logo, CNPJ e contatos para orçamento/PDF/link
   categorias: string[];
   formas_pagamento: string[];
   taxa_entrega: number;
@@ -171,6 +173,8 @@ export type Item = { produto_id: string; variante_id: string; nome: string; tama
 export type Historico = { em: string; etapa?: string; nota: string; por?: string };
 export type DadosPedido = {
   numero?: string;
+  link_token?: string;          // link público de aceite
+  aceite?: { em: string; entrega?: string; endereco?: string; cidade?: string; estado?: string; cep?: string; pagamento?: string; observacoes?: string; ip?: string };
   tipo?: "pedido" | "orcamento";
   itens: Item[];
   desconto?: number;
