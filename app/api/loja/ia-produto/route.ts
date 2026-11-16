@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer, autenticarWorkspace, respostaErroAcesso, SUPER_ADMIN_EMAIL } from "../../_auth";
 import { imagensDaPagina, imagensWikimedia } from "../_web";
+import { lerChaveCadastro } from "../_ia-chave";
 
 // IA no cadastro de produtos das lojas: pesquisa o produto na web e devolve
 // dados para preencher o cadastro + fotos tiradas das páginas encontradas.
-// Usa a chave de IA do próprio workspace (Conexões → IA: ChatGPT ou Claude).
+// Usa a chave de IA cadastrada em Ajustes da loja (não a do atendimento).
 // Chamada direta por fetch (o projeto não tem o SDK instalado no ambiente de build).
 
 export const maxDuration = 60;
@@ -70,15 +71,12 @@ async function comOpenAI(chave: string, prompt: string) {
   return { texto, fontes: [...fontes] };
 }
 
+// Chave cadastrada em Ajustes da loja (separada da IA do atendimento).
 async function chaveDoWorkspace(ws: string): Promise<{ ia: "claude" | "gpt"; chave: string } | null> {
+  const propria = await lerChaveCadastro(ws);
+  if (propria) return propria;
   if (process.env.ANTHROPIC_API_KEY) return { ia: "claude", chave: process.env.ANTHROPIC_API_KEY };
   if (process.env.OPENAI_API_KEY) return { ia: "gpt", chave: process.env.OPENAI_API_KEY };
-  const { data } = await supabaseServer.from("conexoes").select("ia,api_key").eq("workspace_id", ws).not("api_key", "is", null).limit(20);
-  const ok = (data || []).filter((c: any) => String(c.api_key || "").trim().length > 20);
-  const claude = ok.find((c: any) => c.ia === "claude" || String(c.api_key).startsWith("sk-ant-"));
-  const gpt = ok.find((c: any) => (c.ia === "gpt" || !c.ia) && String(c.api_key).startsWith("sk-") && !String(c.api_key).startsWith("sk-ant-"));
-  if (gpt) return { ia: "gpt", chave: String(gpt.api_key).trim() };
-  if (claude) return { ia: "claude", chave: String(claude.api_key).trim() };
   return null;
 }
 
@@ -100,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     const ia = await chaveDoWorkspace(acesso.workspaceId);
-    if (!ia) return NextResponse.json({ success: false, error: "Cadastre uma chave de IA (ChatGPT ou Claude) em Conexões para usar a busca." }, { status: 400 });
+    if (!ia) return NextResponse.json({ success: false, error: "Cadastre a chave de IA do cadastro em Ajustes da loja (card \"IA no cadastro de produtos\")." }, { status: 400 });
 
     const prompt = PROMPT(q, String(b.nicho || "loja"), Array.isArray(b.categorias) ? b.categorias.slice(0, 20).map(String) : []);
     const { texto, fontes } = ia.ia === "claude" ? await comClaude(ia.chave, prompt) : await comOpenAI(ia.chave, prompt);

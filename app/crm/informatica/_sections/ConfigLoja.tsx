@@ -3,11 +3,16 @@ import { useEffect, useState } from "react";
 import { Page, PageHeader, Card, Btn, Banner, Field, Row, inputSm } from "../../financeiro/_sections/_ui";
 import { num, salvarConfig } from "../_dados";
 import { reduzirLogo, cnpjFmt, type EmpresaLoja } from "../../../lib/loja-orcamento";
+import ChaveIALoja from "../../../components/ChaveIALoja";
+import { useModulos } from "../../../hooks/useModulos";
+import { nichoLiberado } from "../../../lib/modulos-nicho";
 
 const lista = (s: string) => s.split(/[\n,;]+/).map((x) => x.trim()).filter(Boolean);
 
 export default function ConfigLoja({ dados }: any) {
   const { wsId, modo, cfg, carregar } = dados;
+  const { modulos } = useModulos();
+  const iaLiberada = nichoLiberado(modulos.nicho_opcoes, "informatica", "ia_cadastro");
   const roupas = modo === "roupas";
   const [f, setF] = useState({ pagamentos: "", categorias: "", tamanhos: "", taxa: "", minimo: "", validade: "", tecnicos: "", garantia: "" });
   const [aviso, setAviso] = useState("");
@@ -61,7 +66,9 @@ export default function ConfigLoja({ dados }: any) {
             {emp.logo && <a onClick={() => setEmp({ ...emp, logo: undefined })} style={{ fontSize: 12, color: "#94A3B8", cursor: "pointer" }}>remover logo</a>}
           </div>
         </div>
-      </Card>      <Card titulo="Vendas">
+      </Card>
+      {iaLiberada && <ChaveIALoja wsId={wsId} />}
+      <Card titulo="Vendas">
         <Row>
           <Field label="Formas de pagamento (uma por linha)" flex="1 1 260px"><textarea style={{ ...inputSm, minHeight: 130 }} value={f.pagamentos} onChange={(e) => setF({ ...f, pagamentos: e.target.value })} /></Field>
           <Field label="Categorias (uma por linha)" flex="1 1 260px"><textarea style={{ ...inputSm, minHeight: 130 }} value={f.categorias} onChange={(e) => setF({ ...f, categorias: e.target.value })} /></Field>
