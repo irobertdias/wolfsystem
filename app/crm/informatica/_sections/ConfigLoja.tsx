@@ -4,6 +4,7 @@ import { Page, PageHeader, Card, Btn, Banner, Field, Row, inputSm } from "../../
 import { num, salvarConfig } from "../_dados";
 import { reduzirLogo, cnpjFmt, coresDaLogo, type EmpresaLoja, type FreteConfig } from "../../../lib/loja-orcamento";
 import ConfigFreteLoja from "../../../components/ConfigFreteLoja";
+import GatewayLoja from "../../../components/GatewayLoja";
 import ChaveIALoja from "../../../components/ChaveIALoja";
 import { useModulos } from "../../../hooks/useModulos";
 import { nichoLiberado } from "../../../lib/modulos-nicho";
@@ -86,6 +87,7 @@ export default function ConfigLoja({ dados }: any) {
         </div>
       </Card>
       <ConfigFreteLoja valor={fr} onChange={setFr} taxaFixa={f.taxa} onTaxaFixa={(s) => setF({ ...f, taxa: s })} roupas={roupas} />
+      <GatewayLoja wsId={wsId} />
       {iaLiberada && <ChaveIALoja wsId={wsId} />}
       <Card titulo="Vendas">
         <Row>

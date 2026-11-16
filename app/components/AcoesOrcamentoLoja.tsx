@@ -23,6 +23,7 @@ export default function AcoesOrcamentoLoja({ wsId, atual, form, empresa, nomeLoj
   const emp: EmpresaLoja = { ...(empresa || {}), nome: empresa?.nome || nomeLoja };
   const d = form.d;
   const aceite = atual?.dados_customizados?.pedido?.aceite;
+  const pagOnline = atual?.dados_customizados?.pedido?.pagamento_online;
 
   async function gerarLink() {
     if (!atual) { setMsg("Salve o orçamento: o link aparece na hora."); return; }
@@ -47,6 +48,13 @@ export default function AcoesOrcamentoLoja({ wsId, atual, form, empresa, nomeLoj
         <div style={{ background: "#ECFDF5", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#065F46" }}>
           <b>✓ Aprovado pelo cliente em {new Date(aceite.em).toLocaleString("pt-BR")}</b> · {aceite.entrega === "entrega" ? `entrega em ${[aceite.endereco, aceite.cidade].filter(Boolean).join(", ")}${d.servico_frete ? ` (${d.servico_frete})` : ""}` : "retirada na loja"} · pagamento: {aceite.pagamento}
           {aceite.observacoes ? <div>Obs.: {aceite.observacoes}</div> : null}
+        </div>
+      )}
+      {pagOnline && (
+        <div style={{ background: pagOnline.status === "pago" ? "#ECFDF5" : "#FFFBEB", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: pagOnline.status === "pago" ? "#065F46" : "#92400E" }}>
+          {pagOnline.status === "pago"
+            ? <b>💳 Pago online em {new Date(pagOnline.pago_em).toLocaleString("pt-BR")} · {brlDoc(Number(pagOnline.valor) || 0)}{pagOnline.metodo ? ` · ${pagOnline.metodo}` : ""} ({pagOnline.gateway === "asaas" ? "Asaas" : "Mercado Pago"})</b>
+            : <b>💳 Cliente abriu o pagamento online em {new Date(pagOnline.criado_em).toLocaleString("pt-BR")}: aguardando a confirmação do {pagOnline.gateway === "asaas" ? "Asaas" : "Mercado Pago"}.</b>}
         </div>
       )}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>

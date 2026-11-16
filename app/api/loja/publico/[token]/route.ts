@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "../../../_auth";
 import { calcularFrete } from "../../_frete";
+import { NOME_GATEWAY, PAGAR_ONLINE } from "../../_pagamento";
 
 const so = (v: any) => String(v || "").replace(/\D/g, "");
 
@@ -19,7 +20,8 @@ async function buscar(token: string) {
   if (error) throw error;
   if (!data) return null;
   const { data: cfgRow } = await supabaseServer.from("fin_config").select("config").eq("workspace_id", data.workspace_id).maybeSingle();
-  const loja = (cfgRow as any)?.config?.loja || {};
+  const gw = (cfgRow as any)?.config?.gateway_loja;
+  const loja = { ...((cfgRow as any)?.config?.loja || {}), _online: gw?.token && gw.ativo !== false ? NOME_GATEWAY[gw.gateway as keyof typeof NOME_GATEWAY] || "online" : "" };
   const { data: ws } = await supabaseServer.from("workspaces").select("nome").eq("username", data.workspace_id).maybeSingle();
   return { p: data as any, loja, nomeWs: (ws as any)?.nome || "" };
 }
@@ -42,7 +44,8 @@ function publico(p: any, loja: any, nomeWs: string) {
     // frete só conta se for entrega (orçamento de retirada não cobra frete)
     ...(d.entrega === "entrega" ? {} : { frete: 0 }),
     empresa: { nome: emp.nome || nomeWs, cnpj: emp.cnpj || "", ie: emp.ie || "", endereco: emp.endereco || "", cidade: emp.cidade || "", cep: emp.cep || "", telefone: emp.telefone || "", email: emp.email || "", site: emp.site || "", logo: emp.logo || "", condicoes: emp.condicoes || "", cor: emp.cor || "", cor2: emp.cor2 || "" },
-    formas_pagamento: Array.isArray(loja.formas_pagamento) && loja.formas_pagamento.length ? loja.formas_pagamento : ["PIX", "Cartão de crédito", "Cartão de débito", "Dinheiro"],
+    formas_pagamento: [...(loja._online ? [PAGAR_ONLINE] : []), ...(Array.isArray(loja.formas_pagamento) && loja.formas_pagamento.length ? loja.formas_pagamento : ["PIX", "Cartão de crédito", "Cartão de débito", "Dinheiro"])],
+    pagamento_online: loja._online ? { gateway: loja._online, status: d.pagamento_online?.status || "", pago_em: d.pagamento_online?.pago_em || null } : null,
     taxa_entrega: num(loja.taxa_entrega),
     frete_modo: loja.frete?.modo === "calculado" ? "calculado" : "fixo",
     frete_gratis_acima: num(loja.frete?.gratis_acima),

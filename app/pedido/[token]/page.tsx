@@ -11,13 +11,14 @@ type Pub = {
   itens: { nome: string; qtd: number; preco: number; detalhe?: string }[];
   subtotal: number; desconto: number; frete: number; entrega: string; pagamento: string; observacoes: string;
   empresa: { nome: string; cnpj: string; ie: string; endereco: string; cidade: string; cep: string; telefone: string; email: string; site: string; logo: string; condicoes: string; cor?: string; cor2?: string };
-  formas_pagamento: string[]; taxa_entrega: number; frete_modo: "fixo" | "calculado"; frete_gratis_acima: number; servico_frete: string; prazo_frete: string; cor: string; cor2: string;
+  formas_pagamento: string[]; taxa_entrega: number; frete_modo: "fixo" | "calculado"; frete_gratis_acima: number; servico_frete: string; prazo_frete: string; cor: string; cor2: string; pagamento_online: null | { gateway: string; status: string; pago_em: string | null };
   status: "aberto" | "aceito" | "expirado" | "fechado";
   aceite: null | { em: string; entrega: string; endereco?: string; cidade?: string; pagamento?: string };
 };
 
 const dataBr = (s?: string | null) => (s ? new Date(s.length === 10 ? s + "T12:00:00" : s).toLocaleDateString("pt-BR") : "");
 const COR = "#0F172A";
+const ONLINE = "Pagar online (PIX, cartão ou boleto)";
 
 export default function PedidoPublico({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
@@ -31,6 +32,23 @@ export default function PedidoPublico({ params }: { params: Promise<{ token: str
   const [servico, setServico] = useState("");
   const [calculando, setCalculando] = useState(false);
   const [avisoFrete, setAvisoFrete] = useState("");
+
+  const [abrindo, setAbrindo] = useState(false);
+  async function pagarOnline() {
+    setFalha(""); setAbrindo(true);
+    const r = await fetch(`/api/loja/publico/${token}/pagar`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ documento: f.documento }) }).then((x) => x.json()).catch(() => ({ success: false, error: "Sem conexão" }));
+    if (r.success && r.url) { window.location.href = r.url; return; }
+    setAbrindo(false); setFalha(r.error || "Não foi possível abrir o pagamento");
+  }
+  // Volta do gateway: confere o pagamento na hora (Mercado Pago manda payment_id na URL)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const id = q.get("payment_id") || q.get("collection_id");
+    if (!id) return;
+    fetch(`/api/loja/publico/${token}/pagar?pagamento_id=${encodeURIComponent(id)}`).then((x) => x.json()).then((j) => {
+      if (j.pago) fetch(`/api/loja/publico/${token}`).then((x) => x.json()).then((k) => k.success && setP(k.pedido));
+    }).catch(() => {});
+  }, [token]);
 
   useEffect(() => {
     fetch(`/api/loja/publico/${token}`).then((r) => r.json()).then((j) => {
@@ -61,6 +79,7 @@ export default function PedidoPublico({ params }: { params: Promise<{ token: str
     if (!f.pagamento) { setFalha("Escolha a forma de pagamento."); return; }
     if (f.entrega === "entrega" && (!f.endereco.trim() || !f.cidade.trim())) { setFalha("Informe o endereço e a cidade da entrega."); return; }
     if (f.entrega === "entrega" && p.frete_modo === "calculado" && !opcoes.length) { setFalha("Digite o CEP para calcular o frete."); return; }
+    if (f.pagamento === ONLINE && p.pagamento_online?.gateway === "Asaas" && ![11, 14].includes(f.documento.replace(/\D/g, "").length)) { setFalha("Para pagar online, informe o CPF ou CNPJ."); return; }
     setEnviando(true);
     const r = await fetch(`/api/loja/publico/${token}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
       entrega: f.entrega, servico_frete: servico, pagamento: f.pagamento, documento: f.documento, observacoes: f.observacoes, cep: f.cep, estado: f.estado, cidade: f.cidade,
@@ -69,6 +88,7 @@ export default function PedidoPublico({ params }: { params: Promise<{ token: str
     setEnviando(false);
     if (!r.success) { setFalha(r.error || "Não foi possível confirmar"); return; }
     setP(r.pedido); setEtapa("ver");
+    if (f.pagamento === ONLINE) await pagarOnline();
   }
 
   const pdf = () => p && baixarPdfPedido({ empresa: p.empresa, tipo: p.tipo, numero: p.numero, data: p.data, validade: p.validade || undefined, cliente: { nome: p.cliente.nome, telefone: p.cliente.telefone }, itens: p.itens, desconto: p.desconto, frete: p.frete, pagamento: p.aceite?.pagamento || p.pagamento, link: undefined, entrega: (p.aceite?.entrega || p.entrega) === "entrega" ? "Entrega no endereço" : "Retirada na loja", observacoes: p.observacoes });
@@ -111,7 +131,16 @@ export default function PedidoPublico({ params }: { params: Promise<{ token: str
         {p.status === "aceito" && p.aceite && (
           <div style={{ ...box, background: "#ECFDF5", boxShadow: "inset 0 0 0 1.5px #A7F3D0" }}>
             <b style={{ fontSize: 16, color: "#065F46" }}>✓ Orçamento aprovado em {new Date(p.aceite.em).toLocaleString("pt-BR")}</b>
-            <div style={{ fontSize: 14, color: "#065F46", marginTop: 4 }}>{p.aceite.entrega === "entrega" ? `Entrega em ${[p.aceite.endereco, p.aceite.cidade].filter(Boolean).join(", ")}` : "Retirada na loja"} · Pagamento: {p.aceite.pagamento}. A loja vai entrar em contato para finalizar.</div>
+            <div style={{ fontSize: 14, color: "#065F46", marginTop: 4 }}>{p.aceite.entrega === "entrega" ? `Entrega em ${[p.aceite.endereco, p.aceite.cidade].filter(Boolean).join(", ")}` : "Retirada na loja"} · Pagamento: {p.aceite.pagamento}.{p.pagamento_online?.status === "pago" ? "" : " A loja vai entrar em contato para finalizar."}</div>
+            {p.pagamento_online?.status === "pago" && <div style={{ marginTop: 10, fontSize: 15, fontWeight: 800, color: "#065F46" }}>✓ Pagamento confirmado{p.pagamento_online.pago_em ? ` em ${new Date(p.pagamento_online.pago_em).toLocaleString("pt-BR")}` : ""}. Obrigado!</div>}
+            {p.pagamento_online && p.pagamento_online.status !== "pago" && (
+              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                {p.pagamento_online.gateway === "Asaas" && !f.documento && <input style={{ ...inp, background: "#fff" }} value={f.documento} onChange={(e) => setF({ ...f, documento: e.target.value })} placeholder="CPF ou CNPJ (para pagar online)" />}
+                <button disabled={abrindo} onClick={pagarOnline} style={{ height: 52, borderRadius: 14, border: 0, background: AC, color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", opacity: abrindo ? 0.6 : 1 }}>{abrindo ? "Abrindo o pagamento…" : `Pagar agora online · ${brlDoc(total)}`}</button>
+                <span style={{ fontSize: 12.5, color: "#065F46" }}>PIX, cartão ou boleto, em ambiente seguro do {p.pagamento_online.gateway}.</span>
+                {falha && <span style={{ fontSize: 13, color: "#B91C1C", fontWeight: 700 }}>{falha}</span>}
+              </div>
+            )}
           </div>
         )}
         {p.status === "expirado" && <div style={{ ...box, background: "#FFFBEB", color: "#92400E" }}>O prazo deste orçamento expirou. Fale com a loja para atualizar os valores.</div>}
