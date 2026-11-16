@@ -1,18 +1,18 @@
 "use client";
-import { Page, PageHeader, Stats, Stat, Card, Btn, Banner, Vazio, Pill } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Stats, Stat, Card, Btn, Banner, Vazio, Pill } from "../_ui";
 import { etapasDo, etapaDe, CONFIRMADAS, ENCERRADAS, brl, dataBR, ped, totalPedido, qtdItens, mesDe, custoItens, descVariante, num, nomeUsuario, type Pedido, type Produto } from "../_dados";
 
 const SOMBRA = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)";
 
 function Barras({ itens, formato }: { itens: { nome: string; valor: number; extra?: string; cor?: string }[]; formato: (n: number) => string }) {
   const max = Math.max(...itens.map((i) => i.valor), 1);
-  if (!itens.length) return <div style={{ color: "#94A3B8", fontSize: 13, padding: "10px 0" }}>Sem dados ainda.</div>;
+  if (!itens.length) return <div style={{ color: "var(--c-mut)", fontSize: 13, padding: "10px 0" }}>Sem dados ainda.</div>;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {itens.map((i) => (
         <div key={i.nome} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <div style={{ display: "flex", fontSize: 13, gap: 8 }}><span style={{ color: "#334155", fontWeight: 700 }}>{i.nome}</span><span style={{ marginLeft: "auto", fontWeight: 800, whiteSpace: "nowrap" }}>{formato(i.valor)}{i.extra ? <span style={{ color: "#94A3B8", fontWeight: 600 }}> · {i.extra}</span> : null}</span></div>
-          <div style={{ height: 8, borderRadius: 99, background: "#EEF2F1", overflow: "hidden" }}><div style={{ height: "100%", width: `${(i.valor / max) * 100}%`, background: i.cor || "linear-gradient(90deg, var(--w-400), var(--w-600))", borderRadius: 99 }} /></div>
+          <div style={{ display: "flex", fontSize: 13, gap: 8 }}><span style={{ color: "var(--c-txt2)", fontWeight: 700 }}>{i.nome}</span><span style={{ marginLeft: "auto", fontWeight: 800, whiteSpace: "nowrap" }}>{formato(i.valor)}{i.extra ? <span style={{ color: "var(--c-mut)", fontWeight: 600 }}> · {i.extra}</span> : null}</span></div>
+          <div style={{ height: 8, borderRadius: 99, background: "#E4E4E7", overflow: "hidden" }}><div style={{ height: "100%", width: `${(i.valor / max) * 100}%`, background: i.cor || "linear-gradient(90deg, var(--w-400), var(--w-600))", borderRadius: 99 }} /></div>
         </div>
       ))}
     </div>
@@ -71,17 +71,17 @@ export default function Painel({ dados, ir }: any) {
           <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-.02em" }}>{carregando ? "…" : brl(faturamento)}</span>
           <span style={{ fontSize: 13, color: "rgba(255,255,255,.85)" }}>{doMes.length} {roupas ? "pedido(s)" : "venda(s)"} · {pecas} {roupas ? "peça(s)" : "item(ns)"} · ticket médio {brl(ticket)}{custo ? ` · lucro bruto ${brl(faturamento - custo)}` : ""}</span>
         </div>
-        <div style={{ background: "#fff", borderRadius: 20, padding: 20, boxShadow: SOMBRA, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ background: "#fff", borderRadius: 20, padding: 20, border: "2px solid var(--c-borda)", display: "flex", flexDirection: "column", gap: 8 }}>
           {roupas ? (<>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#64748B" }}>Separação e entrega</span>
-            <span style={{ fontSize: 28, fontWeight: 800, color: "#0F172A" }}>{separar} <span style={{ fontSize: 14, color: "#94A3B8" }}>a separar</span></span>
-            <span style={{ fontSize: 13, color: "#475569" }}>{naRua} na rua / aguardando retirada</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--c-sub)" }}>Separação e entrega</span>
+            <span style={{ fontSize: 28, fontWeight: 800, color: "var(--c-tinta)" }}>{separar} <span style={{ fontSize: 14, color: "var(--c-mut)" }}>a separar</span></span>
+            <span style={{ fontSize: 13, color: "var(--c-txt2)" }}>{naRua} na rua / aguardando retirada</span>
             <div><Btn variante="ghost" onClick={() => ir("entregas")}>Abrir entregas</Btn></div>
           </>) : (<>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#64748B" }}>Conversão de orçamentos</span>
-            <span style={{ fontSize: 28, fontWeight: 800, color: "#0F172A" }}>{conversao}%</span>
-            <span style={{ height: 6, borderRadius: 99, background: "#EEF2F1", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: `${conversao}%`, background: "var(--w-500)" }} /></span>
-            <span style={{ fontSize: 12.5, color: "#94A3B8" }}>{orcAbertos.length} orçamento(s) em aberto</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--c-sub)" }}>Conversão de orçamentos</span>
+            <span style={{ fontSize: 28, fontWeight: 800, color: "var(--c-tinta)" }}>{conversao}%</span>
+            <span style={{ height: 6, borderRadius: 99, background: "#E4E4E7", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: `${conversao}%`, background: "var(--w-500)" }} /></span>
+            <span style={{ fontSize: 12.5, color: "var(--c-mut)" }}>{orcAbertos.length} orçamento(s) em aberto</span>
           </>)}
         </div>
       </div>
@@ -98,9 +98,9 @@ export default function Painel({ dados, ir }: any) {
           <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 170, paddingTop: 10 }}>
             {porMes.map((x) => (
               <div key={x.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end" }}>
-                <span style={{ fontSize: 11, color: "#64748B", fontWeight: 700 }}>{x.valor ? brl(x.valor).replace(",00", "") : ""}</span>
+                <span style={{ fontSize: 11, color: "var(--c-sub)", fontWeight: 700 }}>{x.valor ? brl(x.valor).replace(",00", "") : ""}</span>
                 <div style={{ width: "100%", maxWidth: 46, height: `${Math.max((x.valor / maxMes) * 120, x.valor ? 6 : 2)}px`, borderRadius: 10, background: x.m === mes ? "linear-gradient(180deg, var(--w-400), var(--w-700))" : "var(--w-200)" }} />
-                <span style={{ fontSize: 11.5, color: "#94A3B8", fontWeight: 700 }}>{new Date(x.m + "-02").toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
+                <span style={{ fontSize: 11.5, color: "var(--c-mut)", fontWeight: 700 }}>{new Date(x.m + "-02").toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
               </div>
             ))}
           </div>
@@ -114,8 +114,8 @@ export default function Painel({ dados, ir }: any) {
           {pedidos.length === 0 ? <Vazio icone={roupas ? "🛍️" : "🧾"} titulo="Nenhum pedido ainda" /> : pedidos.slice(0, 6).map((p) => {
             const e = etapaDe(modo, p.status_venda), d = ped(p);
             return (
-              <button key={p.id} onClick={() => ir(d.tipo === "orcamento" && ["PENDENTE", "EM NEGOCIACAO"].includes(p.status_venda || "") ? "orcamentos" : "pedidos", { pedidoId: p.id })} style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "10px 4px", border: 0, borderTop: "1px solid #F1F5F4", background: "transparent", cursor: "pointer", textAlign: "left" }}>
-                <span style={{ flex: 1, minWidth: 0 }}><b style={{ fontSize: 13.5 }}>{p.nome}</b><span style={{ display: "block", fontSize: 12, color: "#94A3B8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.itens.map((i) => `${i.qtd}x ${i.nome}${descVariante(i) ? ` ${descVariante(i)}` : ""}`).join(", ")} · {dataBR(p.created_at)}</span></span>
+              <button key={p.id} onClick={() => ir(d.tipo === "orcamento" && ["PENDENTE", "EM NEGOCIACAO"].includes(p.status_venda || "") ? "orcamentos" : "pedidos", { pedidoId: p.id })} style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "10px 4px", border: 0, borderTop: "1px solid #E4E4E7", background: "transparent", cursor: "pointer", textAlign: "left" }}>
+                <span style={{ flex: 1, minWidth: 0 }}><b style={{ fontSize: 13.5 }}>{p.nome}</b><span style={{ display: "block", fontSize: 12, color: "var(--c-mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.itens.map((i) => `${i.qtd}x ${i.nome}${descVariante(i) ? ` ${descVariante(i)}` : ""}`).join(", ")} · {dataBR(p.created_at)}</span></span>
                 <span style={{ textAlign: "right" }}><b style={{ display: "block", fontSize: 13.5 }}>{brl(totalPedido(d))}</b><Pill texto={e.curto} cor={e.cor} /></span>
               </button>
             );

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Page, PageHeader, Stats, Stat, Btn, Banner, Field, Row, Table, Vazio, Pill, Modal, inputSm, tdStyle } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Stats, Stat, Btn, Banner, Field, Row, Table, Vazio, Pill, Modal, inputSm, tdStyle, MONO, neon } from "../_ui";
 import {
   ETAPAS_OS, FLUXO_OS, OS_ABERTAS, EQUIPAMENTOS, etapaOS, os, totalOS, fimGarantia, mensagemOS, salvarOS, moverEstoque,
   brl, dataBR, hoje, num, telFmt, subtotal, mesDe, nomeUsuario, baixarCSV, type Pedido, type DadosOS, type Item, type Produto,
@@ -52,6 +52,19 @@ export default function OrdensServico({ dados, alvo, gestor }: any) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }).sort((a, b) => String(os(a).previsao || "9").localeCompare(String(os(b).previsao || "9"))), [ordens, filtro, tecnico, busca]);
 
+  // quadro da bancada: etapas abertas + entregues nos últimos 7 dias; filtra só por busca e técnico
+  const [visao, setVisao] = useState<"quadro" | "lista">(() => { try { return (localStorage.getItem("wolf_info_os_visao") as any) || "quadro"; } catch { return "quadro"; } });
+  const trocarVisao = (v: "quadro" | "lista") => { setVisao(v); try { localStorage.setItem("wolf_info_os_visao", v); } catch {} };
+  const [sobre, setSobre] = useState("");
+  const COLUNAS = [...OS_ABERTAS, "ENTREGUE"];
+  const seteDias = new Date(Date.now() - 7 * 86400_000).toISOString();
+  const noQuadro = ordens.filter((p) => {
+    const st = p.status_venda || "RECEBIDO", d = os(p);
+    if (st === "ENTREGUE" && String(d.entregue_em || p.created_at) < seteDias) return false;
+    if (tecnico && d.tecnico !== tecnico) return false;
+    const q = busca.trim().toLowerCase(), dig = busca.replace(/\D/g, "");
+    return !q || `${p.nome} ${d.numero || ""} ${d.equipamento || ""} ${d.marca || ""} ${d.modelo || ""} ${d.serie || ""}`.toLowerCase().includes(q) || (dig.length >= 4 && String(p.telefone1 || "").includes(dig));
+  }).sort((a, b) => String(os(a).previsao || "9").localeCompare(String(os(b).previsao || "9")));
   const abertas = ordens.filter((p) => OS_ABERTAS.includes(p.status_venda || "RECEBIDO"));
   const mes = new Date().toISOString().slice(0, 7);
   const servicosMes = ordens.filter((p) => p.status_venda === "ENTREGUE" && String(os(p).entregue_em || mesDe(p)).slice(0, 7) === mes).reduce((s, p) => s + totalOS(os(p)), 0);
@@ -113,23 +126,73 @@ export default function OrdensServico({ dados, alvo, gestor }: any) {
         <Stat label="Serviços entregues no mês" icone="💰" valor={brl(servicosMes)} />
       </Stats>
       <Row>
+        <div style={{ display: "flex", border: "1px solid var(--i-borda)", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+          {([["quadro", "▦ Bancada"], ["lista", "☰ Lista"]] as const).map(([k, l]) => (
+            <button key={k} onClick={() => trocarVisao(k)} style={{ border: 0, padding: "0 14px", height: 36, cursor: "pointer", fontFamily: MONO, fontSize: 12, fontWeight: 700, background: visao === k ? "var(--i-acento)" : "transparent", color: visao === k ? "#0B0F1A" : "var(--i-txt2)" }}>{l}</button>
+          ))}
+        </div>
         <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por cliente, nº da OS, equipamento ou nº de série" style={{ ...inputSm, flex: "2 1 280px", width: "auto" }} />
-        <select value={filtro} onChange={(e) => setFiltro(e.target.value)} style={{ ...inputSm, flex: "1 1 190px", width: "auto" }}>
+        {visao === "lista" && <select value={filtro} onChange={(e) => setFiltro(e.target.value)} style={{ ...inputSm, flex: "1 1 190px", width: "auto" }}>
           <option value="abertas">Abertas</option><option value="atrasadas">Atrasadas</option><option value="todas">Todas</option>
           {ETAPAS_OS.map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
-        </select>
+        </select>}
         <select value={tecnico} onChange={(e) => setTecnico(e.target.value)} style={{ ...inputSm, flex: "1 1 160px", width: "auto" }}><option value="">Todos os técnicos</option>{tecnicos.map((t) => <option key={t}>{t}</option>)}</select>
       </Row>
+      {visao === "quadro" ? (
+        <div className="info-bancada" style={{ display: "grid", gridTemplateColumns: `repeat(${COLUNAS.length}, minmax(230px, 1fr))`, gap: 12, overflowX: "auto", paddingBottom: 6 }}>
+          {COLUNAS.map((col) => {
+            const e = etapaOS(col), n = neon(e.cor);
+            const cards = noQuadro.filter((p) => (p.status_venda || "RECEBIDO") === col);
+            return (
+              <div key={col} onDragOver={(ev) => { ev.preventDefault(); setSobre(col); }} onDragLeave={() => setSobre((s) => (s === col ? "" : s))}
+                onDrop={(ev) => { ev.preventDefault(); setSobre(""); const id = Number(ev.dataTransfer.getData("text/plain")); const p = ordens.find((x) => x.id === id); if (p && (p.status_venda || "RECEBIDO") !== col) avancar(p, col); }}
+                style={{ background: sobre === col ? `color-mix(in srgb, ${n} 10%, var(--i-fundo2))` : "var(--i-fundo2)", border: `1px solid ${sobre === col ? n : "var(--i-borda)"}`, borderRadius: 12, display: "flex", flexDirection: "column", minHeight: 360, transition: "background .15s, border-color .15s" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 12px", borderBottom: "1px solid var(--i-borda)", borderTop: `2px solid ${n}`, borderRadius: "12px 12px 0 0" }}>
+                  <i style={{ width: 7, height: 7, borderRadius: 7, background: n, boxShadow: `0 0 10px ${n}` }} />
+                  <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 800, color: "var(--i-txt)", textTransform: "uppercase", letterSpacing: ".08em" }}>{e.curto}</span>
+                  <span style={{ marginLeft: "auto", fontFamily: MONO, fontSize: 11, color: n, border: `1px solid color-mix(in srgb, ${n} 40%, transparent)`, borderRadius: 5, padding: "1px 7px" }}>{cards.length}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, flex: 1 }}>
+                  {cards.length === 0 && <div style={{ border: "1px dashed var(--i-borda)", borderRadius: 9, padding: "18px 10px", textAlign: "center", fontSize: 12, color: "var(--i-mut)", fontFamily: MONO }}>vazio</div>}
+                  {cards.map((p) => {
+                    const d = os(p), atr = atrasada(p), prox = proxima(p.status_venda || "RECEBIDO");
+                    return (
+                      <div key={p.id} draggable onDragStart={(ev) => { ev.dataTransfer.setData("text/plain", String(p.id)); ev.dataTransfer.effectAllowed = "move"; }} onClick={() => abrir(p)} className="info-cartao-os"
+                        style={{ background: "var(--i-painel)", border: `1px solid ${atr ? "rgba(248,113,113,.55)" : "var(--i-borda)"}`, borderRadius: 9, padding: "10px 11px", cursor: "grab", display: "flex", flexDirection: "column", gap: 5 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 800, color: "var(--i-acento)" }}>{d.numero || `#${p.id}`}</span>
+                          <span style={{ marginLeft: "auto", fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: "var(--i-txt2)" }}>{totalOS(d) ? brl(totalOS(d)) : ""}</span>
+                        </div>
+                        <b style={{ fontSize: 13, color: "var(--i-txt)" }}>{[d.equipamento, d.marca, d.modelo].filter(Boolean).join(" ") || "Equipamento"}</b>
+                        <span style={{ fontSize: 12, color: "var(--i-sub)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{d.defeito || "—"}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--i-mut)", marginTop: 2 }}>
+                          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.nome}</span>
+                          {d.tecnico && <span style={{ marginLeft: "auto", fontFamily: MONO, background: "var(--i-campo)", border: "1px solid var(--i-borda)", borderRadius: 5, padding: "1px 6px", color: "var(--i-txt2)", whiteSpace: "nowrap" }}>{d.tecnico.split(" ")[0]}</span>}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, borderTop: "1px solid var(--i-borda)", paddingTop: 6, marginTop: 2 }}>
+                          <span style={{ fontFamily: MONO, fontSize: 11, color: atr ? "#F87171" : "var(--i-mut)", fontWeight: atr ? 800 : 500 }}>{d.previsao ? `${atr ? "⚠ " : "⏱ "}${dataBR(d.previsao).slice(0, 5)}` : ""}</span>
+                          {p.telefone1 && <a onClick={(ev) => ev.stopPropagation()} href={zap(p.telefone1, mensagemOS(p, d, p.status_venda || "RECEBIDO", empresa))} target="_blank" rel="noreferrer" title="Avisar o cliente no WhatsApp" style={{ marginLeft: "auto", display: "inline-flex" }}><Icone nome="whatsapp" tamanho={15} cor="#34D399" /></a>}
+                          {prox && <button onClick={(ev) => { ev.stopPropagation(); avancar(p, prox); }} title={`Mover para ${etapaOS(prox).label}`} style={{ marginLeft: p.telefone1 ? 4 : "auto", border: "1px solid var(--i-borda)", background: "transparent", color: "var(--i-txt2)", borderRadius: 6, height: 24, padding: "0 8px", fontSize: 11, fontFamily: MONO, cursor: "pointer" }}>{etapaOS(prox).curto} →</button>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
       <Table cols={[{ label: "OS" }, { label: "Cliente" }, { label: "Equipamento / defeito" }, { label: "Técnico / previsão" }, { label: "Total", align: "right" }, { label: "Etapa" }, { label: "", align: "right" }]}
         empty={lista.length === 0 ? <Vazio icone="🛠️" titulo={ordens.length ? "Nenhuma OS neste filtro" : "Nenhuma ordem de serviço ainda"} sub="Registre a entrada do equipamento com o defeito relatado." acao={!ordens.length ? <Btn onClick={() => abrir(null)}>＋ Nova OS</Btn> : undefined} /> : undefined}>
         {lista.map((p) => {
           const d = os(p), e = etapaOS(p.status_venda), prox = proxima(p.status_venda || "RECEBIDO");
           return (
             <tr key={p.id}>
-              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>{d.numero || `#${p.id}`}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{dataBR(p.created_at)}</div></td>
-              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>{p.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{telFmt(p.telefone1)}</div></td>
-              <td style={{ ...tdStyle, cursor: "pointer", maxWidth: 280 }} onClick={() => abrir(p)}>{[d.equipamento, d.marca, d.modelo].filter(Boolean).join(" ")}{d.serie ? <span style={{ color: "#94A3B8" }}> · S/N {d.serie}</span> : null}<div style={{ fontSize: 12, color: "#64748B", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.defeito}</div></td>
-              <td style={tdStyle}>{d.tecnico || "—"}<div style={{ fontSize: 12, color: atrasada(p) ? "#DC2626" : "#94A3B8", fontWeight: atrasada(p) ? 800 : 500 }}>{d.previsao ? `${atrasada(p) ? "atrasada · " : ""}${dataBR(d.previsao)}` : ""}</div></td>
+              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>{d.numero || `#${p.id}`}</b><div style={{ fontSize: 12, color: "var(--i-mut)" }}>{dataBR(p.created_at)}</div></td>
+              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>{p.nome}</b><div style={{ fontSize: 12, color: "var(--i-mut)" }}>{telFmt(p.telefone1)}</div></td>
+              <td style={{ ...tdStyle, cursor: "pointer", maxWidth: 280 }} onClick={() => abrir(p)}>{[d.equipamento, d.marca, d.modelo].filter(Boolean).join(" ")}{d.serie ? <span style={{ color: "var(--i-mut)" }}> · S/N {d.serie}</span> : null}<div style={{ fontSize: 12, color: "var(--i-sub)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.defeito}</div></td>
+              <td style={tdStyle}>{d.tecnico || "—"}<div style={{ fontSize: 12, color: atrasada(p) ? "#DC2626" : "var(--i-mut)", fontWeight: atrasada(p) ? 800 : 500 }}>{d.previsao ? `${atrasada(p) ? "atrasada · " : ""}${dataBR(d.previsao)}` : ""}</div></td>
               <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(totalOS(d))}</td>
               <td style={tdStyle}><Pill texto={e.label} cor={e.cor} /></td>
               <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
@@ -140,6 +203,7 @@ export default function OrdensServico({ dados, alvo, gestor }: any) {
           );
         })}
       </Table>
+      )}
 
       {aberto && f && (
         <Modal titulo={atual ? `OS ${f.d.numero || ""} · ${atual.nome}` : "Nova ordem de serviço"} onClose={() => setAberto(false)} maxWidth={920}
@@ -178,7 +242,7 @@ export default function OrdensServico({ dados, alvo, gestor }: any) {
           {f.d.pecas.map((it, i) => {
             const est = estoque(it), falta = est !== undefined && num(it.qtd) > num(est) && !(atual && os(atual).estoque_baixado);
             return (
-              <div key={i} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: "#F7FAF9", borderRadius: 12, padding: 8 }}>
+              <div key={i} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: "var(--i-campo)", borderRadius: 12, padding: 8 }}>
                 <select style={{ ...inputSm, flex: "2 1 220px", width: "auto" }} value={it.produto_id} onChange={(e) => { const p = pecas.find((x) => x.id === e.target.value); if (p) setPeca(i, { produto_id: p.id, variante_id: p.variantes[0]?.id || "unico", nome: p.nome, preco: num(p.preco) }); }}>
                   {!pecas.some((p) => p.id === it.produto_id) && <option value={it.produto_id}>{it.nome}</option>}
                   {pecas.map((p) => <option key={p.id} value={p.id}>{p.nome} · {p.variantes.reduce((s, v) => s + num(v.estoque), 0)} em estoque</option>)}
@@ -186,8 +250,8 @@ export default function OrdensServico({ dados, alvo, gestor }: any) {
                 <input style={{ ...inputSm, width: 70 }} inputMode="numeric" value={it.qtd} onChange={(e) => setPeca(i, { qtd: e.target.value as any })} title="Quantidade" />
                 <input style={{ ...inputSm, width: 110 }} inputMode="decimal" value={String(it.preco).replace(".", ",")} onChange={(e) => setPeca(i, { preco: e.target.value as any })} title="Preço" />
                 <b style={{ minWidth: 90, textAlign: "right", fontSize: 13.5 }}>{brl(num(it.qtd) * num(it.preco))}</b>
-                <button onClick={() => setD({ pecas: f.d.pecas.filter((_, j) => j !== i) })} style={{ border: 0, background: "#FEF2F2", color: "#B91C1C", borderRadius: 9, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="lixeira" tamanho={14} /></button>
-                {falta && <span style={{ width: "100%", fontSize: 12, color: "#B45309", fontWeight: 700 }}>Só há {est} em estoque.</span>}
+                <button onClick={() => setD({ pecas: f.d.pecas.filter((_, j) => j !== i) })} style={{ border: 0, background: "rgba(248,113,113,.14)", color: "#F87171", borderRadius: 9, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="lixeira" tamanho={14} /></button>
+                {falta && <span style={{ width: "100%", fontSize: 12, color: "#FBBF24", fontWeight: 700 }}>Só há {est} em estoque.</span>}
               </div>
             );
           })}
@@ -197,16 +261,16 @@ export default function OrdensServico({ dados, alvo, gestor }: any) {
             <Field label="Desconto (R$)" flex="1 1 120px"><input style={inputSm} inputMode="decimal" value={f.d.desconto ?? ""} onChange={(e) => setD({ desconto: e.target.value as any })} /></Field>
             <Field label="Pagamento" flex="1 1 170px"><select style={inputSm} value={f.d.pagamento || ""} onChange={(e) => setD({ pagamento: e.target.value })}><option value="">—</option>{cfg.formas_pagamento.map((x: string) => <option key={x}>{x}</option>)}</select></Field>
           </Row>
-          <div style={{ display: "flex", gap: 18, justifyContent: "flex-end", flexWrap: "wrap", fontSize: 13.5, color: "#475569", background: "var(--w-50)", borderRadius: 14, padding: "12px 16px" }}>
+          <div style={{ display: "flex", gap: 18, justifyContent: "flex-end", flexWrap: "wrap", fontSize: 13.5, color: "var(--i-txt2)", background: "var(--w-50)", borderRadius: 14, padding: "12px 16px" }}>
             <span>Peças <b>{brl(subtotal(f.d.pecas.map((i) => ({ ...i, qtd: num(i.qtd), preco: num(i.preco) }))))}</b></span>
             <span>Mão de obra <b>{brl(num(f.d.mao_obra))}</b></span>
             {num(f.d.desconto) > 0 && <span>Desconto <b>-{brl(num(f.d.desconto))}</b></span>}
             <span style={{ color: "var(--w-800)", fontSize: 16 }}>Total <b>{brl(totalOS({ ...f.d, pecas: f.d.pecas.map((i) => ({ ...i, qtd: num(i.qtd), preco: num(i.preco) })) }))}</b></span>
           </div>
-          {atual && os(atual).entregue_em && num(os(atual).garantia_dias) > 0 && <div style={{ fontSize: 13, color: "#334155" }}>Garantia do serviço até <b>{dataBR(fimGarantia(os(atual)))}</b>{fimGarantia(os(atual)) < hojeISO ? " (vencida)" : ""}.</div>}
+          {atual && os(atual).entregue_em && num(os(atual).garantia_dias) > 0 && <div style={{ fontSize: 13, color: "var(--i-txt2)" }}>Garantia do serviço até <b>{dataBR(fimGarantia(os(atual)))}</b>{fimGarantia(os(atual)) < hojeISO ? " (vencida)" : ""}.</div>}
           <Field label="Observações internas"><textarea style={{ ...inputSm, minHeight: 50, resize: "vertical" }} value={f.d.observacoes || ""} onChange={(e) => setD({ observacoes: e.target.value })} /></Field>
           {atual && (os(atual).historico || []).length > 0 && (
-            <div style={{ fontSize: 12.5, color: "#64748B" }}>{[...(os(atual).historico || [])].reverse().slice(0, 8).map((h, i) => <div key={i}>{new Date(h.em).toLocaleString("pt-BR")} · {h.nota}{h.por ? ` · ${nomeUsuario(usuarios, h.por)}` : ""}</div>)}</div>
+            <div style={{ fontSize: 12.5, color: "var(--i-sub)" }}>{[...(os(atual).historico || [])].reverse().slice(0, 8).map((h, i) => <div key={i}>{new Date(h.em).toLocaleString("pt-BR")} · {h.nota}{h.por ? ` · ${nomeUsuario(usuarios, h.por)}` : ""}</div>)}</div>
           )}
         </Modal>
       )}

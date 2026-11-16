@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Page, PageHeader, Stats, Stat, Table, Vazio, Btn, Banner, Pill, tdStyle } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Stats, Stat, Table, Vazio, Btn, Banner, Pill, tdStyle } from "../_ui";
 import { etapaDe, brl, dataBR, telFmt, ped, totalPedido, qtdItens, mudarEtapa, baixarCSV, hoje, descVariante, type Pedido } from "../_dados";
 
 export default function Entregas({ dados, ir }: any) {
@@ -29,10 +29,10 @@ export default function Entregas({ dados, ir }: any) {
         return (
           <tr key={p.id}>
             <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => ir("pedidos", { pedidoId: p.id })}><b>#{d.numero || p.id}</b></td>
-            <td style={tdStyle}><b>{p.nome}</b> · {telFmt(p.telefone1)}<div style={{ fontSize: 12, color: "#64748B" }}>{d.entrega === "retirada" ? "Retirada na loja" : [p.endereco, p.cidade].filter(Boolean).join(" · ") || "sem endereço"}</div></td>
-            <td style={{ ...tdStyle, fontSize: 12.5 }}>{qtdItens(d.itens)} peça(s)<div style={{ color: "#94A3B8" }}>{d.itens.slice(0, 3).map((i) => `${i.qtd}x ${i.nome}${descVariante(i) ? ` ${descVariante(i)}` : ""}`).join(", ")}</div></td>
-            <td style={tdStyle}>{d.data_entrega ? dataBR(d.data_entrega) : "—"}{d.periodo_entrega ? <div style={{ fontSize: 12, color: "#94A3B8" }}>{d.periodo_entrega}</div> : null}{d.data_entrega && d.data_entrega < hojeISO && p.status_venda !== "ENTREGUE" ? <Pill texto="atrasado" cor="#DC2626" /> : null}</td>
-            <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(totalPedido(d))}<div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>{d.pagamento}</div></td>
+            <td style={tdStyle}><b>{p.nome}</b> · {telFmt(p.telefone1)}<div style={{ fontSize: 12, color: "var(--c-sub)" }}>{d.entrega === "retirada" ? "Retirada na loja" : [p.endereco, p.cidade].filter(Boolean).join(" · ") || "sem endereço"}</div></td>
+            <td style={{ ...tdStyle, fontSize: 12.5 }}>{qtdItens(d.itens)} peça(s)<div style={{ color: "var(--c-mut)" }}>{d.itens.slice(0, 3).map((i) => `${i.qtd}x ${i.nome}${descVariante(i) ? ` ${descVariante(i)}` : ""}`).join(", ")}</div></td>
+            <td style={tdStyle}>{d.data_entrega ? dataBR(d.data_entrega) : "—"}{d.periodo_entrega ? <div style={{ fontSize: 12, color: "var(--c-mut)" }}>{d.periodo_entrega}</div> : null}{d.data_entrega && d.data_entrega < hojeISO && p.status_venda !== "ENTREGUE" ? <Pill texto="atrasado" cor="#DC2626" /> : null}</td>
+            <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(totalPedido(d))}<div style={{ fontSize: 12, color: "var(--c-mut)", fontWeight: 600 }}>{d.pagamento}</div></td>
             <td style={{ ...tdStyle, textAlign: "right" }}>{acao(p)}</td>
           </tr>
         );
@@ -51,11 +51,11 @@ export default function Entregas({ dados, ir }: any) {
         <Stat label="Na rua / prontos" icone="🚚" valor={String(rota.length)} />
         <Stat label="Entregues hoje" icone="✅" valor={String(entreguesHoje.length)} />
       </Stats>
-      <h3 style={{ margin: "6px 0 0", fontSize: 16, color: "#0F172A" }}>Separar</h3>
+      <h3 style={{ margin: "6px 0 0", fontSize: 16, color: "var(--c-tinta)" }}>Separar</h3>
       {tabela(separar, (p) => <Btn variante="ghost" onClick={() => mover(p, "AGUARDANDO ENTREGA")}>{ped(p).entrega === "retirada" ? "Pronto p/ retirada" : "Saiu p/ entrega"} →</Btn>, "Nada para separar")}
-      <h3 style={{ margin: "6px 0 0", fontSize: 16, color: "#0F172A" }}>Na rua / aguardando retirada</h3>
+      <h3 style={{ margin: "6px 0 0", fontSize: 16, color: "var(--c-tinta)" }}>Na rua / aguardando retirada</h3>
       {tabela(rota, (p) => <Btn onClick={() => mover(p, "ENTREGUE")}>Entregue ✓</Btn>, "Nenhuma entrega pendente")}
-      <div style={{ fontSize: 12.5, color: "#94A3B8" }}>Status de cada etapa: {["EM SEPARACAO", "AGUARDANDO ENTREGA", "ENTREGUE"].map((k) => etapaDe(modo, k).label).join(" → ")}</div>
+      <div style={{ fontSize: 12.5, color: "var(--c-mut)" }}>Status de cada etapa: {["EM SEPARACAO", "AGUARDANDO ENTREGA", "ENTREGUE"].map((k) => etapaDe(modo, k).label).join(" → ")}</div>
     </Page>
   );
 }

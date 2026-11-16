@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Page, PageHeader, Btn, Banner, Card, Field, Row, Table, Vazio, Pill, inputSm, tdStyle, Modal } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Btn, Banner, Card, Field, Row, Table, Vazio, Pill, inputSm, tdStyle, Modal } from "../_ui";
 import {
   ETAPAS, PRODUTOS, CONVENIOS, etapa, produto, brl, pctBR, dataBR, num, cpfFmt, hoje, cons, valorLiberado,
   valorPresente, comissaoPct, comissaoValor, salvarContrato, nomeUsuario, baixarCSV, type Contrato, type DadosConsignado,
@@ -129,11 +129,11 @@ export default function Contratos({ dados, alvo, gestor }: any) {
           const d = cons(c), e = etapa(c.status_venda);
           return (
             <tr key={c.id} onClick={() => abrir(c)} style={{ cursor: "pointer" }}>
-              <td style={tdStyle}><b>{c.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{cpfFmt(c.cpf) || "sem CPF"} · {d.convenio || "—"}{d.beneficio ? ` · ${d.beneficio}` : ""}</div></td>
-              <td style={tdStyle}>{c.operadora || "—"}<div style={{ fontSize: 12, color: "#94A3B8" }}>{produto(c.plano)}{d.proposta_banco ? ` · nº ${d.proposta_banco}` : ""}</div></td>
-              <td style={tdStyle}>{d.parcela ? `${brl(num(d.parcela))} × ${d.prazo || "?"}` : "—"}<div style={{ fontSize: 12, color: "#94A3B8" }}>{d.taxa_mensal ? `${pctBR(num(d.taxa_mensal))} a.m.` : ""}</div></td>
+              <td style={tdStyle}><b>{c.nome}</b><div style={{ fontSize: 12, color: "var(--k-mut)" }}>{cpfFmt(c.cpf) || "sem CPF"} · {d.convenio || "—"}{d.beneficio ? ` · ${d.beneficio}` : ""}</div></td>
+              <td style={tdStyle}>{c.operadora || "—"}<div style={{ fontSize: 12, color: "var(--k-mut)" }}>{produto(c.plano)}{d.proposta_banco ? ` · nº ${d.proposta_banco}` : ""}</div></td>
+              <td style={tdStyle}>{d.parcela ? `${brl(num(d.parcela))} × ${d.prazo || "?"}` : "—"}<div style={{ fontSize: 12, color: "var(--k-mut)" }}>{d.taxa_mensal ? `${pctBR(num(d.taxa_mensal))} a.m.` : ""}</div></td>
               <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(valorLiberado(c))}</td>
-              <td style={{ ...tdStyle, textAlign: "right" }}>{brl(comissaoValor(c, cfg))}<div style={{ fontSize: 12, color: "#94A3B8" }}>{pctBR(comissaoPct(c, cfg))}</div></td>
+              <td style={{ ...tdStyle, textAlign: "right" }}>{brl(comissaoValor(c, cfg))}<div style={{ fontSize: 12, color: "var(--k-mut)" }}>{pctBR(comissaoPct(c, cfg))}</div></td>
               <td style={tdStyle}><Pill texto={e.label} cor={e.cor} /></td>
             </tr>
           );
@@ -190,7 +190,7 @@ export default function Contratos({ dados, alvo, gestor }: any) {
             <Field label="Taxa (% a.m.)" flex="1 1 110px">{inpD("taxa_mensal", "1,85", { inputMode: "decimal" })}</Field>
             <div style={{ display: "flex", alignItems: "flex-end" }}><Btn variante="ghost" onClick={calcularValores}>Calcular valores</Btn></div>
           </Row>
-          {pv > 0 && <div style={{ fontSize: 12.5, color: "#64748B" }}>Pela parcela, prazo e taxa, o contrato vale <b>{brl(pv)}</b>{portabilidade && num(f.d.saldo_quitado) ? <> e libera <b>{brl(Math.max(0, pv - num(f.d.saldo_quitado)))}</b> depois de quitar o saldo</> : null}.</div>}
+          {pv > 0 && <div style={{ fontSize: 12.5, color: "var(--k-sub)" }}>Pela parcela, prazo e taxa, o contrato vale <b>{brl(pv)}</b>{portabilidade && num(f.d.saldo_quitado) ? <> e libera <b>{brl(Math.max(0, pv - num(f.d.saldo_quitado)))}</b> depois de quitar o saldo</> : null}.</div>}
           <Row>
             <Field label="Valor do contrato (R$)" flex="1 1 160px">{inpD("valor_bruto", "0,00", { inputMode: "decimal" })}</Field>
             <Field label="Valor liberado ao cliente (R$)" flex="1 1 180px">{inpD("valor_liberado", "0,00", { inputMode: "decimal" })}</Field>
@@ -204,18 +204,18 @@ export default function Contratos({ dados, alvo, gestor }: any) {
           {titulo("Comissão")}
           <Row>
             <Field label="Comissão (%)" flex="1 1 140px">{inpD("comissao_pct", `${pctBR(comissaoPct({ ...previa, dados_customizados: { consignado: { ...previa.dados_customizados.consignado, comissao_pct: null } } }, cfg))} (regra do banco)`, { inputMode: "decimal" })}</Field>
-            <div style={{ flex: "2 1 260px", display: "flex", alignItems: "flex-end", fontSize: 13.5, color: "#334155", paddingBottom: 10 }}>
+            <div style={{ flex: "2 1 260px", display: "flex", alignItems: "flex-end", fontSize: 13.5, color: "var(--k-txt2)", paddingBottom: 10 }}>
               Comissão prevista: <b style={{ marginLeft: 6, color: "var(--w-700)" }}>{brl(comissaoValor(previa, cfg))}</b>
-              <span style={{ color: "#94A3B8", marginLeft: 6 }}>sobre o valor {cfg.base_comissao === "liberado" ? "liberado" : "do contrato"}</span>
+              <span style={{ color: "var(--k-mut)", marginLeft: 6 }}>sobre o valor {cfg.base_comissao === "liberado" ? "liberado" : "do contrato"}</span>
             </div>
           </Row>
           <Field label="Observações"><textarea style={{ ...inputSm, minHeight: 70, resize: "vertical" }} value={f.d.observacoes || ""} onChange={(e) => setD("observacoes", e.target.value)} /></Field>
           {editando && (cons(editando).historico || []).length > 0 && (
             <Card titulo="Histórico" pad={14}>
               {[...(cons(editando).historico || [])].reverse().map((h, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, fontSize: 12.5, padding: "6px 0", borderTop: i ? "1px solid #F1F5F4" : 0 }}>
-                  <span style={{ color: "#94A3B8", minWidth: 120 }}>{new Date(h.em).toLocaleString("pt-BR")}</span>
-                  <span style={{ color: "#334155" }}>{h.nota}{h.por ? <span style={{ color: "#94A3B8" }}> · {nomeUsuario(usuarios, h.por)}</span> : null}</span>
+                <div key={i} style={{ display: "flex", gap: 10, fontSize: 12.5, padding: "6px 0", borderTop: i ? "1px solid var(--k-borda)" : 0 }}>
+                  <span style={{ color: "var(--k-mut)", minWidth: 120 }}>{new Date(h.em).toLocaleString("pt-BR")}</span>
+                  <span style={{ color: "var(--k-txt2)" }}>{h.nota}{h.por ? <span style={{ color: "var(--k-mut)" }}> · {nomeUsuario(usuarios, h.por)}</span> : null}</span>
                 </div>
               ))}
             </Card>

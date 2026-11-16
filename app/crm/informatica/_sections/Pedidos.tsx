@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Page, PageHeader, Btn, Banner, Field, Row, Table, Vazio, Pill, Modal, inputSm, tdStyle } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Btn, Banner, Field, Row, Table, Vazio, Pill, Modal, inputSm, tdStyle } from "../_ui";
 import {
   etapasDo, etapaDe, FLUXO, ENCERRADAS, brl, dataBR, hoje, num, telFmt, ped, descVariante, subtotal, totalPedido, qtdItens,
   salvarPedido, mudarEtapa, textoPedido, nomeUsuario, baixarCSV, type Pedido, type DadosPedido, type Item, type Produto,
@@ -132,10 +132,10 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
           const d = ped(p), e = etapaDe(modo, p.status_venda), prox = proxima(p);
           return (
             <tr key={p.id}>
-              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>#{d.numero || p.id}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{dataBR(p.data_proposta || p.created_at)}</div></td>
-              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>{p.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{telFmt(p.telefone1)}{d.entrega === "entrega" && p.cidade ? ` · ${p.cidade}` : d.entrega === "retirada" ? " · retirada" : ""}</div></td>
+              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>#{d.numero || p.id}</b><div style={{ fontSize: 12, color: "var(--i-mut)" }}>{dataBR(p.data_proposta || p.created_at)}</div></td>
+              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>{p.nome}</b><div style={{ fontSize: 12, color: "var(--i-mut)" }}>{telFmt(p.telefone1)}{d.entrega === "entrega" && p.cidade ? ` · ${p.cidade}` : d.entrega === "retirada" ? " · retirada" : ""}</div></td>
               <td style={{ ...tdStyle, cursor: "pointer", maxWidth: 280 }} onClick={() => abrir(p)}><span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", fontSize: 13 } as any}>{p.plano || "—"}</span></td>
-              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(totalPedido(d))}<div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>{d.pagamento || ""}</div></td>
+              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(totalPedido(d))}<div style={{ fontSize: 12, color: "var(--i-mut)", fontWeight: 600 }}>{d.pagamento || ""}</div></td>
               <td style={tdStyle}><Pill texto={e.label} cor={e.cor} /></td>
               <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
                 {prox && !ENCERRADAS.includes(p.status_venda || "") && <Btn variante="ghost" onClick={() => avancar(p, prox)}>{orcamentos && prox === "AGUARDANDO PAGAMENTO" ? "Virar pedido" : etapaDe(modo, prox).curto} →</Btn>}
@@ -167,7 +167,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
               const est = estoqueDe(it);
               const falta = !it.servico && est !== undefined && num(it.qtd) > num(est) && !(atual && ped(atual).estoque_baixado);
               return (
-                <div key={i} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: "#F7FAF9", borderRadius: 12, padding: 8 }}>
+                <div key={i} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: "var(--i-campo)", borderRadius: 12, padding: 8 }}>
                   <select style={{ ...inputSm, flex: "2 1 200px", width: "auto" }} value={it.produto_id} onChange={(e) => trocarProduto(i, e.target.value)}>
                     {!p && <option value={it.produto_id}>{it.nome} (removido do catálogo)</option>}
                     {produtos.map((x) => <option key={x.id} value={x.id}>{x.nome}{x.servico ? " (serviço)" : ""}</option>)}
@@ -180,8 +180,8 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
                   {!it.servico && <input style={{ ...inputSm, width: 150 }} value={it.serie || ""} onChange={(e) => setItem(i, { serie: e.target.value })} placeholder="Nº de série" title="Nº de série" />}<input style={{ ...inputSm, width: 70 }} inputMode="numeric" value={it.qtd} onChange={(e) => setItem(i, { qtd: e.target.value as any })} title="Quantidade" />
                   <input style={{ ...inputSm, width: 110 }} inputMode="decimal" value={String(it.preco).replace(".", ",")} onChange={(e) => setItem(i, { preco: e.target.value as any })} title="Preço unitário" />
                   <b style={{ minWidth: 90, textAlign: "right", fontSize: 13.5 }}>{brl(num(it.qtd) * num(it.preco))}</b>
-                  <button onClick={() => setD({ itens: f.d.itens.filter((_, j) => j !== i) })} title="Remover" style={{ border: 0, background: "#FEF2F2", color: "#B91C1C", borderRadius: 9, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="lixeira" tamanho={14} /></button>
-                  {falta && <span style={{ width: "100%", fontSize: 12, color: "#B45309", fontWeight: 700 }}>Só há {est} em estoque desta {modo === "roupas" ? "peça" : "variação"}.</span>}
+                  <button onClick={() => setD({ itens: f.d.itens.filter((_, j) => j !== i) })} title="Remover" style={{ border: 0, background: "rgba(248,113,113,.14)", color: "#F87171", borderRadius: 9, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="lixeira" tamanho={14} /></button>
+                  {falta && <span style={{ width: "100%", fontSize: 12, color: "#FBBF24", fontWeight: 700 }}>Só há {est} em estoque desta {modo === "roupas" ? "peça" : "variação"}.</span>}
                 </div>
               );
             })}
@@ -207,7 +207,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
             </Row>
           )}
           {f.d.tipo === "orcamento" && <Row><Field label="Válido até" flex="0 1 200px"><input type="date" style={inputSm} value={f.d.validade || ""} onChange={(e) => setD({ validade: e.target.value })} /></Field></Row>}
-          <div style={{ display: "flex", gap: 18, justifyContent: "flex-end", flexWrap: "wrap", fontSize: 13.5, color: "#475569", background: "var(--w-50)", borderRadius: 14, padding: "12px 16px" }}>
+          <div style={{ display: "flex", gap: 18, justifyContent: "flex-end", flexWrap: "wrap", fontSize: 13.5, color: "var(--i-txt2)", background: "var(--w-50)", borderRadius: 14, padding: "12px 16px" }}>
             <span>{qtdItens(f.d.itens)} {modo === "roupas" ? "peça(s)" : "item(ns)"}</span>
             <span>Subtotal <b>{brl(subtotal(f.d.itens.map((i) => ({ ...i, qtd: num(i.qtd), preco: num(i.preco) }))))}</b></span>
             {num(f.d.desconto) > 0 && <span>Desconto <b>-{brl(num(f.d.desconto))}</b></span>}
@@ -216,7 +216,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
           </div>
           <Field label="Observações"><textarea style={{ ...inputSm, minHeight: 60, resize: "vertical" }} value={f.d.observacoes || ""} onChange={(e) => setD({ observacoes: e.target.value })} /></Field>
           {atual && (ped(atual).historico || []).length > 0 && (
-            <div style={{ fontSize: 12.5, color: "#64748B" }}>
+            <div style={{ fontSize: 12.5, color: "var(--i-sub)" }}>
               {[...(ped(atual).historico || [])].reverse().slice(0, 6).map((h, i) => <div key={i}>{new Date(h.em).toLocaleString("pt-BR")} · {h.nota}{h.por ? ` · ${nomeUsuario(usuarios, h.por)}` : ""}</div>)}
             </div>
           )}

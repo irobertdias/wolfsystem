@@ -1,21 +1,21 @@
 "use client";
-import { Page, PageHeader, Stats, Stat, Card, Btn, Banner, Vazio, Pill } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Stats, Stat, Card, Btn, Banner, Vazio, Pill } from "../_ui";
 import { ETAPAS, ETAPAS_ANDAMENTO, etapa, produto, brl, dataBR, mesDe, valorLiberado, valorBruto, comissaoValor, cons, nomeUsuario, type Contrato } from "../_dados";
 
 const SOMBRA = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)";
 
 function Barras({ itens, formato }: { itens: { nome: string; valor: number; extra?: string; cor?: string }[]; formato: (n: number) => string }) {
   const max = Math.max(...itens.map((i) => i.valor), 1);
-  if (!itens.length) return <div style={{ color: "#94A3B8", fontSize: 13, padding: "10px 0" }}>Sem dados ainda.</div>;
+  if (!itens.length) return <div style={{ color: "var(--k-mut)", fontSize: 13, padding: "10px 0" }}>Sem dados ainda.</div>;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {itens.map((i) => (
         <div key={i.nome} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           <div style={{ display: "flex", fontSize: 13 }}>
-            <span style={{ color: "#334155", fontWeight: 700 }}>{i.nome}</span>
-            <span style={{ marginLeft: "auto", color: "#0F172A", fontWeight: 800 }}>{formato(i.valor)}{i.extra ? <span style={{ color: "#94A3B8", fontWeight: 600 }}> · {i.extra}</span> : null}</span>
+            <span style={{ color: "var(--k-txt2)", fontWeight: 700 }}>{i.nome}</span>
+            <span style={{ marginLeft: "auto", color: "var(--k-tinta)", fontWeight: 800 }}>{formato(i.valor)}{i.extra ? <span style={{ color: "var(--k-mut)", fontWeight: 600 }}> · {i.extra}</span> : null}</span>
           </div>
-          <div style={{ height: 8, borderRadius: 99, background: "#EEF2F1", overflow: "hidden" }}>
+          <div style={{ height: 8, borderRadius: 99, background: "var(--k-borda)", overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${(i.valor / max) * 100}%`, background: i.cor || "linear-gradient(90deg, var(--w-400), var(--w-600))", borderRadius: 99 }} />
           </div>
         </div>
@@ -78,11 +78,11 @@ export default function Painel({ dados, ir }: any) {
           <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-.02em" }}>{carregando ? "…" : brl(liberadoMes)}</span>
           <span style={{ fontSize: 13, color: "rgba(255,255,255,.85)" }}>{pagosMes.length} contrato(s) pago(s) · produção bruta {brl(brutoMes)} · ticket médio {brl(ticket)}</span>
         </div>
-        <div style={{ background: "#fff", borderRadius: 20, padding: 20, boxShadow: SOMBRA, display: "flex", flexDirection: "column", gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#64748B" }}>Taxa de aprovação</span>
-          <span style={{ fontSize: 28, fontWeight: 800, color: "#0F172A" }}>{aprovacao}%</span>
-          <span style={{ height: 6, borderRadius: 99, background: "#EEF2F1", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: `${aprovacao}%`, background: "var(--w-500)" }} /></span>
-          <span style={{ fontSize: 12.5, color: "#94A3B8" }}>{pagos.length} pagos de {encerrados} finalizados</span>
+        <div style={{ background: "#fff", borderRadius: 20, padding: 20, border: "1px solid var(--k-borda)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--k-sub)" }}>Taxa de aprovação</span>
+          <span style={{ fontSize: 28, fontWeight: 800, color: "var(--k-tinta)" }}>{aprovacao}%</span>
+          <span style={{ height: 6, borderRadius: 99, background: "var(--k-borda)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: `${aprovacao}%`, background: "var(--w-500)" }} /></span>
+          <span style={{ fontSize: 12.5, color: "var(--k-mut)" }}>{pagos.length} pagos de {encerrados} finalizados</span>
         </div>
       </div>
 
@@ -101,9 +101,9 @@ export default function Painel({ dados, ir }: any) {
           <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 170, paddingTop: 10 }}>
             {porMes.map((x) => (
               <div key={x.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end" }}>
-                <span style={{ fontSize: 11, color: "#64748B", fontWeight: 700 }}>{x.valor ? brl(x.valor).replace(",00", "") : ""}</span>
+                <span style={{ fontSize: 11, color: "var(--k-sub)", fontWeight: 700 }}>{x.valor ? brl(x.valor).replace(",00", "") : ""}</span>
                 <div title={brl(x.valor)} style={{ width: "100%", maxWidth: 46, height: `${Math.max((x.valor / maxMes) * 120, x.valor ? 6 : 2)}px`, borderRadius: 10, background: x.m === mes ? "linear-gradient(180deg, var(--w-400), var(--w-700))" : "var(--w-200)" }} />
-                <span style={{ fontSize: 11.5, color: "#94A3B8", fontWeight: 700 }}>{new Date(x.m + "-02").toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
+                <span style={{ fontSize: 11.5, color: "var(--k-mut)", fontWeight: 700 }}>{new Date(x.m + "-02").toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
               </div>
             ))}
           </div>
@@ -117,10 +117,10 @@ export default function Painel({ dados, ir }: any) {
               {contratos.slice(0, 6).map((c) => {
                 const e = etapa(c.status_venda);
                 return (
-                  <button key={c.id} onClick={() => ir("contratos", { contratoId: c.id })} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 4px", border: 0, borderTop: "1px solid #F1F5F4", background: "transparent", cursor: "pointer", textAlign: "left" }}>
+                  <button key={c.id} onClick={() => ir("contratos", { contratoId: c.id })} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 4px", border: 0, borderTop: "1px solid var(--k-borda)", background: "transparent", cursor: "pointer", textAlign: "left" }}>
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <b style={{ fontSize: 13.5, color: "#0F172A" }}>{c.nome}</b>
-                      <span style={{ display: "block", fontSize: 12, color: "#94A3B8" }}>{c.operadora || "—"} · {produto(c.plano)} · {dataBR(c.data_proposta || c.created_at)}</span>
+                      <b style={{ fontSize: 13.5, color: "var(--k-tinta)" }}>{c.nome}</b>
+                      <span style={{ display: "block", fontSize: 12, color: "var(--k-mut)" }}>{c.operadora || "—"} · {produto(c.plano)} · {dataBR(c.data_proposta || c.created_at)}</span>
                     </span>
                     <span style={{ textAlign: "right" }}>
                       <b style={{ display: "block", fontSize: 13.5 }}>{brl(valorLiberado(c))}</b>

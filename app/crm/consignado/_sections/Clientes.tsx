@@ -1,6 +1,6 @@
 "use client";
 import { Fragment, useMemo, useState } from "react";
-import { Page, PageHeader, Table, Vazio, Pill, Btn, inputSm, tdStyle } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Table, Vazio, Pill, Btn, inputSm, tdStyle } from "../_ui";
 import { etapa, produto, brl, dataBR, cpfFmt, cons, valorLiberado, type Contrato } from "../_dados";
 
 type Cliente = { chave: string; nome: string; cpf: string; telefone: string; convenio: string; beneficio: string; contratos: Contrato[]; liberado: number; ultimo: string };
@@ -36,21 +36,21 @@ export default function Clientes({ dados, ir }: any) {
         {clientes.map((x) => (
           <Fragment key={x.chave}>
             <tr key={x.chave} onClick={() => setAberto(aberto === x.chave ? "" : x.chave)} style={{ cursor: "pointer" }}>
-              <td style={tdStyle}><b>{x.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{x.cpf || "sem CPF"}{x.telefone ? ` · ${x.telefone}` : ""}</div></td>
-              <td style={tdStyle}>{x.convenio || "—"}<div style={{ fontSize: 12, color: "#94A3B8" }}>{x.beneficio}</div></td>
+              <td style={tdStyle}><b>{x.nome}</b><div style={{ fontSize: 12, color: "var(--k-mut)" }}>{x.cpf || "sem CPF"}{x.telefone ? ` · ${x.telefone}` : ""}</div></td>
+              <td style={tdStyle}>{x.convenio || "—"}<div style={{ fontSize: 12, color: "var(--k-mut)" }}>{x.beneficio}</div></td>
               <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{x.contratos.length}</td>
               <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(x.liberado)}</td>
               <td style={tdStyle}>{dataBR(x.ultimo)}</td>
             </tr>
             {aberto === x.chave && (
               <tr key={x.chave + "-c"}>
-                <td colSpan={5} style={{ ...tdStyle, background: "#F7FAF9" }}>
+                <td colSpan={5} style={{ ...tdStyle, background: "var(--k-campo)" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {x.contratos.map((c) => {
                       const e = etapa(c.status_venda);
                       return (
                         <button key={c.id} onClick={() => ir("contratos", { contratoId: c.id })} style={{ display: "flex", alignItems: "center", gap: 10, border: 0, background: "#fff", borderRadius: 12, padding: "10px 12px", cursor: "pointer", textAlign: "left" }}>
-                          <span style={{ flex: 1 }}>{c.operadora || "—"} · {produto(c.plano)}<span style={{ color: "#94A3B8" }}> · {dataBR(c.data_proposta || c.created_at)}</span></span>
+                          <span style={{ flex: 1 }}>{c.operadora || "—"} · {produto(c.plano)}<span style={{ color: "var(--k-mut)" }}> · {dataBR(c.data_proposta || c.created_at)}</span></span>
                           <b>{brl(valorLiberado(c))}</b>
                           <Pill texto={e.curto} cor={e.cor} />
                         </button>

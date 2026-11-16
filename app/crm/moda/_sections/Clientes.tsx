@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Page, PageHeader, Table, Vazio, Btn, inputSm, tdStyle } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Table, Vazio, Btn, inputSm, tdStyle } from "../_ui";
 import { brl, dataBR, telFmt, ped, totalPedido, CONFIRMADAS, type Pedido } from "../_dados";
 
 export default function Clientes({ dados, ir }: any) {
@@ -32,7 +32,7 @@ export default function Clientes({ dados, ir }: any) {
         empty={clientes.length === 0 ? <Vazio icone="👥" titulo="Nenhum cliente ainda" sub="Os clientes aparecem conforme os pedidos são criados." /> : undefined}>
         {clientes.map((c) => (
           <tr key={c.chave} onClick={() => ir("pedidos", { telefone: c.tel || c.nome })} style={{ cursor: "pointer" }}>
-            <td style={tdStyle}><b>{c.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{telFmt(c.tel)}{c.cidade ? ` · ${c.cidade}` : ""}</div></td>
+            <td style={tdStyle}><b>{c.nome}</b><div style={{ fontSize: 12, color: "var(--m-mut)" }}>{telFmt(c.tel)}{c.cidade ? ` · ${c.cidade}` : ""}</div></td>
             {modo === "roupas" && <td style={tdStyle}>{Object.entries(c.tamanhos).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t).join(", ") || "—"}</td>}
             <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{c.pedidos}</td>
             <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(c.gasto)}</td>

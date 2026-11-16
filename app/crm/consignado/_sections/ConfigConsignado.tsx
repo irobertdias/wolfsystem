@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Page, PageHeader, Card, Btn, Banner, Field, Row, IconBtn, inputSm, thStyle, tdStyle } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Card, Btn, Banner, Field, Row, IconBtn, inputSm, thStyle, tdStyle } from "../_ui";
 import { PRODUTOS, CONFIG_PADRAO, num, salvarConfig, type ConfigConsignado, type Banco } from "../_dados";
 
 const f2 = (v: any) => (v === undefined || v === null || v === "" ? "" : String(v).replace(".", ","));
@@ -51,7 +51,7 @@ export default function ConfigConsignadoSection({ dados }: any) {
             <select style={inputSm} value={base} onChange={(e) => setBase(e.target.value as any)}><option value="bruto">Valor do contrato (produção bruta)</option><option value="liberado">Valor liberado ao cliente</option></select>
           </Field>
         </Row>
-        <div style={{ fontSize: 12.5, color: "#94A3B8", marginTop: 8 }}>A comissão do banco/produto na tabela abaixo tem prioridade; o percentual digitado no próprio contrato tem prioridade sobre os dois.</div>
+        <div style={{ fontSize: 12.5, color: "var(--k-mut)", marginTop: 8 }}>A comissão do banco/produto na tabela abaixo tem prioridade; o percentual digitado no próprio contrato tem prioridade sobre os dois.</div>
       </Card>
       <Card titulo="Taxas, margem e prazo de referência">
         <Row>
@@ -65,7 +65,7 @@ export default function ConfigConsignadoSection({ dados }: any) {
           <Field label="Margem cartão consignado (%)" flex="1 1 200px"><input style={inputSm} inputMode="decimal" value={geral.margem_cartao || ""} onChange={(e) => setG("margem_cartao", e.target.value)} /></Field>
           <Field label="Margem cartão benefício (%)" flex="1 1 200px"><input style={inputSm} inputMode="decimal" value={geral.margem_beneficio || ""} onChange={(e) => setG("margem_beneficio", e.target.value)} /></Field>
         </Row>
-        <div style={{ fontSize: 12.5, color: "#94A3B8", marginTop: 8 }}>Os tetos e margens mudam por norma do INSS e de cada convênio: confira e atualize quando houver mudança.</div>
+        <div style={{ fontSize: 12.5, color: "var(--k-mut)", marginTop: 8 }}>Os tetos e margens mudam por norma do INSS e de cada convênio: confira e atualize quando houver mudança.</div>
       </Card>
       <Card titulo="Comissão por banco e produto (%)" pad={0}>
         <div style={{ overflowX: "auto" }}>

@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Page, PageHeader, Table, Vazio, Btn, inputSm, tdStyle } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Table, Vazio, Btn, inputSm, tdStyle } from "../_ui";
 import { brl, dataBR, telFmt, ped, totalPedido, CONFIRMADAS, os, totalOS, type Pedido } from "../_dados";
 
 export default function Clientes({ dados, ir }: any) {
@@ -29,8 +29,8 @@ export default function Clientes({ dados, ir }: any) {
         empty={clientes.length === 0 ? <Vazio icone="👥" titulo="Nenhum cliente ainda" sub="Os clientes aparecem com as vendas e as ordens de serviço." /> : undefined}>
         {clientes.map((c) => (
           <tr key={c.chave}>
-            <td style={tdStyle}><b>{c.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{telFmt(c.tel)}</div></td>
-            <td style={{ ...tdStyle, fontSize: 12.5, color: "#475569", maxWidth: 260 }}>{[...c.equipamentos].slice(0, 3).join(" · ") || "—"}</td>
+            <td style={tdStyle}><b>{c.nome}</b><div style={{ fontSize: 12, color: "var(--i-mut)" }}>{telFmt(c.tel)}</div></td>
+            <td style={{ ...tdStyle, fontSize: 12.5, color: "var(--i-txt2)", maxWidth: 260 }}>{[...c.equipamentos].slice(0, 3).join(" · ") || "—"}</td>
             <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{c.compras}</td>
             <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{c.os}</td>
             <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(c.gasto)}</td>

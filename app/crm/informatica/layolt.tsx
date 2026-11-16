@@ -9,123 +9,132 @@ import Estoque from "./_sections/Estoque";
 import OrdensServico from "./_sections/OrdensServico";
 import Clientes from "./_sections/Clientes";
 import ConfigLoja from "./_sections/ConfigLoja";
-import Icone from "../../components/a2/Icone";
-import { SIMBOLOS, ROTULO } from "../../lib/arte-nicho";
+import Icone, { IconeEmoji } from "../../components/a2/Icone";
+import { useAppNicho } from "../_app-nicho";
+import { MONO } from "./_ui";
 
 // ═══════════════════════════════════════════════════════════════════════
-// Sistema do nicho Informática: loja (vendas, orçamentos, estoque) e assistência técnica (OS).
-// mesma moldura dos outros módulos, menu e telas de acordo com o ramo.
+// Sistema do nicho Informática: um app próprio, em tela inteira e tema escuro de
+// bancada técnica. Barra de comando no topo, abas por área (Assistência, Vendas,
+// Estoque…) e a bancada de OS como tela principal. Não usa a moldura do CRM.
 // ═══════════════════════════════════════════════════════════════════════
 
-type Item = { key: string; label: string; icone: string; soGestor?: boolean };
-type Grupo = { nome: string; itens: Item[] };
-
-const GRUPOS: Record<Modo, Grupo[]> = {
-  roupas: [],
-  vendas: [
-    { nome: "Loja", itens: [
-      { key: "painel", label: "Painel da loja", icone: "grafico" },
-      { key: "os", label: "Assistência técnica (OS)", icone: "config" },
-      { key: "orcamentos", label: "Orçamentos", icone: "documento" },
-      { key: "pedidos", label: "Vendas", icone: "dinheiro" },
-      { key: "clientes", label: "Clientes e equipamentos", icone: "usuarios" },
-    ]},
-    { nome: "Produtos", itens: [
-      { key: "catalogo", label: "Produtos, peças e serviços", icone: "tag" },
-      { key: "estoque", label: "Estoque", icone: "pasta" },
-    ]},
-    { nome: "Configurações", itens: [{ key: "config", label: "Pagamentos, técnicos e garantia", icone: "config", soGestor: true }] },
-  ],
-};
-const SOMBRA = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)";
+type Aba = { key: string; label: string; atalho: string; soGestor?: boolean };
+const ABAS: Aba[] = [
+  { key: "painel", label: "Monitor", atalho: "F1" },
+  { key: "os", label: "Bancada OS", atalho: "F2" },
+  { key: "orcamentos", label: "Orçamentos", atalho: "F3" },
+  { key: "pedidos", label: "Vendas", atalho: "F4" },
+  { key: "clientes", label: "Clientes", atalho: "F5" },
+  { key: "catalogo", label: "Produtos", atalho: "F6" },
+  { key: "estoque", label: "Estoque", atalho: "F7" },
+  { key: "config", label: "Sistema", atalho: "F8", soGestor: true },
+];
 export type Alvo = { pedidoId?: number; novo?: boolean; orcamento?: boolean; telefone?: string; t?: number };
 export type Navegar = (aba: string, alvo?: Alvo) => void;
 
 export default function InformaticaLayolt() {
-  return <LojaComModo modo="vendas" />;
+  return <App modo="vendas" />;
 }
 
-function LojaComModo({ modo }: { modo: Modo }) {
+function App({ modo }: { modo: Modo }) {
   const { permissoes, isDono, isSuperAdmin, perfil, loading } = usePermissao() as any;
   const dados = useLoja(modo);
   const gestor = isSuperAdmin || isDono || perfil === "Administrador";
   const temAcesso = gestor || !!(permissoes as any).crm_acessar || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe || !!permissoes.dashboard;
-  const chave = "wolf_informatica_aba";
-  const [aba, setAba] = useState("painel");
-  const [alvo, setAlvo] = useState<Alvo>({});
-  const [isMobile, setIsMobile] = useState(false);
-  const [menuMobile, setMenuMobile] = useState(false);
-  const SECTIONS: Record<string, React.ComponentType<any>> = { painel: Painel, pedidos: Pedidos, orcamentos: Pedidos, catalogo: Catalogo, estoque: Estoque, os: OrdensServico, clientes: Clientes, config: ConfigLoja };
-  const grupos = GRUPOS[modo].map((g) => ({ ...g, itens: g.itens.filter((i) => !i.soGestor || gestor) })).filter((g) => g.itens.length);
-  const validas = grupos.flatMap((g) => g.itens.map((i) => i.key));
+  return <TelaInformatica dados={dados} gestor={gestor} temAcesso={temAcesso} loading={loading} />;
+}
 
-  useEffect(() => {
-    try { const s = localStorage.getItem(chave); if (s) setAba(s); } catch {}
-    const ver = () => setIsMobile(window.innerWidth < 900);
-    ver(); window.addEventListener("resize", ver);
-    return () => window.removeEventListener("resize", ver);
-  }, [chave]);
+export function TelaInformatica({ dados, gestor, temAcesso, loading }: { dados: any; gestor: boolean; temAcesso: boolean; loading: boolean }) {
+  const app = useAppNicho();
+  const chave = "wolf_informatica_aba";
+  const [aba, setAba] = useState("os");
+  const [alvo, setAlvo] = useState<Alvo>({});
+  const [menu, setMenu] = useState(false);
+  const [relogio, setRelogio] = useState("");
+  const SECTIONS: Record<string, React.ComponentType<any>> = { painel: Painel, pedidos: Pedidos, orcamentos: Pedidos, catalogo: Catalogo, estoque: Estoque, os: OrdensServico, clientes: Clientes, config: ConfigLoja };
+  const abas = ABAS.filter((a) => !a.soGestor || gestor);
 
   const ir: Navegar = (nova, novoAlvo) => {
-    setAba(nova); setAlvo({ ...(novoAlvo || {}), t: Date.now() }); setMenuMobile(false);
+    setAba(nova); setAlvo({ ...(novoAlvo || {}), t: Date.now() }); setMenu(false);
     try { localStorage.setItem(chave, nova); } catch {}
     window.scrollTo({ top: 0 });
   };
 
-  if (loading) return <div style={{ padding: 48, textAlign: "center", color: "#94A3B8" }}>Carregando…</div>;
-  if (!temAcesso) {
-    return <div style={{ minHeight: "50vh", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: 40, textAlign: "center" }}>Você não tem acesso a este módulo.</div></div>;
-  }
-  const abaValida = validas.includes(aba) ? aba : "painel";
-  const Comp = SECTIONS[abaValida];
-  const todos = grupos.flatMap((g) => g.itens);
-  const simbolo = SIMBOLOS.informatica[0];
-  const marca = (
-    <span style={{ width: 32, height: 32, borderRadius: 10, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={simbolo} /></svg>
-    </span>
-  );
-  const botao = (i: Item) => {
-    const sel = abaValida === i.key;
-    return (
-      <button key={i.key} onClick={() => ir(i.key)} className={`a2-menu-config${sel ? " ativo" : ""}`}
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", border: 0, borderRadius: 11, cursor: "pointer", textAlign: "left", whiteSpace: "nowrap",
-          background: sel ? "var(--w-50)" : "transparent", color: sel ? "var(--w-800)" : "#475569", fontSize: 13.5, fontWeight: sel ? 800 : 600 }}>
-        <Icone nome={i.icone as any} tamanho={16} cor={sel ? "var(--w-600)" : "#94A3B8"} />{i.label}
-      </button>
-    );
-  };
-  const menu = grupos.map((g) => (
-    <div key={g.nome} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, padding: "12px 12px 4px" }}>{g.nome}</span>
-      {g.itens.map(botao)}
-    </div>
-  ));
+  useEffect(() => {
+    try { const s = localStorage.getItem(chave); if (s) setAba(s); } catch {}
+    const tick = () => setRelogio(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+    tick(); const t = setInterval(tick, 20_000);
+    return () => clearInterval(t);
+  }, []);
+  // teclas F1…F8 trocam de área, como num sistema de balcão
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      const a = abas.find((x) => x.atalho === e.key);
+      if (a && !(e.target as HTMLElement)?.closest?.("input, textarea, select")) { e.preventDefault(); ir(a.key); }
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gestor]);
+
+  const valida = abas.some((a) => a.key === aba) ? aba : "os";
+  const Comp = SECTIONS[valida];
+  const abertas = (dados.ordens || []).filter((p: any) => ["RECEBIDO", "EM DIAGNOSTICO", "AGUARDANDO APROVACAO", "EM REPARO", "PRONTO"].includes(p.status_venda || "RECEBIDO")).length;
+  const iniciais = (app.userNome || app.userEmail || "?").split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join("").toUpperCase();
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 22, alignItems: "flex-start", padding: isMobile ? "4px 0 20px" : "8px 4px 28px", maxWidth: 1440, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
-      {isMobile ? (
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
-          <button onClick={() => setMenuMobile((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: 0, borderRadius: 16, boxShadow: SOMBRA, padding: "12px 16px", fontSize: 14, fontWeight: 800, color: "#0F172A", cursor: "pointer" }}>
-            {marca}Informática · {todos.find((i) => i.key === abaValida)?.label}
-            <span style={{ marginLeft: "auto" }}><Icone nome="baixo" tamanho={16} /></span>
-          </button>
-          {menuMobile && <nav style={{ background: "#fff", borderRadius: 16, boxShadow: SOMBRA, padding: 10, display: "flex", flexDirection: "column", gap: 2 }}>{menu}</nav>}
-        </div>
-      ) : (
-        <nav aria-label="Seções" style={{ flex: "0 0 250px", background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: 12, display: "flex", flexDirection: "column", gap: 2, position: "sticky", top: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 12px 4px" }}>
-            {marca}
-            <span style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ fontWeight: 800, color: "#0F172A", fontSize: 16 }}>Informática</span>
-              <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 600 }}>{ROTULO.informatica}</span>
+    <div className="info-app nicho-app">
+      <header className="info-topo">
+        <div className="info-topo-linha">
+          <button className="info-marca" onClick={() => ir("os")} title="Bancada">
+            <span className="info-chip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="6" width="12" height="12" rx="2" /><rect x="9.5" y="9.5" width="5" height="5" rx=".6" /><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4" /></svg></span>
+            <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.15, minWidth: 0 }}>
+              <b style={{ fontFamily: MONO, fontSize: 13.5, letterSpacing: ".02em", color: "var(--i-txt)" }}>tech<span style={{ color: "var(--i-acento)" }}>desk</span></b>
+              <span style={{ fontSize: 11, color: "var(--i-mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>{app.workspaceNome || "Assistência e loja"}</span>
             </span>
+          </button>
+          <div className="info-status">
+            <span><i style={{ background: "#34D399", boxShadow: "0 0 8px #34D399" }} />online</span>
+            <span><i style={{ background: "#22D3EE", boxShadow: "0 0 8px #22D3EE" }} />{abertas} OS na bancada</span>
+            <span style={{ color: "var(--i-mut)" }}>{relogio}</span>
           </div>
-          {menu}
+          <div className="info-acoes">
+            <button className="info-novo" onClick={() => ir("os", { novo: true })}>＋ OS</button>
+            <button className="info-novo info-novo-2" onClick={() => ir("pedidos", { novo: true })}>＋ Venda</button>
+            {app.atalhos.slice(0, 3).map((a) => (
+              <button key={a.path} className="info-atalho" onClick={() => app.ir(a.path)} title={a.label}><IconeEmoji e={a.icon} tamanho={16} /><span>{a.label}</span></button>
+            ))}
+            <div style={{ position: "relative" }}>
+              <button className="info-user" onClick={() => setMenu((v) => !v)} title={app.userNome}>
+                {app.fotoUrl ? <img src={app.fotoUrl} alt="" /> : <span>{iniciais}</span>}
+              </button>
+              {menu && (
+                <div className="info-menu" onMouseLeave={() => setMenu(false)}>
+                  <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--i-borda)" }}>
+                    <b style={{ display: "block", fontSize: 13, color: "var(--i-txt)" }}>{app.userNome || app.userEmail}</b>
+                    <span style={{ fontSize: 11.5, color: "var(--i-mut)", fontFamily: MONO }}>{app.perfilLabel}</span>
+                  </div>
+                  {app.atalhos.map((a) => <button key={a.path} onClick={() => app.ir(a.path)}><IconeEmoji e={a.icon} tamanho={15} />{a.label}</button>)}
+                  <button onClick={() => app.ir("/meu-perfil")}><Icone nome="usuario" tamanho={15} />Meu perfil</button>
+                  <button onClick={app.sair} style={{ color: "#F87171" }}><Icone nome="sair" tamanho={15} />Sair</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <nav className="info-abas" aria-label="Áreas">
+          {abas.map((a) => (
+            <button key={a.key} onClick={() => ir(a.key)} className={valida === a.key ? "ativo" : ""}>
+              <kbd>{a.atalho}</kbd>{a.label}
+            </button>
+          ))}
         </nav>
-      )}
-      <main style={{ flex: "999 1 560px", minWidth: 0 }}>
-        <Comp key={abaValida} dados={dados} ir={ir} alvo={alvo} gestor={gestor} orcamentos={abaValida === "orcamentos"} />
+      </header>
+      <main className="info-conteudo">
+        {loading ? <div style={{ padding: 48, textAlign: "center", color: "var(--i-mut)", fontFamily: MONO }}>carregando…</div>
+          : !temAcesso ? <div style={{ padding: 48, textAlign: "center", color: "var(--i-sub)" }}>Você não tem acesso a este sistema.</div>
+          : <Comp key={valida} dados={dados} ir={ir} alvo={alvo} gestor={gestor} orcamentos={valida === "orcamentos"} />}
       </main>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Page, PageHeader, Card, Field, Row, Btn, Banner, inputSm } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Card, Field, Row, Btn, Banner, inputSm } from "../_ui";
 import { CONVENIOS, brl, pctBR, num, simularMargem, parcelaPrice } from "../_dados";
 
 const f2 = (v: number) => String(v).replace(".", ",");
@@ -25,7 +25,7 @@ export default function Simulador({ dados, ir }: any) {
   } });
 
   const Linha = ({ k, v, forte }: { k: string; v: string; forte?: boolean }) => (
-    <div style={{ display: "flex", padding: "10px 0", borderTop: "1px solid #F1F5F4", fontSize: 13.5 }}><span style={{ color: "#64748B" }}>{k}</span><b style={{ marginLeft: "auto", color: forte ? "var(--w-700)" : "#0F172A" }}>{v}</b></div>
+    <div style={{ display: "flex", padding: "10px 0", borderTop: "1px solid var(--k-borda)", fontSize: 13.5 }}><span style={{ color: "var(--k-sub)" }}>{k}</span><b style={{ marginLeft: "auto", color: forte ? "var(--w-700)" : "var(--k-tinta)" }}>{v}</b></div>
   );
 
   return (
@@ -67,13 +67,13 @@ export default function Simulador({ dados, ir }: any) {
           <Card titulo="O cliente pediu um valor?">
             <Field label="Valor desejado (R$)"><input style={inputSm} inputMode="decimal" value={s.valorDesejado} onChange={(e) => set("valorDesejado", e.target.value)} placeholder="0,00" /></Field>
             {parcelaDesejada > 0 && (
-              <div style={{ marginTop: 12, fontSize: 13.5, color: "#334155", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ marginTop: 12, fontSize: 13.5, color: "var(--k-txt2)", display: "flex", flexDirection: "column", gap: 8 }}>
                 <span>Parcela de <b>{brl(parcelaDesejada)}</b> em {Math.round(num(s.prazo))}x. {cabe ? <b style={{ color: "var(--w-700)" }}>Cabe na margem.</b> : <b style={{ color: "#B91C1C" }}>Passa da margem livre em {brl(parcelaDesejada - r.margemLivre)}.</b>}</span>
                 {cabe && <div><Btn onClick={() => criar(num(s.valorDesejado), parcelaDesejada)}>Criar contrato com {brl(num(s.valorDesejado))}</Btn></div>}
               </div>
             )}
           </Card>
-          <div style={{ fontSize: 12, color: "#94A3B8", lineHeight: 1.5 }}>Estimativa pela tabela Price com os percentuais de margem configurados. Confira as regras e a taxa de cada banco e convênio antes de digitar.</div>
+          <div style={{ fontSize: 12, color: "var(--k-mut)", lineHeight: 1.5 }}>Estimativa pela tabela Price com os percentuais de margem configurados. Confira as regras e a taxa de cada banco e convênio antes de digitar.</div>
         </div>
       </div>
     </Page>

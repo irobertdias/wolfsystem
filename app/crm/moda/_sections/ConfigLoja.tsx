@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Page, PageHeader, Card, Btn, Banner, Field, Row, inputSm } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Card, Btn, Banner, Field, Row, inputSm } from "../_ui";
 import { num, salvarConfig } from "../_dados";
 
 const lista = (s: string) => s.split(/[\n,;]+/).map((x) => x.trim()).filter(Boolean);
@@ -45,7 +45,7 @@ export default function ConfigLoja({ dados }: any) {
             ? <Field label="Tamanhos da grade (separados por vírgula)" flex="2 1 280px"><input style={inputSm} value={f.tamanhos} onChange={(e) => setF({ ...f, tamanhos: e.target.value })} placeholder="PP, P, M, G, GG ou 34, 36, 38…" /></Field>
             : <Field label="Validade do orçamento (dias)" flex="1 1 180px"><input style={inputSm} inputMode="numeric" value={f.validade} onChange={(e) => setF({ ...f, validade: e.target.value })} /></Field>}
         </Row>
-        {roupas && <div style={{ fontSize: 12.5, color: "#94A3B8", marginTop: 8 }}>Para calçados ou calças numeradas, use por exemplo: 34, 35, 36, 37, 38, 39, 40, 42, 44.</div>}
+        {roupas && <div style={{ fontSize: 12.5, color: "var(--m-mut)", marginTop: 8 }}>Para calçados ou calças numeradas, use por exemplo: 34, 35, 36, 37, 38, 39, 40, 42, 44.</div>}
       </Card>
     </Page>
   );

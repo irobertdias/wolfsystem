@@ -1,5 +1,5 @@
 "use client";
-import { Page, PageHeader, Stats, Stat, Card, Btn, Banner, Vazio, Pill } from "../../financeiro/_sections/_ui";
+import { Page, PageHeader, Stats, Stat, Card, Btn, Banner, Vazio, Pill, MONO } from "../_ui";
 import {
   CONFIRMADAS, ETAPAS_OS, OS_ABERTAS, brl, dataBR, hoje, ped, totalPedido, qtdItens, mesDe, custoItens, num, nomeUsuario,
   os, totalOS, fimGarantia, etapaOS, etapaDe, type Pedido, type Produto,
@@ -9,13 +9,13 @@ const SOMBRA = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2
 
 function Barras({ itens, formato }: { itens: { nome: string; valor: number; extra?: string; cor?: string }[]; formato: (n: number) => string }) {
   const max = Math.max(...itens.map((i) => i.valor), 1);
-  if (!itens.length) return <div style={{ color: "#94A3B8", fontSize: 13, padding: "10px 0" }}>Sem dados ainda.</div>;
+  if (!itens.length) return <div style={{ color: "var(--i-mut)", fontSize: 13, padding: "10px 0" }}>Sem dados ainda.</div>;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {itens.map((i) => (
         <div key={i.nome} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <div style={{ display: "flex", fontSize: 13, gap: 8 }}><span style={{ color: "#334155", fontWeight: 700 }}>{i.nome}</span><span style={{ marginLeft: "auto", fontWeight: 800, whiteSpace: "nowrap" }}>{formato(i.valor)}{i.extra ? <span style={{ color: "#94A3B8", fontWeight: 600 }}> · {i.extra}</span> : null}</span></div>
-          <div style={{ height: 8, borderRadius: 99, background: "#EEF2F1", overflow: "hidden" }}><div style={{ height: "100%", width: `${(i.valor / max) * 100}%`, background: i.cor || "linear-gradient(90deg, var(--w-400), var(--w-600))", borderRadius: 99 }} /></div>
+          <div style={{ display: "flex", fontSize: 13, gap: 8 }}><span style={{ color: "var(--i-txt2)", fontWeight: 700 }}>{i.nome}</span><span style={{ marginLeft: "auto", fontWeight: 800, whiteSpace: "nowrap" }}>{formato(i.valor)}{i.extra ? <span style={{ color: "var(--i-mut)", fontWeight: 600 }}> · {i.extra}</span> : null}</span></div>
+          <div style={{ height: 8, borderRadius: 99, background: "var(--i-borda)", overflow: "hidden" }}><div style={{ height: "100%", width: `${(i.valor / max) * 100}%`, background: i.cor || "linear-gradient(90deg, var(--w-400), var(--w-600))", borderRadius: 99 }} /></div>
         </div>
       ))}
     </div>
@@ -72,15 +72,15 @@ export default function Painel({ dados, ir }: any) {
       {baixo.length > 0 && <Banner tipo="warn"><b>{baixo.length} item(ns) com estoque baixo</b>: {[...new Set(baixo)].slice(0, 4).join(", ")}{baixo.length > 4 ? "…" : ""}. <a onClick={() => ir("estoque")} style={{ cursor: "pointer", textDecoration: "underline", fontWeight: 700 }}>Ver estoque</a></Banner>}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-        <div className="hero-nicho" style={{ gridColumn: "span 2", minWidth: 0, borderRadius: 22, padding: "20px 22px", color: "#fff", background: "linear-gradient(130deg, var(--w-500) 0%, var(--w-600) 42%, var(--w-800) 100%)", boxShadow: "0 22px 44px -24px rgba(15,23,42,.55)", display: "flex", flexDirection: "column", gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,.85)" }}>Faturamento do mês</span>
-          <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-.02em" }}>{carregando ? "…" : brl(total)}</span>
-          <span style={{ fontSize: 13, color: "rgba(255,255,255,.85)" }}>Vendas {brl(fatVendas)} · Assistência {brl(fatServicos)}{custoVendas ? ` · lucro bruto nas vendas ${brl(fatVendas - custoVendas)}` : ""}</span>
+        <div className="info-terminal" style={{ gridColumn: "span 2", minWidth: 0, borderRadius: 12, border: "1px solid color-mix(in srgb, var(--i-acento) 40%, transparent)", padding: "16px 20px", background: "radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--i-acento) 18%, transparent), transparent 60%), var(--i-painel)", display: "flex", flexDirection: "column", gap: 6, fontFamily: MONO, position: "relative", overflow: "hidden" }}>
+          <span style={{ fontSize: 11.5, color: "var(--i-acento)" }}>$ faturamento --mes {mes}</span>
+          <span style={{ fontSize: 34, fontWeight: 700, color: "var(--i-txt)", letterSpacing: "-.02em", textShadow: "0 0 24px color-mix(in srgb, var(--i-acento) 45%, transparent)" }}>{carregando ? "…" : brl(total)}<span className="info-cursor" /></span>
+          <span style={{ fontSize: 12, color: "var(--i-sub)" }}>vendas <b style={{ color: "#A78BFA" }}>{brl(fatVendas)}</b> · assistência <b style={{ color: "#22D3EE" }}>{brl(fatServicos)}</b>{custoVendas ? <> · lucro bruto <b style={{ color: "#34D399" }}>{brl(fatVendas - custoVendas)}</b></> : null}</span>
         </div>
-        <div style={{ background: "#fff", borderRadius: 20, padding: 20, boxShadow: SOMBRA, display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#64748B" }}>Assistência técnica</span>
-          <span style={{ fontSize: 28, fontWeight: 800, color: "#0F172A" }}>{abertas.length} <span style={{ fontSize: 14, color: "#94A3B8" }}>OS abertas</span></span>
-          <span style={{ fontSize: 13, color: "#475569" }}>{aprovar.length} aguardando aprovação · {prontas.length} pronta(s) para retirada</span>
+        <div style={{ background: "var(--i-painel)", borderRadius: 20, padding: 20, border: "1px solid var(--i-borda)", display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--i-sub)" }}>Assistência técnica</span>
+          <span style={{ fontSize: 28, fontWeight: 800, color: "var(--i-txt)" }}>{abertas.length} <span style={{ fontSize: 14, color: "var(--i-mut)" }}>OS abertas</span></span>
+          <span style={{ fontSize: 13, color: "var(--i-txt2)" }}>{aprovar.length} aguardando aprovação · {prontas.length} pronta(s) para retirada</span>
           <div><Btn variante="ghost" onClick={() => ir("os")}>Abrir assistência</Btn></div>
         </div>
       </div>
@@ -98,14 +98,14 @@ export default function Painel({ dados, ir }: any) {
           <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 170, paddingTop: 10 }}>
             {porMes.map((x) => (
               <div key={x.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, height: "100%", justifyContent: "flex-end" }}>
-                <span style={{ fontSize: 10.5, color: "#64748B", fontWeight: 700 }}>{x.vendas + x.servicos ? brl(x.vendas + x.servicos).replace(",00", "") : ""}</span>
-                <div title={`Assistência ${brl(x.servicos)}`} style={{ width: "100%", maxWidth: 46, height: `${(x.servicos / maxMes) * 120}px`, borderRadius: "10px 10px 0 0", background: "var(--w-300)" }} />
-                <div title={`Vendas ${brl(x.vendas)}`} style={{ width: "100%", maxWidth: 46, height: `${Math.max((x.vendas / maxMes) * 120, x.vendas + x.servicos ? 0 : 2)}px`, borderRadius: x.servicos ? "0 0 10px 10px" : 10, background: x.m === mes ? "var(--w-700)" : "var(--w-500)", marginTop: -4 }} />
-                <span style={{ fontSize: 11.5, color: "#94A3B8", fontWeight: 700 }}>{new Date(x.m + "-02").toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
+                <span style={{ fontSize: 10.5, color: "var(--i-sub)", fontWeight: 700 }}>{x.vendas + x.servicos ? brl(x.vendas + x.servicos).replace(",00", "") : ""}</span>
+                <div title={`Assistência ${brl(x.servicos)}`} style={{ width: "100%", maxWidth: 46, height: `${(x.servicos / maxMes) * 120}px`, borderRadius: "10px 10px 0 0", background: "#22D3EE", boxShadow: "0 0 12px -2px #22D3EE" }} />
+                <div title={`Vendas ${brl(x.vendas)}`} style={{ width: "100%", maxWidth: 46, height: `${Math.max((x.vendas / maxMes) * 120, x.vendas + x.servicos ? 0 : 2)}px`, borderRadius: x.servicos ? "0 0 10px 10px" : 10, background: x.m === mes ? "#A78BFA" : "color-mix(in srgb, #A78BFA 55%, transparent)", marginTop: -4 }} />
+                <span style={{ fontSize: 11.5, color: "var(--i-mut)", fontWeight: 700 }}>{new Date(x.m + "-02").toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
               </div>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 14, fontSize: 12, color: "#64748B", marginTop: 8 }}><span><b style={{ color: "var(--w-600)" }}>■</b> Vendas</span><span><b style={{ color: "var(--w-300)" }}>■</b> Assistência</span></div>
+          <div style={{ display: "flex", gap: 14, fontSize: 12, color: "var(--i-sub)", marginTop: 8 }}><span><b style={{ color: "#A78BFA" }}>■</b> Vendas</span><span><b style={{ color: "#22D3EE" }}>■</b> Assistência</span></div>
         </Card>
         <Card titulo="OS abertas por etapa" acao={<Btn variante="ghost" onClick={() => ir("os")}>Ver OS</Btn>}><Barras itens={porEtapaOS} formato={(n) => `${n}`} /></Card>
         <Card titulo="Técnicos no mês"><Barras itens={tecnicos} formato={(n) => `${n} OS`} /></Card>
@@ -115,8 +115,8 @@ export default function Painel({ dados, ir }: any) {
           {recentes.length === 0 ? <Vazio icone="💻" titulo="Nada ainda" sub="Registre a primeira venda ou OS." /> : recentes.map(({ p, os: ehOs }) => {
             const e = ehOs ? etapaOS(p.status_venda) : etapaDe("vendas", p.status_venda);
             return (
-              <button key={(ehOs ? "o" : "v") + p.id} onClick={() => ir(ehOs ? "os" : ped(p).tipo === "orcamento" && ["PENDENTE", "EM NEGOCIACAO"].includes(p.status_venda || "") ? "orcamentos" : "pedidos", { pedidoId: p.id })} style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "10px 4px", border: 0, borderTop: "1px solid #F1F5F4", background: "transparent", cursor: "pointer", textAlign: "left" }}>
-                <span style={{ flex: 1, minWidth: 0 }}><b style={{ fontSize: 13.5 }}>{ehOs ? `🛠️ ${os(p).numero || ""}` : "🛒"} {p.nome}</b><span style={{ display: "block", fontSize: 12, color: "#94A3B8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.plano || ""} · {dataBR(p.created_at)} · {nomeUsuario(usuarios, p.vendedor)}</span></span>
+              <button key={(ehOs ? "o" : "v") + p.id} onClick={() => ir(ehOs ? "os" : ped(p).tipo === "orcamento" && ["PENDENTE", "EM NEGOCIACAO"].includes(p.status_venda || "") ? "orcamentos" : "pedidos", { pedidoId: p.id })} style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "10px 4px", border: 0, borderTop: "1px solid var(--i-borda)", background: "transparent", cursor: "pointer", textAlign: "left" }}>
+                <span style={{ flex: 1, minWidth: 0 }}><b style={{ fontSize: 13.5 }}>{ehOs ? `🛠️ ${os(p).numero || ""}` : "🛒"} {p.nome}</b><span style={{ display: "block", fontSize: 12, color: "var(--i-mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.plano || ""} · {dataBR(p.created_at)} · {nomeUsuario(usuarios, p.vendedor)}</span></span>
                 <span style={{ textAlign: "right" }}><b style={{ display: "block", fontSize: 13.5 }}>{brl(ehOs ? totalOS(os(p)) : totalPedido(ped(p)))}</b><Pill texto={e.curto} cor={e.cor} /></span>
               </button>
             );

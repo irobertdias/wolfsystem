@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePermissao } from "../../hooks/usePermissao";
-import { useConsignado } from "./_dados";
+import { useConsignado, valorLiberado, brl } from "./_dados";
 import Painel from "./_sections/Painel";
 import Esteira from "./_sections/Esteira";
 import Contratos from "./_sections/Contratos";
@@ -9,40 +9,31 @@ import Simulador from "./_sections/Simulador";
 import Clientes from "./_sections/Clientes";
 import Comissoes from "./_sections/Comissoes";
 import ConfigConsignado from "./_sections/ConfigConsignado";
-import Icone from "../../components/a2/Icone";
+import Icone, { IconeEmoji } from "../../components/a2/Icone";
+import { useAppNicho } from "../_app-nicho";
+import { Dinheiro } from "./_ui";
 
 // ═══════════════════════════════════════════════════════════════════════
-// CRM do Consignado — mesma moldura do Revisional/Financeiro: menu lateral
-// com grupos à esquerda e a tela ativa à direita (no celular vira um botão).
+// Sistema do nicho Consignado: um app de mesa de crédito, em tela inteira.
+// Cabeçalho azul-marinho de banco com a produção do mês, abas em pílula e
+// cartões brancos sobrepostos. A esteira é um trilho de etapas por contrato.
+// Não usa a moldura do CRM.
 // ═══════════════════════════════════════════════════════════════════════
 
-type Item = { key: string; label: string; icone: string; soGestor?: boolean };
-type Grupo = { nome: string; itens: Item[] };
-
-const GRUPOS: Grupo[] = [
-  { nome: "CRM", itens: [
-    { key: "painel",   label: "Painel de produção", icone: "grafico" },
-    { key: "esteira",  label: "Esteira de contratos", icone: "funil" },
-    { key: "clientes", label: "Clientes", icone: "usuarios" },
-  ]},
-  { nome: "Operação", itens: [
-    { key: "contratos", label: "Contratos", icone: "documento" },
-    { key: "simulador", label: "Simulador de margem", icone: "carteira" },
-  ]},
-  { nome: "Financeiro", itens: [
-    { key: "comissoes", label: "Comissões", icone: "dinheiro" },
-  ]},
-  { nome: "Configurações", itens: [
-    { key: "config", label: "Bancos, comissões e taxas", icone: "config", soGestor: true },
-  ]},
+type Aba = { key: string; label: string; icone: string; soGestor?: boolean };
+const ABAS: Aba[] = [
+  { key: "painel", label: "Início", icone: "grafico" },
+  { key: "esteira", label: "Esteira", icone: "funil" },
+  { key: "simulador", label: "Simular margem", icone: "carteira" },
+  { key: "contratos", label: "Contratos", icone: "documento" },
+  { key: "clientes", label: "Clientes", icone: "usuarios" },
+  { key: "comissoes", label: "Comissões", icone: "dinheiro" },
+  { key: "config", label: "Bancos e tabelas", icone: "config", soGestor: true },
 ];
-
 const SECTIONS: Record<string, React.ComponentType<any>> = {
   painel: Painel, esteira: Esteira, clientes: Clientes, contratos: Contratos,
   simulador: Simulador, comissoes: Comissoes, config: ConfigConsignado,
 };
-const LABELS: Record<string, string> = Object.fromEntries(GRUPOS.flatMap((g) => g.itens.map((i) => [i.key, i.label])));
-const SOMBRA = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)";
 
 export type Alvo = { contratoId?: number; novo?: boolean; etapa?: string; cpf?: string; preenchido?: Record<string, any>; t?: number };
 export type Navegar = (aba: string, alvo?: Alvo) => void;
@@ -52,88 +43,84 @@ export default function ConsignadoLayolt() {
   const dados = useConsignado();
   const gestor = isSuperAdmin || isDono || perfil === "Administrador";
   const temAcesso = gestor || !!(permissoes as any).crm_acessar || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe || !!permissoes.dashboard;
+  return <TelaConsignado dados={dados} gestor={gestor} temAcesso={temAcesso} loading={loading} />;
+}
 
+export function TelaConsignado({ dados, gestor, temAcesso, loading }: { dados: any; gestor: boolean; temAcesso: boolean; loading: boolean }) {
+  const app = useAppNicho();
   const [aba, setAba] = useState("painel");
   const [alvo, setAlvo] = useState<Alvo>({});
-  const [isMobile, setIsMobile] = useState(false);
-  const [menuMobile, setMenuMobile] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [oculto, setOculto] = useState(false);
 
   useEffect(() => {
-    try { const salva = localStorage.getItem("wolf_consignado_aba"); if (salva && SECTIONS[salva]) setAba(salva); } catch {}
-    const ver = () => setIsMobile(window.innerWidth < 900);
-    ver(); window.addEventListener("resize", ver);
-    return () => window.removeEventListener("resize", ver);
+    try {
+      const salva = localStorage.getItem("wolf_consignado_aba"); if (salva && SECTIONS[salva]) setAba(salva);
+      setOculto(localStorage.getItem("wolf_consignado_oculto") === "1");
+    } catch {}
   }, []);
-
   const ir: Navegar = (nova, novoAlvo) => {
-    setAba(nova);
-    setAlvo({ ...(novoAlvo || {}), t: Date.now() });
-    setMenuMobile(false);
+    setAba(nova); setAlvo({ ...(novoAlvo || {}), t: Date.now() }); setMenu(false);
     try { localStorage.setItem("wolf_consignado_aba", nova); } catch {}
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+  const alternarOculto = () => setOculto((v) => { try { localStorage.setItem("wolf_consignado_oculto", v ? "0" : "1"); } catch {} return !v; });
 
-  if (loading) return <div style={{ padding: 48, textAlign: "center", color: "#94A3B8" }}>Carregando…</div>;
-  if (!temAcesso) {
-    return (
-      <div style={{ minHeight: "50vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div style={{ background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: 40, textAlign: "center", maxWidth: 420 }}>
-          <span style={{ width: 56, height: 56, borderRadius: 16, background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}><Icone nome="cadeado" tamanho={24} /></span>
-          <h2 style={{ margin: "0 0 6px", color: "#0F172A", fontSize: 19, fontWeight: 800 }}>CRM Consignado</h2>
-          <p style={{ margin: 0, fontSize: 14, color: "#64748B" }}>Você não tem acesso a este módulo. Fale com o administrador.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const grupos = GRUPOS.map((g) => ({ ...g, itens: g.itens.filter((i) => !i.soGestor || gestor) })).filter((g) => g.itens.length);
-  const abaValida = SECTIONS[aba] && (aba !== "config" || gestor) ? aba : "painel";
-  const Comp = SECTIONS[abaValida];
-
-  const botao = (i: Item) => {
-    const sel = abaValida === i.key;
-    return (
-      <button key={i.key} onClick={() => ir(i.key)} className={`a2-menu-config${sel ? " ativo" : ""}`}
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", border: 0, borderRadius: 11, cursor: "pointer", textAlign: "left", whiteSpace: "nowrap",
-          background: sel ? "var(--w-50)" : "transparent", color: sel ? "var(--w-800)" : "#475569", fontSize: 13.5, fontWeight: sel ? 800 : 600, transition: "background .15s" }}>
-        <Icone nome={i.icone as any} tamanho={16} cor={sel ? "var(--w-600)" : "#94A3B8"} />
-        {i.label}
-      </button>
-    );
-  };
-  const menu = grupos.map((g) => (
-    <div key={g.nome} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, padding: "12px 12px 4px" }}>{g.nome}</span>
-      {g.itens.map(botao)}
-    </div>
-  ));
+  const abas = ABAS.filter((a) => !a.soGestor || gestor);
+  const valida = abas.some((a) => a.key === aba) ? aba : "painel";
+  const Comp = SECTIONS[valida];
+  const contratos: any[] = dados.contratos || [];
+  const mes = new Date().toISOString().slice(0, 7);
+  const pagosMes = contratos.filter((c) => c.status_venda === "PAGO" && String(c.updated_at || c.created_at).slice(0, 7) === mes);
+  const producao = pagosMes.reduce((s, c) => s + valorLiberado(c), 0);
+  const andamento = contratos.filter((c) => !["PAGO", "REPROVADA", "CANCELADA"].includes(c.status_venda || "SIMULACAO"));
+  const valorAndamento = andamento.reduce((s, c) => s + valorLiberado(c), 0);
+  const iniciais = (app.userNome || app.userEmail || "?").split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join("").toUpperCase();
+  const saud = (() => { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; })();
+  const mascara = (v: string) => (oculto ? "R$ ••••••" : v);
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 22, alignItems: "flex-start", padding: isMobile ? "4px 0 20px" : "8px 4px 28px", maxWidth: 1440, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
-      {isMobile ? (
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
-          <button onClick={() => setMenuMobile((v) => !v)}
-            style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: 0, borderRadius: 16, boxShadow: SOMBRA, padding: "12px 16px", fontSize: 14, fontWeight: 800, color: "#0F172A", cursor: "pointer" }}>
-            <Icone nome="predio" tamanho={18} cor="var(--w-600)" />
-            Consignado · {LABELS[abaValida] || ""}
-            <span style={{ marginLeft: "auto", display: "inline-flex", transform: menuMobile ? "rotate(180deg)" : "none", transition: "transform .15s" }}><Icone nome="baixo" tamanho={16} /></span>
+    <div className="cons-app nicho-app">
+      <header className="cons-cabeca">
+        <div className="cons-cabeca-topo">
+          <button className="cons-marca" onClick={() => ir("painel")}>
+            <span className="cons-selo"><Icone nome="predio" tamanho={18} /></span>
+            <span><b>{app.workspaceNome || "Mesa de crédito"}</b><small>Correspondente · Consignado</small></span>
           </button>
-          {menuMobile && <nav aria-label="Seções do consignado" style={{ background: "#fff", borderRadius: 16, boxShadow: SOMBRA, padding: 10, display: "flex", flexDirection: "column", gap: 2 }}>{menu}</nav>}
-        </div>
-      ) : (
-        <nav aria-label="Seções do consignado" style={{ flex: "0 0 250px", background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: 12, display: "flex", flexDirection: "column", gap: 2, position: "sticky", top: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 12px 4px" }}>
-            <span style={{ width: 32, height: 32, borderRadius: 10, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="predio" tamanho={17} /></span>
-            <span style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ fontWeight: 800, color: "#0F172A", fontSize: 16 }}>CRM</span>
-              <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 600 }}>Crédito consignado</span>
-            </span>
+          <div className="cons-cabeca-acoes">
+            {app.atalhos.slice(0, 3).map((a) => <button key={a.path} className="cons-atalho" onClick={() => app.ir(a.path)} title={a.label}><IconeEmoji e={a.icon} tamanho={16} /><span>{a.label}</span></button>)}
+            <div style={{ position: "relative" }}>
+              <button className="cons-av" onClick={() => setMenu((v) => !v)}>{app.fotoUrl ? <img src={app.fotoUrl} alt="" /> : iniciais}</button>
+              {menu && (
+                <div className="cons-menu" onMouseLeave={() => setMenu(false)}>
+                  <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--k-borda)" }}><b style={{ display: "block", fontSize: 14 }}>{app.userNome || app.userEmail}</b><small style={{ color: "var(--k-sub)" }}>{app.perfilLabel}</small></div>
+                  {app.atalhos.map((a) => <button key={a.path} onClick={() => app.ir(a.path)}><IconeEmoji e={a.icon} tamanho={15} />{a.label}</button>)}
+                  <button onClick={() => app.ir("/meu-perfil")}><Icone nome="usuario" tamanho={15} />Meu perfil</button>
+                  <button onClick={app.sair} style={{ color: "#C0262D" }}><Icone nome="sair" tamanho={15} />Sair</button>
+                </div>
+              )}
+            </div>
           </div>
-          {menu}
+        </div>
+        <div className="cons-saldo">
+          <div>
+            <span className="cons-saud">{saud}, {(app.userNome || "").split(" ")[0] || "bem-vindo"}</span>
+            <span className="cons-rot">Produção paga em {new Date().toLocaleDateString("pt-BR", { month: "long" })} <button onClick={alternarOculto} title={oculto ? "Mostrar valores" : "Ocultar valores"}><Icone nome="olho" tamanho={15} /></button></span>
+            <span className="cons-valor">{oculto ? "R$ ••••••" : <Dinheiro v={brl(producao)} tam={40} />}</span>
+          </div>
+          <div className="cons-chips">
+            <span><small>Na esteira</small><b>{andamento.length} contrato(s)</b><em>{mascara(brl(valorAndamento))}</em></span>
+            <span><small>Pagos no mês</small><b>{pagosMes.length} contrato(s)</b><em>ticket {mascara(brl(pagosMes.length ? producao / pagosMes.length : 0))}</em></span>
+          </div>
+        </div>
+        <nav className="cons-abas" aria-label="Áreas">
+          {abas.map((a) => <button key={a.key} onClick={() => ir(a.key)} className={valida === a.key ? "ativo" : ""}><Icone nome={a.icone as any} tamanho={15} />{a.label}</button>)}
         </nav>
-      )}
-      <main style={{ flex: "999 1 560px", minWidth: 0 }}>
-        <Comp dados={dados} ir={ir} alvo={alvo} gestor={gestor} />
+      </header>
+      <main className="cons-conteudo">
+        {loading ? <div className="cons-cartao-msg">Carregando…</div>
+          : !temAcesso ? <div className="cons-cartao-msg"><Icone nome="cadeado" tamanho={22} /><b>Sem acesso</b><span>Fale com o administrador do workspace.</span></div>
+          : <Comp dados={dados} ir={ir} alvo={alvo} gestor={gestor} />}
       </main>
     </div>
   );
