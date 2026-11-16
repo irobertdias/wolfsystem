@@ -829,3 +829,48 @@ label:has(> .a2-input-limpo:focus), div:has(> .a2-input-limpo:focus) { box-shado
 .a2-linha-contato:hover { background: #F7FAF9; }
 .a2-menu-config:not(.ativo):hover { background: #F3F6F5 !important; }
 .a2-tabela-fin > tr:hover > td { background: #F7FAF9; }
+
+/* ═══ Identidade visual do nicho ══════════════════════════════════════
+   html[data-nicho] + variáveis --nicho-padrao / --nicho-arte (app/lib/arte-nicho.ts).
+   Telecom: wi-fi e antenas · Revisional: balança e contratos · Consignado: cédulas,
+   banco e cofrinho · Vendas: sacolas, etiquetas e carrinho · Roupas: cabides e moda. */
+html[data-nicho] .wolf-premium-content {
+  background-color: var(--a2-fundo, #F3F6F5);
+  background-image: var(--nicho-padrao);
+  background-size: 260px 260px;
+  background-attachment: local;
+}
+html[data-nicho] .wolf-premium-header {
+  background-image:
+    linear-gradient(90deg, rgba(255,255,255,.97) 0%, rgba(255,255,255,.93) 55%, color-mix(in srgb, var(--w-50) 85%, transparent) 100%),
+    var(--nicho-padrao);
+  background-size: auto, 180px 180px;
+}
+html[data-nicho] .wolf-premium-brand-mark { box-shadow: 0 6px 14px -4px color-mix(in srgb, var(--w-600) 60%, transparent); }
+.wolf-nicho-tag {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 3px;
+  font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .02em;
+  color: var(--w-700); background: var(--w-50); border-radius: 999px; padding: 2px 8px 2px 6px;
+  box-shadow: inset 0 0 0 1px var(--w-200); white-space: nowrap;
+}
+.wolf-nicho-tag svg { width: 12px; height: 12px; flex: 0 0 12px; }
+
+/* Banners de destaque: ilustração grande do nicho no canto */
+.hero-nicho, .a2-visao-hero { position: relative; overflow: hidden; isolation: isolate; }
+.hero-nicho::after, .a2-visao-hero::after {
+  content: ""; position: absolute; right: -14px; bottom: -26px; width: min(360px, 72%); height: 240px;
+  background: var(--nicho-arte) no-repeat right bottom / contain; pointer-events: none; z-index: 0;
+}
+.hero-nicho > *, .a2-visao-hero > * { position: relative; z-index: 1; }
+
+/* Roupas: cara de loja de moda (títulos em serifa elegante) */
+html[data-nicho="roupas"] .wolf-premium-content h1,
+html[data-nicho="roupas"] .wolf-premium-content h2,
+html[data-nicho="roupas"] .wolf-premium-content h3,
+html[data-nicho="roupas"] .wolf-premium-brand-copy b {
+  font-family: var(--font-moda), Georgia, "Times New Roman", serif !important;
+  letter-spacing: 0 !important;
+}
+html[data-nicho="roupas"] .wolf-premium-content h1 { font-weight: 700 !important; }
+/* Vendas: títulos mais pesados, cara de varejo */
+html[data-nicho="vendas"] .wolf-premium-content h1 { font-weight: 900 !important; letter-spacing: -.03em !important; }

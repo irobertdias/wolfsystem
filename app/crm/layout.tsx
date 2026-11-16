@@ -7,6 +7,7 @@ import { usePermissao } from "../hooks/usePermissao";
 import { useModulos } from "../hooks/useModulos";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { ehRevisional, verticalDoWorkspace, vocabularioDoWorkspace } from "../lib/vertical-workspace";
+import { ROTULO, iconeNicho } from "../lib/arte-nicho";
 import AuthGuard from "../components/AuthGuard";
 import PontoGuard from "../components/PontoGuard";
 
@@ -326,6 +327,12 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
             <span className="wolf-premium-brand-copy">
               <b>WOLF SYSTEM</b>
               <small>{workspaceNome || "GESTÃO COMPLETA"}</small>
+              {wsAberto && (
+                <em className="wolf-nicho-tag">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={iconeNicho(verticalDoWorkspace(wsAberto))} /></svg>
+                  {ROTULO[verticalDoWorkspace(wsAberto)]}
+                </em>
+              )}
             </span>
           </button>
 

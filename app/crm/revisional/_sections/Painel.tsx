@@ -103,7 +103,7 @@ export default function Painel({ dados, ir }: any) {
 
       {/* Destaque + conversão */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-        <div style={{ gridColumn: "span 2", minWidth: 0, borderRadius: 22, padding: "20px 22px", color: "#fff", background: "linear-gradient(130deg, var(--w-500) 0%, var(--w-600) 42%, var(--w-800) 100%)", boxShadow: "0 22px 44px -24px rgba(6,95,70,.8)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="hero-nicho" style={{ gridColumn: "span 2", minWidth: 0, borderRadius: 22, padding: "20px 22px", color: "#fff", background: "linear-gradient(130deg, var(--w-500) 0%, var(--w-600) 42%, var(--w-800) 100%)", boxShadow: "0 22px 44px -24px rgba(6,95,70,.8)", display: "flex", flexDirection: "column", gap: 8 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,.85)" }}>Benefício gerado para os clientes</span>
           <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-.02em" }}>{carregando ? "…" : brl(beneficioGerado)}</span>
           <span style={{ fontSize: 13, color: "rgba(255,255,255,.82)" }}>

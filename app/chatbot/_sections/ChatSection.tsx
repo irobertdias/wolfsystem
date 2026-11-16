@@ -3173,7 +3173,7 @@ export function ChatSection() {
       </div>
 
       {/* ÁREA DO CHAT — mobile: esconde quando nenhum chat aberto (mostra só a lista) */}
-      <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden", display: isMobile && !atendimentoAtivo ? "none" : "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: WA_BG_A2, backgroundRepeat: "repeat", backgroundSize: "260px 260px", position: "relative", width: isMobile ? "100%" : "auto" }}>
+      <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden", display: isMobile && !atendimentoAtivo ? "none" : "flex", flexDirection: "column", background: tema.chatBg, backgroundImage: `var(--nicho-padrao-chat, ${WA_BG_A2})`, backgroundRepeat: "repeat", backgroundSize: "260px 260px", position: "relative", width: isMobile ? "100%" : "auto" }}>
         {atendimentoAtivo ? (
           <>
             <div style={{ padding: isMobile ? "8px 8px 8px 56px" : "14px 22px", borderBottom: "1px solid #EEF2F1", background: tema.headerBg, display: "flex", justifyContent: "space-between", alignItems: "center", gap: isMobile ? 6 : 12, flexShrink: 0, position: "relative", zIndex: 5 }}>

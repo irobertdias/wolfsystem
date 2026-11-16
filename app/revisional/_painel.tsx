@@ -559,7 +559,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
 
       {/* prévia */}
       <aside aria-label="Prévia do resultado" className="flex h-fit flex-col gap-4">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--w-500)] via-[var(--w-600)] to-[var(--w-900)] p-[26px] text-white shadow-[0_24px_48px_-22px_rgba(6,95,70,.75)]">
+        <div className="hero-nicho relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--w-500)] via-[var(--w-600)] to-[var(--w-900)] p-[26px] text-white shadow-[0_24px_48px_-22px_rgba(6,95,70,.75)]">
           <div aria-hidden className="pointer-events-none absolute -right-[60px] -top-[60px] h-[220px] w-[220px] rounded-full bg-white/10" />
           <span className="relative text-[13px] font-bold text-white/80">{tipo === "imovel" ? "Diferença total identificada" : "Economia total identificada"}</span>
           <div className="relative mt-1 text-[38px] font-extrabold leading-tight tracking-[-.02em] sm:text-[42px]">{brl(total)}</div>

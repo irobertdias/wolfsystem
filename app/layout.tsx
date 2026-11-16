@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist, Geist_Mono, Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { SoftphoneProvider } from "./hooks/useSoftphone";
 import { SoftphoneVisivel } from "./components/SoftphoneVisivel";
@@ -22,6 +22,14 @@ const jakarta = Plus_Jakarta_Sans({
   variable: "--font-wolf",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+});
+
+// Títulos do nicho Roupas (moda).
+const playfair = Playfair_Display({
+  variable: "--font-moda",
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -51,7 +59,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} ${jakarta.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${jakarta.variable} ${playfair.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">

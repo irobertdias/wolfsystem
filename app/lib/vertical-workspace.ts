@@ -2,6 +2,8 @@
 // de internet (instalação, operadora). Workspaces de outro ramo recebem os textos
 // próprios aqui, sem mudar nada para os demais.
 
+import { padraoNicho, arteNicho, ROTULO, TOM_PADRAO } from "./arte-nicho";
+
 export type Vertical = "telecom" | "consignado" | "revisional" | "vendas" | "roupas";
 
 // Tipos oferecidos no cadastro do cliente (o "revisional" aparece como Financeiro).
@@ -45,9 +47,15 @@ export function definirVerticalAtual(workspaceId?: string | number | null) {
 // Cor do sistema pelo nicho (globals.css: html[data-nicho]). Telecom e Financeiro ficam no verde.
 export function aplicarCorDoNicho(v: Vertical) {
   if (typeof document === "undefined") return;
-  const nicho = v === "consignado" || v === "vendas" || v === "roupas" ? v : "";
-  if (nicho) document.documentElement.dataset.nicho = nicho; else delete document.documentElement.dataset.nicho;
-  try { if (nicho) localStorage.setItem("wolf_nicho", nicho); else localStorage.removeItem("wolf_nicho"); } catch {}
+  const html = document.documentElement;
+  // data-nicho vale para todos os ramos: a cor muda só em consignado/vendas/roupas (globals.css),
+  // a arte (símbolos, padrão de fundo, banners, chat) muda em todos.
+  html.dataset.nicho = v;
+  html.style.setProperty("--nicho-padrao", padraoNicho(v, TOM_PADRAO[v], 0.085));
+  html.style.setProperty("--nicho-padrao-chat", padraoNicho(v, TOM_PADRAO[v], 0.11));
+  html.style.setProperty("--nicho-arte", arteNicho(v));
+  html.style.setProperty("--nicho-rotulo", JSON.stringify(ROTULO[v]));
+  try { localStorage.setItem("wolf_nicho", v); } catch {}
 }
 export function verticalAtual(): Vertical {
   return VERTICAL_ATUAL;

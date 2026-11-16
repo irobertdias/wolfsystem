@@ -49,7 +49,7 @@ export default function Simulador({ dados, ir }: any) {
         </Card>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ borderRadius: 22, padding: "20px 22px", color: "#fff", background: "linear-gradient(130deg, var(--w-500), var(--w-700))", boxShadow: "0 22px 44px -24px rgba(15,23,42,.55)", display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="hero-nicho" style={{ borderRadius: 22, padding: "20px 22px", color: "#fff", background: "linear-gradient(130deg, var(--w-500), var(--w-700))", boxShadow: "0 22px 44px -24px rgba(15,23,42,.55)", display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,.85)" }}>Pode liberar até</span>
             <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-.02em" }}>{brl(r.liberavel)}</span>
             <span style={{ fontSize: 13, color: "rgba(255,255,255,.85)" }}>{r.margemLivre > 0 ? `parcela de ${brl(r.margemLivre)} em ${Math.round(num(s.prazo))}x a ${pctBR(num(s.taxa))} a.m.` : "sem margem livre para empréstimo"}</span>

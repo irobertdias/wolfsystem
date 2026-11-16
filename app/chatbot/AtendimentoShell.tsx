@@ -12,6 +12,7 @@ import { RelatoriosSection } from "./_sections/RelatoriosSection";
 import { RespostasRapidasSection } from "./_sections/RespostasRapidasSection";
 import { RoletaSection } from "./_sections/RoletaSection";
 import Icone from "../components/a2/Icone";
+import { ROTULO, iconeNicho } from "../lib/arte-nicho";
 
 export default function AtendimentoShell({ children }: { children?: ReactNode }) {
   const router = useRouter();
@@ -162,6 +163,12 @@ export default function AtendimentoShell({ children }: { children?: ReactNode })
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--w-500)", boxShadow: "0 0 0 2px #22c55e22" }}/>
                 {workspace?.nome || "Carregando..."}
               </span>
+              {workspace && (
+                <em className="wolf-nicho-tag">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={iconeNicho(vertical)} /></svg>
+                  {ROTULO[vertical]}
+                </em>
+              )}
             </div>
           </div>
           {isMobile && (
