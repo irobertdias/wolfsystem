@@ -99,10 +99,11 @@ export function validarEstruturaUniversal(nos: {id:string;tipo:string;dados:Reco
     if(lembretes?.ativo===true&&(!Array.isArray(lembretes.minutos)||lembretes.minutos.length!==5||!lembretes.minutos.every((v:any,i:number)=>Number.isFinite(Number(v))&&Number(v)>0&&(!i||Number(v)>Number(lembretes.minutos[i-1])))))problemas.push('Configure os cinco horários crescentes dos lembretes inteligentes.');
     for(const k of ['silencio_inicio','silencio_fim'])if(lembretes?.[k]!==undefined&&lembretes[k]!==''&&!(Number.isInteger(Number(lembretes[k]))&&Number(lembretes[k])>=0&&Number(lembretes[k])<=23))problemas.push('O horário sem lembretes deve usar horas de 0 a 23.');
     const destinos=arestas.filter(a=>a.de===no.id&&a.saidaIndex===0).map(a=>nos.find(n=>n.id===a.para));
-    if(no.dados.motor==='agente'&&destinos.length===1&&!['claro_prime','configuravel',undefined,''].includes(destinos[0]?.dados?.integracao))problemas.push('O motor Agente IA funciona com as integrações "Base Claro" ou "Catálogo e coleta configuráveis".');
+    if(no.dados.motor==='agente'&&destinos.length===1&&!['claro_prime','configuravel','loja_sistema',undefined,''].includes(destinos[0]?.dados?.integracao))problemas.push('O motor Agente IA funciona com as integrações "Base Claro" ou "Catálogo e coleta configuráveis".');
     if(destinos.length!==1||destinos[0]?.tipo!=='nicho_atendimento')problemas.push('Conecte o assistente a um único bloco Nicho de atendimento.');
     else if(!perfilUniversal(destinos[0].dados.nicho))problemas.push('Escolha um nicho válido para o assistente.');
-    if(destinos.length===1&&destinos[0]?.tipo==='nicho_atendimento'){
+    // Vendedora da loja cria o pedido direto no sistema: não usa o bloco Concluir venda.
+    if(destinos.length===1&&destinos[0]?.tipo==='nicho_atendimento'&&destinos[0]?.dados?.integracao!=='loja_sistema'){
       const finais=arestas.filter(a=>a.de===destinos[0]!.id&&a.saidaIndex===0).map(a=>nos.find(n=>n.id===a.para));
       if(finais.length!==1||finais[0]?.tipo!=='concluir_venda_universal')problemas.push('Conecte o nicho ao bloco Concluir venda · CRM + WhatsApp.');
     }
