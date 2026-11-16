@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "../../../../_auth";
+import { modulosLoja } from "../../../_modulos";
 import { lerGateway, criarCobranca, consultarPagamento, confirmarPagamento, NOME_GATEWAY } from "../../../_pagamento";
 
 // Link de pagamento online do pedido aceito (gateway do lojista).
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ token:
     if (["CANCELADA", "PERDIDA"].includes(x.status_venda)) return NextResponse.json({ success: false, error: "Este pedido foi cancelado" }, { status: 409 });
     if (d.pagamento_online?.status === "pago") return NextResponse.json({ success: false, error: "Este pedido já está pago" }, { status: 409 });
     const g = await lerGateway(x.workspace_id);
-    if (!g) return NextResponse.json({ success: false, error: "A loja não ativou o pagamento online" }, { status: 400 });
+    if (!g || !(await modulosLoja(x.workspace_id)).liberado("pagamento_online")) return NextResponse.json({ success: false, error: "A loja não ativou o pagamento online" }, { status: 400 });
 
     // Reaproveita a cobrança já criada (mesmo gateway, mesmo valor, menos de 2 dias)
     const total = Number(x.valor_plano) || 0;

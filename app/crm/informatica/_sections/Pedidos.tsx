@@ -210,7 +210,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
             {f.d.entrega === "entrega" && <Field label={modo === "roupas" ? "Taxa de entrega (R$)" : `Frete (R$)${f.d.servico_frete ? ` · ${f.d.servico_frete}` : ""}`} flex="1 1 140px"><input style={inputSm} inputMode="decimal" value={f.d.frete ?? ""} onChange={(e) => setD({ frete: e.target.value as any, servico_frete: undefined, prazo_frete: undefined })} /></Field>}
             <Field label="Pagamento" flex="1 1 170px"><select style={inputSm} value={f.d.pagamento || ""} onChange={(e) => setD({ pagamento: e.target.value })}><option value="">—</option>{cfg.formas_pagamento.map((x: string) => <option key={x}>{x}</option>)}</select></Field>
           </Row>
-          {f.d.entrega === "entrega" && cfg.frete?.modo === "calculado" && (
+          {f.d.entrega === "entrega" && cfg.frete?.modo === "calculado" && nichoLiberado(modulos.nicho_opcoes, "informatica", "frete_calculado") && (
             <CalcularFreteLoja wsId={wsId} itens={f.d.itens.map((i) => ({ produto_id: i.produto_id, qtd: num(i.qtd), preco: num(i.preco), servico: i.servico }))}
               onEscolher={(o) => { setD({ frete: o.valor, servico_frete: o.servico, prazo_frete: o.prazo }); if (o.destino) setF((x) => (x ? { ...x, cidade: x.cidade || o.destino.cidade, estado: x.estado || o.destino.uf, endereco: x.endereco || [o.destino.logradouro, o.destino.bairro].filter(Boolean).join(", ") } : x)); }} />
           )}

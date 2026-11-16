@@ -15,6 +15,8 @@ export default function ConfigLoja({ dados }: any) {
   const { wsId, modo, cfg, carregar } = dados;
   const { modulos } = useModulos();
   const iaLiberada = nichoLiberado(modulos.nicho_opcoes, "informatica", "ia_cadastro");
+  const freteLiberado = nichoLiberado(modulos.nicho_opcoes, "informatica", "frete_calculado");
+  const pagLiberado = nichoLiberado(modulos.nicho_opcoes, "informatica", "pagamento_online");
   const roupas = modo === "roupas";
   const [f, setF] = useState({ pagamentos: "", categorias: "", tamanhos: "", taxa: "", minimo: "", validade: "", tecnicos: "", garantia: "" });
   const [aviso, setAviso] = useState("");
@@ -86,8 +88,8 @@ export default function ConfigLoja({ dados }: any) {
           </div>
         </div>
       </Card>
-      <ConfigFreteLoja valor={fr} onChange={setFr} taxaFixa={f.taxa} onTaxaFixa={(s) => setF({ ...f, taxa: s })} roupas={roupas} />
-      <GatewayLoja wsId={wsId} />
+      <ConfigFreteLoja valor={fr} onChange={setFr} taxaFixa={f.taxa} onTaxaFixa={(s) => setF({ ...f, taxa: s })} roupas={roupas} permiteCalculado={freteLiberado} />
+      {pagLiberado && <GatewayLoja wsId={wsId} />}
       {iaLiberada && <ChaveIALoja wsId={wsId} />}
       <Card titulo="Vendas">
         <Row>

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer, autenticarWorkspace, respostaErroAcesso } from "../../_auth";
 import { lerConfigLoja } from "../_ia-chave";
+import { modulosLoja } from "../_modulos";
 import { urlWebhook, type Gateway } from "../_pagamento";
 
 // Ajustes da loja → gateway de pagamento do lojista (Mercado Pago ou Asaas).
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
     const b = await request.json().catch(() => ({}));
     const acesso = await autenticarWorkspace(request, String(b.ws || ""));
     if (!acesso.isSuperAdmin && !acesso.isDono && !acesso.isAdministrador) return NextResponse.json({ success: false, error: "Só o dono ou um administrador pode alterar o gateway." }, { status: 403 });
+    if (b.remover !== true && !(await modulosLoja(acesso.workspaceId)).liberado("pagamento_online")) return NextResponse.json({ success: false, error: "O módulo de pagamento online não está liberado para este workspace." }, { status: 403 });
     const { existe, config } = await lerConfigLoja(acesso.workspaceId);
     const atual = config.gateway_loja || {};
     const novo = { ...config };

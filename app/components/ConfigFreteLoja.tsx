@@ -9,21 +9,21 @@ import { TABELA_SEDEX_PADRAO, type FreteConfig } from "../lib/loja-orcamento";
 const n = (v: any) => { const x = parseFloat(String(v ?? "").replace(",", ".")); return Number.isFinite(x) ? x : 0; };
 const v = (x: any) => (x === undefined || x === null ? "" : String(x).replace(".", ","));
 
-export default function ConfigFreteLoja({ valor, onChange, taxaFixa, onTaxaFixa, roupas }: { valor: FreteConfig; onChange: (f: FreteConfig) => void; taxaFixa: string; onTaxaFixa: (s: string) => void; roupas?: boolean }) {
+export default function ConfigFreteLoja({ valor, onChange, taxaFixa, onTaxaFixa, roupas, permiteCalculado = true }: { valor: FreteConfig; onChange: (f: FreteConfig) => void; taxaFixa: string; onTaxaFixa: (s: string) => void; roupas?: boolean; permiteCalculado?: boolean }) {
   const fr = valor || {};
   const set = (p: Partial<FreteConfig>) => onChange({ ...fr, ...p });
   const tab = { ...TABELA_SEDEX_PADRAO, ...(fr.tabela || {}) };
   const emb = fr.embalagem || { comprimento: 30, largura: 20, altura: 15 };
   const servicos = fr.servicos?.length ? fr.servicos : ["SEDEX", "PAC"];
   const [verCorreios, setVerCorreios] = useState(!!fr.correios?.usuario);
-  const calculado = fr.modo === "calculado";
+  const calculado = permiteCalculado && fr.modo === "calculado";
   const op = (ativo: boolean): any => ({ flex: "1 1 220px", textAlign: "left", padding: "12px 14px", borderRadius: 14, cursor: "pointer", border: 0, background: ativo ? "var(--w-50)" : "#F7FAF9", boxShadow: ativo ? "inset 0 0 0 2px var(--w-500)" : "inset 0 0 0 1px #E6ECEA" });
 
   return (
     <Card titulo="Frete">
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
         <button type="button" style={op(!calculado)} onClick={() => set({ modo: "fixo" })}><b style={{ display: "block", fontSize: 14 }}>Frete fixo</b><span style={{ fontSize: 12.5, color: "#64748B" }}>Um valor único para qualquer endereço</span></button>
-        <button type="button" style={op(calculado)} onClick={() => set({ modo: "calculado" })}><b style={{ display: "block", fontSize: 14 }}>Calculado pelo CEP (Sedex / PAC)</b><span style={{ fontSize: 12.5, color: "#64748B" }}>O cliente digita o CEP e escolhe o envio</span></button>
+        {permiteCalculado && <button type="button" style={op(calculado)} onClick={() => set({ modo: "calculado" })}><b style={{ display: "block", fontSize: 14 }}>Calculado pelo CEP (Sedex / PAC)</b><span style={{ fontSize: 12.5, color: "#64748B" }}>O cliente digita o CEP e escolhe o envio</span></button>}
       </div>
       {!calculado ? (
         <Row>

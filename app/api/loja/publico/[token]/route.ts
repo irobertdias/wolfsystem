@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "../../../_auth";
 import { calcularFrete } from "../../_frete";
 import { NOME_GATEWAY, PAGAR_ONLINE } from "../../_pagamento";
+import { modulosLoja, lojaComModulos } from "../../_modulos";
 
 const so = (v: any) => String(v || "").replace(/\D/g, "");
 
@@ -21,7 +22,9 @@ async function buscar(token: string) {
   if (!data) return null;
   const { data: cfgRow } = await supabaseServer.from("fin_config").select("config").eq("workspace_id", data.workspace_id).maybeSingle();
   const gw = (cfgRow as any)?.config?.gateway_loja;
-  const loja = { ...((cfgRow as any)?.config?.loja || {}), _online: gw?.token && gw.ativo !== false ? NOME_GATEWAY[gw.gateway as keyof typeof NOME_GATEWAY] || "online" : "" };
+  const { liberado } = await modulosLoja(data.workspace_id);
+  const online = liberado("pagamento_online") && gw?.token && gw.ativo !== false;
+  const loja = { ...lojaComModulos((cfgRow as any)?.config?.loja || {}, liberado), _online: online ? NOME_GATEWAY[gw.gateway as keyof typeof NOME_GATEWAY] || "online" : "" };
   const { data: ws } = await supabaseServer.from("workspaces").select("nome").eq("username", data.workspace_id).maybeSingle();
   return { p: data as any, loja, nomeWs: (ws as any)?.nome || "" };
 }
